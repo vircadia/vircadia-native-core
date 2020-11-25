@@ -440,6 +440,7 @@ QVector<glm::uint32> scriptable::ScriptableMeshPart::getFace(glm::uint32 faceInd
         if (faceIndex < getNumFaces()) {
             return getIndices().mid(faceIndex * getTopologyLength(), getTopologyLength());
         }
+    /* fall-thru */
     default: return QVector<glm::uint32>();
     }
 }

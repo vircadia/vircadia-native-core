@@ -322,13 +322,7 @@ function onWebEventReceived(event) {
             gotoConfirm(event.url);
         }
         if (event.cmd === "URL") {
-            new OverlayWebWindow({
-                title: 'Web',
-                source: event.url,
-                width: 900,
-                height: 700,
-                visible: true
-            });
+            Window.openWebBrowser(event.url);
         }
         if (event.cmd === "EXTERNALURL") {
             Window.openUrl(event.url);

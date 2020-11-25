@@ -22,8 +22,8 @@
 
 #include "AccountManager.h"
 
-extern const QString DEFAULT_HIFI_ADDRESS;
 extern const QString REDIRECT_HIFI_ADDRESS;
+extern const QString DEFAULT_VIRCADIA_ADDRESS;
 extern const QString DEFAULT_HOME_ADDRESS;
 
 const QString SANDBOX_HIFI_ADDRESS = "hifi://localhost";
@@ -292,7 +292,8 @@ public slots:
      *     location history is correctly maintained.
      */
     void goToLocalSandbox(QString path = "", LookupTrigger trigger = LookupTrigger::StartupFromSettings) {
-        handleUrl(SANDBOX_HIFI_ADDRESS + path, trigger); }
+        handleUrl(SANDBOX_HIFI_ADDRESS + path, trigger); 
+    }
 
     /**jsdoc
      * Takes you to the default "welcome" metaverse address.
@@ -300,7 +301,9 @@ public slots:
      * @param {location.LookupTrigger} trigger=StartupFromSettings - The reason for the function call. Helps ensure that user's
      *     location history is correctly maintained.
      */
-    void goToEntry(LookupTrigger trigger = LookupTrigger::StartupFromSettings) { handleUrl(DEFAULT_HIFI_ADDRESS, trigger); }
+    void goToEntry(LookupTrigger trigger = LookupTrigger::StartupFromSettings) {
+        handleUrl(DEFAULT_VIRCADIA_ADDRESS, trigger);
+    }
 
     /**jsdoc
      * Takes you to the specified user's location.

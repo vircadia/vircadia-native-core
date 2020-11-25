@@ -253,6 +253,7 @@
 #include <DesktopPreviewProvider.h>
 
 #include "AboutUtil.h"
+#include "ExternalResource.h"
 
 #if defined(Q_OS_WIN)
 #include <VersionHelpers.h>
@@ -354,6 +355,7 @@ static const QString DESKTOP_DISPLAY_PLUGIN_NAME = "Desktop";
 static const QString ACTIVE_DISPLAY_PLUGIN_SETTING_NAME = "activeDisplayPlugin";
 static const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
 static const QString KEEP_ME_LOGGED_IN_SETTING_NAME = "keepMeLoggedIn";
+static const QString CACHEBUST_SCRIPT_REQUIRE_SETTING_NAME = "cachebustScriptRequire";
 
 static const float FOCUS_HIGHLIGHT_EXPANSION_FACTOR = 1.05f;
 
@@ -680,6 +682,9 @@ private:
  *     <tr><td><code>CameraIndependent</code></td><td>number</td><td>number</td><td>The camera is in independent mode.</td></tr>
  *     <tr><td><code>CameraEntity</code></td><td>number</td><td>number</td><td>The camera is in entity mode.</td></tr>
  *     <tr><td><code>InHMD</code></td><td>number</td><td>number</td><td>The user is in HMD mode.</td></tr>
+ *     <tr><td><code>CaptureMouse</code></td><td>number</td><td>number</td><td>The mouse is captured.  In this mode,
+ *       the mouse is invisible and cannot leave the bounds of Interface, as long as Interface is the active window and
+ *       no menu item is selected.</td></tr>
  *     <tr><td><code>AdvancedMovement</code></td><td>number</td><td>number</td><td>Advanced movement (walking) controls are
  *       enabled.</td></tr>
  *     <tr><td><code>StrafeEnabled</code></td><td>number</td><td>number</td><td>Strafing is enabled</td></tr>
@@ -715,6 +720,7 @@ static const QString STATE_PLATFORM_ANDROID = "PlatformAndroid";
 static const QString STATE_LEFT_HAND_DOMINANT = "LeftHandDominant";
 static const QString STATE_RIGHT_HAND_DOMINANT = "RightHandDominant";
 static const QString STATE_STRAFE_ENABLED = "StrafeEnabled";
+static const QString STATE_CAPTURE_MOUSE = "CaptureMouse";
 
 // Statically provided display and input plugins
 extern DisplayPluginList getDisplayPlugins();
@@ -918,7 +924,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<MessagesClient>();
     controller::StateController::setStateVariables({ { STATE_IN_HMD, STATE_CAMERA_FULL_SCREEN_MIRROR,
                     STATE_CAMERA_FIRST_PERSON, STATE_CAMERA_FIRST_PERSON_LOOK_AT, STATE_CAMERA_THIRD_PERSON,
-                    STATE_CAMERA_ENTITY, STATE_CAMERA_INDEPENDENT, STATE_CAMERA_LOOK_AT, STATE_CAMERA_SELFIE,
+                    STATE_CAMERA_ENTITY, STATE_CAMERA_INDEPENDENT, STATE_CAMERA_LOOK_AT, STATE_CAMERA_SELFIE, STATE_CAPTURE_MOUSE,
                     STATE_SNAP_TURN, STATE_ADVANCED_MOVEMENT_CONTROLS, STATE_GROUNDED, STATE_NAV_FOCUSED,
                     STATE_PLATFORM_WINDOWS, STATE_PLATFORM_MAC, STATE_PLATFORM_ANDROID, STATE_LEFT_HAND_DOMINANT, STATE_RIGHT_HAND_DOMINANT, STATE_STRAFE_ENABLED } });
     DependencyManager::set<UserInputMapper>();
@@ -1891,6 +1897,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _applicationStateDevice->setInputVariant(STATE_CAMERA_INDEPENDENT, []() -> float {
         return qApp->getCamera().getMode() == CAMERA_MODE_INDEPENDENT ? 1 : 0;
     });
+    _applicationStateDevice->setInputVariant(STATE_CAPTURE_MOUSE, []() -> float {
+        return qApp->getCamera().getCaptureMouse() ? 1 : 0;
+    });
     _applicationStateDevice->setInputVariant(STATE_SNAP_TURN, []() -> float {
         return qApp->getMyAvatar()->getSnapTurn() ? 1 : 0;
     });
@@ -1958,6 +1967,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     loadSettings();
 
     updateVerboseLogging();
+    
+    setCachebustRequire();
 
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
@@ -2406,6 +2417,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     updateSystemTabletMode();
 
     connect(&_myCamera, &Camera::modeUpdated, this, &Application::cameraModeChanged);
+    connect(&_myCamera, &Camera::captureMouseChanged, this, &Application::captureMouseChanged);
 
     DependencyManager::get<PickManager>()->setShouldPickHUDOperator([]() { return DependencyManager::get<HMDScriptingInterface>()->isHMDMode(); });
     DependencyManager::get<PickManager>()->setCalculatePos2DFromHUDOperator([this](const glm::vec3& intersection) {
@@ -2589,6 +2601,16 @@ void Application::updateVerboseLogging() {
         "hifi.audio-stream.info=false";
     rules = rules.arg(enable ? "true" : "false");
     QLoggingCategory::setFilterRules(rules);
+}
+
+void Application::setCachebustRequire() {
+    auto menu = Menu::getInstance();
+    if (!menu) {
+        return;
+    }
+    bool enable = menu->isOptionChecked(MenuOption::CachebustRequire);
+    
+    Setting::Handle<bool>{ CACHEBUST_SCRIPT_REQUIRE_SETTING_NAME, false }.set(enable);
 }
 
 void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {
@@ -3515,6 +3537,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("About", AboutUtil::getInstance());
     surfaceContext->setContextProperty("HiFiAbout", AboutUtil::getInstance());  // Deprecated
     surfaceContext->setContextProperty("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
+    surfaceContext->setContextProperty("ExternalResource", ExternalResource::getInstance());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         surfaceContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
@@ -3629,6 +3652,8 @@ void Application::setupQmlSurface(QQmlContext* surfaceContext, bool setAdditiona
         surfaceContext->setContextProperty("WalletScriptingInterface", DependencyManager::get<WalletScriptingInterface>().data());
         surfaceContext->setContextProperty("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
         surfaceContext->setContextProperty("PlatformInfo", PlatformInfoScriptingInterface::getInstance());
+        surfaceContext->setContextProperty("ExternalResource", ExternalResource::getInstance());
+
         // This `module` context property is blank for the QML scripting interface so that we don't get log errors when importing
         // certain JS files from both scripts (in the JS context) and QML (in the QML context).
         surfaceContext->setContextProperty("module", "");
@@ -3976,6 +4001,11 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     // If this is a first run we short-circuit the address passed in
     if (_firstRun.get()) {
+        if (!BuildInfo::INITIAL_STARTUP_LOCATION.isEmpty()) {
+            DependencyManager::get<LocationBookmarks>()->setHomeLocationToAddress(NetworkingConstants::DEFAULT_VIRCADIA_ADDRESS);
+            Menu::getInstance()->triggerOption(MenuOption::HomeLocation);
+        }
+        
         if (!_overrideEntry) {
             DependencyManager::get<AddressManager>()->goToEntry();
             sentTo = SENT_TO_ENTRY;
@@ -4695,6 +4725,11 @@ void Application::maybeToggleMenuVisible(QMouseEvent* event) const {
 void Application::mouseMoveEvent(QMouseEvent* event) {
     PROFILE_RANGE(app_input_mouse, __FUNCTION__);
 
+    if (_ignoreMouseMove) {
+        _ignoreMouseMove = false;
+        return;
+    }
+
     maybeToggleMenuVisible(event);
 
     auto& compositor = getApplicationCompositor();
@@ -4740,7 +4775,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
     }
 
     if (_keyboardMouseDevice->isActive()) {
-        _keyboardMouseDevice->mouseMoveEvent(event);
+        _keyboardMouseDevice->mouseMoveEvent(event, _captureMouse, _mouseCaptureTarget);
     }
 }
 
@@ -5534,6 +5569,19 @@ void Application::loadSettings() {
     }
 
     getMyAvatar()->loadData();
+
+    auto bucketEnum = QMetaEnum::fromType<ExternalResource::Bucket>();
+    auto externalResource = ExternalResource::getInstance();
+
+    for (int i = 0; i < bucketEnum.keyCount(); i++) {
+        const char* keyName = bucketEnum.key(i);
+        QString setting("ExternalResource/");
+        setting += keyName;
+        auto bucket = static_cast<ExternalResource::Bucket>(bucketEnum.keyToValue(keyName));
+        Setting::Handle<QString> url(setting, externalResource->getBase(bucket));
+        externalResource->setBase(bucket, url.get());
+    }
+
     _settingsLoaded = true;
 }
 
@@ -5550,6 +5598,22 @@ void Application::saveSettings() const {
     Menu::getInstance()->saveSettings();
     getMyAvatar()->saveData();
     PluginManager::getInstance()->saveSettings();
+
+    // Don't save external resource paths until such time as there's UI to select or set alternatives. Otherwise new default
+    // values won't be used unless Interface.json entries are manually remove or Interface.json is deleted.
+    /*
+    auto bucketEnum = QMetaEnum::fromType<ExternalResource::Bucket>();
+    auto externalResource = ExternalResource::getInstance();
+
+    for (int i = 0; i < bucketEnum.keyCount(); i++) {
+        const char* keyName = bucketEnum.key(i);
+        QString setting("ExternalResource/");
+        setting += keyName;
+        auto bucket = static_cast<ExternalResource::Bucket>(bucketEnum.keyToValue(keyName));
+        Setting::Handle<QString> url(setting, externalResource->getBase(bucket));
+        url.set(externalResource->getBase(bucket));
+    }
+    */
 }
 
 bool Application::importEntities(const QString& urlOrFilename, const bool isObservable, const qint64 callerId) {
@@ -5912,6 +5976,20 @@ void Application::cameraModeChanged() {
     cameraMenuChanged();
 }
 
+bool Application::shouldCaptureMouse() const {
+    return _captureMouse && _glWidget->isActiveWindow() && !ui::Menu::isSomeSubmenuShown();
+}
+
+void Application::captureMouseChanged(bool captureMouse) {
+    _captureMouse = captureMouse;
+    if (_captureMouse) {
+        _glWidget->setCursor(QCursor(Qt::BlankCursor));
+    } else {
+        _mouseCaptureTarget = QPointF(NAN, NAN);
+        _glWidget->unsetCursor();
+    }
+}
+
 void Application::changeViewAsNeeded(float boomLength) {
     // Switch between first and third person views as needed
     // This is called when the boom length has changed
@@ -6262,6 +6340,15 @@ void Application::update(float deltaTime) {
         PROFILE_ASYNC_END(app, "Scene Loading", "");
     }
 
+     if (shouldCaptureMouse()) {
+        QPoint point = _glWidget->mapToGlobal(_glWidget->geometry().center());
+        if (QCursor::pos() != point) {
+            _mouseCaptureTarget = point;
+            _ignoreMouseMove = true;
+            QCursor::setPos(point);
+        }
+    }
+
     auto myAvatar = getMyAvatar();
     {
         PerformanceTimer perfTimer("devices");
@@ -6317,8 +6404,8 @@ void Application::update(float deltaTime) {
                 if (deltaTime > FLT_EPSILON && userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z)  == 0.0f) {
                     myAvatar->setDriveKey(MyAvatar::PITCH, -1.0f * userInputMapper->getActionState(controller::Action::PITCH));
                     myAvatar->setDriveKey(MyAvatar::YAW, -1.0f * userInputMapper->getActionState(controller::Action::YAW));
-                    myAvatar->setDriveKey(MyAvatar::DELTA_PITCH, -1.0f * userInputMapper->getActionState(controller::Action::DELTA_PITCH));
-                    myAvatar->setDriveKey(MyAvatar::DELTA_YAW, -1.0f * userInputMapper->getActionState(controller::Action::DELTA_YAW));
+                    myAvatar->setDriveKey(MyAvatar::DELTA_PITCH, -_myCamera.getSensitivity() * userInputMapper->getActionState(controller::Action::DELTA_PITCH));
+                    myAvatar->setDriveKey(MyAvatar::DELTA_YAW, -_myCamera.getSensitivity() * userInputMapper->getActionState(controller::Action::DELTA_YAW));
                     myAvatar->setDriveKey(MyAvatar::STEP_YAW, -1.0f * userInputMapper->getActionState(controller::Action::STEP_YAW));
                 }
             }
@@ -7105,9 +7192,9 @@ void Application::updateWindowTitle() const {
     QString currentPlaceName;
     if (isServerlessMode()) {
         if (isInErrorState) {
-            currentPlaceName = "serverless: " + nodeList->getDomainHandler().getErrorDomainURL().toString();
+            currentPlaceName = "Serverless: " + nodeList->getDomainHandler().getErrorDomainURL().toString();
         } else {
-            currentPlaceName = "serverless: " + DependencyManager::get<AddressManager>()->getDomainURL().toString();
+            currentPlaceName = "Serverless: " + DependencyManager::get<AddressManager>()->getDomainURL().toString();
         }
     } else {
         currentPlaceName = DependencyManager::get<AddressManager>()->getDomainURL().host();
@@ -7118,7 +7205,7 @@ void Application::updateWindowTitle() const {
 
     QString metaverseDetails;
     if (isMetaverseLoggedIn) {
-        metaverseDetails = " (Metaverse: Logged in as " + metaverseUsername + ")";
+        metaverseDetails = " (Metaverse: Connected to " + MetaverseAPI::getCurrentMetaverseServerURL().toString() + " as " + metaverseUsername + ")";
     } else {
         metaverseDetails = " (Metaverse: Not Logged In)";
     }
@@ -7664,7 +7751,7 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
 
     QUrl scriptURL { scriptFilenameOrURL };
 
-    if (scriptURL.host().endsWith(NetworkingConstants::MARKETPLACE_CDN_HOSTNAME)) {
+    if (scriptURL.host().endsWith(NetworkingConstants::HF_MARKETPLACE_CDN_HOSTNAME)) {
         int startIndex = shortName.lastIndexOf('/') + 1;
         int endIndex = shortName.lastIndexOf('?');
         shortName = shortName.mid(startIndex, endIndex - startIndex);
@@ -7787,7 +7874,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
     const int MAX_CHARACTERS_PER_LINE = 90;
     if (DependencyManager::get<NodeList>()->getThisNodeCanReplaceContent()) {
         QUrl originURL { url };
-        if (originURL.host().endsWith(NetworkingConstants::MARKETPLACE_CDN_HOSTNAME)) {
+        if (originURL.host().endsWith(NetworkingConstants::HF_MARKETPLACE_CDN_HOSTNAME)) {
             // Create a confirmation dialog when this call is made
             static const QString infoText = simpleWordWrap("Your domain's content will be replaced with a new content set. "
                 "If you want to save what you have now, create a backup before proceeding. For more information about backing up "

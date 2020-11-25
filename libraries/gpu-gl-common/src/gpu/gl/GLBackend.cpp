@@ -11,11 +11,13 @@
 //
 #include "GLBackend.h"
 
+
 #include <mutex>
 #include <queue>
 #include <list>
 #include <functional>
 #include <glm/gtc/type_ptr.hpp>
+#include "gl/Config.h"
 
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
@@ -112,13 +114,27 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
 };
 
 #define GL_GET_INTEGER(NAME) glGetIntegerv(GL_##NAME, &const_cast<GLint&>(NAME)); 
-    
+
+#define BYTES_PER_KIB 1024L
+#define BYTES_PER_MIB (1024L * BYTES_PER_KIB)
+
 GLint GLBackend::MAX_TEXTURE_IMAGE_UNITS{ 0 };
 GLint GLBackend::MAX_UNIFORM_BUFFER_BINDINGS{ 0 };
 GLint GLBackend::MAX_COMBINED_UNIFORM_BLOCKS{ 0 };
 GLint GLBackend::MAX_COMBINED_TEXTURE_IMAGE_UNITS{ 0 };
 GLint GLBackend::MAX_UNIFORM_BLOCK_SIZE{ 0 };
 GLint GLBackend::UNIFORM_BUFFER_OFFSET_ALIGNMENT{ 1 };
+GLint GLBackend::GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX{ 0 };
+GLint GLBackend::GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX{ 0 };
+GLint GLBackend::GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX{ 0 };
+GLint GLBackend::TEXTURE_FREE_MEMORY_ATI{ 0 };
+
+size_t GLBackend::_totalMemory{ 0 };
+size_t GLBackend::_dedicatedMemory{ 0 };
+GLBackend::VideoCardType GLBackend::_videoCard{ GLBackend::Unknown };
+
+
+#define GLX_RENDERER_VIDEO_MEMORY_MESA 0x8187
 
 void GLBackend::init() {
     static std::once_flag once;
@@ -139,13 +155,63 @@ void GLBackend::init() {
         GL_GET_INTEGER(MAX_UNIFORM_BLOCK_SIZE);
         GL_GET_INTEGER(UNIFORM_BUFFER_OFFSET_ALIGNMENT);
 
+        GPUIdent* gpu = GPUIdent::getInstance(vendor, renderer);
+        unsigned int mem;
+
+        if (vendor.contains("NVIDIA") ) {
+            qCDebug(gpugllogging) << "NVIDIA card detected";
+#if !defined(Q_OS_ANDROID)
+            GL_GET_INTEGER(GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX);
+            GL_GET_INTEGER(GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX);
+            GL_GET_INTEGER(GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX);
+#endif
+
+            qCDebug(gpugllogging) << "GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX: " << GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX;
+            qCDebug(gpugllogging) << "GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX: " << GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX;
+            qCDebug(gpugllogging) << "GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX: " << GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX;
+
+            _totalMemory = GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX * BYTES_PER_KIB;
+            _dedicatedMemory = GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX * BYTES_PER_KIB;
+            _videoCard = NVIDIA;
+
+
+        } else if (vendor.contains("ATI")) {
+            qCDebug(gpugllogging) << "ATI card detected";
+#if !defined(Q_OS_ANDROID)
+            GL_GET_INTEGER(TEXTURE_FREE_MEMORY_ATI);
+#endif
+
+            _totalMemory = TEXTURE_FREE_MEMORY_ATI * BYTES_PER_KIB;
+            _dedicatedMemory = _totalMemory;
+            _videoCard = ATI;
+        } else if ( ::gl::queryCurrentRendererIntegerMESA(GLX_RENDERER_VIDEO_MEMORY_MESA, &mem) ) {
+                // This works only on Linux. queryCurrentRendererIntegerMESA will return false if the
+                // function is not supported because we're not on Linux, or for any other reason.
+                qCDebug(gpugllogging) << "MESA card detected";
+                _totalMemory = mem * BYTES_PER_MIB;
+                _dedicatedMemory = _totalMemory;
+                _videoCard = MESA;
+        } else {
+            qCCritical(gpugllogging) << "Don't know how to get memory for OpenGL vendor " << vendor << "; renderer " << renderer << ", trying fallback";
+            _videoCard = Unknown;
+            _dedicatedMemory = gpu->getMemory();
+            _totalMemory = _dedicatedMemory;
+        }
+
+        qCDebug(gpugllogging) << "dedicated: " << _dedicatedMemory;
+        qCDebug(gpugllogging) << "total: " << _totalMemory;
+
+
         LOG_GL_CONTEXT_INFO(gpugllogging, contextInfo);
-        GPUIdent* gpu = GPUIdent::getInstance(vendor, renderer); 
+
+
         // From here on, GPUIdent::getInstance()->getMumble() should efficiently give the same answers.
         qCDebug(gpugllogging) << "GPU:";
         qCDebug(gpugllogging) << "\tcard:" << gpu->getName();
         qCDebug(gpugllogging) << "\tdriver:" << gpu->getDriver();
-        qCDebug(gpugllogging) << "\tdedicated memory:" << gpu->getMemory() << "MB";
+        qCDebug(gpugllogging) << "\ttotal memory:" << (_totalMemory / BYTES_PER_KIB) << "KB";
+        qCDebug(gpugllogging) << "\tdedicated memory:" << (_dedicatedMemory / BYTES_PER_KIB) << "KB";
+        qCDebug(gpugllogging) << "\tavailable memory:" << (getAvailableMemory()  / BYTES_PER_KIB) << "KB";
         qCDebug(gpugllogging) << "Limits:";
         qCDebug(gpugllogging) << "\tmax textures:" << MAX_TEXTURE_IMAGE_UNITS;
         qCDebug(gpugllogging) << "\tmax texture binding:" << MAX_COMBINED_TEXTURE_IMAGE_UNITS;
@@ -157,6 +223,45 @@ void GLBackend::init() {
         qCDebug(gpugllogging, "V-Sync is %s\n", (::gl::getSwapInterval() > 0 ? "ON" : "OFF"));
 #endif
     });
+}
+
+size_t GLBackend::getAvailableMemory() {
+    GLint mem;
+
+    switch( _videoCard ) {
+        case NVIDIA:
+#if !defined(Q_OS_ANDROID)
+            glGetIntegerv(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &mem);
+#endif
+            return mem * BYTES_PER_KIB;
+        case ATI:
+#if !defined(Q_OS_ANDROID)
+            glGetIntegerv(GL_TEXTURE_FREE_MEMORY_ATI, &mem);
+#endif
+            return mem * BYTES_PER_KIB;
+        case MESA:
+            return 0; // Don't know the current value
+        case Unknown:
+            break;
+    }
+
+    return 0;
+
+}
+
+bool GLBackend::availableMemoryKnown() {
+    switch( _videoCard ) {
+        case NVIDIA:
+            return true;
+        case ATI:
+            return true;
+        case MESA:
+            return false;
+        case Unknown:
+            return false;
+    }
+
+    return false;
 }
 
 GLBackend::GLBackend(bool syncCache) {

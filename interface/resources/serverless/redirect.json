@@ -296,7 +296,7 @@
             "lastEdited": 1537901430334966,
             "lastEditedBy": "{69540019-db48-4375-86c8-ac1a4a90d043}",
             "locked": true,
-            "modelURL": "http://hifi-content.s3.amazonaws.com/alexia/LoadingScreens/floor.fbx",
+            "modelURL": "https://cdn-1.vircadia.com/eu-c-1/vircadia-content/alexia/LoadingScreens/floor.fbx",
             "name": "floorModel",
             "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
             "position": {

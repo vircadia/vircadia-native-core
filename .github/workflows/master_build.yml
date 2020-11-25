@@ -6,161 +6,95 @@ on:
       - master
 
 env:
-  #APP_NAME: gpu-frame-player
   APP_NAME: interface
   BUILD_TYPE: Release
-  BUCKET_NAME: hifi-gh-builds
+  BUILD_NUMBER: ${{ github.run_number }}
   CI_BUILD: Github
-  CMAKE_BACKTRACE_URL: https://highfidelity.sp.backtrace.io:6098
-  CMAKE_BACKTRACE_TOKEN: ${{ secrets.backtrace_token }}
-  CMAKE_BACKTRACE_SYMBOLS_TOKEN: ${{ secrets.backtrace_symbols_token }}
   GIT_COMMIT: ${{ github.sha }}
-  HIFI_VCPKG_BOOTSTRAP: true
-  LAUNCHER_HMAC_SECRET: ${{ secrets.launcher_hmac_secret }}
-  OCULUS_APP_ID: '${{ secrets.oculus_app_id }}'
+  # VCPKG did not build well on OSX disabling HIFI_VCPKG_BOOTSTRAP, which invokes a download to a working version of vcpkg
+  # HIFI_VCPKG_BOOTSTRAP: true
   RELEASE_TYPE: PRODUCTION
-  RELEASE_DYNAMODB_V2: ReleaseManager2-ReleaseQueue-prod
+  RELEASE_NUMBER: ${{ github.run_number }}
   STABLE_BUILD: 0
+  UPLOAD_BUCKET: athena-public
 
-
-  # OSX specific variables
+  # OSX-specific variables
   DEVELOPER_DIR: /Applications/Xcode_11.2.app/Contents/Developer
   MACOSX_DEPLOYMENT_TARGET: '10.11'
 
-  # WIN32 specific variables
+  # WIN-specific variables
   PreferredToolArchitecture: X64
 
-# Mac OS
-#PLATFORM_CMAKE_GENERATOR=Xcode
-#PLATFORM_BUILD_ARGUMENTS=--config Release --target package
-#ARTIFACT_EXPRESSION=build/*.dmg,build/*.zip
-
-# Windows 
-#PLATFORM_CMAKE_GENERATOR=Visual Studio 15 2017 Win64
-#PLATFORM_BUILD_ARGUMENTS=--target package --config release
-#ARTIFACT_EXPRESSION=build/*.exe,build/*.zip,*-symbols.zip
-
-# Ubuntu 
-#PLATFORM_CMAKE_GENERATOR=Unix Makefiles
-#PLATFORM_BUILD_ARGUMENTS=--target all -- -j4
-#ARTIFACT_EXPRESSION=build/assignment-client/**,build/domain-server/**,build/ice-server/ice-server,build/tools/ice-client/ice-client,build/tools/ac-client/ac-client,build/tools/oven,build/ext/makefiles/nvtt/project/lib/**,build/ext/makefiles/quazip/project/lib/**
-
-# Android
-# branch: master
-# GA_TRACKING_ID: ${{ secrets.ga_tracking_id }}
-# ANDROID_OAUTH_CLIENT_SECRET=${MASKED_ANDROID_OAUTH_CLIENT_SECRET_NIGHTLY}
-# ANDROID_OAUTH_CLIENT_ID=6c7d2349c0614640150db37457a1f75dce98a28ffe8f14d47f6cfae4de5b262a
-# ANDROID_OAUTH_REDIRECT_URI=https://dev-android-interface.highfidelity.com/auth
-# branch: !master
-# GA_TRACKING_ID=UA-39558647-11
-# ANDROID_OAUTH_CLIENT_SECRET=${MASKED_ANDROID_OAUTH_CLIENT_SECRET_RELEASE}
-# ANDROID_OAUTH_CLIENT_ID= c1063ea5d0b0c405e0c9cd77351328e211a91496a3f25985a99e861f1661db1d
-# ANDROID_OAUTH_REDIRECT_URI=https://android-interface.highfidelity.com/auth
-# ARTIFACT_EXPRESSION=android/*.apk
-# ANDROID_APK_NAME=HighFidelity-Beta-PR${RELEASE_NUMBER}-${GIT_COMMIT_SHORT}.apk
-# ANDROID_BUILT_APK_NAME=interface-debug.apk	
-# ANDROID_APP=interface
-# ANDROID_BUILD_DIR=debug
-# ANDROID_BUILD_TARGET=assembleDebug
-# STABLE_BUILD=0
-
-
-
 jobs:
-  generate_build_number:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Generate build number
-      id: buildnumber
-      uses: highfidelity/build-number@v3
-      with:
-        token: ${{secrets.github_token}}
-    - name: Upload build number
-      uses: actions/upload-artifact@v1
-      with:
-        name: BUILD_NUMBER
-        path: BUILD_NUMBER
-          
   build:
     strategy:
       matrix:
-        os: [windows-latest, macOS-latest]
-        build_type: [full, client]
-        #os: [windows-latest, macOS-latest, ubuntu-latest]
-        # exclude:
-        #   - os: ubuntu-latest
-        #     build_type: client
+        os: [windows-latest, macOS-latest, ubuntu-18.04]
+        # build_type: [full, client]
+        build_type: [full]
+        include:
+          - os: ubuntu-18.04
+            build_type: full
+            apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
+      fail-fast: false
     runs-on: ${{matrix.os}}
-    needs: generate_build_number
     steps:
-    - name: Download build number
-      uses: actions/download-artifact@v1
-      with:
-        name: BUILD_NUMBER
-    - name: Restore build number
-      id: buildnumber
-      uses: highfidelity/build-number@v3
-      with:
-        output_name: RELEASE_NUMBER
-    - name: Configure Build Environment 1
+    - name: Report Build Number
+      shell: bash
+      run: |
+        echo "Build number: $BUILD_NUMBER"
+    - name: Configure build environment 1
       shell: bash
       id: buildenv1
       run: |
-        echo ::set-env name=UPLOAD_PREFIX::master
-        echo ::set-env name=GIT_COMMIT_SHORT::`echo $GIT_COMMIT | cut -c1-7`
+        echo "UPLOAD_PREFIX=master" >> $GITHUB_ENV
+        echo ::set-output name=github_sha_short::`echo $GIT_COMMIT | cut -c1-7`
+        echo "JOB_NAME=build (${{matrix.os}}, ${{matrix.build_type}})" >> $GITHUB_ENV
         # Linux build variables
-        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-          echo ::set-env name=INSTALLER_EXT::tgz
+        if [[ "${{ matrix.os }}" = "ubuntu-"* ]]; then
+          echo "PYTHON_EXEC=python3" >> $GITHUB_ENV
+          echo "INSTALLER_EXT=tgz" >> $GITHUB_ENV
+          echo "CMAKE_BUILD_EXTRA=-- -j3" >> $GITHUB_ENV
+          echo "CMAKE_EXTRA=-DBUILD_TOOLS:BOOLEAN=FALSE -DHIFI_PYTHON_EXEC:FILEPATH=$(which python3)" >> $GITHUB_ENV
         fi
         # Mac build variables
         if [ "${{ matrix.os }}" = "macOS-latest" ]; then
-          echo ::set-env name=PYTHON_EXEC::python3
-          echo ::set-env name=ZIP_COMMAND::zip
-          echo ::set-env name=ZIP_ARGS::-r
-          echo ::set-env name=INSTALLER_EXT::dmg
-          echo ::set-env name=SYMBOL_REGEX::dSYM
-          echo "::set-output name=symbols_archive::${{ steps.buildnumber.outputs.build_number }}-${{ matrix.build_type }}-mac-symbols.zip"
+          echo "PYTHON_EXEC=python3" >> $GITHUB_ENV
+          echo "ZIP_COMMAND=zip" >> $GITHUB_ENV
+          echo "ZIP_ARGS=-r" >> $GITHUB_ENV
+          echo "INSTALLER_EXT=dmg" >> $GITHUB_ENV
+          echo "CMAKE_EXTRA=-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode" >> $GITHUB_ENV
+          echo "::set-output name=symbols_archive::${BUILD_NUMBER}-${{ matrix.build_type }}-mac-symbols.zip"
         fi
         # Windows build variables
         if [ "${{ matrix.os }}" = "windows-latest" ]; then
-          echo ::set-env name=PYTHON_EXEC::python
-          echo ::set-env name=ZIP_COMMAND::7z
-          echo ::set-env name=ZIP_ARGS::a
-          echo ::set-env name=INSTALLER_EXT::exe
-          echo "::set-env name=SYMBOL_REGEX::\(exe\|dll\|pdb\)"
-          echo "::set-output name=symbols_archive::${{ steps.buildnumber.outputs.build_number }}-${{ matrix.build_type }}-win-symbols.zip"
+          echo "PYTHON_EXEC=python" >> $GITHUB_ENV
+          echo "ZIP_COMMAND=7z" >> $GITHUB_ENV
+          echo "ZIP_ARGS=a" >> $GITHUB_ENV
+          echo "INSTALLER_EXT=exe" >> $GITHUB_ENV
+          echo "CMAKE_EXTRA=-A x64" >> $GITHUB_ENV
+          echo "SYMBOL_REGEX=\(exe\|dll\|pdb\)" >> $GITHUB_ENV
+          echo "symbols_archive=${BUILD_NUMBER}-${{ matrix.build_type }}-win-symbols.zip" >> $GITHUB_ENV
+          # echo "HF_PFX_PASSPHRASE=${{secrets.pfx_key}}" >> $GITHUB_ENV
+          # echo "HF_PFX_FILE=${{runner.workspace}}\build\codesign.pfx" >> $GITHUB_ENV
         fi
     # Configuration is broken into two steps because you can't set an env var and also reference it in the same step
-    - name: Configure Build Environment 2
+    - name: Configure build environment 2
       shell: bash
       run: |
         echo "${{ steps.buildenv1.outputs.symbols_archive }}"
-        echo ::set-env name=ARTIFACT_PATTERN::HighFidelity-Beta-*.$INSTALLER_EXT
+        echo "ARTIFACT_PATTERN=Vircadia-Alpha-*.$INSTALLER_EXT" >> $GITHUB_ENV
         # Build type variables
+        echo "GIT_COMMIT_SHORT=${{ steps.buildenv1.outputs.github_sha_short }}" >> $GITHUB_ENV
         if [ "${{ matrix.build_type }}" = "full" ]; then
-          echo ::set-env name=CLIENT_ONLY::FALSE
-          echo ::set-env name=INSTALLER::HighFidelity-Beta-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
+          echo "CLIENT_ONLY=FALSE" >> $GITHUB_ENV
+          echo "INSTALLER=Vircadia-Alpha-$BUILD_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT" >> $GITHUB_ENV
         else
-          echo ::set-env name=CLIENT_ONLY::TRUE
-          echo ::set-env name=INSTALLER::HighFidelity-Beta-Interface-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
+          echo "CLIENT_ONLY=TRUE" >> $GITHUB_ENV
+          echo "INSTALLER=Vircadia-Alpha-Interface-$BUILD_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT" >> $GITHUB_ENV
         fi
-        # Linux build variables
-        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-          echo ::set-env name=PYTHON_EXEC::python3
-          echo ::set-env name=CMAKE_EXTRA::""
-        fi
-        # Mac build variables
-        if [ "${{ matrix.os }}" = "macOS-latest" ]; then
-          echo ::set-env name=CMAKE_EXTRA::"-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode"
-        fi
-        # Windows build variables
-        if [ "${{ matrix.os }}" = "windows-latest" ]; then
-          echo ::set-env name=CMAKE_EXTRA::"-A x64"
-          echo ::set-env name=HF_PFX_PASSPHRASE::${{secrets.pfx_key}}
-          echo "::set-env name=HF_PFX_FILE::${{runner.workspace}}\build\codesign.pfx"
-        fi          
-    - name: Clear Working Directory
-      if: matrix.os == 'windows-latest'
+    - name: Clear working directory
+      if: startsWith(matrix.os, 'windows')
       shell: bash
       working-directory: ${{runner.workspace}}
       run: rm -rf ./*
@@ -168,89 +102,119 @@ jobs:
       with: 
         submodules: true
         fetch-depth: 1
-    - name: Create Build Directory
-      run: cmake -E make_directory ${{runner.workspace}}/build
-    - name: Decrypt Signing Key (Windows)
-      if: matrix.os == 'windows-latest'
-      working-directory: ${{runner.workspace}}/build
+    - name: Install dependencies
+      if: startsWith(matrix.os, 'ubuntu')
       shell: bash
-      run: gpg --batch --yes -o codesign.pfx --passphrase "${{secrets.gpg_symmetric_key}}" --decrypt $GITHUB_WORKSPACE/tools/ci-scripts/codesign.pfx.gpg
-    - name: Import Signing Key (Windows)
-      if: matrix.os == 'windows-latest'
-      working-directory: ${{runner.workspace}}/build
-      shell: powershell
-      run: | 
-        $mypwd=ConvertTo-SecureString -String ${{ secrets.pfx_key }} -Force -AsPlainText
-        Import-PfxCertificate -Password $mypwd -CertStoreLocation Cert:\CurrentUser\My -FilePath ${{runner.workspace}}\build\codesign.pfx
-        Import-PfxCertificate -Password $mypwd -CertStoreLocation Cert:\LocalMachine\My -FilePath ${{runner.workspace}}\build\codesign.pfx
+      run: |
+        echo "Installing Python Modules:"
+        pip3 install distro || exit 1
+        echo "Updating apt repository index"
+        sudo apt update || exit 1
+        echo "Installing apt packages"
+        sudo apt install -y ${{ matrix.apt-dependencies }} || exit 1
     - name: Install Python modules
-      if: matrix.os != 'ubuntu-latest'
+      if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macOS')
       shell: bash
       run: $PYTHON_EXEC -m pip install boto3 PyGithub
+    - name: Create build environment
+      shell: bash
+      run: cmake -E make_directory "${{runner.workspace}}/build"
     - name: Configure CMake
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCLIENT_ONLY:BOOLEAN=$CLIENT_ONLY $CMAKE_EXTRA
-    - name: Build Application
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DVCPKG_BUILD_TYPE=release -DCLIENT_ONLY:BOOLEAN=$CLIENT_ONLY -DBYPASS_SIGNING:BOOLEAN=TRUE $CMAKE_EXTRA
+    - name: Build application
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME
-    - name: Build Console
+      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME $CMAKE_BUILD_EXTRA
+    - name: Build domain server
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config $BUILD_TYPE --target packaged-server-console
-    - name: Build Domain Server (FullBuild)
-      if: matrix.build_type == 'full'
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target domain-server
-    - name: Build Assignment Client (FullBuild)
-      if: matrix.build_type == 'full'
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config $BUILD_TYPE --target assignment-client
-    - name: Build Installer
+      run: cmake --build . --config $BUILD_TYPE --target domain-server $CMAKE_BUILD_EXTRA
+    - name: Build assignment client
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config $BUILD_TYPE --target package
-    - name: Sign Installer (Windows)
-      if: matrix.os == 'windows-latest'
-      shell: powershell
-      working-directory: C:\Program Files (x86)\Windows Kits\10\bin\10.0.18362.0\x64
-      run: .\signtool.exe sign /fd sha256 /f ${{runner.workspace}}\build\codesign.pfx /p ${{secrets.pfx_key}} /tr http://sha256timestamp.ws.symantec.com/sha256/timestamp /td SHA256 ${{runner.workspace}}\build\${env:INSTALLER}
-    - name: Upload Artifact
-      if: matrix.os != 'ubuntu-latest'
+      run: cmake --build . --config $BUILD_TYPE --target assignment-client $CMAKE_BUILD_EXTRA
+    - name: Build console
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake --build . --config $BUILD_TYPE --target packaged-server-console $CMAKE_BUILD_EXTRA
+    - name: Build installer
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: |
+        echo "Retry code from https://unix.stackexchange.com/a/137639"
+        function fail {
+          echo $1 >&2
+          exit 1
+        }
+        function retry {
+          local n=1
+          local max=5
+          local delay=15
+          while true; do
+            "$@" && break || {
+              if [[ $n -lt $max ]]; then
+                ((n++))
+                echo "Command failed. Attempt $n/$max:"
+                sleep $delay;
+              else
+                fail "The command has failed after $n attempts."
+              fi
+            }
+          done
+        }
+        retry cmake --build . --config $BUILD_TYPE --target package $CMAKE_BUILD_EXTRA
+    #- name: Sign installer (Windows)
+    #  if: startsWith(matrix.os, 'windows')
+    #  shell: powershell
+    #  working-directory: C:\Program Files (x86)\Windows Kits\10\bin\10.0.18362.0\x64
+    #  run: .\signtool.exe sign /fd sha256 /f ${{runner.workspace}}\build\codesign.pfx /p ${{secrets.pfx_key}} /tr http://sha256timestamp.ws.symantec.com/sha256/timestamp /td SHA256 ${{runner.workspace}}\build\${env:INSTALLER}
+    - name: Output system stats
+      if: ${{ always() }}
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: |
+        echo "Disk usage:"
+        df -h
+    - name: Output installer logs
+      if: failure() && startsWith(matrix.os, 'windows')
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cat ./_CPack_Packages/win64/NSIS/NSISOutput.log
+    - name: Upload artifact
+      if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macOS')
       shell: bash
       working-directory: ${{runner.workspace}}/build	
       env:	
         AWS_ACCESS_KEY_ID: ${{ secrets.aws_access_key_id }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_access_key }}	
       run: $PYTHON_EXEC $GITHUB_WORKSPACE/tools/ci-scripts/upload.py 
-    - name: Archive Symbols
-      if: (matrix.os == 'windows-latest') || (matrix.os == 'macOS-latest')
-      working-directory: ${{runner.workspace}}
-      shell: bash
-      run: |
-        SYMBOLS_TEMP="symbols-temp"
-        mkdir $SYMBOLS_TEMP
-        find "./build" \( -path '*/tools/gpu-frame-player/*' -or -path '*/interface/*' -or -path '*/plugins/*' \) -regex ".*\.$SYMBOL_REGEX" -exec cp -r {} $SYMBOLS_TEMP \;
-        cd $SYMBOLS_TEMP
-        $ZIP_COMMAND $ZIP_ARGS ../${{ steps.buildenv1.outputs.symbols_archive }} .
-    - name: Upload Symbols
-      if: (matrix.os == 'windows-latest') || (matrix.os == 'macOS-latest')
-      working-directory: ${{runner.workspace}}
-      shell: bash
-      run: |
-        curl --data-binary @${{ steps.buildenv1.outputs.symbols_archive }} "$CMAKE_BACKTRACE_URL/post?format=symbols&token=$CMAKE_BACKTRACE_SYMBOLS_TOKEN&upload_file=${{steps.buildenv1.outputs.symbols_archive}}&tag=$RELEASE_NUMBER"
-    # - name: Debug List Symbols
-    #   if: (matrix.os == 'windows-latest') || (matrix.os == 'macOS-latest')
-    #   working-directory: ${{runner.workspace}}
-    #   shell: bash
-    #   run: |
-    #     unzip -v "${{runner.workspace}}/${{ steps.buildenv1.outputs.symbols_archive }}"
-    # - name: Debug Upload Symbols Artifact 
-    #   if: (matrix.os == 'windows-latest') || (matrix.os == 'macOS-latest')
-    #   uses: actions/upload-artifact@v1
-    #   with:
-    #     name: symbols
-    #     path: ${{runner.workspace}}/${{ steps.buildenv1.outputs.symbols_archive }}
+    #- name: Archive symbols
+    #  if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macOS')
+    #  working-directory: ${{runner.workspace}}
+    #  shell: bash
+    #  run: |
+    #    SYMBOLS_TEMP="symbols-temp"
+    #    mkdir $SYMBOLS_TEMP
+    #    find "./build" \( -path '*/tools/gpu-frame-player/*' -or -path '*/interface/*' -or -path '*/plugins/*' \) -regex ".*\.$SYMBOL_REGEX" -exec cp -r {} $SYMBOLS_TEMP \;
+    #    cd $SYMBOLS_TEMP
+    #    $ZIP_COMMAND $ZIP_ARGS ../${{ steps.buildenv1.outputs.symbols_archive }} .
+    #- name: Upload symbols
+    #  if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macOS')
+    #  working-directory: ${{runner.workspace}}
+    #  shell: bash
+    #  run: |
+    #    curl --data-binary @${{ steps.buildenv1.outputs.symbols_archive }} "$CMAKE_BACKTRACE_URL/post?format=symbols&token=$CMAKE_BACKTRACE_SYMBOLS_TOKEN&upload_file=${{steps.buildenv1.outputs.symbols_archive}}&tag=$BUILD_NUMBER"
+    #- name: Debug list symbols
+    #  if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macOS')
+    #  working-directory: ${{runner.workspace}}
+    #  shell: bash
+    #  run: |
+    #    unzip -v "${{runner.workspace}}/${{ steps.buildenv1.outputs.symbols_archive }}"
+    #- name: Upload debug list symbols
+    #  if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macOS')
+    #  uses: actions/upload-artifact@v1
+    #  with:
+    #    name: symbols
+    #    path: ${{runner.workspace}}/${{ steps.buildenv1.outputs.symbols_archive }}

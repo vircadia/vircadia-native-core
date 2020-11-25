@@ -30,7 +30,7 @@ void GLBackend::do_setViewTransform(const Batch& batch, size_t paramOffset) {
 }
 
 void GLBackend::do_setProjectionTransform(const Batch& batch, size_t paramOffset) {
-     memcpy(&_transform._viewProjectionState._projection, batch.readData(batch._params[paramOffset]._uint), sizeof(Mat4)); 
+     memcpy(glm::value_ptr(_transform._viewProjectionState._projection), batch.readData(batch._params[paramOffset]._uint), sizeof(Mat4)); 
      _transform._invalidProj = true;
     // The current view / proj doesn't correspond to a saved camera slot
     _transform._currentSavedTransformSlot = INVALID_SAVED_CAMERA_SLOT;
@@ -62,7 +62,7 @@ void GLBackend::do_setProjectionJitterScale(const Batch& batch, size_t paramOffs
 }
 
 void GLBackend::do_setViewportTransform(const Batch& batch, size_t paramOffset) {
-    memcpy(&_transform._viewport, batch.readData(batch._params[paramOffset]._uint), sizeof(Vec4i));
+    memcpy(glm::value_ptr(_transform._viewport), batch.readData(batch._params[paramOffset]._uint), sizeof(Vec4i));
 
 #ifdef GPU_STEREO_DRAWCALL_INSTANCED
     {

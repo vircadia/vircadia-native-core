@@ -4,14 +4,14 @@
 //
 //  Created by Stephen Birarda on 8/12/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
-// For happ(ier) development of QML, use these two things:
-// This forces QML files to be pulled from the source as you edit it: set environment variable HIFI_USE_SOURCE_TREE_RESOURCES=1
-// Use this to live reload: DependencyManager::get<OffscreenUi>()->clearCache();
+//  For happ(ier) development of QML, use these two things:
+//  This forces QML files to be pulled from the source as you edit it: set environment variable HIFI_USE_SOURCE_TREE_RESOURCES=1
+//  Use this to live reload: DependencyManager::get<OffscreenUi>()->clearCache();
 
 #include "Menu.h"
 #include <QDesktopServices>
@@ -238,11 +238,11 @@ Menu::Menu() {
 
     // Navigate > Start-up Location
     MenuWrapper* startupLocationMenu = navigateMenu->addMenu(MenuOption::StartUpLocation);
-    QActionGroup* startupLocatiopnGroup = new QActionGroup(startupLocationMenu);
-    startupLocatiopnGroup->setExclusive(true);
-    startupLocatiopnGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::HomeLocation, 0,
+    QActionGroup* startupLocationGroup = new QActionGroup(startupLocationMenu);
+    startupLocationGroup->setExclusive(true);
+    startupLocationGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::HomeLocation, 0,
         false));
-    startupLocatiopnGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::LastLocation, 0,
+    startupLocationGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::LastLocation, 0,
         true));
 
     // Settings menu ----------------------------------
@@ -365,6 +365,10 @@ Menu::Menu() {
     // Developer > Scripting > Verbose Logging
     addCheckableActionToQMenuAndActionHash(scriptingOptionsMenu, MenuOption::VerboseLogging, 0, false,
                                            qApp, SLOT(updateVerboseLogging()));
+                                           
+   // Developer > Scripting > Enable Cachebusting of Script.require
+   addCheckableActionToQMenuAndActionHash(scriptingOptionsMenu, MenuOption::CachebustRequire, 0, false,
+                                          qApp, SLOT(setCachebustRequire()));
 
     // Developer > Scripting > Enable Speech Control API
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)

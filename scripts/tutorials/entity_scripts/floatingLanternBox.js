@@ -16,7 +16,7 @@
 (function() {
 
     var _this;
-    var LANTERN_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Welcome%20Area/Models/chinaLantern_capsule.fbx";
+    var LANTERN_MODEL_URL = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/DomainContent/Welcome%20Area/Models/chinaLantern_capsule.fbx");
     var LANTERN_SCRIPT_URL = Script.resolvePath("floatingLantern.js?v=" + Date.now());
     var LIFETIME = 120;
     var RESPAWN_INTERVAL = 1000;

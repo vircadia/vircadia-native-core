@@ -85,7 +85,7 @@ function addObject(a, b, c, lifetime) {
             rotation: stageOrientation,    
             dimensions: OBJECT_DIM,
             lifetime: (lifetime === undefined) ? DEFAULT_LIFETIME : lifetime,
-            modelURL: "https://hifi-content.s3.amazonaws.com/jimi/props/cones/trafficCone.fbx",
+            modelURL: Script.getExternalPath(Script.ExternalPaths.HF_Content, "/jimi/props/cones/trafficCone.fbx"),
             shapeType:shapeTypes[4],
             dynamic: true,
             gravity:{"x":0,"y":-9.8,"z":0},

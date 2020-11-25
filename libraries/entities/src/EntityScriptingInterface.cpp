@@ -59,7 +59,8 @@ EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership
     connect(nodeList.data(), &NodeList::canGetAndSetPrivateUserDataChanged, this, &EntityScriptingInterface::canGetAndSetPrivateUserDataChanged);
 
     auto& packetReceiver = nodeList->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::EntityScriptCallMethod, this, "handleEntityScriptCallMethodPacket");
+    packetReceiver.registerListener(PacketType::EntityScriptCallMethod,
+        PacketReceiver::makeSourcedListenerReference<EntityScriptingInterface>(this, &EntityScriptingInterface::handleEntityScriptCallMethodPacket));
 }
 
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
@@ -1045,18 +1046,26 @@ QSizeF EntityScriptingInterface::textSize(const QUuid& id, const QString& text) 
     return EntityTree::textSize(id, text);
 }
 
-void EntityScriptingInterface::setEntitiesScriptEngine(QSharedPointer<EntitiesScriptEngineProvider> engine) {
+void EntityScriptingInterface::setPersistentEntitiesScriptEngine(QSharedPointer<EntitiesScriptEngineProvider> engine) {
     std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
-    _entitiesScriptEngine = engine;
+    _persistentEntitiesScriptEngine = engine;
+}
+
+void EntityScriptingInterface::setNonPersistentEntitiesScriptEngine(QSharedPointer<EntitiesScriptEngineProvider> engine) {
+    std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
+    _nonPersistentEntitiesScriptEngine = engine;
 }
 
 void EntityScriptingInterface::callEntityMethod(const QUuid& id, const QString& method, const QStringList& params) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
-
-    std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
-    if (_entitiesScriptEngine) {
-        EntityItemID entityID{ id };
-        _entitiesScriptEngine->callEntityScriptMethod(entityID, method, params);
+    
+    auto entity = getEntityTree()->findEntityByEntityItemID(id);
+    if (entity) {
+        std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
+        auto& scriptEngine = (entity->isLocalEntity() || entity->isMyAvatarEntity()) ? _persistentEntitiesScriptEngine : _nonPersistentEntitiesScriptEngine;
+        if (scriptEngine) {
+            scriptEngine->callEntityScriptMethod(id, method, params);
+        }
     }
 }
 
@@ -1098,9 +1107,13 @@ void EntityScriptingInterface::handleEntityScriptCallMethodPacket(QSharedPointer
             params << paramString;
         }
 
-        std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
-        if (_entitiesScriptEngine) {
-            _entitiesScriptEngine->callEntityScriptMethod(entityID, method, params, senderNode->getUUID());
+        auto entity = getEntityTree()->findEntityByEntityItemID(entityID);
+        if (entity) {
+            std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
+            auto& scriptEngine = (entity->isLocalEntity() || entity->isMyAvatarEntity()) ? _persistentEntitiesScriptEngine : _nonPersistentEntitiesScriptEngine;
+            if (scriptEngine) {
+                scriptEngine->callEntityScriptMethod(entityID, method, params, senderNode->getUUID());
+            }
         }
     }
 }
@@ -1331,7 +1344,7 @@ bool EntityPropertyMetadataRequest::script(EntityItemID entityID, QScriptValue h
         if (entitiesScriptEngine) {
             request->setFuture(entitiesScriptEngine->getLocalEntityScriptDetails(entityID));
         }
-    });
+    }, entityID);
     if (!request->isStarted()) {
         request->deleteLater();
         callScopedHandlerObject(handler, _engine->makeError("Entities Scripting Provider unavailable", "InternalError"), QScriptValue());

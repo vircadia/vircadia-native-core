@@ -359,6 +359,16 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
+        auto getter = [myAvatar]()->float { return qApp->getCamera().getSensitivity(); };
+        auto setter = [myAvatar](float value) { qApp->getCamera().setSensitivity(value); };
+        auto preference = new SpinnerSliderPreference(VR_MOVEMENT, "Camera Sensitivity", getter, setter);
+        preference->setMin(0.01f);
+        preference->setMax(5.0f);
+        preference->setStep(0.1f);
+        preference->setDecimals(2.0f);
+        preferences->addPreference(preference);
+    }
+    {
         auto getter = [myAvatar]()->int { return myAvatar->getControlScheme(); };
         auto setter = [myAvatar](int index) { myAvatar->setControlScheme(index); };
         auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Control Scheme", getter, setter);

@@ -11,7 +11,7 @@
 //
 
 (function() { // BEGIN LOCAL_SCOPE
-    var USERS_URL = "https://hifi-content.s3.amazonaws.com/faye/tablet-dev/users.html";
+    var USERS_URL = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/faye/tablet-dev/users.html");
     var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
 
     var FRIENDS_WINDOW_URL = Account.metaverseServerURL + "/user/friends";

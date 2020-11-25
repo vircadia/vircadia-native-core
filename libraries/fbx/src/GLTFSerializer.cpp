@@ -1019,7 +1019,9 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
             hfmModel.meshes.append(HFMMesh());
             HFMMesh& mesh = hfmModel.meshes[hfmModel.meshes.size() - 1];
-            if (!hfmModel.hasSkeletonJoints) { 
+            mesh.modelTransform = globalTransforms[nodeIndex];
+
+            if (!hfmModel.hasSkeletonJoints) {
                 HFMCluster cluster;
                 cluster.jointIndex = nodecount;
                 cluster.inverseBindMatrix = glm::mat4();
@@ -1584,12 +1586,16 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                         int targetIndex = weightedIndex;
                         hfmModel.blendshapeChannelNames.push_back("target_" + QString::number(weightedIndex));
 
-                        if (!names.isEmpty() && names.contains(keys[weightedIndex])) {
+                        if (!names.isEmpty()) {
                             targetIndex = names.indexOf(keys[weightedIndex]);
+                            if (targetIndex == -1) {
+                                continue;  // Ignore blendshape targets not present in glTF file.
+                            }
                             indexFromMapping = values[weightedIndex].first;
                             weight = values[weightedIndex].second;
                             hfmModel.blendshapeChannelNames[weightedIndex] = keys[weightedIndex];
                         }
+
                         HFMBlendshape& blendshape = mesh.blendshapes[indexFromMapping];
                         auto target = primitive.targets[targetIndex];
 
@@ -1626,7 +1632,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
             // Mesh extents must be at least a minimum size, in particular for blendshapes to work on planar meshes.
             const float MODEL_MIN_DIMENSION = 0.001f;
-            auto x = EPSILON;
             auto delta = glm::max(glm::vec3(MODEL_MIN_DIMENSION) - mesh.meshExtents.size(), glm::vec3(0.0f)) / 2.0f;
             mesh.meshExtents.minimum -= delta;
             mesh.meshExtents.maximum += delta;

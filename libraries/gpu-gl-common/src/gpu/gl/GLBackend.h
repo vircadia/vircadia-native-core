@@ -68,6 +68,13 @@ protected:
     GLBackend();
 
 public:
+    enum VideoCardType {
+        ATI,
+        NVIDIA,
+        MESA,
+        Unknown
+    };
+
 #if defined(USE_GLES)
     // https://www.khronos.org/registry/OpenGL-Refpages/es3/html/glGet.xhtml
     static const GLint MIN_REQUIRED_TEXTURE_IMAGE_UNITS = 16;
@@ -90,6 +97,25 @@ public:
     static GLint MAX_COMBINED_TEXTURE_IMAGE_UNITS;
     static GLint MAX_UNIFORM_BLOCK_SIZE;
     static GLint UNIFORM_BUFFER_OFFSET_ALIGNMENT;
+    static GLint GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX;
+    static GLint GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX;
+    static GLint GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX;
+    static GLint TEXTURE_FREE_MEMORY_ATI;
+
+
+    static size_t _totalMemory;
+    static size_t _dedicatedMemory;
+    static VideoCardType _videoCard;
+
+
+    static size_t getTotalMemory() { return _totalMemory; }
+    static size_t getDedicatedMemory() { return _dedicatedMemory; }
+
+    static size_t getAvailableMemory();
+    static bool availableMemoryKnown();
+
+
+
 
     virtual ~GLBackend();
 
@@ -385,10 +411,10 @@ protected:
             TransformCamera _cams[2];
 
             Cameras(){};
-            Cameras(const TransformCamera& cam) { memcpy(_cams, &cam, sizeof(TransformCamera)); };
+            Cameras(const TransformCamera& cam) { _cams[0] = cam; };
             Cameras(const TransformCamera& camL, const TransformCamera& camR) {
-                memcpy(_cams, &camL, sizeof(TransformCamera));
-                memcpy(_cams + 1, &camR, sizeof(TransformCamera));
+                _cams[0] = camL;
+                _cams[1] = camR;
             };
         };
 

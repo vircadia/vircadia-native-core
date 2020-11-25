@@ -6,8 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-STICK_URL = HIFI_PUBLIC_BUCKET + "models/props/geo_stick.fbx";
+STICK_URL = Script.getExternalPath(Script.ExternalPaths.Assets, "models/props/geo_stick.fbx");
 
 ZERO_VECTOR = { x: 0, y: 0, z: 0 };
 
