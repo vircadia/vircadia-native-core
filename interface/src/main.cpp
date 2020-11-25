@@ -220,12 +220,9 @@ int main(int argc, const char* argv[]) {
     }
     qDebug() << "UserActivityLogger is enabled:" << ual.isEnabled();
 
-    bool forceCrashReporting = false;
-    if (parser.isSet(forceCrashReportingOption)) {
-        forceCrashReporting = true;
-    }
-    qDebug() << "Crash handler logger is enabled:" << (forceCrashReporting || ual.isCrashMonitorEnabled());
-    if (forceCrashReporting || ual.isCrashMonitorEnabled()) {
+    bool isCrashHandlerEnabled = ual.isCrashMonitorEnabled() || parser.isSet(forceCrashReportingOption);
+    qDebug() << "Crash handler logger is enabled:" << isCrashHandlerEnabled;
+    if (isCrashHandlerEnabled) {
         auto crashHandlerStarted = startCrashHandler(argv[0]);
         qDebug() << "Crash handler started:" << crashHandlerStarted;
     }
