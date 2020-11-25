@@ -1,5 +1,5 @@
 <!--
-//  ItemIterator.vue
+//  InventoryItemIterator.vue
 //
 //  Created by Kalila L. on 13 April 2020.
 //  Copyright 2020 Vircadia contributors.
@@ -178,7 +178,7 @@
                 </div>
                 
                 <v-container fluid>
-                    <itemiterator v-bind:key="item.uuid" :itemsForIterator="item.items"></itemiterator>
+                    <InventoryItemIterator v-bind:key="item.uuid" :itemsForIterator="item.items"></InventoryItemIterator>
                 </v-container>
                 
             </v-list-group>
@@ -193,7 +193,7 @@ import { EventBus } from '../plugins/event-bus.js';
 import draggable from 'vuedraggable';
 
 export default {
-    name: 'itemiterator',
+    name: 'InventoryItemIterator',
     components: {
         draggable
     },

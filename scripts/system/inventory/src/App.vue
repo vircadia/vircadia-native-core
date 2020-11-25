@@ -175,7 +175,7 @@
                     md="4"
                     lg="3"
                 >
-                    <ItemIterator :itemsForIterator="this.$store.state.items"></ItemIterator>
+                    <InventoryItemIterator :itemsForIterator="this.$store.state.items"></InventoryItemIterator>
                 </v-col>
             </v-container>
         </v-content>
@@ -183,16 +183,7 @@
         <v-content
             v-show="settings.currentView === 'Bazaar'"
         >
-            <v-container fluid>
-                <v-col
-                    cols="12"
-                    sm="6"
-                    md="4"
-                    lg="3"
-                >
-                    <Bazaar></Bazaar>
-                </v-col>
-            </v-container>
+            <Bazaar></Bazaar>
         </v-content>
         
         <!-- ### DIALOGS ### -->
@@ -995,13 +986,13 @@ EventBus.$on('use-item', data => {
     vue_this.useItem(data.type, data.url);
 });
 
-import ItemIterator from './components/ItemIterator'
+import InventoryItemIterator from './components/InventoryItemIterator'
 import Bazaar from './components/Bazaar'
 
 export default {
     name: 'App',
     components: {
-        ItemIterator,
+        InventoryItemIterator,
         Bazaar
     },
     data: () => ({
