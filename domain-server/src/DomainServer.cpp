@@ -1507,7 +1507,7 @@ const QString DOMAIN_UPDATE_AUTOMATIC_NETWORKING_KEY = "automatic_networking";
 
 void DomainServer::performIPAddressPortUpdate(const HifiSockAddr& newPublicSockAddr) {
     static const QString PUBLIC_SOCKET_ADDRESS_KEY = "network_address";
-    static const QString PUBLIC_SOCKET_PORT_KEY = "port";
+    static const QString PUBLIC_SOCKET_PORT_KEY = "network_port";
     const QString& publicSocketAddress = newPublicSockAddr.getAddress().toString();
     const int publicSocketPort = newPublicSockAddr.getPort();
 
@@ -1533,7 +1533,7 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress, const
     domainObject[PROTOCOL_VERSION_KEY] = protocolVersionsSignatureBase64();
 
     static const QString PUBLIC_SOCKET_ADDRESS_KEY = "network_address";
-    static const QString PUBLIC_SOCKET_PORT_KEY = "port";
+    static const QString PUBLIC_SOCKET_PORT_KEY = "network_port";
 
     static const QString NETWORK_ADDRESS_SETTINGS_KEY = "domain_server." + PUBLIC_SOCKET_ADDRESS_KEY;
     const QString networkAddressFromSettings = _settingsManager.valueForKeyPath(NETWORK_ADDRESS_SETTINGS_KEY).toString();
