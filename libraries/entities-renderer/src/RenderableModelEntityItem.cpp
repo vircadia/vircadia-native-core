@@ -250,8 +250,12 @@ bool RenderableModelEntityItem::findDetailedParabolaIntersection(const glm::vec3
         face, surfaceNormal, extraInfo, precisionPicking, false);
 }
 
+QString RenderableModelEntityItem::getCollisionShapeURL() const {
+    return getShapeType() == SHAPE_TYPE_COMPOUND ? getCompoundShapeURL() : getModelURL();
+}
+
 void RenderableModelEntityItem::fetchCollisionGeometryResource() {
-    _collisionGeometryResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(getCompoundShapeURL());
+    _collisionGeometryResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(getCollisionShapeURL());
     if (_collisionGeometryResource) {
         if (_collisionGeometryResource->isLoaded()) {
             markDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
@@ -276,10 +280,10 @@ void RenderableModelEntityItem::setShapeType(ShapeType type) {
     ModelEntityItem::setShapeType(type);
     auto shapeType = getShapeType();
     if (shapeType == SHAPE_TYPE_COMPOUND || shapeType == SHAPE_TYPE_SIMPLE_COMPOUND) {
-        if (!_collisionGeometryResource && !getCompoundShapeURL().isEmpty()) {
+        if (!_collisionGeometryResource && !getCollisionShapeURL().isEmpty()) {
             fetchCollisionGeometryResource();
         }
-    } else if (_collisionGeometryResource && !getCompoundShapeURL().isEmpty()) {
+    } else if (_collisionGeometryResource) {
         // the compoundURL has been set but the shapeType does not agree
         _collisionGeometryResource.reset();
     }
@@ -290,7 +294,18 @@ void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
     ModelEntityItem::setCompoundShapeURL(url);
     if (url != currentCompoundShapeURL && !url.isEmpty()) {
         auto shapeType = getShapeType();
-        if (shapeType == SHAPE_TYPE_COMPOUND || shapeType == SHAPE_TYPE_SIMPLE_COMPOUND) {
+        if (shapeType == SHAPE_TYPE_COMPOUND) {
+            fetchCollisionGeometryResource();
+        }
+    }
+}
+
+void RenderableModelEntityItem::setModelURL(const QString& url) {
+    auto currentModelURL = getModelURL();
+    ModelEntityItem::setModelURL(url);
+    if (url != currentModelURL && !url.isEmpty()) {
+        auto shapeType = getShapeType();
+        if (shapeType == SHAPE_TYPE_SIMPLE_COMPOUND) {
             fetchCollisionGeometryResource();
         }
     }
@@ -300,7 +315,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() const {
     auto model = getModel();
     auto shapeType = getShapeType();
     if (shapeType == SHAPE_TYPE_COMPOUND || shapeType == SHAPE_TYPE_SIMPLE_COMPOUND) {
-        auto shapeURL = getCompoundShapeURL();
+        auto shapeURL = getCollisionShapeURL();
         // we need a render geometry with a scale to proceed
         if (model && !model->getURL().isEmpty() && !shapeURL.isEmpty() && _dimensionsInitialized && model->isLoaded()) {
             if (!_collisionGeometryResource) {

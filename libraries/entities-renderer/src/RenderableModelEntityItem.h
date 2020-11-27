@@ -75,6 +75,7 @@ public:
 
     virtual void setShapeType(ShapeType type) override;
     virtual void setCompoundShapeURL(const QString& url) override;
+    virtual void setModelURL(const QString& url) override;
 
     virtual bool isReadyToComputeShape() const override;
     virtual void computeShapeInfo(ShapeInfo& shapeInfo) override;
@@ -118,6 +119,8 @@ private:
     void copyAnimationJointDataToModel();
     bool readyToAnimate() const;
     void fetchCollisionGeometryResource();
+
+    QString getCollisionShapeURL() const;
 
     GeometryResource::Pointer _collisionGeometryResource;
     std::vector<int> _jointMap;

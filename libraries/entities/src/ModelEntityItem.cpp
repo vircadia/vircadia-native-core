@@ -254,25 +254,29 @@ void ModelEntityItem::debugDump() const {
 }
 
 void ModelEntityItem::setShapeType(ShapeType type) {
+    bool changed = false;
+    uint32_t flags = 0;
     withWriteLock([&] {
         if (type != _shapeType) {
             if (type == SHAPE_TYPE_STATIC_MESH && _dynamic) {
                 // dynamic and STATIC_MESH are incompatible
                 // since the shape is being set here we clear the dynamic bit
                 _dynamic = false;
-                _flags |= Simulation::DIRTY_MOTION_TYPE;
+                flags = Simulation::DIRTY_MOTION_TYPE;
             }
             _shapeType = type;
-            _flags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+            flags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+            changed = true;
         }
     });
+
+    if (changed) {
+        markDirtyFlags(flags);
+        locationChanged();
+    }
 }
 
 ShapeType ModelEntityItem::getShapeType() const {
-    return computeTrueShapeType();
-}
-
-ShapeType ModelEntityItem::computeTrueShapeType() const {
     ShapeType type = resultWithReadLock<ShapeType>([&] { return _shapeType; });
     if (type == SHAPE_TYPE_STATIC_MESH && _dynamic) {
         // dynamic is incompatible with STATIC_MESH

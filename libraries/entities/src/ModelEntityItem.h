@@ -122,7 +122,6 @@ public:
 private:
     void setAnimationSettings(const QString& value); // only called for old bitstream format
     bool applyNewAnimationProperties(AnimationPropertyGroup newProperties);
-    ShapeType computeTrueShapeType() const;
 
 protected:
     void resizeJointArrays(int newSize);
