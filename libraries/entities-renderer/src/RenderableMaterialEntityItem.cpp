@@ -21,6 +21,8 @@ void MaterialEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& 
     AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity] {
         withWriteLock([&] {
             _renderTransform = getModelTransform();
+            // Material entities should fit inside a cube entity of the same size, so a sphere that has dimensions 1x1x1
+            // is a half unit sphere.  However, the geometry cache renders a UNIT sphere, so we need to scale down.
             const float MATERIAL_ENTITY_SCALE = 0.5f;
             _renderTransform.postScale(MATERIAL_ENTITY_SCALE);
             _renderTransform.postScale(ENTITY_ITEM_DEFAULT_DIMENSIONS);
