@@ -177,7 +177,8 @@ vec4 computeHazeColor(vec3 fragPositionES, vec3 fragPositionWS, vec3 eyePosition
         float hazeAmount = 1.0 - exp(-hazeIntegral);
 
         // Compute color after haze effect
-        potentialFragColor = vec4(blendedHazeColor.rgb, hazeAmount);
+        // potentialFragColor = vec4(blendedHazeColor.rgb, hazeAmount);
+        potentialFragColor = vec4(blendedHazeColor.rgb, 1.0f);
     }
 
     // Mix with background at far range
