@@ -76,8 +76,8 @@ vec3 computeHazeColorKeyLightAttenuation(vec3 color, vec3 lightDirectionWS, vec3
 
     // Integration is from the fragment towards the light source
     // Note that the haze base reference affects only the haze density as function of altitude
-    float hazeDensityDistribution =  
-        hazeParams.hazeKeyLightRangeFactor * 
+    float hazeDensityDistribution =
+        hazeParams.hazeKeyLightRangeFactor *
         exp(-hazeParams.hazeKeyLightAltitudeFactor * (fragPositionWS.y - hazeParams.hazeBaseReference));
 
     float hazeIntegral =  hazeDensityDistribution * distance;
@@ -100,7 +100,7 @@ vec3 computeHazeColorKeyLightAttenuation(vec3 color, vec3 lightDirectionWS, vec3
 // General algorithm taken from http://www.iquilezles.org/www/articles/fog/fog.htm, with permission
 //
 vec4 computeHazeColor(vec3 fragPositionES, vec3 fragPositionWS, vec3 eyePositionWS, vec3 lightDirectionWS) {
-    // Distance to fragment 
+    // Distance to fragment
     float distance = length(fragPositionES);
     float eyeWorldHeight = eyePositionWS.y;
 
@@ -132,8 +132,8 @@ vec4 computeHazeColor(vec3 fragPositionES, vec3 fragPositionWS, vec3 eyePosition
         // Taken from www.crytek.com/download/GDC2007_RealtimeAtmoFxInGamesRev.ppt
 
         // Note that the haze base reference affects only the haze density as function of altitude
-        vec3 hazeDensityDistribution =  
-            hazeParams.colorModulationFactor * 
+        vec3 hazeDensityDistribution =
+            hazeParams.colorModulationFactor *
             exp(-hazeParams.hazeHeightFactor * (eyeWorldHeight - hazeParams.hazeBaseReference));
 
         vec3 hazeIntegral = hazeDensityDistribution * distance;
@@ -154,14 +154,15 @@ vec4 computeHazeColor(vec3 fragPositionES, vec3 fragPositionWS, vec3 eyePosition
         float hazeAmount = 1.0 - exp(-distance * hazeParams.hazeRangeFactor);
 
         // Compute color after haze effect
-        potentialFragColor = vec4(blendedHazeColor.rgb, hazeAmount);
+        // potentialFragColor = vec4(blendedHazeColor.rgb, hazeAmount);
+        potentialFragColor = vec4(blendedHazeColor.rgb, 1.0f);
     } else {
         // Haze is based on both range and altitude
         // Taken from www.crytek.com/download/GDC2007_RealtimeAtmoFxInGamesRev.ppt
 
         // Note that the haze base reference affects only the haze density as function of altitude
-        float hazeDensityDistribution =  
-            hazeParams.hazeRangeFactor * 
+        float hazeDensityDistribution =
+            hazeParams.hazeRangeFactor *
             exp(-hazeParams.hazeHeightFactor * (eyeWorldHeight - hazeParams.hazeBaseReference));
 
         float hazeIntegral =  hazeDensityDistribution * distance;
