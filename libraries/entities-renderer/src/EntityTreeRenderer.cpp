@@ -224,7 +224,7 @@ void EntityTreeRenderer::resetPersistentEntitiesScriptEngine() {
 
 void EntityTreeRenderer::resetNonPersistentEntitiesScriptEngine() {
     if (_nonPersistentEntitiesScriptEngine) {
-        _nonPersistentEntitiesScriptEngine->unloadAllEntityScripts(false);
+        _nonPersistentEntitiesScriptEngine->unloadAllEntityScripts(true);
         _nonPersistentEntitiesScriptEngine->stop();
         _nonPersistentEntitiesScriptEngine->waitTillDoneRunning();
         _nonPersistentEntitiesScriptEngine->disconnectNonEssentialSignals();

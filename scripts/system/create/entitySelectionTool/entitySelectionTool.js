@@ -724,12 +724,12 @@ SelectionManager = (function() {
     that.addChildrenToSelection = function() {
         if (that.hasSelection()) {
             for (var i = 0; i < that.selections.length; i++) {
-                var childrenIDs = Entities.getChildrenIDs(that.selections[i]);
-                var collectNewChildren; 
+                var childrenIDs = getDomainOnlyChildrenIDs(that.selections[i]);
+                var collectNewChildren;
                 var j;
                 var k = 0;
                 do {
-                    collectNewChildren = Entities.getChildrenIDs(childrenIDs[k]);
+                    collectNewChildren = getDomainOnlyChildrenIDs(childrenIDs[k]);
                     if (collectNewChildren.length > 0) {
                         for (j = 0; j < collectNewChildren.length; j++) {
                             childrenIDs.push(collectNewChildren[j]);
@@ -746,7 +746,7 @@ SelectionManager = (function() {
             that._update(true, this);
         } else {
             audioFeedback.rejection();
-            Window.notifyEditError("You have nothing selected.");            
+            Window.notifyEditError("You have nothing selected.");
         }
     };
 
@@ -832,7 +832,7 @@ SelectionDisplay = (function() {
     
     const BOUNDING_EDGE_OFFSET = 0.5;
 
-    const DUPLICATOR_OFFSET = { x: 0.6, y: 0, z: 0.6 };    
+    const DUPLICATOR_OFFSET = { x: 0.6, y: 0, z: 0.6 };
     
     const CTRL_KEY_CODE = 16777249;
 

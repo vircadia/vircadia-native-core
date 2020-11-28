@@ -117,8 +117,10 @@ var gridTool = new GridTool({
 });
 gridTool.setVisible(false);
 
+var entityShapeVisualizerSessionName = "SHAPE_VISUALIZER_" + Uuid.generate();
+
 var EntityShapeVisualizer = Script.require('./modules/entityShapeVisualizer.js');
-var entityShapeVisualizer = new EntityShapeVisualizer(["Zone"]);
+var entityShapeVisualizer = new EntityShapeVisualizer(["Zone"], entityShapeVisualizerSessionName);
 
 var entityListTool = new EntityListTool(shouldUseEditTabletApp);
 
@@ -2908,7 +2910,7 @@ function zoneSortOrder(a, b) {
 function getParentState(id) {
     var state = "NONE";
     var properties = Entities.getEntityProperties(id, ["parentID"]);
-    var children = Entities.getChildrenIDs(id);
+    var children = getDomainOnlyChildrenIDs(id);
     if (properties.parentID !== Uuid.NULL) {
         if (children.length > 0) {
             state = "PARENT_CHILDREN";
@@ -2921,6 +2923,19 @@ function getParentState(id) {
         }
     }
     return state;
+}
+
+function getDomainOnlyChildrenIDs(id) {
+    var allChildren = Entities.getChildrenIDs(id);
+    var realChildren = [];
+    var properties;
+    for (var i = 0; i < allChildren.length; i++) {
+        properties = Entities.getEntityProperties(allChildren[i], ["name"]);
+        if (properties.name !== undefined && properties.name !== entityShapeVisualizerSessionName) {
+            realChildren.push(allChildren[i]);
+        }
+    }
+    return realChildren;
 }
 
 }()); // END LOCAL_SCOPE
