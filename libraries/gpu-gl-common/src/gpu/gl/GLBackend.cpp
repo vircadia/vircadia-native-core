@@ -219,19 +219,21 @@ void GLBackend::init() {
 }
 
 size_t GLBackend::getAvailableMemory() {
-    GLint mem;
+    // GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX returns 1 value
+    // GL_TEXTURE_FREE_MEMORY_ATI returns 4 values, we only need the first
+    GLint mem[4] = {0,0,0,0};
 
     switch( _videoCard ) {
         case NVIDIA:
 #if !defined(Q_OS_ANDROID)
-            glGetIntegerv(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &mem);
+            glGetIntegerv(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &mem[0]);
 #endif
-            return mem * BYTES_PER_KIB;
+            return mem[0] * BYTES_PER_KIB;
         case ATI:
 #if !defined(Q_OS_ANDROID)
-            glGetIntegerv(GL_TEXTURE_FREE_MEMORY_ATI, &mem);
+            glGetIntegerv(GL_TEXTURE_FREE_MEMORY_ATI, &mem[0]);
 #endif
-            return mem * BYTES_PER_KIB;
+            return mem[0] * BYTES_PER_KIB;
         case MESA:
             return 0; // Don't know the current value
         case Unknown:
