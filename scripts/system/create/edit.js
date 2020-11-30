@@ -148,7 +148,10 @@ var DEFAULT_DIMENSIONS = {
 
 var DEFAULT_LIGHT_DIMENSIONS = Vec3.multiply(20, DEFAULT_DIMENSIONS);
 
-var SUBMENU_ENTITY_EDITOR_PREFERENCES = "Edit > Create Application - Preferences";
+var MENU_IMPORT_FROM_FILE = "Import Entities (.json) From a File";
+var MENU_IMPORT_FROM_URL = "Import Entities (.json) From a URL";
+var MENU_CREATE_SEPARATOR = "Create Application";
+var SUBMENU_ENTITY_EDITOR_PREFERENCES = "Edit > Preferences";
 var MENU_AUTO_FOCUS_ON_SELECT = "Auto Focus on Select";
 var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
 var MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE = "Show Lights and Particle Systems in Create Mode";
@@ -880,13 +883,11 @@ var toolBar = (function () {
         });
 
         addButton("importEntitiesButton", function() {
-            Window.browseChanged.connect(onFileOpenChanged);
-            Window.browseAsync("Select .json to Import", "", "*.json");
+            importEntitiesFromFile();
         });
 
         addButton("importEntitiesFromUrlButton", function() {
-            Window.promptTextChanged.connect(onPromptTextChanged);
-            Window.promptAsync("URL of a .json to import", "");
+            importEntitiesFromUrl();
         });
 
         addButton("openAssetBrowserButton", function() {
@@ -1402,6 +1403,22 @@ function setupModelMenus() {
         position: 1,
     });
 
+    Menu.addMenuItem({
+        menuName: "Edit",
+        menuItemName: MENU_CREATE_SEPARATOR,
+        isSeparator: true
+    });
+    Menu.addMenuItem({
+        menuName: "Edit",
+        menuItemName: MENU_IMPORT_FROM_FILE,
+        afterItem: MENU_CREATE_SEPARATOR
+    });
+    Menu.addMenuItem({
+        menuName: "Edit",
+        menuItemName: MENU_IMPORT_FROM_URL,
+        afterItem: MENU_IMPORT_FROM_FILE
+    });
+
     Menu.addMenu(SUBMENU_ENTITY_EDITOR_PREFERENCES);
 
     Menu.addMenuItem({
@@ -1465,7 +1482,7 @@ function setupModelMenus() {
         menuItemName: MENU_ENTITY_LIST_DEFAULT_RADIUS,
         afterItem: MENU_SHOW_ZONES_IN_EDIT_MODE
     });
-
+ 
     Entities.setLightsArePickable(false);
 }
 
@@ -1484,7 +1501,10 @@ function cleanupModelMenus() {
     Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_SHOW_ZONES_IN_EDIT_MODE);
     Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_CREATE_ENTITIES_GRABBABLE);
     Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_ENTITY_LIST_DEFAULT_RADIUS);
-    Menu.removeMenu(SUBMENU_ENTITY_EDITOR_PREFERENCES);   
+    Menu.removeMenu(SUBMENU_ENTITY_EDITOR_PREFERENCES);
+    Menu.removeMenuItem("Edit", MENU_IMPORT_FROM_URL);
+    Menu.removeMenuItem("Edit", MENU_IMPORT_FROM_FILE);
+    Menu.removeSeparator("Edit", MENU_CREATE_SEPARATOR);    
 }
 
 Script.scriptEnding.connect(function () {
@@ -1858,6 +1878,10 @@ function handleMenuEvent(menuItem) {
     } else if (menuItem === MENU_ENTITY_LIST_DEFAULT_RADIUS) {
         Window.promptTextChanged.connect(onPromptTextChangedDefaultRadiusUserPref);
         Window.promptAsync("Entity List Default Radius (in meters)", "" + Settings.getValue(SETTING_ENTITY_LIST_DEFAULT_RADIUS, 100));         
+    } else if (menuItem === MENU_IMPORT_FROM_FILE) {
+        importEntitiesFromFile();
+    } else if (menuItem === MENU_IMPORT_FROM_URL) {
+        importEntitiesFromUrl();
     }
     tooltip.show(false);
 }
@@ -2015,11 +2039,7 @@ function toggleKey(value) {
 }
 function focusKey(value) {
     if (value === 0) { // on release
-        cameraManager.enable();
-        if (selectionManager.hasSelection()) {
-            cameraManager.focus(selectionManager.worldPosition, selectionManager.worldDimensions,
-                                Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
-        }
+        setCameraFocusToSelection();
     }
 }
 function gridKey(value) {
@@ -2936,6 +2956,48 @@ function getDomainOnlyChildrenIDs(id) {
         }
     }
     return realChildren;
+}
+
+function importEntitiesFromFile() {
+    Window.browseChanged.connect(onFileOpenChanged);
+    Window.browseAsync("Select .json to Import", "", "*.json");    
+}
+
+function importEntitiesFromUrl() {
+    Window.promptTextChanged.connect(onPromptTextChanged);
+    Window.promptAsync("URL of a .json to import", "");    
+}
+
+function setCameraFocusToSelection() {
+    cameraManager.enable();
+    if (selectionManager.hasSelection()) {
+        cameraManager.focus(selectionManager.worldPosition, selectionManager.worldDimensions,
+                            Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+    }
+}
+
+function alignGridToSelection() {
+    if (selectionManager.hasSelection()) {
+        if (!grid.getVisible()) {
+            grid.setVisible(true, true);
+        }
+        grid.moveToSelection();
+    }
+}
+
+function alignGridToAvatar() {
+    if (!grid.getVisible()) {
+        grid.setVisible(true, true);
+    }
+    grid.moveToAvatar();
+}
+
+function toggleGridVisibility() {
+    if (!grid.getVisible()) {
+        grid.setVisible(true, true);
+    } else {
+        grid.setVisible(false, true);
+    }
 }
 
 }()); // END LOCAL_SCOPE
