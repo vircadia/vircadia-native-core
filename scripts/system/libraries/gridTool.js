@@ -4,7 +4,7 @@ var GRID_CONTROLS_HTML_URL = Script.resolvePath('../html/gridControls.html');
 
 Grid = function() {
     var that = {};
-    var gridColor = { red: 0, green: 0, blue: 0 };
+    var gridColor = { red: 255, green: 255, blue: 255 };
     var gridAlpha = 0.6;
     var origin = { x: 0, y: +MyAvatar.getJointPosition('LeftToeBase').y.toFixed(1) + 0.1, z: 0 };
     var scale = 500;
@@ -163,6 +163,14 @@ Grid = function() {
         newPosition = Vec3.subtract(newPosition, { x: 0, y: SelectionManager.worldDimensions.y * 0.5, z: 0 });
         that.setPosition(newPosition);
     };
+    
+    that.moveToAvatar = function() {
+        var position = MyAvatar.getJointPosition("LeftFoot");
+        if (position.x === 0 && position.y === 0 && position.z === 0) {
+            position = MyAvatar.position;
+        }
+        that.setPosition(position);        
+    };
 
     that.emitUpdate = function() {
         if (that.onUpdate) {
@@ -283,11 +291,7 @@ GridTool = function(opts) {
         } else if (data.type === "action") {
             var action = data.action;
             if (action === "moveToAvatar") {
-                var position = MyAvatar.getJointPosition("LeftFoot");
-                if (position.x === 0 && position.y === 0 && position.z === 0) {
-                    position = MyAvatar.position;
-                }
-                horizontalGrid.setPosition(position);
+                horizontalGrid.moveToAvatar();
             } else if (action === "moveToSelection") {
                 horizontalGrid.moveToSelection();
             }
