@@ -226,6 +226,7 @@ let elEntityTable,
     elToggleVisible,
     elActionsMenu,
     elSelectionMenu,
+    elToolsMenu,    
     elMenuBackgroundOverlay,
     elHmdMultiSelect, 
     elHmdCopy,
@@ -249,6 +250,16 @@ let elEntityTable,
     elSelectFamily,
     elSelectTopFamily,
     elTeleportToEntity,
+    elSetCameraFocusToSelection,
+    elToggleLocalWorldMode,
+    elExportSelectedEntities,
+    elImportEntitiesFromFile,
+    elImportEntitiesFromUrl,
+    elGridActivator,
+    elSnapToGridActivator,
+    elSnapToGridActivatorCaption,
+    elAlignGridToSelection,
+    elAlignGridToAvatar,
     elFilterTypeMultiselectBox,
     elFilterTypeText,
     elFilterTypeOptions,
@@ -298,6 +309,7 @@ function loaded() {
         elHmdMultiSelect = document.getElementById("hmdmultiselect");
         elActionsMenu = document.getElementById("actions");
         elSelectionMenu = document.getElementById("selection");
+        elToolsMenu = document.getElementById("tools");
         elMenuBackgroundOverlay = document.getElementById("menuBackgroundOverlay");
         elHmdCopy = document.getElementById("hmdcopy");
         elHmdCut = document.getElementById("hmdcut");
@@ -318,8 +330,18 @@ function loaded() {
         elSelectTopParent = document.getElementById("selecttopparent");
         elAddChildrenToSelection = document.getElementById("addchildrentoselection");
         elSelectFamily = document.getElementById("selectfamily");
-        elSelectTopFamily = document.getElementById("selecttopfamily");
+        elSelectTopFamily = document.getElementById("selecttopfamily");        
         elTeleportToEntity = document.getElementById("teleport-to-entity");
+        elSetCameraFocusToSelection = document.getElementById("setCameraFocusToSelection");
+        elToggleLocalWorldMode = document.getElementById("toggleLocalWorldMode");
+        elExportSelectedEntities = document.getElementById("exportSelectedEntities");
+        elImportEntitiesFromFile = document.getElementById("importEntitiesFromFile");
+        elImportEntitiesFromUrl = document.getElementById("importEntitiesFromUrl");
+        elGridActivator = document.getElementById("gridActivator");
+        elSnapToGridActivator = document.getElementById("snapToGridActivator");
+        elSnapToGridActivatorCaption = document.getElementById("snapToGridActivatorCaption");
+        elAlignGridToSelection = document.getElementById("alignGridToSelection");
+        elAlignGridToAvatar = document.getElementById("alignGridToAvatar");       
         elFilterTypeMultiselectBox = document.getElementById("filter-type-multiselect-box");
         elFilterTypeText = document.getElementById("filter-type-text");
         elFilterTypeOptions = document.getElementById("filter-type-options");
@@ -364,6 +386,10 @@ function loaded() {
         elSelectionMenu.onclick = function() {
             document.getElementById("menuBackgroundOverlay").style.display = "block";
             document.getElementById("selection-menu").style.display = "block";
+        };
+        elToolsMenu.onclick = function() {
+            document.getElementById("menuBackgroundOverlay").style.display = "block";
+            document.getElementById("tools-menu").style.display = "block";
         };
         elMenuBackgroundOverlay.onclick = function() {
             closeAllEntityListMenu();
@@ -498,6 +524,42 @@ function loaded() {
             EventBridge.emitWebEvent(JSON.stringify({ type: "teleportToEntity" }));
             closeAllEntityListMenu();
         };
+        elSetCameraFocusToSelection.onclick = function () {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "setCameraFocusToSelection" }));
+            closeAllEntityListMenu();
+        };
+        elToggleLocalWorldMode.onclick = function () {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleSpaceMode' }));
+            closeAllEntityListMenu();
+        };
+        elExportSelectedEntities.onclick = function () {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'export'}));
+            closeAllEntityListMenu();
+        };
+        elImportEntitiesFromFile.onclick = function () {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'importFromFile'}));
+            closeAllEntityListMenu();
+        };
+        elImportEntitiesFromUrl.onclick = function () {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'importFromUrl'}));
+            closeAllEntityListMenu();
+        };
+        elGridActivator.onclick = function () {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "toggleGridVisibility" }));
+            closeAllEntityListMenu();
+        };
+        elSnapToGridActivator.onclick = function () {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "toggleSnapToGrid" }));
+            closeAllEntityListMenu();
+        };
+        elAlignGridToSelection.onclick = function () {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "alignGridToSelection" }));
+            closeAllEntityListMenu();
+        };
+        elAlignGridToAvatar.onclick = function () {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "alignGridToAvatar" }));
+            closeAllEntityListMenu();
+        };        
         elToggleSpaceMode.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleSpaceMode' }));
         };
@@ -1673,6 +1735,12 @@ function loaded() {
                     removeEntities(data.ids);
                 } else if (data.type === "setSpaceMode") {
                     setSpaceMode(data.spaceMode);
+                } else if (data.type === "setSnapToGrid") {
+                    if (data.snap) { 
+                        elSnapToGridActivatorCaption.innerHTML = "Deactivate Snap to Grid [ON]";
+                    } else {
+                        elSnapToGridActivatorCaption.innerHTML = "Activate Snap to Grid [OFF]";
+                    }
                 } else if (data.type === "confirmHMDstate") {
                     if (data.isHmd) {
                         document.getElementById("hmdmultiselect").style.display = "inline";
@@ -1758,6 +1826,7 @@ function loaded() {
         document.getElementById("menuBackgroundOverlay").style.display = "none";
         document.getElementById("selection-menu").style.display = "none";
         document.getElementById("actions-menu").style.display = "none";
+        document.getElementById("tools-menu").style.display = "none";
     }
 
 }
