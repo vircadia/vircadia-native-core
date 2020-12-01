@@ -146,6 +146,20 @@ EntityListTool = function(shouldUseEditTabletApp) {
         });
     };
 
+    that.setListMenuSnapToGrid = function (isSnapToGrid) {
+        emitJSONScriptEvent({ "type": "setSnapToGrid", "snap": isSnapToGrid });
+    };
+
+    that.toggleSnapToGrid = function () {
+        if (!grid.getSnapToGrid()) {
+            grid.setSnapToGrid(true);
+            emitJSONScriptEvent({ "type": "setSnapToGrid", "snap": true });
+        } else {
+            grid.setSnapToGrid(false);
+            emitJSONScriptEvent({ "type": "setSnapToGrid", "snap": false });
+        }
+    };
+
     function valueIfDefined(value) {
         return value !== undefined ? value : "";
     }
@@ -394,15 +408,8 @@ EntityListTool = function(shouldUseEditTabletApp) {
         } else if (data.type === 'toggleGridVisibility') {
             toggleGridVisibility();
         } else if (data.type === 'toggleSnapToGrid') {
-            if (!grid.getSnapToGrid()) {
-                grid.setSnapToGrid(true);
-                emitJSONScriptEvent({ "type": "setSnapToGrid", "snap": true }); 
-            } else {
-                grid.setSnapToGrid(false);
-                emitJSONScriptEvent({ "type": "setSnapToGrid", "snap": false }); 
-            }            
+            that.toggleSnapToGrid();     
         }
-        
         
     };
 
