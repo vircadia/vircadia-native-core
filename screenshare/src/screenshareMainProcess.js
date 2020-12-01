@@ -3,14 +3,18 @@
 //
 //  Milad Nazeri and Zach Fox 2019/11/13
 //  Copyright 2019 High Fidelity, Inc.
+//  Kalila L. 2020/11/25
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
+var activateDevelopmentMode = false;
+
 const {app, BrowserWindow, ipcMain} = require('electron');
 const gotTheLock = app.requestSingleInstanceLock()
 const argv = require('yargs').argv;
-
+var pathToFfmpeg = require('ffmpeg-static');
 
 const connectionInfo = {
     token: argv.token || "token",
@@ -51,14 +55,17 @@ function createWindow(){
         zoomFactor: zoomFactor,
         resizable: false,
         webPreferences: {
-            nodeIntegration: true
+            nodeIntegration: true,
+            devTools: true
         },
-        icon: __dirname + `/resources/interface.png`,
+        icon: __dirname + `/resources/vircadia.png`,
         skipTaskbar: false,
-        title: "Screen share"
+        title: "Vircadia Screenshare"
     });
     window.loadURL('file://' + __dirname + '/screenshareApp.html');
-    window.setMenu(null);
+    if (!activateDevelopmentMode) {
+        window.setMenu(null);
+    }
     
     window.webContents.on("did-finish-load", () => {
         window.webContents.send('connectionInfo', JSON.stringify(connectionInfo));
