@@ -22,7 +22,9 @@
 </template>
 
 <script>
+// eslint-disable-next-line
 import { EventBus } from '../plugins/event-bus.js';
+var vue_this;
 // eslint-disable-next-line
 var inventoryDB = new PouchDB('inventory');
 
@@ -63,11 +65,20 @@ inventoryDB.info().then(function (info) {
 // DB Function to pull top level categories
 function getTcat() {
     inventoryDB.search({
-        query: 'Bazzar',
+        query: 'Bazaar',
         fields: ['parent'],
         include_docs: true
     }).then(function (res) {
         console.info('GetTCats', res);
+        vue_this.bottomNavigationStore = [];
+        res.rows.forEach (function (category) {
+            vue_this.bottomNavigationStore.push(
+                {
+                    'title': category.doc.name
+                }
+            );
+        });
+        console.info('Specific', res.rows[0].doc.name);
         // inventoryDB.search({
         //     query: 'Avatars',
         //     fields: ['name'],
@@ -301,10 +312,20 @@ export default {
 
     }),
     created: function () {
-        console.log('eventBus' + EventBus);
+        vue_this = this;
     },
     computed: {
-        
+        bottomNavigationStore: {
+            get() {
+                return this.$store.state.bottomNavigation;
+            },
+            set (value) {
+                this.$store.commit('mutate', {
+                    property: 'bottomNavigation', 
+                    with: value
+                });
+            }
+        },
     },
     watch: {
         

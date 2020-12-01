@@ -30,7 +30,13 @@
             <v-toolbar-title>
                 {{ settings.currentView }}
             </v-toolbar-title>
-            
+
+            <v-text-field
+                label="Search"
+                v-model="searchBoxStore"
+                class="mx-5 mt-7"
+            ></v-text-field>
+
             <v-spacer></v-spacer>
             
             <v-badge
@@ -103,6 +109,7 @@
             
                 <v-list-item 
                     @click="settings.currentView = 'Inventory'; drawer = false;"
+                    :input-value="settings.currentView === 'Inventory'"
                 >
                     <v-list-item-icon>
                         <v-icon>mdi-briefcase-outline</v-icon>
@@ -112,6 +119,7 @@
             
                 <v-list-item 
                     @click="settings.currentView = 'Bazaar'; drawer = false;"
+                    :input-value="settings.currentView === 'Bazaar'"
                 >
                     <v-list-item-icon>
                         <v-icon>mdi-basket-outline</v-icon>
@@ -164,6 +172,18 @@
 
             </v-list>
         </v-navigation-drawer>
+        
+        <v-bottom-navigation
+            app
+            v-show="settings.currentView === 'Bazaar'"
+        >
+            <v-btn
+                v-for="menuItem in bottomNavigationStore" 
+                v-bind:key="menuItem.title"
+            >
+                <span>{{ menuItem.title }}</span>
+            </v-btn>
+        </v-bottom-navigation>
 
         <v-content
             v-show="settings.currentView === 'Inventory'"
@@ -1593,6 +1613,17 @@ export default {
                 });
             }
         },
+        bottomNavigationStore: {
+            get() {
+                return this.$store.state.bottomNavigation;
+            },
+            set (value) {
+                this.$store.commit('mutate', {
+                    property: 'bottomNavigation', 
+                    with: value
+                });
+            }
+        },
         editDialogShow: function() {
             return this.$store.state.editDialog.show;
         },
@@ -1676,6 +1707,17 @@ export default {
         receivingItemQueueLength: {
             get () {
                 return this.receivingItemsDialog.data.receivingItemQueue.length;
+            }
+        },
+        searchBoxStore: {
+            get () {
+                return this.$store.state.searchBox;
+            },
+            set (value) {
+                this.$store.commit('mutate', {
+                    property: 'searchBox', 
+                    with: value
+                });
             }
         },
         // --- CUSTOM DATA ---

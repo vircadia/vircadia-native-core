@@ -256,6 +256,15 @@ export const store = new Vuex.Store({
                 "recipient": null,
             }
         },
+        searchBox: '',
+        bottomNavigation: [
+            {
+                title: 'Category 1'
+            },
+            {
+                title: 'Category 2'
+            }
+        ],
         // --- CUSTOM DATA ---
         bizCardDialog: {
             show: false,
