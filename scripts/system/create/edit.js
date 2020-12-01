@@ -2044,9 +2044,22 @@ function focusKey(value) {
 }
 function gridKey(value) {
     if (value === 0) { // on release
-        if (selectionManager.hasSelection()) {
-            grid.moveToSelection();
-        }
+        alignGridToSelection();
+    }
+}
+function viewGridKey(value) {
+    if (value === 0) { // on release
+        toggleGridVisibility();
+    }
+}
+function snapKey(value) {
+    if (value === 0) { // on release
+        entityListTool.toggleSnapToGrid();
+    }
+}
+function gridToAvatarKey(value) {
+    if (value === 0) { // on release
+        alignGridToAvatar();
     }
 }
 function recursiveAdd(newParentID, parentData) {
@@ -2391,7 +2404,7 @@ var PropertiesTool = function (opts) {
         }
         var i, properties, dY, diff, newPosition;
         if (data.type === "update") {
-
+            
             if (data.properties || data.propertiesMap) {
                 var propertiesMap = data.propertiesMap;
                 if (propertiesMap === undefined) {
@@ -2446,7 +2459,6 @@ var PropertiesTool = function (opts) {
                 }
             }
 
-
             if (data.onlyUpdateEntities) {
                 blockPropertyUpdates = true;
             } else {
@@ -2455,6 +2467,10 @@ var PropertiesTool = function (opts) {
             }
             selectionManager._update(false, this);
             blockPropertyUpdates = false;
+            
+            if (data.snapToGrid !== undefined) {
+                entityListTool.setListMenuSnapToGrid(data.snapToGrid);
+            }
         } else if (data.type === 'saveUserData' || data.type === 'saveMaterialData') {
             data.ids.forEach(function(entityID) {
                 Entities.editEntity(entityID, data.properties);
@@ -2809,7 +2825,10 @@ if (isOnMacPlatform) {
 }
 mapping.from([Controller.Hardware.Keyboard.T]).to(toggleKey);
 mapping.from([Controller.Hardware.Keyboard.F]).to(focusKey);
-mapping.from([Controller.Hardware.Keyboard.G]).to(gridKey);
+mapping.from([Controller.Hardware.Keyboard.J]).to(gridKey);
+mapping.from([Controller.Hardware.Keyboard.G]).to(viewGridKey);
+mapping.from([Controller.Hardware.Keyboard.H]).to(snapKey);
+mapping.from([Controller.Hardware.Keyboard.K]).to(gridToAvatarKey);
 mapping.from([Controller.Hardware.Keyboard.X])
     .when([Controller.Hardware.Keyboard.Control])
     .to(whenReleased(function() { selectionManager.cutSelectedEntities() }));
@@ -2850,8 +2869,14 @@ keyUpEventFromUIWindow = function(keyUpEvent) {
         toggleKey(pressedValue);
     } else if (keyUpEvent.keyCodeString === "F") {
         focusKey(pressedValue);
-    } else if (keyUpEvent.keyCodeString === "G") {
+    } else if (keyUpEvent.keyCodeString === "J") {
         gridKey(pressedValue);
+    } else if (keyUpEvent.keyCodeString === "G") {
+        viewGridKey(pressedValue);
+    } else if (keyUpEvent.keyCodeString === "H") {
+        snapKey(pressedValue);    
+    } else if (keyUpEvent.keyCodeString === "K") {
+        gridToAvatarKey(pressedValue);
     } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "X") {
         selectionManager.cutSelectedEntities();
     } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "C") {
