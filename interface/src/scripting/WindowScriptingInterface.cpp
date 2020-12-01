@@ -174,10 +174,6 @@ QString fixupPathForMac(const QString& directory) {
     return path;
 }
 
-QString WindowScriptingInterface::getDataPath() const {
-    return dataPath;
-}
-
 QString WindowScriptingInterface::getPreviousBrowseLocation() const {
     return Setting::Handle<QString>(LAST_BROWSE_LOCATION_SETTING, DESKTOP_LOCATION).get();
 }
@@ -335,11 +331,11 @@ QScriptValue WindowScriptingInterface::save(const QString& title, const QString&
 /// \param const QString& directory directory to start the file browser at
 /// \param const QString& nameFilter filter to filter filenames by - see `QFileDialog`
 /// \return QScriptValue file path as a string if one was selected, otherwise `QScriptValue::NullValue`
-QScriptValue WindowScriptingInterface::setDataPath(const QString& title, const QString& directory, const QString& nameFilter) {
+QScriptValue WindowScriptingInterface::setInterfaceScriptDataPath(const QString& title, const QString& directory, const QString& nameFilter) {
     QScriptValue result = WindowScriptingInterface::save(title, directory, nameFilter);
     QString resultString = result.toString();
-    dataPath = resultString;
-    return resultString.isEmpty() ? QScriptValue::NullValue : QScriptValue(resultString);
+    qApp->setInterfaceScriptDataPath(resultString);
+    return resultString.isEmpty() ? QScriptValue::NullValue : result;
 }
 
 /// Display a save file dialog.  If `directory` is an invalid file or directory the browser will start at the current
@@ -484,7 +480,7 @@ void WindowScriptingInterface::copyToClipboard(const QString& text) {
 
 
 bool WindowScriptingInterface::setDisplayTexture(const QString& name) {
-    return  qApp->getActiveDisplayPlugin()->setDisplayTexture(name);   // Plugins that don't know how, answer false.
+    return qApp->getActiveDisplayPlugin()->setDisplayTexture(name);   // Plugins that don't know how, answer false.
 }
 
 void WindowScriptingInterface::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio, const QString& filename) {

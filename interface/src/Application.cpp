@@ -5389,14 +5389,14 @@ ivec2 Application::getMouse() const {
     return getApplicationCompositor().getReticlePosition();
 }
 
-bool Application::exportData(const char* filename,
-                             const QString& dataString) {
-    
-    qCDebug(interfaceapp, "Saving data to file %s...", filename);
-    QString test = DependencyManager::get<WindowScriptingInterface>()->getDataPath();
-    qCDebug(interfaceapp, test);
+void Application::setInterfaceScriptDataPath(const QString& dataPath) {
+    interfaceScriptDataPath = dataPath;
+}
 
-    QSaveFile persistFile(filename);
+bool Application::exportData(const QString& dataString) {
+    qCDebug(interfaceapp, "Saving data to file %s...", interfaceScriptDataPath);
+
+    QSaveFile persistFile(interfaceScriptDataPath);
     bool success = false;
     if (persistFile.open(QIODevice::WriteOnly)) {
         if (persistFile.write(dataString.toUtf8()) != -1) {

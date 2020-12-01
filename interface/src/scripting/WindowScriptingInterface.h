@@ -222,9 +222,9 @@ public slots:
     QScriptValue save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
 
     /**jsdoc
-     * Prompts the user to specify the path and name of a file to save to. Displays a modal dialog that navigates the directory
+     * Prompts the user to specify the path and name of a file to use as the script data path. Displays a modal dialog that navigates the directory
      * tree and allows the user to type in a file name.
-     * @function Window.setDataPath
+     * @function Window.setInterfaceScriptDataPath
      * @param {string} [title=""] - The title to display at the top of the dialog.
      * @param {string} [directory=""] - The initial directory to start browsing at.
      * @param {string} [nameFilter=""] - The types of files to display. Examples: <code>"*.json"</code> and
@@ -232,10 +232,12 @@ public slots:
      * @returns {string} The path and name of the file if one is specified, otherwise <code>null</code>. If a single file type
      *     is specified in the nameFilter, that file type extension is automatically appended to the result when appropriate.
      * @example <caption>Ask the user to specify a file to save to.</caption>
-     * var filename = Window.setDataPath("Save to JSON file", Paths.resources, "*.json");
+     * var filename = Window.setInterfaceScriptDataPath("Save to JSON file", Paths.resources, "*.json");
      * print("File: " + filename);
      */
-    QScriptValue setDataPath(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
+    QScriptValue setInterfaceScriptDataPath(const QString& title = "",
+                                            const QString& directory = "",
+                                            const QString& nameFilter = "");
 
     /**jsdoc
      * Prompts the user to specify the path and name of a file to save to. Displays a non-modal dialog that navigates the
@@ -864,9 +866,6 @@ private:
     void setInterstitialModeEnabled(bool enableInterstitialMode);
 
     void ensureReticleVisible() const;
-    
-    QString getDataPath() const;
-    QString dataPath;
 
     int createMessageBox(QString title, QString text, int buttons, int defaultButton);
     QHash<int, QQuickItem*> _messageBoxes;

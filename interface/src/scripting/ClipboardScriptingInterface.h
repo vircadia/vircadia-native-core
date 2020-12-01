@@ -115,14 +115,13 @@ public:
     Q_INVOKABLE bool exportEntities(const QString& filename, float x, float y, float z, float scale);
     
     /**jsdoc
-    * Export a string of data to a text file.
+    * Export a string of data to a file path previously set by Window.setInterfaceD
     * @function Clipboard.exportData
     * @variation 0
-    * @param {string} filename - Path and name of the file to export the data to. Should have the extension ".txt".
     * @param {string} data - The string of data to export. (If exporting JSON, use JSON.stringify() first.)
     * @returns {boolean} <code>true</code> if the file was written, otherwise <code>false</code>.
     */
-    Q_INVOKABLE bool exportData(const QString& filename, const QString& dataString);
+    Q_INVOKABLE bool exportData(const QString& dataString);
 
     /**jsdoc
      * Pastes the contents of the clipboard into the domain.
