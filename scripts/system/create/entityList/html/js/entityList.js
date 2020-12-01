@@ -1737,9 +1737,9 @@ function loaded() {
                     setSpaceMode(data.spaceMode);
                 } else if (data.type === "setSnapToGrid") {
                     if (data.snap) { 
-                        elSnapToGridActivatorCaption.innerHTML = "Deactivate Snap to Grid [ON]";
+                        elSnapToGridActivatorCaption.innerHTML = "&#x2713; Deactivate Snap to Grid";
                     } else {
-                        elSnapToGridActivatorCaption.innerHTML = "Activate Snap to Grid [OFF]";
+                        elSnapToGridActivatorCaption.innerHTML = "Activate Snap to Grid";
                     }
                 } else if (data.type === "confirmHMDstate") {
                     if (data.isHmd) {
