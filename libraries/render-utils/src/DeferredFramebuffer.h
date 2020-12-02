@@ -20,18 +20,8 @@
 // DeferredFramebuffer is  a helper class gathering in one place the GBuffer (Framebuffer) and lighting framebuffer
 class DeferredFramebuffer {
 public:
-    enum Type {
-        FULL = 0,
-        COLOR_DEPTH,
-        LIGHTING,
-        LIGHTING_VELOCITY,
-
-        MAX_TYPE
-    };
 
     DeferredFramebuffer();
-
-    gpu::FramebufferPointer getFramebuffer(Type type);
 
     gpu::FramebufferPointer getDeferredFramebuffer();
     gpu::FramebufferPointer getDeferredFramebufferDepthColor();
@@ -71,17 +61,5 @@ protected:
 };
 
 using DeferredFramebufferPointer = std::shared_ptr<DeferredFramebuffer>;
-
-class SetDeferredFramebuffer {
-public:
-    using JobModel = render::Job::ModelI<SetDeferredFramebuffer, DeferredFramebufferPointer>;
-
-    SetDeferredFramebuffer(DeferredFramebuffer::Type type) : _type(type) {}
-
-    void run(const render::RenderContextPointer& renderContext, const DeferredFramebufferPointer& framebuffer);
-
-protected:
-    DeferredFramebuffer::Type _type { DeferredFramebuffer::FULL };
-};
 
 #endif // hifi_DeferredFramebuffer_h

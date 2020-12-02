@@ -154,14 +154,7 @@ vec4 computeHazeColor(vec3 fragPositionES, vec3 fragPositionWS, vec3 eyePosition
         float hazeAmount = 1.0 - exp(-distance * hazeParams.hazeRangeFactor);
 
         // Compute color after haze effect
-        //potentialFragColor = vec4(blendedHazeColor.rgb, hazeAmount);
-        if (fragPositionES.x < -0.5f) {
-            potentialFragColor = vec4(blendedHazeColor.rgb, hazeAmount);
-        } else if (fragPositionES.x < 0.0f) {
-            potentialFragColor = vec4(blendedHazeColor.rgb, 1.0f);
-        } else {
-            potentialFragColor = vec4(vec3(fract(distance)), 1.0f);
-        }
+        potentialFragColor = vec4(blendedHazeColor.rgb, hazeAmount);
     } else {
         // Haze is based on both range and altitude
         // Taken from www.crytek.com/download/GDC2007_RealtimeAtmoFxInGamesRev.ppt
@@ -183,18 +176,7 @@ vec4 computeHazeColor(vec3 fragPositionES, vec3 fragPositionWS, vec3 eyePosition
         float hazeAmount = 1.0 - exp(-hazeIntegral);
 
         // Compute color after haze effect
-        //potentialFragColor = vec4(blendedHazeColor.rgb, hazeAmount);
-        if (fragPositionES.x < 1.0f) {
-            potentialFragColor = vec4(blendedHazeColor.rgb, hazeAmount);
-        } else if (fragPositionES.x < 2.0f) {
-            potentialFragColor = vec4(blendedHazeColor.rgb, 1.0f);
-        } else if (fragPositionES.x < 3.0f) {
-            potentialFragColor = vec4(vec3(fract(distance)), 1.0f);
-        } else if (fragPositionES.x < 4.0f) {
-            potentialFragColor = vec4(vec3(fract(t)), 1.0f);
-        } else {
-            potentialFragColor = vec4(vec3(fract(deltaHeight)), 1.0f);
-        }
+        potentialFragColor = vec4(blendedHazeColor.rgb, hazeAmount);
     }
 
     // Mix with background at far range

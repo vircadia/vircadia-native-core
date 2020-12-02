@@ -25,7 +25,7 @@ void DeferredFrameTransform::update(RenderArgs* args) {
     auto farZ = args->getViewFrustum().getFarClip();
 
     auto& frameTransformBuffer = _frameTransformBuffer.edit<FrameTransform>();
-    frameTransformBuffer.infos.depthInfo = glm::vec4(nearZ*farZ, farZ - nearZ, -farZ, 0.0f);
+    frameTransformBuffer.infos.depthInfo = glm::vec4(nearZ * farZ, farZ - nearZ, -farZ, 0.0f);
     frameTransformBuffer.infos.pixelInfo = args->_viewport;
 
     args->getViewFrustum().evalProjectionMatrix(frameTransformBuffer.infos.projectionMono);

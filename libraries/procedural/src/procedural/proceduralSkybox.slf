@@ -37,5 +37,5 @@ void main(void) {
     // Procedural Shaders are expected to be Gamma corrected so let's bring back the RGB in linear space for the rest of the pipeline
     color = pow(color, vec3(2.2));
 
-    packDeferredFragmentSky(_prevPositionCS, color);
+    packDeferredFragmentSky(_prevPositionCS, color, _normal);
 }

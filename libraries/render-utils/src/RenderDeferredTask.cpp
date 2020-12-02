@@ -196,12 +196,10 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto deferredLightingInputs = RenderDeferred::Inputs(deferredFrameTransform, deferredFramebuffer, extraDeferredBuffer, lightingModel, lightClusters, lightFrame, shadowFrame, hazeFrame).asVarying();
     task.addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
 
-    task.addJob<SetDeferredFramebuffer>("SetDeferredFramebufferBackground", deferredFramebuffer, DeferredFramebuffer::FULL);
     // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job
     const auto backgroundInputs = DrawBackgroundStage::Inputs(lightingModel, backgroundFrame, hazeFrame).asVarying();
     task.addJob<DrawBackgroundStage>("DrawBackgroundDeferred", backgroundInputs, backgroundViewTransformSlot);
 
-    task.addJob<SetDeferredFramebuffer>("SetDeferredFramebufferHaze", deferredFramebuffer, DeferredFramebuffer::LIGHTING);
     const auto drawHazeInputs = render::Varying(DrawHaze::Inputs(hazeFrame, lightingFramebuffer, linearDepthTarget, deferredFrameTransform, lightingModel, lightFrame));
     task.addJob<DrawHaze>("DrawHazeDeferred", drawHazeInputs);
 
@@ -214,10 +212,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<DrawHighlightTask>("DrawHighlight", outlineInputs, mainViewTransformSlot);
 
     // Layered Over (in front)
-    task.addJob<SetDeferredFramebuffer>("SetOpaqueLayeredFramebuffer", deferredFramebuffer, DeferredFramebuffer::LIGHTING_VELOCITY);
     const auto inFrontOpaquesInputs = DrawLayered3D::Inputs(inFrontOpaque, deferredFrameTransform, lightingModel, hazeFrame).asVarying();
     task.addJob<DrawLayered3D>("DrawInFrontOpaque", inFrontOpaquesInputs, shapePlumberForward, true, true, mainViewTransformSlot);
-    task.addJob<SetDeferredFramebuffer>("SetTransparentLayeredFramebuffer", deferredFramebuffer, DeferredFramebuffer::LIGHTING);
     const auto inFrontTransparentsInputs = DrawLayered3D::Inputs(inFrontTransparent, deferredFrameTransform, lightingModel, hazeFrame).asVarying();
     task.addJob<DrawLayered3D>("DrawInFrontTransparent", inFrontTransparentsInputs, shapePlumberForward, false, true, mainViewTransformSlot);
 

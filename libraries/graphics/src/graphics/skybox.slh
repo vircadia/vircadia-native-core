@@ -14,6 +14,8 @@
 <@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
 
+<@include gpu/PackedNormal.slh@>
+
 LAYOUT(binding=GRAPHICS_TEXTURE_SKYBOX) uniform samplerCube cubeMap;
 
 struct Skybox {
@@ -44,15 +46,18 @@ vec2 packVelocity(vec4 prevPositionCS) {
 }
 
 // Must match layout in DeferredBufferWrite.slh, but only velocity and lighting are used
-//layout(location = 0) out vec4 _fragColor0; // albedo / metallic
-//layout(location = 1) out vec4 _fragColor1; // normal
-//layout(location = 2) out vec4 _fragColor2; // scattering / emissive / occlusion
+layout(location = 0) out vec4 _fragColor0; // albedo / metallic
+layout(location = 1) out vec4 _fragColor1; // normal
+layout(location = 2) out vec4 _fragColor2; // scattering / emissive / occlusion
 layout(location = 3) out vec4 _velocity;   // velocity
 layout(location = 4) out vec4 _lighting;   // emissive
 
-void packDeferredFragmentSky(vec4 prevPositionCS, vec3 color) {
-    _velocity = vec4(packVelocity(prevPositionCS), 0.0, 0.0);
-    _lighting = vec4(color, 1.0);
+void packDeferredFragmentSky(vec4 prevPositionCS, vec3 color, vec3 normal) {
+    _fragColor0 = vec4(color, 0.6f);
+    _fragColor1 = vec4(packNormal(normal), 1.0f);
+    _fragColor2 = vec4(0.0f);
+    _velocity = vec4(packVelocity(prevPositionCS), 0.0f, 0.0f);
+    _lighting = vec4(color, 1.0f);
 }
 
 <@endfunc@>

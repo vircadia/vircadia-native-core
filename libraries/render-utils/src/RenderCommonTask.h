@@ -79,13 +79,6 @@ protected:
     bool _isJitterEnabled { false };
 };
 
-class SetFramebuffer {
-public:
-    using JobModel = render::Job::ModelI<SetFramebuffer, gpu::FramebufferPointer>;
-
-    void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& framebuffer);
-};
-
 class Blit {
 public:
     using JobModel = render::Job::ModelI<Blit, gpu::FramebufferPointer>;

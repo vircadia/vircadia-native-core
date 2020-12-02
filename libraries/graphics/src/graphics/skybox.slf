@@ -63,7 +63,7 @@ void main(void) {
         _fragColor.rgb = mix(_fragColor.rgb, hazeColor.rgb, hazeColor.a);
     }
 <@else@>
-    packDeferredFragmentSky(_prevPositionCS, color);
+    packDeferredFragmentSky(_prevPositionCS, color, normal);
 <@endif@>
 
 }

@@ -78,9 +78,6 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
     gpu::doInBatch("BloomThreshold::run", args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
 
-        // We need to clear in case there are zones of the buffer that are stencil tagged as "No Bloom"
-        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLORS, gpu::Vec4(0.0f));
-
         batch.setViewportTransform(viewport);
         batch.setProjectionTransform(glm::mat4());
         batch.resetViewTransform();
