@@ -1,3 +1,12 @@
+//  gridTool.js
+//
+//  Created by Ryan Huffman on 6 Nov 2014
+//  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 /* global keyUpEventFromUIWindow */
 
 var GRID_CONTROLS_HTML_URL = Script.resolvePath('../html/gridControls.html');
@@ -16,18 +25,19 @@ Grid = function() {
 
     var snapToGrid = false;
 
-    var gridOverlay = Overlays.addOverlay("grid", {
+    var gridEntityTool = Entities.addEntity({
+        type: "Grid",
         rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
         dimensions: { x: scale, y: scale, z: scale },
         position: origin,
         visible: false,
-        drawInFront: false,
+        renderLayer: "world",
         color: gridColor,
         alpha: gridAlpha,
         minorGridEvery: minorGridEvery,
         majorGridEvery: majorGridEvery,
         ignorePickIntersection: true
-    });
+    }, "local");
 
     that.visible = false;
     that.enabled = false;
@@ -166,7 +176,7 @@ Grid = function() {
     
     that.moveToAvatar = function() {
         var position = MyAvatar.getJointPosition("LeftFoot");
-        if (position.x === 0 && position.y === 0 && position.z === 0) {
+        if (position.x === 0.0 && position.y === 0.0 && position.z === 0.0) {
             position = MyAvatar.position;
         }
         that.setPosition(position);        
@@ -222,7 +232,7 @@ Grid = function() {
     };
 
     function updateGrid(noUpdate) {
-        Overlays.editOverlay(gridOverlay, {
+        Entities.editEntity(gridEntityTool, {
             position: { x: 0, y: origin.y, z: 0 },
             visible: that.visible && that.enabled,
             minorGridEvery: minorGridEvery,
@@ -230,6 +240,7 @@ Grid = function() {
             color: gridColor,
             alpha: gridAlpha
         });
+        
 
         if (!noUpdate) {
             that.emitUpdate();
@@ -237,7 +248,7 @@ Grid = function() {
     }
 
     function cleanup() {
-        Overlays.deleteOverlay(gridOverlay);
+        Entities.deleteEntity(gridEntityTool);
     }
 
     that.addListener = function(callback) {
