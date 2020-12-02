@@ -1482,7 +1482,7 @@ function setupModelMenus() {
         menuItemName: MENU_ENTITY_LIST_DEFAULT_RADIUS,
         afterItem: MENU_SHOW_ZONES_IN_EDIT_MODE
     });
- 
+
     Entities.setLightsArePickable(false);
 }
 
@@ -2404,7 +2404,7 @@ var PropertiesTool = function (opts) {
         }
         var i, properties, dY, diff, newPosition;
         if (data.type === "update") {
-            
+
             if (data.properties || data.propertiesMap) {
                 var propertiesMap = data.propertiesMap;
                 if (propertiesMap === undefined) {
