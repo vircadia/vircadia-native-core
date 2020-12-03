@@ -1,6 +1,6 @@
 # Creating an Installer
 
-*Last Updated on August 24, 2020*
+*Last Updated on December 2, 2020*
 
 Follow the [build guide](BUILD.md) to figure out how to build Vircadia for your platform.
 
@@ -9,13 +9,13 @@ During generation, CMake should produce an `install` target and a `package` targ
 The `install` target will copy the Vircadia targets and their dependencies to your `CMAKE_INSTALL_PREFIX`.  
 This variable is set by the `project(hifi)` command in `CMakeLists.txt` to `C:/Program Files/hifi` and stored in `build/CMakeCache.txt`
 
-### Packaging
+## Packaging
 
 To produce an installer, run the `package` target. However you will want to follow the steps specific to your platform below.
 
-#### Windows
+### Windows
 
-##### Prerequisites
+#### Prerequisites
 
 To produce an executable installer on Windows, the following are required:
 
@@ -63,11 +63,11 @@ To produce an executable installer on Windows, the following are required:
 1. [Node.JS and NPM](<https://www.npmjs.com/get-npm>)
     1.  Install version 10.15.0 LTS
     
-##### Code Signing (optional)
+#### Code Signing (optional)
 
 For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PASSPHRASE` environment variables to be present during CMake runtime and globally as we proceed to package the installer.
 
-##### Creating the Installer
+#### Creating the Installer
     
 1.  Perform a clean cmake from a new terminal.
 1.  Open the `vircadia.sln` solution with elevated (administrator) permissions on Visual Studio and select the **Release** configuration.
@@ -79,7 +79,14 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
 1.  Build CMakeTargets->PACKAGE   
     The installer is now available in `build\_CPack_Packages\win64\NSIS`
 
-#### OS X
+#### FAQ
+
+1. **Problem:** Failure to open a file. ```File: failed opening file "\FOLDERSHARE\XYZSRelease\...\Credits.rtf" Error in script "C:\TFS\XYZProject\Releases\NullsoftInstaller\XYZWin7Installer.nsi" on line 77 -- aborting creation process```
+    1. **Cause:** The complete path (current directory + relative path) has to be < 260 characters to any of the relevant files.
+    1. **Solution:** Move your build and packaging folder as high up in the drive as possible to prevent an overage.
+
+### OS X
+
 1.   [npm](<https://www.npmjs.com/get-npm>)
       Install version 12.16.3 LTS
    
@@ -91,8 +98,54 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
 1.  Perform a Release build of `package`
       Installer is now available in `build/_CPack_Packages/Darwin/DragNDrop
       
-### FAQ
+### Linux
 
-1. **Problem:** Failure to open a file. ```File: failed opening file "\FOLDERSHARE\XYZSRelease\...\Credits.rtf" Error in script "C:\TFS\XYZProject\Releases\NullsoftInstaller\XYZWin7Installer.nsi" on line 77 -- aborting creation process```
-    1. **Cause:** The complete path (current directory + relative path) has to be < 260 characters to any of the relevant files.
-    1. **Solution:** Move your build and packaging folder as high up in the drive as possible to prevent an overage.
+#### Server
+
+##### Ubuntu | .deb
+
+1. Ensure you are using an Ubuntu 18.04 system.
+1. Set up Vircadia Builder to compile the server.
+    ```
+    git clone https://github.com/kasenvr/vircadia-builder.git
+    cd vircadia-builder
+    chmod +x vircadia-builder
+    ./vircadia-builder
+    ```
+1. Build the server.
+    ```
+    ./vircadia-builder --build server
+    ```
+1. Navigate to the `pkg-scripts` directory.
+    ```
+    cd ../Vircadia/source/pkg-scripts/
+    ```
+1. Generate the .deb package.
+    ```
+    DEBEMAIL="your-email@somewhere.com" DEBFULLNAME="Your Full Name" ./make-deb-server
+    ```
+1. If successful, the generated .deb package will be in the `pkg-scripts` folder.
+
+##### Amazon Linux 2 | .rpm
+
+1. Ensure you are using an Amazon Linux 2 system.
+1. Set up Vircadia Builder to compile the server.
+    ```
+    git clone https://github.com/kasenvr/vircadia-builder.git
+    cd vircadia-builder
+    chmod +x vircadia-builder
+    ./vircadia-builder
+    ```
+1. Build the server.
+    ```
+    ./vircadia-builder --build server
+    ```
+1. Navigate to the `pkg-scripts` directory.
+    ```
+    cd ../Vircadia/source/pkg-scripts/
+    ```
+1. Generate the .rpm package.
+    ```
+    ./make-rpm-server
+    ```
+1. If successful, the generated .rpm package will be in the `pkg-scripts` folder.
