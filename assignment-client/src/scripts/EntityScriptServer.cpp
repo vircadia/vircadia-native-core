@@ -83,13 +83,18 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListenerForTypes({ PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
-                                            this, "handleOctreePacket");
-    packetReceiver.registerListener(PacketType::SelectedAudioFormat, this, "handleSelectedAudioFormat");
+                                            PacketReceiver::makeSourcedListenerReference<EntityScriptServer>(this, &EntityScriptServer::handleOctreePacket));
+    packetReceiver.registerListener(PacketType::SelectedAudioFormat,
+        PacketReceiver::makeUnsourcedListenerReference<EntityScriptServer>(this, &EntityScriptServer::handleSelectedAudioFormat));
 
-    packetReceiver.registerListener(PacketType::ReloadEntityServerScript, this, "handleReloadEntityServerScriptPacket");
-    packetReceiver.registerListener(PacketType::EntityScriptGetStatus, this, "handleEntityScriptGetStatusPacket");
-    packetReceiver.registerListener(PacketType::EntityServerScriptLog, this, "handleEntityServerScriptLogPacket");
-    packetReceiver.registerListener(PacketType::EntityScriptCallMethod, this, "handleEntityScriptCallMethodPacket");
+    packetReceiver.registerListener(PacketType::ReloadEntityServerScript,
+        PacketReceiver::makeSourcedListenerReference<EntityScriptServer>(this, &EntityScriptServer::handleReloadEntityServerScriptPacket));
+    packetReceiver.registerListener(PacketType::EntityScriptGetStatus,
+        PacketReceiver::makeSourcedListenerReference<EntityScriptServer>(this, &EntityScriptServer::handleEntityScriptGetStatusPacket));
+    packetReceiver.registerListener(PacketType::EntityServerScriptLog,
+        PacketReceiver::makeSourcedListenerReference<EntityScriptServer>(this, &EntityScriptServer::handleEntityServerScriptLogPacket));
+    packetReceiver.registerListener(PacketType::EntityScriptCallMethod,
+        PacketReceiver::makeSourcedListenerReference<EntityScriptServer>(this, &EntityScriptServer::handleEntityScriptCallMethodPacket));
 
     static const int LOG_INTERVAL = MSECS_PER_SECOND / 10;
     auto timer = new QTimer(this);
@@ -465,7 +470,9 @@ void EntityScriptServer::resetEntitiesScriptEngine() {
     scriptEngines->runScriptInitializers(newEngine);
     newEngine->runInThread();
     auto newEngineSP = qSharedPointerCast<EntitiesScriptEngineProvider>(newEngine);
-    DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(newEngineSP);
+    // On the entity script server, these are the same
+    DependencyManager::get<EntityScriptingInterface>()->setPersistentEntitiesScriptEngine(newEngineSP);
+    DependencyManager::get<EntityScriptingInterface>()->setNonPersistentEntitiesScriptEngine(newEngineSP);
 
     if (_entitiesScriptEngine) {
         disconnect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptDetailsUpdated,

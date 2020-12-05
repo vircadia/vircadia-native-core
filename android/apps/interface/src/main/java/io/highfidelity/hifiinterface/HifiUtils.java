@@ -9,7 +9,7 @@ import java.net.URISyntaxException;
 
 public class HifiUtils {
 
-    public static final String METAVERSE_BASE_URL = "https://metaverse.highfidelity.com";
+    public static final String METAVERSE_BASE_URL = "https://metaverse.vircadia.com/live";
 
     private static HifiUtils instance;
 

@@ -74,6 +74,10 @@ static void* getGlProcessAddress(const char *namez) {
 
 #else
 
+
+typedef Bool (*PFNGLXQUERYCURRENTRENDERERINTEGERMESAPROC) (int attribute, unsigned int *value);
+PFNGLXQUERYCURRENTRENDERERINTEGERMESAPROC QueryCurrentRendererIntegerMESA;
+
 static void* getGlProcessAddress(const char *namez) {
     return (void*)glXGetProcAddressARB((const GLubyte*)namez);
 }
@@ -90,6 +94,10 @@ void gl::initModuleGl() {
         wglGetSwapIntervalEXT = (PFNWGLGETSWAPINTERVALEXTPROC)getGlProcessAddress("wglGetSwapIntervalEXT");
         wglChoosePixelFormatARB = (PFNWGLCHOOSEPIXELFORMATARBPROC)getGlProcessAddress("wglChoosePixelFormatARB");
         wglCreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)getGlProcessAddress("wglCreateContextAttribsARB");
+#endif
+
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
+        QueryCurrentRendererIntegerMESA = (PFNGLXQUERYCURRENTRENDERERINTEGERMESAPROC)getGlProcessAddress("glXQueryCurrentRendererIntegerMESA");
 #endif
 
 #if defined(USE_GLES)
@@ -123,4 +131,15 @@ void gl::setSwapInterval(int interval) {
 #else
     Q_UNUSED(interval);
 #endif
+}
+
+bool gl::queryCurrentRendererIntegerMESA(int attr, unsigned int *value) {
+    #if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
+    if (QueryCurrentRendererIntegerMESA) {
+        return QueryCurrentRendererIntegerMESA(attr, value);
+    }
+    #endif
+
+    *value = 0;
+    return false;
 }

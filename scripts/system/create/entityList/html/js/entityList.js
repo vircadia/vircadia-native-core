@@ -2,6 +2,7 @@
 //
 //  Created by Ryan Huffman on 19 Nov 2014
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -19,7 +20,7 @@ const EMPTY_ENTITY_ID = "0";
 const MAX_LENGTH_RADIUS = 9;
 const MINIMUM_COLUMN_WIDTH = 24;
 const SCROLLBAR_WIDTH = 20;
-const RESIZER_WIDTH = 10;
+const RESIZER_WIDTH = 13; //Must be the number of COLUMNS - 1.
 const DELTA_X_MOVE_COLUMNS_THRESHOLD = 2;
 const DELTA_X_COLUMN_SWAP_POSITION = 5;
 const CERTIFIED_PLACEHOLDER = "** Certified **";
@@ -46,6 +47,14 @@ const COLUMNS = {
         alwaysShown: true,
         defaultSortOrder: ASCENDING_SORT,
     },
+    parentState: {
+        columnHeader: "A",
+        vglyph: true,
+        dropdownLabel: "Hierarchy",
+        propertyID: "parentState",
+        initialWidth: 0.08,
+        defaultSortOrder: DESCENDING_SORT,
+    },     
     name: {
         columnHeader: "Name",
         propertyID: "name",
@@ -133,6 +142,20 @@ const COLUMNS = {
         initialWidth: 0.06,
         defaultSortOrder: DESCENDING_SORT,
     },
+    created: {
+        columnHeader: "Created (UTC)",
+        dropdownLabel: "Creation Date",
+        propertyID: "created",
+        initialWidth: 0.38,
+        defaultSortOrder: DESCENDING_SORT,
+    },
+    lastEdited: {
+        columnHeader: "Modified (UTC)",
+        dropdownLabel: "Modification Date",
+        propertyID: "lastEdited",
+        initialWidth: 0.38,
+        defaultSortOrder: DESCENDING_SORT,
+    },    
 };
 
 const FILTER_TYPES = [
@@ -164,6 +187,9 @@ let selectedEntities = [];
 
 let entityList = null; // The ListView
 
+let hmdMultiSelectMode = false; 
+
+let lastSelectedEntity;
 /**
  * @type EntityListContextMenu
  */
@@ -198,7 +224,31 @@ let elEntityTable,
     elRefresh,
     elToggleLocked,
     elToggleVisible,
+    elActionsMenu,
+    elSelectionMenu,
+    elMenuBackgroundOverlay,
+    elHmdMultiSelect, 
+    elHmdCopy,
+    elHmdCut,
+    elHmdPaste,
+    elHmdDuplicate,   
+    elUndo,
+    elRedo,
+    elParent,
+    elUnparent,    
     elDelete,
+    elMoveEntitySelectionToAvatar,
+    elSelectAll,
+    elSelectInverse,
+    elSelectNone,
+    elSelectAllInBox,
+    elSelectAllTouchingBox,
+    elSelectParent,
+    elSelectTopParent,
+    elAddChildrenToSelection,
+    elSelectFamily,
+    elSelectTopFamily,
+    elTeleportToEntity,
     elFilterTypeMultiselectBox,
     elFilterTypeText,
     elFilterTypeOptions,
@@ -233,16 +283,43 @@ const PROFILE = !ENABLE_PROFILING ? PROFILE_NOOP : function(name, fn, args) {
     console.log("PROFILE-Web " + profileIndent + "(" + name + ") End " + delta + "ms");
 };
 
-function loaded() {
+function loaded() {    
     openEventBridge(function() {
+
+        var isColumnsSettingLoaded = false;
+        
         elEntityTable = document.getElementById("entity-table");
         elEntityTableHeader = document.getElementById("entity-table-header");
         elEntityTableBody = document.getElementById("entity-table-body");
         elEntityTableScroll = document.getElementById("entity-table-scroll");
         elRefresh = document.getElementById("refresh");
         elToggleLocked = document.getElementById("locked");
-        elToggleVisible = document.getElementById("visible");
+        elToggleVisible = document.getElementById("visible");         
+        elHmdMultiSelect = document.getElementById("hmdmultiselect");
+        elActionsMenu = document.getElementById("actions");
+        elSelectionMenu = document.getElementById("selection");
+        elMenuBackgroundOverlay = document.getElementById("menuBackgroundOverlay");
+        elHmdCopy = document.getElementById("hmdcopy");
+        elHmdCut = document.getElementById("hmdcut");
+        elHmdPaste = document.getElementById("hmdpaste");
+        elHmdDuplicate = document.getElementById("hmdduplicate");        
+        elUndo = document.getElementById("undo");
+        elRedo = document.getElementById("redo");
+        elParent = document.getElementById("parent");
+        elUnparent = document.getElementById("unparent");
         elDelete = document.getElementById("delete");
+        elMoveEntitySelectionToAvatar = document.getElementById("moveEntitySelectionToAvatar"); 
+        elSelectAll = document.getElementById("selectall");
+        elSelectInverse = document.getElementById("selectinverse");
+        elSelectNone = document.getElementById("selectnone");
+        elSelectAllInBox = document.getElementById("selectallinbox");
+        elSelectAllTouchingBox = document.getElementById("selectalltouchingbox");
+        elSelectParent = document.getElementById("selectparent");
+        elSelectTopParent = document.getElementById("selecttopparent");
+        elAddChildrenToSelection = document.getElementById("addchildrentoselection");
+        elSelectFamily = document.getElementById("selectfamily");
+        elSelectTopFamily = document.getElementById("selecttopfamily");
+        elTeleportToEntity = document.getElementById("teleport-to-entity");
         elFilterTypeMultiselectBox = document.getElementById("filter-type-multiselect-box");
         elFilterTypeText = document.getElementById("filter-type-text");
         elFilterTypeOptions = document.getElementById("filter-type-options");
@@ -259,7 +336,7 @@ function loaded() {
         elColumnsMultiselectBox = document.getElementById("entity-table-columns-multiselect-box");
         elColumnsOptions = document.getElementById("entity-table-columns-options");
         elToggleSpaceMode = document.getElementById('toggle-space-mode');
-        
+
         document.body.onclick = onBodyClick;
         elToggleLocked.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleLocked' }));
@@ -270,8 +347,156 @@ function loaded() {
         elExport.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'export'}));
         };
+        elHmdMultiSelect.onclick = function() {
+            if (hmdMultiSelectMode) {
+                elHmdMultiSelect.className = "vglyph";
+                hmdMultiSelectMode = false;
+            } else {
+                elHmdMultiSelect.className = "white vglyph";
+                hmdMultiSelectMode = true;
+            }
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'hmdMultiSelectMode', value: hmdMultiSelectMode }));
+        };
+        elActionsMenu.onclick = function() {
+            document.getElementById("menuBackgroundOverlay").style.display = "block";
+            document.getElementById("actions-menu").style.display = "block";
+        };
+        elSelectionMenu.onclick = function() {
+            document.getElementById("menuBackgroundOverlay").style.display = "block";
+            document.getElementById("selection-menu").style.display = "block";
+        };
+        elMenuBackgroundOverlay.onclick = function() {
+            closeAllEntityListMenu();
+        };
+        elHmdCopy.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'copy' }));
+            closeAllEntityListMenu();
+        };
+        elHmdCut.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'cut' }));
+            closeAllEntityListMenu();
+        };
+        elHmdPaste.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'paste' }));
+            closeAllEntityListMenu();
+        };
+        elHmdDuplicate.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'duplicate' }));
+            closeAllEntityListMenu();
+        };
+        elParent.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'parent' }));
+            closeAllEntityListMenu();
+        };
+        elUnparent.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'unparent' }));
+            closeAllEntityListMenu();
+        };
+        elUndo.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'undo' }));
+            closeAllEntityListMenu();
+        };
+        elRedo.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'redo' }));
+            closeAllEntityListMenu();
+        };         
         elDelete.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
+            closeAllEntityListMenu();
+        };
+        elMoveEntitySelectionToAvatar.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'moveEntitySelectionToAvatar' }));
+            closeAllEntityListMenu();
+        };
+        elSelectAll.onclick = function() {
+
+            let visibleEntityIDs = visibleEntities.map(visibleEntity => visibleEntity.id);
+            let selectionIncludesAllVisibleEntityIDs = visibleEntityIDs.every(visibleEntityID => {
+                return selectedEntities.includes(visibleEntityID);
+            });
+
+            let selection = [];
+
+            if (!selectionIncludesAllVisibleEntityIDs) {
+                selection = visibleEntityIDs;
+            }
+
+            updateSelectedEntities(selection, false);
+
+            EventBridge.emitWebEvent(JSON.stringify({
+                "type": "selectionUpdate",
+                "focus": false,
+                "entityIds": selection
+            }));
+
+            closeAllEntityListMenu();
+        };
+        elSelectInverse.onclick = function() {
+            let visibleEntityIDs = visibleEntities.map(visibleEntity => visibleEntity.id);
+            let selectionIncludesAllVisibleEntityIDs = visibleEntityIDs.every(visibleEntityID => {
+                return selectedEntities.includes(visibleEntityID);
+            });
+
+            let selection = [];
+
+            if (!selectionIncludesAllVisibleEntityIDs) {
+                visibleEntityIDs.forEach(function(id) {
+                    if (!selectedEntities.includes(id)) {
+                        selection.push(id);
+                    }
+                });
+            }
+
+            updateSelectedEntities(selection, false);
+
+            EventBridge.emitWebEvent(JSON.stringify({
+                "type": "selectionUpdate",
+                "focus": false,
+                "entityIds": selection
+            }));
+            
+            closeAllEntityListMenu();
+        };
+        elSelectNone.onclick = function() {
+            updateSelectedEntities([], false);
+            EventBridge.emitWebEvent(JSON.stringify({
+                "type": "selectionUpdate",
+                "focus": false,
+                "entityIds": []
+            }));            
+            closeAllEntityListMenu();
+        };
+        elSelectAllInBox.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'selectAllInBox' }));
+            closeAllEntityListMenu();
+        };
+        elSelectAllTouchingBox.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'selectAllTouchingBox' }));
+            closeAllEntityListMenu();
+        };
+        elSelectParent.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'selectParent' }));
+            closeAllEntityListMenu();
+        };
+        elSelectTopParent.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'selectTopParent' }));
+            closeAllEntityListMenu();
+        };
+        elAddChildrenToSelection.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'addChildrenToSelection' }));
+            closeAllEntityListMenu();
+        };
+        elSelectFamily.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'selectFamily' }));
+            closeAllEntityListMenu();
+        };
+        elSelectTopFamily.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'selectTopFamily' }));
+            closeAllEntityListMenu();
+        };
+        elTeleportToEntity.onclick = function () {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "teleportToEntity" }));
+            closeAllEntityListMenu();
         };
         elToggleSpaceMode.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleSpaceMode' }));
@@ -330,9 +555,12 @@ function loaded() {
             elTh.setAttribute("id", thID);
             elTh.setAttribute("columnIndex", columnIndex);
             elTh.setAttribute("columnID", columnID);
-            if (columnData.glyph) {
+            if (columnData.glyph || columnData.vglyph) {
                 let elGlyph = document.createElement("span");
                 elGlyph.className = "glyph";
+                if (columnData.vglyph) {
+                    elGlyph.className = "vglyph";
+                }
                 elGlyph.innerHTML = columnData.columnHeader;
                 elTh.appendChild(elGlyph);
             } else {
@@ -395,9 +623,9 @@ function loaded() {
             
             ++columnIndex;
         }
-        
+
         elEntityTableHeaderRow = document.querySelectorAll("#entity-table thead th");
-        
+
         entityList = new ListView(elEntityTableBody, elEntityTableScroll, elEntityTableHeaderRow, createRow, updateRow,
                                   clearRow, preRefresh, postRefresh, preRefresh, WINDOW_NONVARIABLE_HEIGHT);
 
@@ -538,14 +766,14 @@ function loaded() {
             let selection = [entityID];
             let controlKey = window.navigator.platform.startsWith("Mac") ? clickEvent.metaKey : clickEvent.ctrlKey;
 
-            if (controlKey) {
+            if (controlKey || hmdMultiSelectMode) {
                 let selectedIndex = selectedEntities.indexOf(entityID);
                 if (selectedIndex >= 0) {
                     selection = [];
-                    selection = selection.concat(selectedEntities);
+                    selection = selectedEntities.concat(selection);
                     selection.splice(selectedIndex, 1);
                 } else {
-                    selection = selection.concat(selectedEntities);
+                    selection = selectedEntities.concat(selection);
                 }
             } else if (clickEvent.shiftKey && selectedEntities.length > 0) {
                 let previousItemFound = -1;
@@ -632,10 +860,13 @@ function loaded() {
                         isBaked: entity.isBaked,
                         drawCalls: displayIfNonZero(entity.drawCalls),
                         hasScript: entity.hasScript,
+                        parentState: entity.parentState,
+                        created: entity.created,
+                        lastEdited: entity.lastEdited,
                         elRow: null, // if this entity has a visible row element assigned to it
                         selected: false // if this entity is selected for edit regardless of having a visible row
                     };
-                    
+
                     entities.push(entityData);
                     entitiesByID[entityData.id] = entityData;
                 });
@@ -817,7 +1048,9 @@ function loaded() {
         
         function updateSelectedEntities(selectedIDs, autoScroll) {
             let notFound = false;
-            
+
+            lastSelectedEntity = selectedIDs[selectedIDs.length - 1];
+
             // reset all currently selected entities and their rows first
             selectedEntities.forEach(function(id) {
                 let entity = entitiesByID[id];
@@ -828,7 +1061,7 @@ function loaded() {
                     }
                 }
             });
-            
+
             // then reset selected entities list with newly selected entities and set them selected
             selectedEntities = [];
             selectedIDs.forEach(function(id) {
@@ -837,7 +1070,11 @@ function loaded() {
                 if (entity !== undefined) {
                     entity.selected = true;
                     if (entity.elRow) {
-                        entity.elRow.className = 'selected';
+                        if (id === lastSelectedEntity) {
+                            entity.elRow.className = 'last-selected';
+                        } else {
+                            entity.elRow.className = 'selected';
+                        }
                     }
                 } else {
                     notFound = true;
@@ -891,6 +1128,8 @@ function loaded() {
                 let elCell = elRow.childNodes[i];
                 if (column.data.glyph) {
                     elCell.innerHTML = itemData[column.data.propertyID] ? column.data.columnHeader : null;
+                } else if (column.data.vglyph) {
+                    elCell.innerHTML = itemData[column.data.propertyID];
                 } else {
                     let value = itemData[column.data.propertyID];
                     if (column.data.format) {
@@ -904,7 +1143,11 @@ function loaded() {
 
             // if this entity was previously selected flag it's row as selected
             if (itemData.selected) {
-                elRow.className = 'selected';
+                if (itemData.id === lastSelectedEntity) {
+                    elRow.className = 'last-selected';
+                } else {
+                    elRow.className = 'selected';
+                }
             } else {
                 elRow.className = '';
             }
@@ -978,6 +1221,9 @@ function loaded() {
             let column = columnsByID[columnID];
             let visible = column.elTh.style.visibility !== "hidden";
             let className = column.data.glyph ? "glyph" : "";
+            if (column.data.vglyph) {
+                className = "vglyph";
+            }
             className += visible ? "" : " hidden";
             return className;
         }
@@ -1178,6 +1424,10 @@ function loaded() {
                 column.elResizer.style.visibility = columnVisible && visibleColumns > 0 ? "visible" : "hidden";
             }
             
+            if (isColumnsSettingLoaded) {
+                EventBridge.emitWebEvent(JSON.stringify({ type: 'saveColumnsConfigSetting', columnsData: columns }));
+            }
+            
             entityList.refresh();
         }
         
@@ -1327,7 +1577,7 @@ function loaded() {
                     break;
             }
 
-            if (controlKey && keyCodeString === "A") {
+            if (controlKey && !shiftKey && !altKey && keyCodeString === "A") {
                 let visibleEntityIDs = visibleEntities.map(visibleEntity => visibleEntity.id);
                 let selectionIncludesAllVisibleEntityIDs = visibleEntityIDs.every(visibleEntityID => {
                     return selectedEntities.includes(visibleEntityID);
@@ -1350,6 +1600,32 @@ function loaded() {
                 return;
             }
 
+            if (controlKey && !shiftKey && !altKey && keyCodeString === "I") {
+                let visibleEntityIDs = visibleEntities.map(visibleEntity => visibleEntity.id);
+                let selectionIncludesAllVisibleEntityIDs = visibleEntityIDs.every(visibleEntityID => {
+                    return selectedEntities.includes(visibleEntityID);
+                });
+
+                let selection = [];
+
+                if (!selectionIncludesAllVisibleEntityIDs) {
+                    visibleEntityIDs.forEach(function(id) {
+                        if (!selectedEntities.includes(id)) {
+                            selection.push(id);
+                        }
+                    });
+                }
+
+                updateSelectedEntities(selection);
+
+                EventBridge.emitWebEvent(JSON.stringify({
+                    "type": "selectionUpdate",
+                    "focus": false,
+                    "entityIds": selection
+                }));
+                
+                return;
+            }
 
             EventBridge.emitWebEvent(JSON.stringify({
                 type: 'keyUpEvent',
@@ -1364,10 +1640,12 @@ function loaded() {
                 }
             }));
         }, false);
-        
+
         if (window.EventBridge !== undefined) {
             EventBridge.scriptEventReceived.connect(function(data) {
+                
                 data = JSON.parse(data);
+                
                 if (data.type === "clearEntityList") {
                     clearEntities();
                 } else if (data.type === "selectionUpdate") {
@@ -1395,14 +1673,69 @@ function loaded() {
                     removeEntities(data.ids);
                 } else if (data.type === "setSpaceMode") {
                     setSpaceMode(data.spaceMode);
+                } else if (data.type === "confirmHMDstate") {
+                    if (data.isHmd) {
+                        document.getElementById("hmdmultiselect").style.display = "inline";
+                    } else {
+                        document.getElementById("hmdmultiselect").style.display = "none";                      
+                    }
+                } else if (data.type === "loadedConfigSetting") {
+                    if (typeof(data.defaultRadius) === "number") {
+                        elFilterRadius.value = data.defaultRadius;
+                        onRadiusChange();
+                    }
+                    if (data.columnsData !== "NO_DATA" && typeof(data.columnsData) === "object") {
+                        var isValid = true;
+                        var originalColumnIDs = [];
+                        for (let originalColumnID in COLUMNS) {
+                            originalColumnIDs.push(originalColumnID);
+                        }                        
+                        for (let columnSetupIndex in data.columnsData) {
+                            var checkPresence = originalColumnIDs.indexOf(data.columnsData[columnSetupIndex].columnID);
+                            if (checkPresence === -1) {
+                                isValid = false;
+                                break;
+                            }
+                        }
+                        if (isValid) {
+                            for (var columnIndex = 0; columnIndex < data.columnsData.length; columnIndex++) {
+                                if (data.columnsData[columnIndex].data.alwaysShown !== true) {
+                                    var columnDropdownID = "entity-table-column-" + data.columnsData[columnIndex].columnID;
+                                    if (data.columnsData[columnIndex].width !== 0) {
+                                        document.getElementById(columnDropdownID).checked = false;
+                                        document.getElementById(columnDropdownID).click();
+                                    } else {
+                                        document.getElementById(columnDropdownID).checked = true;
+                                        document.getElementById(columnDropdownID).click();
+                                    }
+                                }
+                            }
+                            for (columnIndex = 0; columnIndex < data.columnsData.length; columnIndex++) {
+                                let currentColumnIndex = originalColumnIDs.indexOf(data.columnsData[columnIndex].columnID);
+                                if (currentColumnIndex !== -1 && columnIndex !== currentColumnIndex) {
+                                    for (var i = currentColumnIndex; i > columnIndex; i--) {
+                                        swapColumns(i - 1, i);
+                                        var swappedContent = originalColumnIDs[i - 1];  
+                                        originalColumnIDs[i - 1] = originalColumnIDs[i];  
+                                        originalColumnIDs[i] = swappedContent;                                        
+                                    }
+                                }
+                            }
+                        } else {
+                            EventBridge.emitWebEvent(JSON.stringify({ type: 'saveColumnsConfigSetting', columnsData: "" }));
+                        }
+                    }
+                    isColumnsSettingLoaded = true;
                 }
             });
         }
-        
+
         refreshSortOrder();
         refreshEntities();
         
         window.addEventListener("resize", updateColumnWidths);
+        
+        EventBridge.emitWebEvent(JSON.stringify({ type: 'loadConfigSetting' }));
     });
     
     augmentSpinButtons();
@@ -1418,5 +1751,13 @@ function loaded() {
     // close context menu when switching focus to another window
     $(window).blur(function() {
         entityListContextMenu.close();
+        closeAllEntityListMenu();
     });
+    
+    function closeAllEntityListMenu() {
+        document.getElementById("menuBackgroundOverlay").style.display = "none";
+        document.getElementById("selection-menu").style.display = "none";
+        document.getElementById("actions-menu").style.display = "none";
+    }
+
 }

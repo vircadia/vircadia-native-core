@@ -166,7 +166,7 @@ void ParticleEffectEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEn
         particleUniforms.rotateWithEntity = _particleProperties.rotateWithEntity ? 1 : 0;
     });
     // Update particle uniforms
-    memcpy(&_uniformBuffer.edit<ParticleUniforms>(), &particleUniforms, sizeof(ParticleUniforms));
+    _uniformBuffer.edit<ParticleUniforms>() = particleUniforms;
 }
 
 ItemKey ParticleEffectEntityRenderer::getKey() {

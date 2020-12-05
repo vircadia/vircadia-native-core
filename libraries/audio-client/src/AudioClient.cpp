@@ -369,13 +369,20 @@ AudioClient::AudioClient() {
 
     auto nodeList = DependencyManager::get<NodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::AudioStreamStats, &_stats, "processStreamStatsPacket");
-    packetReceiver.registerListener(PacketType::AudioEnvironment, this, "handleAudioEnvironmentDataPacket");
-    packetReceiver.registerListener(PacketType::SilentAudioFrame, this, "handleAudioDataPacket");
-    packetReceiver.registerListener(PacketType::MixedAudio, this, "handleAudioDataPacket");
-    packetReceiver.registerListener(PacketType::NoisyMute, this, "handleNoisyMutePacket");
-    packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
-    packetReceiver.registerListener(PacketType::SelectedAudioFormat, this, "handleSelectedAudioFormat");
+    packetReceiver.registerListener(PacketType::AudioStreamStats,
+        PacketReceiver::makeSourcedListenerReference<AudioIOStats>(&_stats, &AudioIOStats::processStreamStatsPacket));
+    packetReceiver.registerListener(PacketType::AudioEnvironment,
+        PacketReceiver::makeUnsourcedListenerReference<AudioClient>(this, &AudioClient::handleAudioEnvironmentDataPacket));
+    packetReceiver.registerListener(PacketType::SilentAudioFrame,
+        PacketReceiver::makeUnsourcedListenerReference<AudioClient>(this, &AudioClient::handleAudioDataPacket));
+    packetReceiver.registerListener(PacketType::MixedAudio,
+        PacketReceiver::makeUnsourcedListenerReference<AudioClient>(this, &AudioClient::handleAudioDataPacket));
+    packetReceiver.registerListener(PacketType::NoisyMute,
+        PacketReceiver::makeUnsourcedListenerReference<AudioClient>(this, &AudioClient::handleNoisyMutePacket));
+    packetReceiver.registerListener(PacketType::MuteEnvironment,
+        PacketReceiver::makeUnsourcedListenerReference<AudioClient>(this, &AudioClient::handleMuteEnvironmentPacket));
+    packetReceiver.registerListener(PacketType::SelectedAudioFormat,
+        PacketReceiver::makeUnsourcedListenerReference<AudioClient>(this, &AudioClient::handleSelectedAudioFormat));
 
     auto& domainHandler = nodeList->getDomainHandler();
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, [this] { 

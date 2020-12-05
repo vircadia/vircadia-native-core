@@ -57,7 +57,7 @@ public:
     void setupRepeatedMessageFlusher();
 
 private:
-    LogHandler() = default;
+    LogHandler();
     ~LogHandler() = default;
 
     void flushRepeatedMessages();
@@ -66,6 +66,7 @@ private:
     bool _shouldOutputProcessID { false };
     bool _shouldOutputThreadID { false };
     bool _shouldDisplayMilliseconds { false };
+    bool _useColor { false };
 
     int _currentMessageID { 0 };
     struct RepeatedMessageRecord {

@@ -616,10 +616,11 @@ public slots:
     void setActiveDisplayPlugin(int index);
 
     /**jsdoc
-     * Opens a web browser in a pop-up window.
+     * Opens an Interface web browser window.
      * @function Window.openWebBrowser
+     * @param {string} [url=""] - The URL of the web page to display.
      */
-    void openWebBrowser();
+    void openWebBrowser(const QString& url = "");
 
 
 private slots:

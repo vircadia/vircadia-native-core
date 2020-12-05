@@ -50,12 +50,17 @@ $(document).ready(function(){
       prepareAccessTokenPrompt(function(accessToken) {
         Metaverse.accessToken = accessToken;
         saveAccessToken();
+        promptToCreateDomainID();
       });
     });
-
-    $('body').on('click', '#save-permissions', function() {
-      savePermissions();
-    });
+  
+  $('body').on('click', '#save-permissions', function() {
+    savePermissions();
+  });
+  
+  $('body').on('click', '#save-threading-settings', function() {
+    saveThreadingSettings();
+  });
 
     function triggerSaveUsernamePassword(event) {
         if (event.keyCode === 13) {
@@ -70,7 +75,7 @@ $(document).ready(function(){
     });
 
     $('body').on('click', '#change-place-name', function() {
-      chooseFromHighFidelityPlaces(Settings.data.values.metaverse.access_token, "/0,-10,0", function(placeName) {
+      chooseFromMetaversePlaces(Settings.data.values.metaverse.access_token, "/0,-10,0", function(placeName) {
         updatePlaceNameLink(placeName);
       });
     });
@@ -151,7 +156,7 @@ function setupWizardSteps() {
     $('#admin-description').html('Add more Metaverse usernames');
   } else {
     $('.cloud-only').remove();
-    $('#save-permissions').text("Finish");
+    $('#save-threading-settings').text("Finish");
 
     steps = $('.wizard-step');
     $(steps).each(function(i) {
@@ -165,6 +170,45 @@ function setupWizardSteps() {
 
   var currentStep = steps[currentStepNumber];
   $(currentStep).show();
+}
+
+function promptToCreateDomainID() {
+  setTimeout(function () {
+    createDomainIDPrompt(function (label) {
+      var domainJSON = {
+        "label": label
+      };
+
+      $.post("/api/domains", domainJSON, function (data) {
+        if (data.status === "failure") {
+          swal.showInputError("Error: " + data.error);
+          return;
+        }
+        
+        swal.close();
+
+        // we successfully created a domain ID, set it on that field
+        var domainID = data.domain.domainId;
+        console.log("Setting domain ID to ", data, domainID);
+
+        var formJSON = {
+          "metaverse": {
+            "id": domainID
+          }
+        };
+
+        // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
+        postSettings(formJSON, goToNextStep);
+      }, 'json').fail(function (data) {
+        if (data && data.status === "failure") {
+          swal.showInputError("Error: " + data.error);
+        } else {
+          swal.showInputError("Error: Failed to post to metaverse.");
+        }
+        console.log("Failed to create domain ID...");
+      });
+    });
+  }, 500); // Apparently swal needs time before opening another prompt.
 }
 
 function updatePlaceNameLink(address) {
@@ -260,10 +304,6 @@ function goToNextStep() {
   var currentStep = $('body').find('.wizard-step:visible');
   var nextStep = currentStep.next('.wizard-step');
 
-  var formJSON = {
-    "wizard": {}
-  }
-
   if (nextStep.length > 0) {
     currentStep.hide();
     nextStep.show();
@@ -341,7 +381,7 @@ function saveAccessToken() {
   $(this).blur();
 
   // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
-  postSettings(formJSON, goToNextStep);
+  postSettings(formJSON);
 }
 
 function getSettingDescriptionForKey(groupKey, settingKey) {
@@ -521,7 +561,29 @@ function saveUsernamePassword() {
   $(this).blur();
 
   // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
-  postSettings(formJSON, function() {
-    location.reload();
-  });
+  postSettings(formJSON, goToNextStep);
+}
+
+function saveThreadingSettings() {
+    var enable_automatic_threading = $("#enable-automatic-threading").prop("checked");
+    
+    currentStepNumber += 1;
+  
+    var formJSON = {
+      "audio_threading": {
+        "auto_threads": enable_automatic_threading
+      },
+      "avatar_mixer": {
+        "auto_threads": enable_automatic_threading
+      },
+      "wizard": {
+        "steps_completed": currentStepNumber.toString()
+      }
+    }
+  
+    // remove focus from the button
+    $(this).blur();
+  
+    // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
+    postSettings(formJSON, goToNextStep);
 }

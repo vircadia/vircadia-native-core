@@ -4,6 +4,7 @@
 //
 //  Created by Brad Hefta-Gaub on 12/6/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -110,9 +111,11 @@ public:
  * displayed and so knows about. For assignment client scripts, the entities available are those that are "seen" by the 
  * {@link EntityViewer}. For entity server scripts, all entities are available.</p>
  *
- * <h3>Entity Types</h3>
+ * <h3>Entity Types & Properties</h3>
  *
  * <p>For a list of the entity types that you can use, see {@link Entities.EntityType|Entity Types}.</p>
+ * 
+ * <p>For the properties of the different entity types, see {@link Entities.EntityProperties|Entity Properties}. Some properties are universal to all entity types, and some are specific to particular entity types.</p>
  *
  * <h3>Entity Methods</h3>
  *
@@ -178,7 +181,8 @@ public:
 
     void setEntityTree(EntityTreePointer modelTree);
     EntityTreePointer getEntityTree() { return _entityTree; }
-    void setEntitiesScriptEngine(QSharedPointer<EntitiesScriptEngineProvider> engine);
+    void setPersistentEntitiesScriptEngine(QSharedPointer<EntitiesScriptEngineProvider> engine);
+    void setNonPersistentEntitiesScriptEngine(QSharedPointer<EntitiesScriptEngineProvider> engine);
 
     void resetActivityTracking();
     ActivityTracking getActivityTracking() const { return _activityTracking; }
@@ -706,6 +710,8 @@ public slots:
 
     /**jsdoc
      * Finds all domain and avatar entities that intersect a sphere.
+     * <p><strong>Note:</strong> Server entity scripts only find entities that have a server entity script
+     * running in them or a parent entity. You can apply a dummy script to entities that you want found in a search.</p>
      * @function Entities.findEntities
      * @param {Vec3} center - The point about which to search.
      * @param {number} radius - The radius within which to search.
@@ -720,6 +726,8 @@ public slots:
 
     /**jsdoc
      * Finds all domain and avatar entities whose axis-aligned boxes intersect a search axis-aligned box.
+     * <p><strong>Note:</strong> Server entity scripts only find entities that have a server entity script
+     * running in them or a parent entity. You can apply a dummy script to entities that you want found in a search.</p>
      * @function Entities.findEntitiesInBox
      * @param {Vec3} corner - The corner of the search AA box with minimum co-ordinate values.
      * @param {Vec3} dimensions - The dimensions of the search AA box.
@@ -731,6 +739,8 @@ public slots:
 
     /**jsdoc
      * Finds all domain and avatar entities whose axis-aligned boxes intersect a search frustum.
+     * <p><strong>Note:</strong> Server entity scripts only find entities that have a server entity script
+     * running in them or a parent entity. You can apply a dummy script to entities that you want found in a search.</p>
      * @function Entities.findEntitiesInFrustum
      * @param {ViewFrustum} frustum - The frustum to search in. The <code>position</code>, <code>orientation</code>, 
      *     <code>projection</code>, and <code>centerRadius</code> properties must be specified. The <code>fieldOfView</code> 
@@ -746,6 +756,8 @@ public slots:
 
     /**jsdoc
      * Finds all domain and avatar entities of a particular type that intersect a sphere.
+     * <p><strong>Note:</strong> Server entity scripts only find entities that have a server entity script
+     * running in them or a parent entity. You can apply a dummy script to entities that you want found in a search.</p>
      * @function Entities.findEntitiesByType
      * @param {Entities.EntityType} entityType - The type of entity to search for.
      * @param {Vec3} center - The point about which to search.
@@ -761,6 +773,8 @@ public slots:
 
     /**jsdoc
      * Finds all domain and avatar entities with a particular name that intersect a sphere.
+     * <p><strong>Note:</strong> Server entity scripts only find entities that have a server entity script
+     * running in them or a parent entity. You can apply a dummy script to entities that you want found in a search.</p>
      * @function Entities.findEntitiesByName
      * @param {string} entityName - The name of the entity to search for.
      * @param {Vec3} center - The point about which to search.
@@ -2497,9 +2511,12 @@ signals:
     void webEventReceived(const EntityItemID& entityItemID, const QVariant& message);
 
 protected:
-    void withEntitiesScriptEngine(std::function<void(QSharedPointer<EntitiesScriptEngineProvider>)> function) {
-        std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
-        function(_entitiesScriptEngine);
+    void withEntitiesScriptEngine(std::function<void(QSharedPointer<EntitiesScriptEngineProvider>)> function, const EntityItemID& id) {
+        auto entity = getEntityTree()->findEntityByEntityItemID(id);
+        if (entity) {
+            std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
+            function((entity->isLocalEntity() || entity->isMyAvatarEntity()) ? _persistentEntitiesScriptEngine : _nonPersistentEntitiesScriptEngine);
+        }
     };
 
 private slots:
@@ -2529,7 +2546,8 @@ private:
     EntityTreePointer _entityTree;
 
     std::recursive_mutex _entitiesScriptEngineLock;
-    QSharedPointer<EntitiesScriptEngineProvider> _entitiesScriptEngine;
+    QSharedPointer<EntitiesScriptEngineProvider> _persistentEntitiesScriptEngine;
+    QSharedPointer<EntitiesScriptEngineProvider> _nonPersistentEntitiesScriptEngine;
 
     bool _bidOnSimulationOwnership { false };
 

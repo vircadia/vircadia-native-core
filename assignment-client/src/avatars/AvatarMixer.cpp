@@ -71,26 +71,38 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     connect(DependencyManager::get<NodeList>().data(), &NodeList::nodeKilled, this, &AvatarMixer::handleAvatarKilled);
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::AvatarData, this, "queueIncomingPacket");
-    packetReceiver.registerListener(PacketType::AdjustAvatarSorting, this, "handleAdjustAvatarSorting");
-    packetReceiver.registerListener(PacketType::AvatarQuery, this, "handleAvatarQueryPacket");
-    packetReceiver.registerListener(PacketType::AvatarIdentity, this, "handleAvatarIdentityPacket");
-    packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
-    packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
-    packetReceiver.registerListener(PacketType::RadiusIgnoreRequest, this, "handleRadiusIgnoreRequestPacket");
-    packetReceiver.registerListener(PacketType::RequestsDomainListData, this, "handleRequestsDomainListDataPacket");
-    packetReceiver.registerListener(PacketType::SetAvatarTraits, this, "queueIncomingPacket");
-    packetReceiver.registerListener(PacketType::BulkAvatarTraitsAck, this, "queueIncomingPacket");
+    packetReceiver.registerListener(PacketType::AvatarData,
+        PacketReceiver::makeSourcedListenerReference<AvatarMixer>(this, &AvatarMixer::queueIncomingPacket));
+    packetReceiver.registerListener(PacketType::AdjustAvatarSorting,
+        PacketReceiver::makeSourcedListenerReference<AvatarMixer>(this, &AvatarMixer::handleAdjustAvatarSorting));
+    packetReceiver.registerListener(PacketType::AvatarQuery,
+        PacketReceiver::makeSourcedListenerReference<AvatarMixer>(this, &AvatarMixer::handleAvatarQueryPacket));
+    packetReceiver.registerListener(PacketType::AvatarIdentity,
+        PacketReceiver::makeSourcedListenerReference<AvatarMixer>(this, &AvatarMixer::handleAvatarIdentityPacket));
+    packetReceiver.registerListener(PacketType::KillAvatar,
+        PacketReceiver::makeSourcedListenerReference<AvatarMixer>(this, &AvatarMixer::handleKillAvatarPacket));
+    packetReceiver.registerListener(PacketType::NodeIgnoreRequest,
+        PacketReceiver::makeSourcedListenerReference<AvatarMixer>(this, &AvatarMixer::handleNodeIgnoreRequestPacket));
+    packetReceiver.registerListener(PacketType::RadiusIgnoreRequest,
+        PacketReceiver::makeSourcedListenerReference<AvatarMixer>(this, &AvatarMixer::handleRadiusIgnoreRequestPacket));
+    packetReceiver.registerListener(PacketType::RequestsDomainListData,
+        PacketReceiver::makeSourcedListenerReference<AvatarMixer>(this, &AvatarMixer::handleRequestsDomainListDataPacket));
+    packetReceiver.registerListener(PacketType::SetAvatarTraits,
+        PacketReceiver::makeSourcedListenerReference<AvatarMixer>(this, &AvatarMixer::queueIncomingPacket));
+    packetReceiver.registerListener(PacketType::BulkAvatarTraitsAck,
+        PacketReceiver::makeSourcedListenerReference<AvatarMixer>(this, &AvatarMixer::queueIncomingPacket));
     packetReceiver.registerListenerForTypes({ PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
-        this, "handleOctreePacket");
-    packetReceiver.registerListener(PacketType::ChallengeOwnership, this, "queueIncomingPacket");
+        PacketReceiver::makeSourcedListenerReference<AvatarMixer>(this, &AvatarMixer::handleOctreePacket));
+    packetReceiver.registerListener(PacketType::ChallengeOwnership,
+        PacketReceiver::makeSourcedListenerReference<AvatarMixer>(this, &AvatarMixer::queueIncomingPacket));
 
     packetReceiver.registerListenerForTypes({
         PacketType::ReplicatedAvatarIdentity,
         PacketType::ReplicatedKillAvatar
-    }, this, "handleReplicatedPacket");
+    }, PacketReceiver::makeUnsourcedListenerReference<AvatarMixer>(this, &AvatarMixer::handleReplicatedPacket));
 
-    packetReceiver.registerListener(PacketType::ReplicatedBulkAvatarData, this, "handleReplicatedBulkAvatarPacket");
+    packetReceiver.registerListener(PacketType::ReplicatedBulkAvatarData,
+        PacketReceiver::makeUnsourcedListenerReference<AvatarMixer>(this, &AvatarMixer::handleReplicatedBulkAvatarPacket));
 
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &AvatarMixer::handlePacketVersionMismatch);

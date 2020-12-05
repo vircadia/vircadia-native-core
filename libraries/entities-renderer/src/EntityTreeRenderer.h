@@ -173,7 +173,9 @@ private:
     EntityRendererPointer renderableForEntity(const EntityItemPointer& entity) const { return renderableForEntityId(entity->getID()); }
     render::ItemID renderableIdForEntity(const EntityItemPointer& entity) const { return renderableIdForEntityId(entity->getID()); }
 
-    void resetEntitiesScriptEngine();
+    void resetPersistentEntitiesScriptEngine();
+    void resetNonPersistentEntitiesScriptEngine();
+    void setupEntityScriptEngineSignals(const ScriptEnginePointer& scriptEngine);
 
     void findBestZoneAndMaybeContainingEntities(QSet<EntityItemID>& entitiesContainingAvatar);
 
@@ -196,7 +198,8 @@ private:
     QSet<EntityItemID> _currentEntitiesInside;
 
     bool _wantScripts;
-    ScriptEnginePointer _entitiesScriptEngine;
+    ScriptEnginePointer _nonPersistentEntitiesScriptEngine; // used for domain + non-owned avatar entities, cleared on domain switch
+    ScriptEnginePointer _persistentEntitiesScriptEngine; // used for local + owned avatar entities, persists on domain switch, cleared on reload content
 
     void playEntityCollisionSound(const EntityItemPointer& entity, const Collision& collision);
 
@@ -213,8 +216,6 @@ private:
     unsigned int _mouseRayPickID;
     std::function<RayToEntityIntersectionResult(unsigned int)> _getPrevRayPickResultOperator;
     std::function<void(unsigned int, bool)> _setPrecisionPickingOperator;
-
-    bool _mouseAndPreloadSignalHandlersConnected { false };
 
     class LayeredZone {
     public:

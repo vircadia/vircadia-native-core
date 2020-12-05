@@ -10,7 +10,7 @@
 //    Distributed under the Apache License, Version 2.0.
 //    See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-HIFI_PUBLIC_BUCKET = 'http://s3.amazonaws.com/hifi-public/';
+VIRCADIA_PUBLIC_CDN = 'http://s3.amazonaws.com/hifi-public/';
 
 Script.include('/~/system/libraries/toolBars.js');
 
@@ -190,7 +190,7 @@ PlankyStack = function() {
         if (!_this.ground) {
             _this.ground = Entities.addEntity({
                 type: 'Model',
-                modelURL: HIFI_PUBLIC_BUCKET + 'eric/models/woodFloor.fbx',
+                modelURL: VIRCADIA_PUBLIC_CDN + 'eric/models/woodFloor.fbx',
                 dimensions: _this.options.baseDimension,
                 position: Vec3.sum(_this.basePosition, {y: -(_this.options.baseDimension.y / 2)}),
                 rotation: _this.baseRotation,
@@ -247,7 +247,7 @@ PlankyStack = function() {
         });
         var newProperties = {
             type: 'Model',
-            modelURL: HIFI_PUBLIC_BUCKET + 'marketplace/hificontent/Games/blocks/block.fbx',
+            modelURL: VIRCADIA_PUBLIC_CDN + 'marketplace/hificontent/Games/blocks/block.fbx',
             shapeType: 'box',
             name: 'PlankyBlock' + layer + '-' + row,
             dimensions: Vec3.sum(_this.options.blockSize, {x: 0, y: -((_this.options.blockSize.y * (_this.options.blockHeightVariation / MAXIMUM_PERCENTAGE)) * Math.random()), z: 0}),
@@ -334,7 +334,7 @@ toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.games.planky", fun
 button = toolBar.addTool({
     width: BUTTON_DIMENSIONS.width,
     height: BUTTON_DIMENSIONS.height,
-    imageURL: HIFI_PUBLIC_BUCKET + 'marketplace/hificontent/Games/blocks/planky_button.svg',
+    imageURL: VIRCADIA_PUBLIC_CDN + 'marketplace/hificontent/Games/blocks/planky_button.svg',
     alpha: 0.8,
     visible: true
 });
@@ -342,7 +342,7 @@ button = toolBar.addTool({
 cogButton = toolBar.addTool({
     width: BUTTON_DIMENSIONS.width,
     height: BUTTON_DIMENSIONS.height,
-    imageURL: HIFI_PUBLIC_BUCKET + 'marketplace/hificontent/Games/blocks/cog.svg',
+    imageURL: VIRCADIA_PUBLIC_CDN + 'marketplace/hificontent/Games/blocks/cog.svg',
     subImage: { x: 0, y: BUTTON_DIMENSIONS.height, width: BUTTON_DIMENSIONS.width, height: BUTTON_DIMENSIONS.height },
     alpha: 0.8,
     visible: true

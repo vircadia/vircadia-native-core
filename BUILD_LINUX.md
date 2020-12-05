@@ -1,8 +1,10 @@
 # Build Linux
 
-*Last Updated on April 11, 2020*
+*Last Updated on December 1, 2020*
 
 Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only Linux specific instructions are found in this file.
+
+You can use the [Vircadia Builder](https://github.com/kasenvr/vircadia-builder) to build on Linux more easily. Alternatively, you can follow the manual steps below.
 
 ## Ubuntu 16.04/18.04 specific build guide
 ### Ubuntu 16.04 only
@@ -86,7 +88,7 @@ git fetch -a
 
 Then checkout the main branch with:
 ```bash
-git checkout kasen/core
+git checkout master
 ```
 
 ### Using a custom Qt build

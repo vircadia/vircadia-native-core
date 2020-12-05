@@ -38,7 +38,7 @@
     "Avatar/animGraphURL": "",
     "Avatar/attachmentData/size": 0,
     "Avatar/avatarEntityData/size": 0,
-    "Avatar/collisionSoundURL": "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/Body_Hits_Impact.wav",
+    "Avatar/collisionSoundURL": "https://cdn-1.vircadia.com/eu-c-1/vircadia-public/sounds/Collisions-otherorganic/Body_Hits_Impact.wav",
     "Avatar/displayName": "",
     "Avatar/dominantHand": "right",
     "Avatar/flyingHMD": false,
@@ -279,6 +279,6 @@
     "toolbar/com.highfidelity.interface.toolbar.system/x": 655,
     "toolbar/com.highfidelity.interface.toolbar.system/y": 953,
     "toolbar/constrainToolbarToCenterX": true,
-    "private/selectedMetaverseURL": "https://metaverse.highfidelity.com",
+    "private/selectedMetaverseURL": "https://metaverse.vircadia.com/live",
     "wallet/autoLogout": true
 }
