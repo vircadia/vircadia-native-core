@@ -2005,6 +2005,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     const QString URI_SETTINGS = "/settings";
     const QString URI_CONTENT_UPLOAD = "/content/upload";
     const QString URI_RESTART = "/restart";
+    const QString URI_UPGRADE = "/upgrade";
     const QString URI_API_METAVERSE_INFO = "/api/metaverse_info";
     const QString URI_API_PLACES = "/api/places";
     const QString URI_API_DOMAINS = "/api/domains";
@@ -2427,6 +2428,10 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             _contentManager->recoverFromBackup(deferred, id, username);
             return true;
         }
+        
+        else if (url.path() == URI_UPGRADE) {
+            return attemptDomainServerUpgrade(connection, connection->requestUrl().query());
+        }
     } else if (connection->requestOperation() == QNetworkAccessManager::PutOperation) {
         if (url.path() == URI_API_DOMAINS) {
             QVariant domainSetting;
@@ -2718,6 +2723,19 @@ void DomainServer::tokenGrantFinished() {
         }
 
         tokenReply->deleteLater();
+    }
+}
+
+bool DomainServer::attemptDomainServerUpgrade(HTTPConnection* connection, QString upgradeLink) {
+    static const QString osName = QSysInfo::productType();
+    if (osName == "ubuntu") {
+        QProcess::startDetached("C:/Program Files/Mozilla Firefox/firefox.exe", { upgradeLink });
+        connection->respond(HTTPConnection::StatusCode200);
+        return true;
+    } else {
+        auto errorResponse = "The automatic upgrade feature is only available on Ubuntu servers. You are running " + osName + ".";
+        connection->respond(HTTPConnection::StatusCode400, errorResponse.toLatin1());
+        return false;
     }
 }
 

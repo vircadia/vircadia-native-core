@@ -143,6 +143,8 @@ private slots:
     void initializeExporter();
     void initializeMetadataExporter();
 
+    bool attemptDomainServerUpgrade(HTTPConnection* connection, QString upgradeLink);
+
     void tokenGrantFinished();
     void profileRequestFinished();
 
