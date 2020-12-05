@@ -16,8 +16,66 @@
             md="4"
             lg="3"
         >
-            
+            <v-data-iterator
+                :items="bazaarIteratorData"
+                :items-per-page.sync="bazaarIteratorItemsPerPage"
+                hide-default-footer
+            >
+                <template v-slot:header>
+                    <v-toolbar
+                        class="mb-2"
+                        dark
+                        flat
+                    >
+                        <v-toolbar-title>{{ currentCategory }}</v-toolbar-title>
+                    </v-toolbar>
+                </template>
+
+                <template v-slot:default="props">
+                    <v-row>
+                        <v-col
+                            v-for="item in props.items"
+                            :key="item.name"
+                        >
+                            <v-card>
+                                <v-card-title class="subheading font-weight-bold">
+                                    {{ item.name }}
+                                </v-card-title>
+
+                                <v-divider></v-divider>
+                            </v-card>
+                        </v-col>
+                    </v-row>
+                </template>
+
+                <template v-slot:footer>
+                    <v-toolbar
+                        class="mt-2"
+                        dark
+                        flat
+                    >
+                        <v-toolbar-title
+                            v-show="currentCategoryRecords > 0"
+                            class="subheading"
+                        >
+                            {{ currentCategoryRecords }} items
+                        </v-toolbar-title>
+                    </v-toolbar>
+                </template>
+            </v-data-iterator>
         </v-col>
+        
+        <v-bottom-navigation
+            app
+        >
+            <v-btn
+                v-for="menuItem in bottomNavigationStore" 
+                v-bind:key="menuItem.title"
+                @click='selectCategory(menuItem.title)'
+            >
+                <span>{{ menuItem.title }}</span>
+            </v-btn>
+        </v-bottom-navigation>
     </v-container>
 </template>
 
@@ -25,76 +83,6 @@
 // eslint-disable-next-line
 import { EventBus } from '../plugins/event-bus.js';
 var vue_this;
-// eslint-disable-next-line
-var inventoryDB = new PouchDB('inventory');
-
-// Import exported GZ file
-let $repo = "http://localhost:8081"
-var data = Get($repo + "/js/inventoryDB.gz");
-
-// Unzip import and load into inventoryDB
-function mkDB(data) {
-    // eslint-disable-next-line
-    data = pako.ungzip(data, {
-        to: 'string'
-    });
-    inventoryDB.bulkDocs(
-        JSON.parse(data), {
-        new_edits: false
-    } // not change revision
-    );
-    console.log('Finished Import');
-}
-
-// GET Function to retrieve json
-function Get($URL) {
-    var Httpreq = new XMLHttpRequest(); // a new request
-    Httpreq.open("GET", $URL, false);
-    Httpreq.send(null);
-    return Httpreq.responseText;
-}
-
-// Write DB Info to console
-inventoryDB.info().then(function (info) {
-    var dbName = info.db_name;
-    var records = info.doc_count;
-    console.info('dbName', dbName, 'records', records);
-})
-
-
-// DB Function to pull top level categories
-function getTcat() {
-    inventoryDB.search({
-        query: 'Bazaar',
-        fields: ['parent'],
-        include_docs: true
-    }).then(function (res) {
-        console.info('GetTCats', res);
-        vue_this.bottomNavigationStore = [];
-        res.rows.forEach (function (category) {
-            vue_this.bottomNavigationStore.push(
-                {
-                    'title': category.doc.name
-                }
-            );
-        });
-        console.info('Specific', res.rows[0].doc.name);
-        // inventoryDB.search({
-        //     query: 'Avatars',
-        //     fields: ['name'],
-        //     include_docs: true
-        // }).then(function (data) {
-        //     console.info('Avatars', data)
-        // });
-        inventoryDB.search({
-            query: 'Avatars',
-            fields: ['parent'],
-            include_docs: true
-        }).then(function (data) {
-            console.info('Avatars', data);
-        });
-    });
-}
 
 // // DB Function to get sub-categories from a given Category
 // function getSub($sub, $cat) {
@@ -103,7 +91,7 @@ function getTcat() {
 //     };
 //     var subCatDiv = document.getElementById('tLevel');
 //     // Find all folders who call this parent
-//     inventoryDB.search({ //Using simple search
+//     pouchDB.search({ //Using simple search
 //         query: $sub,
 //         fields: ['parent'],
 //         include_docs: true
@@ -150,7 +138,7 @@ function getTcat() {
 // 
 // function printTree(res2, $cat) {
 //     $length = res2.total_rows;
-//     inventoryDB.search({
+//     pouchDB.search({
 //         query: res2,
 //         fields: ['name'],
 //         include_docs: true
@@ -169,8 +157,8 @@ function getTcat() {
 //                         $parent = "f_" + $name + "_nested";
 //                         var $path = $rec1[item].doc.path;
 //                         console.log($path)
-//                         // Get the model JSON and parse it...
-//                         $modelData = Get($path + "/resource.json");
+//                         // this.Get the model JSON and parse it...
+//                         $modelData = this.Get($path + "/resource.json");
 //                         $model = JSON.parse($modelData)
 //                             $description = $model.description;
 //                         $author = $model.author.name;
@@ -252,7 +240,7 @@ function getTcat() {
 
 // // Get all models under parent (Category)
 // function getAvatars(){
-//     inventoryDB.search({
+//     pouchDB.search({
 //         query: 'Avatars',
 //         fields: ['parent'],
 //         include_docs: true
@@ -296,23 +284,31 @@ function getTcat() {
 // 	};
 // };
 
-// Call function to load DB
-mkDB(data);
-// Call to create top level categories
-getTcat();
-// Call to display Avatars
-// getAvatars();
-
 export default {
     name: 'Bazaar',
     components: {
     },
     props: [],
     data: () => ({
-
+        pouchDB: null,
+        bazaarData: null,
+        bazaarIteratorItemsPerPage: 10,
+        // Data to display in the iterator
+        currentCategory: 'Select a category',
+        bazaarIteratorData: []
     }),
     created: function () {
         vue_this = this;
+        
+        // eslint-disable-next-line
+        this.pouchDB = new PouchDB('inventory');
+        // Import exported GZ file
+        this.bazaarData = this.Get(this.$store.state.settings.bazaar.repo + "/js/inventoryDB.gz");
+        
+        // Call function to load DB
+        this.makeDB(this.bazaarData);
+        // Call to create top level categories
+        this.getTopCategories();
     },
     computed: {
         bottomNavigationStore: {
@@ -328,10 +324,78 @@ export default {
         },
     },
     watch: {
-        
     },
     methods: {
-        
+        // Unzip import and load into pouchDB
+        makeDB: function (data) {
+            // eslint-disable-next-line
+            data = pako.ungzip(data, {
+                to: 'string'
+            });
+            this.pouchDB.bulkDocs(
+                JSON.parse(data), {
+                    new_edits: false
+                } // not change revision
+            );
+            console.log('Finished Bazaar DB Import.');
+
+            // Write DB Info to console
+            this.pouchDB.info().then(function (info) {
+                var dbName = info.db_name;
+                var records = info.doc_count;
+                console.info('dbName', dbName, 'records', records);
+            })
+        },
+        // GET Function to retrieve json
+        Get: function ($URL) {
+            var Httpreq = new XMLHttpRequest(); // a new request
+            Httpreq.open("GET", $URL, false);
+            Httpreq.send(null);
+            return Httpreq.responseText;
+        },
+        // DB Function to pull top level categories
+        getTopCategories: function() {
+            this.pouchDB.search({
+                query: 'Bazaar',
+                fields: ['parent'],
+                include_docs: true
+            }).then(function (res) {
+                console.info('getTopCategories', res);
+                vue_this.bottomNavigationStore = [];
+                res.rows.forEach (function (category) {
+                    vue_this.bottomNavigationStore.push(
+                        {
+                            'title': category.doc.name,
+                        }
+                    );
+                });
+            });
+        },
+        selectCategory: function (category) {
+            vue_this.pouchDB.search({
+                query: category,
+                fields: ['parent'],
+                include_docs: true
+            }).then(function (data) {
+                console.info(category, data);
+                vue_this.bazaarIteratorData = [];
+                vue_this.currentCategory = category;
+                vue_this.currentCategoryRecords = data.total_rows;
+                for (var i = 0; i < data.total_rows; i++) {
+                    vue_this.bazaarIteratorData.push({
+                        name: data.rows[i].doc.name
+                    });
+                    console.info('found item', data.rows[i].doc.name);
+                    // var itemPath = data.rows[i].doc.path;
+                    // var resourcePath = itemPath + '/resource.json';
+                    // var retrievedData = this.Get(resourcePath);
+                    // if (!retrievedData.includes("<Error>")) {
+                    //     var parsedData = JSON.parse(retrievedData);
+                    //     console.info('An avatar: ' + parsedData);
+                    // }
+                } 
+            });
+        }
     }
 };
 </script>

@@ -139,14 +139,18 @@ export const store = new Vuex.Store({
             },
         ],
         settings: {
-            "displayDensity": {
-                "size": 0,
-                "labels": [
+            currentView: 'Inventory',
+            displayDensity: {
+                size: 0,
+                labels: [
                     "List",
                     "Compact",
                     "Large",
                 ],
             },
+            bazaar: {
+                repo: 'http://localhost:8081'
+            }
         },
         iconType: {
             "SCRIPT": {

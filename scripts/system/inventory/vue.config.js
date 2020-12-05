@@ -13,5 +13,10 @@ module.exports = {
     assetsDir: "./",
     "transpileDependencies": [
         "vuetify"
-    ]
+    ],
+    configureWebpack: {
+        devServer: {
+            headers: { "Access-Control-Allow-Origin": "*" }
+        }
+    }
 }

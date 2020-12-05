@@ -28,7 +28,7 @@
             ></v-app-bar-nav-icon>
 
             <v-toolbar-title>
-                {{ settings.currentView }}
+                {{ settingsStore.currentView }}
             </v-toolbar-title>
 
             <v-text-field
@@ -46,7 +46,7 @@
                 :content="receivingItemQueueLength"
                 overlap
                 class="mx-5"
-                v-show="settings.currentView === 'Inventory'"
+                v-show="settingsStore.currentView === 'Inventory'"
             >
                 <v-btn
                     small 
@@ -69,7 +69,7 @@
                         large
                         color="primary"
                         v-on="on"
-                        v-show="settings.currentView === 'Inventory'"
+                        v-show="settingsStore.currentView === 'Inventory'"
                     >
                         <h4>Sort</h4>
                     </v-btn>
@@ -108,8 +108,8 @@
             >
             
                 <v-list-item 
-                    @click="settings.currentView = 'Inventory'; drawer = false;"
-                    :input-value="settings.currentView === 'Inventory'"
+                    @click="settingsStore.currentView = 'Inventory'; drawer = false;"
+                    :input-value="settingsStore.currentView === 'Inventory'"
                 >
                     <v-list-item-icon>
                         <v-icon>mdi-briefcase-outline</v-icon>
@@ -118,8 +118,8 @@
                 </v-list-item>
             
                 <v-list-item 
-                    @click="settings.currentView = 'Bazaar'; drawer = false;"
-                    :input-value="settings.currentView === 'Bazaar'"
+                    @click="settingsStore.currentView = 'Bazaar'; drawer = false;"
+                    :input-value="settingsStore.currentView === 'Bazaar'"
                 >
                     <v-list-item-icon>
                         <v-icon>mdi-basket-outline</v-icon>
@@ -128,8 +128,8 @@
                 </v-list-item>
 
                 <v-slider
-                    v-model="settings.displayDensity.size"
-                    :tick-labels="settings.displayDensity.labels"
+                    v-model="settingsStore.displayDensity.size"
+                    :tick-labels="settingsStore.displayDensity.labels"
                     :max="2"
                     step="1"
                     ticks="always"
@@ -139,7 +139,7 @@
 
                 <v-list-item 
                     @click="addDialogStore.show = true; getFolderList('add');"
-                    v-show="settings.currentView === 'Inventory'"
+                    v-show="settingsStore.currentView === 'Inventory'"
                 >
                     <v-list-item-icon>
                         <v-icon>mdi-plus</v-icon>
@@ -160,7 +160,7 @@
 
                 <v-list-item 
                     @click="createFolderDialogStore.show = true"
-                    v-show="settings.currentView === 'Inventory'"
+                    v-show="settingsStore.currentView === 'Inventory'"
                 >
                     <v-list-item-icon>
                         <v-icon>mdi-folder-plus</v-icon>
@@ -172,21 +172,9 @@
 
             </v-list>
         </v-navigation-drawer>
-        
-        <v-bottom-navigation
-            app
-            v-show="settings.currentView === 'Bazaar'"
-        >
-            <v-btn
-                v-for="menuItem in bottomNavigationStore" 
-                v-bind:key="menuItem.title"
-            >
-                <span>{{ menuItem.title }}</span>
-            </v-btn>
-        </v-bottom-navigation>
 
         <v-content
-            v-show="settings.currentView === 'Inventory'"
+            v-show="settingsStore.currentView === 'Inventory'"
         >
             <v-container fluid>
                 <v-col
@@ -201,7 +189,7 @@
         </v-content>
 
         <v-content
-            v-show="settings.currentView === 'Bazaar'"
+            v-show="settingsStore.currentView === 'Bazaar'"
         >
             <Bazaar></Bazaar>
         </v-content>
@@ -1075,7 +1063,7 @@ export default {
                     "Compact",
                     "Large",
                 ]
-            },
+            }
         },
         appVersion: "3.0.0",
         darkTheme: true,
@@ -1720,6 +1708,17 @@ export default {
                 });
             }
         },
+        settingsStore: {
+            get () {
+                return this.$store.state.settings;
+            },
+            set (value) {
+                this.$store.commit('mutate', {
+                    property: 'settings', 
+                    with: value
+                });
+            }
+        },
         // --- CUSTOM DATA ---
         bizCardDialogStore: {
             get () {
@@ -1731,7 +1730,7 @@ export default {
                     with: value
                 });
             }
-        },
+        }
     },
     watch: {
         // Whenever the item list changes, this will notice and then send it to the script to be saved.
@@ -1742,13 +1741,9 @@ export default {
             }
         }, 
         // Whenever the settings change, we want to save that state.
-        settings: {
+        settingsStore: {
             deep: true,
-            handler: function(newVal) {
-                this.$store.commit('mutate', {
-                    property: 'settings', 
-                    with: newVal
-                });
+            handler: function() {
                 this.sendSettings();
             }
         },
