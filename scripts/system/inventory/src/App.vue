@@ -2,7 +2,7 @@
 //
 //  App.vue
 //
-//  Created by Kalila L. - kasenvr@gmail.com on 7 Apr 2020
+//  Created by Kalila L. - somnilibertas@gmail.com on 7 Apr 2020
 //  Copyright 2020 Vircadia and contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
