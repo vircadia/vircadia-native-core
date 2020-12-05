@@ -210,8 +210,8 @@ TabBar {
                         text: "Import Entities (.json) from a File"
                         color: hifi.buttons.black
                         colorScheme: hifi.colorSchemes.dark
-                        anchors.right: parent.horizontalCenter
-                        anchors.rightMargin: 10
+                        anchors.right: parent.right
+                        anchors.rightMargin: 55
                         anchors.left: parent.left
                         anchors.leftMargin: 55
                         anchors.top: assetServerButton.bottom
@@ -231,9 +231,9 @@ TabBar {
                         colorScheme: hifi.colorSchemes.dark
                         anchors.right: parent.right
                         anchors.rightMargin: 55
-                        anchors.left: parent.horizontalCenter
-                        anchors.leftMargin: 10
-                        anchors.top: assetServerButton.bottom
+                        anchors.left: parent.left
+                        anchors.leftMargin: 55
+                        anchors.top: importButton.bottom
                         anchors.topMargin: 20
                         onClicked: {
                             editRoot.sendToScript({
