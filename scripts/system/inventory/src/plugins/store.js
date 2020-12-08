@@ -261,7 +261,7 @@ export const store = new Vuex.Store({
             }
         },
         searchBox: '',
-        bottomNavigation: [
+        categoryStore: [
             {
                 title: 'Category 1'
             },

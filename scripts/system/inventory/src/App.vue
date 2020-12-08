@@ -35,6 +35,7 @@
                 label="Search"
                 v-model="searchBoxStore"
                 class="mx-5 mt-7"
+                clearable
             ></v-text-field>
 
             <v-spacer></v-spacer>
@@ -173,7 +174,7 @@
             </v-list>
         </v-navigation-drawer>
 
-        <v-content
+        <v-main
             v-show="settingsStore.currentView === 'Inventory'"
         >
             <v-container fluid>
@@ -186,13 +187,13 @@
                     <InventoryItemIterator :itemsForIterator="this.$store.state.items"></InventoryItemIterator>
                 </v-col>
             </v-container>
-        </v-content>
+        </v-main>
 
-        <v-content
+        <v-main
             v-show="settingsStore.currentView === 'Bazaar'"
         >
             <Bazaar></Bazaar>
-        </v-content>
+        </v-main>
         
         <!-- ### DIALOGS ### -->
 
@@ -994,6 +995,10 @@ EventBus.$on('use-item', data => {
     vue_this.useItem(data.type, data.url);
 });
 
+EventBus.$on('add-item-from-bazaar', data => {
+    vue_this.addItem(data.type, data.url);
+});
+
 import InventoryItemIterator from './components/InventoryItemIterator'
 import Bazaar from './components/Bazaar'
 
@@ -1719,6 +1724,9 @@ export default {
                 });
             }
         },
+        settingsStoreCurrentView: function() {
+            return this.$store.state.settings.currentView;
+        },
         // --- CUSTOM DATA ---
         bizCardDialogStore: {
             get () {
@@ -1773,6 +1781,12 @@ export default {
                 // Do nothing.
             }
         },
+        settingsStoreCurrentView: {
+            handler: function() {
+                // When the view changes between the Inventory and Bazaar do the following...
+                this.searchBoxStore = '';
+            }
+        }
     }
 };
 

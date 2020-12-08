@@ -13,6 +13,14 @@ import App from './App.vue'
 import vuetify from './plugins/vuetify';
 import { store } from './plugins/store';
 
+window.$ = window.jQuery = require('jquery');
+
+window.$.ajaxPrefilter(function(options) {
+    if (options.crossDomain && window.$.support.cors) {
+        options.url = 'https://cors-anywhere.herokuapp.com/' + options.url;
+    }
+});
+
 Vue.config.productionTip = false;
 
 window.vm = new Vue({

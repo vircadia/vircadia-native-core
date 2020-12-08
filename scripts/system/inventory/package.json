@@ -10,6 +10,8 @@
   "dependencies": {
     "@mdi/font": "^4.9.95",
     "core-js": "^3.6.5",
+    "cors-anywhere": "^0.4.3",
+    "jquery": "^3.5.1",
     "vue": "^2.6.12",
     "vuedraggable": "^2.24.1",
     "vuetify": "^2.3.10",

@@ -10,16 +10,12 @@
 
 <template>
     <v-container fluid>
-        <v-col
-            cols="12"
-            sm="6"
-            md="4"
-            lg="3"
-        >
+        <v-col>
             <v-data-iterator
                 :items="bazaarIteratorData"
                 :items-per-page.sync="bazaarIteratorItemsPerPage"
-                hide-default-footer
+                :page="bazaarIteratorPage"
+                :search="$store.state.searchBox"
             >
                 <template v-slot:header>
                     <v-toolbar
@@ -27,7 +23,16 @@
                         dark
                         flat
                     >
-                        <v-toolbar-title>{{ currentCategory }}</v-toolbar-title>
+                        <v-toolbar-title>
+                            <v-select
+                                :items="categoryStore"
+                                item-text="title"
+                                item-value="title"
+                                label="Category"
+                                class="mt-8"
+                                @change="selectCategory"
+                            ></v-select>
+                        </v-toolbar-title>
                     </v-toolbar>
                 </template>
 
@@ -36,45 +41,70 @@
                         <v-col
                             v-for="item in props.items"
                             :key="item.name"
+                            cols="12"
+                            sm="6"
+                            md="4"
+                            lg="3"
                         >
                             <v-card>
                                 <v-card-title class="subheading font-weight-bold">
+                                    <v-avatar
+                                        class="mr-2"
+                                    >
+                                        <img
+                                            :src="item.icon"
+                                            alt="Preview"
+                                        >
+                                    </v-avatar>
                                     {{ item.name }}
+                                    <v-spacer></v-spacer>
+                                    <v-btn
+                                        class="mx-2"
+                                        fab
+                                        color="primary"
+                                        small
+                                        @click="console.log(item.main)"
+                                    >
+                                        <v-icon dark>
+                                            mdi-plus
+                                        </v-icon>
+                                    </v-btn>
                                 </v-card-title>
-
-                                <v-divider></v-divider>
+                                
+                                <v-card-text>
+                                    {{ item.description }}
+                                </v-card-text>
                             </v-card>
                         </v-col>
                     </v-row>
                 </template>
 
-                <template v-slot:footer>
+                <!-- <template v-slot:footer>
                     <v-toolbar
                         class="mt-2"
                         dark
                         flat
                     >
-                        <v-toolbar-title
+                        <span
                             v-show="currentCategoryRecords > 0"
-                            class="subheading"
                         >
-                            {{ currentCategoryRecords }} items
-                        </v-toolbar-title>
+                            <v-spacer></v-spacer>
+                            Loaded {{ currentCategoryRecordsLoaded }} of {{ currentCategoryRecords }} total items
+                        </span>
                     </v-toolbar>
-                </template>
+                </template> -->
             </v-data-iterator>
         </v-col>
         
         <v-bottom-navigation
             app
         >
-            <v-btn
-                v-for="menuItem in bottomNavigationStore" 
-                v-bind:key="menuItem.title"
-                @click='selectCategory(menuItem.title)'
+            <div
+                v-show="currentCategoryRecords > 0"
+                class="mt-3"
             >
-                <span>{{ menuItem.title }}</span>
-            </v-btn>
+                Loaded {{ currentCategoryRecordsLoaded }} of {{ currentCategoryRecords }} total items
+            </div>
         </v-bottom-navigation>
     </v-container>
 </template>
@@ -84,206 +114,6 @@
 import { EventBus } from '../plugins/event-bus.js';
 var vue_this;
 
-// // DB Function to get sub-categories from a given Category
-// function getSub($sub, $cat) {
-//     if (typeof $sub === 'object') {
-//         $sub = $sub.docs[0].name
-//     };
-//     var subCatDiv = document.getElementById('tLevel');
-//     // Find all folders who call this parent
-//     pouchDB.search({ //Using simple search
-//         query: $sub,
-//         fields: ['parent'],
-//         include_docs: true
-//     }).then(function (res) {
-//         // Send to print as child and check for sub folders
-//         $length = res.total_rows;
-//         //        while ($i < $length) {
-//         for (const key of Object.keys(res)) {
-//             if (key != "total_rows") {
-//                 $rec = res[key];
-//                 for (const item of Object.keys($rec)) {                   
-//                     if ($rec[item].doc.r_type == "folder") {
-// 						$parent = $rec[item].doc.parent;
-// 						$lparent = $parent.replace(/-/g, "_");
-// 						$lparent = $lparent.replace(/'/g, "_");
-// 						$name = $rec[item].doc.name;
-// 						$pname = $name.replace(/_/g, " ");						
-// 						$pname = $pname[0].toUpperCase() + $name.substr(1);
-// 						$pname = $pname.replace(/_/g, " ");						
-// 						$lname = "f_" + $name + "_nested";							
-// 						$id = $rec[item].doc._id;
-// 						if ($parent == $cat){$folderUL = "folderUL"}else{$folderUL = "f_"+$parent+"_nested"};
-//                         document.getElementById($folderUL).innerHTML += "<li id='" + $id + "'><span class='caret'>" + $pname + "</span><ul id='" + $lname + "' class='nested'><ul>";
-// 	                    printTree($name, $cat)
-//                     };						
-//                 }
-//             }
-//         };
-//     });
-//     document.getElementById('folderUL').innerHTML += "</li>";
-// 
-//     // Toggle Tree
-//     var toggler = document.getElementsByClassName("caret");
-//     var i;
-// 
-//     for (i = 0; i < toggler.length; i++) {
-//         toggler[i].addEventListener("click", function () {
-//             this.parentElement.querySelector(".nested").classList.toggle("active");
-//             this.classList.toggle("caret-down");
-//         }, true);
-//     }
-// 
-// };
-// 
-// function printTree(res2, $cat) {
-//     $length = res2.total_rows;
-//     pouchDB.search({
-//         query: res2,
-//         fields: ['name'],
-//         include_docs: true
-//     }).then(function (data) {
-//         // Send to print as child and check for sub folders
-//         for (const key1 of Object.keys(data)) {
-//             if (key1 != "total_rows") {
-//                 $rec1 = data[key1];
-//                 for (const item of Object.keys($rec1)) {
-//                     var $path = $rec1[item].doc.path.match(/.*\/(.*)\/(.*)$/);
-//                     var $parent = $rec1[item].doc.parent;
-//                     if ($rec1[item].doc.r_type == "resource") {
-//                         $name = $rec1[item].doc.name;
-//                         $id = $rec1[item].doc._id;
-//                         $pname = $name[0].toUpperCase() + $name.substr(1);
-//                         $parent = "f_" + $name + "_nested";
-//                         var $path = $rec1[item].doc.path;
-//                         console.log($path)
-//                         // this.getSync the model JSON and parse it...
-//                         $modelData = this.getSync($path + "/resource.json");
-//                         $model = JSON.parse($modelData)
-//                             $description = $model.description;
-//                         $author = $model.author.name;
-//                         $license = $model.author.license;
-//                         $sublicense = $model.sublicense;
-// 						$subs = "";
-//                         for ($a = 0; $a < $sublicense.length; $a++) {
-//                             var $slicense = $sublicense[$a].license;
-//                             var $sname = $sublicense[$a].name;
-// 
-//                             if (!$sname.includes("undefined")) {
-//                                 var $subs = $slicense + " " + $sname + " | " + $subs;
-//                             }
-//                         }
-//                         // icon.png is only 90px wide so we bump it up
-//                         document.getElementById($parent).innerHTML += "<table><tr><td style='padding: 15px;vertical-align: top;'><img width='150px' height='auto' src = '" + $path + "/img/icon.png'></td><td style='padding: 15px;vertical-align: top;'>" + $description + "<br>" + $license + " " + $author + "</td></tr><tr><td colspan='2'><p>" + $subs + "</p></td></tr></table>";
-//                         $subs = "";
-//                     };
-// 
-//                 }
-//             }
-//         };
-//     });
-//     getSub(res2, $cat)
-// };
-
-// // Create top level tabs
-// function printCats(res) {
-//     var topCatDiv = document.getElementById('tcat');
-// 	var subCatDiv = document.getElementById('dump');
-// 	$length = res.total_rows;	
-//     $i = 0;
-//     while ($i < $length) {
-//         $cat = res.rows[$i].doc.name;
-//         $Cat = $cat[0].toUpperCase() + $cat.substr(1);
-//         $cTab = $cat + $i;
-//         // Add tabs
-//         topCatDiv.innerHTML += "<button id=\"" + $cTab + "\" class=\"tablinks\" onclick=\"openTab(event, '" + $Cat + "')\">" + $Cat + "</button>";
-//         // Build blocks for content
-//         subCatDiv.innerHTML += "<div id = \"" + $Cat + "\" class=\"tabcontent\">Do something with " + $Cat + " link...</div>";
-//         // Set first tab as activ tab and display block
-//         if ($i == 0) {
-//             document.getElementById($Cat).style.display = "block";
-//             document.getElementById($cTab).className += " active";
-//         }
-//         $i = $i + 1;
-//     };
-// };
-// 
-// // Tab Support
-// function openTab(evt, tabName) {
-//     // Declare all variables
-//     var i,
-//     tabcontent,
-//     tablinks;
-// 
-//     // Get all elements with class="tabcontent" and hide them
-//     tabcontent = document.getElementsByClassName("tabcontent");
-//     for (i = 0; i < tabcontent.length; i++) {
-//         tabcontent[i].style.display = "none";
-//     }
-// 
-//     // Get all elements with class="tablinks" and remove the class "active"
-//     tablinks = document.getElementsByClassName("tablinks");
-//     for (i = 0; i < tablinks.length; i++) {
-//         tablinks[i].className = tablinks[i].className.replace(" active", "");
-//     }
-// 
-//     // Show the current tab, and add an "active" class to the button that opened the tab
-//     document.getElementById(tabName).style.display = "block";
-//     evt.currentTarget.className += " active";
-// 
-// 	// Reset Category Tree ...
-// 	document.getElementById('folderUL').innerHTML = "";
-// 	$cat = tabName;
-// 	getSub(tabName, $cat); 
-// 	document.getElementById($cTab).className += " active";
-// }
-
-// // Get all models under parent (Category)
-// function getAvatars(){
-//     pouchDB.search({
-//         query: 'Avatars',
-//         fields: ['parent'],
-//         include_docs: true
-//     }).then(function (data) {
-// 	  console.info('Avatars', data);
-// 	});
-// }
-// 
-// // Display avatars
-// function displayAvatars(data){
-//     $length = data.total_rows;
-// 	$i = 0;
-// 	while ($i < $length) {
-// 	  $aurl = data.rows[$i].doc.path;
-// 	  $apath = data.rows[$i].doc.path + "/resource.json";
-// 	  $adata = getSync($apath);
-// 	  if (!$adata.includes("<Error>")){
-// 		$aresource = JSON.parse($adata);
-// 		$aname = $aresource.name;
-// 		$adescription = $aresource.description;
-// 		$aversion = $aresource.version;
-// 		$apic = $aurl + "/" + $aresource.images;
-// 		$aauthor = $aresource.author.name;
-// 		$alicense = $aresource.author.license;
-// 		$asublicense = $aresource.sublicense;
-// 		$acontributor = $aresource.contributors.name;
-// 		$amain = $aurl + "/" +$aresource.main;
-// 		var $subs;
-// 		for ($a = 0; $a < $asublicense.length; $a++) {
-// 		  console.log(JSON.stringify($asublicense[$a]))
-// 		  var $slicense = $asublicense[$a].license;
-// 		  var $sname = $asublicense[$a].name;
-// 		  if($sname != "undefined"){
-// 			$subs = $slicense + " " + $sname + " | " + $subs;
-// 		  }
-// 		}
-// document.getElementById("avatars").innerHTML += "<span style='display: inline-block; border: 2px solid black;' width='500px'><table border='0' width='500px'><tr><td style='padding: 15px;vertical-align: top;'><center><img width='90%' height='auto' src = '"+$apic+"'></center></td></tr><tr><td style='padding: 15px;vertical-align: top;'><a href='"+$amain+"'>"+$aname+"</a> version: "+$aversion+" - "+$adescription+"<br>"+$alicense+" "+$aauthor+"</td></tr><tr><td style='padding: 15px;vertical-align: top;'>"+$subs+"</td></tr></table></span><br><br>";
-// 		$subs = "";
-// 	  }
-// 	  $i++;
-// 	};
-// };
-
 export default {
     name: 'Bazaar',
     components: {
@@ -292,11 +122,13 @@ export default {
     data: () => ({
         pouchDB: null,
         bazaarData: null,
-        bazaarIteratorItemsPerPage: 10,
+        bazaarIteratorItemsPerPage: 4,
         // Data to display in the iterator
         currentCategory: 'Select a category',
         currentCategoryRecords: 0,
-        bazaarIteratorData: []
+        currentCategoryRecordsLoaded: 0,
+        bazaarIteratorData: [],
+        bazaarIteratorPage: 1
     }),
     created: function () {
         vue_this = this;
@@ -311,13 +143,13 @@ export default {
         this.getTopCategories();
     },
     computed: {
-        bottomNavigationStore: {
+        categoryStore: {
             get() {
-                return this.$store.state.bottomNavigation;
+                return this.$store.state.categoryStore;
             },
             set (value) {
                 this.$store.commit('mutate', {
-                    property: 'bottomNavigation', 
+                    property: 'categoryStore', 
                     with: value
                 });
             }
@@ -354,13 +186,6 @@ export default {
             Httpreq.send(null);
             return Httpreq.responseText;
         },
-        // GET asynchronously
-        getAsync: async function (url) {
-            fetch(url)
-                .then((response) => {
-                    return response;
-                })
-        },
         // DB Function to pull top level categories
         getTopCategories: function() {
             this.pouchDB.search({
@@ -369,10 +194,10 @@ export default {
                 include_docs: true
             }).then(function (res) {
                 // console.info('getTopCategories', res);
-                vue_this.bottomNavigationStore = [];
+                vue_this.categoryStore = [];
                 res.rows.forEach (function (category) {
                     // console.info('Category being added to top level:', category);
-                    vue_this.bottomNavigationStore.push(
+                    vue_this.categoryStore.push(
                         {
                             'title': category.doc.name,
                         }
@@ -385,32 +210,57 @@ export default {
                 query: category,
                 fields: ['parent'],
                 include_docs: true
-            }).then(function (data) {
-                console.info(category, data);
+            }).then(async function (data) {
+                console.info('Setting category to', category, data);
                 vue_this.bazaarIteratorData = [];
                 vue_this.currentCategory = category;
                 vue_this.currentCategoryRecords = data.total_rows;
+                vue_this.currentCategoryRecordsLoaded = 0;
+
                 for (var i = 0; i < data.total_rows; i++) {
-                    vue_this.bazaarIteratorData.push({
-                        name: data.rows[i].doc.name
-                    });
-                    console.info('found item', data.rows[i].doc.name);
+                    console.info('Found item', data.rows[i].doc.name);
                     var itemPath = data.rows[i].doc.path;
                     var resourcePath = itemPath + '/resource.json';
                     // var retrievedData = vue_this.getSync(resourcePath);
-                    var parsedData;
-                    vue_this.getAsync(resourcePath)
-                        .then((response) => {
-                            if (!response.ok) {
-                                return;
-                            } else {
-                                parsedData = JSON.parse(response.text());
-                            }
-                            
-                            alert('parsedData', parsedData)
-                        });
+                    // var parsedData;
+                    window.$.ajax({
+                        type: 'GET',
+                        url: resourcePath,
+                        contentType: 'application/json',
+                        itemRootPath: data.rows[i].doc.path,
+                        itemName: data.rows[i].doc.name
+                    })
+                        .done(function (result) {
+                            vue_this.currentCategoryRecordsLoaded++;
+                            vue_this.pushItemToBazaar(this.itemRootPath, result);
+                        })
+                        .fail(function () {
+                            console.info('Failed to retrieve resource.json for', this.itemName);
+                        })
                 }
             });
+        },
+        pushItemToBazaar: function(itemRootPath, itemData) {
+            this.bazaarIteratorData.push({
+                name: itemData.name,
+                description: itemData.description,
+                main: this.combinePaths(itemRootPath, itemData.main),
+                icon: this.combinePaths(itemRootPath, itemData.icon)
+            });
+        },
+        combinePaths: function(path1, path2) {
+            if (path1.endsWith('/') && !path2.startsWith('/')) {
+                return path1 + path2;
+            }
+
+            if (path1.endsWith('/') && path2.startsWith('/')) {
+                var trimPath2 = path2.slice(0, -1);
+                return path1 + trimPath2;
+            }
+            
+            if (!path1.endsWith('/') && !path2.startsWith('/')) {
+                return path1 + '/' + path2;
+            }
         }
     }
 };
