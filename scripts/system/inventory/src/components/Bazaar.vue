@@ -157,8 +157,8 @@ var vue_this;
 //                         $parent = "f_" + $name + "_nested";
 //                         var $path = $rec1[item].doc.path;
 //                         console.log($path)
-//                         // this.Get the model JSON and parse it...
-//                         $modelData = this.Get($path + "/resource.json");
+//                         // this.getSync the model JSON and parse it...
+//                         $modelData = this.getSync($path + "/resource.json");
 //                         $model = JSON.parse($modelData)
 //                             $description = $model.description;
 //                         $author = $model.author.name;
@@ -256,7 +256,7 @@ var vue_this;
 // 	while ($i < $length) {
 // 	  $aurl = data.rows[$i].doc.path;
 // 	  $apath = data.rows[$i].doc.path + "/resource.json";
-// 	  $adata = Get($apath);
+// 	  $adata = getSync($apath);
 // 	  if (!$adata.includes("<Error>")){
 // 		$aresource = JSON.parse($adata);
 // 		$aname = $aresource.name;
@@ -295,6 +295,7 @@ export default {
         bazaarIteratorItemsPerPage: 10,
         // Data to display in the iterator
         currentCategory: 'Select a category',
+        currentCategoryRecords: 0,
         bazaarIteratorData: []
     }),
     created: function () {
@@ -303,8 +304,7 @@ export default {
         // eslint-disable-next-line
         this.pouchDB = new PouchDB('inventory');
         // Import exported GZ file
-        this.bazaarData = this.Get(this.$store.state.settings.bazaar.repo + "/js/inventoryDB.gz");
-        
+        this.bazaarData = this.getSync(this.$store.state.settings.bazaar.repo + "/inventoryDB.gz?" + Date.now());
         // Call function to load DB
         this.makeDB(this.bazaarData);
         // Call to create top level categories
@@ -332,6 +332,7 @@ export default {
             data = pako.ungzip(data, {
                 to: 'string'
             });
+            console.info('this.bazaarData', JSON.parse(data));
             this.pouchDB.bulkDocs(
                 JSON.parse(data), {
                     new_edits: false
@@ -346,12 +347,19 @@ export default {
                 console.info('dbName', dbName, 'records', records);
             })
         },
-        // GET Function to retrieve json
-        Get: function ($URL) {
+        // GET synchronously
+        getSync: function ($URL) {
             var Httpreq = new XMLHttpRequest(); // a new request
             Httpreq.open("GET", $URL, false);
             Httpreq.send(null);
             return Httpreq.responseText;
+        },
+        // GET asynchronously
+        getAsync: async function (url) {
+            fetch(url)
+                .then((response) => {
+                    return response;
+                })
         },
         // DB Function to pull top level categories
         getTopCategories: function() {
@@ -360,9 +368,10 @@ export default {
                 fields: ['parent'],
                 include_docs: true
             }).then(function (res) {
-                console.info('getTopCategories', res);
+                // console.info('getTopCategories', res);
                 vue_this.bottomNavigationStore = [];
                 res.rows.forEach (function (category) {
+                    // console.info('Category being added to top level:', category);
                     vue_this.bottomNavigationStore.push(
                         {
                             'title': category.doc.name,
@@ -386,14 +395,21 @@ export default {
                         name: data.rows[i].doc.name
                     });
                     console.info('found item', data.rows[i].doc.name);
-                    // var itemPath = data.rows[i].doc.path;
-                    // var resourcePath = itemPath + '/resource.json';
-                    // var retrievedData = this.Get(resourcePath);
-                    // if (!retrievedData.includes("<Error>")) {
-                    //     var parsedData = JSON.parse(retrievedData);
-                    //     console.info('An avatar: ' + parsedData);
-                    // }
-                } 
+                    var itemPath = data.rows[i].doc.path;
+                    var resourcePath = itemPath + '/resource.json';
+                    // var retrievedData = vue_this.getSync(resourcePath);
+                    var parsedData;
+                    vue_this.getAsync(resourcePath)
+                        .then((response) => {
+                            if (!response.ok) {
+                                return;
+                            } else {
+                                parsedData = JSON.parse(response.text());
+                            }
+                            
+                            alert('parsedData', parsedData)
+                        });
+                }
             });
         }
     }

@@ -1,7 +1,7 @@
 //
 //  inventory.js
 //
-//  Created by kasenvr@gmail.com on 2 Apr 2020
+//  Created by Kalila L. - somnilibertas@gmail.com on 2 Apr 2020
 //  Copyright 2020 Vircadia and contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -18,17 +18,23 @@ Tablet Vec3 Window */
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
     // VARIABLES
+    var APP_NAME = "INVENTORY";
+
     var inventoryDataSettingString = "inventoryApp.data";
     var inventoryData;
 
     var inventorySettingsString = "inventoryApp.settings";
     var inventorySettings;
 
+    var INVENTORY_MESSAGES_CHANNEL = "com.vircadia.inventory";
+
     var RECEIVING_ITEM_QUEUE_LIMIT = 5;
     var receivingItemQueue = [];
 
     var NEARBY_USERS_SEARCH_RADIUS = 25;
-
+    
+    var isInventoryOpen = false;
+    var appendItemWaiting = null;
 
     // APP EVENT AND MESSAGING ROUTING
 
@@ -84,17 +90,20 @@ Tablet Vec3 Window */
         tablet.emitScriptEvent(JSON.stringify(dataToSend));
     }
 
-    var inventoryMessagesChannel = "com.vircadia.inventory";
-
     function onMessageReceived(channel, message, sender, localOnly) {
-        if (channel === inventoryMessagesChannel) {
+        if (channel === INVENTORY_MESSAGES_CHANNEL) {
             var messageJSON = JSON.parse(message);
             // Window.alert("Passed 0 " + messageJSON.recipient + " vs " + MyAvatar.sessionUUID);
             if (messageJSON.command === "share-item" 
                 && messageJSON.recipient === MyAvatar.sessionUUID) { // We are receiving an item.
                 // Window.alert("Passed 1 " + messageJSON.recipient + " vs " + MyAvatar.sessionUUID);
-                pushReceivedItemToQueue(sender, messageJSON.type, messageJSON.name, messageJSON.url);
-            } 
+                pushReceivedItemToQueue(sender, messageJSON.type, messageJSON.name, messageJSON.url, messageJSON.tags, messageJSON.metadata, messageJSON.version);
+            }
+            // Window.alert("Passed 0 " + sender + " vs " + MyAvatar.sessionUUID);
+            if (messageJSON.command === "append-item" 
+                && sender === MyAvatar.sessionUUID) { // We are appending an item from another of our own apps.
+                appendReceivedItemToInventory(messageJSON.type, messageJSON.name, messageJSON.url, messageJSON.tags, messageJSON.metadata, messageJSON.version);
+            }
         }
         // print("Message received:");
         // print("- channel: " + channel);
@@ -104,7 +113,7 @@ Tablet Vec3 Window */
     }
 
     function sendMessage(dataToSend) {
-        Messages.sendMessage(inventoryMessagesChannel, JSON.stringify(dataToSend));
+        Messages.sendMessage(INVENTORY_MESSAGES_CHANNEL, JSON.stringify(dataToSend));
     }
 
     // END APP EVENT AND MESSAGING ROUTING
@@ -134,6 +143,28 @@ Tablet Vec3 Window */
     }
 
     // END SEND AND RECEIVE SETTINGS STATE
+    
+    // This function bypasses the receiving item queue and goes straight into the inventory as is.
+    function appendReceivedItemToInventory (type, name, url, tags, metadata, version) {
+        var itemData = {
+            "type": type,
+            "name": name,
+            "url": url,
+            "tags": tags,
+            "metadata": metadata,
+            "version": version
+        }
+        
+        if (isInventoryOpen) {
+            sendToWeb("script-to-web-append-item", itemData);
+        } else {
+            appendItemWaiting = itemData;
+        }
+    }
+    
+    function appendItemWaiitngToInventory () {
+        sendToWeb("script-to-web-append-item", appendItemWaiting);
+    }
 
     function saveInventory() {
         Settings.setValue(inventoryDataSettingString, inventoryData);
@@ -151,7 +182,7 @@ Tablet Vec3 Window */
         inventorySettings = Settings.getValue(inventorySettingsString);
     }
 
-    function pushReceivedItemToQueue(senderUUID, type, name, url) {
+    function pushReceivedItemToQueue(senderUUID, type, name, url, tags, metadata, version) {
         console.info("Receiving an item:", name, "from:", senderUUID);
         var getAvatarData = AvatarList.getAvatar(senderUUID);
         var senderName = getAvatarData.sessionDisplayName;
@@ -164,7 +195,10 @@ Tablet Vec3 Window */
             "data": {
                 "type": type,
                 "name": name,
-                "url": url
+                "url": url,
+                "tags": tags,
+                "metadata": metadata,
+                "version": version
             }
         };
         
@@ -249,9 +283,9 @@ Tablet Vec3 Window */
             }
         }
         
-        if (item.type === "UNKNOWN") {
+        if (item.type === "OTHER") {
             // We don't know how to handle this yet.
-            Window.alert("Unknown item type, unable to use.");
+            Window.alert("Item is not a known type, we are unable to use it.");
         }
     }
 
@@ -264,12 +298,18 @@ Tablet Vec3 Window */
         sendSettings();
         sendInventory();
         sendReceivingItemQueue();
+        if (appendItemWaiting !== null) {
+            sendToWeb("script-to-web-append-item", appendItemWaiting);
+            appendItemWaiting = null;
+        }
     }
 
     function onOpened() {
+        isInventoryOpen = true;
     }
 
     function onClosed() {
+        isInventoryOpen = false;
     }
 
     function startup() {
@@ -278,10 +318,10 @@ Tablet Vec3 Window */
         loadSettings();
         
         Messages.messageReceived.connect(onMessageReceived);
-        Messages.subscribe(inventoryMessagesChannel);
+        Messages.subscribe(INVENTORY_MESSAGES_CHANNEL);
         
         ui = new AppUi({
-            buttonName: "INVENTORY",
+            buttonName: APP_NAME,
             home: Script.resolvePath("index.html"),
             graphicsDirectory: Script.resolvePath("./"), // Where your button icons are located
             onOpened: onOpened,
@@ -293,7 +333,7 @@ Tablet Vec3 Window */
 
     Script.scriptEnding.connect(function () {
         Messages.messageReceived.disconnect(onMessageReceived);
-        Messages.unsubscribe(inventoryMessagesChannel);
+        Messages.unsubscribe(INVENTORY_MESSAGES_CHANNEL);
     });
 
 }()); // END LOCAL_SCOPE

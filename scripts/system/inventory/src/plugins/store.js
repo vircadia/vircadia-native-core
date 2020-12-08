@@ -149,7 +149,7 @@ export const store = new Vuex.Store({
                 ],
             },
             bazaar: {
-                repo: 'http://localhost:8081'
+                repo: 'https://vircadia-content-public.s3.amazonaws.com/Bazaar/inventoryDB'
             }
         },
         iconType: {
