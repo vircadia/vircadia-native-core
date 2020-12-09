@@ -24,15 +24,16 @@
                         flat
                     >
                         <v-toolbar-title>
-                            <v-select
-                                :items="categoryStore"
-                                item-text="title"
-                                item-value="title"
-                                label="Category"
-                                class="mt-8"
-                                @change="selectCategory"
-                            ></v-select>
+                            <!-- <v-breadcrumbs :items="items"></v-breadcrumbs> -->
                         </v-toolbar-title>
+                        <v-btn
+                            v-for="subCategory in subCategoryStore"
+                            :key="subCategory.title"
+                            color="primary"
+                            class="mx-1"
+                        >
+                            {{ subCategory.title }}
+                        </v-btn>
                     </v-toolbar>
                 </template>
 
@@ -57,7 +58,9 @@
                                         >
                                     </v-avatar>
                                     {{ item.name }}
+
                                     <v-spacer></v-spacer>
+
                                     <v-btn
                                         class="mx-2"
                                         fab
@@ -71,9 +74,59 @@
                                     </v-btn>
                                 </v-card-title>
                                 
-                                <v-card-text>
-                                    {{ item.description }}
-                                </v-card-text>
+                                <v-tabs
+                                    fixed-tabs
+                                    v-model="item.currentTab"
+                                    background-color="deep-purple accent-4"
+                                    dark
+                                >
+                                    <v-tabs-slider></v-tabs-slider>
+
+                                    <v-tab @click="item.currentTab = 0">
+                                        <v-icon>mdi-information-variant</v-icon>
+                                    </v-tab>
+
+                                    <v-tab @click="item.currentTab = 1">
+                                        <v-icon>mdi-link</v-icon>
+                                    </v-tab>
+                                </v-tabs>
+
+                                <v-tabs-items v-model="item.currentTab">
+                                    <v-tab-item>
+                                        <v-card-text>
+                                            {{ item.description }}
+                                        </v-card-text>
+                                    </v-tab-item>
+                                    <v-tab-item>
+                                        <v-card-text>
+                                            <!-- <v-subheader></v-subheader> -->
+                                            <v-list-item class="mb-4">
+                                                <kbd
+                                                    class="text-center mt-4" 
+                                                    style="font-size: 1.0rem !important" 
+                                                    v-text="item.main"
+                                                >
+                                                </kbd>
+                                                <v-tooltip left>
+                                                    <template v-slot:activator="{ on, attrs }">
+                                                        <v-btn
+                                                            v-bind="attrs"
+                                                            v-on="on"
+                                                            @click="copyToClipboard(item.main)" 
+                                                            color="input"
+                                                            class="ml-3 mt-3"
+                                                            small
+                                                            fab
+                                                        >
+                                                            <v-icon>mdi-content-copy</v-icon>
+                                                        </v-btn>
+                                                    </template>
+                                                    <span>Copy</span>
+                                                </v-tooltip>
+                                            </v-list-item>
+                                        </v-card-text>
+                                    </v-tab-item>
+                                </v-tabs-items>
                             </v-card>
                         </v-col>
                     </v-row>
@@ -99,18 +152,43 @@
         <v-bottom-navigation
             app
         >
+            <span>
+                <v-select
+                    :items="categoryStore"
+                    item-text="title"
+                    item-value="title"
+                    label="Category"
+                    class=""
+                    @change="selectCategory"
+                ></v-select>
+            </span>
             <div
                 v-show="currentCategoryRecords > 0"
-                class="mt-3"
+                class="ml-6 mt-4"
             >
                 Loaded {{ currentCategoryRecordsLoaded }} of {{ currentCategoryRecords }} total items
             </div>
         </v-bottom-navigation>
+        
+        <v-snackbar
+            v-model="copiedToClipboardSnackbar"
+            color="success"
+        >
+            Copied to clipboard.
+            <template v-slot:action="{ attrs }">
+                <v-btn
+                    text
+                    v-bind="attrs"
+                    @click="copiedToClipboardSnackbar = false"
+                >
+                    Close
+                </v-btn>
+            </template>
+        </v-snackbar>
     </v-container>
 </template>
 
 <script>
-// eslint-disable-next-line
 import { EventBus } from '../plugins/event-bus.js';
 var vue_this;
 
@@ -128,7 +206,8 @@ export default {
         currentCategoryRecords: 0,
         currentCategoryRecordsLoaded: 0,
         bazaarIteratorData: [],
-        bazaarIteratorPage: 1
+        bazaarIteratorPage: 1,
+        copiedToClipboardSnackbar: false
     }),
     created: function () {
         vue_this = this;
@@ -154,6 +233,17 @@ export default {
                 });
             }
         },
+        subCategoryStore: {
+            get() {
+                return this.$store.state.subCategoryStore;
+            },
+            set (value) {
+                this.$store.commit('mutate', {
+                    property: 'subCategoryStore', 
+                    with: value
+                });
+            }
+        }
     },
     watch: {
     },
@@ -193,10 +283,8 @@ export default {
                 fields: ['parent'],
                 include_docs: true
             }).then(function (res) {
-                // console.info('getTopCategories', res);
                 vue_this.categoryStore = [];
                 res.rows.forEach (function (category) {
-                    // console.info('Category being added to top level:', category);
                     vue_this.categoryStore.push(
                         {
                             'title': category.doc.name,
@@ -245,7 +333,8 @@ export default {
                 name: itemData.name,
                 description: itemData.description,
                 main: this.combinePaths(itemRootPath, itemData.main),
-                icon: this.combinePaths(itemRootPath, itemData.icon)
+                icon: this.combinePaths(itemRootPath, itemData.icon),
+                currentTab: 0
             });
         },
         combinePaths: function(path1, path2) {
@@ -261,6 +350,13 @@ export default {
             if (!path1.endsWith('/') && !path2.startsWith('/')) {
                 return path1 + '/' + path2;
             }
+        },
+        sendEvent: function (command, data) {
+            EventBus.$emit(command, data);
+        },
+        copyToClipboard: function (textToCopy) {
+            navigator.clipboard.writeText(textToCopy);
+            this.copiedToClipboardSnackbar = true;
         }
     }
 };

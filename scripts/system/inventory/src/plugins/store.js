@@ -269,6 +269,14 @@ export const store = new Vuex.Store({
                 title: 'Category 2'
             }
         ],
+        subCategoryStore: [
+            {
+                title: 'Subcategory 1'
+            },
+            {
+                title: 'Subcategory 2'
+            }
+        ],
         // --- CUSTOM DATA ---
         bizCardDialog: {
             show: false,
