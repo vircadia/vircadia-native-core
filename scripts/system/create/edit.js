@@ -87,21 +87,24 @@ var PARTICLE_SYSTEM_URL = Script.resolvePath("assets/images/icon-particles.svg")
 var POINT_LIGHT_URL = Script.resolvePath("assets/images/icon-point-light.svg");
 var SPOT_LIGHT_URL = Script.resolvePath("assets/images/icon-spot-light.svg");
 var ZONE_URL = Script.resolvePath("assets/images/icon-zone.svg");
+var MATERIAL_URL = Script.resolvePath("assets/images/icon-material.svg");
 
-var entityIconOverlayManager = new EntityIconOverlayManager(['Light', 'ParticleEffect', 'Zone'], function(entityID) {
-    var properties = Entities.getEntityProperties(entityID, ['type', 'isSpotlight']);
-    if (properties.type === 'Light') {
-        return {
-            url: properties.isSpotlight ? SPOT_LIGHT_URL : POINT_LIGHT_URL,
+var entityIconOverlayManager = new EntityIconOverlayManager(["Light", "ParticleEffect", "Zone", "Material"], function(entityID) {
+    var properties = Entities.getEntityProperties(entityID, ["type", "isSpotlight", "parentID", "name"]);
+    if (properties.type === "Light") {
+        return { 
+            imageURL: properties.isSpotlight ? SPOT_LIGHT_URL : POINT_LIGHT_URL 
         };
-    } else if (properties.type === 'Zone') {
-        return {
-            url: ZONE_URL,
-        };
+    } else if (properties.type === "Zone") {
+        return { imageURL: ZONE_URL };
+    } else if (properties.type === "Material") {
+        if (properties.parentID !== Uuid.NULL && properties.name !== "MATERIAL_" + entityShapeVisualizerSessionName) {
+            return { imageURL: MATERIAL_URL };
+        } else {
+            return { imageURL: "" };
+        }
     } else {
-        return {
-            url: PARTICLE_SYSTEM_URL,
-        };
+        return { imageURL: PARTICLE_SYSTEM_URL };
     }
 });
 
@@ -154,8 +157,7 @@ var MENU_CREATE_SEPARATOR = "Create Application";
 var SUBMENU_ENTITY_EDITOR_PREFERENCES = "Edit > Preferences";
 var MENU_AUTO_FOCUS_ON_SELECT = "Auto Focus on Select";
 var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
-var MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE = "Show Lights and Particle Systems in Create Mode";
-var MENU_SHOW_ZONES_IN_EDIT_MODE = "Show Zones in Create Mode";
+var MENU_SHOW_ICONS_IN_CREATE_MODE = "Show Icons in Create Mode";
 var MENU_CREATE_ENTITIES_GRABBABLE = "Create Entities As Grabbable (except Zones, Particles, and Lights)";
 var MENU_ALLOW_SELECTION_LARGE = "Allow Selecting of Large Models";
 var MENU_ALLOW_SELECTION_SMALL = "Allow Selecting of Small Models";
@@ -1041,8 +1043,7 @@ var toolBar = (function () {
             // everybody else to think that Interface has lost focus overall. fogbugzid:558
             // Window.setFocus();
         }
-        entityIconOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
-        Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
+        entityIconOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_ICONS_IN_CREATE_MODE));
     };
 
     initialize();
@@ -1465,22 +1466,15 @@ function setupModelMenus() {
     });
     Menu.addMenuItem({
         menuName: SUBMENU_ENTITY_EDITOR_PREFERENCES,
-        menuItemName: MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE,
+        menuItemName: MENU_SHOW_ICONS_IN_CREATE_MODE,
         afterItem: MENU_EASE_ON_FOCUS,
         isCheckable: true,
         isChecked: Settings.getValue(SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE) !== "false"
     });
     Menu.addMenuItem({
         menuName: SUBMENU_ENTITY_EDITOR_PREFERENCES,
-        menuItemName: MENU_SHOW_ZONES_IN_EDIT_MODE,
-        afterItem: MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE,
-        isCheckable: true,
-        isChecked: Settings.getValue(SETTING_SHOW_ZONES_IN_EDIT_MODE) !== "false"
-    });
-    Menu.addMenuItem({
-        menuName: SUBMENU_ENTITY_EDITOR_PREFERENCES,
         menuItemName: MENU_ENTITY_LIST_DEFAULT_RADIUS,
-        afterItem: MENU_SHOW_ZONES_IN_EDIT_MODE
+        afterItem: MENU_SHOW_ICONS_IN_CREATE_MODE
     });
 
     Entities.setLightsArePickable(false);
@@ -1497,8 +1491,7 @@ function cleanupModelMenus() {
     Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_ALLOW_SELECTION_LIGHTS);
     Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_AUTO_FOCUS_ON_SELECT);
     Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_EASE_ON_FOCUS);
-    Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE);
-    Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_SHOW_ZONES_IN_EDIT_MODE);
+    Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_SHOW_ICONS_IN_CREATE_MODE);
     Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_CREATE_ENTITIES_GRABBABLE);
     Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_ENTITY_LIST_DEFAULT_RADIUS);
     Menu.removeMenu(SUBMENU_ENTITY_EDITOR_PREFERENCES);
@@ -1511,8 +1504,7 @@ Script.scriptEnding.connect(function () {
     toolBar.setActive(false);
     Settings.setValue(SETTING_AUTO_FOCUS_ON_SELECT, Menu.isOptionChecked(MENU_AUTO_FOCUS_ON_SELECT));
     Settings.setValue(SETTING_EASE_ON_FOCUS, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
-    Settings.setValue(SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
-    Settings.setValue(SETTING_SHOW_ZONES_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
+    Settings.setValue(SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_ICONS_IN_CREATE_MODE));
 
     Settings.setValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LARGE, Menu.isOptionChecked(MENU_ALLOW_SELECTION_LARGE));
     Settings.setValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_SMALL, Menu.isOptionChecked(MENU_ALLOW_SELECTION_SMALL));
@@ -1869,10 +1861,8 @@ function handleMenuEvent(menuItem) {
         undoHistory.undo();
     } else if (menuItem === "Redo") {
         undoHistory.redo();
-    } else if (menuItem === MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE) {
-        entityIconOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
-    } else if (menuItem === MENU_SHOW_ZONES_IN_EDIT_MODE) {
-        Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
+    } else if (menuItem === MENU_SHOW_ICONS_IN_CREATE_MODE) {
+        entityIconOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_ICONS_IN_CREATE_MODE));
     } else if (menuItem === MENU_CREATE_ENTITIES_GRABBABLE) {
         Settings.setValue(SETTING_EDIT_PREFIX + menuItem, Menu.isOptionChecked(menuItem));
     } else if (menuItem === MENU_ENTITY_LIST_DEFAULT_RADIUS) {
