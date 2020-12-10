@@ -76,7 +76,7 @@ QStringList HFMModel::getJointNames() const {
 }
 
 bool HFMModel::hasBlendedMeshes() const {
-    if (!meshes.isEmpty()) {
+    if (!meshes.empty()) {
         foreach (const HFMMesh& mesh, meshes) {
             if (!mesh.blendshapes.isEmpty()) {
                 return true;
@@ -166,16 +166,16 @@ void HFMModel::computeKdops() {
         glm::vec3(INV_SQRT_3,  INV_SQRT_3, -INV_SQRT_3),
         glm::vec3(INV_SQRT_3, -INV_SQRT_3, -INV_SQRT_3)
     };
-    if (joints.size() != (int)shapeVertices.size()) {
+    if (joints.size() != shapeVertices.size()) {
         return;
     }
     // now that all joints have been scanned compute a k-Dop bounding volume of mesh
-    for (int i = 0; i < joints.size(); ++i) {
+    for (size_t i = 0; i < joints.size(); ++i) {
         HFMJoint& joint = joints[i];
 
         // NOTE: points are in joint-frame
         ShapeVertices& points = shapeVertices.at(i);
-        glm::quat rotOffset = jointRotationOffsets.contains(i) ? glm::inverse(jointRotationOffsets[i]) : quat();
+        glm::quat rotOffset = jointRotationOffsets.contains((int)i) ? glm::inverse(jointRotationOffsets[(int)i]) : quat();
         if (points.size() > 0) {
             // compute average point
             glm::vec3 avgPoint = glm::vec3(0.0f);
@@ -209,7 +209,7 @@ void HFMModel::computeKdops() {
     }
 }
 
-void HFMModel::debugDump() {
+void HFMModel::debugDump() const {
     qCDebug(modelformat) << "---------------- hfmModel ----------------";
     qCDebug(modelformat) << "  originalURL =" << originalURL;
 
@@ -221,46 +221,53 @@ void HFMModel::debugDump() {
     qCDebug(modelformat) << "  bindExtents.size() = " << bindExtents.size();
     qCDebug(modelformat) << "  meshExtents.size() = " << meshExtents.size();
 
-    qCDebug(modelformat) << "  jointIndices.size() =" << jointIndices.size();
-    qCDebug(modelformat) << "  joints.count() =" << joints.count();
+    qCDebug(modelformat) << "---------------- Shapes ----------------";
+    qCDebug(modelformat) << "  shapes.size() =" << shapes.size();
+    for (const hfm::Shape& shape : shapes) {
+        qCDebug(modelformat) << "\n";
+        qCDebug(modelformat) << "    mesh =" << shape.mesh;
+        qCDebug(modelformat) << "    meshPart =" << shape.meshPart;
+        qCDebug(modelformat) << "    material =" << shape.material;
+        qCDebug(modelformat) << "    joint =" << shape.joint;
+        qCDebug(modelformat) << "    transformedExtents =" << shape.transformedExtents;
+        qCDebug(modelformat) << "    skinDeformer =" << shape.skinDeformer;
+    }
 
+    qCDebug(modelformat) << "  jointIndices.size() =" << jointIndices.size();
+    qCDebug(modelformat) << "  joints.size() =" << joints.size();
     qCDebug(modelformat) << "---------------- Meshes ----------------";
-    qCDebug(modelformat) << "  meshes.count() =" << meshes.count();
+    qCDebug(modelformat) << "  meshes.size() =" << meshes.size();
     qCDebug(modelformat) << "  blendshapeChannelNames = " << blendshapeChannelNames;
-    foreach(HFMMesh mesh, meshes) {
+
+    for (const HFMMesh& mesh : meshes) {
+        qCDebug(modelformat) << "\n";
         qCDebug(modelformat) << "    meshpointer =" << mesh._mesh.get();
         qCDebug(modelformat) << "    meshindex =" << mesh.meshIndex;
-        qCDebug(modelformat) << "    vertices.count() =" << mesh.vertices.size();
-        qCDebug(modelformat) << "    colors.count() =" << mesh.colors.count();
-        qCDebug(modelformat) << "    normals.count() =" << mesh.normals.size();
-        qCDebug(modelformat) << "    tangents.count() =" << mesh.tangents.size();
-        qCDebug(modelformat) << "    colors.count() =" << mesh.colors.count();
-        qCDebug(modelformat) << "    texCoords.count() =" << mesh.texCoords.count();
-        qCDebug(modelformat) << "    texCoords1.count() =" << mesh.texCoords1.count();
-        qCDebug(modelformat) << "    clusterIndices.count() =" << mesh.clusterIndices.count();
-        qCDebug(modelformat) << "    clusterWeights.count() =" << mesh.clusterWeights.count();
+        qCDebug(modelformat) << "    vertices.size() =" << mesh.vertices.size();
+        qCDebug(modelformat) << "    colors.size() =" << mesh.colors.size();
+        qCDebug(modelformat) << "    normals.size() =" << mesh.normals.size();
+        qCDebug(modelformat) << "    tangents.size() =" << mesh.tangents.size();
+        qCDebug(modelformat) << "    colors.size() =" << mesh.colors.size();
+        qCDebug(modelformat) << "    texCoords.size() =" << mesh.texCoords.size();
+        qCDebug(modelformat) << "    texCoords1.size() =" << mesh.texCoords1.size();
+        qCDebug(modelformat) << "    clusterIndices.size() =" << mesh.clusterIndices.size();
+        qCDebug(modelformat) << "    clusterWeights.size() =" << mesh.clusterWeights.size();
         qCDebug(modelformat) << "    modelTransform =" << mesh.modelTransform;
-        qCDebug(modelformat) << "    parts.count() =" << mesh.parts.count();
-
+        qCDebug(modelformat) << "    parts.size() =" << mesh.parts.size();
         qCDebug(modelformat) << "---------------- Meshes (blendshapes)--------";
-        foreach(HFMBlendshape bshape, mesh.blendshapes) {
-            qCDebug(modelformat) << "    bshape.indices.count() =" << bshape.indices.count();
-            qCDebug(modelformat) << "    bshape.vertices.count() =" << bshape.vertices.count();
-            qCDebug(modelformat) << "    bshape.normals.count() =" << bshape.normals.count();
+        for (HFMBlendshape bshape : mesh.blendshapes) {
+            qCDebug(modelformat) << "\n";
+            qCDebug(modelformat) << "    bshape.indices.size() =" << bshape.indices.size();
+            qCDebug(modelformat) << "    bshape.vertices.size() =" << bshape.vertices.size();
+            qCDebug(modelformat) << "    bshape.normals.size() =" << bshape.normals.size();
+            qCDebug(modelformat) << "\n";
         }
-
         qCDebug(modelformat) << "---------------- Meshes (meshparts)--------";
-        foreach(HFMMeshPart meshPart, mesh.parts) {
-            qCDebug(modelformat) << "        quadIndices.count() =" << meshPart.quadIndices.count();
-            qCDebug(modelformat) << "        triangleIndices.count() =" << meshPart.triangleIndices.count();
-            qCDebug(modelformat) << "        materialID =" << meshPart.materialID;
-        }
-
-        qCDebug(modelformat) << "---------------- Meshes (clusters)--------";
-        qCDebug(modelformat) << "    clusters.count() =" << mesh.clusters.count();
-        foreach(HFMCluster cluster, mesh.clusters) {
-            qCDebug(modelformat) << "        jointIndex =" << cluster.jointIndex;
-            qCDebug(modelformat) << "        inverseBindMatrix =" << cluster.inverseBindMatrix;
+        for (HFMMeshPart meshPart : mesh.parts) {
+            qCDebug(modelformat) << "\n";
+            qCDebug(modelformat) << "        quadIndices.size() =" << meshPart.quadIndices.size();
+            qCDebug(modelformat) << "        triangleIndices.size() =" << meshPart.triangleIndices.size();
+            qCDebug(modelformat) << "\n";
         }
     }
 
@@ -278,7 +285,7 @@ void HFMModel::debugDump() {
 
     qCDebug(modelformat) << "---------------- Materials ----------------";
     foreach(HFMMaterial mat, materials) {
-        qCDebug(modelformat) << "  mat.materialID =" << mat.materialID;
+        qCDebug(modelformat) << "  materialID =" << mat.materialID;
         qCDebug(modelformat) << "  diffuseColor =" << mat.diffuseColor;
         qCDebug(modelformat) << "  diffuseFactor =" << mat.diffuseFactor;
         qCDebug(modelformat) << "  specularColor =" << mat.specularColor;
@@ -292,7 +299,6 @@ void HFMModel::debugDump() {
         qCDebug(modelformat) << "  emissiveIntensity =" << mat.emissiveIntensity;
         qCDebug(modelformat) << "  ambientFactor =" << mat.ambientFactor;
 
-        qCDebug(modelformat) << "  materialID =" << mat.materialID;
         qCDebug(modelformat) << "  name =" << mat.name;
         qCDebug(modelformat) << "  shadingModel =" << mat.shadingModel;
         qCDebug(modelformat) << "  _material =" << mat._material.get();
@@ -312,6 +318,7 @@ void HFMModel::debugDump() {
         qCDebug(modelformat) << "  useMetallicMap =" << mat.useMetallicMap;
         qCDebug(modelformat) << "  useEmissiveMap =" << mat.useEmissiveMap;
         qCDebug(modelformat) << "  useOcclusionMap =" << mat.useOcclusionMap;
+        qCDebug(modelformat) << "\n";
     }
 
     qCDebug(modelformat) << "---------------- Joints ----------------";
@@ -321,25 +328,44 @@ void HFMModel::debugDump() {
         qCDebug(modelformat) << "    shapeInfo.dots =" << joint.shapeInfo.dots;
         qCDebug(modelformat) << "    shapeInfo.points =" << joint.shapeInfo.points;
 
+        qCDebug(modelformat) << "    ---";
+
         qCDebug(modelformat) << "    parentIndex" << joint.parentIndex;
         qCDebug(modelformat) << "    distanceToParent" << joint.distanceToParent;
+        qCDebug(modelformat) << "    transform" << joint.transform;
+        qCDebug(modelformat) << "    globalTransform" << joint.globalTransform;
+        qCDebug(modelformat) << "    globalTransformForChildren" << joint.globalTransformForChildren;
+
+        qCDebug(modelformat) << "    ---";
+
         qCDebug(modelformat) << "    translation" << joint.translation;
         qCDebug(modelformat) << "    preTransform" << joint.preTransform;
         qCDebug(modelformat) << "    preRotation" << joint.preRotation;
         qCDebug(modelformat) << "    rotation" << joint.rotation;
         qCDebug(modelformat) << "    postRotation" << joint.postRotation;
         qCDebug(modelformat) << "    postTransform" << joint.postTransform;
-        qCDebug(modelformat) << "    transform" << joint.transform;
+
         qCDebug(modelformat) << "    rotationMin" << joint.rotationMin;
         qCDebug(modelformat) << "    rotationMax" << joint.rotationMax;
         qCDebug(modelformat) << "    inverseDefaultRotation" << joint.inverseDefaultRotation;
         qCDebug(modelformat) << "    inverseBindRotation" << joint.inverseBindRotation;
+        qCDebug(modelformat) << "    bindTransformFoundInCluster" << joint.bindTransformFoundInCluster;
         qCDebug(modelformat) << "    bindTransform" << joint.bindTransform;
         qCDebug(modelformat) << "    name" << joint.name;
         qCDebug(modelformat) << "    isSkeletonJoint" << joint.isSkeletonJoint;
-        qCDebug(modelformat) << "    bindTransformFoundInCluster" << joint.hasGeometricOffset;
-        qCDebug(modelformat) << "    bindTransformFoundInCluster" << joint.geometricTranslation;
-        qCDebug(modelformat) << "    bindTransformFoundInCluster" << joint.geometricRotation;
-        qCDebug(modelformat) << "    bindTransformFoundInCluster" << joint.geometricScaling;
+        qCDebug(modelformat) << "    geometricOffset" << joint.geometricOffset;
+        qCDebug(modelformat) << "\n";
+    }
+
+    qCDebug(modelformat) << "------------- SkinDeformers ------------";
+    qCDebug(modelformat) << "    skinDeformers.size() =" << skinDeformers.size();
+    for(const hfm::SkinDeformer& skinDeformer : skinDeformers) {
+        qCDebug(modelformat) << "------- SkinDeformers (Clusters) -------";
+        for (const hfm::Cluster& cluster : skinDeformer.clusters) {
+            qCDebug(modelformat) << "\n";
+            qCDebug(modelformat) << "        jointIndex =" << cluster.jointIndex;
+            qCDebug(modelformat) << "        inverseBindMatrix =" << cluster.inverseBindMatrix;
+            qCDebug(modelformat) << "\n";
+        }
     }
 }
