@@ -32,8 +32,9 @@
             </div>
             <button id="toggle-space-mode" class="hifi-edit-button space-mode-local">Local</button>
             <input type="button" class="vglyph" id="hmdmultiselect" value="I" style="display: none;" />
-            <input type="button" class="normal" id="selection" value="Selection..." />
-            <input type="button" class="normal" id="actions" value="Actions..." />
+            <input type="button" class="normal" id="selection" value="Select&#9662;" />
+            <input type="button" class="normal" id="actions" value="Edit&#9662;" />
+            <input type="button" class="normal" id="tools" value="Tools&#9662;" />
         </div>
         <div id="entity-list">
             <div id="filter-area">
@@ -159,7 +160,7 @@
         <div class="entity-list-menu" id="selection-menu" >
             <button class="menu-button" id="selectall" >
                 <div class = "menu-item">
-                    <div class = "menu-item-caption">Select All</div>
+                    <div class = "menu-item-caption">Select All (in List)</div>
                     <div class = "menu-item-shortcut">Ctrl-A</div>
                 </div>
             </button>
@@ -171,7 +172,7 @@
             </button>            
             <button class="menu-button" id="selectinverse" >
                 <div class = "menu-item">
-                    <div class = "menu-item-caption">Inverse Selection</div>
+                    <div class = "menu-item-caption">Inverse Selection (in List)</div>
                     <div class = "menu-item-shortcut">Ctrl-I</div>
                 </div>
             </button>
@@ -219,13 +220,71 @@
                     <div class = "menu-item-shortcut"></div>
                 </div>
             </button>
-            <div class="menu-separator"></div>
+        </div>
+        <div class="entity-list-menu" id="tools-menu" >
+            <button class="menu-button" id="setCameraFocusToSelection" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Set Camera Focus To Selection</div>
+                    <div class = "menu-item-shortcut">F</div>
+                </div>
+            </button>
             <button class="menu-button" id="teleport-to-entity" >
                 <div class = "menu-item">
                     <div class = "menu-item-caption">Teleport To Selected Entities</div>
                     <div class = "menu-item-shortcut"></div>
                 </div>
             </button>
+            <div class="menu-separator"></div>
+            <button class="menu-button" id="toggleLocalWorldMode" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Toggle Local/World Mode</div>
+                    <div class = "menu-item-shortcut">T</div>
+                </div>
+            </button>
+            <div class="menu-separator"></div>
+            <button class="menu-button" id="exportSelectedEntities" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Export Selected Entities</div>
+                    <div class = "menu-item-shortcut"></div>
+                </div>
+            </button>
+            <button class="menu-button" id="importEntitiesFromFile" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Import Entities (.json) From a File</div>
+                    <div class = "menu-item-shortcut"></div>
+                </div>
+            </button>
+            <button class="menu-button" id="importEntitiesFromUrl" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Import Entities (.json) From a URL</div>
+                    <div class = "menu-item-shortcut"></div>
+                </div>
+            </button>            
+            <div class="menu-separator"></div>
+            <button class="menu-button" id="gridActivator" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Toggle Grid</div>
+                    <div class = "menu-item-shortcut">G</div>
+                </div>
+            </button>
+            <button class="menu-button" id="snapToGridActivator" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption" id="snapToGridActivatorCaption">Activate Snap to Grid</div>
+                    <div class = "menu-item-shortcut">H</div>
+                </div>
+            </button>
+            <button class="menu-button" id="alignGridToSelection" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Align Grid to Selected Entities</div>
+                    <div class = "menu-item-shortcut">J</div>
+                </div>
+            </button>
+            <button class="menu-button" id="alignGridToAvatar" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Align Grid to Avatar</div>
+                    <div class = "menu-item-shortcut">K</div>
+                </div>
+            </button>            
         </div>
         <div id="menuBackgroundOverlay" ></div>
     </body>
