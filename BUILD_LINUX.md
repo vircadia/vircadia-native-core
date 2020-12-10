@@ -4,7 +4,7 @@
 
 Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only Linux specific instructions are found in this file.
 
-You can use the [Vircadia Builder](https://github.com/kasenvr/vircadia-builder) to build on Linux more easily. Alternatively, you can follow the manual steps below.
+You can use the [Vircadia Builder](https://github.com/vircadia/vircadia-builder) to build on Linux more easily. Alternatively, you can follow the manual steps below.
 
 ## Ubuntu 16.04/18.04 specific build guide
 ### Ubuntu 16.04 only
@@ -78,7 +78,7 @@ sudo apt-get install nodejs
 
 Clone this repository:
 ```bash
-git clone https://github.com/kasenvr/project-athena.git
+git clone https://github.com/vircadia/project-athena.git
 ```
 
 To compile a DEV version checkout the branch you need. To get a list of all tags:

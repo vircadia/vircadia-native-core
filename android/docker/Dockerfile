@@ -72,7 +72,7 @@ RUN mkdir "$HIFI_BASE" && \
     mkdir "$HIFI_ANDROID_PRECOMPILED"
 
 # Download the repo
-RUN git clone https://github.com/kasenvr/project-athena.git
+RUN git clone https://github.com/vircadia/project-athena.git
 
 WORKDIR /home/gha/project-athena
 
