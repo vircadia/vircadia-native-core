@@ -1,26 +1,22 @@
 # Build Windows
 
-*Last Updated on May 17, 2020*
+*Last Updated on 12 Dec 2020*
 
 This is a stand-alone guide for creating your first Vircadia build for Windows 64-bit.  
 
-Note: We are now using Visual Studio 2017 or 2019 and Qt 5.12.3.  
+Note: We are now using Visual Studio 2019 and Qt 5.15.2.
 If you are upgrading from previous versions, do a clean uninstall of those versions before going through this guide.  
 
 Note: The prerequisites will require about 10 GB of space on your drive. You will also need a system with at least 8GB of main memory.
 
 ### Step 1. Visual Studio & Python 3.x
 
-If you don’t have Community or Professional edition of Visual Studio, download [Visual Studio Community 2019](https://visualstudio.microsoft.com/vs/). If you have Visual Studio 2017, you are not required to download Visual Studio 2019.
+If you don’t have Community or Professional edition of Visual Studio 2019, download [Visual Studio Community 2019](https://visualstudio.microsoft.com/vs/). If you have Visual Studio 2017, you need to download Visual Studio 2019.
 
 When selecting components, check "Desktop development with C++". On the right on the Summary toolbar, select the following components.
 
-#### If you're installing Visual Studio 2017,
 
-* Windows 8.1 SDK and UCRT SDK
-* VC++ 2015.3 v14.00 (v140) toolset for desktop
-
-#### If you're installing Visual Studio 2019,
+#### Visual Studio 2019
 
 * MSVC v141 - VS 2017 C++ x64/x86 build tools
 * MSVC v140 - VS 2015 C++ build tools (v14.00)
@@ -72,10 +68,7 @@ Run Command Prompt from Start and run the following commands:
 `mkdir build`  
 `cd build`  
 
-#### If you're using Visual Studio 2017,
-Run `cmake .. -G "Visual Studio 15 Win64"`.
-
-#### If you're using Visual Studio 2019,
+#### Visual Studio 2019
 Run `cmake .. -G "Visual Studio 16 2019" -A x64`.
 
 Where `%VIRCADIA_DIR%` is the directory for the Vircadia repository.

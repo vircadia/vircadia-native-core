@@ -41,15 +41,29 @@ These are not placed in your normal build tree when doing an out of source build
 Vircadia uses CMake to generate build files and project files for your platform.
 
 #### Qt
-CMake will download Qt 5.12.3 using vcpkg.  
+CMake will download Qt 5.15.2 using vcpkg.
 
-To override this (i.e. use an installed Qt configuration - you will need to set a QT_CMAKE_PREFIX_PATH environment variable pointing to your Qt **lib/cmake** folder.  
-This can either be entered directly into your shell session before you build or in your shell profile (e.g.: ~/.bash_profile, ~/.bashrc, ~/.zshrc - this depends on your shell and environment).  The path it needs to be set to will depend on where and how Qt5 was installed. e.g.
+To override this (i.e., use an installed Qt configuration - you need to set a QT_CMAKE_PREFIX_PATH environment variable pointing to your Qt **lib/cmake** folder.  
+This can either be entered directly into your shell session before you build or in your shell profile (e.g.: ~/.bash_profile, ~/.bashrc, ~/.zshrc - this depends on your shell and environment).  The path it needs to be set to will depend on where and how Qt5 was installed. 
 
-    export QT_CMAKE_PREFIX_PATH=/usr/local/Qt5.12.3/gcc_64/lib/cmake
-    export QT_CMAKE_PREFIX_PATH=/usr/local/qt/5.12.3/clang_64/lib/cmake/
-    export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.12.3/lib/cmake
+For example, under Linux:
+
+    export QT_CMAKE_PREFIX_PATH=/usr/local/Qt5.15.2/gcc_64/lib/cmake
+    export QT_CMAKE_PREFIX_PATH=/usr/local/qt/5.15.2/clang_64/lib/cmake/
+    export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.15.2/lib/cmake
     export QT_CMAKE_PREFIX_PATH=/usr/local/opt/qt5/lib/cmake
+
+For example, under Windows:
+
+    set QT_CMAKE_PREFIX_PATH=C:\Qt\5.15.2\msvc2019_64\lib\cmake
+
+Note: You only need the following components checked under Qt 5.15.2 (select the "Custom Installation" option): 
+		"MSVC 2019 64-bit", "Qt WebEngine", and "Qt Script (Deprecated)".
+
+Note: Installing the sources is optional but recommended if you have room for them (~3GB). You may also want the Qt debug 
+information files (~7GB).
+
+Note: Installing Qt Creator is optional but recommended if you will be editing QML files.
 
 #### VCPKG
 
@@ -57,9 +71,15 @@ Vircadia uses vcpkg to download and build dependencies.
 You do not need to install vcpkg.
 
 Building the dependencies can be lengthy and the resulting files will be stored in your OS temp directory.
-However, those files can potentially get cleaned up by the OS, so in order to avoid this and having to redo the lengthy build step, you can set the following environment variable:
+However, those files can potentially get cleaned up by the OS, so in order to avoid this and having to redo the lengthy build step, you can set an environment variable.
 
-export HIFI_VCPKG_BASE=/path/to/directory
+Linux:
+
+    export HIFI_VCPKG_BASE=/path/to/directory
+
+Windows:
+
+    set HIFI_VCPKG_BASE=/path/to/directory
 
 Where /path/to/directory is the path to a directory where you wish the build files to get stored.
 

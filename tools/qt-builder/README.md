@@ -7,8 +7,8 @@ Note that there are several patches.
 * The fourth is a patch which fixes video playback on WebEngineViews on mac.  See https://bugreports.qt.io/browse/QTBUG-70967
 ## Requirements
 ### Windows
-1.  Visual Studio 2017  
-    If you don’t have Community or Professional edition of Visual Studio 2017, download [Visual Studio Community 2017](https://www.visualstudio.com/downloads/).  
+1.  Visual Studio 2019 
+    If you don’t have Community or Professional edition of Visual Studio 2019, download [Visual Studio Community 2019](https://www.visualstudio.com/downloads/).  
 Install with C++ support.
 
 1.  python 2.7.16
