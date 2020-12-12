@@ -68,7 +68,7 @@ bool TestScriptingInterface::loadTestScene(QString scene) {
     }
 
     static const QString TEST_ROOT = "https://raw.githubusercontent.com/hifi-archive/hifi_tests/master/";
-    static const QString TEST_BINARY_ROOT = NetworkingConstants::HF_CONTENT_CDN_URL + "/test_scene_data/";
+    static const QString TEST_BINARY_ROOT = NetworkingConstants::HF_CONTENT_CDN_URL + "test_scene_data/";
     static const QString TEST_SCRIPTS_ROOT = TEST_ROOT + "scripts/";
     static const QString TEST_SCENES_ROOT = TEST_ROOT + "scenes/";
     

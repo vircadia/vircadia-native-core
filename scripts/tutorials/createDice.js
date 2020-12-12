@@ -23,7 +23,7 @@ var DIE_SIZE = 0.20;
 
 var madeSound = true; //  Set false at start of throw to look for collision
 
-SoundCache.getSound("http://hifi-production.s3.amazonaws.com/tutorials/dice/diceCollide.wav");
+SoundCache.getSound("https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/dice/diceCollide.wav");
 
 var INSUFFICIENT_PERMISSIONS_ERROR_MSG = "You do not have the necessary permissions to create new objects."
 
@@ -45,7 +45,7 @@ var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.toolbars-dice"
 var offButton = toolBar.addOverlay("image", {
   width: BUTTON_SIZE,
   height: BUTTON_SIZE,
-  imageURL: "http://hifi-production.s3.amazonaws.com/tutorials/dice/close.png",
+  imageURL: "https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/dice/close.png",
   alpha: 1
 });
 
@@ -54,11 +54,11 @@ var deleteButton = toolBar.addOverlay("image", {
   y: screenSize.y - (BUTTON_SIZE + PADDING)+BOTTOM_PADDING,
   width: BUTTON_SIZE,
   height: BUTTON_SIZE,
-  imageURL: "http://hifi-production.s3.amazonaws.com/tutorials/dice/delete.png",
+  imageURL: "https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/dice/delete.png",
   alpha: 1
 });
 
-var diceIconURL = "http://hifi-production.s3.amazonaws.com/tutorials/dice/dice.png"
+var diceIconURL = "https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/dice/dice.png"
 var diceButton = toolBar.addOverlay("image", {
   x: screenSize.x / 2 + PADDING,
   y: screenSize.y - (BUTTON_SIZE + PADDING)+BOTTOM_PADDING,
@@ -82,7 +82,7 @@ function shootDice(position, velocity) {
     for (var i = 0; i < NUMBER_OF_DICE; i++) {
       dice.push(Entities.addEntity({
         type: "Model",
-        modelURL: "http://hifi-production.s3.amazonaws.com/tutorials/dice/goldDie.fbx",
+        modelURL: "https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/dice/goldDie.fbx",
         position: position,
         velocity: velocity,
         rotation: Quat.fromPitchYawRollDegrees(Math.random() * 360, Math.random() * 360, Math.random() * 360),
@@ -99,7 +99,7 @@ function shootDice(position, velocity) {
         lifetime: LIFETIME,
         shapeType: "box",
         dynamic: true,
-        collisionSoundURL: "http://hifi-production.s3.amazonaws.com/tutorials/dice/diceCollide.wav"
+        collisionSoundURL: "https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/dice/diceCollide.wav"
       }));
       position = Vec3.sum(position, Vec3.multiply(DIE_SIZE, Vec3.normalize(Quat.getRight(Camera.getOrientation()))));
     }

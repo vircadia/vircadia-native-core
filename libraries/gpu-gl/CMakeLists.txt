@@ -5,5 +5,7 @@ if (UNIX)
     target_link_libraries(${TARGET_NAME} pthread)
 endif(UNIX)
 GroupSources("src")
+
+set(OpenGL_GL_PREFERENCE "LEGACY")
 target_opengl()
 

@@ -19,7 +19,7 @@
     var PLAYLIST_URL = "https://spreadsheets.google.com/feeds/cells/1x-ceGPGHldkHadARABFWfujLPTOWzXJPhrf2bTwg2cQ/od6/public/basic?alt=json";
     var SONG_VOLUME = 0.1;
     var HEADPHONES_ATTACHMENT = {
-        modelURL: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/musicPlayer/headphones2-v2.fbx",
+        modelURL: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/musicPlayer/headphones2-v2.fbx",
         jointName: "Head",
         translation: {"x": 0, "y": 0.19, "z": 0.06},
         rotation: {"x":0,"y":0.7071067690849304,"z":0.7071067690849304,"w":0},

@@ -597,12 +597,14 @@ namespace std {
         }
     };
 
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
     template <>
     struct hash<QString> {
         size_t operator()(const QString& a) const {
             return qHash(a);
         }
     };
+#endif
 }
 
 /**jsdoc

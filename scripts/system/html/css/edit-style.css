@@ -65,6 +65,14 @@
          url(../fonts/hifi-glyphs.ttf);
 }
 
+@font-face {
+    font-family: Vircadia-Glyphs;
+    src: url(../../../../resources/fonts/vircadia_glyphs.ttf),
+         url(../../../../fonts/vircadia_glyphs.ttf),
+         url(../../../../interface/resources/fonts/vircadia_glyphs.ttf),
+         url(../fonts/vircadia_glyphs.ttf);
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -101,7 +109,6 @@ table {
 thead {
     font-family: Raleway-Regular;
     font-size: 12px;
-    text-transform: uppercase;
     background-color: #1c1c1c;
     padding: 1px 0;
     border-bottom: 1px solid #575757;
@@ -173,6 +180,15 @@ tr.selected {
 }
 
 tr.selected + tr.selected {
+    border-top: 1px solid #2e2e2e;
+}
+
+tr.last-selected {
+    color: #000000;
+    background-color: #0064ef;
+}
+
+tr.last-selected + tr.last-selected {
     border-top: 1px solid #2e2e2e;
 }
 
@@ -388,7 +404,7 @@ input[type=button], button.hifi-edit-button {
     text-transform: uppercase;
     vertical-align: top;
     height: 28px;
-    min-width: 120px;
+    min-width: 70px;
     padding: 0 18px;
     margin-right: 6px;
     border-radius: 5px;
@@ -407,6 +423,21 @@ input[type=button].glyph, button.hifi-edit-button.glyph {
     padding: 0;
 }
 
+input[type=button].normal, button.hifi-edit-button.normal {
+    font-family: FiraSans-SemiBold;
+    font-size: 15px;
+    text-transform: none;
+    padding: 0;
+}
+
+input[type=button].vglyph, button.hifi-edit-button.vglyph {
+    font-family: Vircadia-Glyphs;
+    font-size: 20px;
+    text-transform: none;
+    min-width: 32px;
+    padding: 0;
+}
+
 input[type=button].red, button.hifi-edit-button.red {
     color: #fff;
     background-color: #94132e;
@@ -416,6 +447,16 @@ input[type=button].blue, button.hifi-edit-button.blue {
     color: #fff;
     background-color: #1080b8;
     background: linear-gradient(#00b4ef 20%, #1080b8 100%);
+}
+input[type=button].orange, button.hifi-edit-button.orange {
+    color: #fff;
+    background-color: #8f5100;
+    background: linear-gradient(#d97b00 20%, #8f5100 100%);
+}
+input[type=button].green, button.hifi-edit-button.green {
+    color: #fff;
+    background-color: #078a00;
+    background: linear-gradient(#00cc07 20%, #078a00 100%);
 }
 input[type=button].white, button.hifi-edit-button.white {
     color: #121212;
@@ -435,6 +476,14 @@ input[type=button].blue:enabled:hover, button.hifi-edit-button.blue:enabled:hove
     background: linear-gradient(#00b4ef, #00b4ef);
     border: none;
 }
+input[type=button].orange:enabled:hover, button.hifi-edit-button.orange:enabled:hover {
+    background: linear-gradient(#d97b00, #d97b00);
+    border: none;
+}
+input[type=button].green:enabled:hover, button.hifi-edit-button.green:enabled:hover {
+    background: linear-gradient(#00cc07, #00cc07);
+    border: none;
+}
 input[type=button].white:enabled:hover, button.hifi-edit-button.white:enabled:hover {
     background: linear-gradient(#fff, #fff);
     border: none;
@@ -448,6 +497,12 @@ input[type=button].red:active, button.hifi-edit-button.red:active {
 }
 input[type=button].blue:active, button.hifi-edit-button.blue:active {
     background: linear-gradient(#1080b8, #1080b8);
+}
+input[type=button].orange:active, button.hifi-edit-button.orange:active {
+    background: linear-gradient(#8f5100, #8f5100);
+}
+input[type=button].green:active, button.hifi-edit-button.green:active {
+    background: linear-gradient(#078a00, #078a00);
 }
 input[type=button].white:active, button.hifi-edit-button.white:active {
     background: linear-gradient(#afafaf, #afafaf);
@@ -1196,7 +1251,6 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     background: #2e2e2e url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACKSURBVChTjdAxDsMgDAXQT4UYuQIzCwsSKxsSJ4YDoByDY7AwUOG2aZMQqX+xhd9gzIwxA3/k8a7LCCFgraX+Fk4UY4RSCoyxNfwgzjlyzhhjXOEvSimhtUbvB3hGUkp472m2wxUKIaD3TnOCd6jWim3bvlBrfdjJOUeolEJoZj/4PMH83bl/BXgCWSs2Z09IjgoAAAAASUVORK5CYII=) no-repeat bottom right;
 }
 
-
 div#grid-section, body#entity-list-body {
     padding-bottom: 0;
     margin: 16px;
@@ -1225,12 +1279,6 @@ div#grid-section, body#entity-list-body {
     float: right;
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
-}
-
-#delete {
-    float: right;
-    margin-right: 0;
-    background-color: #ff0000;
 }
 
 #entity-list {
@@ -1408,6 +1456,11 @@ input[type=button]#export {
     font-size: 15px;
 }
 
+#entity-table-scroll .vglyph {
+    font-family: Vircadia-Glyphs;
+    font-size: 15px;
+}
+
 #entity-table {
     margin-top: -28px;
     margin-bottom: -18px;
@@ -1420,7 +1473,7 @@ input[type=button]#export {
     background: none;
 }
 
-#entity-table .glyph {
+#entity-table .glyph .vglyph {
     margin: 0 -2px 0 -2px;
     vertical-align: middle;
 }
@@ -1453,11 +1506,11 @@ input[type=button]#export {
     outline: none;
 }
 
-#entity-table th .glyph {
+#entity-table th .glyph .vglyph {
     position: relative;
     left: 4px;
 }
-#entity-table th .glyph + .sort-order {
+#entity-table th .glyph .vglyph + .sort-order {
     position: relative;
     left: 4px;
 }
@@ -1484,7 +1537,7 @@ input[type=button]#export {
 #entity-table td {
     box-sizing: border-box;
 }
-#entity-table td.glyph {
+#entity-table td .glyph .vglyph {
     text-align: center;
     padding: 0;
 }
@@ -1820,3 +1873,71 @@ div.multiZoneSelToolbar {
     padding: 0px;
 }
 
+#menuBackgroundOverlay{
+    background-color:transparent;
+    position:fixed;
+    width: 100%;
+    height: 100%;
+    top:0;
+    left:0;
+    right:0;
+    bottom:0;
+    display:none;
+}
+
+div.entity-list-menu {
+    position: fixed;
+    display: none;
+    width: 70%;
+    height: 30px;
+    top: 42px;
+    left: 150px;
+    right: 0;
+    bottom: 0;
+    border-style: solid;
+    border-color: #505050;
+    border-width: 1px;
+    background-color: #c0c0c0;
+    z-index: 2;
+    cursor: pointer;
+}
+
+div.menu-separator{
+    width: 90%;
+    height: 2px;
+    background-color: #505050;
+    }
+
+button.menu-button {
+    font-family: FiraSans-SemiBold;
+    font-size: 15px;
+    width: 100%;
+    height: auto;
+    border-radius: 0;
+    padding: 6px;
+    text-align: left;
+    background-color: #c0c0c0;
+    border: none;
+}
+
+button.menu-button:hover {
+    background-color: #00B4EF;
+    border: none;
+}
+
+button.menu-button:active {
+    background-color: #00B4EF;
+    border: none;    
+}
+
+div.menu-item {
+    width: 100%;
+}
+
+div.menu-item-caption {
+    float: left;
+}
+
+div.menu-item-shortcut {
+    float: right;
+}

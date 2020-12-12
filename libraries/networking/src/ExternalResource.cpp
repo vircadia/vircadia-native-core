@@ -4,7 +4,7 @@
 //  Created by Dale Glass on 6 Sep 2020
 //  Copyright 2020 Vircadia contributors.
 //
-//  Flexible management for external resources (eg, on S3)
+//  Flexible management for external resources (e.g., on S3).
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -23,40 +23,64 @@ ExternalResource* ExternalResource::getInstance() {
     return &instance;
 }
 
-QUrl ExternalResource::getQUrl(Bucket bucket, const QUrl& relative_path) {
-    qCDebug(external_resource) << "Requested URL for bucket " << bucket << ", path " << relative_path;
+QUrl ExternalResource::getQUrl(Bucket bucket, QString path) {
+    qCDebug(external_resource) << "Requested URL for bucket " << bucket << ", path " << path;
 
-    if (!_bucketBases.contains(bucket)) {
-        qCCritical(external_resource) << "External resource " << relative_path << " was requested from unrecognized bucket "
-                                      << bucket;
+    // Whitespace could interfere with the next step
+    path = path.trimmed();
+
+    // Remove all initial slashes. This is because if QUrl is fed //foo/bar,
+    // it will treat //foo as a domain name. This also ensures the URL is always treated as
+    // relative to any path specified in the bucket.
+    while (path.startsWith('/')) {
+        path = path.remove(0, 1);
+    }
+
+    // De-duplicate URL separators, since S3 doesn't actually have subdirectories, and treats a '/' as a part
+    // of the filename. This means that "/dir/file.txt" and "/dir//file.txt" are not equivalent on S3.
+    //
+    // We feed it through a QUrl to ensure we're only working on the path component.
+    QUrl pathQUrl(path);
+
+    QString tempPath = pathQUrl.path();
+    while (tempPath.contains("//")) {
+        tempPath = tempPath.replace("//", "/");
+    }
+    pathQUrl.setPath(tempPath);
+
+    if (!pathQUrl.isValid()) {
+        qCCritical(external_resource) << "External resource " << pathQUrl << " was requested from bucket " << bucket
+                                      << " with an invalid path. Error: " << pathQUrl.errorString();
         return QUrl();
     }
 
-    if (!relative_path.isValid()) {
-        qCCritical(external_resource) << "External resource " << relative_path << " was requested from bucket " << bucket
-                                      << " with an invalid path. Error: " << relative_path.errorString();
-        return QUrl();
-    }
-
-    if (!relative_path.isRelative()) {
-        qCWarning(external_resource) << "External resource " << relative_path << " was requested from bucket " << bucket
+    if (!pathQUrl.isRelative()) {
+        qCWarning(external_resource) << "External resource " << pathQUrl << " was requested from bucket " << bucket
                                      << " without using a relative path, returning as-is.";
-        return relative_path;
+        return pathQUrl;
     }
 
     QUrl base;
     {
         std::lock_guard<std::mutex> guard(_bucketMutex);
+
+        if (!_bucketBases.contains(bucket)) {
+            qCCritical(external_resource) << "External resource " << path << " was requested from unrecognized bucket "
+                                          << bucket;
+            return QUrl();
+        }
+
         base = _bucketBases[bucket];
     }
 
-    QUrl merged = base.resolved(relative_path).adjusted(QUrl::NormalizePathSegments);
+    QUrl merged = base.resolved(pathQUrl).adjusted(QUrl::NormalizePathSegments);
 
-    if ( merged.isValid() ) {
+    if (merged.isValid()) {
         qCDebug(external_resource) << "External resource resolved to " << merged;
     } else {
-        qCCritical(external_resource) << "External resource resolved to invalid URL " << merged << "; Error " << merged.errorString()
-                                      << "; base = " << base << "; relative_path = " << relative_path;
+        qCCritical(external_resource) << "External resource resolved to invalid URL " << merged << "; Error "
+                                      << merged.errorString() << "; base = " << base << "; path = " << path
+                                      << "; filtered path = " << pathQUrl;
     }
 
     return merged;
@@ -68,9 +92,9 @@ QString ExternalResource::getBase(Bucket bucket) {
 };
 
 bool ExternalResource::setBase(Bucket bucket, const QString& url) {
-    QUrl new_url(url);
+    QUrl newURL(url);
 
-    if (!new_url.isValid() || new_url.isRelative()) {
+    if (!newURL.isValid() || newURL.isRelative()) {
         qCCritical(external_resource) << "Attempted to set bucket " << bucket << " to invalid URL " << url;
         return false;
     }
@@ -80,9 +104,9 @@ bool ExternalResource::setBase(Bucket bucket, const QString& url) {
         return false;
     }
 
-    qCDebug(external_resource) << "Setting base URL for " << bucket << " to " << new_url;
+    qCDebug(external_resource) << "Setting base URL for " << bucket << " to " << newURL;
 
     std::lock_guard<std::mutex> guard(_bucketMutex);
-    _bucketBases[bucket] = new_url;
+    _bucketBases[bucket] = newURL;
     return true;
 }

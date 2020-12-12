@@ -13,9 +13,9 @@ Script.include("../libraries/utils.js");
 
 var scriptURL = Script.resolvePath('pingPongGun.js');
 
-var MODEL_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/ping_pong_gun/Pingpong-Gun-New.fbx'
-var COLLISION_HULL_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/ping_pong_gun/Pingpong-Gun-New.obj';
-var COLLISION_SOUND_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/ping_pong_gun/plastic_impact.L.wav';
+var MODEL_URL = 'https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/ping_pong_gun/Pingpong-Gun-New.fbx'
+var COLLISION_HULL_URL = 'https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/ping_pong_gun/Pingpong-Gun-New.obj';
+var COLLISION_SOUND_URL = 'https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/ping_pong_gun/plastic_impact.L.wav';
 var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
   x: 0,
   y: 0.5,

@@ -57,13 +57,13 @@ RUN apt-get -y install \
 
 # --- Gradle
 ARG BUILD_UID=1001
-RUN useradd -ms /bin/bash -u $BUILD_UID jenkins
-RUN echo "jenkins ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-USER jenkins
-WORKDIR /home/jenkins
+RUN useradd -ms /bin/bash -u $BUILD_UID gha
+RUN echo "gha ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+USER gha
+WORKDIR /home/gha
 
-# Hifi dependencies
-ENV HIFI_BASE="/home/jenkins/hifi_android"
+# Vircadia dependencies
+ENV HIFI_BASE="/home/gha/vircadia_android"
 ENV HIFI_ANDROID_PRECOMPILED="$HIFI_BASE/dependencies"    
 ENV HIFI_VCPKG_BASE="$HIFI_BASE/vcpkg"
 
@@ -71,24 +71,18 @@ RUN mkdir "$HIFI_BASE" && \
     mkdir "$HIFI_VCPKG_BASE" && \ 
     mkdir "$HIFI_ANDROID_PRECOMPILED"
 
-# Checkout a relatively recent commit from the main repository and use it to cache the 
-# gradle and vcpkg dependencies
-# This commit ID should be updated whenever someone changes the dependency list
-# in cmake/ports
-RUN git clone https://github.com/highfidelity/hifi.git && \
-    cd ~/hifi && \
-    git checkout 796bfb5d6715ff14c2e60f3ee8fac1465b7578c6
+# Download the repo
+RUN git clone https://github.com/kasenvr/project-athena.git
 
-WORKDIR /home/jenkins/hifi
+WORKDIR /home/gha/project-athena
 
 RUN mkdir build
 
 # Pre-cache the vcpkg managed dependencies
-WORKDIR /home/jenkins/hifi/build
+WORKDIR /home/gha/project-athena/build
 RUN python3 ../prebuild.py --build-root `pwd` --android interface
 
 # Pre-cache the gradle dependencies
-WORKDIR /home/jenkins/hifi/android
+WORKDIR /home/gha/project-athena/android
 RUN ./gradlew -m tasks -PHIFI_ANDROID_PRECOMPILED=$HIFI_ANDROID_PRECOMPILED
 #RUN ./gradlew extractDependencies -PHIFI_ANDROID_PRECOMPILED=$HIFI_ANDROID_PRECOMPILED 
-

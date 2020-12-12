@@ -3,6 +3,7 @@
 //  entityList.js
 //
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -14,6 +15,7 @@
 
 var PROFILING_ENABLED = false;
 var profileIndent = '';
+
 const PROFILE_NOOP = function(_name, fn, args) {
     fn.apply(this, args);
 };
@@ -73,7 +75,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
     that.setVisible = function(newVisible) {
         visible = newVisible;
         webView.setVisible(shouldUseEditTabletApp() && visible);
-        entityListWindow.setVisible(!shouldUseEditTabletApp() && visible);
+        entityListWindow.setVisible(!shouldUseEditTabletApp() && visible);        
     };
 
     that.isVisible = function() {
@@ -144,6 +146,20 @@ EntityListTool = function(shouldUseEditTabletApp) {
         });
     };
 
+    that.setListMenuSnapToGrid = function (isSnapToGrid) {
+        emitJSONScriptEvent({ "type": "setSnapToGrid", "snap": isSnapToGrid });
+    };
+
+    that.toggleSnapToGrid = function () {
+        if (!grid.getSnapToGrid()) {
+            grid.setSnapToGrid(true);
+            emitJSONScriptEvent({ "type": "setSnapToGrid", "snap": true });
+        } else {
+            grid.setSnapToGrid(false);
+            emitJSONScriptEvent({ "type": "setSnapToGrid", "snap": false });
+        }
+    };
+
     function valueIfDefined(value) {
         return value !== undefined ? value : "";
     }
@@ -163,6 +179,15 @@ EntityListTool = function(shouldUseEditTabletApp) {
     }
 
     that.sendUpdate = function() {
+        var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        if (HMD.active) {
+            tablet.setLandscape(true);
+        }
+        emitJSONScriptEvent({
+            "type": "confirmHMDstate",
+            "isHmd": HMD.active
+        });
+        
         PROFILE('Script-sendUpdate', function() {
             var entities = [];
 
@@ -179,7 +204,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
             PROFILE("getMultipleProperties", function () {
                 var multipleProperties = Entities.getMultipleEntityProperties(ids, ['position', 'name', 'type', 'locked',
                     'visible', 'renderInfo', 'modelURL', 'materialURL', 'imageURL', 'script', 'certificateID',
-                    'skybox.url', 'ambientLight.url']);
+                    'skybox.url', 'ambientLight.url', 'created', 'lastEdited']);
                 for (var i = 0; i < multipleProperties.length; i++) {
                     var properties = multipleProperties[i];
 
@@ -192,6 +217,17 @@ EntityListTool = function(shouldUseEditTabletApp) {
                         } else if (properties.type === "Image") {
                             url = properties.imageURL;
                         }
+                        
+                        var parentStatus = getParentState(ids[i]);
+                        var parentState = "";
+                        if (parentStatus === "PARENT") {
+                            parentState = "A";
+                        } else if (parentStatus === "CHILDREN") {
+                            parentState = "C";
+                        } else if (parentStatus === "PARENT_CHILDREN") {
+                            parentState = "B";
+                        }
+
                         entities.push({
                             id: ids[i],
                             name: properties.name,
@@ -211,7 +247,10 @@ EntityListTool = function(shouldUseEditTabletApp) {
                             isBaked: entityIsBaked(properties),
                             drawCalls: (properties.renderInfo !== undefined ?
                                 valueIfDefined(properties.renderInfo.drawCalls) : ""),
-                            hasScript: properties.script !== ""
+                            hasScript: properties.script !== "",
+                            parentState: parentState,
+                            created: formatToStringDateTime(properties.created),
+                            lastEdited: formatToStringDateTime(properties.lastEdited)
                         });
                     }
                 }
@@ -230,6 +269,22 @@ EntityListTool = function(shouldUseEditTabletApp) {
             });
         });
     };
+
+    function formatToStringDateTime(timestamp) {
+        var d = new Date(Math.floor(timestamp/1000));
+        var dateTime = d.getUTCFullYear() + "-" + zeroPad((d.getUTCMonth() + 1), 2) + "-" + zeroPad(d.getUTCDate(), 2);
+        dateTime = dateTime + " " + zeroPad(d.getUTCHours(), 2) + ":" + zeroPad(d.getUTCMinutes(), 2) + ":" + zeroPad(d.getUTCSeconds(), 2); 
+        dateTime = dateTime + "." + zeroPad(d.getUTCMilliseconds(), 3);
+        return dateTime;
+    }
+
+    function zeroPad(num, size) {
+        num = num.toString();
+        while (num.length < size) {
+            num = "0" + num;
+        }
+        return num;
+    }
 
     function onFileSaveChanged(filename) {
         Window.saveFileChanged.disconnect(onFileSaveChanged);
@@ -302,7 +357,60 @@ EntityListTool = function(shouldUseEditTabletApp) {
             SelectionDisplay.toggleSpaceMode();
         } else if (data.type === 'keyUpEvent') {
             keyUpEventFromUIWindow(data.keyUpEvent);
+        } else if (data.type === 'undo') {
+            undoHistory.undo();
+        } else if (data.type === 'redo') {
+            undoHistory.redo();
+        } else if (data.type === 'parent') {
+            parentSelectedEntities();
+        } else if (data.type === 'unparent') {
+            unparentSelectedEntities();
+        } else if (data.type === 'hmdMultiSelectMode') {
+            hmdMultiSelectMode = data.value;
+        } else if (data.type === 'selectAllInBox') {
+            selectAllEntitiesInCurrentSelectionBox(false);
+        } else if (data.type === 'selectAllTouchingBox') {
+            selectAllEntitiesInCurrentSelectionBox(true);
+        } else if (data.type === 'selectParent') {
+            SelectionManager.selectParent();
+        } else if (data.type === 'selectTopParent') {
+            SelectionManager.selectTopParent();
+        } else if (data.type === 'addChildrenToSelection') {
+            SelectionManager.addChildrenToSelection();
+        } else if (data.type === 'selectFamily') {
+            SelectionManager.selectFamily();
+        } else if (data.type === 'selectTopFamily') {
+            SelectionManager.selectTopFamily();
+        } else if (data.type === 'teleportToEntity') {
+            SelectionManager.teleportToEntity();
+        } else if (data.type === 'moveEntitySelectionToAvatar') {
+            SelectionManager.moveEntitiesSelectionToAvatar();
+        } else if (data.type === 'loadConfigSetting') {
+            var columnsData = Settings.getValue(SETTING_EDITOR_COLUMNS_SETUP, "NO_DATA");
+            var defaultRadius = Settings.getValue(SETTING_ENTITY_LIST_DEFAULT_RADIUS, 100);
+            emitJSONScriptEvent({
+                "type": "loadedConfigSetting",
+                "columnsData": columnsData,
+                "defaultRadius": defaultRadius
+            });
+        } else if (data.type === 'saveColumnsConfigSetting') {
+            Settings.setValue(SETTING_EDITOR_COLUMNS_SETUP, data.columnsData);
+        } else if (data.type === 'importFromFile') {
+            importEntitiesFromFile();
+        } else if (data.type === 'importFromUrl') {
+            importEntitiesFromUrl();
+        } else if (data.type === 'setCameraFocusToSelection') {
+            setCameraFocusToSelection();
+        } else if (data.type === 'alignGridToSelection') {
+            alignGridToSelection();
+        } else if (data.type === 'alignGridToAvatar') {
+            alignGridToAvatar();
+        } else if (data.type === 'toggleGridVisibility') {
+            toggleGridVisibility();
+        } else if (data.type === 'toggleSnapToGrid') {
+            that.toggleSnapToGrid();     
         }
+        
     };
 
     webView.webEventReceived.connect(onWebEventReceived);

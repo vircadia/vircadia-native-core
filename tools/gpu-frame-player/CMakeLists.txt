@@ -21,6 +21,8 @@ link_hifi_libraries(
 )
 
 target_compile_definitions(${TARGET_NAME} PRIVATE USE_GL)
+
+set(OpenGL_GL_PREFERENCE "LEGACY")
 target_opengl()
 #target_vulkan()
 

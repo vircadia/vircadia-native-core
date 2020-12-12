@@ -763,6 +763,11 @@ const GROUPS = [
                 max: 1,
             },
             {
+                label: "Use Background",
+                type: "bool",
+                propertyID: "useBackground",
+            },
+            {
                 label: "Max FPS",
                 type: "number-draggable",
                 step: 1,
@@ -1613,7 +1618,8 @@ const GROUPS = [
                 type: "vec3",
                 vec3Type: "pyr",
                 multiplier: DEGREES_TO_RADIANS,
-                decimals: 4,
+                decimals: 6,
+                step: 1,
                 subLabels: [ "x", "y", "z" ],
                 unit: "deg/s",
                 propertyID: "localAngularVelocity",

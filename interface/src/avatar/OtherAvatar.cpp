@@ -168,6 +168,7 @@ const btCollisionShape* OtherAvatar::createCollisionShape(int32_t jointIndex, bo
         }
         // Note: MultiSphereLow case really means: "skip fingers and use spheres for hands,
         // else fall through to MultiSphereHigh case"
+        /* fall-thru */
     case BodyLOD::MultiSphereHigh:
         computeDetailedShapeInfo(shapeInfo, jointIndex);
         break;
