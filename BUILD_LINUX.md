@@ -105,7 +105,7 @@ Qt must be installed in `$HIFI_QT_BASE/$VIRCADIA_USE_QT_VERSION/qt5-install`.
 
 Create the build directory:
 ```bash
-cd project-athena
+cd vircadia
 mkdir build
 cd build
 ```
