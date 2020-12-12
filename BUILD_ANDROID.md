@@ -66,7 +66,7 @@ The above code to suppress modules is not necessary, but will speed up the build
 
 ### Clone the repository
 
-`git clone https://github.com/kasenvr/project-athena.git`
+`git clone https://github.com/vircadia/vircadia.git`
 
 ## Building & Running
 

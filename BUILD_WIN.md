@@ -107,7 +107,7 @@ Note: You can also run Interface by launching it from command line or File Explo
 For any problems after Step #6, first try this:  
 * Delete your locally cloned copy of the Vircadia repository  
 * Restart your computer  
-* Redownload the [repository](https://github.com/kasenvr/project-athena)  
+* Redownload the [repository](https://github.com/vircadia/vircadia)  
 * Restart directions from Step #6  
 
 #### CMake gives you the same error message repeatedly after the build fails
