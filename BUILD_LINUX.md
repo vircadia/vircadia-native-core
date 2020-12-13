@@ -78,7 +78,7 @@ sudo apt-get install nodejs
 
 Clone this repository:
 ```bash
-git clone https://github.com/vircadia/project-athena.git
+git clone https://github.com/vircadia/vircadia.git
 ```
 
 To compile a DEV version checkout the branch you need. To get a list of all tags:
