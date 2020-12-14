@@ -6,7 +6,7 @@ Contributing
 2. Clone your fork of the repository locally
 
   ```
-  git clone git://github.com/USERNAME/project-athena.git
+  git clone git://github.com/USERNAME/vircadia.git
   ```
 3. Create a new branch
   
