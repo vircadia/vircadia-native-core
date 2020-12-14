@@ -76,44 +76,24 @@ public:
     static const QString DEFAULT_COMPOUND_SHAPE_URL;
     QString getCompoundShapeURL() const;
 
-    // Returns the URL used for the collision shape
-    QString getCollisionShapeURL() const;
-
     // model related properties
     virtual void setModelURL(const QString& url);
     virtual void setCompoundShapeURL(const QString& url);
 
     // Animation related items...
     AnimationPropertyGroup getAnimationProperties() const;
-
-    // TODO: audit and remove unused Animation accessors
     bool hasAnimation() const;
     QString getAnimationURL() const;
-    virtual void setAnimationURL(const QString& url);
-
     void setAnimationCurrentFrame(float value);
-    void setAnimationIsPlaying(bool value);
-    void setAnimationFPS(float value); 
-
-    void setAnimationAllowTranslation(bool value);
+    float getAnimationCurrentFrame() const;
     bool getAnimationAllowTranslation() const;
-
-    void setAnimationLoop(bool loop);
-    bool getAnimationLoop() const;
-
-    void setAnimationHold(bool hold);
-    bool getAnimationHold() const;
+    bool isAnimatingSomething() const;
 
     void setRelayParentJoints(bool relayJoints);
     bool getRelayParentJoints() const;
 
     void setGroupCulled(bool value);
     bool getGroupCulled() const;
-
-    bool getAnimationIsPlaying() const;
-    float getAnimationCurrentFrame() const;
-    float getAnimationFPS() const;
-    bool isAnimatingSomething() const;
 
     static const QString DEFAULT_TEXTURES;
     const QString getTextures() const;
@@ -142,7 +122,6 @@ public:
 private:
     void setAnimationSettings(const QString& value); // only called for old bitstream format
     bool applyNewAnimationProperties(AnimationPropertyGroup newProperties);
-    ShapeType computeTrueShapeType() const;
 
 protected:
     void resizeJointArrays(int newSize);

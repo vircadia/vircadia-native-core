@@ -51,24 +51,7 @@ bool ShapeEntityRenderer::needsRenderUpdate() const {
     return Parent::needsRenderUpdate();
 }
 
-bool ShapeEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
-    if (_dimensions != entity->getScaledDimensions()) {
-        return true;
-    }
-
-    if (_proceduralData != entity->getUserData()) {
-        return true;
-    }
-
-    return false;
-}
-
 void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
-    withWriteLock([&] {
-        _shape = entity->getShape();
-        _pulseProperties = entity->getPulseProperties();
-    });
-
     void* key = (void*)this;
     AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity] {
         withWriteLock([&] {
@@ -86,47 +69,53 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 }
 
 void ShapeEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
+    _shape = entity->getShape();
+    _pulseProperties = entity->getPulseProperties();
+
+    bool materialChanged = false;
+    glm::vec3 color = toGlm(entity->getColor());
+    if (_color != color) {
+        _color = color;
+        _material->setAlbedo(color);
+        materialChanged = true;
+    }
+
+    float alpha = entity->getAlpha();
+    if (_alpha != alpha) {
+        _alpha = alpha;
+        _material->setOpacity(alpha);
+        materialChanged = true;
+    }
+
+    auto userData = entity->getUserData();
+    if (_proceduralData != userData) {
+        _proceduralData = userData;
+        _material->setProceduralData(_proceduralData);
+        materialChanged = true;
+    }
+
     withReadLock([&] {
-        auto mat = _materials.find("0");
-        if (mat != _materials.end() && mat->second.top().material && mat->second.top().material->isProcedural() && mat->second.top().material->isReady()) {
-            auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(mat->second.top().material);
-            if (procedural->isFading()) {
-                procedural->setIsFading(Interpolate::calculateFadeRatio(procedural->getFadeStartTime()) < 1.0f);
-            }
-        }
-    });
-
-    withWriteLock([&] {
-        bool materialChanged = false;
-        glm::vec3 color = toGlm(entity->getColor());
-        if (_color != color) {
-            _color = color;
-            _material->setAlbedo(color);
-            materialChanged = true;
-        }
-
-        float alpha = entity->getAlpha();
-        if (_alpha != alpha) {
-            _alpha = alpha;
-            _material->setOpacity(alpha);
-            materialChanged = true;
-        }
-
-        auto userData = entity->getUserData();
-        if (_proceduralData != userData) {
-            _proceduralData = userData;
-            _material->setProceduralData(_proceduralData);
-            materialChanged = true;
-        }
-
         auto materials = _materials.find("0");
         if (materials != _materials.end()) {
             if (materialChanged) {
                 materials->second.setNeedsUpdate(true);
             }
 
+            bool requestUpdate = false;
+            if (materials->second.top().material && materials->second.top().material->isProcedural() && materials->second.top().material->isReady()) {
+                auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(materials->second.top().material);
+                if (procedural->isFading()) {
+                    procedural->setIsFading(Interpolate::calculateFadeRatio(procedural->getFadeStartTime()) < 1.0f);
+                    requestUpdate = true;
+                }
+            }
+
             if (materials->second.shouldUpdate()) {
                 RenderPipelines::updateMultiMaterial(materials->second);
+                requestUpdate = true;
+            }
+
+            if (requestUpdate) {
                 emit requestRenderUpdate();
             }
         }
@@ -231,13 +220,12 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
 
     graphics::MultiMaterial materials;
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    GeometryCache::Shape geometryShape;
+    GeometryCache::Shape geometryShape = geometryCache->getShapeForEntityShape(_shape);
     PrimitiveMode primitiveMode;
     RenderLayer renderLayer;
     glm::vec4 outColor;
     Pipeline pipelineType;
     withReadLock([&] {
-        geometryShape = geometryCache->getShapeForEntityShape(_shape);
         primitiveMode = _primitiveMode;
         renderLayer = _renderLayer;
         batch.setModelTransform(_renderTransform); // use a transform with scale, rotation, registration point and translation
@@ -245,8 +233,9 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         pipelineType = getPipelineType(materials);
         auto& schema = materials.getSchemaBuffer().get<graphics::MultiMaterial::Schema>();
         outColor = glm::vec4(ColorUtils::tosRGBVec3(schema._albedo), schema._opacity);
-        outColor = EntityRenderer::calculatePulseColor(outColor, _pulseProperties, _created);
     });
+
+    outColor = EntityRenderer::calculatePulseColor(outColor, _pulseProperties, _created);
 
     if (outColor.a == 0.0f) {
         return;
@@ -256,7 +245,9 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(materials.top().material);
         outColor = procedural->getColor(outColor);
         outColor.a *= procedural->isFading() ? Interpolate::calculateFadeRatio(procedural->getFadeStartTime()) : 1.0f;
-        procedural->prepare(batch, _position, _dimensions, _orientation, _created, ProceduralProgramKey(outColor.a < 1.0f));
+        withReadLock([&] {
+            procedural->prepare(batch, _position, _dimensions, _orientation, _created, ProceduralProgramKey(outColor.a < 1.0f));
+        });
 
         if (render::ShapeKey(args->_globalShapeKey).isWireframe() || primitiveMode == PrimitiveMode::LINES) {
             geometryCache->renderWireShape(batch, geometryShape, outColor);

@@ -84,12 +84,12 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
 
     // Contains a QString property, must be synchronized
     withWriteLock([&] {
-        _keyLightPropertiesChanged = _keyLightProperties.setProperties(properties);
-        _ambientLightPropertiesChanged = _ambientLightProperties.setProperties(properties);
-        _skyboxPropertiesChanged = _skyboxProperties.setProperties(properties);
+        _keyLightPropertiesChanged |= _keyLightProperties.setProperties(properties);
+        _ambientLightPropertiesChanged |= _ambientLightProperties.setProperties(properties);
+        _skyboxPropertiesChanged |= _skyboxProperties.setProperties(properties);
     });
-    _hazePropertiesChanged = _hazeProperties.setProperties(properties);
-    _bloomPropertiesChanged = _bloomProperties.setProperties(properties);
+    _hazePropertiesChanged |= _hazeProperties.setProperties(properties);
+    _bloomPropertiesChanged |= _bloomProperties.setProperties(properties);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(flyingAllowed, setFlyingAllowed);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ghostingAllowed, setGhostingAllowed);
@@ -125,7 +125,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
             bytesFromKeylight = _keyLightProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
                 propertyFlags, overwriteLocalData, _keyLightPropertiesChanged);
         });
-        somethingChanged = somethingChanged || _keyLightPropertiesChanged;
+        somethingChanged |= _keyLightPropertiesChanged;
         bytesRead += bytesFromKeylight;
         dataAt += bytesFromKeylight;
     }
@@ -136,7 +136,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
             bytesFromAmbientlight = _ambientLightProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
                 propertyFlags, overwriteLocalData, _ambientLightPropertiesChanged);
         });
-        somethingChanged = somethingChanged || _ambientLightPropertiesChanged;
+        somethingChanged |= _ambientLightPropertiesChanged;
         bytesRead += bytesFromAmbientlight;
         dataAt += bytesFromAmbientlight;
     }
@@ -147,7 +147,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
             bytesFromSkybox = _skyboxProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
                 propertyFlags, overwriteLocalData, _skyboxPropertiesChanged);
         });
-        somethingChanged = somethingChanged || _skyboxPropertiesChanged;
+        somethingChanged |= _skyboxPropertiesChanged;
         bytesRead += bytesFromSkybox;
         dataAt += bytesFromSkybox;
     }
@@ -155,7 +155,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     {
         int bytesFromHaze = _hazeProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
             propertyFlags, overwriteLocalData, _hazePropertiesChanged);
-        somethingChanged = somethingChanged || _hazePropertiesChanged;
+        somethingChanged |= _hazePropertiesChanged;
         bytesRead += bytesFromHaze;
         dataAt += bytesFromHaze;
     }
@@ -163,7 +163,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     {
         int bytesFromBloom = _bloomProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
             propertyFlags, overwriteLocalData, _bloomPropertiesChanged);
-        somethingChanged = somethingChanged || _bloomPropertiesChanged;
+        somethingChanged |= _bloomPropertiesChanged;
         bytesRead += bytesFromBloom;
         dataAt += bytesFromBloom;
     }
@@ -442,6 +442,13 @@ void ZoneEntityItem::setSkyboxMode(const uint32_t value) {
 
 uint32_t ZoneEntityItem::getSkyboxMode() const {
     return _skyboxMode;
+}
+
+void ZoneEntityItem::setUserData(const QString& value) {
+    withWriteLock([&] {
+        _needsRenderUpdate |= _userData != value;
+        _userData = value;
+    });
 }
 
 void ZoneEntityItem::fetchCollisionGeometryResource() {

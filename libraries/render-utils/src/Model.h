@@ -116,14 +116,14 @@ public:
     void setHifiRenderLayer(render::hifi::Layer layer, const render::ScenePointer& scene = nullptr);
 
     bool isCauterized() const { return _cauterized; }
-    void setCauterized(bool value, const render::ScenePointer& scene);
+    void setCauterized(bool value, const render::ScenePointer& scene = nullptr);
 
-    void setPrimitiveMode(PrimitiveMode primitiveMode);
+    void setPrimitiveMode(PrimitiveMode primitiveMode, const render::ScenePointer& scene = nullptr);
     PrimitiveMode getPrimitiveMode() const { return _primitiveMode; }
 
-    void setCullWithParent(bool value);
+    void setCullWithParent(bool value, const render::ScenePointer& scene = nullptr);
 
-    void setRenderWithZones(const QVector<QUuid>& renderWithZones);
+    void setRenderWithZones(const QVector<QUuid>& renderWithZones, const render::ScenePointer& scene = nullptr);
     const QVector<QUuid>& getRenderWithZones() const { return _renderWithZones; }
 
     // Access the current RenderItemKey Global Flags used by the model and applied to the render items  representing the parts of the model.
@@ -183,10 +183,7 @@ public:
     const HFMModel& getHFMModel() const { assert(isLoaded()); return _renderGeometry->getHFMModel(); }
     const MaterialMapping& getMaterialMapping() const { assert(isLoaded()); return _renderGeometry->getMaterialMapping(); }
 
-    bool isActive() const { return isLoaded(); }
-
     bool didVisualGeometryRequestFail() const { return _visualGeometryRequestFailed; }
-    bool didCollisionGeometryRequestFail() const { return _collisionGeometryRequestFailed; }
 
     glm::mat4 getWorldToHFMMatrix() const;
 
@@ -338,7 +335,6 @@ public:
 
     const MeshState& getMeshState(int index) { return _meshStates.at(index); }
 
-    uint32_t getGeometryCounter() const { return _deleteGeometryCounter; }
     const QMap<render::ItemID, render::PayloadPointer>& getRenderItems() const { return _modelMeshRenderItemsMap; }
     BlendShapeOperator getModelBlendshapeOperator() const { return _modelBlendshapeOperator; }
 
@@ -474,10 +470,7 @@ protected:
     friend class ModelMeshPartPayload;
     Rig _rig;
 
-    uint32_t _deleteGeometryCounter { 0 };
-
     bool _visualGeometryRequestFailed { false };
-    bool _collisionGeometryRequestFailed { false };
 
     bool _renderItemsNeedUpdate { false };
 

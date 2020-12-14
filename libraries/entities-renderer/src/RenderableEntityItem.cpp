@@ -431,13 +431,13 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
         _visible = entity->getVisible();
         setIsVisibleInSecondaryCamera(entity->isVisibleInSecondaryCamera());
         setRenderLayer(entity->getRenderLayer());
-        setPrimitiveMode(entity->getPrimitiveMode());
+        _primitiveMode = entity->getPrimitiveMode();
         _canCastShadow = entity->getCanCastShadow();
         setCullWithParent(entity->getCullWithParent());
         _cauterized = entity->getCauterized();
         if (entity->needsZoneOcclusionUpdate()) {
             entity->resetNeedsZoneOcclusionUpdate();
-            setRenderWithZones(entity->getRenderWithZones());
+            _renderWithZones = entity->getRenderWithZones();
         }
         entity->setNeedsRenderUpdate(false);
     });
@@ -469,11 +469,13 @@ void EntityRenderer::onRemoveFromScene(const EntityItemPointer& entity) {
 void EntityRenderer::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
     std::lock_guard<std::mutex> lock(_materialsLock);
     _materials[parentMaterialName].push(material);
+    emit requestRenderUpdate();
 }
 
 void EntityRenderer::removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {
     std::lock_guard<std::mutex> lock(_materialsLock);
     _materials[parentMaterialName].remove(material);
+    emit requestRenderUpdate();
 }
 
 glm::vec4 EntityRenderer::calculatePulseColor(const glm::vec4& color, const PulsePropertyGroup& pulseProperties, quint64 start) {
