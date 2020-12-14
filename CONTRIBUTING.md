@@ -1,3 +1,4 @@
+
 The project embraces distributed development and if you'd like to help, it would be greatly appreciated. Just open a pull request with the revisions.
 
 Contributing
@@ -21,7 +22,7 @@ Contributing
   
   ```
   git remote add upstream https://github.com/kasenvr/project-athena
-  git pull upstream kasen/core
+  git pull upstream master
   ```
   
   Resolve any conflicts that arise with this step.
@@ -29,12 +30,21 @@ Contributing
 7. Push to your fork
   
   ```
-  git push origin kasen/core
+  git push origin new_branch_name
   ```
 8. Submit a pull request
 
   *You can follow [GitHub's guide](https://help.github.com/articles/creating-a-pull-request) to find out how to create a pull request.*
   
+Tips for Pull Requests 
+===
+To make the QA process go as smoothly as possible.
+
+1. Have a basic description in your pull request. 
+2. Write a basic test plan if added features.
+3. If added any new api make sure they come with some documentation included.
+4. If accessing any external service make note of how to get a basic setup for these services or what they are based on.
+
 Reporting Bugs
 ===
 1. Always update to the latest code on master, we make many merges every day and it is possible the bug has already been fixed!
