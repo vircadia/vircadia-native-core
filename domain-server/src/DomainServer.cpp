@@ -1507,18 +1507,19 @@ QJsonObject jsonForDomainSocketUpdate(const HifiSockAddr& socket) {
 }
 
 void DomainServer::performIPAddressPortUpdate(const HifiSockAddr& newPublicSockAddr) {
+    const QString& DOMAIN_SERVER_SETTINGS_KEY = "domain_server";
     const QString& publicSocketAddress = newPublicSockAddr.getAddress().toString();
     const int publicSocketPort = newPublicSockAddr.getPort();
 
     sendHeartbeatToMetaverse(publicSocketAddress, publicSocketPort);
 
-    QString newSettingsJSON = QString("{\"domain_server\": { \"%1\": \"%2\", \"%3\": %4}}")
-            .arg(PUBLIC_SOCKET_ADDRESS_KEY)
-            .arg(publicSocketAddress)
-            .arg(PUBLIC_SOCKET_PORT_KEY)
-            .arg(publicSocketPort);
-    auto settingsDocument = QJsonDocument::fromJson(newSettingsJSON.toUtf8());
-    _settingsManager.recurseJSONObjectAndOverwriteSettings(settingsDocument.object(), DomainSettings);
+    QJsonObject rootObject;
+    QJsonObject domainServerObject;
+    domainServerObject.insert(PUBLIC_SOCKET_ADDRESS_KEY, publicSocketAddress);
+    domainServerObject.insert(PUBLIC_SOCKET_PORT_KEY, publicSocketPort);
+    rootObject.insert(DOMAIN_SERVER_SETTINGS_KEY, domainServerObject);
+    QJsonDocument doc(rootObject);
+    _settingsManager.recurseJSONObjectAndOverwriteSettings(rootObject, DomainSettings);
 }
 
 void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress, const int port) {
