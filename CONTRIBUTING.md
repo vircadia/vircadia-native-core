@@ -41,9 +41,9 @@ Tips for Pull Requests
 To make the QA process go as smoothly as possible.
 
 1. Have a basic description in your pull request. 
-2. Write a basic test plan if added features.
-3. If added any new api make sure they come with some documentation included.
-4. If accessing any external service make note of how to get a basic setup for these services or what they are based on.
+2. Write a basic test plan if you are altering or adding features.
+3. If a new API is added, try to make sure that some level of basic documentation on how you can utilize it is included.
+4. If an added API or feature requires an external service, try to document or link to instructions on how to create a basic working setup.
 
 Reporting Bugs
 ===
