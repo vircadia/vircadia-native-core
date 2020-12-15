@@ -330,6 +330,19 @@ QScriptValue WindowScriptingInterface::save(const QString& title, const QString&
 /// \param const QString& title title of the window
 /// \param const QString& directory directory to start the file browser at
 /// \param const QString& nameFilter filter to filter filenames by - see `QFileDialog`
+/// \return QScriptValue file path as a string if one was selected, otherwise `QScriptValue::NullValue`
+QScriptValue WindowScriptingInterface::setInterfaceScriptDataPath(const QString& title, const QString& directory, const QString& nameFilter) {
+    QScriptValue result = WindowScriptingInterface::save(title, directory, nameFilter);
+    QString resultString = result.toString();
+    qApp->setInterfaceScriptDataPath(resultString);
+    return resultString.isEmpty() ? QScriptValue::NullValue : result;
+}
+
+/// Display a save file dialog.  If `directory` is an invalid file or directory the browser will start at the current
+/// working directory.
+/// \param const QString& title title of the window
+/// \param const QString& directory directory to start the file browser at
+/// \param const QString& nameFilter filter to filter filenames by - see `QFileDialog`
 void WindowScriptingInterface::saveAsync(const QString& title, const QString& directory, const QString& nameFilter) {
     ensureReticleVisible();
     QString path = directory;
@@ -467,7 +480,7 @@ void WindowScriptingInterface::copyToClipboard(const QString& text) {
 
 
 bool WindowScriptingInterface::setDisplayTexture(const QString& name) {
-    return  qApp->getActiveDisplayPlugin()->setDisplayTexture(name);   // Plugins that don't know how, answer false.
+    return qApp->getActiveDisplayPlugin()->setDisplayTexture(name);   // Plugins that don't know how, answer false.
 }
 
 void WindowScriptingInterface::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio, const QString& filename) {

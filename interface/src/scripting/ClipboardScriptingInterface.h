@@ -3,6 +3,7 @@
 //  interface/src/scripting
 //
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -112,6 +113,15 @@ public:
     * @returns {boolean} <code>true</code> if entities were found and the file was written, otherwise <code>false</code>.
     */
     Q_INVOKABLE bool exportEntities(const QString& filename, float x, float y, float z, float scale);
+    
+    /**jsdoc
+    * Export a string of data to a file path previously set by Window.setInterfaceD
+    * @function Clipboard.exportData
+    * @variation 0
+    * @param {string} data - The string of data to export. (If exporting JSON, use JSON.stringify() first.)
+    * @returns {boolean} <code>true</code> if the file was written, otherwise <code>false</code>.
+    */
+    Q_INVOKABLE bool exportData(const QString& dataString);
 
     /**jsdoc
      * Pastes the contents of the clipboard into the domain.
