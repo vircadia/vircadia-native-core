@@ -3,11 +3,12 @@ vcpkg_check_linkage(ONLY_STATIC_LIBRARY)
 
 file(READ "${VCPKG_ROOT_DIR}/_env/EXTERNAL_BUILD_ASSETS.txt" EXTERNAL_BUILD_ASSETS)
 
-if (ANDROID)
+if (ANDROID OR ${GLES_OPTION} ON)
     vcpkg_download_distfile(
         SOURCE_ARCHIVE
         URLS ${EXTERNAL_BUILD_ASSETS}/dependencies/glad/glad32es.zip
         SHA512 2e02ac633eed8f2ba2adbf96ea85d08998f48dd2e9ec9a88ec3c25f48eaf1405371d258066327c783772fcb3793bdb82bd7375fdabb2ba5e2ce0835468b17f65
+        FILENAME glad32es.zip
     )
 else()
     # else Linux desktop
