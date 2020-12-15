@@ -4,6 +4,7 @@ vcpkg_check_linkage(ONLY_STATIC_LIBRARY)
 file(READ "${VCPKG_ROOT_DIR}/_env/EXTERNAL_BUILD_ASSETS.txt" EXTERNAL_BUILD_ASSETS)
 file(READ "${VCPKG_ROOT_DIR}/_env/USE_GLES.txt" USE_GLES)
 
+# GitHub Actions Android builds fail with `FILENAME` set while desktop builds with GLES fail without a set `FILENAME`.
 if (ANDROID)
     vcpkg_download_distfile(
         SOURCE_ARCHIVE
