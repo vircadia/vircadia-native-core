@@ -30,6 +30,7 @@
 #include <QtCore/QMimeData>
 #include <QtCore/QThreadPool>
 #include <QtCore/QFileSelector>
+#include <QtCore/QSaveFile>
 #include <QtConcurrent/QtConcurrentRun>
 
 #include <QtGui/QClipboard>
@@ -51,7 +52,7 @@
 #include <QFontDatabase>
 #include <QProcessEnvironment>
 #include <QTemporaryDir>
-
+#include <QTextStream>
 
 #include <gl/QOpenGLContextWrapper.h>
 #include <gl/GLWindow.h>
@@ -5388,6 +5389,36 @@ ivec2 Application::getMouse() const {
     return getApplicationCompositor().getReticlePosition();
 }
 
+void Application::setInterfaceScriptDataPath(const QString& dataPath) {
+    interfaceScriptDataPath = dataPath;
+}
+
+bool Application::exportData(const QString& dataString) {
+    qCDebug(interfaceapp, "Saving data to file %s...", interfaceScriptDataPath);
+
+    QSaveFile persistFile(interfaceScriptDataPath);
+    bool success = false;
+    if (persistFile.open(QIODevice::WriteOnly)) {
+        if (persistFile.write(dataString.toUtf8()) != -1) {
+            success = persistFile.commit();
+            if (!success) {
+                qCritical() << "Failed to commit to text save file:" << persistFile.errorString();
+            }
+        } else {
+            qCritical("Failed to write to text file.");
+        }
+    } else {
+        qCritical("Failed to open text file for writing.");
+    }
+     
+    if (success) {
+        // restore the main window's active state
+        _window->activateWindow();
+    }
+                                 
+    return success;
+}
+
 bool Application::exportEntities(const QString& filename,
                                  const QVector<QUuid>& entityIDs,
                                  const glm::vec3* givenOffset) {
@@ -8712,7 +8743,7 @@ void Application::notifyPacketVersionMismatch() {
 }
 
 void Application::checkSkeleton() const {
-    if (getMyAvatar()->getSkeletonModel()->isLoaded() && !getMyAvatar()->getSkeletonModel()->hasSkeleton()) {
+    if (getMyAvatar()->getSkeletonModel()->isActive() && !getMyAvatar()->getSkeletonModel()->hasSkeleton()) {
         qCDebug(interfaceapp) << "MyAvatar model has no skeleton";
 
         QString message = "Your selected avatar body has no skeleton.\n\nThe default body will be loaded...";

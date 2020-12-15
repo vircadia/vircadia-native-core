@@ -3,6 +3,7 @@
 //  interface/src/scripting
 //
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -23,6 +24,14 @@ glm::vec3 ClipboardScriptingInterface::getContentsDimensions() {
 
 float ClipboardScriptingInterface::getClipboardContentsLargestDimension() {
     return qApp->getEntityClipboard()->getContentsLargestDimension();
+}
+
+bool ClipboardScriptingInterface::exportData(const QString& dataString) {
+    bool retVal;
+    BLOCKING_INVOKE_METHOD(qApp, "exportData",
+                              Q_RETURN_ARG(bool, retVal),
+                              Q_ARG(const QString&, dataString));
+    return retVal;
 }
 
 bool ClipboardScriptingInterface::exportEntities(const QString& filename, const QVector<QUuid>& entityIDs) {
