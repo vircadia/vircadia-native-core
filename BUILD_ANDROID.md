@@ -1,6 +1,6 @@
 # Build Android
 
-*Last Updated on October 9, 2020*
+*Last Updated on December 15, 2020*
 
 Please read the [general build guide](BUILD.md) for information on building other platforms. Only Android specific instructions are found in this file. **Note that these instructions apply to building for Oculus Quest.**
 
@@ -36,7 +36,7 @@ If Android Studio pops open the "Plugin Update Recommeded" dialog, do not click 
 ## Environment
 
 ### Create a keystore in Android Studio
-Follow the directions [here](https://developer.android.com/studio/publish/app-signing#generate-key) to create a keystore file. You can save it anywhere (preferably not in the `project-athena` folder).
+Follow the directions [here](https://developer.android.com/studio/publish/app-signing#generate-key) to create a keystore file. You can save it anywhere (preferably not in the `vircadia` folder).
 
 ### Set up machine specific Gradle properties
 
@@ -80,16 +80,16 @@ Add these lines to `gradle.properties`
 
 * Open Android Studio
 * Choose _Open an existing Android Studio project_
-* Navigate to the `project-athena` repository you cloned and choose the `android` folder and select _OK_
+* Navigate to the `vircadia` repository that had you cloned and choose the `android` folder and select _OK_
 * Wait for Gradle to sync (this should take around 20 minutes the first time)
 * If a dialog pops open saying "Plugin Update Recommeded" dialog, do not click update, just click X on the top right to close.
 * In the _Project_ window click on the project you wish to build (i.e. "questInterface") then click _Build_ in the top menu and choose _Make Module 'questInterface'_
 * By default this will build the "debug" apk, you can change this by opening the _Build Variants_ window along the left side and select other build types such as "release".
-* Your newly build APK should reside in `project-athena\android\apps\questInterface\release` (if you chose release).
+* Your newly build APK should reside in `vircadia\android\apps\questInterface\release` (if you chose release).
 
 ### Running a Module
 
-You are free to use "abd" command line or other development tools to install (sideload on Quest) your newly built APK, or you can follow the instructions below to load the APK via Android Studio.  
+You are free to use the "adb" command line or other development tools to install (sideload on Quest) your newly built APK, or you can follow the instructions below to load the APK via Android Studio.  
 
 * In the toolbar at the top of Android Studio, next to the green hammer icon, you should see a dropdown menu.
 * You may already see a configuration for the module you are trying to build. If so, select it. 
@@ -123,17 +123,17 @@ To view a more complete debug log,
 * Click the icon with the two overlapping squares in the upper left corner of the tab where the sync is running (hover text says _Toggle view_)
 * To change verbosity, click _File > Settings_. Under _Build, Execution, Deployment > Compiler_ you can add command-line flags, as per Gradle documentation
 
-If you encounter cmake issues, try adding the following system environment variable:
+If you encounter CMake issues, try adding the following system environment variable:
 
-Naviagte to 'Edit the System Environment Variables' Through the start menu.
+With your start menu, search for 'Edit the System Environment Variables' and open it.
 * Click on 'Advanced' tab, then 'Environment Variables'
 * Select 'New' under System variables
 * Set "Variable name" to QT_CMAKE_PREFIX_PATH
-* Set "Variable value" to the directory that your android build placed the cmake 3.6.4 library cmake directory (i.e. android\qt\lib\cmake).
+* Set "Variable value" to the directory that your android build placed the CMake 3.6.4 library CMake directory (i.e. android\qt\lib\cmake).
 
 Some things you can try if you want to do a clean build
  
-* Delete the `build` and `.externalNativeBuild` folders from the folder for each module you're building (for example, `project-athena/android/apps/interface`)
+* Delete the `build` and `.externalNativeBuild` folders from the folder for each module you're building (for example, `vircadia/android/apps/interface`)
 * If you have set your `HIFI_VCPKG_ROOT` environment variable, delete the contents of that directory; otherwise, delete `AppData/Local/Temp/hifi`
 * In Android Studio, click _File > Invalidate Caches / Restart_ and select _Invalidate and Restart_
 
