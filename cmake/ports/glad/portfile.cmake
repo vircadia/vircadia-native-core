@@ -2,8 +2,9 @@ include(vcpkg_common_functions)
 vcpkg_check_linkage(ONLY_STATIC_LIBRARY)
 
 file(READ "${VCPKG_ROOT_DIR}/_env/EXTERNAL_BUILD_ASSETS.txt" EXTERNAL_BUILD_ASSETS)
+file(READ "${VCPKG_ROOT_DIR}/_env/USE_GLES.txt" USE_GLES)
 
-if (ANDROID OR ${GLES_OPTION} ON)
+if (ANDROID OR USE_GLES)
     vcpkg_download_distfile(
         SOURCE_ARCHIVE
         URLS ${EXTERNAL_BUILD_ASSETS}/dependencies/glad/glad32es.zip
