@@ -81,7 +81,7 @@ endif()
             else:
                 print("Sorry, " + distro.name(pretty=True) + " is not supported. Please consider helping us out.")
                 print("It's also possible to build Qt for your distribution, please see the documentation at:")
-                print("https://github.com/kasenvr/project-athena/tree/master/tools/qt-builder")
+                print("https://github.com/vircadia/vircadia/tree/master/tools/qt-builder")
                 raise Exception('UNKNOWN LINUX VERSION!!!')
         else:
             print("System      : " + platform.system())

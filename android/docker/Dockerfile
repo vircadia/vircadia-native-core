@@ -72,17 +72,17 @@ RUN mkdir "$HIFI_BASE" && \
     mkdir "$HIFI_ANDROID_PRECOMPILED"
 
 # Download the repo
-RUN git clone https://github.com/kasenvr/project-athena.git
+RUN git clone https://github.com/vircadia/vircadia.git
 
-WORKDIR /home/gha/project-athena
+WORKDIR /home/gha/vircadia
 
 RUN mkdir build
 
 # Pre-cache the vcpkg managed dependencies
-WORKDIR /home/gha/project-athena/build
+WORKDIR /home/gha/vircadia/build
 RUN python3 ../prebuild.py --build-root `pwd` --android interface
 
 # Pre-cache the gradle dependencies
-WORKDIR /home/gha/project-athena/android
+WORKDIR /home/gha/vircadia/android
 RUN ./gradlew -m tasks -PHIFI_ANDROID_PRECOMPILED=$HIFI_ANDROID_PRECOMPILED
 #RUN ./gradlew extractDependencies -PHIFI_ANDROID_PRECOMPILED=$HIFI_ANDROID_PRECOMPILED 

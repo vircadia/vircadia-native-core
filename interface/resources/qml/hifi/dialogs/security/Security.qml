@@ -314,7 +314,7 @@ Rectangle {
                         onClicked: {
                             lightboxPopup.titleText = "Script Plugin Infrastructure";
                             lightboxPopup.bodyText = "Toggles the activation of scripting plugins in the 'plugins/scripting' folder. \n\n"
-                              + "Created by:\n    humbletim@gmail.com\n    kasenvr@gmail.com";
+                              + "Created by:\n    humbletim@gmail.com\n    somnilibertas@gmail.com";
                             lightboxPopup.button1text = "OK";
                             lightboxPopup.button1method = function() {
                                 lightboxPopup.visible = false;
