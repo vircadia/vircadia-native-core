@@ -165,8 +165,8 @@ entity::Shape ShapeEntityItem::getShape() const {
     });
 }
 
-bool ShapeEntityItem::setProperties(const EntityItemProperties& properties) {
-    bool somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
+bool ShapeEntityItem::setSubClassProperties(const EntityItemProperties& properties) {
+    bool somethingChanged = false;
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alpha, setAlpha);
@@ -177,16 +177,6 @@ bool ShapeEntityItem::setProperties(const EntityItemProperties& properties) {
     });
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shape, setShape);
 
-    if (somethingChanged) {
-        bool wantDebug = false;
-        if (wantDebug) {
-            uint64_t now = usecTimestampNow();
-            int elapsed = now - getLastEdited();
-            qCDebug(entities) << "ShapeEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
-                    "now=" << now << " getLastEdited()=" << getLastEdited();
-        }
-        setLastEdited(properties.getLastEdited());
-    }
     return somethingChanged;
 }
 
@@ -451,5 +441,12 @@ ShapeType ShapeEntityItem::getShapeType() const {
 PulsePropertyGroup ShapeEntityItem::getPulseProperties() const {
     return resultWithReadLock<PulsePropertyGroup>([&] {
         return _pulseProperties;
+    });
+}
+
+void ShapeEntityItem::setUserData(const QString& value) {
+    withWriteLock([&] {
+        _needsRenderUpdate |= _userData != value;
+        _userData = value;
     });
 }

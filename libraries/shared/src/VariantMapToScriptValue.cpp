@@ -28,7 +28,7 @@ QScriptValue variantToScriptValue(QVariant& qValue, QScriptEngine& scriptEngine)
             break;
         case QVariant::String:
         case QVariant::Url:
-            return scriptEngine.newVariant(qValue);
+            return qValue.toString();
             break;
         case QVariant::Map: {
             QVariantMap childMap = qValue.toMap();

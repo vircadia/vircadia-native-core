@@ -101,20 +101,23 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
             PacketType::InjectorGainSet,
             PacketType::AudioSoloRequest,
             PacketType::StopInjector },
-            this, "queueAudioPacket");
+            PacketReceiver::makeSourcedListenerReference<AudioMixer>(this, &AudioMixer::queueAudioPacket)
+    );
 
     // packets whose consequences are global should be processed on the main thread
-    packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
-    packetReceiver.registerListener(PacketType::NodeMuteRequest, this, "handleNodeMuteRequestPacket");
-    packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
+    packetReceiver.registerListener(PacketType::MuteEnvironment,
+        PacketReceiver::makeSourcedListenerReference<AudioMixer>(this, &AudioMixer::handleMuteEnvironmentPacket));
+    packetReceiver.registerListener(PacketType::NodeMuteRequest,
+        PacketReceiver::makeSourcedListenerReference<AudioMixer>(this, &AudioMixer::handleNodeMuteRequestPacket));
+    packetReceiver.registerListener(PacketType::KillAvatar,
+        PacketReceiver::makeSourcedListenerReference<AudioMixer>(this, &AudioMixer::handleKillAvatarPacket));
 
     packetReceiver.registerListenerForTypes({
         PacketType::ReplicatedMicrophoneAudioNoEcho,
         PacketType::ReplicatedMicrophoneAudioWithEcho,
         PacketType::ReplicatedInjectAudio,
-        PacketType::ReplicatedSilentAudioFrame
-    },
-        this, "queueReplicatedAudioPacket"
+        PacketType::ReplicatedSilentAudioFrame },
+        PacketReceiver::makeUnsourcedListenerReference<AudioMixer>(this, &AudioMixer::queueReplicatedAudioPacket)
     );
 
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);

@@ -201,7 +201,7 @@ Item {
                     }
                     StatText {
                         visible: root.expanded;
-                        text: "Audio In Audio: " + root.audioAudioInboundPPS + " pps, " +
+                        text: "Audio In Audio: " + root.audioInboundPPS + " pps, " +
                             "Silent: " + root.audioSilentInboundPPS + " pps";
                     }
                     StatText {
@@ -385,6 +385,10 @@ Item {
                     StatText {
                         visible: root.expanded
                         text: "LOD: " + root.lodStatus;
+                    }
+                    StatText {
+                        visible: root.expanded
+                        text: "Entity Updates: " + root.numEntityUpdates + " / " + root.numNeededEntityUpdates;
                     }
                 }
             }

@@ -1,0 +1,22 @@
+include(vcpkg_common_functions)
+set(SRANIPAL_VERSION 1.1.0.1)
+set(MASTER_COPY_SOURCE_PATH ${CURRENT_BUILDTREES_DIR}/src)
+
+file(READ "${VCPKG_ROOT_DIR}/_env/EXTERNAL_BUILD_ASSETS.txt" EXTERNAL_BUILD_ASSETS)
+
+if (WIN32)
+    vcpkg_download_distfile(
+        SRANIPAL_SOURCE_ARCHIVE
+        URLS "${EXTERNAL_BUILD_ASSETS}/seth/sranipal-1.1.0.1-2-windows.zip"
+        SHA512 f1f68f6beef52ae5e034bc3f44932ae0800ee187b75d80e76ae7b17b8ddd7bc54c039ce5594d231035e3caf3a61fed36f38621a860b4fb20170cb0176d9c28f0
+        FILENAME sranipal-1.1.0.1-2-windows.zip
+    )
+
+    vcpkg_extract_source_archive(${SRANIPAL_SOURCE_ARCHIVE})
+    file(COPY ${MASTER_COPY_SOURCE_PATH}/sranipal/include DESTINATION ${CURRENT_PACKAGES_DIR})
+    file(COPY ${MASTER_COPY_SOURCE_PATH}/sranipal/lib DESTINATION ${CURRENT_PACKAGES_DIR})
+    file(COPY ${MASTER_COPY_SOURCE_PATH}/sranipal/debug DESTINATION ${CURRENT_PACKAGES_DIR})
+    file(COPY ${MASTER_COPY_SOURCE_PATH}/sranipal/bin DESTINATION ${CURRENT_PACKAGES_DIR})
+    file(COPY ${MASTER_COPY_SOURCE_PATH}/sranipal/share DESTINATION ${CURRENT_PACKAGES_DIR})
+
+endif ()

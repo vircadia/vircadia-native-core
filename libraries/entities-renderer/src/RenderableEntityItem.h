@@ -65,6 +65,7 @@ public:
 
     virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) const override;
     virtual Item::Bound getBound() override;
+    bool passesZoneOcclusionTest(const std::unordered_set<QUuid>& containingZones) const override;
 
 protected:
     virtual bool needsRenderUpdateFromEntity() const final { return needsRenderUpdateFromEntity(_entity); }
@@ -107,17 +108,7 @@ protected:
 
     virtual void setIsVisibleInSecondaryCamera(bool value) { _isVisibleInSecondaryCamera = value; }
     virtual void setRenderLayer(RenderLayer value) { _renderLayer = value; }
-    virtual void setPrimitiveMode(PrimitiveMode value) { _primitiveMode = value; }
     virtual void setCullWithParent(bool value) { _cullWithParent = value; }
-
-    template <typename F, typename T>
-    T withReadLockResult(const std::function<T()>& f) {
-        T result;
-        withReadLock([&] {
-            result = f();
-        });
-        return result;
-    }
 
 signals:
     void requestRenderUpdate();
@@ -143,10 +134,9 @@ protected:
     bool _cullWithParent { false };
     RenderLayer _renderLayer { RenderLayer::WORLD };
     PrimitiveMode _primitiveMode { PrimitiveMode::SOLID };
+    QVector<QUuid> _renderWithZones;
     bool _cauterized { false };
     bool _moving { false };
-    // Only touched on the rendering thread
-    bool _renderUpdateQueued{ false };
     Transform _renderTransform;
 
     std::unordered_map<std::string, graphics::MultiMaterial> _materials;
@@ -162,6 +152,8 @@ protected:
     // i.e. to see if the rendering code needs to update because of a change in state of the 
     // entity.  This forces all the rendering code itself to be independent of the entity
     const EntityItemPointer _entity;
+
+    QUuid _entityID;
 };
 
 template <typename T>
@@ -187,10 +179,7 @@ protected:
     using Parent::needsRenderUpdateFromEntity;
     // Returns true if the item in question needs to have updateInScene called because of changes in the entity
     virtual bool needsRenderUpdateFromEntity(const EntityItemPointer& entity) const override final {
-        if (Parent::needsRenderUpdateFromEntity(entity)) {
-            return true;
-        }
-        return needsRenderUpdateFromTypedEntity(_typedEntity);
+        return Parent::needsRenderUpdateFromEntity(entity) || needsRenderUpdateFromTypedEntity(_typedEntity);
     }
 
     virtual void doRenderUpdateSynchronous(const ScenePointer& scene, Transaction& transaction, const EntityItemPointer& entity) override final {

@@ -10,8 +10,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-
 var SLIDER_RANGE_INCREMENT_SCALE = 1 / 1000;
 var THUMB_COLOR = {
     red: 150,
@@ -784,7 +782,7 @@ var CHECK_MARK_COLOR = {
                 green: 255,
                 blue: 255
             },
-            imageURL: HIFI_PUBLIC_BUCKET + 'images/tools/expand-ui.svg',
+            imageURL: Script.getExternalPath(Script.ExternalPaths.Assets, 'images/tools/expand-ui.svg'),
             x: x,
             y: y,
             width: rawHeight,
@@ -1147,13 +1145,13 @@ var CHECK_MARK_COLOR = {
 
             if (!item.isCollapsed && item.isCollapsable && clickedOverlay == item.thumb) {
                 Overlays.editOverlay(item.thumb, {
-                    imageURL: HIFI_PUBLIC_BUCKET + 'images/tools/expand-right.svg'
+                    imageURL: Script.getExternalPath(Script.ExternalPaths.Assets, 'images/tools/expand-right.svg')
                 });
                 this.collapse(clickedOverlay);
                 item.isCollapsed = true;
             } else if (item.isCollapsed && item.isCollapsable && clickedOverlay == item.thumb) {
                 Overlays.editOverlay(item.thumb, {
-                    imageURL: HIFI_PUBLIC_BUCKET + 'images/tools/expand-ui.svg'
+                    imageURL: Script.getExternalPath(Script.ExternalPaths.Assets, 'images/tools/expand-ui.svg')
                 });
                 this.expand(clickedOverlay);
                 item.isCollapsed = false;

@@ -4,6 +4,7 @@
 //
 //  Created by Sam Gateau on 4/27/15.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -23,6 +24,7 @@ class QTouchEvent;
 class QKeyEvent;
 class QMouseEvent;
 class QWheelEvent;
+class QGestureEvent;
 
 class KeyboardMouseDevice : public InputPlugin {
     Q_OBJECT
@@ -60,6 +62,8 @@ public:
         TOUCH_AXIS_X_NEG,
         TOUCH_AXIS_Y_POS,
         TOUCH_AXIS_Y_NEG,
+        TOUCH_GESTURE_PINCH_POS,
+        TOUCH_GESTURE_PINCH_NEG,
     };
 
     enum TouchButtonChannel {
@@ -76,16 +80,18 @@ public:
     void keyPressEvent(QKeyEvent* event);
     void keyReleaseEvent(QKeyEvent* event);
 
-    void mouseMoveEvent(QMouseEvent* event);
+    void mouseMoveEvent(QMouseEvent* event, bool capture, QPointF captureTarget);
     void mousePressEvent(QMouseEvent* event);
     void mouseReleaseEvent(QMouseEvent* event);
     void eraseMouseClicked();
 
+    void touchGestureEvent(const QGestureEvent* event);
     void touchBeginEvent(const QTouchEvent* event);
     void touchEndEvent(const QTouchEvent* event);
     void touchUpdateEvent(const QTouchEvent* event);
 
     void wheelEvent(QWheelEvent* event);
+    bool isWheelByTouchPad(QWheelEvent* event);
 
     static void enableTouch(bool enableTouch) { _enableTouch = enableTouch; }
 
@@ -118,9 +124,10 @@ public:
 
 protected:
     QPoint _lastCursor;
-    QPoint _previousCursor;
+    QPoint _accumulatedMove;
     QPoint _mousePressPos;
     quint64 _mousePressTime;
+    qreal _lastTotalScaleFactor;
     bool _clickDeadspotActive;
     glm::vec2 _lastTouch;
     std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>() };
@@ -130,6 +137,8 @@ protected:
     std::chrono::high_resolution_clock::time_point _lastTouchTime;
 
     static bool _enableTouch;
+    QPoint _lastWheelDelta;
+    QPoint _wheelDeltaRepeatCount;
 
 private:
     void updateDeltaAxisValue(int channel, float value);

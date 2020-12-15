@@ -30,24 +30,23 @@ bool GridEntityRenderer::isTransparent() const {
 }
 
 void GridEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
-    withWriteLock([&] {
-        _color = entity->getColor();
-        _alpha = entity->getAlpha();
-        _pulseProperties = entity->getPulseProperties();
-
-        _followCamera = entity->getFollowCamera();
-        _majorGridEvery = entity->getMajorGridEvery();
-        _minorGridEvery = entity->getMinorGridEvery();
-    });
-
     void* key = (void*)this;
-    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity]() {
+    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity] {
         withWriteLock([&] {
             _dimensions = entity->getScaledDimensions();
-            updateModelTransformAndBound();
             _renderTransform = getModelTransform();
         });
     });
+}
+
+void GridEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
+    _color = entity->getColor();
+    _alpha = entity->getAlpha();
+    _pulseProperties = entity->getPulseProperties();
+
+    _followCamera = entity->getFollowCamera();
+    _majorGridEvery = entity->getMajorGridEvery();
+    _minorGridEvery = entity->getMinorGridEvery();
 }
 
 Item::Bound GridEntityRenderer::getBound() {
@@ -74,13 +73,12 @@ ShapeKey GridEntityRenderer::getShapeKey() {
 }
 
 void GridEntityRenderer::doRender(RenderArgs* args) {
-    glm::vec4 color;
+    glm::vec4 color = glm::vec4(toGlm(_color), _alpha);
+    color = EntityRenderer::calculatePulseColor(color, _pulseProperties, _created);
     glm::vec3 dimensions;
     Transform renderTransform;
     bool forward;
     withReadLock([&] {
-        color = glm::vec4(toGlm(_color), _alpha);
-        color = EntityRenderer::calculatePulseColor(color, _pulseProperties, _created);
         dimensions = _dimensions;
         renderTransform = _renderTransform;
         forward = _renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD;

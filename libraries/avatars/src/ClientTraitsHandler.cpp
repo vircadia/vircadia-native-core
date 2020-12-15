@@ -28,7 +28,8 @@ ClientTraitsHandler::ClientTraitsHandler(AvatarData* owningAvatar) :
         }
     });
 
-    nodeList->getPacketReceiver().registerListener(PacketType::SetAvatarTraits, this, "processTraitOverride");
+    nodeList->getPacketReceiver().registerListener(PacketType::SetAvatarTraits,
+        PacketReceiver::makeSourcedListenerReference<ClientTraitsHandler>(this, &ClientTraitsHandler::processTraitOverride));
 }
 
 void ClientTraitsHandler::markTraitUpdated(AvatarTraits::TraitType updatedTrait) {
@@ -171,8 +172,6 @@ void ClientTraitsHandler::processTraitOverride(QSharedPointer<ReceivedMessage> m
                 return;
             }
 
-            // AJT: DON'T CHECK THIS IN, disable model URL overrides.
-            /*
             // only accept an override if this is for a trait type we override
             // and the version matches what we last sent for skeleton
             if (traitType == AvatarTraits::SkeletonModelURL
@@ -194,7 +193,6 @@ void ClientTraitsHandler::processTraitOverride(QSharedPointer<ReceivedMessage> m
             } else {
                 message->seek(message->getPosition() + traitBinarySize);
             }
-            */
         }
     }
 }

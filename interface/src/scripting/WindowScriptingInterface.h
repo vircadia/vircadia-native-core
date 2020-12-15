@@ -206,7 +206,7 @@ public slots:
     void browseAsync(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
 
     /**jsdoc
-     * Prompts the user to specify the path and name of a file to save to. Displays a model dialog that navigates the directory
+     * Prompts the user to specify the path and name of a file to save to. Displays a modal dialog that navigates the directory
      * tree and allows the user to type in a file name.
      * @function Window.save
      * @param {string} [title=""] - The title to display at the top of the dialog.
@@ -222,7 +222,7 @@ public slots:
     QScriptValue save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
 
     /**jsdoc
-     * Prompts the user to specify the path and name of a file to save to. Displays a non-model dialog that navigates the
+     * Prompts the user to specify the path and name of a file to save to. Displays a non-modal dialog that navigates the
      * directory tree and allows the user to type in a file name. A {@link Window.saveFileChanged|saveFileChanged} signal is
      * emitted when a file is specified; no signal is emitted if the user cancels the dialog.
      * @function Window.saveAsync
@@ -296,6 +296,13 @@ public slots:
     QString checkVersion();
 
     /**jsdoc
+     * Gets Interface's user agent.
+     * @function Window.getUserAgent
+     * @returns {string} Interface's user agent.
+     */
+    QString getUserAgent();
+
+    /**jsdoc
      * Gets the signature for Interface's protocol version.
      * @function Window.protocolSignature
      * @returns {string} A string uniquely identifying the version of the metaverse protocol that Interface is using.
@@ -325,7 +332,7 @@ public slots:
      * @param {number} [aspectRatio=0] - The width/height ratio of the snapshot required. If the value is <code>0</code>, the
      *     full resolution is used (window dimensions in desktop mode; HMD display dimensions in HMD mode), otherwise one of the
      *     dimensions is adjusted in order to match the aspect ratio.
-     * @param {string} [filename=""] - If a filename is not provided, the image is saved as "hifi-snap-by-&lt;user 
+     * @param {string} [filename=""] - If a filename is not provided, the image is saved as "vircadia-snap-by-&lt;user 
      *     name&gt;-on-YYYY-MM-DD_HH-MM-SS".
      *     <p>Still images are saved in JPEG or PNG format according to the extension provided &mdash; <code>".jpg"</code>, 
      *     <code>".jpeg"</code>, or <code>".png"</code> &mdash; or if not provided then in JPEG format with an extension of 
@@ -364,7 +371,7 @@ public slots:
      * @function Window.takeSecondaryCameraSnapshot
      * @param {boolean} [notify=true] - This value is passed on through the {@link Window.stillSnapshotTaken|stillSnapshotTaken}
      *     signal.
-     * @param {string} [filename=""] - If a filename is not provided, the image is saved as "hifi-snap-by-&lt;user
+     * @param {string} [filename=""] - If a filename is not provided, the image is saved as "vircadia-snap-by-&lt;user
      *     name&gt;-on-YYYY-MM-DD_HH-MM-SS".
      *     <p>Images are saved in JPEG or PNG format according to the extension provided &mdash; <code>".jpg"</code>,
      *     <code>".jpeg"</code>, or <code>".png"</code> &mdash; or if not provided then in JPEG format with an extension of
@@ -383,7 +390,7 @@ public slots:
      *     otherwise it is saved as an equirectangular image.
      * @param {boolean} [notify=true] - This value is passed on through the {@link Window.stillSnapshotTaken|stillSnapshotTaken}
      *     signal.
-     * @param {string} [filename=""] - If a filename is not provided, the image is saved as "hifi-snap-by-&lt;user
+     * @param {string} [filename=""] - If a filename is not provided, the image is saved as "vircadia-snap-by-&lt;user
      *     name&gt;-on-YYYY-MM-DD_HH-MM-SS".
      *     <p>Images are saved in JPEG or PNG format according to the extension provided &mdash; <code>".jpg"</code>,
      *     <code>".jpeg"</code>, or <code>".png"</code> &mdash; or if not provided then in JPEG format with an extension of
@@ -609,10 +616,11 @@ public slots:
     void setActiveDisplayPlugin(int index);
 
     /**jsdoc
-     * Opens a web browser in a pop-up window.
+     * Opens an Interface web browser window.
      * @function Window.openWebBrowser
+     * @param {string} [url=""] - The URL of the web page to display.
      */
-    void openWebBrowser();
+    void openWebBrowser(const QString& url = "");
 
 
 private slots:
@@ -818,8 +826,12 @@ signals:
     /**jsdoc
      * Triggered when "minimized" state of the Interface window changes.
      * @function Window.minimizedChanged
-     * @param {bool} isMinimized - true if the Interface window is now minimized; false otherwise.
+     * @param {boolean} isMinimized - <code>true</code> if the Interface window is minimized, <code>false</code> if it isn't.
      * @returns {Signal}
+     * @example <caption>Report the "minimized" state of the Interface window when it changes.</caption>
+     * function onWindowMinimizedChanged(minimized) {
+     *     print("Window minimized: " + minimized);
+     * }
      *
      * Window.minimizedChanged.connect(onWindowMinimizedChanged);
      */

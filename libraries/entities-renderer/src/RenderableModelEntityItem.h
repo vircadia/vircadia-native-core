@@ -21,6 +21,7 @@
 #include <AnimationCache.h>
 #include <Model.h>
 #include <model-networking/ModelCache.h>
+#include <MetaModelPayload.h>
 
 #include "RenderableEntityItem.h"
 
@@ -40,7 +41,6 @@ protected:
     ModelEntityWrapper(const EntityItemID& entityItemID) : Parent(entityItemID) {}
     void setModel(const ModelPointer& model);
     ModelPointer getModel() const;
-    bool isModelLoaded() const;
 
     bool _needsInitialSimulation{ true };
 private:
@@ -61,7 +61,6 @@ public:
     virtual void setUnscaledDimensions(const glm::vec3& value) override;
 
     virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
-    void doInitialModelSimulation();
     void updateModelBounds();
 
     virtual bool supportsDetailedIntersection() const override;
@@ -76,6 +75,7 @@ public:
 
     virtual void setShapeType(ShapeType type) override;
     virtual void setCompoundShapeURL(const QString& url) override;
+    virtual void setModelURL(const QString& url) override;
 
     virtual bool isReadyToComputeShape() const override;
     virtual void computeShapeInfo(ShapeInfo& shapeInfo) override;
@@ -120,6 +120,8 @@ private:
     bool readyToAnimate() const;
     void fetchCollisionGeometryResource();
 
+    QString getCollisionShapeURL() const;
+
     GeometryResource::Pointer _collisionGeometryResource;
     std::vector<int> _jointMap;
     QVariantMap _originalTextures;
@@ -127,11 +129,12 @@ private:
     bool _originalTexturesRead { false };
     bool _dimensionsInitialized { true };
     bool _needsJointSimulation { false };
+    bool _needsToRescaleModel { false };
 };
 
 namespace render { namespace entities { 
 
-class ModelEntityRenderer : public TypedEntityRenderer<RenderableModelEntityItem> {
+class ModelEntityRenderer : public TypedEntityRenderer<RenderableModelEntityItem>, public MetaModelPayload {
     using Parent = TypedEntityRenderer<RenderableModelEntityItem>;
     friend class EntityRenderer;
     Q_OBJECT
@@ -152,22 +155,23 @@ protected:
     virtual void removeFromScene(const ScenePointer& scene, Transaction& transaction) override;
     virtual void onRemoveFromSceneTyped(const TypedEntityPointer& entity) override;
 
-    void setKey(bool didVisualGeometryRequestSucceed);
+    void setKey(bool didVisualGeometryRequestSucceed, const ModelPointer& model);
     virtual ItemKey getKey() override;
     virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) const override;
+    virtual void handleBlendedVertices(int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets,
+                                       const QVector<int>& blendedMeshSizes, const render::ItemIDs& subItemIDs) override;
 
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
-    virtual bool needsRenderUpdate() const override;
-    virtual void doRender(RenderArgs* args) override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
+    virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
+    virtual void doRender(RenderArgs* args) override;
 
     void setIsVisibleInSecondaryCamera(bool value) override;
     void setRenderLayer(RenderLayer value) override;
-    void setPrimitiveMode(PrimitiveMode value) override;
     void setCullWithParent(bool value) override;
 
 private:
-    void animate(const TypedEntityPointer& entity);
+    void animate(const TypedEntityPointer& entity, const ModelPointer& model);
     void mapJoints(const TypedEntityPointer& entity, const ModelPointer& model);
 
     // Transparency is handled in ModelMeshPartPayload
@@ -182,22 +186,22 @@ private:
     bool _hasTransitioned{ false };
 #endif
 
-    const void* _collisionMeshKey { nullptr };
-
     QUrl _parsedModelURL;
     bool _jointMappingCompleted { false };
     QVector<int> _jointMapping; // domain is index into model-joints, range is index into animation-joints
     AnimationPointer _animation;
-    bool _animating { false };
     QString _animationURL;
     uint64_t _lastAnimated { 0 };
 
     render::ItemKey _itemKey { render::ItemKey::Builder().withTypeMeta() };
 
     bool _didLastVisualGeometryRequestSucceed { true };
-    bool _prevModelLoaded { false };
 
     void processMaterials();
+    bool _allProceduralMaterialsLoaded { false };
+
+    static void metaBlendshapeOperator(render::ItemID renderItemID, int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets,
+                                       const QVector<int>& blendedMeshSizes, const render::ItemIDs& subItemIDs);
 };
 
 } } // namespace 

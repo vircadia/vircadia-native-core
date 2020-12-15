@@ -71,6 +71,11 @@ void ZoneEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity
 }
 
 void ZoneEntityRenderer::doRender(RenderArgs* args) {
+    // This is necessary so that zones can themselves be zone culled
+    if (!passesZoneOcclusionTest(CullTest::_prevContainingZones)) {
+        return;
+    }
+
     if (!_stage) {
         _stage = args->_scene->getStage<LightStage>();
         assert(_stage);
@@ -180,9 +185,11 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
             _bloomStage->_currentFrame.pushBloom(_bloomIndex);
         }
     }
+
+    CullTest::_containingZones.insert(_entityID);
 }
 
-void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
+void ZoneEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     auto position = entity->getWorldPosition();
     auto rotation = entity->getWorldOrientation();
     auto dimensions = entity->getScaledDimensions();
@@ -192,7 +199,11 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     auto visible = entity->getVisible();
     if (transformChanged || visible != _lastVisible) {
         _lastVisible = visible;
-        DependencyManager::get<EntityTreeRenderer>()->updateZone(entity->getID());
+        void* key = (void*)this;
+        EntityItemID id = entity->getID();
+        AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [id] {
+            DependencyManager::get<EntityTreeRenderer>()->updateZone(id);
+        });
     }
 
     auto proceduralUserData = entity->getUserData();
@@ -255,23 +266,11 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     entity->setVisuallyReady(visuallyReady);
 }
 
-void ZoneEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
-    if (entity->getShapeType() == SHAPE_TYPE_SPHERE) {
-        _renderTransform = getModelTransform();
-        _renderTransform.postScale(SPHERE_ENTITY_SCALE);
-    }
-}
-
-
 ItemKey ZoneEntityRenderer::getKey() {
     return ItemKey::Builder().withTypeMeta().withTagBits(getTagMask()).build();
 }
 
 bool ZoneEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
-    if (entity->getVisible() != _lastVisible) {
-        return true;
-    }
-
     if (entity->keyLightPropertiesChanged() ||
         entity->ambientLightPropertiesChanged() ||
         entity->hazePropertiesChanged() ||
@@ -281,31 +280,11 @@ bool ZoneEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoint
         return true;
     }
 
-    if (_skyboxTextureURL != entity->getSkyboxProperties().getURL()) {
-        return true;
-    }
-
-    if (entity->getWorldPosition() != _lastPosition) {
-        return true;
-    }
-    if (entity->getScaledDimensions() != _lastDimensions) {
-        return true;
-    }
-    if (entity->getWorldOrientation() != _lastRotation) {
-        return true;
-    }
-
-    if (entity->getUserData() != _proceduralUserData) {
-        return true;
-    }
-
-    // FIXME: do we need to trigger an update when shapeType changes?  see doRenderUpdateAsynchronousTyped
-
     return false;
 }
 
 void ZoneEntityRenderer::updateKeySunFromEntity(const TypedEntityPointer& entity) {
-    setKeyLightMode((ComponentMode)entity->getKeyLightMode());
+    _keyLightMode = (ComponentMode)entity->getKeyLightMode();
 
     const auto& sunLight = editSunLight();
     sunLight->setType(graphics::Light::SUN);
@@ -322,7 +301,7 @@ void ZoneEntityRenderer::updateKeySunFromEntity(const TypedEntityPointer& entity
 }
 
 void ZoneEntityRenderer::updateAmbientLightFromEntity(const TypedEntityPointer& entity) {
-    setAmbientLightMode((ComponentMode)entity->getAmbientLightMode());
+    _ambientLightMode = (ComponentMode)entity->getAmbientLightMode();
 
     const auto& ambientLight = editAmbientLight();
     ambientLight->setType(graphics::Light::AMBIENT);
@@ -342,11 +321,12 @@ void ZoneEntityRenderer::updateAmbientLightFromEntity(const TypedEntityPointer& 
 }
 
 void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) {
-    setHazeMode((ComponentMode)entity->getHazeMode());
+    const uint32_t hazeMode = entity->getHazeMode();
+
+    _hazeMode = (ComponentMode)hazeMode;
 
     const auto& haze = editHaze();
 
-    const uint32_t hazeMode = entity->getHazeMode();
     haze->setHazeActive(hazeMode == COMPONENT_MODE_ENABLED);
     haze->setAltitudeBased(_hazeProperties.getHazeAltitudeEffect());
 
@@ -370,7 +350,7 @@ void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) 
 }
 
 void ZoneEntityRenderer::updateBloomFromEntity(const TypedEntityPointer& entity) {
-    setBloomMode((ComponentMode)entity->getBloomMode());
+    _bloomMode = (ComponentMode)entity->getBloomMode();
 
     const auto& bloom = editBloom();
 
@@ -380,7 +360,7 @@ void ZoneEntityRenderer::updateBloomFromEntity(const TypedEntityPointer& entity)
 }
 
 void ZoneEntityRenderer::updateKeyBackgroundFromEntity(const TypedEntityPointer& entity) {
-    setSkyboxMode((ComponentMode)entity->getSkyboxMode());
+    _skyboxMode = (ComponentMode)entity->getSkyboxMode();
 
     editBackground();
     setSkyboxColor(toGlm(_skyboxProperties.getColor()));
@@ -479,26 +459,6 @@ void ZoneEntityRenderer::updateSkyboxMap() {
             }
         }
     }
-}
-
-void ZoneEntityRenderer::setHazeMode(ComponentMode mode) {
-    _hazeMode = mode;
-}
-
-void ZoneEntityRenderer::setKeyLightMode(ComponentMode mode) {
-    _keyLightMode = mode;
-}
-
-void ZoneEntityRenderer::setAmbientLightMode(ComponentMode mode) {
-    _ambientLightMode = mode;
-}
-
-void ZoneEntityRenderer::setSkyboxMode(ComponentMode mode) {
-    _skyboxMode = mode;
-}
-
-void ZoneEntityRenderer::setBloomMode(ComponentMode mode) {
-    _bloomMode = mode;
 }
 
 void ZoneEntityRenderer::setSkyboxColor(const glm::vec3& color) {

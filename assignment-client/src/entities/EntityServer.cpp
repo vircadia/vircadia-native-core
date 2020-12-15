@@ -59,8 +59,7 @@ EntityServer::EntityServer(ReceivedMessage& message) :
         PacketType::ChallengeOwnership,
         PacketType::ChallengeOwnershipRequest,
         PacketType::ChallengeOwnershipReply },
-        this,
-        "handleEntityPacket");
+        PacketReceiver::makeSourcedListenerReference<EntityServer>(this, &EntityServer::handleEntityPacket));
 
     connect(&_dynamicDomainVerificationTimer, &QTimer::timeout, this, &EntityServer::startDynamicDomainVerification);
     _dynamicDomainVerificationTimer.setSingleShot(true);
@@ -370,16 +369,18 @@ void EntityServer::entityFilterAdded(EntityItemID id, bool success) {
 
 void EntityServer::nodeAdded(SharedNodePointer node) {
     EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
-    tree->knowAvatarID(node->getUUID());
+    if (tree) {
+        tree->knowAvatarID(node->getUUID());
+    }
     OctreeServer::nodeAdded(node);
 }
 
 void EntityServer::nodeKilled(SharedNodePointer node) {
     EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
-    tree->withWriteLock([&] {
+    if (tree) {
         tree->deleteDescendantsOfAvatar(node->getUUID());
-    });
-    tree->forgetAvatarID(node->getUUID());
+        tree->forgetAvatarID(node->getUUID());
+    }
     OctreeServer::nodeKilled(node);
 }
 

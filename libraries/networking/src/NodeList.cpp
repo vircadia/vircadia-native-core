@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2/15/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -33,6 +34,7 @@
 #include "AddressManager.h"
 #include "Assignment.h"
 #include "AudioHelpers.h"
+#include "DomainAccountManager.h"
 #include "HifiSockAddr.h"
 #include "FingerprintUtils.h"
 
@@ -103,6 +105,13 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     // clear our NodeList when logout is requested
     connect(accountManager.data(), &AccountManager::logoutComplete , this, [this]{ reset("Logged out"); });
 
+    // Only used in Interface.
+    auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
+    if (domainAccountManager) {
+        _hasDomainAccountManager = true;
+        connect(domainAccountManager.data(), &DomainAccountManager::newTokens, this, &NodeList::sendDomainServerCheckIn);
+    }
+
     // anytime we get a new node we will want to attempt to punch to it
     connect(this, &LimitedNodeList::nodeAdded, this, &NodeList::startNodeHolePunch);
     connect(this, &LimitedNodeList::nodeSocketUpdated, this, &NodeList::startNodeHolePunch);
@@ -130,20 +139,34 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     startSTUNPublicSocketUpdate();
 
     auto& packetReceiver = getPacketReceiver();
-    packetReceiver.registerListener(PacketType::DomainList, this, "processDomainServerList");
-    packetReceiver.registerListener(PacketType::Ping, this, "processPingPacket");
-    packetReceiver.registerListener(PacketType::PingReply, this, "processPingReplyPacket");
-    packetReceiver.registerListener(PacketType::ICEPing, this, "processICEPingPacket");
-    packetReceiver.registerListener(PacketType::DomainServerAddedNode, this, "processDomainServerAddedNode");
-    packetReceiver.registerListener(PacketType::DomainServerConnectionToken, this, "processDomainServerConnectionTokenPacket");
-    packetReceiver.registerListener(PacketType::DomainConnectionDenied, &_domainHandler, "processDomainServerConnectionDeniedPacket");
-    packetReceiver.registerListener(PacketType::DomainSettings, &_domainHandler, "processSettingsPacketList");
-    packetReceiver.registerListener(PacketType::ICEServerPeerInformation, &_domainHandler, "processICEResponsePacket");
-    packetReceiver.registerListener(PacketType::DomainServerRequireDTLS, &_domainHandler, "processDTLSRequirementPacket");
-    packetReceiver.registerListener(PacketType::ICEPingReply, &_domainHandler, "processICEPingReplyPacket");
-    packetReceiver.registerListener(PacketType::DomainServerPathResponse, this, "processDomainServerPathResponse");
-    packetReceiver.registerListener(PacketType::DomainServerRemovedNode, this, "processDomainServerRemovedNode");
-    packetReceiver.registerListener(PacketType::UsernameFromIDReply, this, "processUsernameFromIDReply");
+    packetReceiver.registerListener(PacketType::DomainList,
+        PacketReceiver::makeUnsourcedListenerReference<NodeList>(this, &NodeList::processDomainServerList));
+    packetReceiver.registerListener(PacketType::Ping,
+        PacketReceiver::makeSourcedListenerReference<NodeList>(this, &NodeList::processPingPacket));
+    packetReceiver.registerListener(PacketType::PingReply,
+        PacketReceiver::makeSourcedListenerReference<NodeList>(this, &NodeList::processPingReplyPacket));
+    packetReceiver.registerListener(PacketType::ICEPing,
+        PacketReceiver::makeUnsourcedListenerReference<NodeList>(this, &NodeList::processICEPingPacket));
+    packetReceiver.registerListener(PacketType::DomainServerAddedNode,
+        PacketReceiver::makeUnsourcedListenerReference<NodeList>(this, &NodeList::processDomainServerAddedNode));
+    packetReceiver.registerListener(PacketType::DomainServerConnectionToken,
+        PacketReceiver::makeUnsourcedListenerReference<NodeList>(this, &NodeList::processDomainServerConnectionTokenPacket));
+    packetReceiver.registerListener(PacketType::DomainConnectionDenied,
+        PacketReceiver::makeUnsourcedListenerReference<DomainHandler>(&_domainHandler, &DomainHandler::processDomainServerConnectionDeniedPacket));
+    packetReceiver.registerListener(PacketType::DomainSettings,
+        PacketReceiver::makeUnsourcedListenerReference<DomainHandler>(&_domainHandler, &DomainHandler::processSettingsPacketList));
+    packetReceiver.registerListener(PacketType::ICEServerPeerInformation,
+        PacketReceiver::makeUnsourcedListenerReference<DomainHandler>(&_domainHandler, &DomainHandler::processICEResponsePacket));
+    packetReceiver.registerListener(PacketType::DomainServerRequireDTLS,
+        PacketReceiver::makeUnsourcedListenerReference<DomainHandler>(&_domainHandler, &DomainHandler::processDTLSRequirementPacket));
+    packetReceiver.registerListener(PacketType::ICEPingReply,
+        PacketReceiver::makeUnsourcedListenerReference<DomainHandler>(&_domainHandler, &DomainHandler::processICEPingReplyPacket));
+    packetReceiver.registerListener(PacketType::DomainServerPathResponse,
+        PacketReceiver::makeUnsourcedListenerReference<NodeList>(this, &NodeList::processDomainServerPathResponse));
+    packetReceiver.registerListener(PacketType::DomainServerRemovedNode,
+        PacketReceiver::makeUnsourcedListenerReference<NodeList>(this, &NodeList::processDomainServerRemovedNode));
+    packetReceiver.registerListener(PacketType::UsernameFromIDReply,
+        PacketReceiver::makeUnsourcedListenerReference<NodeList>(this, &NodeList::processUsernameFromIDReply));
 }
 
 qint64 NodeList::sendStats(QJsonObject statsObject, HifiSockAddr destination) {
@@ -379,6 +402,7 @@ void NodeList::sendDomainServerCheckIn() {
         if (domainPacketType == PacketType::DomainConnectRequest) {
 
 #if (PR_BUILD || DEV_BUILD)
+            // #######
             if (_shouldSendNewerVersion) {
                 domainPacket->setVersion(versionForPacketType(domainPacketType) + 1);
             }
@@ -467,14 +491,27 @@ void NodeList::sendDomainServerCheckIn() {
         packetStream << DependencyManager::get<AddressManager>()->getPlaceName();
 
         if (!domainIsConnected) {
+
+            // Metaverse account.
             DataServerAccountInfo& accountInfo = accountManager->getAccountInfo();
             packetStream << accountInfo.getUsername();
-
             // if this is a connect request, and we can present a username signature, send it along
             if (requiresUsernameSignature && accountManager->getAccountInfo().hasPrivateKey()) {
                 const QByteArray& usernameSignature = accountManager->getAccountInfo().getUsernameSignature(connectionToken);
                 packetStream << usernameSignature;
+            } else {
+                packetStream << QString("");  // Placeholder in case have domain username.
             }
+
+            // Domain account.
+            if (_hasDomainAccountManager) {
+                auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
+                if (!domainAccountManager->getUsername().isEmpty() && !domainAccountManager->getAccessToken().isEmpty()) {
+                    packetStream << domainAccountManager->getUsername();
+                    packetStream << (domainAccountManager->getAccessToken() + ":" + domainAccountManager->getRefreshToken());
+                }
+            }
+
         }
 
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendDSCheckIn);

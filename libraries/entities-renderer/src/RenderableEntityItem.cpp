@@ -43,6 +43,7 @@ const Transform& EntityRenderer::getModelTransform() const {
 
 void EntityRenderer::makeStatusGetters(const EntityItemPointer& entity, Item::Status::Getters& statusGetters) {
     auto nodeList = DependencyManager::get<NodeList>();
+    // DANGER: nodeList->getSessionUUID() will return null id when not connected to domain.
     const QUuid& myNodeID = nodeList->getSessionUUID();
 
     statusGetters.push_back([entity]() -> render::Item::Status::Value {
@@ -103,9 +104,9 @@ void EntityRenderer::makeStatusGetters(const EntityItemPointer& entity, Item::St
             (unsigned char)render::Item::Status::Icon::HAS_ACTIONS);
     });
 
-    statusGetters.push_back([entity, myNodeID] () -> render::Item::Status::Value {
+    statusGetters.push_back([entity] () -> render::Item::Status::Value {
         if (entity->isAvatarEntity()) {
-            if (entity->getOwningAvatarID() == myNodeID) {
+            if (entity->isMyAvatarEntity()) {
                 return render::Item::Status::Value(1.0f, render::Item::Status::Value::GREEN,
                     (unsigned char)render::Item::Status::Icon::ENTITY_HOST_TYPE);
             } else {
@@ -128,7 +129,7 @@ std::shared_ptr<T> make_renderer(const EntityItemPointer& entity) {
     return std::shared_ptr<T>(new T(entity), [](T* ptr) { ptr->deleteLater(); });
 }
 
-EntityRenderer::EntityRenderer(const EntityItemPointer& entity) : _created(entity->getCreated()), _entity(entity) {}
+EntityRenderer::EntityRenderer(const EntityItemPointer& entity) : _created(entity->getCreated()), _entity(entity), _entityID(entity->getID()) {}
 
 EntityRenderer::~EntityRenderer() {}
 
@@ -196,16 +197,26 @@ uint32_t EntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) const {
     return 0;
 }
 
+bool EntityRenderer::passesZoneOcclusionTest(const std::unordered_set<QUuid>& containingZones) const {
+    auto renderWithZones = resultWithReadLock<QVector<QUuid>>([&] {
+        return _renderWithZones;
+    });
+    if (!renderWithZones.isEmpty()) {
+        if (!containingZones.empty()) {
+            for (auto renderWithZone : renderWithZones) {
+                if (containingZones.find(renderWithZone) != containingZones.end()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    return true;
+}
+
 void EntityRenderer::render(RenderArgs* args) {
     if (!isValidRenderItem()) {
         return;
-    }
-
-    if (!_renderUpdateQueued && needsRenderUpdate()) {
-        // FIXME find a way to spread out the calls to needsRenderUpdate so that only a given subset of the 
-        // items checks every frame, like 1/N of the tree ever N frames
-        _renderUpdateQueued = true;
-        emit requestRenderUpdate();
     }
 
     if (_visible && (args->_renderMode != RenderArgs::RenderMode::DEFAULT_RENDER_MODE || !_cauterized)) {
@@ -326,11 +337,6 @@ void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& trans
     }
     _updateTime = usecTimestampNow();
 
-    // FIXME is this excessive?
-    if (!needsRenderUpdate()) {
-        return;
-    }
-
     doRenderUpdateSynchronous(scene, transaction, _entity);
     transaction.updateItem<PayloadProxyInterface>(_renderItemID, [this](PayloadProxyInterface& self) {
         if (!isValidRenderItem()) {
@@ -338,7 +344,6 @@ void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& trans
         }
         // Happens on the render thread.  Classes should use
         doRenderUpdateAsynchronous(_entity);
-        _renderUpdateQueued = false;
     });
 }
 
@@ -385,6 +390,10 @@ bool EntityRenderer::needsRenderUpdateFromEntity(const EntityItemPointer& entity
         return true;
     }
 
+    if (entity->needsZoneOcclusionUpdate()) {
+        return true;
+    }
+
     return false;
 }
 
@@ -422,16 +431,20 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
         _visible = entity->getVisible();
         setIsVisibleInSecondaryCamera(entity->isVisibleInSecondaryCamera());
         setRenderLayer(entity->getRenderLayer());
-        setPrimitiveMode(entity->getPrimitiveMode());
+        _primitiveMode = entity->getPrimitiveMode();
         _canCastShadow = entity->getCanCastShadow();
         setCullWithParent(entity->getCullWithParent());
         _cauterized = entity->getCauterized();
+        if (entity->needsZoneOcclusionUpdate()) {
+            entity->resetNeedsZoneOcclusionUpdate();
+            _renderWithZones = entity->getRenderWithZones();
+        }
         entity->setNeedsRenderUpdate(false);
     });
 }
 
 void EntityRenderer::onAddToScene(const EntityItemPointer& entity) {
-    QObject::connect(this, &EntityRenderer::requestRenderUpdate, this, [this] { 
+    QObject::connect(this, &EntityRenderer::requestRenderUpdate, this, [this] {
         auto renderer = DependencyManager::get<EntityTreeRenderer>();
         if (renderer) {
             renderer->onEntityChanged(_entity->getID());
@@ -440,7 +453,10 @@ void EntityRenderer::onAddToScene(const EntityItemPointer& entity) {
     _changeHandlerId = entity->registerChangeHandler([](const EntityItemID& changedEntity) {
         auto renderer = DependencyManager::get<EntityTreeRenderer>();
         if (renderer) {
-            renderer->onEntityChanged(changedEntity);
+            auto renderable = renderer->renderableForEntityId(changedEntity);
+            if (renderable && renderable->needsRenderUpdate()) {
+                renderer->onEntityChanged(changedEntity);
+            }
         }
     });
 }
@@ -453,11 +469,13 @@ void EntityRenderer::onRemoveFromScene(const EntityItemPointer& entity) {
 void EntityRenderer::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
     std::lock_guard<std::mutex> lock(_materialsLock);
     _materials[parentMaterialName].push(material);
+    emit requestRenderUpdate();
 }
 
 void EntityRenderer::removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {
     std::lock_guard<std::mutex> lock(_materialsLock);
     _materials[parentMaterialName].remove(material);
+    emit requestRenderUpdate();
 }
 
 glm::vec4 EntityRenderer::calculatePulseColor(const glm::vec4& color, const PulsePropertyGroup& pulseProperties, quint64 start) {

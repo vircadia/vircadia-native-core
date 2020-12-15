@@ -39,8 +39,8 @@ EntityItemProperties GizmoEntityItem::getProperties(const EntityPropertyFlags& d
     return properties;
 }
 
-bool GizmoEntityItem::setProperties(const EntityItemProperties& properties) {
-    bool somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
+bool GizmoEntityItem::setSubClassProperties(const EntityItemProperties& properties) {
+    bool somethingChanged = false;
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(gizmoType, setGizmoType);
     withWriteLock([&] {
@@ -49,16 +49,6 @@ bool GizmoEntityItem::setProperties(const EntityItemProperties& properties) {
         _needsRenderUpdate |= ringPropertiesChanged;
     });
 
-    if (somethingChanged) {
-        bool wantDebug = false;
-        if (wantDebug) {
-            uint64_t now = usecTimestampNow();
-            int elapsed = now - getLastEdited();
-            qCDebug(entities) << "GizmoEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
-                    "now=" << now << " getLastEdited()=" << getLastEdited();
-        }
-        setLastEdited(properties.getLastEdited());
-    }
     return somethingChanged;
 }
 

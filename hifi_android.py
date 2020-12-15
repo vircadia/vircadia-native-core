@@ -10,87 +10,74 @@ import zipfile
 
 print = functools.partial(print, flush=True)
 
-ANDROID_PACKAGE_URL = 'https://hifi-public.s3.amazonaws.com/dependencies/android/'
+ANDROID_PACKAGE_URL = 'https://cdn-1.vircadia.com/eu-c-1/vircadia-public/dependencies/android/'
 
 ANDROID_PACKAGES = {
     'qt' : {
         'file': 'qt-5.11.1_linux_armv8-libcpp_openssl_patched.tgz',
-        'versionId': '3S97HBM5G5Xw9EfE52sikmgdN3t6C2MN',
         'checksum': 'aa449d4bfa963f3bc9a9dfe558ba29df',
     },
     'bullet': {
         'file': 'bullet-2.88_armv8-libcpp.tgz',
-        'versionId': 'S8YaoED0Cl8sSb8fSV7Q2G1lQJSNDxqg',
         'checksum': '81642779ccb110f8c7338e8739ac38a0',
     },            
     'draco': {
         'file': 'draco_armv8-libcpp.tgz',
-        'versionId': '3.B.uBj31kWlgND3_R2xwQzT_TP6Dz_8',
         'checksum': '617a80d213a5ec69fbfa21a1f2f738cd',
     },
     'glad': {
         'file': 'glad_armv8-libcpp.zip',
-        'versionId': 'r5Zran.JSCtvrrB6Q4KaqfIoALPw3lYY',
         'checksum': 'a8ee8584cf1ccd34766c7ddd9d5e5449',
     },
     'gvr': {
         'file': 'gvrsdk_v1.101.0.tgz',
-        'versionId': 'nqBV_j81Uc31rC7bKIrlya_Hah4v3y5r',
         'checksum': '57fd02baa069176ba18597a29b6b4fc7',
     },
     'nvtt': {
         'file': 'nvtt_armv8-libcpp.zip',
-        'versionId': 'lmkBVR5t4UF1UUwMwEirnk9H_8Nt90IO',
         'checksum': 'eb46d0b683e66987190ed124aabf8910',
         'sharedLibFolder': 'lib',
         'includeLibs': ['libnvtt.so', 'libnvmath.so', 'libnvimage.so', 'libnvcore.so']
     },
     'oculus_1.22': {
         'file': 'ovr_sdk_mobile_1.22.zip',
-        'versionId': 'InhomR5gwkzyiLAelH3X9k4nvV3iIpA_',
         'checksum': '1ac3c5b0521e5406f287f351015daff8',
         'sharedLibFolder': 'VrApi/Libs/Android/arm64-v8a/Release',
         'includeLibs': ['libvrapi.so']
     },
     'oculusPlatform': {
         'file': 'OVRPlatformSDK_v1.34.0.zip',
-        'versionId': 'vbRUkkyzUAXfTGSEtuiUr_7.Fm5h5BZk',
         'checksum': '16e4c5f39520f122bc49cb6d5bb88289',
         'sharedLibFolder': 'Android/libs/arm64-v8a',
         'includeLibs': ['libovrplatformloader.so']
     },
     'openssl': {
         'file': 'openssl-1.1.0g_armv8.tgz',
-        'versionId': 'AiiPjmgUZTgNj7YV1EEx2lL47aDvvvAW',
         'checksum': 'cabb681fbccd79594f65fcc266e02f32'
     },
     'polyvox': {
         'file': 'polyvox_armv8-libcpp.tgz',
-        'versionId': 'A2kbKiNhpIenGq23bKRRzg7IMAI5BI92',
         'checksum': 'dba88b3a098747af4bb169e9eb9af57e',
         'sharedLibFolder': 'lib',
         'includeLibs': ['Release/libPolyVoxCore.so', 'libPolyVoxUtil.so'],
     },
     'tbb': {
         'file': 'tbb-2018_U1_armv8_libcpp.tgz',
-        'versionId': 'mrRbWnv4O4evcM1quRH43RJqimlRtaKB',
         'checksum': '20768f298f53b195e71b414b0ae240c4',
         'sharedLibFolder': 'lib/release',
         'includeLibs': ['libtbb.so', 'libtbbmalloc.so'],
     },
     'hifiAC': {
-        'baseUrl': 'http://s3.amazonaws.com/hifi-public/dependencies/',
+        'baseUrl': 'https://cdn-1.vircadia.com/eu-c-1/vircadia-public/dependencies/',
         'file': 'codecSDK-android_armv8-2.0.zip',
         'checksum': '1cbef929675818fc64c4101b72f84a6a'
     },
     'etc2comp': {
         'file': 'etc2comp-patched-armv8-libcpp.tgz',
-        'versionId': 'bHhGECRAQR1vkpshBcK6ByNc1BQIM8gU',
         'checksum': '14b02795d774457a33bbc60e00a786bc'
     },
     'breakpad': {
         'file': 'breakpad.tgz',
-        'versionId': '8VrYXz7oyc.QBxNia0BVJOUBvrFO61jI',
         'checksum': 'ddcb23df336b08017042ba4786db1d9e',
         'sharedLibFolder': 'lib',
         'includeLibs': {'libbreakpad_client.a'}
@@ -105,14 +92,12 @@ ANDROID_PLATFORM_PACKAGES = {
     'Darwin' : {
         'qt': {
             'file': 'qt-5.11.1_osx_armv8-libcpp_openssl_patched.tgz',
-            'versionId': 'OxBD7iKINv1HbyOXmAmDrBb8AF3N.Kup',
             'checksum': 'c83cc477c08a892e00c71764dca051a0'
         },
     },
     'Windows' : {
         'qt': {
             'file': 'qt-5.11.1_win_armv8-libcpp_openssl_patched.tgz',
-            'versionId': 'JfWM0P_Mz5Qp0LwpzhrsRwN3fqlLSFeT',
             'checksum': '0582191cc55431aa4f660848a542883e'
         },
     }

@@ -37,17 +37,6 @@ ListModel {
         return trimmedUrl;
     }
 	
-    function imageExists(imageUrl) {
-
-        var http = new XMLHttpRequest();
-
-        http.open('HEAD', imageUrl, false);
-        http.send();
-
-        return http.status !== 404;
-
-    }
-
     function makeThumbnailUrl(avatarUrl) {
         var marketId = extractMarketId(avatarUrl);
         if (marketId !== '') {
@@ -55,17 +44,18 @@ ListModel {
         }
         
         var avatarThumbnailFileUrl = trimFileExtension(avatarUrl) + ".jpg";
-        var thumbnailExist = imageExists(avatarThumbnailFileUrl);
-        
-        if (!thumbnailExist) {
-            return '';
-        }
         
         return avatarThumbnailFileUrl;
     }
 
     function makeAvatarObject(avatar, avatarName) {
-        var avatarThumbnailUrl = makeThumbnailUrl(avatar.avatarUrl);
+        var avatarThumbnailUrl;
+
+        if (!avatar.avatarIcon) {
+            avatarThumbnailUrl = makeThumbnailUrl(avatar.avatarUrl);
+        } else {
+            avatarThumbnailUrl = avatar.avatarIcon;
+        }
 
         return {
             'name' : avatarName,

@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 9/26/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -36,6 +37,7 @@
 #include "DomainContentBackupManager.h"
 
 #include "PendingAssignedNodeData.h"
+#include "DomainServerExporter.h"
 
 #include <QLoggingCategory>
 
@@ -78,6 +80,8 @@ public:
 
     bool isAssetServerEnabled();
 
+    void screensharePresence(QString roomname, QUuid avatarID, int expiration_seconds = 0);
+
 public slots:
     /// Called by NodeList to inform us a node has been added
     void nodeAdded(SharedNodePointer node);
@@ -96,6 +100,7 @@ private slots:
     void processNodeDisconnectRequestPacket(QSharedPointer<ReceivedMessage> message);
     void processICEServerHeartbeatDenialPacket(QSharedPointer<ReceivedMessage> message);
     void processICEServerHeartbeatACK(QSharedPointer<ReceivedMessage> message);
+    void processAvatarZonePresencePacket(QSharedPointer<ReceivedMessage> packet);
 
     void handleDomainContentReplacementFromURLRequest(QSharedPointer<ReceivedMessage> message);
     void handleOctreeFileReplacementRequest(QSharedPointer<ReceivedMessage> message);
@@ -112,7 +117,7 @@ private slots:
     void sendHeartbeatToIceServer();
     void nodePingMonitor();
 
-    void handleConnectedNode(SharedNodePointer newNode, quint64 requestReceiveTime); 
+    void handleConnectedNode(SharedNodePointer newNode, quint64 requestReceiveTime);
     void handleTempDomainSuccess(QNetworkReply* requestReply);
     void handleTempDomainError(QNetworkReply* requestReply);
 
@@ -129,9 +134,14 @@ private slots:
     void handleSuccessfulICEServerAddressUpdate(QNetworkReply* requestReply);
     void handleFailedICEServerAddressUpdate(QNetworkReply* requestReply);
 
+    void handleSuccessfulScreensharePresence(QNetworkReply* requestReply, QJsonObject callbackData);
+    void handleFailedScreensharePresence(QNetworkReply* requestReply);
+
     void updateReplicatedNodes();
     void updateDownstreamNodes();
     void updateUpstreamNodes();
+    void initializeExporter();
+    void initializeMetadataExporter();
 
     void tokenGrantFinished();
     void profileRequestFinished();
@@ -228,8 +238,12 @@ private:
     std::vector<QString> _replicatedUsernames;
 
     DomainGatekeeper _gatekeeper;
+    DomainServerExporter _exporter;
 
     HTTPManager _httpManager;
+    HTTPManager* _httpExporterManager { nullptr };
+    HTTPManager* _httpMetadataExporterManager { nullptr };
+    
     std::unique_ptr<HTTPSManager> _httpsManager;
 
     QHash<QUuid, SharedAssignmentPointer> _allAssignments;

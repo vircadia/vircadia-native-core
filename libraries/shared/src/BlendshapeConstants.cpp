@@ -11,7 +11,7 @@
 
 #include "BlendshapeConstants.h"
 
-const char* FACESHIFT_BLENDSHAPES[] = {
+const char* BLENDSHAPE_NAMES[] = {
     "EyeBlink_L",
     "EyeBlink_R",
     "EyeSquint_L",
@@ -76,3 +76,11 @@ const char* FACESHIFT_BLENDSHAPES[] = {
     "UserBlendshape9",
     ""
 };
+
+const QMap<QString, int> BLENDSHAPE_LOOKUP_MAP = [] {
+    QMap<QString, int> toReturn;
+    for (int i = 0; i < (int)Blendshapes::BlendshapeCount; i++) {
+        toReturn[BLENDSHAPE_NAMES[i]] = i;
+    }
+    return toReturn;
+}();

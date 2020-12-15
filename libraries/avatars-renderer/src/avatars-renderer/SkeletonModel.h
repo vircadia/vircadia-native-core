@@ -44,10 +44,10 @@ public:
     bool getIsJointOverridden(int jointIndex) const;
 
     /// Returns the index of the left hand joint, or -1 if not found.
-    int getLeftHandJointIndex() const { return isActive() ? _rig.indexOfJoint("LeftHand") : -1; }
+    int getLeftHandJointIndex() const { return isLoaded() ? _rig.indexOfJoint("LeftHand") : -1; }
 
     /// Returns the index of the right hand joint, or -1 if not found.
-    int getRightHandJointIndex() const { return isActive() ? _rig.indexOfJoint("RightHand") : -1; }
+    int getRightHandJointIndex() const { return isLoaded() ? _rig.indexOfJoint("RightHand") : -1; }
 
     bool getLeftGrabPosition(glm::vec3& position) const;
     bool getRightGrabPosition(glm::vec3& position) const;

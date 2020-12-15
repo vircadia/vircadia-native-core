@@ -30,21 +30,6 @@
  * @property {InteractiveWindow.DockArea} LEFT - Dock to the left edge of the Interface window.
  * @property {InteractiveWindow.DockArea} RIGHT - Dock to the right edge of the Interface window.
  */
-/**jsdoc
- * <p>A docking location of an <code>InteractiveWindow</code>.</p>
- * <table>
- *   <thead>
- *     <tr><th>Value</th><th>Name</th><th>Description</th></tr>
- *   </thead>
- *   <tbody>
- *     <tr><td><code>0</code></td><td>TOP</td><td>Dock to the top edge of the Interface window.</td></tr>
- *     <tr><td><code>1</code></td><td>BOTTOM</td><td>Dock to the bottom edge of the Interface window.</td></tr>
- *     <tr><td><code>2</code></td><td>LEFT</td><td>Dock to the left edge of the Interface window.</td></tr>
- *     <tr><td><code>3</code></td><td>RIGHT</td><td>Dock to the right edge of the Interface window.</td></tr>
- *   <tbody>
- * </table>
- * @typedef {number} InteractiveWindow.DockArea
- */
 static const QVariantMap DOCK_AREA {
     { "TOP", DockArea::TOP },
     { "BOTTOM", DockArea::BOTTOM },
@@ -53,13 +38,17 @@ static const QVariantMap DOCK_AREA {
 };
 
 /**jsdoc
- * The possible "relative position anchors" of an <code>InteractiveWindow</code>. Used when defining the `relativePosition` property of an `InteractiveWindow`.
+ * The possible relative position anchors of an <code>InteractiveWindow</code> relative to the Interface window.
  * @typedef {object} InteractiveWindow.RelativePositionAnchors
- * @property {InteractiveWindow.RelativePositionAnchor} NO_ANCHOR - Specifies that the position of the `InteractiveWindow` will not be relative to any part of the Interface window.
- * @property {InteractiveWindow.RelativePositionAnchor} TOP_LEFT - Specifies that the `relativePosition` of the `InteractiveWindow` will be offset from the top left of the Interface window.
- * @property {InteractiveWindow.RelativePositionAnchor} TOP_RIGHT - Specifies that the `relativePosition` of the `InteractiveWindow` will be offset from the top right of the Interface window.
- * @property {InteractiveWindow.RelativePositionAnchor} BOTTOM_RIGHT - Specifies that the `relativePosition` of the `InteractiveWindow` will be offset from the bottom right of the Interface window.
- * @property {InteractiveWindow.RelativePositionAnchor} BOTTOM_LEFT - Specifies that the `relativePosition` of the `InteractiveWindow` will be offset from the bottom left of the Interface window.
+ * @property {InteractiveWindow.RelativePositionAnchor} NO_ANCHOR - Position is not relative to any part of the Interface 
+ *     window.
+ * @property {InteractiveWindow.RelativePositionAnchor} TOP_LEFT - Position is offset from the top left of the Interface window.
+ * @property {InteractiveWindow.RelativePositionAnchor} TOP_RIGHT - Position is offset from the top right of the Interface 
+ *     window.
+ * @property {InteractiveWindow.RelativePositionAnchor} BOTTOM_RIGHT - Position offset from the bottom right of the Interface 
+ *     window.
+ * @property {InteractiveWindow.RelativePositionAnchor} BOTTOM_LEFT - Position is offset from the bottom left of the Interface 
+ *     window.
  */
 static const QVariantMap RELATIVE_POSITION_ANCHOR {
     { "NO_ANCHOR", RelativePositionAnchor::NO_ANCHOR },
@@ -88,21 +77,6 @@ int DesktopScriptingInterface::getHeight() {
  *     desktop mode or on the HUD surface in HMD mode.
  * @property {InteractiveWindow.PresentationMode} NATIVE - The window is displayed separately from the Interface window, as its 
  *     own separate window.
- */
-/**jsdoc
- * <p>A display mode for an <code>InteractiveWindow</code>.</p>
- * <table>
- *   <thead>
- *     <tr><th>Value</th><th>Name</th><th>Description</th></tr>
- *   </thead>
- *   <tbody>
- *     <tr><td><code>0</code></td><td>VIRTUAL</td><td>The window is displayed inside Interface: in the desktop window in 
- *       desktop mode or on the HUD surface in HMD mode.</td></tr>
- *     <tr><td><code>1</code></td><td>NATIVE</td><td>The window is displayed separately from the Interface window, as its 
- *     own separate window.</td></tr>
- *   <tbody>
- * </table>
- * @typedef {number} InteractiveWindow.PresentationMode
  */
 QVariantMap DesktopScriptingInterface::getPresentationMode() {
     static QVariantMap presentationModes {

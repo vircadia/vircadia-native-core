@@ -38,7 +38,6 @@ protected:
     virtual ItemKey getKey() override;
     virtual void doRender(RenderArgs* args) override;
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
-    virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
 
 private:
@@ -52,12 +51,6 @@ private:
     void updateSkyboxMap();
     void setAmbientURL(const QString& ambientUrl);
     void setSkyboxURL(const QString& skyboxUrl);
-
-    void setHazeMode(ComponentMode mode);
-    void setKeyLightMode(ComponentMode mode);
-    void setAmbientLightMode(ComponentMode mode);
-    void setSkyboxMode(ComponentMode mode);
-    void setBloomMode(ComponentMode mode);
 
     void setSkyboxColor(const glm::vec3& color);
     void setProceduralUserData(const QString& userData);

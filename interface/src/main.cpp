@@ -72,7 +72,7 @@ int main(int argc, const char* argv[]) {
     }
 
     QCommandLineParser parser;
-    parser.setApplicationDescription("High Fidelity");
+    parser.setApplicationDescription("Vircadia");
     QCommandLineOption versionOption = parser.addVersionOption();
     QCommandLineOption helpOption = parser.addHelpOption();
 
@@ -81,7 +81,7 @@ int main(int argc, const char* argv[]) {
     QCommandLineOption noUpdaterOption("no-updater", "Do not show auto-updater");
     QCommandLineOption checkMinSpecOption("checkMinSpec", "Check if machine meets minimum specifications");
     QCommandLineOption runServerOption("runServer", "Whether to run the server");
-    QCommandLineOption serverContentPathOption("serverContentPath", "Where to find server content", "serverContentPath");
+    QCommandLineOption serverContentPathOption("serverContentPath", "Where to find server content <path>", "serverContentPath");
     QCommandLineOption allowMultipleInstancesOption("allowMultipleInstances", "Allow multiple instances to run");
     QCommandLineOption overrideAppLocalDataPathOption("cache", "set test cache <dir>", "dir");
     QCommandLineOption overrideScriptsPathOption(SCRIPTS_SWITCH, "set scripts <path>", "path");
@@ -89,6 +89,7 @@ int main(int argc, const char* argv[]) {
     QCommandLineOption displayNameOption("displayName", "set user display name <string>", "string");
     QCommandLineOption setBookmarkOption("setBookmark", "set bookmark key=value pair", "string");
     QCommandLineOption defaultScriptOverrideOption("defaultScriptsOverride", "override defaultsScripts.js", "string");
+    QCommandLineOption forceCrashReportingOption("forceCrashReporting", "Force crash reporting to initialize");
 
     parser.addOption(urlOption);
     parser.addOption(noLauncherOption);
@@ -103,6 +104,7 @@ int main(int argc, const char* argv[]) {
     parser.addOption(displayNameOption);
     parser.addOption(setBookmarkOption);
     parser.addOption(defaultScriptOverrideOption);
+    parser.addOption(forceCrashReportingOption);
 
     if (!parser.parse(arguments)) {
         std::cout << parser.errorText().toStdString() << std::endl; // Avoid Qt log spam
@@ -218,11 +220,12 @@ int main(int argc, const char* argv[]) {
     }
     qDebug() << "UserActivityLogger is enabled:" << ual.isEnabled();
 
-    if (ual.isEnabled()) {
+    bool isCrashHandlerEnabled = ual.isCrashMonitorEnabled() || parser.isSet(forceCrashReportingOption);
+    qDebug() << "Crash handler logger is enabled:" << isCrashHandlerEnabled;
+    if (isCrashHandlerEnabled) {
         auto crashHandlerStarted = startCrashHandler(argv[0]);
         qDebug() << "Crash handler started:" << crashHandlerStarted;
     }
-
 
     const QString& applicationName = getInterfaceSharedMemoryName();
     bool instanceMightBeRunning = true;
@@ -379,8 +382,9 @@ int main(int argc, const char* argv[]) {
         PROFILE_SYNC_END(startup, "app full ctor", "");
 
 #if defined(Q_OS_LINUX)
-        app.setWindowIcon(QIcon(PathUtils::resourcesPath() + "images/hifi-logo.svg"));
+        app.setWindowIcon(QIcon(PathUtils::resourcesPath() + "images/vircadia-logo.svg"));
 #endif
+        startCrashHookMonitor(&app);
 
         QTimer exitTimer;
         if (traceDuration > 0.0f) {

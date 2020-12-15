@@ -3,6 +3,7 @@
 //
 //  Created by Clement on 7/18/16
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -44,6 +45,9 @@ Item {
     property bool lostFocus: false
 
     readonly property bool loginDialogPoppedUp: loginDialog.getLoginDialogPoppedUp()
+    // If not logging into domain, then we must be logging into the metaverse...
+    readonly property bool isLoggingInToDomain: loginDialog.getDomainLoginRequested()
+    readonly property string domainLoginDomain: loginDialog.getDomainLoginDomain()
 
     QtObject {
         id: d
@@ -70,7 +74,12 @@ Item {
     }
 
     function login() {
-        loginDialog.login(emailField.text, passwordField.text);
+        if (!isLoggingInToDomain) {
+            loginDialog.login(emailField.text, passwordField.text);
+        } else {
+            loginDialog.loginDomain(emailField.text, passwordField.text);
+        }
+        
         if (linkAccountBody.loginDialogPoppedUp) {
             var data;
             if (linkAccountBody.linkSteam) {
@@ -85,27 +94,39 @@ Item {
             UserActivityLogger.logAction("encourageLoginDialog", data);
         }
         bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": linkAccountBody.withSteam,
-            "withOculus": linkAccountBody.withOculus, "linkSteam": linkAccountBody.linkSteam, "linkOculus": linkAccountBody.linkOculus });
+            "withOculus": linkAccountBody.withOculus, "linkSteam": linkAccountBody.linkSteam, "linkOculus": linkAccountBody.linkOculus,
+            "displayName":displayNameField.text, "isLoggingInToDomain": linkAccountBody.isLoggingInToDomain, "domainLoginDomain": linkAccountBody.domainLoginDomain });
     }
 
     function init() {
         // going to/from sign in/up dialog.
         loginErrorMessage.text = linkAccountBody.errorString;
         loginErrorMessage.visible = (linkAccountBody.errorString  !== "");
-        if (loginErrorMessageTextMetrics.width > emailField.width) {
+        if (loginErrorMessageTextMetrics.width > displayNameField.width) {
             loginErrorMessage.wrapMode = Text.WordWrap;
-            errorContainer.height = (loginErrorMessageTextMetrics.width / emailField.width) * loginErrorMessageTextMetrics.height;
+            errorContainer.height = (loginErrorMessageTextMetrics.width / displayNameField.width) * loginErrorMessageTextMetrics.height;
         }
+        var domainLoginText = "Log In to Domain\n" + domainLoginDomain;
+        loginDialogText.text = (!isLoggingInToDomain) ? "Log In to Metaverse" : domainLoginText;
         loginButton.text = (!linkAccountBody.linkSteam && !linkAccountBody.linkOculus) ? "Log In" : "Link Account";
+        loginButton.text = (!isLoggingInToDomain) ? "Log In to Metaverse" : "Log In to Domain";
         loginButton.color = hifi.buttons.blue;
+        displayNameField.placeholderText = "Display Name (optional)";
+        var savedDisplayName = Settings.getValue("Avatar/displayName", "");
+        displayNameField.text = savedDisplayName;
         emailField.placeholderText = "Username or Email";
-        var savedUsername = Settings.getValue("keepMeLoggedIn/savedUsername", "");
-        emailField.text = keepMeLoggedInCheckbox.checked ? savedUsername === "Unknown user" ? "" : savedUsername : "";
+        if (!isLoggingInToDomain) {
+            var savedUsername = Settings.getValue("keepMeLoggedIn/savedUsername", "");
+            emailField.text = keepMeLoggedInCheckbox.checked ? savedUsername === "Unknown user" ? "" : savedUsername : "";
+        } else {
+            // ####### TODO
+        }
+
         if (linkAccountBody.linkSteam || linkAccountBody.linkOculus) {
             loginButton.width = (passwordField.width - hifi.dimensions.contentSpacing.x) / 2;
-            loginButton.anchors.right = emailField.right;
+            loginButton.anchors.right = displayNameField.right;
         } else {
-            loginButton.anchors.left = emailField.left;
+            loginButton.anchors.left = displayNameField.left;
         }
         loginContainer.visible = true;
     }
@@ -125,14 +146,14 @@ Item {
 
         Item {
             id: loginContainer
-            width: emailField.width
-            height: errorContainer.height + emailField.height + passwordField.height + 5.5 * hifi.dimensions.contentSpacing.y +
+            width: displayNameField.width
+            height: errorContainer.height + loginDialogTextContainer.height + displayNameField.height + emailField.height + passwordField.height + 5.5 * hifi.dimensions.contentSpacing.y +
                 keepMeLoggedInCheckbox.height + loginButton.height + cantAccessTextMetrics.height + continueButton.height
             anchors {
                 top: parent.top
                 topMargin: root.bannerHeight + 0.25 * parent.height
                 left: parent.left
-                leftMargin: (parent.width - emailField.width) / 2
+                leftMargin: (parent.width - displayNameField.width) / 2
             }
 
             Item {
@@ -140,9 +161,10 @@ Item {
                 width: parent.width
                 height: loginErrorMessageTextMetrics.height
                 anchors {
-                    bottom: emailField.top;
-                    bottomMargin: hifi.dimensions.contentSpacing.y;
-                    left: emailField.left;
+                    bottom: loginDialogTextContainer.top
+                    bottomMargin: hifi.dimensions.contentSpacing.y
+                    left: loginDialogTextContainer.left
+                    right: loginDialogTextContainer.right
                 }
                 TextMetrics {
                     id: loginErrorMessageTextMetrics
@@ -155,13 +177,89 @@ Item {
                     font.family: linkAccountBody.fontFamily
                     font.pixelSize: linkAccountBody.textFieldFontSize
                     font.bold: linkAccountBody.fontBold
+                    anchors {
+                        top: parent.top
+                        left: parent.left
+                        right: parent.right
+                    }
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
                     text: ""
                     visible: false
                 }
             }
+            
+            Item {
+                id: loginDialogTextContainer
+                height: 56
+                anchors {
+                    top: parent.top
+                    left: parent.left
+                    right: parent.right
+                    topMargin: 1.5 * hifi.dimensions.contentSpacing.y
+                }
+            
+                Text {
+                    id: loginDialogText
+                    text: qsTr("Log In")
+                    lineHeight: 1
+                    color: "white"
+                    anchors {
+                        top: parent.top
+                        left: parent.left
+                        right: parent.right
+                    }
+                    font.family: linkAccountBody.fontFamily
+                    font.pixelSize: 24
+                    font.bold: linkAccountBody.fontBold
+                    verticalAlignment: Text.AlignVCenter
+                    horizontalAlignment: Text.AlignHCenter
+                }
+            }
 
+            HifiControlsUit.TextField {
+                id: displayNameField
+                width: root.bannerWidth
+                height: linkAccountBody.textFieldHeight
+                font.pixelSize: linkAccountBody.textFieldFontSize
+                styleRenderType: Text.QtRendering
+                anchors {
+                    top: loginDialogTextContainer.bottom
+                    topMargin: 1.5 * hifi.dimensions.contentSpacing.y
+                }
+                placeholderText: "Display Name (optional)"
+                activeFocusOnPress: true
+                Keys.onPressed: {
+                    switch (event.key) {
+                        case Qt.Key_Tab:
+                            event.accepted = true;
+                            emailField.focus = true;
+                            break;
+                        case Qt.Key_Backtab:
+                            event.accepted = true;
+                            passwordField.focus = true;
+                            break;
+                        case Qt.Key_Enter:
+                        case Qt.Key_Return:
+                            event.accepted = true;
+                            if (keepMeLoggedInCheckbox.checked) {
+                                if (!isLoggingInToDomain) {
+                                    Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                                } else {
+                                    // ####### TODO
+                                }
+                            }
+                            linkAccountBody.login();
+                            break;
+                    }
+                }
+                onFocusChanged: {
+                    root.text = "";
+                    if (focus) {
+                        root.isPassword = false;
+                    }
+                }
+            }
             HifiControlsUit.TextField {
                 id: emailField
                 width: root.bannerWidth
@@ -169,8 +267,8 @@ Item {
                 font.pixelSize: linkAccountBody.textFieldFontSize
                 styleRenderType: Text.QtRendering
                 anchors {
-                    top: parent.top
-                    topMargin: errorContainer.height
+                    top: displayNameField.bottom
+                    topMargin: 1.5 * hifi.dimensions.contentSpacing.y
                 }
                 placeholderText: "Username or Email"
                 activeFocusOnPress: true
@@ -182,13 +280,17 @@ Item {
                             break;
                         case Qt.Key_Backtab:
                             event.accepted = true;
-                            passwordField.focus = true;
+                            displayNameField.focus = true;
                             break;
                         case Qt.Key_Enter:
                         case Qt.Key_Return:
                             event.accepted = true;
                             if (keepMeLoggedInCheckbox.checked) {
-                                Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                                if (!isLoggingInToDomain) {
+                                    Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                                } else {
+                                    // ####### TODO
+                                }
                             }
                             linkAccountBody.login();
                             break;
@@ -257,6 +359,9 @@ Item {
                 Keys.onPressed: {
                     switch (event.key) {
                         case Qt.Key_Tab:
+                            event.accepted = true;
+                            displayNameField.focus = true;
+                            break;
                         case Qt.Key_Backtab:
                             event.accepted = true;
                             emailField.focus = true;
@@ -265,7 +370,11 @@ Item {
                         case Qt.Key_Return:
                             event.accepted = true;
                             if (keepMeLoggedInCheckbox.checked) {
-                                Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                                if (!isLoggingInToDomain) {
+                                    Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                                } else {
+                                    // ####### TODO
+                                }
                             }
                             linkAccountBody.login();
                             break;
@@ -274,12 +383,13 @@ Item {
             }
             HifiControlsUit.CheckBox {
                 id: keepMeLoggedInCheckbox
-                checked: Settings.getValue("keepMeLoggedIn", false);
+                checked: !isLoggingInToDomain ? Settings.getValue("keepMeLoggedIn", false) : false;  // ####### TODO
                 text: qsTr("Keep Me Logged In");
                 boxSize: 18;
                 labelFontFamily: linkAccountBody.fontFamily
                 labelFontSize: 18;
                 color: hifi.colors.white;
+                visible: !isLoggingInToDomain
                 anchors {
                     top: passwordField.bottom;
                     topMargin: hifi.dimensions.contentSpacing.y;
@@ -287,14 +397,22 @@ Item {
                 }
                 onCheckedChanged: {
                     Settings.setValue("keepMeLoggedIn", checked);
-                    if (keepMeLoggedInCheckbox.checked) {
-                        Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                    if (!isLoggingInToDomain) {
+                        if (keepMeLoggedInCheckbox.checked) {
+                            Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+                        } else {
+                            Settings.setValue("keepMeLoggedIn/savedUsername", "");
+                        }
                     } else {
-                        Settings.setValue("keepMeLoggedIn/savedUsername", "");
+                        // ####### TODO
                     }
                 }
                 Component.onCompleted: {
-                    keepMeLoggedInCheckbox.checked = !Account.loggedIn;
+                    if (!isLoggingInToDomain) {
+                        keepMeLoggedInCheckbox.checked = !Account.loggedIn;
+                    } else {
+                        // ####### TODO
+                    }
                 }
             }
             HifiControlsUit.Button {
@@ -346,17 +464,17 @@ Item {
             HifiStylesUit.ShortcutText {
                 id: cantAccessText
                 z: 10
-                visible: !linkAccountBody.linkSteam && !linkAccountBody.linkOculus
+                visible: !linkAccountBody.linkSteam && !linkAccountBody.linkOculus && !linkAccountBody.isLoggingInToDomain
                 anchors {
                     top: loginButton.bottom
                     topMargin: hifi.dimensions.contentSpacing.y
-                    left: emailField.left
+                    left: displayNameField.left
                 }
                 font.family: linkAccountBody.fontFamily
                 font.pixelSize: linkAccountBody.textFieldFontSize
                 font.bold: linkAccountBody.fontBold
 
-                text: "<a href='metaverse.projectathena.io/users/password/new'> Can't access your account?</a>"
+                text: "<a href='https://metaverse.vircadia.com/users/password/new'> Can't access your account?</a>"
 
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
@@ -381,13 +499,13 @@ Item {
             }
             HifiControlsUit.Button {
                 id: continueButton;
-                width: emailField.width;
+                width: displayNameField.width;
                 height: d.minHeightButton
                 color: hifi.buttons.none;
                 anchors {
                     top: cantAccessText.bottom
                     topMargin: hifi.dimensions.contentSpacing.y
-                    left: emailField.left
+                    left: displayNameField.left
                 }
                 text: qsTr("CONTINUE WITH STEAM")
                 fontFamily: linkAccountBody.fontFamily
@@ -420,7 +538,8 @@ Item {
                     }
 
                     bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader,
-                        "withSteam": linkAccountBody.withSteam, "withOculus": linkAccountBody.withOculus, "linkSteam": linkAccountBody.linkSteam, "linkOculus": linkAccountBody.linkOculus });
+                        "withSteam": linkAccountBody.withSteam, "withOculus": linkAccountBody.withOculus, "linkSteam": linkAccountBody.linkSteam, "linkOculus": linkAccountBody.linkOculus,
+                        "displayName":displayNameField.text});
                 }
                 Component.onCompleted: {
                     if (linkAccountBody.linkSteam || linkAccountBody.linkOculus) {
@@ -439,15 +558,16 @@ Item {
                 }
             }
         }
+
         Item {
             id: signUpContainer
             width: loginContainer.width
             height: signUpTextMetrics.height
-            visible: !linkAccountBody.linkSteam && !linkAccountBody.linkOculus
+            visible: !linkAccountBody.linkSteam && !linkAccountBody.linkOculus && !linkAccountBody.isLoggingInToDomain
             anchors {
                 left: loginContainer.left
                 top: loginContainer.bottom
-                topMargin: 0.15 * parent.height
+                topMargin: 0.05 * parent.height
             }
             TextMetrics {
                 id: signUpTextMetrics
@@ -480,7 +600,7 @@ Item {
                      leftMargin: hifi.dimensions.contentSpacing.x
                 }
 
-                text: "<a href='metaverse.projectathena.io/users/register'>Sign Up</a>"
+                text: "<a href='https://metaverse.vircadia.com/users/register'>Sign Up</a>"
 
                 linkColor: hifi.colors.blueAccent
                 onLinkActivated: {
@@ -495,37 +615,54 @@ Item {
                         "errorString": "" });
                 }
             }
-        }
-        TextMetrics {
-            id: dismissButtonTextMetrics
-            font: loginErrorMessage.font
-            text: dismissButton.text
-        }
-        HifiControlsUit.Button {
-            id: dismissButton
-            width: dismissButtonTextMetrics.width
-            height: d.minHeightButton
-            anchors {
-                bottom: parent.bottom
-                right: parent.right
-                margins: 3 * hifi.dimensions.contentSpacing.y
-            }
-            color: hifi.buttons.noneBorderlessWhite
-            text: qsTr("No thanks, take me in-world! >")
-            fontCapitalization: Font.MixedCase
-            fontFamily: linkAccountBody.fontFamily
-            fontSize: linkAccountBody.fontSize
-            fontBold: linkAccountBody.fontBold
-            visible: loginDialog.getLoginDialogPoppedUp() && !linkAccountBody.linkSteam && !linkAccountBody.linkOculus;
-            onClicked: {
-                if (linkAccountBody.loginDialogPoppedUp) {
-                    var data = {
-                        "action": "user dismissed login screen"
-                    };
-                    UserActivityLogger.logAction("encourageLoginDialog", data);
-                    loginDialog.dismissLoginDialog();
+
+            Text {
+                id: signUpTextSecond
+                text: qsTr("or")
+                anchors {
+                    left: signUpShortcutText.right
+                    leftMargin: hifi.dimensions.contentSpacing.x
                 }
-                root.tryDestroy();
+                lineHeight: 1
+                color: "white"
+                font.family: linkAccountBody.fontFamily
+                font.pixelSize: linkAccountBody.textFieldFontSize
+                font.bold: linkAccountBody.fontBold
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+                visible: loginDialog.getLoginDialogPoppedUp() && !linkAccountBody.linkSteam && !linkAccountBody.linkOculus;
+            }
+
+            TextMetrics {
+                id: dismissButtonTextMetrics
+                font: loginErrorMessage.font
+                text: dismissButton.text
+            }
+            HifiControlsUit.Button {
+                id: dismissButton
+                width: loginButton.width
+                height: d.minHeightButton
+                anchors {
+                    top: signUpText.bottom
+                    topMargin: hifi.dimensions.contentSpacing.y
+                    left: loginButton.left
+                }
+                text: qsTr("Use without account, log in anonymously")
+                fontCapitalization: Font.MixedCase
+                fontFamily: linkAccountBody.fontFamily
+                fontSize: linkAccountBody.fontSize
+                fontBold: linkAccountBody.fontBold
+                visible: loginDialog.getLoginDialogPoppedUp() && !linkAccountBody.linkSteam && !linkAccountBody.linkOculus;
+                onClicked: {
+                    if (linkAccountBody.loginDialogPoppedUp) {
+                        var data = {
+                            "action": "user dismissed login screen"
+                        };
+                        UserActivityLogger.logAction("encourageLoginDialog", data);
+                        loginDialog.dismissLoginDialog();
+                    }
+                    root.tryDestroy();
+                }
             }
         }
     }
@@ -535,7 +672,7 @@ Item {
         onFocusEnabled: {
             if (!linkAccountBody.lostFocus) {
                 Qt.callLater(function() {
-                    emailField.forceActiveFocus();
+                    displayNameField.forceActiveFocus();
                 });
             }
         }
@@ -543,6 +680,7 @@ Item {
             linkAccountBody.lostFocus = !root.isTablet && !root.isOverlay;
             if (linkAccountBody.lostFocus) {
                 Qt.callLater(function() {
+                    displayNameField.focus = false;
                     emailField.focus = false;
                     passwordField.focus = false;
                 });
@@ -558,7 +696,7 @@ Item {
         d.resize();
         init();
         Qt.callLater(function() {
-            emailField.forceActiveFocus();
+            displayNameField.forceActiveFocus();
         });
     }
 

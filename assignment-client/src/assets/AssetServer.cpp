@@ -176,7 +176,7 @@ std::pair<AssetUtils::BakingStatus, QString> AssetServer::getAssetStatus(const A
     } else if (loaded && meta.failedLastBake) {
         return { AssetUtils::Error, meta.lastBakeErrors };
     }
-    
+
     return { AssetUtils::Pending, "" };
 }
 
@@ -199,7 +199,7 @@ void AssetServer::maybeBake(const AssetUtils::AssetPath& path, const AssetUtils:
 void AssetServer::createEmptyMetaFile(const AssetUtils::AssetHash& hash) {
     QString metaFilePath = "atp:/" + hash + "/meta.json";
     QFile metaFile { metaFilePath };
-    
+
     if (!metaFile.exists()) {
         qDebug() << "Creating metafile for " << hash;
         if (metaFile.open(QFile::WriteOnly)) {
@@ -285,7 +285,7 @@ void updateConsumedCores() {
     auto coreCount = std::thread::hardware_concurrency();
     if (isInterfaceRunning) {
         coreCount = coreCount > MIN_CORES_FOR_MULTICORE ? CPU_AFFINITY_COUNT_HIGH : CPU_AFFINITY_COUNT_LOW;
-    } 
+    }
     qCDebug(asset_server) << "Setting max consumed cores to " << coreCount;
     setMaxCores(coreCount);
 }
@@ -308,7 +308,8 @@ AssetServer::AssetServer(ReceivedMessage& message) :
 
     // Queue all requests until the Asset Server is fully setup
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListenerForTypes({ PacketType::AssetGet, PacketType::AssetGetInfo, PacketType::AssetUpload, PacketType::AssetMappingOperation }, this, "queueRequests");
+    packetReceiver.registerListenerForTypes({ PacketType::AssetGet, PacketType::AssetGetInfo, PacketType::AssetUpload, PacketType::AssetMappingOperation },
+        PacketReceiver::makeSourcedListenerReference<AssetServer>(this, &AssetServer::queueRequests));
 
 #ifdef Q_OS_WIN
     updateConsumedCores();
@@ -464,10 +465,14 @@ void AssetServer::completeSetup() {
     qCDebug(asset_server) << "Overriding temporary queuing packet handler.";
     // We're fully setup, override the request queueing handler and replay all requests
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::AssetGet, this, "handleAssetGet");
-    packetReceiver.registerListener(PacketType::AssetGetInfo, this, "handleAssetGetInfo");
-    packetReceiver.registerListener(PacketType::AssetUpload, this, "handleAssetUpload");
-    packetReceiver.registerListener(PacketType::AssetMappingOperation, this, "handleAssetMappingOperation");
+    packetReceiver.registerListener(PacketType::AssetGet,
+        PacketReceiver::makeSourcedListenerReference<AssetServer>(this, &AssetServer::handleAssetGet));
+    packetReceiver.registerListener(PacketType::AssetGetInfo,
+        PacketReceiver::makeSourcedListenerReference<AssetServer>(this, &AssetServer::handleAssetGetInfo));
+    packetReceiver.registerListener(PacketType::AssetUpload,
+        PacketReceiver::makeSourcedListenerReference<AssetServer>(this, &AssetServer::handleAssetUpload));
+    packetReceiver.registerListener(PacketType::AssetMappingOperation,
+        PacketReceiver::makeSourcedListenerReference<AssetServer>(this, &AssetServer::handleAssetMappingOperation));
 
     replayRequests();
 }
@@ -931,6 +936,9 @@ void AssetServer::sendStatsPacket() {
         connectionStats["5. Period (us)"] = stats.packetSendPeriod;
         connectionStats["6. Up (Mb/s)"] = stats.sentBytes * megabitsPerSecPerByte;
         connectionStats["7. Down (Mb/s)"] = stats.receivedBytes * megabitsPerSecPerByte;
+        connectionStats["last_heard_time_msecs"] = date.toUTC().toMSecsSinceEpoch();
+        connectionStats["last_heard_ago_msecs"] = date.msecsTo(QDateTime::currentDateTime());
+
         nodeStats["Connection Stats"] = connectionStats;
 
         using Events = udt::ConnectionStats::Stats::Event;
@@ -1147,7 +1155,7 @@ bool AssetServer::deleteMappings(const AssetUtils::AssetPathList& paths) {
                 hashesToCheckForDeletion << it->second;
 
                 qCDebug(asset_server) << "Deleted a mapping:" << path << "=>" << it->second;
-                
+
                 _fileMappings.erase(it);
             } else {
                 qCDebug(asset_server) << "Unable to delete a mapping that was not found:" << path;

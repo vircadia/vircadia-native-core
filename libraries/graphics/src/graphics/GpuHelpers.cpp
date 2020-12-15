@@ -8,6 +8,24 @@
 
 #include "GpuHelpers.h"
 
+/**jsdoc
+ * <p>The interpretation of mesh elements.</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>"points"</code></td><td>Points.</td></tr>
+ *     <tr><td><code>"lines"</code></td><td>Lines.</td></tr>
+ *     <tr><td><code>"line_strip"</code></td><td>Line strip.</td></tr>
+ *     <tr><td><code>"triangles"</code></td><td>Triangles.</td></tr>
+ *     <tr><td><code>"triangle_strip"</code></td><td>Triangle strip.</td></tr>
+ *     <tr><td><code>"quads"</code></td><td>Quads.</td></tr>
+ *     <tr><td><code>"quad_strip"</code></td><td>Quad strip.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {string} Graphics.MeshTopology
+ */
 namespace graphics {
     DebugEnums<Mesh::Topology> TOPOLOGIES{
        { Mesh::Topology::POINTS, "points" },

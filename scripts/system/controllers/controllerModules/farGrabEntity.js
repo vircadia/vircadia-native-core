@@ -12,7 +12,7 @@
    HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC,
    projectOntoEntityXYPlane, ContextOverlay, HMD, Picks, makeLaserLockInfo, makeLaserParams, AddressManager,
    getEntityParents, Selection, DISPATCHER_HOVERING_LIST, unhighlightTargetEntity, Messages, findGrabbableGroupParent,
-   worldPositionToRegistrationFrameMatrix, DISPATCHER_PROPERTIES
+   worldPositionToRegistrationFrameMatrix, DISPATCHER_PROPERTIES, handsAreTracked
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -63,7 +63,6 @@ Script.include("/~/system/libraries/controllers.js");
         this.endedGrab = 0;
         this.MIN_HAPTIC_PULSE_INTERVAL = 500; // ms
         this.disabled = false;
-        var _this = this;
         this.initialControllerRotation = Quat.IDENTITY;
         this.currentControllerRotation = Quat.IDENTITY;
         this.manipulating = false;
@@ -99,7 +98,7 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.getOffhand = function () {
             return (this.hand === RIGHT_HAND ? LEFT_HAND : RIGHT_HAND);
-        }
+        };
 
         // Activation criteria for rotating a fargrabbed entity. If we're changing the mapping, this is where to do it.
         this.shouldManipulateTarget = function (controllerData) {
@@ -406,6 +405,9 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.isReady = function (controllerData) {
             if (HMD.active) {
+                if (handsAreTracked()) {
+                    return makeRunningValues(false, [], []);
+                }
                 if (this.notPointingAtEntity(controllerData)) {
                     return makeRunningValues(false, [], []);
                 }

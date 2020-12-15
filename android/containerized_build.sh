@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -xeuo pipefail
 
-DOCKER_IMAGE_NAME="hifi_androidbuild"
+DOCKER_IMAGE_NAME="vircadia_androidbuild"
 
-docker build --build-arg BUILD_UID=`id -u` -t "${DOCKER_IMAGE_NAME}" -f docker/Dockerfile docker
+docker build --build-arg BUILD_UID=`id -u` -t "${DOCKER_IMAGE_NAME}" -f ./android/docker/Dockerfile ./android/docker
 
 # The Jenkins PR builds use VERSION_CODE, but the release builds use VERSION
 # So make sure we use VERSION_CODE consistently
@@ -17,7 +17,7 @@ test -z "$STABLE_BUILD" && export STABLE_BUILD=0
 docker run \
    --rm \
    --security-opt seccomp:unconfined \
-   -v "${WORKSPACE}":/home/jenkins/hifi \
+   -v "${WORKSPACE}":/home/gha/vircadia \
    -e RELEASE_NUMBER \
    -e RELEASE_TYPE \
    -e ANDROID_APP \
@@ -29,10 +29,11 @@ docker run \
    -e CMAKE_BACKTRACE_TOKEN \
    -e CMAKE_BACKTRACE_SYMBOLS_TOKEN \
    -e GA_TRACKING_ID \
+   -e GIT_COMMIT \
    -e OAUTH_CLIENT_SECRET \
    -e OAUTH_CLIENT_ID \
    -e OAUTH_REDIRECT_URI \
-   -e SHA7 \
+   -e GIT_COMMIT_SHORT \
    -e STABLE_BUILD \
    -e VERSION_CODE \
    "${DOCKER_IMAGE_NAME}" \

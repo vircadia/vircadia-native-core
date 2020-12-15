@@ -71,42 +71,25 @@ EntityItemProperties ZoneEntityItem::getProperties(const EntityPropertyFlags& de
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(hazeMode, getHazeMode);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(bloomMode, getBloomMode);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(avatarPriority, getAvatarPriority);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(screenshare, getScreenshare);
 
     return properties;
 }
 
-bool ZoneEntityItem::setProperties(const EntityItemProperties& properties) {
-    bool somethingChanged = false;
-    somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
-
-    if (somethingChanged) {
-        bool wantDebug = false;
-        if (wantDebug) {
-            uint64_t now = usecTimestampNow();
-            int elapsed = now - getLastEdited();
-            qCDebug(entities) << "ZoneEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
-                    "now=" << now << " getLastEdited()=" << getLastEdited();
-        }
-        setLastEdited(properties._lastEdited);
-    }
-
-    return somethingChanged;
-}
-
 bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& properties) {
-    bool somethingChanged = EntityItem::setSubClassProperties(properties); // set the properties in our base class
+    bool somethingChanged = false;
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, setShapeType);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
 
     // Contains a QString property, must be synchronized
     withWriteLock([&] {
-        _keyLightPropertiesChanged = _keyLightProperties.setProperties(properties);
-        _ambientLightPropertiesChanged = _ambientLightProperties.setProperties(properties);
-        _skyboxPropertiesChanged = _skyboxProperties.setProperties(properties);
+        _keyLightPropertiesChanged |= _keyLightProperties.setProperties(properties);
+        _ambientLightPropertiesChanged |= _ambientLightProperties.setProperties(properties);
+        _skyboxPropertiesChanged |= _skyboxProperties.setProperties(properties);
     });
-    _hazePropertiesChanged = _hazeProperties.setProperties(properties);
-    _bloomPropertiesChanged = _bloomProperties.setProperties(properties);
+    _hazePropertiesChanged |= _hazeProperties.setProperties(properties);
+    _bloomPropertiesChanged |= _bloomProperties.setProperties(properties);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(flyingAllowed, setFlyingAllowed);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ghostingAllowed, setGhostingAllowed);
@@ -118,8 +101,9 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeMode, setHazeMode);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(bloomMode, setBloomMode);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(avatarPriority, setAvatarPriority);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(screenshare, setScreenshare);
 
-    somethingChanged = somethingChanged || _keyLightPropertiesChanged || _ambientLightPropertiesChanged ||
+    somethingChanged |= _keyLightPropertiesChanged || _ambientLightPropertiesChanged ||
         _skyboxPropertiesChanged || _hazePropertiesChanged || _bloomPropertiesChanged;
 
     return somethingChanged;
@@ -141,7 +125,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
             bytesFromKeylight = _keyLightProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
                 propertyFlags, overwriteLocalData, _keyLightPropertiesChanged);
         });
-        somethingChanged = somethingChanged || _keyLightPropertiesChanged;
+        somethingChanged |= _keyLightPropertiesChanged;
         bytesRead += bytesFromKeylight;
         dataAt += bytesFromKeylight;
     }
@@ -152,7 +136,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
             bytesFromAmbientlight = _ambientLightProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
                 propertyFlags, overwriteLocalData, _ambientLightPropertiesChanged);
         });
-        somethingChanged = somethingChanged || _ambientLightPropertiesChanged;
+        somethingChanged |= _ambientLightPropertiesChanged;
         bytesRead += bytesFromAmbientlight;
         dataAt += bytesFromAmbientlight;
     }
@@ -163,7 +147,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
             bytesFromSkybox = _skyboxProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
                 propertyFlags, overwriteLocalData, _skyboxPropertiesChanged);
         });
-        somethingChanged = somethingChanged || _skyboxPropertiesChanged;
+        somethingChanged |= _skyboxPropertiesChanged;
         bytesRead += bytesFromSkybox;
         dataAt += bytesFromSkybox;
     }
@@ -171,7 +155,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     {
         int bytesFromHaze = _hazeProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
             propertyFlags, overwriteLocalData, _hazePropertiesChanged);
-        somethingChanged = somethingChanged || _hazePropertiesChanged;
+        somethingChanged |= _hazePropertiesChanged;
         bytesRead += bytesFromHaze;
         dataAt += bytesFromHaze;
     }
@@ -179,7 +163,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     {
         int bytesFromBloom = _bloomProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
             propertyFlags, overwriteLocalData, _bloomPropertiesChanged);
-        somethingChanged = somethingChanged || _bloomPropertiesChanged;
+        somethingChanged |= _bloomPropertiesChanged;
         bytesRead += bytesFromBloom;
         dataAt += bytesFromBloom;
     }
@@ -194,6 +178,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_HAZE_MODE, uint32_t, setHazeMode);
     READ_ENTITY_PROPERTY(PROP_BLOOM_MODE, uint32_t, setBloomMode);
     READ_ENTITY_PROPERTY(PROP_AVATAR_PRIORITY, uint32_t, setAvatarPriority);
+    READ_ENTITY_PROPERTY(PROP_SCREENSHARE, uint32_t, setScreenshare);
 
     return bytesRead;
 }
@@ -214,6 +199,7 @@ EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& p
     requestedProperties += PROP_GHOSTING_ALLOWED;
     requestedProperties += PROP_FILTER_URL;
     requestedProperties += PROP_AVATAR_PRIORITY;
+    requestedProperties += PROP_SCREENSHARE;
 
     requestedProperties += PROP_KEY_LIGHT_MODE;
     requestedProperties += PROP_AMBIENT_LIGHT_MODE;
@@ -260,6 +246,7 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_HAZE_MODE, (uint32_t)getHazeMode());
     APPEND_ENTITY_PROPERTY(PROP_BLOOM_MODE, (uint32_t)getBloomMode());
     APPEND_ENTITY_PROPERTY(PROP_AVATAR_PRIORITY, getAvatarPriority());
+    APPEND_ENTITY_PROPERTY(PROP_SCREENSHARE, getScreenshare());
 }
 
 void ZoneEntityItem::debugDump() const {
@@ -457,6 +444,13 @@ uint32_t ZoneEntityItem::getSkyboxMode() const {
     return _skyboxMode;
 }
 
+void ZoneEntityItem::setUserData(const QString& value) {
+    withWriteLock([&] {
+        _needsRenderUpdate |= _userData != value;
+        _userData = value;
+    });
+}
+
 void ZoneEntityItem::fetchCollisionGeometryResource() {
     QUrl hullURL(getCompoundShapeURL());
     if (hullURL.isEmpty()) {
@@ -471,9 +465,9 @@ bool ZoneEntityItem::matchesJSONFilters(const QJsonObject& jsonFilters) const {
 
     static const QString AVATAR_PRIORITY_PROPERTY = "avatarPriority";
 
-    // If set ignore only priority-inherit zones:
+    // If set match zones of interest to avatar mixer:
     if (jsonFilters.contains(AVATAR_PRIORITY_PROPERTY) && jsonFilters[AVATAR_PRIORITY_PROPERTY].toBool()
-        && _avatarPriority != COMPONENT_MODE_INHERIT) {
+        && (_avatarPriority != COMPONENT_MODE_INHERIT || _screenshare != COMPONENT_MODE_INHERIT)) {
         return true;
     }
 

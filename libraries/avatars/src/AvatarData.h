@@ -532,19 +532,22 @@ class AvatarData : public QObject, public SpatiallyNestable {
      *     size in the virtual world. <em>Read-only.</em>
      * @property {boolean} hasPriority - <code>true</code> if the avatar is in a "hero" zone, <code>false</code> if it isn't. 
      *     <em>Read-only.</em>
-     * @property {boolean} hasScriptedBlendshapes=false - Set this to true before using the {@link MyAvatar.setBlendshape} method,
-     *     after you no longer want scripted control over the blendshapes set to back to false.<br />  NOTE: this property will
-     *     automatically become true if the Controller system has valid facial blendshape actions.
-     * @property {boolean} hasProceduralBlinkFaceMovement=true - By default avatars will blink automatically by animating facial
-     *     blendshapes. Set this property to <code>false</code> to disable this automatic blinking. This can be useful if you
-     *     wish to fully control the blink facial blendshapes via the {@link MyAvatar.setBlendshape} method.
-     * @property {boolean} hasProceduralEyeFaceMovement=true - By default the avatar eye facial blendshapes will be adjusted
-     *     automatically as the eyes move. This will prevent the iris is never obscured by the upper or lower lids. Set this
-     *     property to <code>false</code> to disable this automatic movement. This can be useful if you wish to fully control
-     *     the eye blendshapes via the {@link MyAvatar.setBlendshape} method.
-     * @property {boolean} hasAudioEnabledFaceMovement=true - By default the avatar mouth blendshapes will animate based on
-     *     the microphone audio. Set this property to <code>false</code> to disable that animaiton. This can be useful if you
-     *     wish to fully control the blink facial blendshapes via the {@link MyAvatar.setBlendshape} method.
+     * @property {boolean} hasScriptedBlendshapes=false - <code>true</code> if blend shapes are controlled by scripted actions, 
+     *     otherwise <code>false</code>. Set this to <code>true</code> before using the {@link Avatar.setBlendshape} method, 
+     *     and set back to <code>false</code> after you no longer want scripted control over the blend shapes.
+     *     <p><strong>Note:</strong> This property will automatically be set to <code>true</code> if the controller system has 
+     *     valid facial blend shape actions.</p>
+     * @property {boolean} hasProceduralBlinkFaceMovement=true - <code>true</code> if avatars blink automatically by animating 
+     *     facial blend shapes, <code>false</code> if automatic blinking is disabled. Set to <code>false</code> to fully control 
+     *     the blink facial blend shapes via the {@link Avatar.setBlendshape} method.
+     * @property {boolean} hasProceduralEyeFaceMovement=true - <code>true</code> if the facial blend shapes for an avatar's eyes 
+     *     adjust automatically as the eyes move, <code>false</code> if this automatic movement is disabled. Set this property 
+     *     to <code>true</code> to prevent the iris from being obscured by the upper or lower lids. Set to <code>false</code> to
+     *     fully control the eye blend shapes via the {@link Avatar.setBlendshape} method.
+     * @property {boolean} hasAudioEnabledFaceMovement=true - <code>true</code> if the avatar's mouth blend shapes animate 
+     *     automatically based on detected microphone input, <code>false</code> if this automatic movement is disabled. Set 
+     *     this property to <code>false</code> to fully control the mouth facial blend shapes via the 
+     *     {@link Avatar.setBlendshape} method.
      */
     Q_PROPERTY(glm::vec3 position READ getWorldPosition WRITE setPositionViaScript)
     Q_PROPERTY(float scale READ getDomainLimitedScale WRITE setTargetScale)
@@ -793,7 +796,7 @@ public:
      * @param {Quat} rotation - The rotation of the joint relative to its parent.
      * @param {Vec3} translation - The translation of the joint relative to its parent, in model coordinates.
      * @example <caption>Set your avatar to it's default T-pose for a while.<br />
-     * <img alt="Avatar in T-pose" src="https://apidocs.projectathena.dev/images/t-pose.png" /></caption>
+     * <img alt="Avatar in T-pose" src="https://apidocs.vircadia.dev/images/t-pose.png" /></caption>
      * // Set all joint translations and rotations to defaults.
      * var i, length, rotation, translation;
      * for (i = 0, length = MyAvatar.getJointNames().length; i < length; i++) {
@@ -857,7 +860,7 @@ public:
 
     /**jsdoc
      * Gets the rotation of a joint relative to its parent. For information on the joint hierarchy used, see 
-     * <a href="https://docs.projectathena.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.
+     * <a href="https://docs.vircadia.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.
      * @function Avatar.getJointRotation
      * @param {number} index - The index of the joint.
      * @returns {Quat} The rotation of the joint relative to its parent.
@@ -868,7 +871,7 @@ public:
      * Gets the translation of a joint relative to its parent, in model coordinates.
      * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
      * <p>For information on the joint hierarchy used, see 
-     * <a href="https://docs.projectathena.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
+     * <a href="https://docs.vircadia.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
      * @function Avatar.getJointTranslation
      * @param {number} index - The index of the joint.
      * @returns {Vec3} The translation of the joint relative to its parent, in model coordinates.
@@ -901,7 +904,7 @@ public:
      * @param {string} name - The name of the joint.
      * @param {Quat} rotation - The rotation of the joint relative to its parent.
      * @example <caption>Set your avatar to its default T-pose then rotate its right arm.<br />
-     * <img alt="Avatar in T-pose with arm rotated" src="https://apidocs.projectathena.dev/images/armpose.png" /></caption>
+     * <img alt="Avatar in T-pose with arm rotated" src="https://apidocs.vircadia.dev/images/armpose.png" /></caption>
      * // Set all joint translations and rotations to defaults.
      * var i, length, rotation, translation;
      * for (i = 0, length = MyAvatar.getJointNames().length; i < length; i++) {
@@ -936,7 +939,7 @@ public:
      * @param {Vec3} translation - The translation of the joint relative to its parent, in model coordinates.
      * @example <caption>Stretch your avatar's neck. Depending on the avatar you are using, you will either see a gap between 
      * the head and body or you will see the neck stretched.<br />
-     * <img alt="Avatar with neck stretched" src="https://apidocs.projectathena.dev/images/stretched-neck.png" /></caption>
+     * <img alt="Avatar with neck stretched" src="https://apidocs.vircadia.dev/images/stretched-neck.png" /></caption>
      * // Stretch your avatar's neck.
      * MyAvatar.setJointTranslation("Neck", Vec3.multiply(2, MyAvatar.getJointTranslation("Neck")));
      * 
@@ -978,7 +981,7 @@ public:
 
     /**jsdoc
      * Gets the rotation of a joint relative to its parent. For information on the joint hierarchy used, see 
-     * <a href="https://docs.projectathena.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.
+     * <a href="https://docs.vircadia.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.
      * @function Avatar.getJointRotation
      * @param {string} name - The name of the joint.
      * @returns {Quat} The rotation of the joint relative to its parent.
@@ -993,7 +996,7 @@ public:
      * Gets the translation of a joint relative to its parent, in model coordinates.
      * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
      * <p>For information on the joint hierarchy used, see
-     * <a href="https://docs.projectathena.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
+     * <a href="https://docs.vircadia.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
      * @function Avatar.getJointTranslation
      * @param {number} name - The name of the joint.
      * @returns {Vec3} The translation of the joint relative to its parent, in model coordinates.
@@ -1038,7 +1041,7 @@ public:
      * @param {Quat[]} jointRotations - The rotations for all joints in the avatar. The values are in the same order as the 
      * array returned by {@link MyAvatar.getJointNames}, or {@link Avatar.getJointNames} if using the <code>Avatar</code> API.
      * @example <caption>Set your avatar to its default T-pose then rotate its right arm.<br />
-     * <img alt="Avatar in T-pose" src="https://apidocs.projectathena.dev/images/armpose.png" /></caption>
+     * <img alt="Avatar in T-pose" src="https://apidocs.vircadia.dev/images/armpose.png" /></caption>
      * // Set all joint translations and rotations to defaults.
      * var i, length, rotation, translation;
      * for (i = 0, length = MyAvatar.getJointNames().length; i < length; i++) {
@@ -1130,12 +1133,12 @@ public:
 
 
     /**jsdoc
-     * Sets the value of a blendshape to animate your avatar's face. To enable other users to see the resulting animation of 
-     * your avatar's face, set {@link Avatar.hasScriptedBlendshapes} to true while using this API and back to false when your
-     * animation is complete.
+     * Sets the value of a blend shape to animate your avatar's face. In order for other users to see the resulting animations 
+     * on your avatar's face, set <code>hasScriptedBlendshapes</code> to <code>true</code>. When you are done using this API, 
+     * set <code>hasScriptedBlendshapes</code> back to <code>false</code> when the animation is complete. 
      * @function Avatar.setBlendshape
      * @param {string} name - The name of the blendshape, per the 
-     *     {@link https://docs.projectathena.dev/create/avatars/avatar-standards.html#blendshapes Avatar Standards}.
+     *     {@link https://docs.vircadia.dev/create/avatars/avatar-standards.html#blendshapes Avatar Standards}.
      * @param {number} value - A value between <code>0.0</code> and <code>1.0</code>.
      * @example <caption>Open your avatar's mouth wide.</caption>
      * MyAvatar.hasScriptedBlendshapes = true;
@@ -1171,7 +1174,7 @@ public:
     /**jsdoc
      * @function Avatar.updateAvatarEntity
      * @param {Uuid} entityID - The entity ID.
-     * @param {Array.<byte>} entityData - Entity data.
+     * @param {ArrayBuffer} entityData - Entity data.
      * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE virtual void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData);
@@ -1179,18 +1182,18 @@ public:
     /**jsdoc
      * @function Avatar.clearAvatarEntity
      * @param {Uuid} entityID - The entity ID.
-     * @param {boolean} [requiresRemovalFromTree=true] - Requires removal from tree.
+     * @param {boolean} [requiresRemovalFromTree=true] - unused
      * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE virtual void clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree = true);
 
     /**jsdoc
-     * <p class="important">Deprecated: This method is deprecated and will be removed.</p>
-     * Use Avatar.hasScriptedBlendshapes property instead.
-     * Enables blendshapes set using {@link Avatar.setBlendshape} or {@link MyAvatar.setBlendshape} to be transmitted to other 
+     * Enables blend shapes set using {@link Avatar.setBlendshape} or {@link MyAvatar.setBlendshape} to be transmitted to other 
      * users so that they can see the animation of your avatar's face.
+     * <p class="important">Deprecated: This method is deprecated and will be removed. Use the 
+     * <code>Avatar.hasScriptedBlendshapes</code> or <code>MyAvatar.hasScriptedBlendshapes</code>  property instead.</p>
      * @function Avatar.setForceFaceTrackerConnected
-     * @param {boolean} connected - <code>true</code> to enable blendshape changes to be transmitted to other users, 
+     * @param {boolean} connected - <code>true</code> to enable blend shape changes to be transmitted to other users, 
      *     <code>false</code> to disable.
      */
     Q_INVOKABLE void setForceFaceTrackerConnected(bool connected) { setHasScriptedBlendshapes(connected); }
@@ -1271,7 +1274,7 @@ public:
      *     <code>null</code> to remove all attachments.
      * @deprecated This function is deprecated and will be removed. Use avatar entities instead.
      * @example <caption>Remove a hat attachment if your avatar is wearing it.</caption>
-     * var hatURL = "https://s3.amazonaws.com/hifi-public/tony/cowboy-hat.fbx";
+     * var hatURL = "https://apidocs.vircadia.dev/models/cowboy-hat.fbx";
      * var attachments = MyAvatar.getAttachmentData();
      *
      * for (var i = 0; i < attachments.length; i++) {
@@ -1308,7 +1311,7 @@ public:
      * @deprecated This function is deprecated and will be removed. Use avatar entities instead.
      * @example <caption>Attach a cowboy hat to your avatar's head.</caption>
      * var attachment = {
-     *     modelURL: "https://s3.amazonaws.com/hifi-public/tony/cowboy-hat.fbx",
+     *     modelURL: "https://apidocs.vircadia.dev/models/cowboy-hat.fbx",
      *     jointName: "Head",
      *     translation: {"x": 0, "y": 0.25, "z": 0},
      *     rotation: {"x": 0, "y": 0, "z": 0, "w": 1},
@@ -1387,7 +1390,11 @@ public:
     /**jsdoc
      * @comment Documented in derived classes' JSDoc because implementations are different.
      */
-    Q_INVOKABLE virtual AvatarEntityMap getAvatarEntityData() const;
+     // Get avatar entity data with all property values. Used in API.
+     Q_INVOKABLE virtual AvatarEntityMap getAvatarEntityData() const;
+
+    // Get avatar entity data with non-default property values. Used internally.
+    virtual AvatarEntityMap getAvatarEntityDataNonDefault() const;
 
     /**jsdoc
      * @comment Documented in derived classes' JSDoc because implementations are different.
@@ -1535,7 +1542,7 @@ signals:
     void sessionDisplayNameChanged();
 
     /**jsdoc
-     * Triggered when the avatar's model (i.e., <code>skeletonModelURL</code> property value) is changed.
+     * Triggered when the avatar's model (i.e., <code>skeletonModelURL</code> property value) changes.
      * @function Avatar.skeletonModelURLChanged
      * @returns {Signal}
      * @example <caption>Report when your avatar's skeleton model changes.</caption>
@@ -1957,6 +1964,7 @@ Q_DECLARE_METATYPE(RayToAvatarIntersectionResult)
 QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, const RayToAvatarIntersectionResult& results);
 void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, RayToAvatarIntersectionResult& results);
 
+// No JSDoc because it's not provided as a type to the script engine.
 class ParabolaToAvatarIntersectionResult {
 public:
     bool intersects { false };

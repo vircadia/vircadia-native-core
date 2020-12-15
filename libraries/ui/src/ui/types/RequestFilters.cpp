@@ -27,10 +27,10 @@ namespace {
 
     bool isAuthableHighFidelityURL(const QUrl& url) {
         auto metaverseServerURL = MetaverseAPI::getCurrentMetaverseServerURL();
-        static const QStringList HF_HOSTS = {
-            "highfidelity.com", "highfidelity.io",
-            metaverseServerURL.toString(), "metaverse.highfidelity.io"
+        static QStringList HF_HOSTS = {
+            metaverseServerURL.toString()
         };
+        HF_HOSTS << NetworkingConstants::IS_AUTHABLE_HOSTNAME;
         const auto& scheme = url.scheme();
         const auto& host = url.host();
 
@@ -83,9 +83,9 @@ void RequestFilters::interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info,
         }
     }
     static const QString USER_AGENT = "User-Agent";
-    const QString tokenStringMobile{ "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Mobile Safari/537.36" };
-    const QString tokenStringMetaverse{ "Chrome/48.0 (HighFidelityInterface)" };
-    const QString tokenStringLimitedCommerce{ "Chrome/48.0 (HighFidelityInterface limitedCommerce)" };
+    const QString tokenStringMobile{ NetworkingConstants::MOBILE_USER_AGENT };
+    const QString tokenStringMetaverse{ NetworkingConstants::METAVERSE_USER_AGENT };
+    const QString tokenStringLimitedCommerce{ "Chrome/48.0 (VircadiaInterface limitedCommerce)" };
 
     const QString tokenString = !isAuthable ? tokenStringMobile : (accountManager->getLimitedCommerce() ? tokenStringLimitedCommerce : tokenStringMetaverse);
     info.setHttpHeader(USER_AGENT.toLocal8Bit(), tokenString.toLocal8Bit());

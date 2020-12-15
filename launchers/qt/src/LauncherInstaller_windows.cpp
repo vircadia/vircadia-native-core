@@ -12,7 +12,7 @@
 
 #include <QStandardPaths>
 #include <QFileInfo>
-#include <QFile> 
+#include <QFile>
 #include <QDebug>
 #include <QTime>
 
@@ -253,7 +253,7 @@ void LauncherInstaller::createApplicationRegistryKeys() {
     success = insertRegistryKey(REGISTRY_PATH, "UninstallString", uninstallPath);
     success = insertRegistryKey(REGISTRY_PATH, "DisplayVersion", std::string(LAUNCHER_BUILD_VERSION));
     success = insertRegistryKey(REGISTRY_PATH, "DisplayIcon", applicationExe);
-    success = insertRegistryKey(REGISTRY_PATH, "Publisher", "High Fidelity");
+    success = insertRegistryKey(REGISTRY_PATH, "Publisher", "Vircadia");
 
     auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 

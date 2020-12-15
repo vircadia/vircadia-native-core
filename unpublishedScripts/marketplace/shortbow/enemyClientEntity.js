@@ -110,7 +110,7 @@
 						"y": 0.80860012769699097,
 						"z": -0.23394235968589783
 					},
-					"textures": "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
+					"textures": Script.getExternalPath(Script.ExternalPaths.HF_Public, "/alan/Particles/Particle-Sprite-Smoke-1.png"),
 					"type": "ParticleEffect"
                 };
 

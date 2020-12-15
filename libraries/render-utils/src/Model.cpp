@@ -226,6 +226,7 @@ void Model::updateRenderItems() {
         modelTransform.setScale(glm::vec3(1.0f));
 
         PrimitiveMode primitiveMode = self->getPrimitiveMode();
+        auto renderWithZones = self->getRenderWithZones();
         auto renderItemKeyGlobalFlags = self->getRenderItemKeyGlobalFlags();
         bool cauterized = self->isCauterized();
 
@@ -241,7 +242,8 @@ void Model::updateRenderItems() {
             bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
             transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, meshState, useDualQuaternionSkinning,
-                                                                  invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags, cauterized](ModelMeshPartPayload& data) {
+                                                                  invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags,
+                                                                  cauterized, renderWithZones](ModelMeshPartPayload& data) {
                 if (useDualQuaternionSkinning) {
                     data.updateClusterBuffer(meshState.clusterDualQuaternions);
                     data.computeAdjustedLocalBound(meshState.clusterDualQuaternions);
@@ -268,6 +270,7 @@ void Model::updateRenderItems() {
                 data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
 
                 data.setCauterized(cauterized);
+                data.setRenderWithZones(renderWithZones);
                 data.updateKey(renderItemKeyGlobalFlags);
                 data.setShapeKey(invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning);
             });
@@ -280,11 +283,6 @@ void Model::updateRenderItems() {
 void Model::setRenderItemsNeedUpdate() {
     _renderItemsNeedUpdate = true;
     emit requestRenderUpdate();
-}
-
-void Model::setPrimitiveMode(PrimitiveMode primitiveMode) {
-    _primitiveMode = primitiveMode;
-    setRenderItemsNeedUpdate();
 }
 
 void Model::reset() {
@@ -340,7 +338,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
     bool intersectedSomething = false;
 
     // if we aren't active, we can't pick yet...
-    if (!isActive()) {
+    if (!isLoaded()) {
         return intersectedSomething;
     }
 
@@ -495,7 +493,7 @@ bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, co
     bool intersectedSomething = false;
 
     // if we aren't active, we can't pick yet...
-    if (!isActive()) {
+    if (!isLoaded()) {
         return intersectedSomething;
     }
 
@@ -880,8 +878,8 @@ void Model::updateRenderItemsKey(const render::ScenePointer& scene) {
     }
     auto renderItemsKey = _renderItemKeyGlobalFlags;
     render::Transaction transaction;
-    foreach(auto item, _modelMeshRenderItemsMap.keys()) {
-        transaction.updateItem<ModelMeshPartPayload>(item, [renderItemsKey](ModelMeshPartPayload& data) {
+    for (auto itemID: _modelMeshRenderItemIDs) {
+        transaction.updateItem<ModelMeshPartPayload>(itemID, [renderItemsKey](ModelMeshPartPayload& data) {
             data.updateKey(renderItemsKey);
         });
     }
@@ -960,19 +958,72 @@ void Model::setCauterized(bool cauterized, const render::ScenePointer& scene) {
     }
 }
 
-void Model::setCullWithParent(bool cullWithParent) {
+void Model::setPrimitiveMode(PrimitiveMode primitiveMode, const render::ScenePointer& scene) {
+    if (_primitiveMode != primitiveMode) {
+        _primitiveMode = primitiveMode;
+        if (!scene) {
+            _needsFixupInScene = true;
+            return;
+        }
+
+        bool useDualQuaternionSkinning = _useDualQuaternionSkinning;
+        std::unordered_map<int, bool> shouldInvalidatePayloadShapeKeyMap;
+
+        for (auto& shape : _modelMeshRenderItemShapes) {
+            shouldInvalidatePayloadShapeKeyMap[shape.meshIndex] = shouldInvalidatePayloadShapeKey(shape.meshIndex);
+        }
+
+        render::Transaction transaction;
+
+        for (int i = 0; i < (int)_modelMeshRenderItemIDs.size(); i++) {
+            auto itemID = _modelMeshRenderItemIDs[i];
+            auto meshIndex = _modelMeshRenderItemShapes[i].meshIndex;
+            bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning] (ModelMeshPartPayload& data) {
+                data.setShapeKey(invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning);
+            });
+        }
+        scene->enqueueTransaction(transaction);
+    }
+}
+
+void Model::setCullWithParent(bool cullWithParent, const render::ScenePointer& scene) {
     if (_cullWithParent != cullWithParent) {
         _cullWithParent = cullWithParent;
+        if (!scene) {
+            _needsFixupInScene = true;
+            return;
+        }
 
         render::Transaction transaction;
         auto renderItemsKey = _renderItemKeyGlobalFlags;
-        for(auto item : _modelMeshRenderItemIDs) {
+        for (auto item : _modelMeshRenderItemIDs) {
             transaction.updateItem<ModelMeshPartPayload>(item, [cullWithParent, renderItemsKey](ModelMeshPartPayload& data) {
                 data.setCullWithParent(cullWithParent);
                 data.updateKey(renderItemsKey);
             });
         }
-        AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
+        scene->enqueueTransaction(transaction);
+    }
+}
+
+void Model::setRenderWithZones(const QVector<QUuid>& renderWithZones, const render::ScenePointer& scene) {
+    if (_renderWithZones != renderWithZones) {
+        _renderWithZones = renderWithZones;
+
+        if (!scene) {
+            _needsFixupInScene = true;
+            return;
+        }
+
+        render::Transaction transaction;
+        auto renderItemsKey = _renderItemKeyGlobalFlags;
+        for (auto item : _modelMeshRenderItemIDs) {
+            transaction.updateItem<ModelMeshPartPayload>(item, [renderWithZones, renderItemsKey](ModelMeshPartPayload& data) {
+                data.setRenderWithZones(renderWithZones);
+            });
+        }
+        scene->enqueueTransaction(transaction);
     }
 }
 
@@ -984,7 +1035,9 @@ bool Model::addToScene(const render::ScenePointer& scene,
                        render::Transaction& transaction,
                        render::Item::Status::Getters& statusGetters,
                        BlendShapeOperator modelBlendshapeOperator) {
+
     if (!_addedToScene && isLoaded()) {
+        updateGeometry();
         updateClusterMatrices();
         if (_modelMeshRenderItems.empty()) {
             createRenderItemSet();
@@ -1115,7 +1168,7 @@ void Model::renderDebugMeshBoxes(gpu::Batch& batch, bool forward) {
 }
 
 Extents Model::getBindExtents() const {
-    if (!isActive()) {
+    if (!isLoaded()) {
         return Extents();
     }
     const Extents& bindExtents = getHFMModel().bindExtents;
@@ -1129,7 +1182,7 @@ glm::vec3 Model::getNaturalDimensions() const {
 }
 
 Extents Model::getMeshExtents() const {
-    if (!isActive()) {
+    if (!isLoaded()) {
         return Extents();
     }
     const Extents& extents = getHFMModel().meshExtents;
@@ -1143,7 +1196,7 @@ Extents Model::getMeshExtents() const {
 }
 
 Extents Model::getUnscaledMeshExtents() const {
-    if (!isActive()) {
+    if (!isLoaded()) {
         return Extents();
     }
 
@@ -1175,7 +1228,7 @@ void Model::setJointTranslation(int index, bool valid, const glm::vec3& translat
 }
 
 int Model::getParentJointIndex(int jointIndex) const {
-    return (isActive() && jointIndex != -1) ? getHFMModel().joints.at(jointIndex).parentIndex : -1;
+    return (isLoaded() && jointIndex != -1) ? getHFMModel().joints.at(jointIndex).parentIndex : -1;
 }
 
 void Model::setTextures(const QVariantMap& textures) {
@@ -1276,7 +1329,7 @@ QStringList Model::getJointNames() const {
             Q_RETURN_ARG(QStringList, result));
         return result;
     }
-    return isActive() ? getHFMModel().getJointNames() : QStringList();
+    return isLoaded() ? getHFMModel().getJointNames() : QStringList();
 }
 
 void Model::setScaleToFit(bool scaleToFit, const glm::vec3& dimensions, bool forceRescale) {
@@ -1292,7 +1345,7 @@ void Model::setScaleToFit(bool scaleToFit, float largestDimension, bool forceRes
     // mesh, and so we can't do the needed calculations for scaling to fit to a single largest dimension. In this
     // case we will record that we do want to do this, but we will stick our desired single dimension into the
     // first element of the vec3 for the non-fixed aspect ration dimensions
-    if (!isActive()) {
+    if (!isLoaded()) {
         _scaleToFit = scaleToFit;
         if (scaleToFit) {
             _scaleToFitDimensions = glm::vec3(largestDimension, FAKE_DIMENSION_PLACEHOLDER, FAKE_DIMENSION_PLACEHOLDER);
@@ -1373,7 +1426,7 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
     fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
 
-    if (isActive() && fullUpdate) {
+    if (isLoaded() && fullUpdate) {
         onInvalidate();
 
         // check for scale to fit
@@ -1427,16 +1480,19 @@ void Model::updateClusterMatrices() {
         }
     }
 
+    updateBlendshapes();
+}
+
+void Model::updateBlendshapes() {
     // post the blender if we're not currently waiting for one to finish
     auto modelBlender = DependencyManager::get<ModelBlender>();
-    if (modelBlender->shouldComputeBlendshapes() && hfmModel.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
+    if (modelBlender->shouldComputeBlendshapes() && getHFMModel().hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
         modelBlender->noteRequiresBlend(getThisPointer());
     }
 }
 
 void Model::deleteGeometry() {
-    _deleteGeometryCounter++;
     _meshStates.clear();
     _rig.destroyAnimGraph();
     _blendedBlendshapeCoefficients.clear();

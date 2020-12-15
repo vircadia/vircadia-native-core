@@ -118,6 +118,7 @@ public:
     void setProxyWindow(const EntityItemID& id, QWindow* proxyWindow);
     void setCollisionSound(const EntityItemID& id, const SharedSoundPointer& sound);
     EntityItemPointer getEntity(const EntityItemID& id);
+    void deleteEntity(const EntityItemID& id) const;
     void onEntityChanged(const EntityItemID& id);
 
     // Access the workload Space
@@ -134,6 +135,9 @@ public:
     static void setRemoveMaterialFromAvatarOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> removeMaterialFromAvatarOperator) { _removeMaterialFromAvatarOperator = removeMaterialFromAvatarOperator; }
     static bool addMaterialToAvatar(const QUuid& avatarID, graphics::MaterialLayer material, const std::string& parentMaterialName);
     static bool removeMaterialFromAvatar(const QUuid& avatarID, graphics::MaterialPointer material, const std::string& parentMaterialName);
+
+    int getPrevNumEntityUpdates() const { return _prevNumEntityUpdates; }
+    int getPrevTotalNeededEntityUpdates() const { return _prevTotalNeededEntityUpdates; }
 
 signals:
     void enterEntity(const EntityItemID& entityItemID);
@@ -169,7 +173,9 @@ private:
     EntityRendererPointer renderableForEntity(const EntityItemPointer& entity) const { return renderableForEntityId(entity->getID()); }
     render::ItemID renderableIdForEntity(const EntityItemPointer& entity) const { return renderableIdForEntityId(entity->getID()); }
 
-    void resetEntitiesScriptEngine();
+    void resetPersistentEntitiesScriptEngine();
+    void resetNonPersistentEntitiesScriptEngine();
+    void setupEntityScriptEngineSignals(const ScriptEnginePointer& scriptEngine);
 
     void findBestZoneAndMaybeContainingEntities(QSet<EntityItemID>& entitiesContainingAvatar);
 
@@ -192,7 +198,8 @@ private:
     QSet<EntityItemID> _currentEntitiesInside;
 
     bool _wantScripts;
-    ScriptEnginePointer _entitiesScriptEngine;
+    ScriptEnginePointer _nonPersistentEntitiesScriptEngine; // used for domain + non-owned avatar entities, cleared on domain switch
+    ScriptEnginePointer _persistentEntitiesScriptEngine; // used for local + owned avatar entities, persists on domain switch, cleared on reload content
 
     void playEntityCollisionSound(const EntityItemPointer& entity, const Collision& collision);
 
@@ -209,8 +216,6 @@ private:
     unsigned int _mouseRayPickID;
     std::function<RayToEntityIntersectionResult(unsigned int)> _getPrevRayPickResultOperator;
     std::function<void(unsigned int, bool)> _setPrecisionPickingOperator;
-
-    bool _mouseAndPreloadSignalHandlersConnected { false };
 
     class LayeredZone {
     public:
@@ -229,7 +234,7 @@ private:
 
     class LayeredZones : public std::vector<LayeredZone> {
     public:
-        bool clearDomainAndNonOwnedZones(const QUuid& sessionUUID);
+        bool clearDomainAndNonOwnedZones();
 
         void sort() { std::sort(begin(), end(), std::less<LayeredZone>()); }
         bool equals(const LayeredZones& other) const;
@@ -248,6 +253,8 @@ private:
 
     ReadWriteLockable _changedEntitiesGuard;
     std::unordered_set<EntityItemID> _changedEntities;
+    int _prevNumEntityUpdates { 0 };
+    int _prevTotalNeededEntityUpdates { 0 };
 
     std::unordered_set<EntityRendererPointer> _renderablesToUpdate;
     std::unordered_map<EntityItemID, EntityRendererPointer> _entitiesInScene;

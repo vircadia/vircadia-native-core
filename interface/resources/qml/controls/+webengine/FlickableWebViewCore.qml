@@ -16,6 +16,7 @@ Item {
     property alias webViewCoreProfile: webViewCore.profile
     property string webViewCoreUserAgent
 
+    property bool useBackground: webViewCore.useBackground
     property string userScriptUrl: ""
     property string urlTag: "noDownload=false";
 
@@ -98,6 +99,7 @@ Item {
 
         width: parent.width
         height: parent.height
+        backgroundColor: (flick.useBackground) ? "white" : "transparent"
 
         profile: HFWebEngineProfile;
         settings.pluginsEnabled: true
@@ -137,7 +139,7 @@ Item {
             if (webViewCoreUserAgent !== undefined) {
                 webViewCore.profile.httpUserAgent = webViewCoreUserAgent
             } else {
-                webViewCore.profile.httpUserAgent += " (HighFidelityInterface)";
+                webViewCore.profile.httpUserAgent += " (VircadiaInterface)";
             }
             // Ensure the JS from the web-engine makes it to our logging
             webViewCore.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {

@@ -76,17 +76,6 @@ struct SortedTriangleSet {
     int subMeshIndex;
 };
 
-struct BlendshapeOffsetPacked {
-    glm::uvec4 packedPosNorTan;
-};
-
-struct BlendshapeOffsetUnpacked {
-    glm::vec3 positionOffset;
-    glm::vec3 normalOffset;
-    glm::vec3 tangentOffset;
-};
-
-using BlendshapeOffset = BlendshapeOffsetPacked;
 using BlendShapeOperator = std::function<void(int, const QVector<BlendshapeOffset>&, const QVector<int>&, const render::ItemIDs&)>;
 
 /// A generic 3D model displaying geometry loaded from a URL.
@@ -127,9 +116,15 @@ public:
     void setHifiRenderLayer(render::hifi::Layer layer, const render::ScenePointer& scene = nullptr);
 
     bool isCauterized() const { return _cauterized; }
-    void setCauterized(bool value, const render::ScenePointer& scene);
+    void setCauterized(bool value, const render::ScenePointer& scene = nullptr);
 
-    void setCullWithParent(bool value);
+    void setPrimitiveMode(PrimitiveMode primitiveMode, const render::ScenePointer& scene = nullptr);
+    PrimitiveMode getPrimitiveMode() const { return _primitiveMode; }
+
+    void setCullWithParent(bool value, const render::ScenePointer& scene = nullptr);
+
+    void setRenderWithZones(const QVector<QUuid>& renderWithZones, const render::ScenePointer& scene = nullptr);
+    const QVector<QUuid>& getRenderWithZones() const { return _renderWithZones; }
 
     // Access the current RenderItemKey Global Flags used by the model and applied to the render items  representing the parts of the model.
     const render::ItemKey getRenderItemKeyGlobalFlags() const;
@@ -168,9 +163,6 @@ public:
     bool isLoaded() const { return (bool)_renderGeometry && _renderGeometry->isHFMModelLoaded(); }
     bool isAddedToScene() const { return _addedToScene; }
 
-    void setPrimitiveMode(PrimitiveMode primitiveMode);
-    PrimitiveMode getPrimitiveMode() const { return _primitiveMode; }
-
     void reset();
 
     void setSnapModelToRegistrationPoint(bool snapModelToRegistrationPoint, const glm::vec3& registrationPoint);
@@ -178,6 +170,7 @@ public:
 
     virtual void simulate(float deltaTime, bool fullUpdate = true);
     virtual void updateClusterMatrices();
+    virtual void updateBlendshapes();
 
     /// Returns a reference to the shared geometry.
     const Geometry::Pointer& getGeometry() const { return _renderGeometry; }
@@ -190,10 +183,7 @@ public:
     const HFMModel& getHFMModel() const { assert(isLoaded()); return _renderGeometry->getHFMModel(); }
     const MaterialMapping& getMaterialMapping() const { assert(isLoaded()); return _renderGeometry->getMaterialMapping(); }
 
-    bool isActive() const { return isLoaded(); }
-
     bool didVisualGeometryRequestFail() const { return _visualGeometryRequestFailed; }
-    bool didCollisionGeometryRequestFail() const { return _collisionGeometryRequestFailed; }
 
     glm::mat4 getWorldToHFMMatrix() const;
 
@@ -345,7 +335,6 @@ public:
 
     const MeshState& getMeshState(int index) { return _meshStates.at(index); }
 
-    uint32_t getGeometryCounter() const { return _deleteGeometryCounter; }
     const QMap<render::ItemID, render::PayloadPointer>& getRenderItems() const { return _modelMeshRenderItemsMap; }
     BlendShapeOperator getModelBlendshapeOperator() const { return _modelBlendshapeOperator; }
 
@@ -365,6 +354,8 @@ public:
     void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
     void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
 
+    void setBlendshapeCoefficients(const QVector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
+
 public slots:
     void loadURLFinished(bool success);
 
@@ -382,7 +373,6 @@ protected:
     std::mutex _materialMappingMutex;
     void applyMaterialMapping();
 
-    void setBlendshapeCoefficients(const QVector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
 
     /// Clear the joint states
@@ -480,10 +470,7 @@ protected:
     friend class ModelMeshPartPayload;
     Rig _rig;
 
-    uint32_t _deleteGeometryCounter { 0 };
-
     bool _visualGeometryRequestFailed { false };
-    bool _collisionGeometryRequestFailed { false };
 
     bool _renderItemsNeedUpdate { false };
 
@@ -506,6 +493,7 @@ protected:
     render::ItemKey _renderItemKeyGlobalFlags;
     bool _cauterized { false };
     bool _cullWithParent { false };
+    QVector<QUuid> _renderWithZones;
 
     bool shouldInvalidatePayloadShapeKey(int meshIndex);
 

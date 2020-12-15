@@ -8,27 +8,35 @@ Vircadia is a 3D social software project seeking to incrementally bring about a 
 
 ### Releases
 
-[View Releases here](https://github.com/kasenvr/project-athena/releases/)
+[View Releases here](https://github.com/vircadia/vircadia/releases/)
 
 ### How to build the Interface
 
-[For Windows](https://github.com/kasenvr/project-athena/blob/kasen/core/BUILD_WIN.md)
+[For Windows](https://github.com/vircadia/vircadia/blob/master/BUILD_WIN.md)
 
-[For Linux](https://github.com/kasenvr/project-athena/blob/kasen/core/BUILD_LINUX.md)
+[For Mac](https://github.com/vircadia/vircadia/blob/master/BUILD_OSX.md)
 
-[For Linux - Athena Builder](https://github.com/daleglass/athena-builder)
+[For Linux](https://github.com/vircadia/vircadia/blob/master/BUILD_LINUX.md)
+
+[For Linux - Vircadia Builder](https://github.com/vircadia/vircadia-builder)
 
 ### How to deploy a Server
 
-[For Windows and Linux](https://vircadia.com/download-vircadia/#server)
+[For Windows and Linux](https://vircadia.com/deploy-a-server/)
 
 ### How to build a Server
 
-[For Linux - Athena Builder](https://github.com/daleglass/athena-builder)
+[For Linux - Vircadia Builder](https://github.com/vircadia/vircadia-builder)
+
+### How to generate an Installer
+
+[For Windows](https://github.com/vircadia/vircadia/blob/master/INSTALL.md)
+
+[For Linux - AppImage - Vircadia Builder](https://github.com/vircadia/vircadia-builder/blob/master/README.md#building-appimages)
 
 ### Boot to Metaverse: The Goal
 
-Having a place to experience adventure, a place to relax with calm breath, that's a world to live in. An engine to support infinite combinations and possibilities of worlds without censorship and interruption, that's a metaverse. Finding a way to make infinite realities our reality, that's the dream.
+Having a place to experience adventure, a place to relax with calm breath, that's a world to live in. An engine to support infinite combinations and possibilities of worlds without censorship and interruption, that's a metaverse. Finding a way to make infinite realities our reality is the dream.
 
 ### Boot to Metaverse: The Technicals
 

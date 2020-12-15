@@ -9,10 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 
-var modelURL = HIFI_PUBLIC_BUCKET + "models/entities/radio/Speakers.fbx";
-var soundURL = HIFI_PUBLIC_BUCKET + "sounds/family.stereo.raw";
+var VIRCADIA_PUBLIC_CDN = networkingConstants.PUBLIC_BUCKET_CDN_URL;
+
+var modelURL = VIRCADIA_PUBLIC_CDN + "models/entities/radio/Speakers.fbx";
+var soundURL = VIRCADIA_PUBLIC_CDN + "sounds/family.stereo.raw";
 
 var AudioRotationOffset = Quat.fromPitchYawRollDegrees(0, -90, 0);
 var audioOptions = {

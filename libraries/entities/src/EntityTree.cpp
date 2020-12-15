@@ -4,6 +4,7 @@
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -85,7 +86,7 @@ void EntityTree::eraseDomainAndNonOwnedEntities() {
     emit clearingEntities();
 
     if (_simulation) {
-        // local entities are not in the simulation, so we clear ALL
+        // local-entities are not in the simulation, so we clear ALL
         _simulation->clearEntities();
     }
 
@@ -99,14 +100,15 @@ void EntityTree::eraseDomainAndNonOwnedEntities() {
             if (element) {
                 element->cleanupDomainAndNonOwnedEntities();
             }
-
-            if (entity->isLocalEntity() || (entity->isAvatarEntity() && entity->getOwningAvatarID() == getMyAvatarSessionUUID())) {
-                savedEntities[entity->getEntityItemID()] = entity;
-            } else {
-                int32_t spaceIndex = entity->getSpaceIndex();
-                if (spaceIndex != -1) {
-                    // stale spaceIndices will be freed later
-                    _staleProxies.push_back(spaceIndex);
+            if (!getIsServer()) {
+                if (entity->isLocalEntity() || entity->isMyAvatarEntity()) {
+                    savedEntities[entity->getEntityItemID()] = entity;
+                } else {
+                    int32_t spaceIndex = entity->getSpaceIndex();
+                    if (spaceIndex != -1) {
+                        // stale spaceIndices will be freed later
+                        _staleProxies.push_back(spaceIndex);
+                    }
                 }
             }
         }
@@ -122,7 +124,7 @@ void EntityTree::eraseDomainAndNonOwnedEntities() {
 
         foreach (EntityItemWeakPointer entityItem, _needsParentFixup) {
             auto entity = entityItem.lock();
-            if (entity && (entity->isLocalEntity() || (entity->isAvatarEntity() && entity->getOwningAvatarID() == getMyAvatarSessionUUID()))) {
+            if (entity && (entity->isLocalEntity() || entity->isMyAvatarEntity())) {
                 needParentFixup.push_back(entityItem);
             }
         }
@@ -145,10 +147,12 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
             if (element) {
                 element->cleanupEntities();
             }
-            int32_t spaceIndex = entity->getSpaceIndex();
-            if (spaceIndex != -1) {
-                // assume stale spaceIndices will be freed later
-                _staleProxies.push_back(spaceIndex);
+            if (!getIsServer()) {
+                int32_t spaceIndex = entity->getSpaceIndex();
+                if (spaceIndex != -1) {
+                    // assume stale spaceIndices will be freed later
+                    _staleProxies.push_back(spaceIndex);
+                }
             }
         }
     });
@@ -534,7 +538,7 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
     return true;
 }
 
-EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties, bool isClone) {
+EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties, bool isClone, const bool isImport) {
     EntityItemProperties props = properties;
 
     auto nodeList = DependencyManager::get<NodeList>();
@@ -545,7 +549,8 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
 
     if (properties.getEntityHostType() == entity::HostType::DOMAIN && getIsClient() &&
         !nodeList->getThisNodeCanRez() && !nodeList->getThisNodeCanRezTmp() &&
-        !nodeList->getThisNodeCanRezCertified() && !nodeList->getThisNodeCanRezTmpCertified() && !_serverlessDomain && !isClone) {
+        !nodeList->getThisNodeCanRezCertified() && !nodeList->getThisNodeCanRezTmpCertified() && 
+        !_serverlessDomain && !isClone && !isImport) {
         return nullptr;
     }
 
@@ -606,61 +611,21 @@ void EntityTree::setSimulation(EntitySimulationPointer simulation) {
 }
 
 void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ignoreWarnings) {
-    EntityTreeElementPointer containingElement = getContainingElement(entityID);
-    if (!containingElement) {
-        if (!ignoreWarnings) {
-            qCWarning(entities) << "EntityTree::deleteEntity() on non-existent entityID=" << entityID;
-        }
-        return;
-    }
-
-    EntityItemPointer existingEntity = containingElement->getEntityWithEntityItemID(entityID);
-    if (!existingEntity) {
-        if (!ignoreWarnings) {
-            qCWarning(entities) << "EntityTree::deleteEntity() on non-existant entity item with entityID=" << entityID;
-        }
-        return;
-    }
-
-    if (existingEntity->getLocked() && !force) {
-        if (!ignoreWarnings) {
-            qCDebug(entities) << "ERROR! EntityTree::deleteEntity() trying to delete locked entity. entityID=" << entityID;
-        }
-        return;
-    }
-
-    cleanupCloneIDs(entityID);
-    unhookChildAvatar(entityID);
-    emit deletingEntity(entityID);
-    emit deletingEntityPointer(existingEntity.get());
-
-    // NOTE: callers must lock the tree before using this method
-    DeleteEntityOperator theOperator(getThisPointer(), entityID);
-
-    existingEntity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
-        auto descendantID = descendant->getID();
-        theOperator.addEntityIDToDeleteList(descendantID);
-        emit deletingEntity(descendantID);
-        EntityItemPointer descendantEntity = std::dynamic_pointer_cast<EntityItem>(descendant);
-        if (descendantEntity) {
-            emit deletingEntityPointer(descendantEntity.get());
-        }
-    });
-
-    recurseTreeWithOperator(&theOperator);
-    processRemovedEntities(theOperator);
-    _isDirty = true;
+    // NOTE: can be called without lock because deleteEntitiesByID() will lock
+    std::vector<EntityItemID> ids;
+    ids.push_back(entityID);
+    deleteEntitiesByID(ids, force, ignoreWarnings);
 }
 
 void EntityTree::unhookChildAvatar(const EntityItemID entityID) {
-
-    EntityItemPointer entity = findEntityByEntityItemID(entityID);
-
-    entity->forEachDescendant([&](SpatiallyNestablePointer child) {
-        if (child->getNestableType() == NestableType::Avatar) {
-            child->setParentID(nullptr);
-        }
-    });
+    if (!getIsServer()) {
+        EntityItemPointer entity = findEntityByEntityItemID(entityID);
+        entity->forEachDescendant([&](SpatiallyNestablePointer child) {
+            if (child->getNestableType() == NestableType::Avatar) {
+                child->setParentID(nullptr);
+            }
+        });
+    }
 }
 
 void EntityTree::cleanupCloneIDs(const EntityItemID& entityID) {
@@ -685,39 +650,104 @@ void EntityTree::cleanupCloneIDs(const EntityItemID& entityID) {
     }
 }
 
-void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool ignoreWarnings) {
-    // NOTE: callers must lock the tree before using this method
+void EntityTree::recursivelyFilterAndCollectForDelete(const EntityItemPointer& entity, std::vector<EntityItemPointer>& entitiesToDelete, bool force) const {
+    // tree must be read-locked before calling this method
+    //TODO: assert(treeIsLocked);
+    assert(entity);
+    if (entity->getElement() && (std::find(entitiesToDelete.begin(), entitiesToDelete.end(), entity) == entitiesToDelete.end())) {
+        // filter
+        bool allowed = force;
+        if (!allowed) {
+            bool wasChanged = false;
+            auto startFilter = usecTimestampNow();
+            EntityItemProperties dummyProperties;
+            allowed = filterProperties(entity, dummyProperties, dummyProperties, wasChanged, FilterType::Delete);
+            auto endFilter = usecTimestampNow();
+            _totalFilterTime += endFilter - startFilter;
+        }
+        if (allowed) {
+            entitiesToDelete.push_back(entity);
+            for (SpatiallyNestablePointer child : entity->getChildren()) {
+                if (child && child->getNestableType() == NestableType::Entity) {
+                    EntityItemPointer childEntity = std::static_pointer_cast<EntityItem>(child);
+                    recursivelyFilterAndCollectForDelete(childEntity, entitiesToDelete, force);
+                }
+            }
+        }
+    }
+}
+
+void EntityTree::deleteEntitiesByID(const std::vector<EntityItemID>& ids, bool force, bool ignoreWarnings) {
+    // this method has two paths:
+    // (a) entity-server: applies delete filter
+    // (b) interface-client: deletes local- and my-avatar-entities immediately, submits domainEntity deletes to the entity-server
+    if (getIsServer()) {
+        withWriteLock([&] {
+            std::vector<EntityItemPointer> entitiesToDelete;
+            entitiesToDelete.reserve(ids.size());
+            for (auto id : ids) {
+                EntityItemPointer entity;
+                {
+                    QReadLocker locker(&_entityMapLock);
+                    entity = _entityMap.value(id);
+                }
+                if (entity) {
+                    recursivelyFilterAndCollectForDelete(entity, entitiesToDelete, force);
+                }
+            }
+            if (!entitiesToDelete.empty()) {
+                deleteEntitiesByPointer(entitiesToDelete);
+            }
+        });
+    } else {
+        std::vector<EntityItemID> domainEntitiesIDs;
+        std::vector<EntityItemPointer> entitiesToDelete;
+        entitiesToDelete.reserve(ids.size());
+        QUuid sessionID = DependencyManager::get<NodeList>()->getSessionUUID();
+        withWriteLock([&] {
+            for (auto id : ids) {
+                EntityItemPointer entity;
+                {
+                    QReadLocker locker(&_entityMapLock);
+                    entity = _entityMap.value(id);
+                }
+                if (entity) {
+                    if (entity->isDomainEntity()) {
+                        // domain-entity deletes must round-trip through entity-server
+                        domainEntitiesIDs.push_back(id);
+                    } else if (force || entity->isLocalEntity() || entity->isMyAvatarEntity()) {
+                        entitiesToDelete.push_back(entity);
+                        entity->collectChildrenForDelete(entitiesToDelete, sessionID);
+                    }
+                }
+            }
+            if (!entitiesToDelete.empty()) {
+                deleteEntitiesByPointer(entitiesToDelete);
+            }
+        });
+        if (!domainEntitiesIDs.empty() && _simulation) {
+            for (auto id : domainEntitiesIDs) {
+                _simulation->queueEraseDomainEntity(id);
+            }
+        }
+    }
+}
+
+void EntityTree::deleteEntitiesByPointer(const std::vector<EntityItemPointer>& entities) {
+    // tree must be write-locked before calling this method
+    //TODO: assert(treeIsLocked);
+    // NOTE: there is no entity validation (i.e. is entity in tree?) nor snarfing of children beyond this point.
+    // Get those done BEFORE calling this method.
+    for (auto entity : entities) {
+        cleanupCloneIDs(entity->getID());
+    }
     DeleteEntityOperator theOperator(getThisPointer());
-    foreach(const EntityItemID& entityID, entityIDs) {
-        EntityTreeElementPointer containingElement = getContainingElement(entityID);
-        if (!containingElement) {
-            if (!ignoreWarnings) {
-                qCWarning(entities) << "EntityTree::deleteEntities() on non-existent entityID=" << entityID;
-            }
-            continue;
+    for (auto entity : entities) {
+        if (entity->getElement()) {
+            theOperator.addEntityToDeleteList(entity);
+            emit deletingEntity(entity->getID());
+            emit deletingEntityPointer(entity.get());
         }
-
-        EntityItemPointer existingEntity = containingElement->getEntityWithEntityItemID(entityID);
-        if (!existingEntity) {
-            if (!ignoreWarnings) {
-                qCWarning(entities) << "EntityTree::deleteEntities() on non-existent entity item with entityID=" << entityID;
-            }
-            continue;
-        }
-
-        if (existingEntity->getLocked() && !force) {
-            if (!ignoreWarnings) {
-                qCDebug(entities) << "ERROR! EntityTree::deleteEntities() trying to delete locked entity. entityID=" << entityID;
-            }
-            continue;
-        }
-
-        // tell our delete operator about this entityID
-        cleanupCloneIDs(entityID);
-        unhookChildAvatar(entityID);
-        theOperator.addEntityIDToDeleteList(entityID);
-        emit deletingEntity(entityID);
-        emit deletingEntityPointer(existingEntity.get());
     }
 
     if (!theOperator.getEntities().empty()) {
@@ -728,23 +758,11 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
 }
 
 void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator) {
+    // NOTE: assume tree already write-locked because this method only called in deleteEntitiesByPointer()
     quint64 deletedAt = usecTimestampNow();
     const RemovedEntities& entities = theOperator.getEntities();
     foreach(const EntityToDeleteDetails& details, entities) {
         EntityItemPointer theEntity = details.entity;
-
-        if (getIsServer()) {
-            QSet<EntityItemID> childrenIDs;
-            theEntity->forEachChild([&](SpatiallyNestablePointer child) {
-                if (child->getNestableType() == NestableType::Entity) {
-                    childrenIDs += child->getID();
-                }
-            });
-            deleteEntities(childrenIDs, true, true);
-        }
-
-        theEntity->die();
-
         if (getIsServer()) {
             removeCertifiedEntityOnServer(theEntity);
 
@@ -752,18 +770,24 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
             QWriteLocker recentlyDeletedEntitiesLocker(&_recentlyDeletedEntitiesLock);
             _recentlyDeletedEntityItemIDs.insert(deletedAt, theEntity->getEntityItemID());
         } else {
+            theEntity->forEachDescendant([&](SpatiallyNestablePointer child) {
+                if (child->getNestableType() == NestableType::Avatar) {
+                    child->setParentID(nullptr);
+                }
+            });
+
             // on the client side, we also remember that we deleted this entity, we don't care about the time
             trackDeletedEntity(theEntity->getEntityItemID());
-        }
 
+            int32_t spaceIndex = theEntity->getSpaceIndex();
+            if (spaceIndex != -1) {
+                // stale spaceIndices will be freed later
+                _staleProxies.push_back(spaceIndex);
+            }
+        }
         if (theEntity->isSimulated()) {
+            theEntity->die();
             _simulation->prepareEntityForDelete(theEntity);
-        }
-
-        int32_t spaceIndex = theEntity->getSpaceIndex();
-        if (spaceIndex != -1) {
-            // stale spaceIndices will be freed later
-            _staleProxies.push_back(spaceIndex);
         }
     }
 }
@@ -1370,7 +1394,7 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
 }
 
 
-bool EntityTree::filterProperties(EntityItemPointer& existingEntity, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, FilterType filterType) {
+bool EntityTree::filterProperties(const EntityItemPointer& existingEntity, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, FilterType filterType) const {
     bool accepted = true;
     auto entityEditFilters = DependencyManager::get<EntityEditFilters>();
     if (entityEditFilters) {
@@ -1424,14 +1448,17 @@ void EntityTree::addCertifiedEntityOnServer(EntityItemPointer entity) {
         entityList << entityItemID; // adds to list within hash because entityList is a reference.
         qCDebug(entities) << "Certificate ID" << certID << "belongs to" << entityItemID << "total" << entityList.size() << "entities.";
     }
-    // Delete an already-existing entity from the tree if it has the same
+    // Handle an already-existing entity from the tree if it has the same
     //     CertificateID as the entity we're trying to add.
     if (!existingEntityItemID.isNull()) {
         qCDebug(entities) << "Certificate ID" << certID << "already exists on entity with ID"
-            << existingEntityItemID << ". Deleting existing entity.";
-        withWriteLock([&] {
-            deleteEntity(existingEntityItemID, true);
-        });
+            << existingEntityItemID << ". No action will be taken to remove it.";
+        // FIXME: All certificate checking needs to be moved to its own files, 
+        // then the deletion settings need to have a toggle for domain owners 
+        // and a setting to change the verification service provider.
+        // withWriteLock([&] {
+        //     deleteEntity(existingEntityItemID, true);
+        // });
     }
 }
 
@@ -1466,7 +1493,7 @@ void EntityTree::startDynamicDomainVerificationOnServer(float minimumAgeToRemove
         networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
         networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
         QUrl requestURL = MetaverseAPI::getCurrentMetaverseServerURL();
-        requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/location");
+        requestURL.setPath(MetaverseAPI::getCurrentMetaverseServerURLPath() + "/api/v1/commerce/proof_of_purchase_status/location");
         QJsonObject request;
         request["certificate_id"] = certificateID;
         networkRequest.setUrl(requestURL);
@@ -1505,10 +1532,13 @@ void EntityTree::startDynamicDomainVerificationOnServer(float minimumAgeToRemove
                     continue;
                 }
                 qCDebug(entities) << "Entity's cert's domain ID" << jsonObject["domain_id"].toString()
-                    << "doesn't match the current Domain ID" << thisDomainID << "; deleting entity" << entityID;
-                withWriteLock([&] {
-                    deleteEntity(entityID, true);
-                });
+                    << "doesn't match the current Domain ID" << thisDomainID << ". No action will be taken to remove it: " << entityID;
+                // FIXME: All certificate checking needs to be moved to its own files, 
+                // then the deletion settings need to have a toggle for domain owners 
+                // and a setting to change the verification service provider.
+                // withWriteLock([&] {
+                //     deleteEntity(entityID, true);
+                // });
             }
             {
                 QWriteLocker entityCertificateIDMapLocker(&_entityCertificateIDMapLock);
@@ -1533,10 +1563,13 @@ void EntityTree::startChallengeOwnershipTimer(const EntityItemID& entityItemID) 
         }
     });
     connect(_challengeOwnershipTimeoutTimer, &QTimer::timeout, this, [=]() {
-        qCDebug(entities) << "Ownership challenge timed out, deleting entity" << entityItemID;
-        withWriteLock([&] {
-            deleteEntity(entityItemID, true);
-        });
+        qCDebug(entities) << "Ownership challenge timed out for entity " << entityItemID << ". No action will be taken to remove it.";
+        // FIXME: All certificate checking needs to be moved to its own files, 
+        // then the deletion settings need to have a toggle for domain owners 
+        // and a setting to change the verification service provider.
+        // withWriteLock([&] {
+        //     deleteEntity(entityItemID, true);
+        // });
         if (_challengeOwnershipTimeoutTimer) {
             _challengeOwnershipTimeoutTimer->stop();
             _challengeOwnershipTimeoutTimer->deleteLater();
@@ -1628,10 +1661,13 @@ void EntityTree::sendChallengeOwnershipPacket(const QString& certID, const QStri
     QByteArray text = computeNonce(entityItemID, ownerKey);
 
     if (text == "") {
-        qCDebug(entities) << "CRITICAL ERROR: Couldn't compute nonce. Deleting entity...";
-        withWriteLock([&] {
-            deleteEntity(entityItemID, true);
-        });
+        qCDebug(entities) << "CRITICAL ERROR: Couldn't compute nonce. No action will be taken to remove this entity.";
+        // FIXME: All certificate checking needs to be moved to its own files, 
+        // then the deletion settings need to have a toggle for domain owners 
+        // and a setting to change the verification service provider.
+        // withWriteLock([&] {
+        //     deleteEntity(entityItemID, true);
+        // });
     } else {
         qCDebug(entities) << "Challenging ownership of Cert ID" << certID;
         // 2. Send the nonce to the rezzing avatar's node
@@ -1689,7 +1725,7 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
     networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     QUrl requestURL = MetaverseAPI::getCurrentMetaverseServerURL();
-    requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/transfer");
+    requestURL.setPath(MetaverseAPI::getCurrentMetaverseServerURLPath() + "/api/v1/commerce/proof_of_purchase_status/transfer");
     QJsonObject request;
     request["certificate_id"] = certID;
     networkRequest.setUrl(requestURL);
@@ -1702,15 +1738,21 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
 
         if (networkReply->error() == QNetworkReply::NoError) {
             if (!jsonObject["invalid_reason"].toString().isEmpty()) {
-                qCDebug(entities) << "invalid_reason not empty, deleting entity" << entityItemID;
-                withWriteLock([&] {
-                    deleteEntity(entityItemID, true);
-                });
+                qCDebug(entities) << "invalid_reason not empty, no action will be taken to delete entity" << entityItemID;
+                // FIXME: All certificate checking needs to be moved to its own files, 
+                // then the deletion settings need to have a toggle for domain owners 
+                // and a setting to change the verification service provider.
+                // withWriteLock([&] {
+                //     deleteEntity(entityItemID, true);
+                // });
             } else if (jsonObject["transfer_status"].toArray().first().toString() == "failed") {
-                qCDebug(entities) << "'transfer_status' is 'failed', deleting entity" << entityItemID;
-                withWriteLock([&] {
-                    deleteEntity(entityItemID, true);
-                });
+                qCDebug(entities) << "'transfer_status' is 'failed', no action will be taken to delete entity" << entityItemID;
+                // FIXME: All certificate checking needs to be moved to its own files, 
+                // then the deletion settings need to have a toggle for domain owners 
+                // and a setting to change the verification service provider.
+                // withWriteLock([&] {
+                //     deleteEntity(entityItemID, true);
+                // });
             } else {
                 // Second, challenge ownership of the PoP cert
                 // (ignore pending status; a failure will be cleaned up during DDV)
@@ -1720,11 +1762,14 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
                     senderNode);
             }
         } else {
-            qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() << "; deleting entity" << entityItemID
+            qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() << "; no action will be taken to delete entity" << entityItemID
                 << "More info:" << jsonObject;
-            withWriteLock([&] {
-                deleteEntity(entityItemID, true);
-            });
+            // FIXME: All certificate checking needs to be moved to its own files, 
+            // then the deletion settings need to have a toggle for domain owners 
+            // and a setting to change the verification service provider.
+            // withWriteLock([&] {
+            //     deleteEntity(entityItemID, true);
+            // });
         }
 
         networkReply->deleteLater();
@@ -1750,9 +1795,9 @@ void EntityTree::processChallengeOwnershipPacket(ReceivedMessage& message, const
     }
 }
 
+// NOTE: Caller must lock the tree before calling this.
 int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
                                      const SharedNodePointer& senderNode) {
-
     if (!getIsServer()) {
         qCWarning(entities) << "EntityTree::processEditPacketData() should only be called on a server tree.";
         return 0;
@@ -1922,6 +1967,8 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                 FilterType filterType = isPhysics ? FilterType::Physics : (isAdd ? FilterType::Add : FilterType::Edit);
                 bool allowed = (!isPhysics && senderNode->isAllowedEditor()) || filterProperties(existingEntity, properties, properties, wasChanged, filterType);
                 if (!allowed) {
+                    // the update failed and we need to convey that fact to the sender
+                    // our method is to re-assert the current properties and bump the lastEdited timestamp
                     auto timestamp = properties.getLastEdited();
                     properties = EntityItemProperties();
                     properties.setLastEdited(timestamp);
@@ -2188,15 +2235,24 @@ void EntityTree::fixupNeedsParentFixups() {
             }
 
             entity->postParentFixup();
-        } else if (getIsServer() || _avatarIDs.contains(entity->getParentID())) {
-            // this is a child of an avatar, which the entity server will never have
-            // a SpatiallyNestable object for.  Add it to a list for cleanup when the avatar leaves.
-            if (!_childrenOfAvatars.contains(entity->getParentID())) {
-                _childrenOfAvatars[entity->getParentID()] = QSet<EntityItemID>();
+        } else {
+            bool needsUpdate = getIsServer();
+            if (!needsUpdate) {
+                std::lock_guard<std::mutex> lock(_avatarIDsLock);
+                needsUpdate = _avatarIDs.contains(entity->getParentID());
             }
-            _childrenOfAvatars[entity->getParentID()] += entity->getEntityItemID();
-            doMove = true;
-            iter.remove(); // and pull it out of the list
+
+            if (needsUpdate) {
+                std::lock_guard<std::mutex> lock(_childrenOfAvatarsLock);
+                // this is a child of an avatar, which the entity server will never have
+                // a SpatiallyNestable object for.  Add it to a list for cleanup when the avatar leaves.
+                if (!_childrenOfAvatars.contains(entity->getParentID())) {
+                    _childrenOfAvatars[entity->getParentID()] = QSet<EntityItemID>();
+                }
+                _childrenOfAvatars[entity->getParentID()] += entity->getEntityItemID();
+                doMove = true;
+                iter.remove(); // and pull it out of the list
+            }
         }
 
         if (queryAACubeSuccess && doMove) {
@@ -2216,17 +2272,40 @@ void EntityTree::fixupNeedsParentFixups() {
     }
 }
 
-void EntityTree::deleteDescendantsOfAvatar(QUuid avatarID) {
-    if (_childrenOfAvatars.contains(avatarID)) {
-        deleteEntities(_childrenOfAvatars[avatarID]);
-        _childrenOfAvatars.remove(avatarID);
+void EntityTree::knowAvatarID(const QUuid& avatarID) {
+    std::lock_guard<std::mutex> lock(_avatarIDsLock);
+    _avatarIDs += avatarID;
+}
+
+void EntityTree::forgetAvatarID(const QUuid& avatarID) {
+    std::lock_guard<std::mutex> lock(_avatarIDsLock);
+    _avatarIDs -= avatarID;
+}
+
+void EntityTree::deleteDescendantsOfAvatar(const QUuid& avatarID) {
+    std::lock_guard<std::mutex> lock(_childrenOfAvatarsLock);
+    auto itr = _childrenOfAvatars.find(avatarID);
+    if (itr != _childrenOfAvatars.end()) {
+        if (!itr.value().empty()) {
+            std::vector<EntityItemID> ids;
+            ids.reserve(itr.value().size());
+            for (const auto id : itr.value()) {
+                ids.push_back(id);
+            }
+            bool force = true;
+            bool ignoreWarnings = true;
+            deleteEntitiesByID(ids, force, ignoreWarnings);
+        }
+        _childrenOfAvatars.erase(itr);
     }
 }
 
 void EntityTree::removeFromChildrenOfAvatars(EntityItemPointer entity) {
     QUuid avatarID = entity->getParentID();
-    if (_childrenOfAvatars.contains(avatarID)) {
-        _childrenOfAvatars[avatarID].remove(entity->getID());
+    std::lock_guard<std::mutex> lock(_childrenOfAvatarsLock);
+    auto itr = _childrenOfAvatars.find(avatarID);
+    if (itr != _childrenOfAvatars.end()) {
+        itr.value().remove(entity->getID());
     }
 }
 
@@ -2250,22 +2329,6 @@ void EntityTree::update(bool simulate) {
     if (simulate && _simulation) {
         withWriteLock([&] {
             _simulation->updateEntities();
-            {
-                PROFILE_RANGE(simulation_physics, "Deletes");
-                SetOfEntities deadEntities;
-                _simulation->takeDeadEntities(deadEntities);
-                if (!deadEntities.empty()) {
-                    // translate into list of ID's
-                    QSet<EntityItemID> idsToDelete;
-
-                    for (auto entity : deadEntities) {
-                        idsToDelete.insert(entity->getEntityItemID());
-                    }
-
-                    // delete these things the roundabout way
-                    deleteEntities(idsToDelete, true);
-                }
-            }
         });
     }
 }
@@ -2354,9 +2417,13 @@ bool EntityTree::shouldEraseEntity(EntityItemID entityID, const SharedNodePointe
     return allowed;
 }
 
-
-// TODO: consider consolidating processEraseMessageDetails() and processEraseMessage()
 int EntityTree::processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
+    // NOTE: this is only called by the interface-client on receipt of deleteEntity message from entity-server.
+    // Which means this is a state synchronization message from the the entity-server.  It is saying
+    // "The following domain-entities have already been deleted". While need to perform sanity checking
+    // (e.g. verify these are domain entities) permissions need NOT checked for the domain-entities.
+    assert(!getIsServer());
+    // TODO: remove this stuff out of EntityTree:: and into interface-client code.
     #ifdef EXTRA_ERASE_DEBUGGING
         qCDebug(entities) << "EntityTree::processEraseMessage()";
     #endif
@@ -2367,10 +2434,9 @@ int EntityTree::processEraseMessage(ReceivedMessage& message, const SharedNodePo
         message.readPrimitive(&numberOfIDs);
 
         if (numberOfIDs > 0) {
-            QSet<EntityItemID> entityItemIDsToDelete;
+            QSet<EntityItemID> idsToDelete;
 
             for (size_t i = 0; i < numberOfIDs; i++) {
-
                 if (NUM_BYTES_RFC4122_UUID > message.getBytesLeftToRead()) {
                     qCDebug(entities) << "EntityTree::processEraseMessage().... bailing because not enough bytes in buffer";
                     break; // bail to prevent buffer overflow
@@ -2382,64 +2448,87 @@ int EntityTree::processEraseMessage(ReceivedMessage& message, const SharedNodePo
                 #endif
 
                 EntityItemID entityItemID(entityID);
+                idsToDelete << entityItemID;
+            }
 
-                if (shouldEraseEntity(entityID, sourceNode)) {
-                    entityItemIDsToDelete << entityItemID;
-                    cleanupCloneIDs(entityItemID);
+            // domain-entity deletion can trigger deletion of other entities the entity-server doesn't know about
+            // so we must recurse down the children and collect consequential deletes however
+            // we must first identify all domain-entities in idsToDelete so as to not overstep entity-server's authority
+            std::vector<EntityItemPointer> domainEntities;
+            domainEntities.reserve(idsToDelete.size());
+            for (auto id : idsToDelete) {
+                EntityItemPointer entity = _entityMap.value(id);
+                if (entity && entity->isDomainEntity()) {
+                    domainEntities.push_back(entity);
                 }
             }
-            deleteEntities(entityItemIDsToDelete, true, true);
+            // now we recurse domain-entities children and snarf consequential entities
+            // which are nomally just local-entities and myAvatar-entities
+            auto nodeList = DependencyManager::get<NodeList>();
+            QUuid sessionID = nodeList->getSessionUUID();
+            // NOTE: normally a null sessionID would be bad, as that would cause the collectDhildrenForDelete() method below
+            // to snarf domain-entities for which the interface-client is not authorized to delete without explicit instructions
+            // from the entity-server, however it is ok here because that would mean:
+            // (a) interface-client is not connected to a domain which means...
+            // (b) we should never get here (since this would correspond to a message from the entity-server) but...
+            // (c) who cares? When not connected to a domain the interface-client can do whatever it wants.
+            std::vector<EntityItemPointer> entitiesToDelete;
+            entitiesToDelete.reserve(domainEntities.size());
+            for (auto entity : domainEntities) {
+                entitiesToDelete.push_back(entity);
+                entity->collectChildrenForDelete(entitiesToDelete, sessionID);
+            }
+
+            if (!entitiesToDelete.empty()) {
+                deleteEntitiesByPointer(entitiesToDelete);
+            }
         }
     });
     return message.getPosition();
 }
 
 // This version skips over the header
-// NOTE: Caller must lock the tree before calling this.
-// TODO: consider consolidating processEraseMessageDetails() and processEraseMessage()
+// NOTE: Caller must write-lock the tree before calling this.
 int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
+    // NOTE: this is called on entity-server when receiving a delete request from an interface-client or agent
+    //TODO: assert(treeIsLocked);
+    assert(getIsServer());
     #ifdef EXTRA_ERASE_DEBUGGING
         qCDebug(entities) << "EntityTree::processEraseMessageDetails()";
     #endif
-    const unsigned char* packetData = (const unsigned char*)dataByteArray.constData();
-    const unsigned char* dataAt = packetData;
     size_t packetLength = dataByteArray.size();
     size_t processedBytes = 0;
 
     uint16_t numberOfIds = 0; // placeholder for now
-    memcpy(&numberOfIds, dataAt, sizeof(numberOfIds));
-    dataAt += sizeof(numberOfIds);
+    memcpy(&numberOfIds, dataByteArray.constData(), sizeof(numberOfIds));
     processedBytes += sizeof(numberOfIds);
 
     if (numberOfIds > 0) {
-        QSet<EntityItemID> entityItemIDsToDelete;
+        std::vector<EntityItemID> ids;
+        ids.reserve(numberOfIds);
 
+        // extract ids from packet
         for (size_t i = 0; i < numberOfIds; i++) {
-
-
             if (processedBytes + NUM_BYTES_RFC4122_UUID > packetLength) {
                 qCDebug(entities) << "EntityTree::processEraseMessageDetails().... bailing because not enough bytes in buffer";
                 break; // bail to prevent buffer overflow
             }
 
             QByteArray encodedID = dataByteArray.mid((int)processedBytes, NUM_BYTES_RFC4122_UUID);
-            QUuid entityID = QUuid::fromRfc4122(encodedID);
-            dataAt += encodedID.size();
+            QUuid id = QUuid::fromRfc4122(encodedID);
             processedBytes += encodedID.size();
 
             #ifdef EXTRA_ERASE_DEBUGGING
-                qCDebug(entities) << "    ---- EntityTree::processEraseMessageDetails() contains id:" << entityID;
+                qCDebug(entities) << "    ---- EntityTree::processEraseMessageDetails() contains id:" << id;
             #endif
 
-            EntityItemID entityItemID(entityID);
-
-            if (shouldEraseEntity(entityID, sourceNode)) {
-                entityItemIDsToDelete << entityItemID;
-                cleanupCloneIDs(entityItemID);
-            }
-
+            EntityItemID entityID(id);
+            ids.push_back(entityID);
         }
-        deleteEntities(entityItemIDsToDelete, true, true);
+
+        bool force = sourceNode->isAllowedEditor();
+        bool ignoreWarnings = true;
+        deleteEntitiesByID(ids, force, ignoreWarnings);
     }
     return (int)processedBytes;
 }
@@ -2592,11 +2681,12 @@ QByteArray EntityTree::remapActionDataIDs(QByteArray actionData, QHash<EntityIte
 }
 
 QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSender, EntityTreePointer localTree,
-                                               float x, float y, float z) {
+                                               const QString& entityHostType, float x, float y, float z) {
     SendEntitiesOperationArgs args;
     args.ourTree = this;
     args.otherTree = localTree;
     args.root = glm::vec3(x, y, z);
+    args.entityHostType = entityHostType;
     // If this is called repeatedly (e.g., multiple pastes with the same data), the new elements will clash unless we
     // use new identifiers.  We need to keep a map so that we can map parent identifiers correctly.
     QHash<EntityItemID, EntityItemID> map;
@@ -2686,6 +2776,11 @@ bool EntityTree::sendEntitiesOperation(const OctreeElementPointer& element, void
         EntityItemID newID = getMapped(oldID);
         EntityItemProperties properties = item->getProperties();
 
+        properties.setEntityHostTypeFromString(args->entityHostType);
+        if (properties.getEntityHostType() == entity::HostType::AVATAR) {
+            properties.setOwningAvatarID(AVATAR_SELF_ID);
+        }
+
         EntityItemID oldParentID = properties.getParentID();
         if (oldParentID.isInvalidID()) {  // no parent
             properties.setPosition(properties.getPosition() + args->root);
@@ -2697,6 +2792,17 @@ bool EntityTree::sendEntitiesOperation(const OctreeElementPointer& element, void
             } else { // Should not happen, but let's try to be helpful...
                 item->globalizeProperties(properties, "Cannot find %3 parent of %2 %1", args->root);
             }
+        }
+
+        QVector<QUuid> oldRenderWithZones = properties.getRenderWithZones();
+        if (!oldRenderWithZones.isEmpty()) {
+            QVector<QUuid> newRenderWithZones;
+            for (QUuid oldRenderWithZoneID : oldRenderWithZones) {
+                if (args->ourTree->findEntityByEntityItemID(oldRenderWithZoneID)) {
+                    newRenderWithZones.append(getMapped(oldRenderWithZoneID));
+                }
+            }
+            properties.setRenderWithZones(newRenderWithZones);
         }
 
         properties.setXNNeighborID(getMapped(properties.getXNNeighborID()));
@@ -2861,7 +2967,7 @@ void convertGrabUserDataToProperties(EntityItemProperties& properties) {
 }
 
 
-bool EntityTree::readFromMap(QVariantMap& map) {
+bool EntityTree::readFromMap(QVariantMap& map, const bool isImport) {
     // These are needed to deal with older content (before adding inheritance modes)
     int contentVersion = map["Version"].toInt();
 
@@ -3031,7 +3137,7 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             }
         }
 
-        EntityItemPointer entity = addEntity(entityItemID, properties);
+        EntityItemPointer entity = addEntity(entityItemID, properties, isImport);
         if (!entity) {
             qCDebug(entities) << "adding Entity failed:" << entityItemID << properties.getType();
             success = false;
@@ -3150,21 +3256,30 @@ glm::vec3 EntityTree::getUnscaledDimensionsForID(const QUuid& id) {
     return glm::vec3(1.0f);
 }
 
-void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,
+AACube EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,
                                                MovingEntitiesOperator& moveOperator, bool force, bool tellServer) {
+    glm::vec3 min(FLT_MAX);
+    glm::vec3 max(-FLT_MAX);
+
     // if the queryBox has changed, tell the entity-server
     EntityItemPointer entity = std::dynamic_pointer_cast<EntityItem>(object);
     if (entity) {
         bool queryAACubeChanged = false;
         if (!entity->hasChildren()) {
-            // updateQueryAACube will also update all ancestors' AACubes, so we only need to call this for leaf nodes
-            queryAACubeChanged = entity->updateQueryAACube();
+            queryAACubeChanged = entity->updateQueryAACube(false);
+            AACube entityAACube = entity->getQueryAACube();
+            min = glm::min(min, entityAACube.getMinimumPoint());
+            max = glm::max(max, entityAACube.getMaximumPoint());
         } else {
-            AACube oldCube = entity->getQueryAACube();
             object->forEachChild([&](SpatiallyNestablePointer descendant) {
-                updateEntityQueryAACubeWorker(descendant, packetSender, moveOperator, force, tellServer);
+                AACube entityAACube = updateEntityQueryAACubeWorker(descendant, packetSender, moveOperator, force, tellServer);
+                min = glm::min(min, entityAACube.getMinimumPoint());
+                max = glm::max(max, entityAACube.getMaximumPoint());
             });
-            queryAACubeChanged = oldCube != entity->getQueryAACube();
+            queryAACubeChanged = entity->updateQueryAACubeWithDescendantAACube(AACube(Extents(min, max)), false);
+            AACube newCube = entity->getQueryAACube();
+            min = glm::min(min, newCube.getMinimumPoint());
+            max = glm::max(max, newCube.getMaximumPoint());
         }
 
         if (queryAACubeChanged || force) {
@@ -3173,9 +3288,10 @@ void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, 
             if (success) {
                 moveOperator.addEntityToMoveList(entity, newCube);
             }
-            // send an edit packet to update the entity-server about the queryAABox.  We do this for domain-hosted
-            // entities as well as for avatar-entities; the packet-sender will route the update accordingly
-            if (tellServer && packetSender && (entity->isDomainEntity() || entity->isAvatarEntity())) {
+            // send an edit packet to update the entity-server about the queryAABox.  We only do this for domain-hosted
+            // entities, as we don't want to flood the update pipeline with AvatarEntity updates, so we assume
+            // others have all info required to properly update queryAACube of AvatarEntities on their end
+            if (tellServer && packetSender && entity->isDomainEntity()) {
                 quint64 now = usecTimestampNow();
                 EntityItemProperties properties = entity->getProperties();
                 properties.setQueryAACubeDirty();
@@ -3190,7 +3306,16 @@ void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, 
             entity->markDirtyFlags(Simulation::DIRTY_POSITION);
             entityChanged(entity);
         }
+    } else {
+        // if we're called on a non-entity, we might still have entity descendants
+        object->forEachChild([&](SpatiallyNestablePointer descendant) {
+            AACube entityAACube = updateEntityQueryAACubeWorker(descendant, packetSender, moveOperator, force, tellServer);
+            min = glm::min(min, entityAACube.getMinimumPoint());
+            max = glm::max(max, entityAACube.getMaximumPoint());
+        });
     }
+
+    return AACube(Extents(min, max));
 }
 
 void EntityTree::updateEntityQueryAACube(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,

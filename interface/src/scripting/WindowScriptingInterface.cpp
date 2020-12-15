@@ -29,6 +29,7 @@
 #include "Menu.h"
 #include "OffscreenUi.h"
 #include "commerce/QmlCommerce.h"
+#include "NetworkingConstants.h"
 
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 static const QString LAST_BROWSE_LOCATION_SETTING = "LastBrowseLocation";
@@ -411,6 +412,10 @@ QString WindowScriptingInterface::checkVersion() {
     return QCoreApplication::applicationVersion();
 }
 
+QString WindowScriptingInterface::getUserAgent() {
+    return NetworkingConstants::VIRCADIA_USER_AGENT;
+}
+
 QString WindowScriptingInterface::protocolSignature() {
     return protocolVersionsSignatureBase64();
 }
@@ -640,12 +645,16 @@ void WindowScriptingInterface::setActiveDisplayPlugin(int index) {
     qApp->setActiveDisplayPlugin(name);
 }
 
-void WindowScriptingInterface::openWebBrowser() {
+void WindowScriptingInterface::openWebBrowser(const QString& url) {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "openWebBrowser", Qt::QueuedConnection);
+        QMetaObject::invokeMethod(this, "openWebBrowser", Q_ARG(const QString&, url));
         return;
     }
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->load("Browser.qml");
+    offscreenUi->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
+        if (!url.isEmpty()) {
+            newObject->setProperty("url", url);
+        }
+    });
 }

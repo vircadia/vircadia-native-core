@@ -74,6 +74,7 @@ void RenderFetchCullSortTask::build(JobModel& task, const Varying& input, Varyin
     const auto filteredLayeredOpaque = task.addJob<FilterLayeredItems>("FilterLayeredOpaque", layeredOpaques, ItemKey::Layer::LAYER_1);
     const auto filteredLayeredTransparent = task.addJob<FilterLayeredItems>("FilterLayeredTransparent", layeredTransparents, ItemKey::Layer::LAYER_1);
 
+    task.addJob<ClearContainingZones>("ClearContainingZones");
 
     output = Output(BucketList{ opaques, transparents, lights, metas,
                     filteredLayeredOpaque.getN<FilterLayeredItems::Outputs>(0), filteredLayeredTransparent.getN<FilterLayeredItems::Outputs>(0),

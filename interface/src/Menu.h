@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 8/12/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -54,9 +55,10 @@ namespace MenuOption {
     const QString BookmarkAvatarEntities = "Bookmark Avatar Entities";
     const QString BookmarkLocation = "Bookmark Location";
     const QString CalibrateCamera = "Calibrate Camera";
+    const QString CachebustRequire = "Enable Cachebusting of Script.require";
     const QString CenterPlayerInView = "Center Player In View";
     const QString Chat = "Chat...";
-    const QString ClearDiskCache = "Clear Disk Cache";
+    const QString ClearDiskCaches = "Clear Disk Caches (requires restart)";
     const QString Collisions = "Collisions";
     const QString Connexion = "Activate 3D Connexion Devices";
     const QString Console = "Console...";
@@ -77,6 +79,8 @@ namespace MenuOption {
     const QString CrashOutOfBoundsVectorAccessThreaded = "Out of Bounds Vector Access (threaded)";
     const QString CrashNewFault = "New Fault";
     const QString CrashNewFaultThreaded = "New Fault (threaded)";
+    const QString CrashThrownException = "Thrown C++ exception";
+    const QString CrashThrownExceptionThreaded = "Thrown C++ exception (threaded)";
     const QString CreateEntitiesGrabbable = "Create Entities As Grabbable (except Zones, Particles, and Lights)";
     const QString DeadlockInterface = "Deadlock Interface";
     const QString UnresponsiveInterface = "Unresponsive Interface";
@@ -86,6 +90,7 @@ namespace MenuOption {
     const QString DeleteAvatarEntitiesBookmark = "Delete Avatar Entities Bookmark";
     const QString DeleteBookmark = "Delete Bookmark...";
     const QString DisableActivityLogger = "Disable Activity Logger";
+    const QString DisableCrashLogger = "Disable Crash Reporter";
     const QString DisableEyelidAdjustment = "Disable Eyelid Adjustment";
     const QString DisableLightEntities = "Disable Light Entities";
     const QString DisplayCrashOptions = "Display Crash Options";
@@ -118,7 +123,6 @@ namespace MenuOption {
     const QString FixGaze = "Fix Gaze (no saccade)";
     const QString Forward = "Forward";
     const QString FrameTimer = "Show Timer";
-    const QString FullscreenMirror = "Mirror";
     const QString Help = "Help...";
     const QString HomeLocation = "Home ";
     const QString IncreaseAvatarSize = "Increase Avatar Size";

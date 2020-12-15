@@ -30,7 +30,6 @@ protected:
 
 private:
     virtual bool needsRenderUpdate() const override;
-    virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
     virtual void doRender(RenderArgs* args) override;
@@ -45,7 +44,7 @@ private:
     PulsePropertyGroup _pulseProperties;
     std::shared_ptr<graphics::ProceduralMaterial> _material { std::make_shared<graphics::ProceduralMaterial>() };
     glm::vec3 _color { NAN };
-    float _alpha;
+    float _alpha { NAN };
 
     glm::vec3 _position;
     glm::vec3 _dimensions;

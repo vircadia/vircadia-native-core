@@ -24,7 +24,7 @@
 #include "ModelPropertiesDialog.h"
 #include "InterfaceLogging.h"
 
-static const int MAX_TEXTURE_SIZE = 1024;
+static const int MAX_TEXTURE_SIZE = 8192;
 
 void copyDirectoryContent(QDir& from, QDir& to) {
     for (auto entry : from.entryInfoList(QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot |
@@ -296,7 +296,7 @@ void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename
     mapping.insert(JOINT_FIELD, joints);
     
     // If there are no blendshape mappings, and we detect that this is likely a mixamo file,
-    // then we can add the default mixamo to "faceshift" mappings
+    // then we can add the default mixamo to blendshape mappings.
     if (!mapping.contains(BLENDSHAPE_FIELD) && likelyMixamoFile) {
         QVariantHash blendshapes;
         blendshapes.insertMulti("BrowsD_L", QVariantList() << "BrowsDown_Left" << 1.0);

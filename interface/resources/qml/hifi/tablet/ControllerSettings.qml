@@ -1,6 +1,7 @@
 //
 //  Created by Dante Ruiz on 6/1/17.
 //  Copyright 2017 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -26,6 +27,7 @@ Item {
     width: parent.width
 
     property string title: "Controls"
+    property var openVRDevices: ["HTC Vive", "Valve Index", "Valve HMD", "Valve"]
 
     HifiConstants { id: hifi }
 
@@ -96,7 +98,8 @@ Item {
 
                 HifiControls.ImageMessageBox {
                     id: imageMessageBox
-                    anchors.fill: parent
+                    anchors.top: parent.top
+                    anchors.topMargin: 444
                     z: 2000
                     imageWidth: 442
                     imageHeight: 670
@@ -179,7 +182,7 @@ Item {
                     HifiControls.CheckBox {
                         id: checkBox
                         colorScheme: hifi.colorSchemes.dark
-                        text: "show all input devices"
+                        text: "Show all input devices"
 
                         onClicked: {
                             box.model = inputPlugins();
@@ -242,7 +245,7 @@ Item {
                     source: InputConfiguration.configurationLayout(box.textAt(box.currentIndex));
                     onLoaded: {
                         if (loader.item.hasOwnProperty("pluginName")) {
-                            if (box.textAt(box.currentIndex) === "HTC Vive") {
+                            if (openVRDevices.indexOf(box.textAt(box.currentIndex)) !== -1) {
                                 loader.item.pluginName = "OpenVR";
                             } else {
                                 loader.item.pluginName = box.textAt(box.currentIndex);
@@ -296,7 +299,7 @@ Item {
                 loader.source = "";
                 var selectedDevice = box.textAt(box.currentIndex);
                 var source = "";
-                if (selectedDevice == "HTC Vive") {
+                if (openVRDevices.indexOf(selectedDevice) !== -1) {
                     source = InputConfiguration.configurationLayout("OpenVR");
                 } else {
                     source = InputConfiguration.configurationLayout(selectedDevice);
@@ -332,7 +335,7 @@ Item {
             anchors.fill: stackView
             id: controllerPrefereneces
             objectName: "TabletControllerPreferences"
-            showCategories: ["VR Movement", "Game Controller", "Sixense Controllers", "Perception Neuron", "Leap Motion"]
+            showCategories: ["VR Movement", "Game Controller", "Sixense Controllers", "Perception Neuron", "Leap Motion", "Open Sound Control (OSC)"]
             categoryProperties: {
                 "VR Movement" : {
                     "User real-world height (meters)" : { "anchors.right" : "undefined" },

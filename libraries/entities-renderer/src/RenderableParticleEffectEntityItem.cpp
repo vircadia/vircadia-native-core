@@ -65,88 +65,77 @@ ParticleEffectEntityRenderer::ParticleEffectEntityRenderer(const EntityItemPoint
 }
 
 void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
-    auto newParticleProperties = entity->getParticleProperties();
-    if (!newParticleProperties.valid()) {
-        qCWarning(entitiesrenderer) << "Bad particle properties";
-    }
-
-    if (resultWithReadLock<bool>([&] { return _particleProperties != newParticleProperties; })) {
-        _timeUntilNextEmit = 0;
-        withWriteLock([&] {
-            _particleProperties = newParticleProperties;
-            if (!_prevEmitterShouldTrailInitialized) {
-                _prevEmitterShouldTrailInitialized = true;
-                _prevEmitterShouldTrail = _particleProperties.emission.shouldTrail;
-            }
-        });
-    }
-
-    withWriteLock([&] {
-        _pulseProperties = entity->getPulseProperties();
-        _shapeType = entity->getShapeType();
-        QString compoundShapeURL = entity->getCompoundShapeURL();
-        if (_compoundShapeURL != compoundShapeURL) {
-            _compoundShapeURL = compoundShapeURL;
-            _hasComputedTriangles = false;
-            fetchGeometryResource();
-        }
-    });
-    _emitting = entity->getIsEmitting();
-
-    bool textureEmpty = resultWithReadLock<bool>([&] { return _particleProperties.textures.isEmpty(); });
-    if (textureEmpty) {
-        if (_networkTexture) {
-            withWriteLock([&] {
-                _networkTexture.reset();
-            });
-        }
-
-        withWriteLock([&] {
-            entity->setVisuallyReady(true);
-        });
-    } else {
-        bool textureNeedsUpdate = resultWithReadLock<bool>([&] {
-            return !_networkTexture || _networkTexture->getURL() != QUrl(_particleProperties.textures);
-        });
-        if (textureNeedsUpdate) {
-            withWriteLock([&] {
-                _networkTexture = DependencyManager::get<TextureCache>()->getTexture(_particleProperties.textures);
-            });
-        }
-
-        if (_networkTexture) {
-            withWriteLock([&] {
-                entity->setVisuallyReady(_networkTexture->isFailed() || _networkTexture->isLoaded());
-            });
-        }
-    }
-
     void* key = (void*)this;
-    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this] () {
+    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this] {
         withWriteLock([&] {
-            updateModelTransformAndBound();
             _renderTransform = getModelTransform();
         });
     });
 }
 
 void ParticleEffectEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
+    auto newParticleProperties = entity->getParticleProperties();
+    if (!newParticleProperties.valid()) {
+        qCWarning(entitiesrenderer) << "Bad particle properties";
+    }
+
+    if (_particleProperties != newParticleProperties) {
+        _timeUntilNextEmit = 0;
+        _particleProperties = newParticleProperties;
+        if (!_prevEmitterShouldTrailInitialized) {
+            _prevEmitterShouldTrailInitialized = true;
+            _prevEmitterShouldTrail = _particleProperties.emission.shouldTrail;
+        }
+    }
+
+    _pulseProperties = entity->getPulseProperties();
+    _shapeType = entity->getShapeType();
+    QString compoundShapeURL = entity->getCompoundShapeURL();
+    if (_compoundShapeURL != compoundShapeURL) {
+        _compoundShapeURL = compoundShapeURL;
+        _hasComputedTriangles = false;
+        fetchGeometryResource();
+    }
+    _emitting = entity->getIsEmitting();
+
+    if (_particleProperties.textures.isEmpty()) {
+        if (_networkTexture) {
+            _networkTexture.reset();
+        }
+
+        _textureLoaded = true;
+        entity->setVisuallyReady(true);
+    } else {
+        if (!_networkTexture || _networkTexture->getURL() != QUrl(_particleProperties.textures)) {
+            _networkTexture = DependencyManager::get<TextureCache>()->getTexture(_particleProperties.textures);
+            _textureLoaded = false;
+            entity->setVisuallyReady(false);
+        }
+
+        if (!_textureLoaded) {
+            emit requestRenderUpdate();
+        }
+
+        if (_networkTexture && (_networkTexture->isLoaded() || _networkTexture->isFailed())) {
+            entity->setVisuallyReady(true);
+            _textureLoaded = true;
+        }
+    }
+
     // Fill in Uniforms structure
     ParticleUniforms particleUniforms;
-    withReadLock([&] {
-        particleUniforms.radius.start = _particleProperties.radius.range.start;
-        particleUniforms.radius.middle = _particleProperties.radius.gradient.target;
-        particleUniforms.radius.finish = _particleProperties.radius.range.finish;
-        particleUniforms.radius.spread = _particleProperties.radius.gradient.spread;
-        particleUniforms.spin.start = _particleProperties.spin.range.start;
-        particleUniforms.spin.middle = _particleProperties.spin.gradient.target;
-        particleUniforms.spin.finish = _particleProperties.spin.range.finish;
-        particleUniforms.spin.spread = _particleProperties.spin.gradient.spread;
-        particleUniforms.lifespan = _particleProperties.lifespan;
-        particleUniforms.rotateWithEntity = _particleProperties.rotateWithEntity ? 1 : 0;
-    });
+    particleUniforms.radius.start = _particleProperties.radius.range.start;
+    particleUniforms.radius.middle = _particleProperties.radius.gradient.target;
+    particleUniforms.radius.finish = _particleProperties.radius.range.finish;
+    particleUniforms.radius.spread = _particleProperties.radius.gradient.spread;
+    particleUniforms.spin.start = _particleProperties.spin.range.start;
+    particleUniforms.spin.middle = _particleProperties.spin.gradient.target;
+    particleUniforms.spin.finish = _particleProperties.spin.range.finish;
+    particleUniforms.spin.spread = _particleProperties.spin.gradient.spread;
+    particleUniforms.lifespan = _particleProperties.lifespan;
+    particleUniforms.rotateWithEntity = _particleProperties.rotateWithEntity ? 1 : 0;
     // Update particle uniforms
-    memcpy(&_uniformBuffer.edit<ParticleUniforms>(), &particleUniforms, sizeof(ParticleUniforms));
+    _uniformBuffer.edit<ParticleUniforms>() = particleUniforms;
 }
 
 ItemKey ParticleEffectEntityRenderer::getKey() {
@@ -199,7 +188,7 @@ float importanceSample3DDimension(float startDim) {
     return dimension;
 }
 
-ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createParticle(uint64_t now, const Transform& baseTransform, const particle::Properties& particleProperties,
+ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createParticle(const Transform& baseTransform, const particle::Properties& particleProperties,
                                                                                        const ShapeType& shapeType, const GeometryResource::Pointer& geometryResource,
                                                                                        const TriangleInfo& triangleInfo) {
     CpuParticle particle;
@@ -217,7 +206,7 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
     const auto& polarFinish = particleProperties.polar.finish;
 
     particle.seed = randFloatInRange(-1.0f, 1.0f);
-    particle.expiration = now + (uint64_t)(particleProperties.lifespan * USECS_PER_SECOND);
+    particle.expiration = (uint64_t)(particleProperties.lifespan * USECS_PER_SECOND);
 
     particle.relativePosition = glm::vec3(0.0f);
     particle.basePosition = baseTransform.getTranslation();
@@ -383,27 +372,18 @@ void ParticleEffectEntityRenderer::stepSimulation() {
     const auto interval = std::min<uint64_t>(USECS_PER_SECOND / 60, now - _lastSimulated);
     _lastSimulated = now;
 
-    particle::Properties particleProperties;
-    ShapeType shapeType;
-    GeometryResource::Pointer geometryResource;
-    withReadLock([&] {
-        particleProperties = _particleProperties;
-        shapeType = _shapeType;
-        geometryResource = _geometryResource;
-    });
-
     const auto& modelTransform = getModelTransform();
-    if (_emitting && particleProperties.emitting() &&
-        (shapeType != SHAPE_TYPE_COMPOUND || (geometryResource && geometryResource->isLoaded()))) {
-        uint64_t emitInterval = particleProperties.emitIntervalUsecs();
+    if (_emitting && _particleProperties.emitting() &&
+        (_shapeType != SHAPE_TYPE_COMPOUND || (_geometryResource && _geometryResource->isLoaded()))) {
+        uint64_t emitInterval = _particleProperties.emitIntervalUsecs();
         if (emitInterval > 0 && interval >= _timeUntilNextEmit) {
             auto timeRemaining = interval;
             while (timeRemaining > _timeUntilNextEmit) {
                 if (_shapeType == SHAPE_TYPE_COMPOUND && !_hasComputedTriangles) {
-                    computeTriangles(geometryResource->getHFMModel());
+                    computeTriangles(_geometryResource->getHFMModel());
                 }
                 // emit particle
-                _cpuParticles.push_back(createParticle(now, modelTransform, particleProperties, shapeType, geometryResource, _triangleInfo));
+                _cpuParticles.push_back(createParticle(modelTransform, _particleProperties, _shapeType, _geometryResource, _triangleInfo));
                 _timeUntilNextEmit = emitInterval;
                 if (emitInterval < timeRemaining) {
                     timeRemaining -= emitInterval;
@@ -415,29 +395,30 @@ void ParticleEffectEntityRenderer::stepSimulation() {
     }
 
     // Kill any particles that have expired or are over the max size
-    while (_cpuParticles.size() > particleProperties.maxParticles || (!_cpuParticles.empty() && _cpuParticles.front().expiration <= now)) {
+    while (_cpuParticles.size() > _particleProperties.maxParticles || (!_cpuParticles.empty() && _cpuParticles.front().expiration == 0)) {
         _cpuParticles.pop_front();
     }
 
     const float deltaTime = (float)interval / (float)USECS_PER_SECOND;
     // update the particles
     for (auto& particle : _cpuParticles) {
-        if (_prevEmitterShouldTrail != particleProperties.emission.shouldTrail) {
+        if (_prevEmitterShouldTrail != _particleProperties.emission.shouldTrail) {
             if (_prevEmitterShouldTrail) {
                 particle.relativePosition = particle.relativePosition + particle.basePosition - modelTransform.getTranslation();
             }
             particle.basePosition = modelTransform.getTranslation();
         }
+        particle.expiration = particle.expiration >= interval ? particle.expiration - interval : 0;
         particle.integrate(deltaTime);
     }
-    _prevEmitterShouldTrail = particleProperties.emission.shouldTrail;
+    _prevEmitterShouldTrail = _particleProperties.emission.shouldTrail;
 
     // Build particle primitives
     static GpuParticles gpuParticles;
     gpuParticles.clear();
     gpuParticles.reserve(_cpuParticles.size()); // Reserve space
-    std::transform(_cpuParticles.begin(), _cpuParticles.end(), std::back_inserter(gpuParticles), [&particleProperties, &modelTransform] (const CpuParticle& particle) {
-        glm::vec3 position = particle.relativePosition + (particleProperties.emission.shouldTrail ? particle.basePosition : modelTransform.getTranslation());
+    std::transform(_cpuParticles.begin(), _cpuParticles.end(), std::back_inserter(gpuParticles), [this, &modelTransform] (const CpuParticle& particle) {
+        glm::vec3 position = particle.relativePosition + (_particleProperties.emission.shouldTrail ? particle.basePosition : modelTransform.getTranslation());
         return GpuParticle(position, glm::vec2(particle.lifetime, particle.seed));
     });
 
@@ -466,12 +447,13 @@ void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
     // if the particles are marked rotateWithEntity
     withReadLock([&] {
         transform.setRotation(_renderTransform.getRotation());
-        auto& color = _uniformBuffer.edit<ParticleUniforms>().color;
-        color.start = EntityRenderer::calculatePulseColor(_particleProperties.getColorStart(), _pulseProperties, _created);
-        color.middle = EntityRenderer::calculatePulseColor(_particleProperties.getColorMiddle(), _pulseProperties, _created);
-        color.finish = EntityRenderer::calculatePulseColor(_particleProperties.getColorFinish(), _pulseProperties, _created);
-        color.spread = EntityRenderer::calculatePulseColor(_particleProperties.getColorSpread(), _pulseProperties, _created);
     });
+
+    auto& color = _uniformBuffer.edit<ParticleUniforms>().color;
+    color.start = EntityRenderer::calculatePulseColor(_particleProperties.getColorStart(), _pulseProperties, _created);
+    color.middle = EntityRenderer::calculatePulseColor(_particleProperties.getColorMiddle(), _pulseProperties, _created);
+    color.finish = EntityRenderer::calculatePulseColor(_particleProperties.getColorFinish(), _pulseProperties, _created);
+    color.spread = EntityRenderer::calculatePulseColor(_particleProperties.getColorSpread(), _pulseProperties, _created);
 
     batch.setModelTransform(transform);
     batch.setUniformBuffer(0, _uniformBuffer);

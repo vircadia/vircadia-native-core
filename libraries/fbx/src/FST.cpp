@@ -84,7 +84,7 @@ FST* FST::createFSTFromModel(const QString& fstPath, const QString& modelFilePat
 
 
     // If there are no blendshape mappings, and we detect that this is likely a mixamo file,
-    // then we can add the default mixamo to "faceshift" mappings
+    // then we can add the default mixamo to blendshape mappings.
     if (likelyMixamoFile) {
         QVariantHash blendshapes;
         blendshapes.insertMulti("BrowsD_L", QVariantList() << "BrowsDown_Left" << 1.0);

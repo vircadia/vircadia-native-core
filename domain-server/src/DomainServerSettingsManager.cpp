@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2014-06-24.
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -1966,6 +1967,10 @@ void DomainServerSettingsManager::apiRefreshGroupInformation() {
     QStringList groupNames = getAllKnownGroupNames();
     foreach (QString groupName, groupNames) {
         QString lowerGroupName = groupName.toLower();
+        if (lowerGroupName.startsWith(DOMAIN_GROUP_CHAR)) {
+            // Ignore domain groups. (Assumption: metaverse group names can't start with a "@".)
+            return;
+        }
         if (_groupIDs.contains(lowerGroupName)) {
             // we already know about this one.  recall setGroupID in case the group has been
             // added to another section (the same group is found in both groups and blacklists).
@@ -1994,7 +1999,7 @@ void DomainServerSettingsManager::apiGetGroupID(const QString& groupName) {
     callbackParams.jsonCallbackMethod = "apiGetGroupIDJSONCallback";
     callbackParams.errorCallbackMethod = "apiGetGroupIDErrorCallback";
 
-    const QString GET_GROUP_ID_PATH = "api/v1/groups/names/%1";
+    const QString GET_GROUP_ID_PATH = "/api/v1/groups/names/%1";
     DependencyManager::get<AccountManager>()->sendRequest(GET_GROUP_ID_PATH.arg(groupName),
                                                           AccountManagerAuth::Required,
                                                           QNetworkAccessManager::GetOperation, callbackParams);
@@ -2060,7 +2065,7 @@ void DomainServerSettingsManager::apiGetGroupRanks(const QUuid& groupID) {
     callbackParams.jsonCallbackMethod = "apiGetGroupRanksJSONCallback";
     callbackParams.errorCallbackMethod = "apiGetGroupRanksErrorCallback";
 
-    const QString GET_GROUP_RANKS_PATH = "api/v1/groups/%1/ranks";
+    const QString GET_GROUP_RANKS_PATH = "/api/v1/groups/%1/ranks";
     DependencyManager::get<AccountManager>()->sendRequest(GET_GROUP_RANKS_PATH.arg(groupID.toString().mid(1,36)),
                                                           AccountManagerAuth::Required,
                                                           QNetworkAccessManager::GetOperation, callbackParams);
@@ -2181,6 +2186,24 @@ QList<QUuid> DomainServerSettingsManager::getBlacklistGroupIDs() {
         if (_groupForbiddens[groupKey]->isGroup()) {
             result += _groupForbiddens[groupKey]->getGroupID();
         }
+    }
+    return result.toList();
+}
+
+QStringList DomainServerSettingsManager::getDomainServerGroupNames() {
+    // All names as listed in the domain server settings; both metaverse groups and domain groups
+    QSet<QString> result;
+    foreach(NodePermissionsKey groupKey, _groupPermissions.keys()) {
+        result += _groupPermissions[groupKey]->getID();
+    }
+    return result.toList();
+}
+
+QStringList DomainServerSettingsManager::getDomainServerBlacklistGroupNames() {
+    // All names as listed in the domain server settings; not necessarily mnetaverse groups.
+    QSet<QString> result;
+    foreach (NodePermissionsKey groupKey, _groupForbiddens.keys()) {
+        result += _groupForbiddens[groupKey]->getID();
     }
     return result.toList();
 }

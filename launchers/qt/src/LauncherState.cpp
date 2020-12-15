@@ -244,7 +244,7 @@ void LauncherState::getCurrentClientVersion() {
     if (match.hasMatch()) {
         _currentClientVersion = match.captured("version");
     } else {
-        _currentClientVersion = QString::null;
+        _currentClientVersion.clear();
     }
     qDebug() << "Current client version is: " << _currentClientVersion;
 

@@ -16,6 +16,7 @@
 
 #include "OctreeLogging.h"
 #include "NumericalConstants.h"
+#include <glm/gtc/type_ptr.hpp>
 
 bool OctreePacketData::_debug = false;
 AtomicUIntStat OctreePacketData::_totalBytesOfOctalCodes { 0 };
@@ -482,6 +483,19 @@ bool OctreePacketData::appendValue(const QVector<bool>& value) {
     return success;
 }
 
+bool OctreePacketData::appendValue(const QVector<QUuid>& value) {
+    uint16_t qVecSize = value.size();
+    bool success = appendValue(qVecSize);
+    if (success) {
+        success = append((const unsigned char*)value.constData(), qVecSize * sizeof(QUuid));
+        if (success) {
+            _bytesOfValues += qVecSize * sizeof(QUuid);
+            _totalBytesOfValues += qVecSize * sizeof(QUuid);
+        }
+    }
+    return success;
+}
+
 bool OctreePacketData::appendValue(const glm::quat& value) {
     const size_t VALUES_PER_QUAT = 4;
     const size_t PACKED_QUAT_SIZE = sizeof(uint16_t) * VALUES_PER_QUAT;
@@ -689,17 +703,17 @@ void OctreePacketData::debugBytes() {
 }
 
 int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, glm::vec2& result) {
-    memcpy(&result, dataBytes, sizeof(result));
+    memcpy(glm::value_ptr(result), dataBytes, sizeof(result));
     return sizeof(result);
 }
 
 int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, glm::vec3& result) {
-    memcpy(&result, dataBytes, sizeof(result));
+    memcpy(glm::value_ptr(result), dataBytes, sizeof(result));
     return sizeof(result);
 }
 
 int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, glm::u8vec3& result) {
-    memcpy(&result, dataBytes, sizeof(result));
+    memcpy(glm::value_ptr(result), dataBytes, sizeof(result));
     return sizeof(result);
 }
 
@@ -730,7 +744,12 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVecto
     memcpy(&length, dataBytes, sizeof(uint16_t));
     dataBytes += sizeof(length);
     result.resize(length);
-    memcpy(result.data(), dataBytes, length * sizeof(glm::vec3));
+
+    for(int i=0;i<length;i++) {
+        memcpy(glm::value_ptr(result[i]), dataBytes, sizeof(glm::vec3));
+        dataBytes += sizeof(glm::vec3);
+    }
+
     return sizeof(uint16_t) + length * sizeof(glm::vec3);
 }
 
@@ -772,6 +791,15 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QVecto
         bit = (bit + 1) % BITS_IN_BYTE;
     }
     return (dataBytes - start) + (int)sizeof(uint16_t);
+}
+
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QVector<QUuid>& result) {
+    uint16_t length;
+    memcpy(&length, dataBytes, sizeof(uint16_t));
+    dataBytes += sizeof(length);
+    result.resize(length);
+    memcpy(result.data(), dataBytes, length * sizeof(QUuid));
+    return sizeof(uint16_t) + length * sizeof(QUuid);
 }
 
 int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QByteArray& result) {

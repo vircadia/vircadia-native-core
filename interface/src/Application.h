@@ -4,6 +4,7 @@
 //
 //  Created by Andrzej Kapolka on 5/10/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -223,9 +224,7 @@ public:
     bool getPreferStylusOverLaser() { return _preferStylusOverLaserSetting.get(); }
     void setPreferStylusOverLaser(bool value);
 
-    // FIXME: Remove setting completely or make available through JavaScript API?
-    //bool getPreferAvatarFingerOverStylus() { return _preferAvatarFingerOverStylusSetting.get(); }
-    bool getPreferAvatarFingerOverStylus() { return false; }
+    bool getPreferAvatarFingerOverStylus() { return _preferAvatarFingerOverStylusSetting.get(); }
     void setPreferAvatarFingerOverStylus(bool value);
 
     bool getMiniTabletEnabled() { return _miniTabletEnabledSetting.get(); }
@@ -377,7 +376,7 @@ signals:
     void awayStateWhenFocusLostInVRChanged(bool enabled);
 
 public slots:
-    QVector<EntityItemID> pasteEntities(float x, float y, float z);
+    QVector<EntityItemID> pasteEntities(const QString& entityHostType, float x, float y, float z);
     bool exportEntities(const QString& filename, const QVector<QUuid>& entityIDs, const glm::vec3* givenOffset = nullptr);
     bool exportEntities(const QString& filename, float x, float y, float z, float scale);
     bool importEntities(const QString& url, const bool isObservable = true, const qint64 callerId = -1);
@@ -427,10 +426,12 @@ public slots:
 #endif
 
     static void showHelp();
+    static void gotoTutorial();
 
     void cycleCamera();
     void cameraModeChanged();
     void cameraMenuChanged();
+    void captureMouseChanged(bool captureMouse);
     void toggleOverlays();
     void setOverlaysVisible(bool visible);
     Q_INVOKABLE void centerUI();
@@ -471,6 +472,8 @@ public slots:
     void setIsInterstitialMode(bool interstitialMode);
 
     void updateVerboseLogging();
+    
+    void setCachebustRequire();
 
     void changeViewAsNeeded(float boomLength);
 
@@ -603,6 +606,7 @@ private:
 
     void maybeToggleMenuVisible(QMouseEvent* event) const;
     void toggleTabletUI(bool shouldOpen = false) const;
+    bool shouldCaptureMouse() const;
 
     void userKickConfirmation(const QUuid& nodeID);
 
@@ -734,6 +738,7 @@ private:
     GraphicsEngine _graphicsEngine;
     void updateRenderArgs(float deltaTime);
 
+    bool _disableLoginScreen { true };
 
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;
@@ -755,7 +760,9 @@ private:
 
     bool _settingsLoaded { false };
 
-    bool _fakedMouseEvent { false };
+    bool _captureMouse { false };
+    bool _ignoreMouseMove { false };
+    QPointF _mouseCaptureTarget { NAN, NAN };
 
     bool _isMissingSequenceNumbers { false };
 

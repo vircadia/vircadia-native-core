@@ -4,10 +4,14 @@
 //
 //  Created by Stephen Birarda on 8/12/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+//  For happ(ier) development of QML, use these two things:
+//  This forces QML files to be pulled from the source as you edit it: set environment variable HIFI_USE_SOURCE_TREE_RESOURCES=1
+//  Use this to live reload: DependencyManager::get<OffscreenUi>()->clearCache();
 
 #include "Menu.h"
 #include <QDesktopServices>
@@ -29,6 +33,8 @@
 #include <VrMenu.h>
 #include <ScriptEngines.h>
 #include <MenuItemProperties.h>
+#include <ui/types/FileTypeProfile.h>
+#include <ui/types/HFWebEngineProfile.h>
 
 #include "Application.h"
 #include "AccountManager.h"
@@ -37,6 +43,7 @@
 #include "avatar/AvatarManager.h"
 #include "avatar/AvatarPackager.h"
 #include "AvatarBookmarks.h"
+#include "DomainAccountManager.h"
 #include "MainWindow.h"
 #include "render/DrawStatus.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -67,6 +74,7 @@ const char* EXCLUSION_GROUP_KEY = "exclusionGroup";
 Menu::Menu() {
     auto dialogsManager = DependencyManager::get<DialogsManager>();
     auto accountManager = DependencyManager::get<AccountManager>();
+    auto domainAccountManager = DependencyManager::get<DomainAccountManager>();
 
     // File/Application menu ----------------------------------
     MenuWrapper* fileMenu = addMenu("File");
@@ -81,6 +89,17 @@ Menu::Menu() {
         connect(accountManager.data(), &AccountManager::logoutComplete,
                 dialogsManager.data(), &DialogsManager::toggleLoginDialog);
     }
+
+    auto domainLogin = addActionToQMenuAndActionHash(fileMenu, "Domain: Log In");
+    domainLogin->setVisible(false);
+    connect(domainLogin, &QAction::triggered, [] {
+        auto dialogsManager = DependencyManager::get<DialogsManager>();
+        dialogsManager->setDomainLoginState();
+        dialogsManager->showDomainLoginDialog();
+    });
+    connect(domainAccountManager.data(), &DomainAccountManager::hasLogInChanged, [domainLogin](bool hasLogIn) {
+        domainLogin->setVisible(hasLogIn);
+    });
 
     // File > Quit
     addActionToQMenuAndActionHash(fileMenu, MenuOption::Quit, Qt::CTRL | Qt::Key_Q, qApp, SLOT(quit()), QAction::QuitRole);
@@ -219,11 +238,11 @@ Menu::Menu() {
 
     // Navigate > Start-up Location
     MenuWrapper* startupLocationMenu = navigateMenu->addMenu(MenuOption::StartUpLocation);
-    QActionGroup* startupLocatiopnGroup = new QActionGroup(startupLocationMenu);
-    startupLocatiopnGroup->setExclusive(true);
-    startupLocatiopnGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::HomeLocation, 0, 
+    QActionGroup* startupLocationGroup = new QActionGroup(startupLocationMenu);
+    startupLocationGroup->setExclusive(true);
+    startupLocationGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::HomeLocation, 0,
         false));
-    startupLocatiopnGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::LastLocation, 0, 
+    startupLocationGroup->addAction(addCheckableActionToQMenuAndActionHash(startupLocationMenu, MenuOption::LastLocation, 0,
         true));
 
     // Settings menu ----------------------------------
@@ -286,13 +305,13 @@ Menu::Menu() {
 			hmd->toggleShouldShowTablet();
 		}
     });
-    
+
     // Settings > Entity Script / QML Whitelist
     action = addActionToQMenuAndActionHash(settingsMenu, "Entity Script / QML Whitelist");
     connect(action, &QAction::triggered, [] {
         auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
         auto hmd = DependencyManager::get<HMDScriptingInterface>();
-        
+
         tablet->pushOntoStack("hifi/dialogs/security/EntityScriptQMLWhitelist.qml");
 
         if (!hmd->getShouldShowTablet()) {
@@ -308,10 +327,10 @@ Menu::Menu() {
 
     // Developer menu ----------------------------------
     MenuWrapper* developerMenu = addMenu("Developer", "Developer");
-    
+
     // Developer > Scripting >>>
     MenuWrapper* scriptingOptionsMenu = developerMenu->addMenu("Scripting");
-    
+
     // Developer > Scripting > Console...
     addActionToQMenuAndActionHash(scriptingOptionsMenu, MenuOption::Console, Qt::CTRL | Qt::ALT | Qt::Key_J,
                                   DependencyManager::get<StandAloneJSConsole>().data(),
@@ -326,7 +345,7 @@ Menu::Menu() {
         defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/utilities/tools/currentAPI.js");
         DependencyManager::get<ScriptEngines>()->loadScript(defaultScriptsLoc.toString());
     });
-    
+
     // Developer > Scripting > Entity Script Server Log
     auto essLogAction = addActionToQMenuAndActionHash(scriptingOptionsMenu, MenuOption::EntityScriptServerLog, 0,
                                                       qApp, SLOT(toggleEntityScriptServerLogDialog()));
@@ -346,7 +365,11 @@ Menu::Menu() {
     // Developer > Scripting > Verbose Logging
     addCheckableActionToQMenuAndActionHash(scriptingOptionsMenu, MenuOption::VerboseLogging, 0, false,
                                            qApp, SLOT(updateVerboseLogging()));
-    
+                                           
+   // Developer > Scripting > Enable Cachebusting of Script.require
+   addCheckableActionToQMenuAndActionHash(scriptingOptionsMenu, MenuOption::CachebustRequire, 0, false,
+                                          qApp, SLOT(setCachebustRequire()));
+
     // Developer > Scripting > Enable Speech Control API
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     auto speechRecognizer = DependencyManager::get<SpeechRecognizer>();
@@ -358,20 +381,20 @@ Menu::Menu() {
         UNSPECIFIED_POSITION);
     connect(speechRecognizer.data(), SIGNAL(enabledUpdated(bool)), speechRecognizerAction, SLOT(setChecked(bool)));
 #endif
-    
+
     // Developer > UI >>>
     MenuWrapper* uiOptionsMenu = developerMenu->addMenu("UI");
     action = addCheckableActionToQMenuAndActionHash(uiOptionsMenu, MenuOption::DesktopTabletToToolbar, 0,
                                                     qApp->getDesktopTabletBecomesToolbarSetting());
-    
+
     // Developer > UI > Show Overlays
     addCheckableActionToQMenuAndActionHash(uiOptionsMenu, MenuOption::Overlays, 0, true);
-    
+
     // Developer > UI > Desktop Tablet Becomes Toolbar
     connect(action, &QAction::triggered, [action] {
         qApp->setDesktopTabletBecomesToolbarSetting(action->isChecked());
     });
-    
+
      // Developer > UI > HMD Tablet Becomes Toolbar
     action = addCheckableActionToQMenuAndActionHash(uiOptionsMenu, MenuOption::HMDTabletToToolbar, 0,
                                                     qApp->getHmdTabletBecomesToolbarSetting());
@@ -595,14 +618,32 @@ Menu::Menu() {
             QString("hifi/tablet/TabletNetworkingPreferences.qml"), "NetworkingPreferencesDialog");
     });
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
-    addActionToQMenuAndActionHash(networkMenu, MenuOption::ClearDiskCache, 0,
-        DependencyManager::get<AssetClient>().data(), SLOT(clearCache()));
+
+	action = addActionToQMenuAndActionHash(networkMenu, MenuOption::ClearDiskCaches);
+    connect(action, &QAction::triggered, [] {
+        // The following caches are cleared immediately
+        DependencyManager::get<AssetClient>()->clearCache();
+#ifndef Q_OS_ANDROID
+        FileTypeProfile::clearCache();
+        HFWebEngineProfile::clearCache();
+#endif
+
+        // Clear the KTX cache on the next restart. It can't be cleared immediately because its files might be in use.
+        Setting::Handle<int>(KTXCache::SETTING_VERSION_NAME, KTXCache::INVALID_VERSION).set(KTXCache::INVALID_VERSION);
+    });
+
     addCheckableActionToQMenuAndActionHash(networkMenu,
         MenuOption::DisableActivityLogger,
         0,
-        false,
+        true,
         &UserActivityLogger::getInstance(),
         SLOT(disable(bool)));
+    addCheckableActionToQMenuAndActionHash(networkMenu,
+        MenuOption::DisableCrashLogger,
+        0,
+        true,
+        &UserActivityLogger::getInstance(),
+        SLOT(crashMonitorDisable(bool)));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ShowDSConnectTable, 0,
         qApp, SLOT(loadDomainConnectionDialog()));
 
@@ -685,10 +726,10 @@ Menu::Menu() {
     // Developer > Crash >>>
     bool result = false;
     const QString HIFI_SHOW_DEVELOPER_CRASH_MENU("HIFI_SHOW_DEVELOPER_CRASH_MENU");
-    result = QProcessEnvironment::systemEnvironment().contains(HIFI_SHOW_DEVELOPER_CRASH_MENU);
+    result = true;//QProcessEnvironment::systemEnvironment().contains(HIFI_SHOW_DEVELOPER_CRASH_MENU);
     if (result) {
         MenuWrapper* crashMenu = developerMenu->addMenu("Crash");
-    
+
         // Developer > Crash > Display Crash Options
         addCheckableActionToQMenuAndActionHash(crashMenu, MenuOption::DisplayCrashOptions, 0, true);
 
@@ -725,9 +766,14 @@ Menu::Menu() {
         action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashNewFaultThreaded);
         connect(action, &QAction::triggered, qApp, []() { std::thread(crash::newFault).join(); });
 
+        action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashThrownException);
+        connect(action, &QAction::triggered, qApp, []() { crash::throwException(); });
+        action = addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashThrownExceptionThreaded);
+        connect(action, &QAction::triggered, qApp, []() { std::thread(crash::throwException).join(); });
+
         addActionToQMenuAndActionHash(crashMenu, MenuOption::CrashOnShutdown, 0, qApp, SLOT(crashOnShutdown()));
     }
-    
+
 
     // Developer > Show Statistics
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Stats, 0, true);
@@ -768,46 +814,48 @@ Menu::Menu() {
     // Help/Application menu ----------------------------------
     MenuWrapper * helpMenu = addMenu("Help");
 
-    // Help > About Project Athena
-    action = addActionToQMenuAndActionHash(helpMenu, "About Project Athena");
+    // Help > About Vircadia
+    action = addActionToQMenuAndActionHash(helpMenu, "About Vircadia");
     connect(action, &QAction::triggered, [] {
         qApp->showDialog(QString("hifi/dialogs/AboutDialog.qml"),
             QString("hifi/dialogs/TabletAboutDialog.qml"), "AboutDialog");
     });
     helpMenu->addSeparator();
 
-    // Help > Athena Docs
+    // Help > Vircadia Docs
     action = addActionToQMenuAndActionHash(helpMenu, "Online Documentation");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(QUrl("https://docs.projectathena.dev/"));
+        QDesktopServices::openUrl(NetworkingConstants::HELP_DOCS_URL);
     });
 
-    // Help > Athena Forum
+    // Help > Vircadia Forum
     /* action = addActionToQMenuAndActionHash(helpMenu, "Online Forums");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(QUrl("https://forums.highfidelity.com/"));
+        QDesktopServices::openUrl(NetworkingConstants::HELP_FORUM_URL));
     }); */
 
     // Help > Scripting Reference
     action = addActionToQMenuAndActionHash(helpMenu, "Online Script Reference");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(QUrl("https://apidocs.projectathena.dev/"));
+        QDesktopServices::openUrl(NetworkingConstants::HELP_SCRIPTING_REFERENCE_URL);
     });
 
     addActionToQMenuAndActionHash(helpMenu, "Controls Reference", 0, qApp, SLOT(showHelp()));
+
+    addActionToQMenuAndActionHash(helpMenu, "Tutorial", 0, qApp, SLOT(gotoTutorial()));
 
     helpMenu->addSeparator();
 
     // Help > Release Notes
     action = addActionToQMenuAndActionHash(helpMenu, "Release Notes");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(QUrl("https://docs.projectathena.dev/release-notes.html"));
+        QDesktopServices::openUrl(NetworkingConstants::HELP_RELEASE_NOTES_URL);
     });
 
     // Help > Report a Bug!
     action = addActionToQMenuAndActionHash(helpMenu, "Report a Bug!");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(QUrl("https://github.com/kasenvr/project-athena/issues"));
+        QDesktopServices::openUrl(NetworkingConstants::HELP_BUG_REPORT_URL);
     });
 }
 

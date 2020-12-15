@@ -33,7 +33,6 @@ public:
 
     // methods for getting/setting all properties of an entity
     virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
-    virtual bool setProperties(const EntityItemProperties& properties) override;
     virtual bool setSubClassProperties(const EntityItemProperties& properties) override;
 
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
@@ -102,6 +101,11 @@ public:
     uint32_t getAvatarPriority() const { return _avatarPriority; }
     void setAvatarPriority(uint32_t value) { _avatarPriority = value; }
 
+    uint32_t getScreenshare() const { return _screenshare; }
+    void setScreenshare(uint32_t value) { _screenshare = value; }
+
+    void setUserData(const QString& value) override;
+
     bool keyLightPropertiesChanged() const { return _keyLightPropertiesChanged; }
     bool ambientLightPropertiesChanged() const { return _ambientLightPropertiesChanged; }
     bool skyboxPropertiesChanged() const { return _skyboxPropertiesChanged; }
@@ -155,6 +159,9 @@ protected:
 
     // Avatar-updates priority
     uint32_t _avatarPriority { COMPONENT_MODE_INHERIT };
+
+    // Screen-sharing zone
+    uint32_t _screenshare { COMPONENT_MODE_INHERIT };
 
     // Dirty flags turn true when either keylight properties is changing values.
     bool _keyLightPropertiesChanged { false };

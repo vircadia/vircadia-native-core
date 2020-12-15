@@ -20,7 +20,7 @@ class FancyCamera : public Camera {
 
     /**jsdoc
      * The <code>Camera</code> API provides access to the "camera" that defines your view in desktop and HMD display modes.
-     * The High Fidelity camera has axes <code>x</code> = right, <code>y</code> = up, <code>-z</code> = forward.
+     * The Vircadia camera has axes <code>x</code> = right, <code>y</code> = up, <code>-z</code> = forward.
      *
      * @namespace Camera
      *
@@ -36,6 +36,10 @@ class FancyCamera : public Camera {
      * @property {ViewFrustum} frustum - The camera frustum.
      * @property {Uuid} cameraEntity - The ID of the entity that is used for the camera position and orientation when the 
      *     camera is in entity mode.
+     * @property {boolean} captureMouse - The mouse capture state.  When <code>true</code>, the mouse is invisible and cannot leave the bounds of
+     * Interface, as long as Interface is the active window and no menu item is selected.  When <code>false</code>, the mouse
+     * behaves normally.
+     * @property {number} sensitivity - The current camera sensitivity.  Must be positive.
      */
     Q_PROPERTY(QUuid cameraEntity READ getCameraEntity WRITE setCameraEntity)
 

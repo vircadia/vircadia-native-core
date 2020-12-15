@@ -112,11 +112,12 @@ Agent::Agent(ReceivedMessage& message) :
 
     packetReceiver.registerListenerForTypes(
         { PacketType::MixedAudio, PacketType::SilentAudioFrame },
-        this, "handleAudioPacket");
+        PacketReceiver::makeUnsourcedListenerReference<Agent>(this, &Agent::handleAudioPacket));
     packetReceiver.registerListenerForTypes(
         { PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
-        this, "handleOctreePacket");
-    packetReceiver.registerListener(PacketType::SelectedAudioFormat, this, "handleSelectedAudioFormat");
+        PacketReceiver::makeSourcedListenerReference<Agent>(this, &Agent::handleOctreePacket));
+    packetReceiver.registerListener(PacketType::SelectedAudioFormat,
+        PacketReceiver::makeUnsourcedListenerReference<Agent>(this, &Agent::handleSelectedAudioFormat));
 
     // 100Hz timer for audio
     const int TARGET_INTERVAL_MSEC = 10; // 10ms
@@ -614,6 +615,10 @@ void Agent::setIsAvatar(bool isAvatar) {
             _avatarQueryTimer->stop();
             delete _avatarQueryTimer;
             _avatarQueryTimer = nullptr;
+
+            // Clear the skeleton model so that if agent is set to an avatar again the skeleton model is (re)loaded.
+            auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
+            scriptedAvatar->setSkeletonModelURL(QUrl());
 
             // The avatar mixer never times out a connection (e.g., based on identity or data packets)
             // but rather keeps avatars in its list as long as "connected". As a result, clients timeout

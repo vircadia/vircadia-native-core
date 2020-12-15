@@ -39,17 +39,24 @@ bool GizmoEntityRenderer::isTransparent() const {
     return Parent::isTransparent() || ringTransparent;
 }
 
+void GizmoEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
+    void* key = (void*)this;
+    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity] {
+        withWriteLock([&] {
+            _renderTransform = getModelTransform();
+            _renderTransform.postScale(entity->getScaledDimensions());
+        });
+    });
+}
+
 void GizmoEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     bool dirty = false;
     RingGizmoPropertyGroup ringProperties = entity->getRingProperties();
-    withWriteLock([&] {
-        _gizmoType = entity->getGizmoType();
-        if (_ringProperties != ringProperties) {
-            _ringProperties = ringProperties;
-            dirty = true;
-
-        }
-    });
+    _gizmoType = entity->getGizmoType();
+    if (_ringProperties != ringProperties) {
+        _ringProperties = ringProperties;
+        dirty = true;
+    }
 
     if (dirty || _prevPrimitiveMode != _primitiveMode || !_ringGeometryID || !_majorTicksGeometryID || !_minorTicksGeometryID) {
         _prevPrimitiveMode = _primitiveMode;
@@ -186,15 +193,6 @@ void GizmoEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
             }
         }
     }
-
-    void* key = (void*)this;
-    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity]() {
-        withWriteLock([&] {
-            updateModelTransformAndBound();
-            _renderTransform = getModelTransform();
-            _renderTransform.postScale(entity->getScaledDimensions());
-        });
-    });
 }
 
 Item::Bound GizmoEntityRenderer::getBound() {
@@ -241,19 +239,20 @@ void GizmoEntityRenderer::doRender(RenderArgs* args) {
 
     if (_gizmoType == GizmoType::RING) {
         Transform transform;
-        bool hasTickMarks;
-        glm::vec4 tickProperties;
+        bool hasTickMarks = _ringProperties.getHasTickMarks();
+        glm::vec4 tickProperties = glm::vec4(_ringProperties.getMajorTickMarksAngle(), _ringProperties.getMajorTickMarksLength(),
+                                             _ringProperties.getMinorTickMarksAngle(), _ringProperties.getMinorTickMarksLength());
         bool forward;
+        bool wireframe;
+        bool transparent;
         withReadLock([&] {
             transform = _renderTransform;
-            hasTickMarks = _ringProperties.getHasTickMarks();
-            tickProperties = glm::vec4(_ringProperties.getMajorTickMarksAngle(), _ringProperties.getMajorTickMarksLength(),
-                                       _ringProperties.getMinorTickMarksAngle(), _ringProperties.getMinorTickMarksLength());
+            transparent = isTransparent();
+            wireframe = render::ShapeKey(args->_globalShapeKey).isWireframe() || _primitiveMode == PrimitiveMode::LINES;
             forward = _renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD;
         });
 
-        bool wireframe = render::ShapeKey(args->_globalShapeKey).isWireframe() || _primitiveMode == PrimitiveMode::LINES;
-        geometryCache->bindSimpleProgram(batch, false, isTransparent(), wireframe, true, true, forward, graphics::MaterialKey::CULL_NONE);
+        geometryCache->bindSimpleProgram(batch, false, transparent, wireframe, true, true, forward, graphics::MaterialKey::CULL_NONE);
 
         batch.setModelTransform(transform);
 

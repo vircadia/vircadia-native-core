@@ -4,6 +4,7 @@
 //
 //  Created by Brad Hefta-Gaub on 12/14/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -20,6 +21,8 @@
 #include <QtCore/QSet>
 #include <QtCore/QWaitCondition>
 #include <QtCore/QStringList>
+#include <QMap>
+#include <QMetaEnum>
 
 #include <QtScript/QScriptEngine>
 
@@ -37,6 +40,7 @@
 #include "AssetScriptingInterface.h"
 #include "AudioScriptingInterface.h"
 #include "BaseScriptEngine.h"
+#include "ExternalResource.h"
 #include "Quat.h"
 #include "Mat4.h"
 #include "ScriptCache.h"
@@ -118,6 +122,18 @@ public:
  *       <li><code>"agent"</code>: An assignment client script.</li>
  *     </ul>
  *     <em>Read-only.</em>
+ * @property {string} type - The type of script that is running:
+ *     <ul>
+ *       <li><code>"client"</code>: An Interface script.</li>
+ *       <li><code>"entity_client"</code>: A client entity script.</li>
+ *       <li><code>"avatar"</code>: An avatar script.</li>
+ *       <li><code>"entity_server"</code>: A server entity script.</li>
+ *       <li><code>"agent"</code>: An assignment client script.</li>
+ *     </ul>
+ *     <em>Read-only.</em>
+ * @property {string} filename - The filename of the script file.
+ *     <em>Read-only.</em>
+ * @property {Script.ResourceBuckets} ExternalPaths - External resource buckets.
  */
 class ScriptEngine : public BaseScriptEngine, public EntitiesScriptEngineProvider {
     Q_OBJECT
@@ -181,7 +197,7 @@ public:
     Q_INVOKABLE void stop(bool marshal = false);
 
     // Stop any evaluating scripts and wait for the scripting thread to finish.
-    void waitTillDoneRunning();
+    void waitTillDoneRunning(bool shutdown = false);
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // NOTE - these are NOT intended to be public interfaces available to scripts, the are only Q_INVOKABLE so we can
@@ -229,6 +245,17 @@ public:
     /// register a function as a method on a previously registered global object
     Q_INVOKABLE void registerFunction(const QString& parent, const QString& name, QScriptEngine::FunctionSignature fun,
                                       int numArguments = -1);
+
+    /**jsdoc
+     * @function Script.registerEnum
+     * @param {string} name - Name.
+     * @param {object} enum - Enum.
+     * @deprecated This function is deprecated and will be removed.
+     */
+    // WARNING: This function must be called after a registerGlobalObject that creates the namespace this enum is located in, or
+    // the globalObject won't function. E.g., if you have a Foo object and a Foo.FooType enum, Foo must be registered first.
+    /// registers a global enum
+    Q_INVOKABLE void registerEnum(const QString& enumName, QMetaEnum newEnum);
 
     /**jsdoc
      * @function Script.registerValue
@@ -320,13 +347,13 @@ public:
     // NOTE - these are intended to be public interfaces available to scripts
 
     /**jsdoc
-     * Adds a function to the list of functions called when an entity event occurs on a particular entity.
+     * Adds a function to the list of functions called when a particular event occurs on a particular entity.
      * <p>See also, the {@link Entities} API.</p>
      * @function Script.addEventHandler
      * @param {Uuid} entityID - The ID of the entity.
-     * @param {Script.EntityEvent} eventName - The name of the entity event.
-     * @param {function} handler - The function to call when the entity event occurs on the entity. It can be either the name 
-     *     of a function or an in-line definition.
+     * @param {Script.EntityEvent} eventName - The name of the event.
+     * @param {Script~entityEventCallback|Script~pointerEventCallback|Script~collisionEventCallback} handler - The function to 
+     *     call when the event occurs on the entity. It can be either the name of a function or an in-line definition.
      * @example <caption>Report when a mouse press occurs on a particular entity.</caption>
      * var entityID = Entities.addEntity({
      *     type: "Box",
@@ -417,7 +444,7 @@ public:
 
     /**jsdoc
      * Provides access to methods or objects provided in an external JavaScript or JSON file. 
-     * See {@link https://docs.projectathena.dev/script/js-tips.html} for further details.
+     * See {@link https://docs.vircadia.dev/script/js-tips.html} for further details.
      * @function Script.require
      * @param {string} module - The module to use. May be a JavaScript file, a JSON file, or the name of a system module such 
      *     as <code>"appUi"</code> (i.e., the "appUi.js" system module JavaScript file).
@@ -499,15 +526,9 @@ public:
     Q_INVOKABLE void clearTimeout(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
 
     /**jsdoc
-     * Prints a message to the program log.
-     * <p>Alternatively, you can use {@link print}, {@link console.log}, or one of the other {@link console} methods.</p>
+     * Prints a message to the program log and emits {@link Script.printedMessage}.
+     * <p>Alternatively, you can use {@link print} or one of the {@link console} API methods.</p>
      * @function Script.print
-     * @param {string} message - The message to print.
-     */
-    /**jsdoc
-     * Prints a message to the program log.
-     * <p>This is an alias of {@link Script.print}.</p>
-     * @function print
      * @param {string} message - The message to print.
      */
     Q_INVOKABLE void print(const QString& message);
@@ -534,7 +555,7 @@ public:
     Q_INVOKABLE QUrl resourcesPath() const;
 
     /**jsdoc
-     * Starts timing a section of code in order to send usage data about it to High Fidelity. Shouldn't be used outside of the 
+     * Starts timing a section of code in order to send usage data about it to Vircadia. Shouldn't be used outside of the 
      * standard scripts.
      * @function Script.beginProfileRange
      * @param {string} label - A name that identifies the section of code.
@@ -542,7 +563,7 @@ public:
     Q_INVOKABLE void beginProfileRange(const QString& label) const;
 
     /**jsdoc
-     * Finishes timing a section of code in order to send usage data about it to High Fidelity. Shouldn't be used outside of 
+     * Finishes timing a section of code in order to send usage data about it to Vircadia. Shouldn't be used outside of 
      * the standard scripts.
      * @function Script.endProfileRange
      * @param {string} label - A name that identifies the section of code.
@@ -676,6 +697,23 @@ public:
 
     void setScriptEngines(QSharedPointer<ScriptEngines>& scriptEngines) { _scriptEngines = scriptEngines; }
 
+    /**jsdoc
+     * Gets the URL for an asset in an external resource bucket. (The location where the bucket is hosted may change over time
+     * but this method will return the asset's current URL.)
+     * @function Script.getExternalPath
+     * @param {Script.ResourceBucket} bucket - The external resource bucket that the asset is in.
+     * @param {string} path - The path within the external resource bucket where the asset is located. 
+     *     <p>Normally, this should start with a path or filename to be appended to the bucket URL.
+     *     Alternatively, it can be a relative path starting with <code>./</code> or <code>../</code>, to navigate within the 
+     *     resource bucket's URL.</p>
+     * @Returns {string} The URL of an external asset.
+     * @example <caption>Report the URL of a default particle.</caption>
+     * print(Script.getExternalPath(Script.ExternalPaths.Assets, "Bazaar/Assets/Textures/Defaults/Interface/default_particle.png"));
+     * @example <caption>Report the root directory where the Vircadia assets are located.</caption>
+     * print(Script.getExternalPath(Script.ExternalPaths.Assets, "."));
+     */
+    Q_INVOKABLE QString getExternalPath(ExternalResource::Bucket bucket, const QString& path);
+
 public slots:
 
     /**jsdoc
@@ -763,7 +801,8 @@ signals:
 
     /**jsdoc
      * Triggered when the script prints a message to the program log via {@link  print}, {@link Script.print}, 
-     * {@link console.log}, or {@link console.debug}.
+     * {@link console.log}, {@link console.debug}, {@link console.group}, {@link console.groupEnd}, {@link console.time}, or 
+     * {@link console.timeEnd}.
      * @function Script.printedMessage
      * @param {string} message - The message.
      * @param {string} scriptName - The name of the script that generated the message.
@@ -772,7 +811,8 @@ signals:
     void printedMessage(const QString& message, const QString& scriptName);
 
     /**jsdoc
-     * Triggered when the script generates an error or {@link console.error} is called.
+     * Triggered when the script generates an error, {@link console.error} or {@link console.exception} is called, or 
+     * {@link console.assert} is called and fails.
      * @function Script.errorMessage
      * @param {string} message - The error message.
      * @param {string} scriptName - The name of the script that generated the error message.

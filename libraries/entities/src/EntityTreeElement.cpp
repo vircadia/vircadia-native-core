@@ -197,7 +197,7 @@ EntityItemID EntityTreeElement::evalDetailedRayIntersection(const glm::vec3& ori
     // only called if we do intersect our bounding cube, but find if we actually intersect with entities...
     EntityItemID entityID;
     forEachEntity([&](EntityItemPointer entity) {
-        if (entity->getIgnorePickIntersection()) {
+        if (entity->getIgnorePickIntersection() && !searchFilter.bypassIgnore()) {
             return;
         }
 
@@ -341,7 +341,7 @@ EntityItemID EntityTreeElement::evalDetailedParabolaIntersection(const glm::vec3
     // only called if we do intersect our bounding cube, but find if we actually intersect with entities...
     EntityItemID entityID;
     forEachEntity([&](EntityItemPointer entity) {
-        if (entity->getIgnorePickIntersection()) {
+        if (entity->getIgnorePickIntersection() && !searchFilter.bypassIgnore()) {
             return;
         }
 
@@ -705,7 +705,7 @@ void EntityTreeElement::cleanupDomainAndNonOwnedEntities() {
     withWriteLock([&] {
         EntityItems savedEntities;
         foreach(EntityItemPointer entity, _entityItems) {
-            if (!(entity->isLocalEntity() || (entity->isAvatarEntity() && entity->getOwningAvatarID() == getTree()->getMyAvatarSessionUUID()))) {
+            if (!(entity->isLocalEntity() || entity->isMyAvatarEntity())) {
                 entity->preDelete();
                 entity->_element = NULL;
             } else {

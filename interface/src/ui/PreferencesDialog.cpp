@@ -223,13 +223,11 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
 
-    /*
-    // FIXME: Remove setting completely or make available through JavaScript API?
     {
         auto getter = []()->bool { return qApp->getPreferAvatarFingerOverStylus(); };
         auto setter = [](bool value) { qApp->setPreferAvatarFingerOverStylus(value); };
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Prefer Avatar Finger Over Stylus", getter, setter));
-        }*/
+    }
 
     // Snapshots
     static const QString SNAPSHOTS { "Snapshots" };
@@ -254,7 +252,15 @@ void setupPreferences() {
         auto setter = [](bool value) { Menu::getInstance()->setIsOptionChecked(MenuOption::DisableActivityLogger, !value); };
         preferences->addPreference(new CheckPreference("Privacy", "Send data - High Fidelity uses information provided by your "
                                 "client to improve the product through the logging of errors, tracking of usage patterns, "
-                                "installation and system details, and crash events. By allowing High Fidelity to collect "
+                                "installation and system details. By allowing High Fidelity to collect this information "
+                                "you are helping to improve the product. ", getter, setter));
+    }
+
+    {
+        auto getter = []()->bool { return !Menu::getInstance()->isOptionChecked(MenuOption::DisableCrashLogger); };
+        auto setter = [](bool value) { Menu::getInstance()->setIsOptionChecked(MenuOption::DisableCrashLogger, !value); };
+        preferences->addPreference(new CheckPreference("Privacy", "Send crashes - Vircadia uses information provided by your "
+                                "client to improve the product through crash reports. By allowing Vircadia to collect "
                                 "this information you are helping to improve the product. ", getter, setter));
     }
 
@@ -350,6 +356,16 @@ void setupPreferences() {
         items << "Snap turn" << "Smooth turn";
         preference->setHeading("Rotation mode");
         preference->setItems(items);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = [myAvatar]()->float { return qApp->getCamera().getSensitivity(); };
+        auto setter = [myAvatar](float value) { qApp->getCamera().setSensitivity(value); };
+        auto preference = new SpinnerSliderPreference(VR_MOVEMENT, "Camera Sensitivity", getter, setter);
+        preference->setMin(0.01f);
+        preference->setMax(5.0f);
+        preference->setStep(0.1);
+        preference->setDecimals(2);
         preferences->addPreference(preference);
     }
     {

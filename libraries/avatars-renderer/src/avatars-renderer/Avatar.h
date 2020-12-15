@@ -207,7 +207,7 @@ public:
     /**jsdoc
      * Gets the default rotation of a joint (in the current avatar) relative to its parent.
      * <p>For information on the joint hierarchy used, see
-     * <a href="https://docs.projectathena.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
+     * <a href="https://docs.vircadia.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
      * @function MyAvatar.getDefaultJointRotation
      * @param {number} index - The joint index.
      * @returns {Quat} The default rotation of the joint if the joint index is valid, otherwise {@link Quat(0)|Quat.IDENTITY}.
@@ -218,7 +218,7 @@ public:
      * Gets the default translation of a joint (in the current avatar) relative to its parent, in model coordinates.
      * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
      * <p>For information on the joint hierarchy used, see
-     * <a href="https://docs.projectathena.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
+     * <a href="https://docs.vircadia.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
      * @function MyAvatar.getDefaultJointTranslation
      * @param {number} index - The joint index.
      * @returns {Vec3} The default translation of the joint (in model coordinates) if the joint index is valid, otherwise 
@@ -442,7 +442,7 @@ public:
     void setOrientationViaScript(const glm::quat& orientation) override;
 
     /**jsdoc
-     * Gets the ID of the entity of avatar that the avatar is parented to.
+     * Gets the ID of the entity or avatar that the avatar is parented to.
      * @function MyAvatar.getParentID
      * @returns {Uuid} The ID of the entity or avatar that the avatar is parented to. {@link Uuid(0)|Uuid.NULL} if not parented.
      */
@@ -450,7 +450,7 @@ public:
     Q_INVOKABLE virtual const QUuid getParentID() const override { return SpatiallyNestable::getParentID(); }
 
     /**jsdoc
-     * Sets the ID of the entity of avatar that the avatar is parented to.
+     * Sets the ID of the entity or avatar that the avatar is parented to.
      * @function MyAvatar.setParentID
      * @param {Uuid} parentID - The ID of the entity or avatar that the avatar should be parented to. Set to 
      *    {@link Uuid(0)|Uuid.NULL} to unparent.
@@ -480,14 +480,7 @@ public:
     /**jsdoc
      * Gets information on all the joints in the avatar's skeleton.
      * @function MyAvatar.getSkeleton
-     * @returns {MyAvatar.SkeletonJoint[]} Information about each joint in the avatar's skeleton.
-     */
-    /**jsdoc
-     * Information about a single joint in an Avatar's skeleton hierarchy.
-     * @typedef {object} MyAvatar.SkeletonJoint
-     * @property {string} name - Joint name.
-     * @property {number} index - Joint index.
-     * @property {number} parentIndex - Index of this joint's parent (-1 if no parent).
+     * @returns {SkeletonJoint[]} Information about each joint in the avatar's skeleton.
      */
     Q_INVOKABLE QList<QVariant> getSkeleton();
 
@@ -662,6 +655,7 @@ protected:
     std::vector<std::shared_ptr<Model>> _attachmentsToDelete;
 
     float _bodyYawDelta { 0.0f };  // degrees/sec
+    float _seatedBodyYawDelta{ 0.0f };  // degrees/renderframe
 
     // These position histories and derivatives are in the world-frame.
     // The derivatives are the MEASURED results of all external and internal forces

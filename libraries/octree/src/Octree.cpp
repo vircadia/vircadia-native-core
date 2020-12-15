@@ -685,8 +685,9 @@ bool Octree::readFromFile(const char* fileName) {
     QDataStream fileInputStream(&file);
     QFileInfo fileInfo(qFileName);
     uint64_t fileLength = fileInfo.size();
+    QUrl relativeURL = QUrl::fromLocalFile(qFileName).adjusted(QUrl::RemoveFilename);
 
-    bool success = readFromStream(fileLength, fileInputStream);
+    bool success = readFromStream(fileLength, fileInputStream, "", false, relativeURL);
 
     file.close();
 
@@ -708,7 +709,9 @@ bool Octree::readJSONFromGzippedFile(QString qFileName) {
     }
 
     QDataStream jsonStream(jsonData);
-    return readJSONFromStream(-1, jsonStream);
+    QUrl relativeURL = QUrl::fromLocalFile(qFileName).adjusted(QUrl::RemoveFilename);
+
+    return readJSONFromStream(-1, jsonStream, "", false, relativeURL);
 }
 
 // hack to get the marketplace id into the entities.  We will create a way to get this from a hash of
@@ -734,7 +737,8 @@ QString getMarketplaceID(const QString& urlString) {
 bool Octree::readFromURL(
     const QString& urlString,
     const bool isObservable,
-    const qint64 callerId
+    const qint64 callerId,
+    const bool isImport
 ) {
     QString trimmedUrl = urlString.trimmed();
     QString marketplaceID = getMarketplaceID(trimmedUrl);
@@ -760,13 +764,15 @@ bool Octree::readFromURL(
     QByteArray uncompressedJsonData;
     bool wasCompressed = gunzip(data, uncompressedJsonData);
 
+    QUrl relativeURL = QUrl(urlString).adjusted(QUrl::RemoveFilename);
+
     if (wasCompressed) {
         QDataStream inputStream(uncompressedJsonData);
-        return readFromStream(uncompressedJsonData.size(), inputStream, marketplaceID);
+        return readFromStream(uncompressedJsonData.size(), inputStream, marketplaceID, isImport, relativeURL);
     }
 
     QDataStream inputStream(data);
-    return readFromStream(data.size(), inputStream, marketplaceID);
+    return readFromStream(data.size(), inputStream, marketplaceID, isImport, relativeURL);
 }
 
 bool Octree::readFromByteArray(
@@ -779,19 +785,23 @@ bool Octree::readFromByteArray(
     QByteArray uncompressedJsonData;
     bool wasCompressed = gunzip(data, uncompressedJsonData);
 
+    QUrl relativeURL = QUrl(urlString).adjusted(QUrl::RemoveFilename);
+
     if (wasCompressed) {
         QDataStream inputStream(uncompressedJsonData);
-        return readFromStream(uncompressedJsonData.size(), inputStream, marketplaceID);
+        return readFromStream(uncompressedJsonData.size(), inputStream, marketplaceID, false, relativeURL);
     }
 
     QDataStream inputStream(data);
-    return readFromStream(data.size(), inputStream, marketplaceID);
+    return readFromStream(data.size(), inputStream, marketplaceID, false, relativeURL);
 }
 
 bool Octree::readFromStream(
     uint64_t streamLength,
     QDataStream& inputStream,
-    const QString& marketplaceID
+    const QString& marketplaceID,
+    const bool isImport,
+    const QUrl& relativeURL
 ) {
     // decide if this is binary SVO or JSON-formatted SVO
     QIODevice *device = inputStream.device();
@@ -804,7 +814,7 @@ bool Octree::readFromStream(
         return false;
     } else {
         qCDebug(octree) << "Reading from JSON SVO Stream length:" << streamLength;
-        return readJSONFromStream(streamLength, inputStream, marketplaceID);
+        return readJSONFromStream(streamLength, inputStream, marketplaceID, isImport, relativeURL);
     }
 }
 
@@ -834,7 +844,9 @@ const int READ_JSON_BUFFER_SIZE = 2048;
 bool Octree::readJSONFromStream(
     uint64_t streamLength,
     QDataStream& inputStream,
-    const QString& marketplaceID /*=""*/
+    const QString& marketplaceID, /*=""*/
+    const bool isImport,
+    const QUrl& relativeURL
 ) {
     // if the data is gzipped we may not have a useful bytesAvailable() result, so just keep reading until
     // we get an eof.  Leave streamLength parameter for consistency.
@@ -855,7 +867,9 @@ bool Octree::readJSONFromStream(
     }
 
     OctreeEntitiesFileParser octreeParser;
+    octreeParser.setRelativeURL(relativeURL);
     octreeParser.setEntitiesString(jsonBuffer);
+
     QVariantMap asMap;
     if (!octreeParser.parseEntities(asMap)) {
         qCritical() << "Couldn't parse Entities JSON:" << octreeParser.getErrorString().c_str();
@@ -866,7 +880,7 @@ bool Octree::readJSONFromStream(
         addMarketplaceIDToDocumentEntities(asMap, marketplaceID);
     }
 
-    bool success = readFromMap(asMap);
+    bool success = readFromMap(asMap, isImport);
     delete[] rawData;
     return success;
 }

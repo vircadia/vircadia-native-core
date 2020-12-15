@@ -6,23 +6,23 @@ set -x
 # allowing the container to be run directly as Jenkins. In Dev, or on unknown
 # environments, run the container as root to automatically correct docker
 # group in container to match the docker.sock GID mounted from the host.
-if [ -f /var/lib/athena/.local -a "$(id -u)" = "0" ]; then
+if [ -f /var/lib/vircadia/.local -a "$(id -u)" = "0" ]; then
 	# realign gid
-	THIS_ATHENA_GID=`ls -ngd /var/lib/athena/.local | cut -f3 -d' '`
-	CUR_ATHENA_GID=`getent group athena | cut -f3 -d: || true`
-	if [ ! -z "$THIS_ATHENA_GID" -a "$THIS_ATHENA_GID" != "$CUR_ATHENA_GID" ]; then
-		groupmod -g ${THIS_ATHENA_GID} -o athena
+	THIS_VIRCADIA_GID=`ls -ngd /var/lib/vircadia/.local | cut -f3 -d' '`
+	CUR_VIRCADIA_GID=`getent group vircadia | cut -f3 -d: || true`
+	if [ ! -z "$THIS_VIRCADIA_GID" -a "$THIS_VIRCADIA_GID" != "$CUR_VIRCADIA_GID" ]; then
+		groupmod -g ${THIS_VIRCADIA_GID} -o vircadia
 	fi
 
 	# realign pid
-	THIS_ATHENA_PID=`ls -nd /var/lib/athena/.local | cut -f3 -d' '`
-	CUR_ATHENA_PID=`getent passwd athena | cut -f3 -d: || true`
-	if [ ! -z "$THIS_ATHENA_PID" -a "$THIS_ATHENA_PID" != "$CUR_ATHENA_PID" ]; then
-		usermod -u ${THIS_ATHENA_PID} -o athena
+	THIS_VIRCADIA_PID=`ls -nd /var/lib/vircadia/.local | cut -f3 -d' '`
+	CUR_VIRCADIA_PID=`getent passwd vircadia | cut -f3 -d: || true`
+	if [ ! -z "$THIS_VIRCADIA_PID" -a "$THIS_VIRCADIA_PID" != "$CUR_VIRCADIA_PID" ]; then
+		usermod -u ${THIS_VIRCADIA_PID} -o vircadia
 	fi
 
-	if ! groups athena | grep -q athena; then
-		usermod -aG athena athena
+	if ! groups vircadia | grep -q vircadia; then
+		usermod -aG vircadia vircadia
 	fi
 fi
 

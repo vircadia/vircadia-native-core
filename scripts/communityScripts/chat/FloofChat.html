@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html>
+<head draggable="false">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Title</title>
+
+    <!--Import Google Icon Font-->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!--Import materialize.css-->
+    <link type="text/css" rel="stylesheet" href="css/materialize.css" media="screen,projection"/>
+    <link type="text/css" rel="stylesheet" href="css/FloofChat.css" media="screen,projection"/>
+
+    <link href="https://fonts.googleapis.com/css?family=Raleway:300,400,600,700" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400&display=swap" rel="stylesheet"> 
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+
+</head>
+<body>
+
+<div class="Content row">
+    <div class="col s12 valign-wrapper" style="padding: 10px;">
+        <ul class="tabs tabs-fixed-width z-depth-2 col s6" id="tabs">
+            <li class="tab col s2"><a class="black-text active" href="#Local">Local</a></li>
+            <li class="tab col s2"><a class="black-text" href="#Domain">Domain</a></li>
+            <li class="tab col s2"><a class="black-text" href="#Grid">Grid</a></li>
+        </ul>
+        <span class="col s1">
+        </span>
+        <div class="switch muteSwitch col s2">
+            <label>
+                <span id="muteText">Hide Popups</span>
+                <input type="checkbox" id="muteInput" onclick="muteSwitchToggle()">
+                <span class="lever waves-light"></span>
+            </label>
+        </div>
+        
+        <div class="switch muteSwitch col s2">
+            <label>
+                <span id="muteAudioText">Mute Sound</span>
+                <input type="checkbox" id="muteAudioInput" onclick="muteAudioSwitchToggle()">
+                <span class="lever waves-light"></span>
+            </label>
+        </div>
+
+        <span class="col s1">
+        </span>
+        <a class="waves-effect waves-light btn col s2" onclick="redock()">Redock</a>
+    </div>
+    <div id="Local" class="ChatLog col s12"></div>
+    <div id="Domain" class="col s12 ChatLog"></div>
+    <div id="Grid" class="col s12 ChatLog"></div>
+    <input type="text" class="ChatInputText col s12" id="ChatInputText" size="256" placeholder="Type here">
+</div>
+
+<script>
+    var muted = {"Local": false, "Domain": false, "Grid": false};
+    var mutedAudio = {"Local": false, "Domain": false, "Grid": false};
+    var instance;
+    var appUUID;
+    var messageData = {}; // The data that is sent along with the message.
+    var $ChatLog; // The scrolling chat log.
+    var $ChatInputText; // The text field for entering text.
+    var userName;
+    var urlRegEx = /((([A-Za-z]{3,9}:(?:\/\/)?)(?:[\-;:&=\+\$,\w]+@)?[A-Za-z0-9\.\-]+|(?:www\.|[\-;,:&=\+\$,\w]+@)[A-Za-z0-9\.\-]+)((?:\/[\+,~%\/\.\w\-]*)?\??(?:[\-\+=&;,:%@\.\w]*)#?(?:[\.\!\/\\\w]*))?)/g;
+
+    function reverseMatches(msg) {
+        var result = [];
+        var matches = msg.match(urlRegEx);
+        if (matches === null) {
+            matches = [];
+        }
+        for (var i = 0; i <= matches.length; i++) {
+            var split = msg.split(matches[i], 2);
+            result.push(split[0]);
+            msg = split[1];
+        }
+        return result;
+    }
+
+    //Start George Function
+    //Function provided by George Deac
+    //linky function
+    (function ($) {
+
+        "use strict";
+
+        $.fn.linky = function (options) {
+            return this.each(function () {
+                var $el = $(this);
+                var content = $el.html();
+
+                var match = content.match(urlRegEx);
+                var matchLength = match === null ? 0 : match.length;
+                var messageParts = reverseMatches(content);
+
+                var messageFormatted = [];
+                var urlLinkified = [];
+                var completeMessage = [];
+
+                for (var i = 0; i < matchLength; i++) {
+                    urlLinkified.push(_linkify(match[i], options));
+                }
+
+                for (var i = 0; i < messageParts.length; i++) {
+                    messageFormatted.push(replaceFormatting(messageParts[i]));
+                }
+
+                for (var i = 0; i < messageFormatted.length; i++) {
+                    completeMessage.push(messageFormatted[i], urlLinkified[i]);
+                }
+
+                $el.html(completeMessage.join(""));
+            });
+        };
+
+        function _linkify($el, options) {
+            var links = {
+                    twitter: {
+                        baseUrl: "https://twitter.com/",
+                        hashtagSearchUrl: "hashtag/"
+                    },
+                    instagram: {
+                        baseUrl: "http://instagram.com/",
+                        hashtagSearchUrl: null // Doesn't look like there is one?
+                    },
+                    github: {
+                        baseUrl: "https://github.com/",
+                        hashtagSearchUrl: null
+                    }
+                },
+                defaultOptions = {
+                    mentions: false,
+                    hashtags: false,
+                    urls: true,
+                    linkTo: "twitter" // Let's default to Twitter
+                },
+                extendedOptions = $.extend(defaultOptions, options),
+                elContent = $el,
+                // Regular expression courtesy of Matthew O'Riordan, see: http://goo.gl/3syEKK
+                matches;
+
+            // Linkifying URLs
+            if (extendedOptions.urls) {
+                matches = elContent.match(urlRegEx);
+                if (matches) {
+                    elContent = _linkifyUrls(matches, $el);
+                }
+            }
+
+            // Linkifying mentions
+            if (extendedOptions.mentions) {
+                elContent = _linkifyMentions(elContent, links[extendedOptions.linkTo].baseUrl);
+            }
+
+            // Linkifying hashtags
+            if (extendedOptions.hashtags) {
+                elContent = _linkifyHashtags(elContent, links[extendedOptions.linkTo]);
+            }
+
+            return elContent;
+        }
+        
+        // For any URLs present, unless they are already identified within
+        // an `a` element, linkify them.
+        function _linkifyUrls(matches, $el) {
+            var elContent = $el;
+
+            $.each(matches, function () {
+
+                //var arr = [ "jpeg", "jpg", "gif", "png" ];
+                var protocol = this.split('://')[0];
+                var ext = this.split('.').pop();
+
+                switch (true) {
+                    case ext == "png":
+                    case ext == "jpg":
+                    case ext == "gif":
+                    case ext == "jpeg":
+                    case ext == "PNG":
+                    case ext == "JPG":
+                    case ext == "GIF":
+                    case ext == "JPEG":
+                        var replaceWith = "<br/>";
+                        replaceWith += "<img src='" + this + "'class=\"responsive z-depth-2\"><br/>";
+                        replaceWith += "<a onclick=\"gotoClipboard('" + this + "');return false;\" href=\"" + this + "\" target=\"_blank\">" + this + "</a>";
+                        replaceWith += "<a onclick=\"gotoExternalURL('" + this + "');return false;\"href=\"" + this + "\">&#x1F4F2;</a>";
+
+                        elContent = elContent.replace(this, replaceWith);
+                        break;
+                    case ext == "iframe":
+                        var replaceWith = "<br/>";
+                        replaceWith += "<iframe class=\"z-depth-2\" src='" + this;
+                        replaceWith += "'width=\"440\" height=\"248\" frameborder=\"0\"></iframe>";
+
+                        elContent = elContent.replace(this, replaceWith);
+                        break;
+                    case ext == "webm":
+                        var replaceWith = "<br/>";
+                        replaceWith += "<video controls class=\"z-depth-2 responsive\"><source src='" + this;
+                        replaceWith += "' type='video/" + ext + "'></video>";
+                        replaceWith += "<br/>";
+                        replaceWith += "<a onclick=\"gotoClipboard('" + this + "');return false;\" href=\"" + this + "\">" + this + "</a>";
+                        replaceWith += "<a onclick=\"gotoExternalURL('" + this + "');return false;\"href=\"" + this + "\">&#x1F4F2;</a>";
+
+                        elContent = elContent.replace(this, replaceWith);
+                        break;
+                    case protocol === "HIFI":
+                    case protocol === "hifi":
+                        elContent = elContent.replace(this, "<br/><a href=\"javascript:gotoHiFi('" + this + "');\">" + this + "</a>");
+                        break;
+					case !!this.match(/(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([^& \n<]+)(?:[^ \n<]+)?/g):
+                        var youtubeMatch = this.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
+                        if (youtubeMatch && youtubeMatch[2].length == 11) {
+                            var replaceWith = "<br/>";
+                            replaceWith += "<iframe class=\"z-depth-2\" width='420' height='236' src='https://www.youtube.com/embed/" + youtubeMatch[2] + "' frameborder='0'></iframe>";
+                            replaceWith += "<br/>";
+                            replaceWith += "<a onclick=\"gotoExternalURL('" + this + "');return false;\" href=\"" + this + "\">" + this + "</a>";
+                            replaceWith += "<a onclick=\"gotoExternalURL('" + this + "');return false;\" href=\"" + this + "\">&#x1F4F2;</a>";
+
+                            elContent = replaceWith;
+                            break;
+                        }
+                    // else fall through to default
+                    default:
+                        var replaceWith = "<br/>";
+                        replaceWith += "<a onclick=\"gotoURL('" + this + "');return false;\" href=\"" + this + "\">" + this + "</a>";
+                        replaceWith += "<a onclick=\"gotoExternalURL('" + this + "');return false;\"href=\"" + this + "\">&#x1F4F2;</a>";
+
+                        elContent = elContent.replace(this, replaceWith);
+                        break;
+                        
+                }
+
+            });
+            return elContent;
+        }
+
+        // Find any mentions (e.g. @andrs) and turn them into links that
+        // refer to the appropriate social profile (e.g. twitter or instagram).
+        function _linkifyMentions(text, baseUrl) {
+            return text.replace(/(^|\s|\(|>)@(\w+)/g, "$1<a href='" + baseUrl + "$2' target='_blank'>@$2</a>");
+        }
+
+        // Find any hashtags (e.g. #linkyrocks) and turn them into links that refer
+        // to the appropriate social profile.
+        function _linkifyHashtags(text, links) {
+            // If there is no search URL for a hashtag, there isn't much we can do
+            if (links.hashtagSearchUrl === null) return text;
+            return text.replace(/(^|\s|\(|>)#((\w|[\u00A1-\uFFFF])+)/g, "$1<a href='" + links.baseUrl + links.hashtagSearchUrl + "$2' target='_blank'>#$2</a>");
+        }
+
+    }(jQuery));
+
+    //End George Function
+
+    function replaceFormatting(text) {
+        var found = false;
+        if (text.indexOf("**") !== -1) {
+            var firstMatch = text.indexOf("**") + 2;
+            var secondMatch = text.indexOf("**", firstMatch);
+            if (firstMatch !== -1 && secondMatch !== -1) {
+                found = true;
+                var part1 = text.substring(0, firstMatch - 2);
+                var part2 = text.substring(firstMatch, secondMatch);
+                var part3 = text.substring(secondMatch + 2);
+                text = part1 + "<b>" + part2 + "</b>" + part3;
+            }
+        } else if (text.indexOf("*") !== -1) {
+            var firstMatch = text.indexOf("*") + 1;
+            var secondMatch = text.indexOf("*", firstMatch);
+            if (firstMatch !== -1 && secondMatch !== -1) {
+                found = true;
+                var part1 = text.substring(0, firstMatch - 1);
+                var part2 = text.substring(firstMatch, secondMatch);
+                var part3 = text.substring(secondMatch + 1);
+                text = part1 + "<i>" + part2 + "</i>" + part3;
+            }
+        } else if (text.indexOf("__") !== -1) {
+            var firstMatch = text.indexOf("__") + 2;
+            var secondMatch = text.indexOf("__", firstMatch);
+            if (firstMatch !== -1 && secondMatch !== -1) {
+                found = true;
+                var part1 = text.substring(0, firstMatch - 2);
+                var part2 = text.substring(firstMatch, secondMatch);
+                var part3 = text.substring(secondMatch + 2);
+                text = part1 + "<ins>" + part2 + "</ins>" + part3;
+            }
+        } else if (text.indexOf("_") !== -1) {
+            var firstMatch = text.indexOf("_") + 1;
+            var secondMatch = text.indexOf("_", firstMatch);
+            if (firstMatch !== -1 && secondMatch !== -1) {
+                found = true;
+                var part1 = text.substring(0, firstMatch - 1);
+                var part2 = text.substring(firstMatch, secondMatch);
+                var part3 = text.substring(secondMatch + 1);
+                text = part1 + "<i>" + part2 + "</i>" + part3;
+            }
+        } else if (text.indexOf("~~") !== -1) {
+            var firstMatch = text.indexOf("~~") + 2;
+            var secondMatch = text.indexOf("~~", firstMatch);
+            if (firstMatch !== -1 && secondMatch !== -1) {
+                found = true;
+                var part1 = text.substring(0, firstMatch - 2);
+                var part2 = text.substring(firstMatch, secondMatch);
+                var part3 = text.substring(secondMatch + 2);
+                text = part1 + "<del>" + part2 + "</del>" + part3;
+            }
+        }
+        if (found) {
+            return replaceFormatting(text);
+        } else {
+            return text;
+        }
+    }
+
+    function gotoHiFi(url) {
+        emitWebEvent({type: "CMD", cmd: "GOTO", url: url});
+    }
+
+    function gotoURL(url) {
+        emitWebEvent({type: "CMD", cmd: "URL", url: url});
+    }
+    
+    function gotoExternalURL(url) {
+        emitWebEvent({ type: "CMD", cmd: "EXTERNALURL", url: url });
+    }
+
+    function gotoClipboard(url) {
+        M.toast({html: 'Copied URL to Clipboard', classes: 'rounded pink white-text'});
+        emitWebEvent({type: "CMD", cmd: "COPY", url: url});
+    }
+
+    function emitWebEvent(obj) {
+        if (window.qt) {
+            obj.appUUID = appUUID; // Appends the appUUID for checking that its from the correct html/qml.
+            EventBridge.emitWebEvent(JSON.stringify(obj)); // So you can just send a JSON object without having to stringify.
+        }
+    }
+
+    function rgbToHex(colour) {
+        var red = Number(colour.red).toString(16);
+        if (red.length < 2) {
+            red = "0" + red;
+        }
+        var green = Number(colour.green).toString(16);
+        if (green.length < 2) {
+            green = "0" + green;
+        }
+        var blue = Number(colour.blue).toString(16);
+        if (blue.length < 2) {
+            blue = "0" + blue;
+        }
+        return "#" + red + green + blue;
+    }
+
+    function getCurrTab() {
+        return instance.$activeTabLink.html();
+    }
+
+    function redock() {
+        emitWebEvent({type: "CMD", cmd: "REDOCK"});
+        location.reload();
+    }
+
+    function logMessage(timestamp, userName, message, logScreen, colour) {
+        var LogScreen = $("#" + logScreen);
+        var $logLine =
+            $('<div/>')
+                .addClass('LogLogLine')
+                .addClass('card-panel')
+                .addClass('blue-grey')
+                .addClass('darken-4')
+                .addClass('z-depth-2')
+                .data('chat-message', message).css("color", rgbToHex(colour))
+                .appendTo(LogScreen);
+        $('<span/>')
+            .addClass('LogLogLineTimestamp')
+            .text(timestamp).css("color", rgbToHex(colour))
+            .appendTo($logLine);
+        $('<b/>')
+            .addClass('LogLogLineMessage')
+            .text(userName + ": ").css("color", rgbToHex(colour))
+            .appendTo($logLine);
+        $('<span/>')
+            .addClass('LogLogLineMessage')
+            .text(message).css("color", rgbToHex(colour)).linky()
+            .appendTo($logLine);
+    }
+
+    function scrollChatLog(chatID) {
+        var $chatID = $("#" + chatID);
+        $chatID.scrollTop($chatID.scrollTop() + 100000);
+    }
+
+    function time() {
+        var d = new Date();
+        // Months are returned in range 0-11 instead of 1-12, so we have to add 1.
+        var month = (d.getMonth() + 1).toString(); 
+        var day = (d.getDate()).toString();
+        var h = (d.getHours()).toString();
+        var m = (d.getMinutes()).toString();
+        var s = (d.getSeconds()).toString();
+        var h2 = ("0" + h).slice(-2);
+        var m2 = ("0" + m).slice(-2);
+        var s2 = ("0" + s).slice(-2);
+        // s2 += (d.getMilliseconds() / 1000).toFixed(2).slice(1);
+        return month + "/" + day + " - " + h2 + ":" + m2 + ":" + s2;
+    }
+
+    var muteInput;
+    var muteText;
+    
+    var muteAudioInput;
+    var muteAudioText;
+
+    function muteSwitchToggle() {
+        muted[getCurrTab()] = muteInput.checked;
+        muteText.classList.add(muteInput.checked ? "red-text" : "white-text");
+        muteText.classList.remove(!muteInput.checked ? "red-text" : "white-text");
+        emitWebEvent({type: "CMD", cmd: "MUTED", muted: muted});
+    }
+    
+    function muteAudioSwitchToggle() {
+        mutedAudio[getCurrTab()] = muteAudioInput.checked;
+        muteAudioText.classList.add(muteAudioInput.checked ? "red-text" : "white-text");
+        muteAudioText.classList.remove(!muteAudioInput.checked ? "red-text" : "white-text");
+        emitWebEvent({ type: "CMD", cmd: "MUTEDAUDIO", muted: mutedAudio });
+    }
+
+    function main() {
+
+        muteInput = document.getElementById("muteInput");
+        muteText = document.getElementById("muteText");
+        
+        muteAudioInput = document.getElementById("muteAudioInput");
+        muteAudioText = document.getElementById("muteAudioText");
+
+        instance = M.Tabs.init(document.getElementById("tabs"), {
+            "onShow": function (e) {
+                scrollChatLog(getCurrTab());
+                
+                muteInput.checked = muted[getCurrTab()];
+                muteText.classList.add(muteInput.checked ? "red-text" : "white-text");
+                muteText.classList.remove(!muteInput.checked ? "red-text" : "white-text");
+                
+                muteAudioInput.checked = mutedAudio[getCurrTab()];
+                muteAudioText.classList.add(muteAudioInput.checked ? "red-text" : "white-text");
+                muteAudioText.classList.remove(!muteAudioInput.checked ? "red-text" : "white-text");
+            }
+        });
+        instance.select("Local");
+
+        $('.modal').modal();
+
+        var parsedUrl = new URL(window.location.href);
+        appUUID = parsedUrl.searchParams.get("appUUID");
+
+        $ChatLog = $('#Local');
+        $ChatInputText = $('#ChatInputText');
+
+        $ChatInputText.on('focus', function (event) {
+            scrollChatLog(getCurrTab());
+        });
+
+        $ChatInputText.on('keydown', function (event) {
+            if (event.keyCode === 13) {
+                var message = $ChatInputText.val().substr(0, 256);
+                $ChatInputText.val('');
+                if (message !== '') {
+                    var tab = getCurrTab();
+                    if (tab === "Grid") {
+                        emitWebEvent({type: "WEBMSG", message: message, tab: tab, time: time()});
+                    } else {
+                        emitWebEvent({type: "MSG", message: message, tab: tab, time: time()});
+                    }
+
+                    console.log("getCurrTab: ", getCurrTab());
+                }
+            }
+        });
+
+        $ChatInputText.focus();
+
+        if (window.qt) {
+            setTimeout(function () {
+                console.log("connecting to eventbridge");
+                EventBridge.scriptEventReceived.connect(function (message) {
+                    var cmd = [];
+                    try {
+                        cmd = JSON.parse(message);
+                    } catch (e) {
+                        //
+                    }
+                    if (cmd.type === "MSG") {
+                        var temp = cmd.data;
+                        if (temp.length === 1) {
+                            var temp2 = temp[0];
+                            logMessage("[" + temp2[0] + "] ", temp2[2], temp2[1], temp2[4], temp2[3]);
+                            scrollChatLog(temp2[4]);
+                        } else if (temp.length > 1) {
+                            temp.forEach(function (msg) {
+                                logMessage("[" + msg[0] + "] ", msg[2], msg[1], msg[4], msg[3]);
+                                scrollChatLog(msg[4]);
+                            });
+                        }
+                    } else if (cmd.type === "CMD") {
+                        if (cmd.cmd === "MUTED") {
+                            muted = cmd.muted;
+                            muteInput.checked = muted[getCurrTab()];
+                            muteText.classList.add(muteInput.checked ? "red-text" : "white-text");
+                            muteText.classList.remove(!muteInput.checked ? "red-text" : "white-text");
+                        }
+                        if (cmd.cmd === "MUTEDAUDIO") {
+                            mutedAudio = cmd.muted;
+                            muteAudioInput.checked = mutedAudio[getCurrTab()];
+                            muteAudioText.classList.add(muteAudioInput.checked ? "red-text" : "white-text");
+                            muteAudioText.classList.remove(!muteAudioInput.checked ? "red-text" : "white-text");
+                        }
+                    }
+                });
+            }, 100); // Delay to allow everything to settle
+        }
+
+        $ChatInputText.focus();
+
+        if (window.qt) {
+            setTimeout(function () {
+                emitWebEvent({
+                    "type": "ready"
+                });
+            }, 250); // Delay to allow everything to settle
+            console.log("sending ready signal!");
+        }
+    }
+
+    $(document).ready(main);
+</script>
+<script type="text/javascript" src="js/materialize.min.js"></script>
+
+</body>
+
+</html>

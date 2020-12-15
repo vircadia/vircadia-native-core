@@ -15,7 +15,7 @@ var skeletonModelURL = "";
 var jointCount = 0;
 
 var excludedRoles = ["rightHandGraspOpen", "rightHandGraspClosed", "leftHandGraspOpen", "leftHandGraspClosed"];
-var IDLE_URL = "http://hifi-content.s3.amazonaws.com/ozan/dev/anim/standard_anims_160127/idle.fbx";
+var IDLE_URL = Script.getExternalPath(Script.ExternalPaths.HF_Content, "/ozan/dev/anim/standard_anims_160127/idle.fbx");
 
 function overrideAnims() {
     var roles = MyAvatar.getAnimationRoles();

@@ -9,9 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* globals HIFI_PUBLIC_BUCKET:true, Tool, ToolBar */
+/* globals Tool, ToolBar */
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 Script.include("/~/system/libraries/toolBars.js");
 
 var recordingFile = "recording.hfr";
@@ -25,7 +24,7 @@ function setDefaultPlayerOptions() {
 }
 
 var windowDimensions = Controller.getViewportDimensions();
-var TOOL_ICON_URL = HIFI_PUBLIC_BUCKET + "images/tools/";
+var TOOL_ICON_URL = Script.getExternalPath(Script.ExternalPaths.Assets, + "images/tools/");
 var ALPHA_ON = 1.0;
 var ALPHA_OFF = 0.7;
 var COLOR_ON = { red: 128, green: 0, blue: 0 };

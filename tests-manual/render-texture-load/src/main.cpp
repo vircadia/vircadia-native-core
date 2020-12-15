@@ -52,6 +52,7 @@
 
 #include <GenericThread.h>
 #include <AddressManager.h>
+#include <ExternalResource.h>
 #include <NodeList.h>
 #include <TextureCache.h>
 #include <FramebufferCache.h>
@@ -62,7 +63,7 @@
 
 extern QThread* RENDER_THREAD;
 
-static const QString DATA_SET = "https://hifi-content.s3.amazonaws.com/austin/textures.zip";
+static const QString DATA_SET = ExternalResource::getInstance()->getUrl(ExternalResource::Bucket::HF_Content, "/austin/textures.zip");
 static QDir DATA_DIR = QDir(QString("h:/textures"));
 static QTemporaryDir* DOWNLOAD_DIR = nullptr;
 

@@ -16,8 +16,9 @@
 #include <cmath>
 #include <assert.h>
 
-#include <QThread>
-#include <QTimer>
+#include <QtCore/QMetaMethod>
+#include <QtCore/QThread>
+#include <QtCore/QTimer>
 
 #include <SharedUtil.h>
 #include <shared/QtHelpers.h>

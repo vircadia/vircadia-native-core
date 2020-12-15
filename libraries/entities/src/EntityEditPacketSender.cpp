@@ -26,7 +26,8 @@
 
 EntityEditPacketSender::EntityEditPacketSender() {
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerDirectListener(PacketType::EntityEditNack, this, "processEntityEditNackPacket");
+    packetReceiver.registerDirectListener(PacketType::EntityEditNack,
+        PacketReceiver::makeSourcedListenerReference<EntityEditPacketSender>(this, &EntityEditPacketSender::processEntityEditNackPacket));
 }
 
 void EntityEditPacketSender::processEntityEditNackPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
@@ -73,8 +74,12 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
     if (properties.getEntityHostType() == entity::HostType::AVATAR) {
         if (!_myAvatar) {
             qCWarning(entities) << "Suppressing entity edit message: cannot send avatar entity edit with no myAvatar";
-        } else if (properties.getOwningAvatarID() == _myAvatar->getID()) {
-            // this is an avatar-based entity --> update our avatar-data rather than sending to the entity-server
+        } else if (properties.getOwningAvatarID() == _myAvatar->getID() || properties.getOwningAvatarID() == AVATAR_SELF_ID) {
+            // this is a local avatar-entity --> update our avatar-data rather than sending to the entity-server
+            // Note: we store AVATAR_SELF_ID in EntityItem::_owningAvatarID and we usually
+            // store the actual sessionUUID in EntityItemProperties::_owningAvatarID.
+            // However at this context we check for both cases just in case.  Really we just want to know
+            // where to route the data: entity-server or avatar-mixer.
             queueEditAvatarEntityMessage(entityTree, entityItemID);
         } else {
             qCWarning(entities) << "Suppressing entity edit message: cannot send avatar entity edit for another avatar";

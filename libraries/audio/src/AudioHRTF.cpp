@@ -25,13 +25,6 @@
 #define ALIGN32
 #endif
 
-#ifndef MAX
-#define MAX(a,b)    (((a) > (b)) ? (a) : (b))
-#endif
-#ifndef MIN
-#define MIN(a,b)    (((a) < (b)) ? (a) : (b))
-#endif
-
 //
 // Equal-gain crossfade
 //
@@ -114,105 +107,48 @@ static const float nearFieldTable[NNEARFIELD][3] = {    // { b0, b1, a1 }
 };
 
 //
-// Model the frequency-dependent attenuation of sound propogation in air.
+// Parametric lowpass filter to model sound propogation or occlusion.
 //
-// Fit using linear regression to a log-log model of lowpass cutoff frequency vs distance,
-// loosely based on data from Handbook of Acoustics. Only the onset of significant
-// attenuation is modelled, not the filter slope.
+// lpf = 0.0 -> -3dB @ 50kHz
+// lpf = 0.5 -> -3dB @ 1kHz
+// lpf = 1.0 -> -3dB @ 20Hz
 //
-//   1m -> -3dB @ 55kHz
-//  10m -> -3dB @ 12kHz
-// 100m -> -3dB @ 2.5kHz
-//  1km -> -3dB @ 0.6kHz
-// 10km -> -3dB @ 0.1kHz
-//
-static const int NLOWPASS = 64;
-static const float lowpassTable[NLOWPASS][5] = {    // { b0, b1, b2, a1, a2 }
-    // distance = 1
-    { 0.999772371f, 1.399489756f,  0.454495527f,  1.399458985f, 0.454298669f },
-    { 0.999631480f, 1.357609808f,  0.425210203f,  1.357549905f, 0.424901586f },
-    { 0.999405154f, 1.311503050f,  0.394349994f,  1.311386830f, 0.393871368f },
-    { 0.999042876f, 1.260674595f,  0.361869089f,  1.260450057f, 0.361136504f },
-    // distance = 2
-    { 0.998465222f, 1.204646525f,  0.327757118f,  1.204214978f, 0.326653886f },
-    { 0.997548106f, 1.143019308f,  0.292064663f,  1.142195387f, 0.290436690f },
-    { 0.996099269f, 1.075569152f,  0.254941286f,  1.074009405f, 0.252600301f },
-    { 0.993824292f, 1.002389610f,  0.216688640f,  0.999469185f, 0.213433357f },
-    // distance = 4
-    { 0.990280170f, 0.924075266f,  0.177827150f,  0.918684864f, 0.173497723f },
-    { 0.984818279f, 0.841917936f,  0.139164195f,  0.832151968f, 0.133748443f },
-    { 0.976528670f, 0.758036513f,  0.101832398f,  0.740761682f, 0.095635899f },
-    { 0.964216485f, 0.675305244f,  0.067243474f,  0.645654855f, 0.061110348f },
-    // distance = 8
-    { 0.946463038f, 0.596943020f,  0.036899688f,  0.547879974f, 0.032425772f },
-    { 0.921823868f, 0.525770189f,  0.012060451f,  0.447952111f, 0.011702396f },
-    { 0.890470015f, 0.463334299f, -0.001227816f,  0.347276405f, 0.005300092f },
-    { 0.851335343f, 0.407521164f, -0.009353968f,  0.241900234f, 0.007602305f },
-    // distance = 16
-    { 0.804237360f, 0.358139558f, -0.014293332f,  0.130934213f, 0.017149373f },
-    { 0.750073259f, 0.314581568f, -0.016625381f,  0.014505388f, 0.033524057f },
-    { 0.690412072f, 0.275936128f, -0.017054561f, -0.106682490f, 0.055976129f },
-    { 0.627245545f, 0.241342015f, -0.016246850f, -0.231302564f, 0.083643275f },
-    // distance = 32
-    { 0.562700627f, 0.210158533f, -0.014740899f, -0.357562697f, 0.115680957f },
-    { 0.498787849f, 0.181982455f, -0.012925406f, -0.483461730f, 0.151306628f },
-    { 0.437224055f, 0.156585449f, -0.011055180f, -0.607042210f, 0.189796534f },
-    { 0.379336998f, 0.133834032f, -0.009281617f, -0.726580065f, 0.230469477f },
-    // distance = 64
-    { 0.326040627f, 0.113624970f, -0.007683443f, -0.840693542f, 0.272675696f },
-    { 0.277861727f, 0.095845793f, -0.006291936f, -0.948380091f, 0.315795676f },
-    { 0.234997480f, 0.080357656f, -0.005109519f, -1.049001190f, 0.359246807f },
-    { 0.197386484f, 0.066993521f, -0.004122547f, -1.142236313f, 0.402493771f },
-    // distance = 128
-    { 0.164780457f, 0.055564709f, -0.003309645f, -1.228023442f, 0.445058962f },
-    { 0.136808677f, 0.045870650f, -0.002646850f, -1.306498037f, 0.486530514f },
-    { 0.113031290f, 0.037708627f, -0.002110591f, -1.377937457f, 0.526566783f },
-    { 0.092980475f, 0.030881892f, -0.001679255f, -1.442713983f, 0.564897095f },
-    // distance = 256
-    { 0.076190239f, 0.025205585f, -0.001333863f, -1.501257246f, 0.601319206f },
-    { 0.062216509f, 0.020510496f, -0.001058229f, -1.554025452f, 0.635694228f },
-    { 0.050649464f, 0.016644994f, -0.000838826f, -1.601484205f, 0.667939837f },
-    { 0.041120009f, 0.013475547f, -0.000664513f, -1.644091518f, 0.698022561f },
-    // distance = 512
-    { 0.033302044f, 0.010886252f, -0.000526217f, -1.682287704f, 0.725949783f },
-    { 0.026911868f, 0.008777712f, -0.000416605f, -1.716488979f, 0.751761953f },
-    { 0.021705773f, 0.007065551f, -0.000329788f, -1.747083800f, 0.775525335f },
-    { 0.017476603f, 0.005678758f, -0.000261057f, -1.774431204f, 0.797325509f },
-    // distance = 1024
-    { 0.014049828f, 0.004558012f, -0.000206658f, -1.798860530f, 0.817261711f },
-    { 0.011279504f, 0.003654067f, -0.000163610f, -1.820672082f, 0.835442043f },
-    { 0.009044384f, 0.002926264f, -0.000129544f, -1.840138412f, 0.851979516f },
-    { 0.007244289f, 0.002341194f, -0.000102586f, -1.857505967f, 0.866988864f },
-    // distance = 2048
-    { 0.005796846f, 0.001871515f, -0.000081250f, -1.872996926f, 0.880584038f },
-    { 0.004634607f, 0.001494933f, -0.000064362f, -1.886811124f, 0.892876302f },
-    { 0.003702543f, 0.001193324f, -0.000050993f, -1.899127955f, 0.903972829f },
-    { 0.002955900f, 0.000951996f, -0.000040407f, -1.910108223f, 0.913975712f },
-    // distance = 4096
-    { 0.002358382f, 0.000759068f, -0.000032024f, -1.919895894f, 0.922981321f },
-    { 0.001880626f, 0.000604950f, -0.000025383f, -1.928619738f, 0.931079931f },
-    { 0.001498926f, 0.000481920f, -0.000020123f, -1.936394836f, 0.938355560f },
-    { 0.001194182f, 0.000383767f, -0.000015954f, -1.943323983f, 0.944885977f },
-    // distance = 8192
-    { 0.000951028f, 0.000305502f, -0.000012651f, -1.949498943f, 0.950742822f },
-    { 0.000757125f, 0.000243126f, -0.000010033f, -1.955001608f, 0.955991826f },
-    { 0.000602572f, 0.000193434f, -0.000007957f, -1.959905036f, 0.960693085f },
-    { 0.000479438f, 0.000153861f, -0.000006312f, -1.964274383f, 0.964901371f },
-    // distance = 16384
-    { 0.000381374f, 0.000122359f, -0.000005007f, -1.968167752f, 0.968666478f },
-    { 0.000303302f, 0.000097288f, -0.000003972f, -1.971636944f, 0.972033562f },
-    { 0.000241166f, 0.000077342f, -0.000003151f, -1.974728138f, 0.975043493f },
-    { 0.000191726f, 0.000061475f, -0.000002500f, -1.977482493f, 0.977733194f },
-    // distance = 32768
-    { 0.000152399f, 0.000048857f, -0.000001984f, -1.979936697f, 0.980135969f },
-    { 0.000121122f, 0.000038825f, -0.000001574f, -1.982123446f, 0.982281818f },
-    { 0.000096252f, 0.000030849f, -0.000001249f, -1.984071877f, 0.984197728f },
-    { 0.000076480f, 0.000024509f, -0.000000991f, -1.985807957f, 0.985907955f },
+static const int NLOWPASS = 32;
+static const float lowpassTable[NLOWPASS+1][5] = {  // { b0, b1, b2, a1, a2 }
+    { 0.9996582613f, 1.3644521648f,  0.4299107175f,  1.3643981990f, 0.4296229446f },
+    { 0.9990601568f, 1.2627213717f,  0.3631477252f,  1.2625024258f, 0.3624268280f },
+    { 0.9974547575f, 1.1378303854f,  0.2891398515f,  1.1369629374f, 0.2874620569f },
+    { 0.9932384344f, 0.9872078424f,  0.2089943789f,  0.9839050501f, 0.2055356056f },
+    { 0.9825457933f, 0.8153687744f,  0.1271135720f,  0.8036320348f, 0.1213961050f },
+    { 0.9572356804f, 0.6404312275f,  0.0534129844f,  0.6033230637f, 0.0477568288f },
+    { 0.9052878744f, 0.4902779401f,  0.0035032262f,  0.3924772681f, 0.0065917726f },
+    { 0.8204774205f, 0.3736089028f, -0.0129974730f,  0.1678426876f, 0.0132461627f },
+    { 0.7032096959f, 0.2836328681f, -0.0170877258f, -0.0810811878f, 0.0508360260f },
+    { 0.5685067272f, 0.2128349296f, -0.0148937235f, -0.3461942779f, 0.1126422113f },
+    { 0.4355093111f, 0.1558974062f, -0.0110025095f, -0.6105302595f, 0.1909344673f },
+    { 0.3186188589f, 0.1108581568f, -0.0074653192f, -0.8569688248f, 0.2789805212f },
+    { 0.2244962739f, 0.0766060095f, -0.0048289293f, -1.0745081373f, 0.3707814914f },
+    { 0.1535044640f, 0.0516447640f, -0.0030384640f, -1.2590370066f, 0.4611477706f },
+    { 0.1025113288f, 0.0341204303f, -0.0018818088f, -1.4113207964f, 0.5460707468f },
+    { 0.0672016063f, 0.0221823522f, -0.0011552756f, -1.5347007285f, 0.6229294113f },
+    { 0.0434202931f, 0.0142393067f, -0.0007060306f, -1.6334567973f, 0.6904103664f },
+    { 0.0277383489f, 0.0090500025f, -0.0004305987f, -1.7118804671f, 0.7482382198f },
+    { 0.0175636227f, 0.0057072537f, -0.0002624537f, -1.7738404438f, 0.7968488665f },
+    { 0.0110441068f, 0.0035773504f, -0.0001599927f, -1.8226329785f, 0.8370944430f },
+    { 0.0069069312f, 0.0022316608f, -0.0000975848f, -1.8609764152f, 0.8700174224f },
+    { 0.0043012064f, 0.0013870046f, -0.0000595614f, -1.8910688315f, 0.8966974811f },
+    { 0.0026696068f, 0.0008595333f, -0.0000363798f, -1.9146662133f, 0.9181589737f },
+    { 0.0016526098f, 0.0005314445f, -0.0000222355f, -1.9331608518f, 0.9353226705f },
+    { 0.0010209520f, 0.0003280036f, -0.0000135987f, -1.9476515008f, 0.9489868578f },
+    { 0.0006297162f, 0.0002021591f, -0.0000083208f, -1.9590027292f, 0.9598262837f },
+    { 0.0003879180f, 0.0001244611f, -0.0000050936f, -1.9678935939f, 0.9684008793f },
+    { 0.0002387308f, 0.0000765601f, -0.0000031192f, -1.9748568416f, 0.9751690132f },
+    { 0.0001468057f, 0.0000470631f, -0.0000019106f, -1.9803101382f, 0.9805020963f },
+    { 0.0000902227f, 0.0000289155f, -0.0000011706f, -1.9845807858f, 0.9846987534f },
+    { 0.0000554223f, 0.0000177584f, -0.0000007174f, -1.9879252038f, 0.9879976671f },
+    { 0.0000340324f, 0.0000109027f, -0.0000004397f, -1.9905442465f, 0.9905887419f },
+    { 0.0000208917f, 0.0000066920f, -0.0000002695f, -1.9925952275f, 0.9926225417f },
 };
-
-static const float HALFPI = 1.570796327f;
-static const float PI = 3.141592654f;
-static const float TWOPI = 6.283185307f;
 
 //
 // on x86 architecture, assume that SSE2 is present
@@ -811,44 +747,38 @@ static void splitf(float x, int& expn, float& frac) {
     expn = (bits.i >> IEEE754_MANT_BITS) - IEEE754_EXPN_BIAS;
 }
 
-static void distanceBiquad(float distance, float& b0, float& b1, float& b2, float& a1, float& a2) {
+static void lowpassBiquad(float lpf, float& b0, float& b1, float& b2, float& a1, float& a2) {
 
     //
-    // Computed from a lookup table quantized to distance = 2^(N/4)
-    // and reconstructed by piecewise linear interpolation.
+    // Computed from a lookup table and piecewise linear interpolation.
     // Approximation error < 0.25dB
     //
+    float x = lpf * NLOWPASS;
 
-    float x = distance;
-    x = MIN(x, 1<<30);
-    x *= x;
-    x *= x; // x = distance^4
-
-    // split x into e and frac, such that x = 2^(e+0) + frac * (2^(e+1) - 2^(e+0))
-    int e;
-    float frac;
-    splitf(x, e, frac);
+    // split x into index and fraction
+    int i = (int)x;
+    float frac = x - (float)i;
 
     // clamp to table limits
-    if (e < 0) {
-        e = 0;
+    if (i < 0) {
+        i = 0;
         frac = 0.0f;
     } 
-    if (e > NLOWPASS-2) {
-        e = NLOWPASS-2;
+    if (i > NLOWPASS-1) {
+        i = NLOWPASS-1;
         frac = 1.0f;
     }
     assert(frac >= 0.0f);
     assert(frac <= 1.0f);
-    assert(e+0 >= 0);
-    assert(e+1 < NLOWPASS);
+    assert(i+0 >= 0);
+    assert(i+1 <= NLOWPASS);
 
     // piecewise linear interpolation
-    b0 = lowpassTable[e+0][0] + frac * (lowpassTable[e+1][0] - lowpassTable[e+0][0]);
-    b1 = lowpassTable[e+0][1] + frac * (lowpassTable[e+1][1] - lowpassTable[e+0][1]);
-    b2 = lowpassTable[e+0][2] + frac * (lowpassTable[e+1][2] - lowpassTable[e+0][2]);
-    a1 = lowpassTable[e+0][3] + frac * (lowpassTable[e+1][3] - lowpassTable[e+0][3]);
-    a2 = lowpassTable[e+0][4] + frac * (lowpassTable[e+1][4] - lowpassTable[e+0][4]);
+    b0 = lowpassTable[i+0][0] + frac * (lowpassTable[i+1][0] - lowpassTable[i+0][0]);
+    b1 = lowpassTable[i+0][1] + frac * (lowpassTable[i+1][1] - lowpassTable[i+0][1]);
+    b2 = lowpassTable[i+0][2] + frac * (lowpassTable[i+1][2] - lowpassTable[i+0][2]);
+    a1 = lowpassTable[i+0][3] + frac * (lowpassTable[i+1][3] - lowpassTable[i+0][3]);
+    a2 = lowpassTable[i+0][4] + frac * (lowpassTable[i+1][4] - lowpassTable[i+0][4]);
 }
 
 //
@@ -903,13 +833,13 @@ static void nearFieldGainCorrection(float azimuth, float distance, float& gainL,
 	float d = (HRTF_NEARFIELD_MAX - distance) * (1.0f / (HRTF_NEARFIELD_MAX - HRTF_HEAD_RADIUS));
 
     // angle of incidence at each ear
-    float angleL = azimuth + HALFPI;
-    float angleR = azimuth - HALFPI;
+    float angleL = azimuth + PI_OVER_TWO;
+    float angleR = azimuth - PI_OVER_TWO;
     if (angleL > +PI) {
-        angleL -= TWOPI;
+        angleL -= TWO_PI;
     }
     if (angleR < -PI) {
-        angleR += TWOPI;
+        angleR += TWO_PI;
     }
     assert(angleL >= -PI);
     assert(angleL <= +PI);
@@ -968,7 +898,7 @@ static void nearFieldFilter(float gain, float& b0, float& b1, float& a1) {
 static void azimuthToIndex(float azimuth, int& index0, int& index1, float& frac) {
 
     // convert from radians to table units
-    azimuth *= (HRTF_AZIMUTHS / TWOPI);
+    azimuth *= (HRTF_AZIMUTHS / TWO_PI);
 
     if (azimuth < 0.0f) {
         azimuth += HRTF_AZIMUTHS;
@@ -993,15 +923,15 @@ static void azimuthToIndex(float azimuth, int& index0, int& index1, float& frac)
 
 // compute new filters for a given azimuth, distance and gain
 static void setFilters(float firCoef[4][HRTF_TAPS], float bqCoef[5][8], int delay[4], 
-                       int index, float azimuth, float distance, float gain, int channel) {
+                       int index, float azimuth, float distance, float gain, float lpf, int channel) {
 
     if (azimuth > PI) {
-        azimuth -= TWOPI;
+        azimuth -= TWO_PI;
     }
     assert(azimuth >= -PI);
     assert(azimuth <= +PI);
 
-    distance = MAX(distance, HRTF_NEARFIELD_MIN);
+    distance = std::max(distance, HRTF_NEARFIELD_MIN);
 
     // compute the azimuth correction at each ear
     float azimuthL = azimuth;
@@ -1109,7 +1039,7 @@ static void setFilters(float firCoef[4][HRTF_TAPS], float bqCoef[5][8], int dela
 
     } else {
 
-        distanceBiquad(distance, b0, b1, b2, a1, a2);
+        lowpassBiquad(lpf, b0, b1, b2, a1, a2);
 
         bqCoef[0][channel+4] = b0;
         bqCoef[1][channel+4] = b1;
@@ -1125,7 +1055,8 @@ static void setFilters(float firCoef[4][HRTF_TAPS], float bqCoef[5][8], int dela
     }
 }
 
-void AudioHRTF::render(int16_t* input, float* output, int index, float azimuth, float distance, float gain, int numFrames) {
+void AudioHRTF::render(int16_t* input, float* output, int index, float azimuth, float distance, float gain, int numFrames,
+                       float lpfDistance) {
 
     assert(index >= 0);
     assert(index < HRTF_TABLES);
@@ -1141,23 +1072,29 @@ void AudioHRTF::render(int16_t* input, float* output, int index, float azimuth, 
     // apply global and local gain adjustment
     gain *= _gainAdjust;
 
+    // apply distance filter
+    float lpf = 0.5f * fastLog2f(std::max(distance, 1.0f)) / fastLog2f(std::max(lpfDistance, 2.0f));
+    lpf = std::min(std::max(lpf, 0.0f), 1.0f);
+
     // disable interpolation from reset state
     if (_resetState) {
         _azimuthState = azimuth;
         _distanceState = distance;
         _gainState = gain;
+        _lpfState = lpf;
     }
 
     // to avoid polluting the cache, old filters are recomputed instead of stored
-    setFilters(firCoef, bqCoef, delay, index, _azimuthState, _distanceState, _gainState, L0);
+    setFilters(firCoef, bqCoef, delay, index, _azimuthState, _distanceState, _gainState, _lpfState, L0);
 
     // compute new filters
-    setFilters(firCoef, bqCoef, delay, index, azimuth, distance, gain, L1);
+    setFilters(firCoef, bqCoef, delay, index, azimuth, distance, gain, lpf, L1);
 
     // new parameters become old
     _azimuthState = azimuth;
     _distanceState = distance;
     _gainState = gain;
+    _lpfState = lpf;
 
     // convert mono input to float
     for (int i = 0; i < HRTF_BLOCK; i++) {
