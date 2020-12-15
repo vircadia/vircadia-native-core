@@ -443,3 +443,10 @@ PulsePropertyGroup ShapeEntityItem::getPulseProperties() const {
         return _pulseProperties;
     });
 }
+
+void ShapeEntityItem::setUserData(const QString& value) {
+    withWriteLock([&] {
+        _needsRenderUpdate |= _userData != value;
+        _userData = value;
+    });
+}

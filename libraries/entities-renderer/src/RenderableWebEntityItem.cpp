@@ -125,16 +125,6 @@ bool WebEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointe
     return false;
 }
 
-bool WebEntityRenderer::needsRenderUpdate() const {
-    if (resultWithReadLock<bool>([this] {
-        return !_webSurface;
-    })) {
-        return true;
-    }
-
-    return Parent::needsRenderUpdate();
-}
-
 void WebEntityRenderer::onTimeout() {
     uint64_t lastRenderTime;
     if (!resultWithReadLock<bool>([&] {
@@ -261,6 +251,8 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
                     _renderTransform.postScale(entity->getScaledDimensions());
                 });
             });
+        } else {
+            emit requestRenderUpdate();
         }
     });
 }
@@ -339,8 +331,11 @@ void WebEntityRenderer::buildWebSurface(const EntityItemPointer& entity, const Q
         return;
     }
 
-    ++_currentWebCount;
-    WebEntityRenderer::acquireWebSurface(newSourceURL, _contentType == ContentType::HtmlContent, _webSurface, _cachedWebSurface);
+    bool isHTML = _contentType == ContentType::HtmlContent;
+    if (isHTML) {
+        ++_currentWebCount;
+    }
+    WebEntityRenderer::acquireWebSurface(newSourceURL, isHTML, _webSurface, _cachedWebSurface);
     _fadeStartTime = usecTimestampNow();
     _webSurface->resume();
 
@@ -358,12 +353,15 @@ void WebEntityRenderer::destroyWebSurface() {
     QSharedPointer<OffscreenQmlSurface> webSurface;
     withWriteLock([&] {
         webSurface.swap(_webSurface);
-        _contentType = ContentType::NoContent;
 
         if (webSurface) {
-            --_currentWebCount;
+            if (_contentType == ContentType::HtmlContent) {
+                --_currentWebCount;
+            }
             WebEntityRenderer::releaseWebSurface(webSurface, _cachedWebSurface, _connections);
         }
+
+        _contentType = ContentType::NoContent;
     });
 }
 
