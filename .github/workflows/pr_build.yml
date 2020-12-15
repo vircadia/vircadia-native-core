@@ -14,7 +14,9 @@ env:
   RELEASE_TYPE: PR
   RELEASE_NUMBER: ${{ github.event.number }}
   VERSION_CODE: ${{ github.event.number }}
-
+  # Sentry Crash Reporting
+  CMAKE_BACKTRACE_URL: ${{ secrets.MINIDUMP_TOKEN }}
+  CMAKE_BACKTRACE_TOKEN: PR_${{ github.event.number }}_${{ github.sha }}
 
   # OSX specific variables
   DEVELOPER_DIR: /Applications/Xcode_11.2.app/Contents/Developer
