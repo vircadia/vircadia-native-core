@@ -29,9 +29,9 @@ From the _SDK Tools_ tab, select the following
 
 Still in the _SDK Tools_ tab, check off _Show Package Details_ at the bottom. Select CMake 3.6.4. Do this even if you have a separate CMake installation.  Also, make sure the NDK installed version is 18 (or higher).
 
-Now go back to _File_ then _Project Structure_ then under _Project_ set the Android Gradel Plugin Version to `3.2.1` and Gradel Version to `4.10.1`.
+Now go back to _File_ then _Project Structure_ then under _Project_ set the Android Gradle Plugin Version to `3.2.1` and Gradle Version to `4.10.1`.
 
-If Android Studio pops open the "Plugin Update Recommeded" dialog, do not click update, just click X on the top right to close.  Later versions of the gradel plugin have known issues with cz.malohlava.
+If Android Studio pops open the "Plugin Update Recommeded" dialog, do not click update, just click X on the top right to close.  Later versions of the Gradle plugin have known issues with cz.malohlava.
 
 ## Environment
 
