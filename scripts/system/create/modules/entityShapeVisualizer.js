@@ -116,12 +116,14 @@ function deepCopy(v) {
     return JSON.parse(JSON.stringify(v));
 }
 
-function EntityShape(entityID) {
+function EntityShape(entityID, entityShapeVisualizerSessionName) {
     this.entityID = entityID;
+    this.entityShapeVisualizerSessionName = entityShapeVisualizerSessionName;
+
     var propertiesForType = getEntityShapePropertiesForType(Entities.getEntityProperties(entityID, REQUESTED_ENTITY_SHAPE_PROPERTIES));
 
     this.previousPropertiesForType = propertiesForType;
-
+    
     this.initialize(propertiesForType);
 }
 
@@ -130,6 +132,7 @@ EntityShape.prototype = {
         // Create new instance of JS object:
         var overlayProperties = deepCopy(properties);
 
+        overlayProperties.name = this.entityShapeVisualizerSessionName;
         overlayProperties.localPosition = Vec3.ZERO;
         overlayProperties.localRotation = Quat.IDENTITY;
         overlayProperties.canCastShadows = false;
@@ -172,11 +175,11 @@ EntityShape.prototype = {
     }
 };
 
-function EntityShapeVisualizer(visualizedTypes) {
+function EntityShapeVisualizer(visualizedTypes, entityShapeVisualizerSessionName) {
     this.acceptedEntities = [];
     this.ignoredEntities = [];
     this.entityShapes = {};
-
+    this.entityShapeVisualizerSessionName = entityShapeVisualizerSessionName;
     this.visualizedTypes = visualizedTypes;
 }
 
@@ -185,7 +188,7 @@ EntityShapeVisualizer.prototype = {
         if (this.entityShapes[entityID]) {
             return;
         }
-        this.entityShapes[entityID] = new EntityShape(entityID);
+        this.entityShapes[entityID] = new EntityShape(entityID, this.entityShapeVisualizerSessionName);
 
     },
     updateEntity: function(entityID) {

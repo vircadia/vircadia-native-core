@@ -3,8 +3,7 @@ name: Master CI Build
 on: 
   push:
     branches:
-      - gha-master-ci
-# FIXME: Change target branch to "master" before merging into "master" branch.
+      - master
 
 env:
   APP_NAME: interface
@@ -48,50 +47,51 @@ jobs:
       shell: bash
       id: buildenv1
       run: |
-        echo ::set-env name=UPLOAD_PREFIX::master
-        echo ::set-env name=GIT_COMMIT_SHORT::`echo $GIT_COMMIT | cut -c1-7`
-        echo ::set-env name=JOB_NAME::"build (${{matrix.os}}, ${{matrix.build_type}})"
+        echo "UPLOAD_PREFIX=master" >> $GITHUB_ENV
+        echo ::set-output name=github_sha_short::`echo $GIT_COMMIT | cut -c1-7`
+        echo "JOB_NAME=build (${{matrix.os}}, ${{matrix.build_type}})" >> $GITHUB_ENV
         # Linux build variables
         if [[ "${{ matrix.os }}" = "ubuntu-"* ]]; then
-          echo ::set-env name=PYTHON_EXEC::python3
-          echo ::set-env name=INSTALLER_EXT::tgz
-          echo ::set-env name=CMAKE_BUILD_EXTRA::"-- -j3"
-          echo ::set-env name=CMAKE_EXTRA::"-DBUILD_TOOLS:BOOLEAN=FALSE -DHIFI_PYTHON_EXEC:FILEPATH=$(which python3)"
+          echo "PYTHON_EXEC=python3" >> $GITHUB_ENV
+          echo "INSTALLER_EXT=tgz" >> $GITHUB_ENV
+          echo "CMAKE_BUILD_EXTRA=-- -j3" >> $GITHUB_ENV
+          echo "CMAKE_EXTRA=-DBUILD_TOOLS:BOOLEAN=FALSE -DHIFI_PYTHON_EXEC:FILEPATH=$(which python3)" >> $GITHUB_ENV
         fi
         # Mac build variables
         if [ "${{ matrix.os }}" = "macOS-latest" ]; then
-          echo ::set-env name=PYTHON_EXEC::python3
-          echo ::set-env name=ZIP_COMMAND::zip
-          echo ::set-env name=ZIP_ARGS::-r
-          echo ::set-env name=INSTALLER_EXT::dmg
-          echo ::set-env name=CMAKE_EXTRA::"-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode"
+          echo "PYTHON_EXEC=python3" >> $GITHUB_ENV
+          echo "ZIP_COMMAND=zip" >> $GITHUB_ENV
+          echo "ZIP_ARGS=-r" >> $GITHUB_ENV
+          echo "INSTALLER_EXT=dmg" >> $GITHUB_ENV
+          echo "CMAKE_EXTRA=-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode" >> $GITHUB_ENV
           echo "::set-output name=symbols_archive::${BUILD_NUMBER}-${{ matrix.build_type }}-mac-symbols.zip"
         fi
         # Windows build variables
         if [ "${{ matrix.os }}" = "windows-latest" ]; then
-          echo ::set-env name=PYTHON_EXEC::python
-          echo ::set-env name=ZIP_COMMAND::7z
-          echo ::set-env name=ZIP_ARGS::a
-          echo ::set-env name=INSTALLER_EXT::exe
-          echo ::set-env name=CMAKE_EXTRA::"-A x64"
-          echo "::set-env name=SYMBOL_REGEX::\(exe\|dll\|pdb\)"
-          echo "::set-output name=symbols_archive::${BUILD_NUMBER}-${{ matrix.build_type }}-win-symbols.zip"
-          # echo ::set-env name=HF_PFX_PASSPHRASE::${{secrets.pfx_key}}
-          # echo "::set-env name=HF_PFX_FILE::${{runner.workspace}}\build\codesign.pfx"
+          echo "PYTHON_EXEC=python" >> $GITHUB_ENV
+          echo "ZIP_COMMAND=7z" >> $GITHUB_ENV
+          echo "ZIP_ARGS=a" >> $GITHUB_ENV
+          echo "INSTALLER_EXT=exe" >> $GITHUB_ENV
+          echo "CMAKE_EXTRA=-A x64" >> $GITHUB_ENV
+          echo "SYMBOL_REGEX=\(exe\|dll\|pdb\)" >> $GITHUB_ENV
+          echo "symbols_archive=${BUILD_NUMBER}-${{ matrix.build_type }}-win-symbols.zip" >> $GITHUB_ENV
+          # echo "HF_PFX_PASSPHRASE=${{secrets.pfx_key}}" >> $GITHUB_ENV
+          # echo "HF_PFX_FILE=${{runner.workspace}}\build\codesign.pfx" >> $GITHUB_ENV
         fi
     # Configuration is broken into two steps because you can't set an env var and also reference it in the same step
     - name: Configure build environment 2
       shell: bash
       run: |
         echo "${{ steps.buildenv1.outputs.symbols_archive }}"
-        echo ::set-env name=ARTIFACT_PATTERN::Vircadia-Alpha-*.$INSTALLER_EXT
+        echo "ARTIFACT_PATTERN=Vircadia-Alpha-*.$INSTALLER_EXT" >> $GITHUB_ENV
         # Build type variables
+        echo "GIT_COMMIT_SHORT=${{ steps.buildenv1.outputs.github_sha_short }}" >> $GITHUB_ENV
         if [ "${{ matrix.build_type }}" = "full" ]; then
-          echo ::set-env name=CLIENT_ONLY::FALSE
-          echo ::set-env name=INSTALLER::Vircadia-Alpha-$BUILD_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
+          echo "CLIENT_ONLY=FALSE" >> $GITHUB_ENV
+          echo "INSTALLER=Vircadia-Alpha-$BUILD_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT" >> $GITHUB_ENV
         else
-          echo ::set-env name=CLIENT_ONLY::TRUE
-          echo ::set-env name=INSTALLER::Vircadia-Alpha-Interface-$BUILD_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT
+          echo "CLIENT_ONLY=TRUE" >> $GITHUB_ENV
+          echo "INSTALLER=Vircadia-Alpha-Interface-$BUILD_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT" >> $GITHUB_ENV
         fi
     - name: Clear working directory
       if: startsWith(matrix.os, 'windows')

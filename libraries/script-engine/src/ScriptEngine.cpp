@@ -451,7 +451,7 @@ void ScriptEngine::executeOnScriptThread(std::function<void()> function, const Q
     function();
 }
 
-void ScriptEngine::waitTillDoneRunning() {
+void ScriptEngine::waitTillDoneRunning(bool shutdown) {
     // Engine should be stopped already, but be defensive
     stop();
     
@@ -520,12 +520,14 @@ void ScriptEngine::waitTillDoneRunning() {
                 }
             }
 
-            // NOTE: This will be called on the main application thread (among other threads) from stopAllScripts.
-            //       The thread will need to continue to process events, because
-            //       the scripts will likely need to marshall messages across to the main thread, e.g.
-            //       if they access Settings or Menu in any of their shutdown code. So:
-            // Process events for this thread, allowing invokeMethod calls to pass between threads.
-            QCoreApplication::processEvents();
+            if (shutdown) {
+                // NOTE: This will be called on the main application thread (among other threads) from stopAllScripts.
+                //       The thread will need to continue to process events, because
+                //       the scripts will likely need to marshall messages across to the main thread, e.g.
+                //       if they access Settings or Menu in any of their shutdown code. So:
+                // Process events for this thread, allowing invokeMethod calls to pass between threads.
+                QCoreApplication::processEvents();
+            }
 
             // Avoid a pure busy wait
             QThread::yieldCurrentThread();
