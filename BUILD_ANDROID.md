@@ -83,13 +83,13 @@ Add these lines to `gradle.properties`
 * Navigate to the `project-athena` repository you cloned and choose the `android` folder and select _OK_
 * Wait for Gradle to sync (this should take around 20 minutes the first time)
 * If a dialog pops open saying "Plugin Update Recommeded" dialog, do not click update, just click X on the top right to close.
-* In the _Projet_ window click on the project you wish to build (i.e. "questInterface") then click _Build_ in the top menu and choose _Make Module 'questInterface'_
-* By default this will build the "debug" apk, you can change this by opening the _Build Varients_ window along the left side and select other build types like "release"
-* Your newly build APK should reside in project-athena\android\apps\questInterface\release (if you chose release)
+* In the _Project_ window click on the project you wish to build (i.e. "questInterface") then click _Build_ in the top menu and choose _Make Module 'questInterface'_
+* By default this will build the "debug" apk, you can change this by opening the _Build Variants_ window along the left side and select other build types such as "release".
+* Your newly build APK should reside in `project-athena\android\apps\questInterface\release` (if you chose release).
 
 ### Running a Module
 
-You are free to use "abd" command line or other development tools to install (sideload on quest) your newly build APK, or you can follow the instrutions below to load the APK via Android Studio.  
+You are free to use "abd" command line or other development tools to install (sideload on Quest) your newly built APK, or you can follow the instructions below to load the APK via Android Studio.  
 
 * In the toolbar at the top of Android Studio, next to the green hammer icon, you should see a dropdown menu.
 * You may already see a configuration for the module you are trying to build. If so, select it. 
@@ -129,7 +129,7 @@ Naviagte to 'Edit the System Environment Variables' Through the start menu.
 * Click on 'Advanced' tab, then 'Environment Variables'
 * Select 'New' under System variables
 * Set "Variable name" to QT_CMAKE_PREFIX_PATH
-* Set "Variable value" the directory that your android build placed the cmake 3.6.4 library cmake directory (i.e. android\qt\lib\cmake)
+* Set "Variable value" to the directory that your android build placed the cmake 3.6.4 library cmake directory (i.e. android\qt\lib\cmake).
 
 Some things you can try if you want to do a clean build
  
