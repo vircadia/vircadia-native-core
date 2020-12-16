@@ -21,7 +21,6 @@ Contributing
 6. Update your branch
   
   ```
-
   git remote add upstream https://github.com/vircadia/vircadia
   git pull upstream master
   ```
