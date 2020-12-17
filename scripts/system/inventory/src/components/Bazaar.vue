@@ -285,6 +285,7 @@ export default {
             }).then(function (res) {
                 vue_this.categoryStore = [];
                 res.rows.forEach (function (category) {
+                    console.info('Setting top category', category);
                     vue_this.categoryStore.push(
                         {
                             'title': category.doc.name,
@@ -295,8 +296,8 @@ export default {
         },
         selectCategory: function (category) {
             vue_this.pouchDB.search({
-                query: category,
-                fields: ['parent'],
+                query: 'resource',
+                fields: ['r_type'],
                 include_docs: true
             }).then(async function (data) {
                 console.info('Setting category to', category, data);
@@ -306,25 +307,30 @@ export default {
                 vue_this.currentCategoryRecordsLoaded = 0;
 
                 for (var i = 0; i < data.total_rows; i++) {
-                    console.info('Found item', data.rows[i].doc.name);
-                    var itemPath = data.rows[i].doc.path;
-                    var resourcePath = itemPath + '/resource.json';
+                    console.info('Found item', data.rows[i].doc);
+                    // var itemPath = data.rows[i].doc.path;
+                    // var resourcePath = itemPath + '/resource.json';
                     // var retrievedData = vue_this.getSync(resourcePath);
                     // var parsedData;
-                    window.$.ajax({
-                        type: 'GET',
-                        url: resourcePath,
-                        contentType: 'application/json',
-                        itemRootPath: data.rows[i].doc.path,
-                        itemName: data.rows[i].doc.name
-                    })
-                        .done(function (result) {
-                            vue_this.currentCategoryRecordsLoaded++;
-                            vue_this.pushItemToBazaar(this.itemRootPath, result);
-                        })
-                        .fail(function () {
-                            console.info('Failed to retrieve resource.json for', this.itemName);
-                        })
+                    
+                    // window.$.ajax({
+                    //     type: 'GET',
+                    //     url: resourcePath,
+                    //     contentType: 'application/json',
+                    //     itemRootPath: data.rows[i].doc.path,
+                    //     itemName: data.rows[i].doc.name,
+                    //     categoryAtStart: vue_this.currentCategory 
+                    // })
+                    //     .done(function (result) {
+                    //         // If the category is still the same when our retrieval function returns home.
+                    //         if (vue_this.currentCategory === this.categoryAtStart) {
+                    //             vue_this.currentCategoryRecordsLoaded++;
+                    //             vue_this.pushItemToBazaar(this.itemRootPath, result);
+                    //         }
+                    //     })
+                    //     .fail(function () {
+                    //         console.info('Failed to retrieve resource.json for', this.itemName);
+                    //     })
                 }
             });
         },
