@@ -1,3 +1,4 @@
+
 The project embraces distributed development and if you'd like to help, it would be greatly appreciated. Just open a pull request with the revisions.
 
 Contributing
@@ -35,6 +36,15 @@ Contributing
 
   *You can follow [GitHub's guide](https://help.github.com/articles/creating-a-pull-request) to find out how to create a pull request.*
   
+Tips for Pull Requests 
+===
+To make the QA process go as smoothly as possible.
+
+1. Have a basic description in your pull request. 
+2. Write a basic test plan if you are altering or adding features.
+3. If a new API is added, try to make sure that some level of basic documentation on how you can utilize it is included.
+4. If an added API or feature requires an external service, try to document or link to instructions on how to create a basic working setup.
+
 Reporting Bugs
 ===
 1. Always update to the latest code on master, we make many merges every day and it is possible the bug has already been fixed!
