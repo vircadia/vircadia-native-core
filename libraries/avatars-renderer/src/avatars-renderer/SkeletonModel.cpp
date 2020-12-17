@@ -176,7 +176,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         updateRenderItems();
     }
 
-    if (!isActive() || !_owningAvatar->isMyAvatar()) {
+    if (!isLoaded() || !_owningAvatar->isMyAvatar()) {
         return; // only simulate for own avatar
     }
 
@@ -255,19 +255,19 @@ bool SkeletonModel::getRightHandPosition(glm::vec3& position) const {
 }
 
 bool SkeletonModel::getHeadPosition(glm::vec3& headPosition) const {
-    return isActive() && getJointPositionInWorldFrame(_rig.indexOfJoint("Head"), headPosition);
+    return isLoaded() && getJointPositionInWorldFrame(_rig.indexOfJoint("Head"), headPosition);
 }
 
 bool SkeletonModel::getNeckPosition(glm::vec3& neckPosition) const {
-    return isActive() && getJointPositionInWorldFrame(_rig.indexOfJoint("Neck"), neckPosition);
+    return isLoaded() && getJointPositionInWorldFrame(_rig.indexOfJoint("Neck"), neckPosition);
 }
 
 bool SkeletonModel::getLocalNeckPosition(glm::vec3& neckPosition) const {
-    return isActive() && getJointPosition(_rig.indexOfJoint("Neck"), neckPosition);
+    return isLoaded() && getJointPosition(_rig.indexOfJoint("Neck"), neckPosition);
 }
 
 bool SkeletonModel::getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
-    if (!isActive()) {
+    if (!isLoaded()) {
         return false;
     }
 
@@ -361,7 +361,7 @@ void SkeletonModel::renderBoundingCollisionShapes(RenderArgs* args, gpu::Batch& 
 }
 
 bool SkeletonModel::hasSkeleton() {
-    return isActive() ? _rig.indexOfJoint("Hips") != -1 : false;
+    return isLoaded() ? _rig.indexOfJoint("Hips") != -1 : false;
 }
 
 void SkeletonModel::onInvalidate() {

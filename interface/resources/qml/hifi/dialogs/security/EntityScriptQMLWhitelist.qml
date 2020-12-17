@@ -2,8 +2,8 @@
 //  EntityScriptQMLWhitelist.qml
 //  interface/resources/qml/hifi/dialogs/security
 //
-//  Created by Kasen IO on 2019.12.05 | realities.dev | kasenvr@gmail.com
-//  Copyright 2019 Kasen IO
+//  Created by Kalila L. on 2019.12.05 | realities.dev | somnilibertas@gmail.com
+//  Copyright 2019 Kalila L.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html

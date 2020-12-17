@@ -108,18 +108,7 @@ protected:
 
     virtual void setIsVisibleInSecondaryCamera(bool value) { _isVisibleInSecondaryCamera = value; }
     virtual void setRenderLayer(RenderLayer value) { _renderLayer = value; }
-    virtual void setPrimitiveMode(PrimitiveMode value) { _primitiveMode = value; }
     virtual void setCullWithParent(bool value) { _cullWithParent = value; }
-    virtual void setRenderWithZones(const QVector<QUuid>& renderWithZones) { _renderWithZones = renderWithZones; }
-
-    template <typename F, typename T>
-    T withReadLockResult(const std::function<T()>& f) {
-        T result;
-        withReadLock([&] {
-            result = f();
-        });
-        return result;
-    }
 
 signals:
     void requestRenderUpdate();
