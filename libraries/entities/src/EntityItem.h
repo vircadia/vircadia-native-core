@@ -204,6 +204,7 @@ public:
     virtual glm::vec3 getScaledDimensions() const;
     virtual void setScaledDimensions(const glm::vec3& value);
     virtual glm::vec3 getRaycastDimensions() const { return getScaledDimensions(); }
+    virtual glm::vec3 getPivot() const { return glm::vec3(0.0f); } // pivot offset for positioning, mainly for model entities
 
     glm::vec3 getUnscaledDimensions() const;
     virtual void setUnscaledDimensions(const glm::vec3& value);

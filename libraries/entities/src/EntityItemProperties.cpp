@@ -538,6 +538,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
     CHECK_PROPERTY_CHANGE(PROP_GROUP_CULLED, groupCulled);
     CHECK_PROPERTY_CHANGE(PROP_BLENDSHAPE_COEFFICIENTS, blendshapeCoefficients);
+    CHECK_PROPERTY_CHANGE(PROP_USE_ORIGINAL_PIVOT, useOriginalPivot);
     changedProperties += _animation.getChangedProperties();
 
     // Light
@@ -1733,6 +1734,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_GROUP_CULLED, groupCulled);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_BLENDSHAPE_COEFFICIENTS, blendshapeCoefficients);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_USE_ORIGINAL_PIVOT, useOriginalPivot);
         if (!psuedoPropertyFlagsButDesiredEmpty) {
             _animation.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         }
@@ -2142,6 +2144,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(relayParentJoints, bool, setRelayParentJoints);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(groupCulled, bool, setGroupCulled);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(blendshapeCoefficients, QString, setBlendshapeCoefficients);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(useOriginalPivot, bool, setUseOriginalPivot);
     _animation.copyFromScriptValue(object, _defaultSettings);
 
     // Light
@@ -2434,6 +2437,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(relayParentJoints);
     COPY_PROPERTY_IF_CHANGED(groupCulled);
     COPY_PROPERTY_IF_CHANGED(blendshapeCoefficients);
+    COPY_PROPERTY_IF_CHANGED(useOriginalPivot);
     _animation.merge(other._animation);
 
     // Light
@@ -2790,6 +2794,7 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_RELAY_PARENT_JOINTS, RelayParentJoints, relayParentJoints, bool);
         ADD_PROPERTY_TO_MAP(PROP_GROUP_CULLED, GroupCulled, groupCulled, bool);
         ADD_PROPERTY_TO_MAP(PROP_BLENDSHAPE_COEFFICIENTS, BlendshapeCoefficients, blendshapeCoefficients, QString);
+        ADD_PROPERTY_TO_MAP(PROP_USE_ORIGINAL_PIVOT, UseOriginalPivot, useOriginalPivot, bool);
         { // Animation
             ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_URL, Animation, animation, URL, url);
             ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_ALLOW_TRANSLATION, Animation, animation, AllowTranslation, allowTranslation);
@@ -4129,6 +4134,7 @@ void EntityItemProperties::markAllChanged() {
     _relayParentJointsChanged = true;
     _groupCulledChanged = true;
     _blendshapeCoefficientsChanged = true;
+    _useOriginalPivotChanged = true;
     _animation.markAllChanged();
 
     // Light
@@ -4700,6 +4706,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (blendshapeCoefficientsChanged()) {
         out += "blendshapeCoefficients";
+    }
+    if (useOriginalPivotChanged()) {
+        out += "useOriginalPivot";
     }
     getAnimation().listChangedProperties(out);
 

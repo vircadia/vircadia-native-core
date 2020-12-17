@@ -149,10 +149,11 @@ void RenderableModelEntityItem::updateModelBounds() {
     bool overridingModelTransform = model->isOverridingModelTransformAndOffset();
     glm::vec3 scaledDimensions = getScaledDimensions();
     glm::vec3 registrationPoint = getRegistrationPoint();
+    bool needsSimulate = false;
     if (!overridingModelTransform &&
         (model->getScaleToFitDimensions() != scaledDimensions ||
          model->getRegistrationPoint() != registrationPoint ||
-         !model->getIsScaledToFit() || _needsToRescaleModel)) {
+         !model->getIsScaledToFit() || _useOriginalPivot == model->getSnapModelToRegistrationPoint())) {
         // The machinery for updateModelBounds will give existing models the opportunity to fix their
         // translation/rotation/scale/registration.  The first two are straightforward, but the latter two
         // have guards to make sure they don't happen after they've already been set.  Here we reset those guards.
@@ -162,9 +163,10 @@ void RenderableModelEntityItem::updateModelBounds() {
 
         // now recalculate the bounds and registration
         model->setScaleToFit(true, scaledDimensions);
-        model->setSnapModelToRegistrationPoint(true, registrationPoint);
+        model->setSnapModelToRegistrationPoint(!_useOriginalPivot, registrationPoint);
         updateRenderItems = true;
-        model->scaleToFit();
+        needsSimulate = true;
+        locationChanged();
         _needsToRescaleModel = false;
     }
 
@@ -176,7 +178,7 @@ void RenderableModelEntityItem::updateModelBounds() {
         updateRenderItems = true;
     }
 
-    if (_needsInitialSimulation || _needsJointSimulation || isAnimatingSomething()) {
+    if (_needsInitialSimulation || _needsJointSimulation || needsSimulate || isAnimatingSomething()) {
         // NOTE: on isAnimatingSomething() we need to call Model::simulate() which calls Rig::updateRig()
         // TODO: there is opportunity to further optimize the isAnimatingSomething() case.
         model->simulate(0.0f);
@@ -220,6 +222,16 @@ EntityItemProperties RenderableModelEntityItem::getProperties(const EntityProper
     }
 
     return properties;
+}
+
+glm::vec3 RenderableModelEntityItem::getPivot() const {
+    auto model = getModel();
+    auto raycastOffset = EntityItem::getPivot();
+    if (!model || !model->isLoaded() || !_useOriginalPivot) {
+        return raycastOffset;
+    }
+
+    return raycastOffset + model->getOriginalOffset();
 }
 
 bool RenderableModelEntityItem::supportsDetailedIntersection() const {
@@ -452,7 +464,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
                 pointCollection[i][j] = scaleToFit * (pointCollection[i][j] + model->getOffset()) - registrationOffset;
             }
         }
-        shapeInfo.setParams(type, 0.5f * extents, getCompoundShapeURL());
+        shapeInfo.setParams(type, 0.5f * extents, getCompoundShapeURL() + model->getSnapModelToRegistrationPoint());
         adjustShapeInfoByRegistration(shapeInfo);
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
         updateModelBounds();
@@ -685,7 +697,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
             }
         }
 
-        shapeInfo.setParams(type, 0.5f * extents.size(), getModelURL());
+        shapeInfo.setParams(type, 0.5f * extents.size(), getModelURL() + model->getSnapModelToRegistrationPoint());
         adjustShapeInfoByRegistration(shapeInfo);
     } else {
         EntityItem::computeShapeInfo(shapeInfo);

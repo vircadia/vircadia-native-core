@@ -151,6 +151,7 @@ void Model::setOffset(const glm::vec3& offset) {
     // if someone manually sets our offset, then we are no longer snapped to center
     _snapModelToRegistrationPoint = false;
     _snappedToRegistrationPoint = false;
+    _needsTransformUpdate = true;
 }
 
 void Model::calculateTextureInfo() {
@@ -344,6 +345,9 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
     // extents is the entity relative, scaled, centered extents of the entity
     glm::mat4 modelToWorldMatrix = createMatFromQuatAndPos(_rotation, _translation);
+    if (!_snapModelToRegistrationPoint) {
+        modelToWorldMatrix = modelToWorldMatrix * glm::translate(getOriginalOffset());
+    }
     glm::mat4 worldToModelMatrix = glm::inverse(modelToWorldMatrix);
 
     Extents modelExtents = getMeshExtents(); // NOTE: unrotated
@@ -375,8 +379,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
             calculateTriangleSets(hfmModel);
         }
 
-        glm::mat4 meshToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
-        glm::mat4 meshToWorldMatrix = modelToWorldMatrix * meshToModelMatrix;
+        glm::mat4 meshToWorldMatrix = createMatFromQuatAndPos(_rotation, _translation) * (glm::scale(_scale) * glm::translate(_offset));
         glm::mat4 worldToMeshMatrix = glm::inverse(meshToWorldMatrix);
 
         glm::vec3 meshFrameOrigin = glm::vec3(worldToMeshMatrix * glm::vec4(origin, 1.0f));
@@ -499,6 +502,9 @@ bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, co
 
     // extents is the entity relative, scaled, centered extents of the entity
     glm::mat4 modelToWorldMatrix = createMatFromQuatAndPos(_rotation, _translation);
+    if (!_snapModelToRegistrationPoint) {
+        modelToWorldMatrix = modelToWorldMatrix * glm::translate(getOriginalOffset());
+    }
     glm::mat4 worldToModelMatrix = glm::inverse(modelToWorldMatrix);
 
     Extents modelExtents = getMeshExtents(); // NOTE: unrotated
@@ -531,8 +537,7 @@ bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, co
             calculateTriangleSets(hfmModel);
         }
 
-        glm::mat4 meshToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
-        glm::mat4 meshToWorldMatrix = modelToWorldMatrix * meshToModelMatrix;
+        glm::mat4 meshToWorldMatrix = createMatFromQuatAndPos(_rotation, _translation) * (glm::scale(_scale) * glm::translate(_offset));
         glm::mat4 worldToMeshMatrix = glm::inverse(meshToWorldMatrix);
 
         glm::vec3 meshFrameOrigin = glm::vec3(worldToMeshMatrix * glm::vec4(origin, 1.0f));
@@ -1182,17 +1187,8 @@ glm::vec3 Model::getNaturalDimensions() const {
 }
 
 Extents Model::getMeshExtents() const {
-    if (!isLoaded()) {
-        return Extents();
-    }
-    const Extents& extents = getHFMModel().meshExtents;
-
-    // even though our caller asked for "unscaled" we need to include any fst scaling, translation, and rotation, which
-    // is captured in the offset matrix
-    glm::vec3 minimum = glm::vec3(getHFMModel().offset * glm::vec4(extents.minimum, 1.0f));
-    glm::vec3 maximum = glm::vec3(getHFMModel().offset * glm::vec4(extents.maximum, 1.0f));
-    Extents scaledExtents = { minimum * _scale, maximum * _scale };
-    return scaledExtents;
+    Extents extents = getUnscaledMeshExtents();
+    return { extents.minimum * _scale, extents.maximum * _scale};
 }
 
 Extents Model::getUnscaledMeshExtents() const {
@@ -1406,6 +1402,7 @@ void Model::setSnapModelToRegistrationPoint(bool snapModelToRegistrationPoint, c
         _snapModelToRegistrationPoint = snapModelToRegistrationPoint;
         _registrationPoint = clampedRegistrationPoint;
         _snappedToRegistrationPoint = false; // force re-centering
+        _needsTransformUpdate = true;
     }
 }
 
@@ -1417,6 +1414,15 @@ void Model::snapToRegistrationPoint() {
     _snappedToRegistrationPoint = true;
 }
 
+glm::vec3 Model::getOriginalOffset() const {
+    Extents modelMeshExtents = getUnscaledMeshExtents();
+    glm::vec3 dimensions = (modelMeshExtents.maximum - modelMeshExtents.minimum);
+    glm::vec3 offset = modelMeshExtents.minimum + (dimensions * _registrationPoint);
+    glm::mat4 transform = glm::scale(_scale) * glm::translate(offset);
+    return transform[3];
+}
+
+
 void Model::setUseDualQuaternionSkinning(bool value) {
     _useDualQuaternionSkinning = value;
 }
@@ -1424,7 +1430,7 @@ void Model::setUseDualQuaternionSkinning(bool value) {
 void Model::simulate(float deltaTime, bool fullUpdate) {
     DETAILED_PROFILE_RANGE(simulation_detail, __FUNCTION__);
     fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
-                    || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
+                    || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint) || _needsTransformUpdate;
 
     if (isLoaded() && fullUpdate) {
         onInvalidate();
@@ -1437,8 +1443,10 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
             snapToRegistrationPoint();
         }
         // update the world space transforms for all joints
-        glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset);
+        glm::mat4 parentTransform = glm::scale(_scale) * (_snapModelToRegistrationPoint ?
+            glm::translate(_offset) : glm::translate(getNaturalDimensions() * (0.5f - _registrationPoint)));
         updateRig(deltaTime, parentTransform);
+        _needsTransformUpdate = false;
     }
 }
 
