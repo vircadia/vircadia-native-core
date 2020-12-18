@@ -12,6 +12,7 @@
 
 <@if not HIFI_USE_FORWARD@>
     <@include DeferredBufferWrite.slh@>
+    <@include CullFace.slh@>
 
     layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
     layout(location=RENDER_UTILS_ATTR_PREV_POSITION_CS) in vec4 _prevPositionCS;
