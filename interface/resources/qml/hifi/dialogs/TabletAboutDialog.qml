@@ -54,10 +54,10 @@ Rectangle {
             textFormat: Text.StyledText
             linkColor: "#00B4EF"
             color: "white"
-            text: "<a href=\"https://github.com/kasenvr/project-athena\">Vircadia Github</a>."
+            text: "<a href=\"https://github.com/vircadia/vircadia\">Vircadia Github</a>."
             size: 20
             onLinkActivated: {
-                About.openUrl("https:/github.com/kasenvr/project-athena");
+                About.openUrl("https:/github.com/vircadia/vircadia");
             }
 
         }

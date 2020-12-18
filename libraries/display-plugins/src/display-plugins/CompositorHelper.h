@@ -27,7 +27,8 @@
 
 class ReticleInterface;
 
-const float DEFAULT_RETICLE_DEPTH = 1.0f; // FIXME - probably should be based on UI radius
+const float HUD_RADIUS = 1.5f;
+const float DEFAULT_RETICLE_DEPTH = HUD_RADIUS;
 
 const float MAGNIFY_WIDTH = 220.0f;
 const float MAGNIFY_HEIGHT = 100.0f;
@@ -154,7 +155,7 @@ private:
     std::unique_ptr<QPropertyAnimation> _alphaPropertyAnimation;
 
     std::atomic<bool> _reticleVisible { true };
-    std::atomic<float> _reticleDepth { 1.0f };
+    std::atomic<float> _reticleDepth { DEFAULT_RETICLE_DEPTH };
 
     // NOTE: when the compositor is running in HMD mode, it will control the reticle position as a custom
     // application specific position, when it's in desktop mode, the reticle position will simply move

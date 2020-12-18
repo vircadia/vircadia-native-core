@@ -41,7 +41,7 @@ Script.include([
 var CreateWindow = Script.require('./modules/createWindow.js');
 
 var TITLE_OFFSET = 60;
-var CREATE_TOOLS_WIDTH = 490;
+var CREATE_TOOLS_WIDTH = 750;
 var MAX_DEFAULT_ENTITY_LIST_HEIGHT = 942;
 var ENTIRE_DOMAIN_SCAN_RADIUS = 27713;
 
@@ -148,7 +148,10 @@ var DEFAULT_DIMENSIONS = {
 
 var DEFAULT_LIGHT_DIMENSIONS = Vec3.multiply(20, DEFAULT_DIMENSIONS);
 
-var SUBMENU_ENTITY_EDITOR_PREFERENCES = "Edit > Create Application - Preferences";
+var MENU_IMPORT_FROM_FILE = "Import Entities (.json) From a File";
+var MENU_IMPORT_FROM_URL = "Import Entities (.json) From a URL";
+var MENU_CREATE_SEPARATOR = "Create Application";
+var SUBMENU_ENTITY_EDITOR_PREFERENCES = "Edit > Preferences";
 var MENU_AUTO_FOCUS_ON_SELECT = "Auto Focus on Select";
 var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
 var MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE = "Show Lights and Particle Systems in Create Mode";
@@ -880,13 +883,11 @@ var toolBar = (function () {
         });
 
         addButton("importEntitiesButton", function() {
-            Window.browseChanged.connect(onFileOpenChanged);
-            Window.browseAsync("Select .json to Import", "", "*.json");
+            importEntitiesFromFile();
         });
 
         addButton("importEntitiesFromUrlButton", function() {
-            Window.promptTextChanged.connect(onPromptTextChanged);
-            Window.promptAsync("URL of a .json to import", "");
+            importEntitiesFromUrl();
         });
 
         addButton("openAssetBrowserButton", function() {
@@ -1402,6 +1403,22 @@ function setupModelMenus() {
         position: 1,
     });
 
+    Menu.addMenuItem({
+        menuName: "Edit",
+        menuItemName: MENU_CREATE_SEPARATOR,
+        isSeparator: true
+    });
+    Menu.addMenuItem({
+        menuName: "Edit",
+        menuItemName: MENU_IMPORT_FROM_FILE,
+        afterItem: MENU_CREATE_SEPARATOR
+    });
+    Menu.addMenuItem({
+        menuName: "Edit",
+        menuItemName: MENU_IMPORT_FROM_URL,
+        afterItem: MENU_IMPORT_FROM_FILE
+    });
+
     Menu.addMenu(SUBMENU_ENTITY_EDITOR_PREFERENCES);
 
     Menu.addMenuItem({
@@ -1484,7 +1501,10 @@ function cleanupModelMenus() {
     Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_SHOW_ZONES_IN_EDIT_MODE);
     Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_CREATE_ENTITIES_GRABBABLE);
     Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_ENTITY_LIST_DEFAULT_RADIUS);
-    Menu.removeMenu(SUBMENU_ENTITY_EDITOR_PREFERENCES);   
+    Menu.removeMenu(SUBMENU_ENTITY_EDITOR_PREFERENCES);
+    Menu.removeMenuItem("Edit", MENU_IMPORT_FROM_URL);
+    Menu.removeMenuItem("Edit", MENU_IMPORT_FROM_FILE);
+    Menu.removeSeparator("Edit", MENU_CREATE_SEPARATOR);    
 }
 
 Script.scriptEnding.connect(function () {
@@ -1858,6 +1878,10 @@ function handleMenuEvent(menuItem) {
     } else if (menuItem === MENU_ENTITY_LIST_DEFAULT_RADIUS) {
         Window.promptTextChanged.connect(onPromptTextChangedDefaultRadiusUserPref);
         Window.promptAsync("Entity List Default Radius (in meters)", "" + Settings.getValue(SETTING_ENTITY_LIST_DEFAULT_RADIUS, 100));         
+    } else if (menuItem === MENU_IMPORT_FROM_FILE) {
+        importEntitiesFromFile();
+    } else if (menuItem === MENU_IMPORT_FROM_URL) {
+        importEntitiesFromUrl();
     }
     tooltip.show(false);
 }
@@ -2015,18 +2039,27 @@ function toggleKey(value) {
 }
 function focusKey(value) {
     if (value === 0) { // on release
-        cameraManager.enable();
-        if (selectionManager.hasSelection()) {
-            cameraManager.focus(selectionManager.worldPosition, selectionManager.worldDimensions,
-                                Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
-        }
+        setCameraFocusToSelection();
     }
 }
 function gridKey(value) {
     if (value === 0) { // on release
-        if (selectionManager.hasSelection()) {
-            grid.moveToSelection();
-        }
+        alignGridToSelection();
+    }
+}
+function viewGridKey(value) {
+    if (value === 0) { // on release
+        toggleGridVisibility();
+    }
+}
+function snapKey(value) {
+    if (value === 0) { // on release
+        entityListTool.toggleSnapToGrid();
+    }
+}
+function gridToAvatarKey(value) {
+    if (value === 0) { // on release
+        alignGridToAvatar();
     }
 }
 function recursiveAdd(newParentID, parentData) {
@@ -2426,7 +2459,6 @@ var PropertiesTool = function (opts) {
                 }
             }
 
-
             if (data.onlyUpdateEntities) {
                 blockPropertyUpdates = true;
             } else {
@@ -2435,6 +2467,10 @@ var PropertiesTool = function (opts) {
             }
             selectionManager._update(false, this);
             blockPropertyUpdates = false;
+            
+            if (data.snapToGrid !== undefined) {
+                entityListTool.setListMenuSnapToGrid(data.snapToGrid);
+            }
         } else if (data.type === 'saveUserData' || data.type === 'saveMaterialData') {
             data.ids.forEach(function(entityID) {
                 Entities.editEntity(entityID, data.properties);
@@ -2789,7 +2825,10 @@ if (isOnMacPlatform) {
 }
 mapping.from([Controller.Hardware.Keyboard.T]).to(toggleKey);
 mapping.from([Controller.Hardware.Keyboard.F]).to(focusKey);
-mapping.from([Controller.Hardware.Keyboard.G]).to(gridKey);
+mapping.from([Controller.Hardware.Keyboard.J]).to(gridKey);
+mapping.from([Controller.Hardware.Keyboard.G]).to(viewGridKey);
+mapping.from([Controller.Hardware.Keyboard.H]).to(snapKey);
+mapping.from([Controller.Hardware.Keyboard.K]).to(gridToAvatarKey);
 mapping.from([Controller.Hardware.Keyboard.X])
     .when([Controller.Hardware.Keyboard.Control])
     .to(whenReleased(function() { selectionManager.cutSelectedEntities() }));
@@ -2830,8 +2869,14 @@ keyUpEventFromUIWindow = function(keyUpEvent) {
         toggleKey(pressedValue);
     } else if (keyUpEvent.keyCodeString === "F") {
         focusKey(pressedValue);
-    } else if (keyUpEvent.keyCodeString === "G") {
+    } else if (keyUpEvent.keyCodeString === "J") {
         gridKey(pressedValue);
+    } else if (keyUpEvent.keyCodeString === "G") {
+        viewGridKey(pressedValue);
+    } else if (keyUpEvent.keyCodeString === "H") {
+        snapKey(pressedValue);    
+    } else if (keyUpEvent.keyCodeString === "K") {
+        gridToAvatarKey(pressedValue);
     } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "X") {
         selectionManager.cutSelectedEntities();
     } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "C") {
@@ -2936,6 +2981,48 @@ function getDomainOnlyChildrenIDs(id) {
         }
     }
     return realChildren;
+}
+
+function importEntitiesFromFile() {
+    Window.browseChanged.connect(onFileOpenChanged);
+    Window.browseAsync("Select .json to Import", "", "*.json");    
+}
+
+function importEntitiesFromUrl() {
+    Window.promptTextChanged.connect(onPromptTextChanged);
+    Window.promptAsync("URL of a .json to import", "");    
+}
+
+function setCameraFocusToSelection() {
+    cameraManager.enable();
+    if (selectionManager.hasSelection()) {
+        cameraManager.focus(selectionManager.worldPosition, selectionManager.worldDimensions,
+                            Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+    }
+}
+
+function alignGridToSelection() {
+    if (selectionManager.hasSelection()) {
+        if (!grid.getVisible()) {
+            grid.setVisible(true, true);
+        }
+        grid.moveToSelection();
+    }
+}
+
+function alignGridToAvatar() {
+    if (!grid.getVisible()) {
+        grid.setVisible(true, true);
+    }
+    grid.moveToAvatar();
+}
+
+function toggleGridVisibility() {
+    if (!grid.getVisible()) {
+        grid.setVisible(true, true);
+    } else {
+        grid.setVisible(false, true);
+    }
 }
 
 }()); // END LOCAL_SCOPE

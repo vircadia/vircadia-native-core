@@ -254,26 +254,30 @@ void ModelEntityItem::debugDump() const {
 }
 
 void ModelEntityItem::setShapeType(ShapeType type) {
+    bool changed = false;
+    uint32_t flags = 0;
     withWriteLock([&] {
         if (type != _shapeType) {
             if (type == SHAPE_TYPE_STATIC_MESH && _dynamic) {
                 // dynamic and STATIC_MESH are incompatible
                 // since the shape is being set here we clear the dynamic bit
                 _dynamic = false;
-                _flags |= Simulation::DIRTY_MOTION_TYPE;
+                flags = Simulation::DIRTY_MOTION_TYPE;
             }
             _shapeType = type;
-            _flags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+            flags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+            changed = true;
         }
     });
+
+    if (changed) {
+        markDirtyFlags(flags);
+        locationChanged();
+    }
 }
 
 ShapeType ModelEntityItem::getShapeType() const {
-    return computeTrueShapeType();
-}
-
-ShapeType ModelEntityItem::computeTrueShapeType() const {
-    ShapeType type = _shapeType;
+    ShapeType type = resultWithReadLock<ShapeType>([&] { return _shapeType; });
     if (type == SHAPE_TYPE_STATIC_MESH && _dynamic) {
         // dynamic is incompatible with STATIC_MESH
         // shouldn't fall in here but just in case --> fall back to COMPOUND
@@ -290,7 +294,6 @@ void ModelEntityItem::setModelURL(const QString& url) {
     withWriteLock([&] {
         if (_modelURL != url) {
             _modelURL = url;
-            _flags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
             _needsRenderUpdate = true;
         }
     });
@@ -325,15 +328,7 @@ void ModelEntityItem::setCompoundShapeURL(const QString& url) {
     withWriteLock([&] {
         if (_compoundShapeURL.get() != url) {
             _compoundShapeURL.set(url);
-            _flags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
         }
-    });
-}
-
-void ModelEntityItem::setAnimationURL(const QString& url) {
-    _flags |= Simulation::DIRTY_UPDATEABLE;
-    withWriteLock([&] {
-        _animationProperties.setURL(url);
     });
 }
 
@@ -396,20 +391,6 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
 
     withWriteLock([&] {
         applyNewAnimationProperties(animationProperties);
-    });
-}
-
-void ModelEntityItem::setAnimationIsPlaying(bool value) {
-    _flags |= Simulation::DIRTY_UPDATEABLE;
-    withWriteLock([&] {
-        _animationProperties.setRunning(value);
-    });
-}
-
-void ModelEntityItem::setAnimationFPS(float value) {
-    _flags |= Simulation::DIRTY_UPDATEABLE;
-    withWriteLock([&] {
-        _animationProperties.setFPS(value);
     });
 }
 
@@ -588,10 +569,6 @@ QString ModelEntityItem::getCompoundShapeURL() const {
     return _compoundShapeURL.get();
 }
 
-QString ModelEntityItem::getCollisionShapeURL() const {
-    return getShapeType() == SHAPE_TYPE_COMPOUND ? getCompoundShapeURL() : getModelURL();
-}
-
 void ModelEntityItem::setColor(const glm::u8vec3& value) {
     withWriteLock([&] {
         _color = value;
@@ -629,58 +606,15 @@ void ModelEntityItem::setAnimationCurrentFrame(float value) {
     });
 }
 
-void ModelEntityItem::setAnimationAllowTranslation(bool value) {
-    withWriteLock([&] {
-        _animationProperties.setAllowTranslation(value);
-    });
-}
-
 bool ModelEntityItem::getAnimationAllowTranslation() const {
     return resultWithReadLock<bool>([&] {
         return _animationProperties.getAllowTranslation();
     });
 }
 
-void ModelEntityItem::setAnimationLoop(bool loop) { 
-    withWriteLock([&] {
-        _animationProperties.setLoop(loop);
-    });
-}
-
-bool ModelEntityItem::getAnimationLoop() const {
-    return resultWithReadLock<bool>([&] {
-        return _animationProperties.getLoop();
-    });
-}
-
-
-void ModelEntityItem::setAnimationHold(bool hold) { 
-    withWriteLock([&] {
-        _animationProperties.setHold(hold);
-    });
-}
-
-bool ModelEntityItem::getAnimationHold() const { 
-    return resultWithReadLock<bool>([&] {
-        return _animationProperties.getHold();
-    });
-}
-
-bool ModelEntityItem::getAnimationIsPlaying() const { 
-    return resultWithReadLock<bool>([&] {
-        return _animationProperties.getRunning();
-    });
-}
-
 float ModelEntityItem::getAnimationCurrentFrame() const { 
     return resultWithReadLock<float>([&] {
         return _animationProperties.getCurrentFrame();
-    });
-}
-
-float ModelEntityItem::getAnimationFPS() const {
-    return resultWithReadLock<float>([&] {
-        return _animationProperties.getFPS();
     });
 }
 
@@ -722,6 +656,7 @@ bool ModelEntityItem::applyNewAnimationProperties(AnimationPropertyGroup newProp
     bool somethingChanged = newProperties != _animationProperties;
     if (somethingChanged) {
         _animationProperties = newProperties;
+        _needsRenderUpdate = true;
         _flags |= Simulation::DIRTY_UPDATEABLE;
     }
     return somethingChanged;

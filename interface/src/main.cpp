@@ -89,6 +89,7 @@ int main(int argc, const char* argv[]) {
     QCommandLineOption displayNameOption("displayName", "set user display name <string>", "string");
     QCommandLineOption setBookmarkOption("setBookmark", "set bookmark key=value pair", "string");
     QCommandLineOption defaultScriptOverrideOption("defaultScriptsOverride", "override defaultsScripts.js", "string");
+    QCommandLineOption forceCrashReportingOption("forceCrashReporting", "Force crash reporting to initialize");
 
     parser.addOption(urlOption);
     parser.addOption(noLauncherOption);
@@ -103,6 +104,7 @@ int main(int argc, const char* argv[]) {
     parser.addOption(displayNameOption);
     parser.addOption(setBookmarkOption);
     parser.addOption(defaultScriptOverrideOption);
+    parser.addOption(forceCrashReportingOption);
 
     if (!parser.parse(arguments)) {
         std::cout << parser.errorText().toStdString() << std::endl; // Avoid Qt log spam
@@ -218,8 +220,9 @@ int main(int argc, const char* argv[]) {
     }
     qDebug() << "UserActivityLogger is enabled:" << ual.isEnabled();
 
-    qDebug() << "Crash handler logger is enabled:" << ual.isCrashMonitorEnabled();
-    if (ual.isCrashMonitorEnabled()) {
+    bool isCrashHandlerEnabled = ual.isCrashMonitorEnabled() || parser.isSet(forceCrashReportingOption);
+    qDebug() << "Crash handler logger is enabled:" << isCrashHandlerEnabled;
+    if (isCrashHandlerEnabled) {
         auto crashHandlerStarted = startCrashHandler(argv[0]);
         qDebug() << "Crash handler started:" << crashHandlerStarted;
     }

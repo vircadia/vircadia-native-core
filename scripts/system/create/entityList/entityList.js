@@ -146,6 +146,20 @@ EntityListTool = function(shouldUseEditTabletApp) {
         });
     };
 
+    that.setListMenuSnapToGrid = function (isSnapToGrid) {
+        emitJSONScriptEvent({ "type": "setSnapToGrid", "snap": isSnapToGrid });
+    };
+
+    that.toggleSnapToGrid = function () {
+        if (!grid.getSnapToGrid()) {
+            grid.setSnapToGrid(true);
+            emitJSONScriptEvent({ "type": "setSnapToGrid", "snap": true });
+        } else {
+            grid.setSnapToGrid(false);
+            emitJSONScriptEvent({ "type": "setSnapToGrid", "snap": false });
+        }
+    };
+
     function valueIfDefined(value) {
         return value !== undefined ? value : "";
     }
@@ -381,7 +395,22 @@ EntityListTool = function(shouldUseEditTabletApp) {
             });
         } else if (data.type === 'saveColumnsConfigSetting') {
             Settings.setValue(SETTING_EDITOR_COLUMNS_SETUP, data.columnsData);
+        } else if (data.type === 'importFromFile') {
+            importEntitiesFromFile();
+        } else if (data.type === 'importFromUrl') {
+            importEntitiesFromUrl();
+        } else if (data.type === 'setCameraFocusToSelection') {
+            setCameraFocusToSelection();
+        } else if (data.type === 'alignGridToSelection') {
+            alignGridToSelection();
+        } else if (data.type === 'alignGridToAvatar') {
+            alignGridToAvatar();
+        } else if (data.type === 'toggleGridVisibility') {
+            toggleGridVisibility();
+        } else if (data.type === 'toggleSnapToGrid') {
+            that.toggleSnapToGrid();     
         }
+        
     };
 
     webView.webEventReceived.connect(onWebEventReceived);

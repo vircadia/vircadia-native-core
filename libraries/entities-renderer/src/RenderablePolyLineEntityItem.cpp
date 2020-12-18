@@ -122,16 +122,6 @@ ShapeKey PolyLineEntityRenderer::getShapeKey() {
     return builder.build();
 }
 
-bool PolyLineEntityRenderer::needsRenderUpdate() const {
-    if (resultWithReadLock<bool>([&] {
-        return (!_textureLoaded && _texture && _texture->isLoaded());
-    })) {
-        return true;
-    }
-
-    return Parent::needsRenderUpdate();
-}
-
 bool PolyLineEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
     if (entity->pointsChanged() || entity->widthsChanged() || entity->normalsChanged() || entity->texturesChanged() || entity->colorsChanged()) {
         return true;
@@ -141,6 +131,15 @@ bool PolyLineEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityP
 }
 
 void PolyLineEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
+    void* key = (void*)this;
+    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this] {
+        withWriteLock([&] {
+            _renderTransform = getModelTransform();
+        });
+    });
+}
+
+void PolyLineEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     auto pointsChanged = entity->pointsChanged();
     auto widthsChanged = entity->widthsChanged();
     auto normalsChanged = entity->normalsChanged();
@@ -160,11 +159,13 @@ void PolyLineEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& 
         if (!textures.isEmpty()) {
             entityTextures = QUrl(textures);
         }
-        withWriteLock([&] {
-            _texture = DependencyManager::get<TextureCache>()->getTexture(entityTextures);
-        });
+        _texture = DependencyManager::get<TextureCache>()->getTexture(entityTextures);
         _textureAspectRatio = 1.0f;
         _textureLoaded = false;
+    }
+
+    if (!_textureLoaded) {
+        emit requestRenderUpdate();
     }
 
     bool textureChanged = false;
@@ -176,13 +177,11 @@ void PolyLineEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& 
 
     // Data
     bool faceCameraChanged = faceCamera != _faceCamera;
-    withWriteLock([&] {
-        if (faceCameraChanged || glow != _glow) {
-            _faceCamera = faceCamera;
-            _glow = glow;
-            updateData();
-        }
-    });
+    if (faceCameraChanged || glow != _glow) {
+        _faceCamera = faceCamera;
+        _glow = glow;
+        updateData();
+    }
 
     // Geometry
     if (pointsChanged) {
@@ -201,19 +200,10 @@ void PolyLineEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& 
 
     bool uvModeStretchChanged = _isUVModeStretch != isUVModeStretch;
     _isUVModeStretch = isUVModeStretch;
-    
-    bool geometryChanged = uvModeStretchChanged || pointsChanged || widthsChanged || normalsChanged || colorsChanged || textureChanged || faceCameraChanged;
 
-    void* key = (void*)this;
-    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, geometryChanged] {
-        withWriteLock([&] {
-            _renderTransform = getModelTransform();
-
-            if (geometryChanged) {
-                updateGeometry();
-            }
-        });
-    });
+    if (uvModeStretchChanged || pointsChanged || widthsChanged || normalsChanged || colorsChanged || textureChanged || faceCameraChanged) {
+        updateGeometry();
+    }
 }
 
 void PolyLineEntityRenderer::updateGeometry() {
@@ -319,19 +309,16 @@ void PolyLineEntityRenderer::doRender(RenderArgs* args) {
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
 
-    size_t numVertices;
     Transform transform;
-    gpu::TexturePointer texture;
+    gpu::TexturePointer texture = _textureLoaded ? _texture->getGPUTexture() : DependencyManager::get<TextureCache>()->getWhiteTexture();
     withReadLock([&] {
-        numVertices = _numVertices;
         transform = _renderTransform;
-        texture = _textureLoaded ? _texture->getGPUTexture() : DependencyManager::get<TextureCache>()->getWhiteTexture();
-
-        batch.setResourceBuffer(0, _polylineGeometryBuffer);
-        batch.setUniformBuffer(0, _polylineDataBuffer);
     });
 
-    if (numVertices < 2) {
+    batch.setResourceBuffer(0, _polylineGeometryBuffer);
+    batch.setUniformBuffer(0, _polylineDataBuffer);
+
+    if (_numVertices < 2) {
         return;
     }
 
@@ -343,5 +330,5 @@ void PolyLineEntityRenderer::doRender(RenderArgs* args) {
     batch.setModelTransform(transform, _prevRenderTransform);
     _prevRenderTransform = transform;
     batch.setResourceTexture(0, texture);
-    batch.draw(gpu::TRIANGLE_STRIP, (gpu::uint32)(2 * numVertices), 0);
+    batch.draw(gpu::TRIANGLE_STRIP, (gpu::uint32)(2 * _numVertices), 0);
 }
