@@ -1,5 +1,5 @@
 Collection of scripts to create server distribution packages.  Most of these scripts assume
-use of the build script at https://github.com/kasenvr/vircadia-builder, specifically that
+use of the build script at https://github.com/vircadia/vircadia-builder, specifically that
 the following directory structure exists
 
 base folder/

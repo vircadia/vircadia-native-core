@@ -30,9 +30,9 @@ public:
     virtual bool isTransparent() const override;
 
 protected:
-    virtual bool needsRenderUpdate() const override;
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
+    virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
 
     virtual ItemKey getKey() override;
     virtual ShapeKey getShapeKey() override;

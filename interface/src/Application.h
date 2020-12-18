@@ -472,6 +472,8 @@ public slots:
     void setIsInterstitialMode(bool interstitialMode);
 
     void updateVerboseLogging();
+    
+    void setCachebustRequire();
 
     void changeViewAsNeeded(float boomLength);
 

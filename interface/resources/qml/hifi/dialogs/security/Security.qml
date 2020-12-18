@@ -312,9 +312,9 @@ Rectangle {
                             parent.color = hifi.colors.blueHighlight;
                         }
                         onClicked: {
-                            lightboxPopup.titleText = "Script Plugin Infrastructure by Kasen";
+                            lightboxPopup.titleText = "Script Plugin Infrastructure";
                             lightboxPopup.bodyText = "Toggles the activation of scripting plugins in the 'plugins/scripting' folder. \n\n"
-                              + "Created by https://kasen.io/";
+                              + "Created by:\n    humbletim@gmail.com\n    somnilibertas@gmail.com";
                             lightboxPopup.button1text = "OK";
                             lightboxPopup.button1method = function() {
                                 lightboxPopup.visible = false;

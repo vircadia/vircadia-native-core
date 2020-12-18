@@ -101,6 +101,8 @@ public:
 
     PulsePropertyGroup getPulseProperties() const;
 
+    void setUserData(const QString& value) override;
+
 protected:
     glm::u8vec3 _color;
     float _alpha { 1.0f };

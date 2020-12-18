@@ -188,7 +188,7 @@ public slots:
     * @param {number} roll - The roll angle in degrees.
     * @returns {Quat} A quaternion created using the <code>pitch</code>, <code>yaw</code>, and <code>roll</code> Euler angles.
     * @example <caption>Create a rotation of 180 degrees about the y axis.</caption>
-    * var rotation = Quat.fromPitchYawRollDgrees(0, 180, 0 );
+    * var rotation = Quat.fromPitchYawRollDegrees(0, 180, 0 );
     */
     glm::quat fromPitchYawRollDegrees(float pitch, float yaw, float roll);
 

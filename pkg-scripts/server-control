@@ -5,8 +5,8 @@ Maintainer: Heather Anderson <heath@odysseus.anderson.name>
 Build-Depends: debhelper (>= 10)
 Standards-Version: 4.1.2
 Homepage: https://vircadia.com
-Vcs-Git: https://github.com/kasenvr/project-athena.git
-Vcs-Browser: https://github.com/kasenvr/project-athena
+Vcs-Git: https://github.com/vircadia/vircadia.git
+Vcs-Browser: https://github.com/vircadia/vircadia
 
 Package: vircadia-server
 Architecture: any

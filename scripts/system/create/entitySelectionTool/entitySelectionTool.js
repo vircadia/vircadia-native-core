@@ -668,6 +668,7 @@ SelectionManager = (function() {
                 var newPosition = Vec3.sum(relativePosition, targetPosition);
                 Entities.editEntity(id, { "position": newPosition });
             }
+            pushCommandForSelections();
             that._update(false, this);
         } else {
             audioFeedback.rejection();
@@ -723,12 +724,12 @@ SelectionManager = (function() {
     that.addChildrenToSelection = function() {
         if (that.hasSelection()) {
             for (var i = 0; i < that.selections.length; i++) {
-                var childrenIDs = Entities.getChildrenIDs(that.selections[i]);
-                var collectNewChildren; 
+                var childrenIDs = getDomainOnlyChildrenIDs(that.selections[i]);
+                var collectNewChildren;
                 var j;
                 var k = 0;
                 do {
-                    collectNewChildren = Entities.getChildrenIDs(childrenIDs[k]);
+                    collectNewChildren = getDomainOnlyChildrenIDs(childrenIDs[k]);
                     if (collectNewChildren.length > 0) {
                         for (j = 0; j < collectNewChildren.length; j++) {
                             childrenIDs.push(collectNewChildren[j]);
@@ -745,7 +746,7 @@ SelectionManager = (function() {
             that._update(true, this);
         } else {
             audioFeedback.rejection();
-            Window.notifyEditError("You have nothing selected.");            
+            Window.notifyEditError("You have nothing selected.");
         }
     };
 
@@ -797,6 +798,7 @@ SelectionDisplay = (function() {
     const COLOR_ROTATE_CURRENT_RING = { red: 255, green: 99, blue: 9 };
     const COLOR_BOUNDING_EDGE = { red: 160, green: 160, blue: 160 };
     const COLOR_BOUNDING_EDGE_PARENT = { red: 194, green: 123, blue: 0 };
+    const COLOR_BOUNDING_EDGE_PARENT_AND_CHILDREN = { red: 179, green: 0, blue: 134 };
     const COLOR_BOUNDING_EDGE_CHILDREN = { red: 0, green: 168, blue: 214 };
     const COLOR_SCALE_CUBE = { red: 192, green: 192, blue: 192 };
     const COLOR_DEBUG_PICK_PLANE = { red: 255, green: 255, blue: 255 };
@@ -830,7 +832,7 @@ SelectionDisplay = (function() {
     
     const BOUNDING_EDGE_OFFSET = 0.5;
 
-    const DUPLICATOR_OFFSET = { x: 0.6, y: 0, z: 0.6 };    
+    const DUPLICATOR_OFFSET = { x: 0.6, y: 0, z: 0.6 };
     
     const CTRL_KEY_CODE = 16777249;
 
@@ -1933,10 +1935,10 @@ SelectionDisplay = (function() {
                 var parentState = getParentState(SelectionManager.selections[0]);
                 if (parentState === "CHILDREN") {
                     handleBoundingBoxColor = COLOR_BOUNDING_EDGE_CHILDREN;
-                } else {
-                    if (parentState === "PARENT" || parentState === "PARENT_CHILDREN") {
-                        handleBoundingBoxColor = COLOR_BOUNDING_EDGE_PARENT;
-                    }
+                } else if (parentState === "PARENT") {
+                    handleBoundingBoxColor = COLOR_BOUNDING_EDGE_PARENT;
+                } else if (parentState === "PARENT_CHILDREN") {
+                    handleBoundingBoxColor = COLOR_BOUNDING_EDGE_PARENT_AND_CHILDREN;
                 }
             }
             

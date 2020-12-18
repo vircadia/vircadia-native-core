@@ -451,7 +451,7 @@ void ScriptEngine::executeOnScriptThread(std::function<void()> function, const Q
     function();
 }
 
-void ScriptEngine::waitTillDoneRunning() {
+void ScriptEngine::waitTillDoneRunning(bool shutdown) {
     // Engine should be stopped already, but be defensive
     stop();
     
@@ -520,12 +520,14 @@ void ScriptEngine::waitTillDoneRunning() {
                 }
             }
 
-            // NOTE: This will be called on the main application thread (among other threads) from stopAllScripts.
-            //       The thread will need to continue to process events, because
-            //       the scripts will likely need to marshall messages across to the main thread, e.g.
-            //       if they access Settings or Menu in any of their shutdown code. So:
-            // Process events for this thread, allowing invokeMethod calls to pass between threads.
-            QCoreApplication::processEvents();
+            if (shutdown) {
+                // NOTE: This will be called on the main application thread (among other threads) from stopAllScripts.
+                //       The thread will need to continue to process events, because
+                //       the scripts will likely need to marshall messages across to the main thread, e.g.
+                //       if they access Settings or Menu in any of their shutdown code. So:
+                // Process events for this thread, allowing invokeMethod calls to pass between threads.
+                QCoreApplication::processEvents();
+            }
 
             // Avoid a pure busy wait
             QThread::yieldCurrentThread();
@@ -1941,9 +1943,12 @@ QScriptValue ScriptEngine::require(const QString& moduleId) {
     // modules get cached in `Script.require.cache` and (similar to Node.js) users can access it
     // to inspect particular entries and invalidate them by deleting the key:
     //   `delete Script.require.cache[Script.require.resolve(moduleId)];`
+    
+    // Check to see if we should invalidate the cache based on a user setting.
+    Setting::Handle<bool> getCachebustSetting {"cachebustScriptRequire", false };
 
     // cacheMeta is just used right now to tell deleted keys apart from undefined ones
-    bool invalidateCache = module.isUndefined() && cacheMeta.property(moduleId).isValid();
+    bool invalidateCache = getCachebustSetting.get() || (module.isUndefined() && cacheMeta.property(moduleId).isValid());
 
     // reset the cacheMeta record so invalidation won't apply next time, even if the module fails to load
     cacheMeta.setProperty(modulePath, QScriptValue());
