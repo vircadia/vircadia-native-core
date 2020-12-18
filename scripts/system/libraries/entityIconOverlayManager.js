@@ -76,10 +76,10 @@ EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
         var overlay;
         if (unusedOverlays.length === 0) {
             overlay = Entities.addEntity({
-                "type": "Image", 
-                "billboardMode": "full", 
-                "emissive": true
-            },"local");
+                type: "Image", 
+                billboardMode: "full", 
+                emissive: true
+            }, "local");
             allOverlays.push(overlay);
         } else {
             overlay = unusedOverlays.pop();
