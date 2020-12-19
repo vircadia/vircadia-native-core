@@ -47,7 +47,7 @@ void main(void) {
     <@if not HIFI_USE_TRANSLUCENT@>
         packDeferredFragmentUnlit(_prevPositionCS, NORMAL, 1.0, varColor.rgb);
     <@else@>
-        packDeferredFragmentTranslucent(NORMAL, varColor.a, varColor.rgb, DEFAULT_ROUGHNESS);
+        packDeferredFragmentTranslucent(_prevPositionCS, NORMAL, varColor.a, varColor.rgb, DEFAULT_ROUGHNESS);
     <@endif@>
 <@else@>
     _fragColor0 = varColor;

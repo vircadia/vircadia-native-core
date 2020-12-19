@@ -27,25 +27,16 @@
 
 <@if HIFI_USE_FORWARD@>
     layout(location=0) out vec4 _fragColor0;
-<@elif HIFI_USE_TRANSLUCENT@>
-    <@if not HIFI_USE_UNLIT@>
-        layout(location=0) out vec4 _fragColor0;
-    <@endif@>
+<@else@>
+    <@include DeferredBufferWrite.slh@>
 <@endif@>
 
 <@if not HIFI_USE_UNLIT@>
+    <@include GlobalLight.slh@>
     <@if HIFI_USE_TRANSLUCENT@>
-        <@include GlobalLight.slh@>
         <$declareEvalGlobalLightingAlphaBlended()$>
     <@elif HIFI_USE_FORWARD@>
-        <@include GlobalLight.slh@>
         <$declareEvalSkyboxGlobalColor(_SCRIBE_NULL, HIFI_USE_FORWARD)$>
-    <@else@>
-        <@include DeferredBufferWrite.slh@>
-    <@endif@>
-<@else@>
-    <@if not HIFI_USE_FORWARD@>
-        <@include DeferredBufferWrite.slh@>
     <@endif@>
 <@endif@>
 
@@ -57,10 +48,9 @@
 <@if HIFI_USE_FORWARD or HIFI_USE_TRANSLUCENT@>
     <@if not HIFI_USE_UNLIT@>
         layout(location=RENDER_UTILS_ATTR_POSITION_ES) in vec4 _positionES;
-    <@elif not HIFI_USE_FORWARD@>
-        layout(location=RENDER_UTILS_ATTR_PREV_POSITION_CS) out vec4 _prevPositionCS;
     <@endif@>
-<@else@>
+<@endif@>
+<@if not HIFI_USE_FORWARD@>
     layout(location=RENDER_UTILS_ATTR_PREV_POSITION_CS) in vec4 _prevPositionCS;
 <@endif@>
 <@if HIFI_USE_FADE@>
@@ -99,12 +89,13 @@ void main(void) {
 
 <@if not HIFI_USE_UNLIT@>
     <@if HIFI_USE_TRANSLUCENT@>
-        _fragColor0 = vec4(evalGlobalLightingAlphaBlended(
+        vec3 normal = evalFrontOrBackFaceNormal(normalize(_normalWS));
+        vec4 color = vec4(evalGlobalLightingAlphaBlended(
             cam._viewInverse,
             1.0,
             DEFAULT_OCCLUSION,
             fragPosition,
-            evalFrontOrBackFaceNormal(normalize(_normalWS)),
+            normal,
             texel.rgb,
             fresnel,
             metallic,
@@ -115,6 +106,12 @@ void main(void) {
             ,
             DEFAULT_ROUGHNESS, texel.a),
             texel.a);
+
+        <@if HIFI_USE_FORWARD@>
+            _fragColor0 = color;
+        <@else@>
+            packDeferredFragmentTranslucent(_prevPositionCS, normal, color.a, color.rgb, DEFAULT_ROUGHNESS);
+        <@endif@>
     <@elif HIFI_USE_FORWARD@>
         _fragColor0 = vec4(evalSkyboxGlobalColor(
             cam._viewInverse,

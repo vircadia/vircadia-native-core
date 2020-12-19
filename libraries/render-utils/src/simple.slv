@@ -28,10 +28,9 @@
 <@if HIFI_USE_FORWARD or HIFI_USE_TRANSLUCENT@>
     <@if not HIFI_USE_UNLIT@>
         layout(location=RENDER_UTILS_ATTR_POSITION_ES) out vec4 _positionES;
-    <@elif not HIFI_USE_FORWARD@>
-        layout(location=RENDER_UTILS_ATTR_PREV_POSITION_CS) out vec4 _prevPositionCS;
     <@endif@>
-<@else@>
+<@endif@>
+<@if not HIFI_USE_FORWARD@>
     layout(location=RENDER_UTILS_ATTR_PREV_POSITION_CS) out vec4 _prevPositionCS;
 <@endif@>
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
@@ -46,12 +45,13 @@ void main(void) {
     TransformObject obj = getTransformObject();
 <@if HIFI_USE_FORWARD or HIFI_USE_TRANSLUCENT@>
     <@if not HIFI_USE_UNLIT@>
-        <$transformModelToEyeAndClipPos(cam, obj, inPosition, _positionES, gl_Position)$>
-    <@elif not HIFI_USE_FORWARD@>
-        <$transformModelToClipPosAndPrevClipPos(cam, obj, inPosition, gl_Position, _prevPositionCS)$>
+        <$transformModelToEyeWorldAlignedPos(cam, obj, inPosition, _positionES)$>
     <@endif@>
-<@else@>
+<@endif@>
+<@if not HIFI_USE_FORWARD@>
     <$transformModelToClipPosAndPrevClipPos(cam, obj, inPosition, gl_Position, _prevPositionCS)$>
+<@else@>
+    <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
 <@endif@>
 
 <@if HIFI_USE_FADE@>

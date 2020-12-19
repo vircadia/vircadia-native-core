@@ -16,9 +16,9 @@
 <@include DeferredBufferWrite_shared.slh@>
 
 // Must match layout in skybox.slh
-layout(location = DEFERRED_COLOR_SLOT) out vec4 _fragColor0;    // albedo / metallic
-layout(location = DEFERRED_NORMAL_SLOT) out vec4 _fragColor1;   // Normal
-layout(location = DEFERRED_SPECULAR_SLOT) out vec4 _fragColor2; // scattering / emissive / occlusion
+layout(location = DEFERRED_COLOR_SLOT) out vec4 _albedoMetallic;    // albedo / metallic
+layout(location = DEFERRED_NORMAL_SLOT) out vec4 _normalRoughness;   // normal / roughness
+layout(location = DEFERRED_SPECULAR_SLOT) out vec4 _scatteringEmissiveOcclusion; // scattering / emissive / occlusion
 layout(location = DEFERRED_VELOCITY_SLOT) out vec4 _velocity;   // velocity
 layout(location = DEFERRED_LIGHTING_SLOT) out vec4 _lighting;   // emissive
 
@@ -38,9 +38,9 @@ void packDeferredFragment(vec4 prevPositionCS, vec3 normal, float alpha, vec3 al
     }
 
     float check = float(scattering > 0.0);
-    _fragColor0 = vec4(albedo, mix(packShadedMetallic(metallic), packScatteringMetallic(metallic), check));
-    _fragColor1 = vec4(packNormal(normal), clamp(roughness, 0.0, 1.0));
-    _fragColor2 = vec4(mix(emissive, vec3(scattering), check), occlusion);
+    _albedoMetallic = vec4(albedo, mix(packShadedMetallic(metallic), packScatteringMetallic(metallic), check));
+    _normalRoughness = vec4(packNormal(normal), clamp(roughness, 0.0, 1.0));
+    _scatteringEmissiveOcclusion = vec4(mix(emissive, vec3(scattering), check), occlusion);
     _velocity = vec4(packVelocity(prevPositionCS), 0.0, 0.0);
     _lighting = vec4(isEmissiveEnabled() * emissive, 1.0);
 }
@@ -50,9 +50,9 @@ void packDeferredFragmentLightmap(vec4 prevPositionCS, vec3 normal, float alpha,
         discard;
     }
 
-    _fragColor0 = vec4(albedo, packLightmappedMetallic(metallic));
-    _fragColor1 = vec4(packNormal(normal), clamp(roughness, 0.0, 1.0));
-    _fragColor2 = vec4(isLightmapEnabled() * lightmap, 1.0);
+    _albedoMetallic = vec4(albedo, packLightmappedMetallic(metallic));
+    _normalRoughness = vec4(packNormal(normal), clamp(roughness, 0.0, 1.0));
+    _scatteringEmissiveOcclusion = vec4(isLightmapEnabled() * lightmap, 1.0);
     _velocity = vec4(packVelocity(prevPositionCS), 0.0, 0.0);
     _lighting = vec4(isLightmapEnabled() * lightmap * albedo, 1.0);
 }
@@ -62,21 +62,21 @@ void packDeferredFragmentUnlit(vec4 prevPositionCS, vec3 normal, float alpha, ve
     if (alpha < 0.999999) {
         discard;
     }
-    _fragColor0 = vec4(color, packUnlit());
-    _fragColor1 = vec4(packNormal(normal), 1.0);
-    _fragColor2 = vec4(vec3(0.0), 1.0);
+    _albedoMetallic = vec4(color, packUnlit());
+    _normalRoughness = vec4(packNormal(normal), 1.0);
+    _scatteringEmissiveOcclusion = vec4(vec3(0.0), 1.0);
     _velocity = vec4(packVelocity(prevPositionCS), 0.0, 0.0);
     _lighting = vec4(color, 1.0);
 }
 
-void packDeferredFragmentTranslucent(vec3 normal, float alpha, vec3 albedo, float roughness) {
+void packDeferredFragmentTranslucent(vec4 prevPositionCS, vec3 normal, float alpha, vec3 albedo, float roughness) {
     if (alpha <= 0.0) {
         discard;
     }
-    _fragColor0 = vec4(albedo.rgb, alpha);
-    _fragColor1 = vec4(packNormal(normal), clamp(roughness, 0.0, 1.0));
-    _fragColor2 = vec4(vec3(0.0), 1.0);
-    _velocity = vec4(0.0);
+    _albedoMetallic = vec4(albedo.rgb, alpha);
+    _normalRoughness = vec4(packNormal(normal), clamp(roughness, 0.0, 1.0));
+    _scatteringEmissiveOcclusion = vec4(vec3(0.0), 1.0);
+    _velocity = vec4(packVelocity(prevPositionCS), 0.0, 0.0);
     _lighting = vec4(0.0);
 }
 
@@ -84,9 +84,9 @@ void packDeferredFragmentTranslucentUnlit(vec4 prevPositionCS, vec3 normal, floa
     if (alpha <= 0.0) {
         discard;
     }
-    _fragColor0 = vec4(color, alpha);
-    _fragColor1 = vec4(packNormal(normal), 1.0);
-    _fragColor2 = vec4(vec3(0.0), 1.0);
+    _albedoMetallic = vec4(color, alpha);
+    _normalRoughness = vec4(packNormal(normal), 1.0);
+    _scatteringEmissiveOcclusion = vec4(vec3(0.0), 1.0);
     _velocity = vec4(packVelocity(prevPositionCS), 0.0, 0.0);
     _lighting = vec4(color, 1.0);
 }
