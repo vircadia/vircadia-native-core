@@ -141,32 +141,25 @@ void main(void) {
             DEFAULT_SCATTERING);
     <@endif@>
 <@else@>
-    <@if HIFI_USE_FORWARD@>
-        _fragColor0 = isUnlitEnabled() * vec4(texel.rgb
+    vec3 color = isUnlitEnabled() * (texel.rgb
         <@if HIFI_USE_FADE@>
                 + fadeEmissive
         <@endif@>
-            , texel.a);
+        );
+    <@if HIFI_USE_FORWARD@>
+        _fragColor0 = vec4(color, texel.a);
     <@elif HIFI_USE_TRANSLUCENT@>
         packDeferredFragmentTranslucentUnlit(
             _prevPositionCS,
             evalFrontOrBackFaceNormal(normalize(_normalWS)),
             texel.a,
-            texel.rgb
-        <@if HIFI_USE_FADE@>
-                + fadeEmissive
-        <@endif@>
-            );
+            color);
     <@else@>
         packDeferredFragmentUnlit(
             _prevPositionCS,
             evalFrontOrBackFaceNormal(normalize(_normalWS)),
             1.0,
-            texel.rgb
-        <@if HIFI_USE_FADE@>
-                + fadeEmissive
-        <@endif@>
-            );
+            color);
     <@endif@>
 <@endif@>
 }

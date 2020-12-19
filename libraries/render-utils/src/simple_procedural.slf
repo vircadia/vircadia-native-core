@@ -10,15 +10,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@if not HIFI_USE_TRANSLUCENT@>
-    <@include DeferredBufferWrite.slh@>
-<@else@>
+<@include DeferredBufferWrite.slh@>
+
+<@if HIFI_USE_TRANSLUCENT@>
     <@include DefaultMaterials.slh@>
 
     <@include GlobalLight.slh@>
     <$declareEvalGlobalLightingAlphaBlended()$>
-
-    layout(location=0) out vec4 _fragColor0;
 <@endif@>
 
 <@include gpu/Transform.slh@>
@@ -168,10 +166,11 @@ void main(void) {
             scattering);
     }
 <@else@>
+    vec4 color;
     if (emissiveAmount > 0.0) {
-        _fragColor0 = vec4(diffuse, alpha);
+        color = vec4(diffuse, alpha);
     } else {
-        _fragColor0 = vec4(evalGlobalLightingAlphaBlended(
+        color = vec4(evalGlobalLightingAlphaBlended(
             cam._viewInverse,
             1.0,
             occlusion,
@@ -184,5 +183,6 @@ void main(void) {
             roughness, alpha),
             alpha);
     }
+    packDeferredFragmentTranslucent(_prevPositionCS, normal, color.a, color.rgb, roughness);
 <@endif@>
 }

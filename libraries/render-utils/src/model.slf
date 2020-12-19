@@ -17,6 +17,12 @@
 <@include CullFace.slh@>
 
 <@if not HIFI_USE_SHADOW@>
+    <@if HIFI_USE_FORWARD@>
+        layout(location=0) out vec4 _fragColor0;
+    <@else@>
+        <@include DeferredBufferWrite.slh@>
+    <@endif@>
+
     <@if HIFI_USE_FORWARD or HIFI_USE_TRANSLUCENT@>
         <@include DefaultMaterials.slh@>
         <@include GlobalLight.slh@>
@@ -32,16 +38,6 @@
         <@endif@>
         <@include gpu/Transform.slh@>
         <$declareStandardCameraTransform()$>
-
-        <@if HIFI_USE_FORWARD@>
-            layout(location=0) out vec4 _fragColor0;
-        <@elif HIFI_USE_UNLIT and HIFI_USE_TRANSLUCENT@>
-            <@include DeferredBufferWrite.slh@>
-        <@else@>
-            layout(location=0) out vec4 _fragColor0;
-        <@endif@>
-    <@else@>
-        <@include DeferredBufferWrite.slh@>
     <@endif@>
 <@else@>
     layout(location=0) out vec4 _fragColor0;
@@ -316,7 +312,7 @@ void main(void) {
                                                       vec4(0), vec4(0), opacity);
                 }
 
-                _fragColor0 = vec4(evalGlobalLightingAlphaBlended(
+                vec4 outColor = vec4(evalGlobalLightingAlphaBlended(
                     cam._viewInverse,
                     1.0,
                     occlusion,
@@ -332,8 +328,9 @@ void main(void) {
                     ,
                     surfaceWS, opacity, localLighting.rgb),
                     opacity);
+                packDeferredFragmentTranslucent(_prevPositionCS, fragNormalWS, outColor.a, outColor.rgb, roughness);
             <@else@>
-                _fragColor0 = vec4(evalLightmappedColor(
+                vec4 outColor = vec4(evalLightmappedColor(
                     cam._viewInverse,
                     1.0,
                     DEFAULT_OCCLUSION,
@@ -341,6 +338,7 @@ void main(void) {
                     albedo,
                     lightmap),
                     opacity);
+                packDeferredFragmentLightmap(_prevPositionCS, fragNormalWS, outColor.a, outColor.rgb, roughness, metallic, outColor.rgb);
             <@endif@>
         <@endif@>
     <@endif@>
