@@ -716,7 +716,7 @@ void RenderableModelEntityItem::setJointMap(std::vector<int> jointMap) {
 
 int RenderableModelEntityItem::avatarJointIndex(int modelJointIndex) {
     int result = -1;
-    int mapSize = (int) _jointMap.size();
+    int mapSize = (int)_jointMap.size();
     if (modelJointIndex >= 0 && modelJointIndex < mapSize) {
         result = _jointMap[modelJointIndex];
     }

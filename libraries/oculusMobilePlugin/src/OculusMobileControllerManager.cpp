@@ -31,7 +31,7 @@ const quint64 LOST_TRACKING_DELAY = 3000000;
 
 namespace ovr {
 
-    controller::Pose toControllerPose(ovrHandedness hand, const ovrRigidBodyPosef& handPose) {
+    controller::Pose toControllerPose(ovrTrackedDeviceTypeId hand, const ovrRigidBodyPosef& handPose) {
         // When the sensor-to-world rotation is identity the coordinate axes look like this:
         //
         //                       user
@@ -111,7 +111,7 @@ namespace ovr {
         return pose;
     }
 
-    controller::Pose toControllerPose(ovrHandedness hand,
+    controller::Pose toControllerPose(ovrTrackedDeviceTypeId hand,
                                       const ovrRigidBodyPosef& handPose,
                                       const ovrRigidBodyPosef& lastHandPose) {
         static const glm::quat yFlip = glm::angleAxis(PI, Vectors::UNIT_Y);
@@ -165,9 +165,9 @@ public:
 
 private:
     void handlePose(float deltaTime, const controller::InputCalibrationData& inputCalibrationData,
-                    ovrHandedness hand, const ovrRigidBodyPosef& handPose);
+                    ovrTrackedDeviceTypeId hand, const ovrRigidBodyPosef& handPose);
     void handleRotationForUntrackedHand(const controller::InputCalibrationData& inputCalibrationData,
-                                        ovrHandedness hand, const ovrRigidBodyPosef& handPose);
+                                        ovrTrackedDeviceTypeId hand, const ovrRigidBodyPosef& handPose);
     void handleHeadPose(float deltaTime, const controller::InputCalibrationData& inputCalibrationData,
                         const ovrRigidBodyPosef& headPose);
 
@@ -379,9 +379,9 @@ void OculusMobileInputDevice::update(float deltaTime, const controller::InputCal
     handleHeadPose(deltaTime, inputCalibrationData, _headTracking.HeadPose);
 
     static const auto REQUIRED_HAND_STATUS = VRAPI_TRACKING_STATUS_ORIENTATION_TRACKED | VRAPI_TRACKING_STATUS_POSITION_TRACKED;
-    ovr::for_each_hand([&](ovrHandedness hand) {
-        size_t handIndex = (hand == VRAPI_HAND_LEFT) ? 0 : 1;
-        int controller = (hand == VRAPI_HAND_LEFT) ? controller::LEFT_HAND : controller::RIGHT_HAND;
+    ovr::for_each_hand([&](ovrTrackedDeviceTypeId hand) {
+        size_t handIndex = (hand == VRAPI_TRACKED_DEVICE_HAND_LEFT) ? 0 : 1;
+        int controller = (hand == VRAPI_TRACKED_DEVICE_HAND_LEFT) ? controller::LEFT_HAND : controller::RIGHT_HAND;
         auto& handData = _hands[handIndex];
         const auto& tracking = handData.tracking;
         ++numTrackedControllers;
@@ -476,7 +476,7 @@ void OculusMobileInputDevice::focusOutEvent() {
 
 void OculusMobileInputDevice::handlePose(float deltaTime,
                                                       const controller::InputCalibrationData& inputCalibrationData,
-                                                      ovrHandedness hand, const ovrRigidBodyPosef& handPose) {
+                                                      ovrTrackedDeviceTypeId hand, const ovrRigidBodyPosef& handPose) {
     auto poseId = (hand == VRAPI_HAND_LEFT) ? controller::LEFT_HAND : controller::RIGHT_HAND;
     auto& pose = _poseStateMap[poseId];
     pose = ovr::toControllerPose(hand, handPose);
@@ -507,7 +507,7 @@ void OculusMobileInputDevice::handleHeadPose(float deltaTime,
 }
 
 void OculusMobileInputDevice::handleRotationForUntrackedHand(const controller::InputCalibrationData& inputCalibrationData,
-                                                                          ovrHandedness hand, const ovrRigidBodyPosef& handPose) {
+                                                                          ovrTrackedDeviceTypeId hand, const ovrRigidBodyPosef& handPose) {
     auto poseId = (hand == VRAPI_HAND_LEFT ? controller::LEFT_HAND : controller::RIGHT_HAND);
     auto& pose = _poseStateMap[poseId];
     const auto& lastHandPose = (hand == VRAPI_HAND_LEFT) ? _hands[0].lastPose : _hands[1].lastPose;

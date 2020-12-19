@@ -72,7 +72,7 @@ namespace NetworkingConstants {
     const QUrl HELP_FORUM_URL { "https://forums.vircadia.dev" };
     const QUrl HELP_SCRIPTING_REFERENCE_URL{ "https://apidocs.vircadia.dev/" };
     const QUrl HELP_RELEASE_NOTES_URL{ "https://docs.vircadia.dev/release-notes.html" };
-    const QUrl HELP_BUG_REPORT_URL{ "https://github.com/kasenvr/project-athena/issues" };
+    const QUrl HELP_BUG_REPORT_URL{ "https://github.com/vircadia/vircadia/issues" };
     
     const QString DEFAULT_VIRCADIA_ADDRESS = "file:///~/serverless/tutorial.json";
     const QString DEFAULT_HOME_ADDRESS = "file:///~/serverless/tutorial.json";

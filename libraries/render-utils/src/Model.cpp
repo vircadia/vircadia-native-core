@@ -980,7 +980,7 @@ void Model::setPrimitiveMode(PrimitiveMode primitiveMode, const render::ScenePoi
 
         render::Transaction transaction;
 
-        for (int i = 0; i < (int) _modelMeshRenderItemIDs.size(); i++) {
+        for (int i = 0; i < (int)_modelMeshRenderItemIDs.size(); i++) {
             auto itemID = _modelMeshRenderItemIDs[i];
             auto meshIndex = _modelMeshRenderItemShapes[i].meshIndex;
             bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
