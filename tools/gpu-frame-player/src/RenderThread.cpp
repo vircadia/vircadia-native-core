@@ -123,7 +123,7 @@ void RenderThread::renderFrame(gpu::FramePointer& frame) {
     {
        std::unique_lock<std::mutex> lock(_frameLock);
        if (_correction != glm::mat4()) {
-           _backend->updatePresentFrame(_correction, true);
+           _backend->updatePresentFrame(_correction);
        }
     }
     _backend->recycle();

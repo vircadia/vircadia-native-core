@@ -1003,7 +1003,7 @@ void GLBackend::recycle() const {
     _textureManagement._transferEngine->manageMemory();
 }
 
-void GLBackend::updatePresentFrame(const Mat4& correction, bool reset) {
+void GLBackend::updatePresentFrame(const Mat4& correction) {
     auto invCorrection = glm::inverse(correction);
     _transform._presentFrame.correction = correction;
     _transform._presentFrame.correctionInverse = invCorrection;

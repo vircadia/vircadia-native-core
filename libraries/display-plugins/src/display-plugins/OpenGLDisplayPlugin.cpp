@@ -354,7 +354,7 @@ void OpenGLDisplayPlugin::customizeContext() {
     auto presentThread = DependencyManager::get<PresentThread>();
     Q_ASSERT(thread() == presentThread->thread());
 
-    getGLBackend()->updatePresentFrame(mat4(), true);
+    getGLBackend()->updatePresentFrame(mat4());
 
     for (auto& cursorValue : _cursorsData) {
         auto& cursorData = cursorValue.second;

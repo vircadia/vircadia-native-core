@@ -122,7 +122,7 @@ public:
     // Shutdown rendering and persist any required resources
     void shutdown() override;
 
-    void updatePresentFrame(const Mat4& correction = Mat4(), bool reset = false) override;
+    void updatePresentFrame(const Mat4& correction = Mat4()) override;
 
     void render(const Batch& batch) final override;
 
