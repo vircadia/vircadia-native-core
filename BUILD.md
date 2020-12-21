@@ -1,6 +1,6 @@
 # General Build Information
 
-*Last Updated on August 26, 2020*
+*Last Updated on December 21, 2020*
 
 ### OS Specific Build Guides
 
@@ -11,7 +11,7 @@
 
 ### Dependencies
 - [git](https://git-scm.com/downloads): >= 1.6  
-- [cmake](https://cmake.org/download/):  3.9
+- [CMake](https://cmake.org/download/):  3.9
 - [Python](https://www.python.org/downloads/): 3.6 or higher
 - [Node.JS](https://nodejs.org/en/): >= 12.13.1 LTS
     - Used to build the Screen Sharing executable.
@@ -41,6 +41,7 @@ These are not placed in your normal build tree when doing an out of source build
 Vircadia uses CMake to generate build files and project files for your platform.
 
 #### Qt
+
 CMake will download Qt 5.12.3 using vcpkg.  
 
 To override this (i.e. use an installed Qt configuration - you will need to set a QT_CMAKE_PREFIX_PATH environment variable pointing to your Qt **lib/cmake** folder.  
@@ -72,9 +73,9 @@ Where /path/to/directory is the path to a directory where you wish the build fil
     // The identifying tag of the release.
     CMAKE_BACKTRACE_TOKEN
     
-    // The release version.
+    // The release version. (e.g. 2021.4.2-Osiris)
     RELEASE_NUMBER
-    // The build commit.
+    // Typically, this is the build commit short hash. (e.g. f1576ab)
     BUILD_NUMBER
 
     // The type of release.
@@ -108,7 +109,7 @@ If CMake gives you the same error message repeatedly after the build fails, try 
 
 ##### Generating a release/debug only vcpkg build
 
-In order to generate a release or debug only vcpkg package, you could use the use the `VCPKG_BUILD_TYPE` define in your cmake generate command. Building a release only vcpkg can drastically decrease the total build time.
+In order to generate a release or debug only vcpkg package, you could use the use the `VCPKG_BUILD_TYPE` define in your CMake generate command. Building a release only vcpkg can drastically decrease the total build time.
 
 For release only vcpkg:
 
