@@ -25,6 +25,9 @@ function(calculate_qt5_version result _QT_DIR)
     set(_QT_CORE_DIR "${_QT_DIR}/lib/QtCore.framework/Versions/5/Headers")
   else()
     set(_QT_CORE_DIR "${_QT_DIR}/include/QtCore")
+    if(NOT EXISTS "${_QT_CORE_DIR}")
+      set(_QT_CORE_DIR "${_QT_DIR}/include/qt5/QtCore")
+    endif()
   endif()
   if(NOT EXISTS "${_QT_CORE_DIR}")
       message(FATAL_ERROR "Could not find 'include/QtCore' in '${_QT_DIR}'")
@@ -77,6 +80,17 @@ macro(setup_qt)
     if(NOT EXISTS "${QT_CMAKE_PREFIX_PATH}/Qt5Core/Qt5CoreConfig.cmake")
         message(FATAL_ERROR "Unable to locate Qt5CoreConfig.cmake in '${QT_CMAKE_PREFIX_PATH}'")
     endif()
+
+    set(RCC_BINARY "${QT_DIR}/bin/rcc")
+
+    if(NOT EXISTS "${RCC_BINARY}")
+    set(RCC_BINARY "${QT_DIR}/bin/rcc-qt5")
+    endif()
+
+    if(NOT EXISTS "${RCC_BINARY}")
+    message(FATAL_ERROR "Unable to locate rcc '${QT_DIR}'")
+    endif()
+
 
     message(STATUS "Using Qt build in : '${QT_DIR}' with version ${QT_VERSION}")
 

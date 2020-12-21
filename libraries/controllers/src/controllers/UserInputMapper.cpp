@@ -44,6 +44,10 @@
 #include "impl/Route.h"
 #include "impl/Mapping.h"
 
+#if QT_VERSION > QT_VERSION_CHECK(5, 13, 0)
+// FIXME: Remove this after Qt 5.15 upgrade
+#define endl Qt::endl
+#endif
 
 namespace controller {
     const uint16_t UserInputMapper::STANDARD_DEVICE = 0;

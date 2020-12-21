@@ -15,6 +15,11 @@
 #include <FBXSerializer.h>
 #include <AnimSkeleton.h>
 
+#if QT_VERSION > QT_VERSION_CHECK(5, 13, 0)
+// FIXME: Remove this after Qt 5.15 upgrade
+#define endl Qt::endl
+#endif
+
 SkeletonDumpApp::SkeletonDumpApp(int argc, char* argv[]) : QCoreApplication(argc, argv) {
 
     // parse command-line

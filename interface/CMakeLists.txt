@@ -34,14 +34,14 @@ if (ANDROID)
   add_custom_command(
     OUTPUT ${RESOURCES_RCC}
     DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
-    COMMAND "${QT_DIR}/bin/rcc"
+    COMMAND "${RCC_BINARY}"
     ARGS ${RESOURCES_QRC} -no-compress -binary -o ${RESOURCES_RCC}
   )
 else ()
   add_custom_command(
     OUTPUT ${RESOURCES_RCC}
     DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
-    COMMAND "${QT_DIR}/bin/rcc"
+    COMMAND "${RCC_BINARY}"
     ARGS ${RESOURCES_QRC} -binary -o ${RESOURCES_RCC}
   )
 endif()
@@ -199,6 +199,8 @@ endif()
 
 if (WIN32 OR APPLE)
   add_dependencies(${TARGET_NAME} resources)
+if (WIN32 OR APPLE OR UNIX)
+    add_dependencies(${TARGET_NAME} resources screenshare)
 endif()
 
 if (SCREENSHARE)
@@ -435,18 +437,20 @@ else()
   endif()
 endif()
 
-if (DEV_BUILD AND (APPLE OR UNIX))
-  # create a qt.conf file to override hard-coded search paths in Qt libs
-  set(QT_LIB_PATH "${QT_CMAKE_PREFIX_PATH}/../..")
-  if (APPLE)
-    set(QT_CONF_FILE "${RESOURCES_DEV_DIR}/../Resources/qt.conf")
-  else ()
-    set(QT_CONF_FILE "${INTERFACE_EXEC_DIR}/qt.conf")
-  endif ()
-  file(GENERATE
-    OUTPUT "${QT_CONF_FILE}"
-    CONTENT "[Paths]\nPrefix=${QT_LIB_PATH}\n"
-  )
+if (NOT $ENV{VIRCADIA_USE_SYSTEM_QT})
+  if (DEV_BUILD AND (APPLE OR UNIX))
+    # create a qt.conf file to override hard-coded search paths in Qt libs
+    set(QT_LIB_PATH "${QT_CMAKE_PREFIX_PATH}/../..")
+    if (APPLE)
+      set(QT_CONF_FILE "${RESOURCES_DEV_DIR}/../Resources/qt.conf")
+    else ()
+      set(QT_CONF_FILE "${INTERFACE_EXEC_DIR}/qt.conf")
+    endif ()
+    file(GENERATE
+      OUTPUT "${QT_CONF_FILE}"
+      CONTENT "[Paths]\nPrefix=${QT_LIB_PATH}\n"
+    )
+  endif()
 endif()
 
 if (SCRIPTS_INSTALL_DIR)
