@@ -350,7 +350,7 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
     btVector3 velocity = _rigidBody->getLinearVelocity() - _parentVelocity;
     computeNewVelocity(dt, velocity);
 
-    const float MINIMUM_TIME_REMAINING = 0.005f;
+    constexpr float MINIMUM_TIME_REMAINING = 0.005f;
     static_assert(FOLLOW_TIME_IMMEDIATE_SNAP > MINIMUM_TIME_REMAINING, "The code below assumes this condition is true.");
 
     bool hasFollowTimeRemaining = false;
