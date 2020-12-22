@@ -23,7 +23,7 @@ class DetailedMotionState;
 
 class MyCharacterController : public CharacterController {
 public:
-    explicit MyCharacterController(std::shared_ptr<MyAvatar> avatar);
+    explicit MyCharacterController(std::shared_ptr<MyAvatar> avatar, const FollowTimePerType& followTimeRemainingPerType);
     ~MyCharacterController ();
 
     void addToWorld() override;

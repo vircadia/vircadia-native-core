@@ -53,7 +53,21 @@ const btScalar MIN_CHARACTER_MOTOR_TIMESCALE = 0.05f;
 class CharacterController : public btCharacterControllerInterface {
 
 public:
-    CharacterController();
+    enum class FollowType : uint8_t
+    {
+        Rotation,
+        Horizontal,
+        Vertical,
+        Count
+    };
+
+    // Remaining follow time for each FollowType
+    typedef std::array<float, static_cast<size_t>(FollowType::Count)> FollowTimePerType;
+
+    // Follow time value meaning that we should snap immediately to the target.
+    static constexpr float FOLLOW_TIME_IMMEDIATE_SNAP = FLT_MAX;
+
+    CharacterController(const FollowTimePerType& followTimeRemainingPerType);
     virtual ~CharacterController();
     bool needsRemoval() const;
     bool needsAddition() const;
@@ -99,7 +113,8 @@ public:
     void getPositionAndOrientation(glm::vec3& position, glm::quat& rotation) const;
 
     void setParentVelocity(const glm::vec3& parentVelocity);
-    void setFollowParameters(const glm::mat4& desiredWorldMatrix, float timeRemaining);
+
+    void setFollowParameters(const glm::mat4& desiredWorldMatrix);
     float getFollowTime() const { return _followTime; }
     glm::vec3 getFollowLinearDisplacement() const;
     glm::quat getFollowAngularDisplacement() const;
@@ -144,7 +159,7 @@ public:
 
     void setPendingFlagsUpdateCollisionMask(){ _pendingFlags |= PENDING_FLAG_UPDATE_COLLISION_MASK; }
     void setSeated(bool isSeated) { _isSeated = isSeated;  }
-    bool getSeated() { return _isSeated; }
+    bool getSeated() const { return _isSeated; }
 
     void resetStuckCounter() { _numStuckSubsteps = 0; }
 
@@ -178,7 +193,7 @@ protected:
     btVector3 _preSimulationVelocity;
     btVector3 _velocityChange;
     btTransform _followDesiredBodyTransform;
-    btScalar _followTimeRemaining;
+    const FollowTimePerType& _followTimeRemainingPerType;
     btTransform _characterBodyTransform;
     btVector3 _position;
     btQuaternion _rotation;
