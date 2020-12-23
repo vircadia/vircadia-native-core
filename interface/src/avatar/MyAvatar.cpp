@@ -3758,15 +3758,15 @@ glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 rig
                     if (length > EPSILON) {
                         direction /= length;
                     }
-                    return getSensorToWorldScale() * direction * getSprintSpeed() * _walkSpeedScalar;
+                    return direction * getSprintSpeed() * _walkSpeedScalar;
                 } else {
                     return Vectors::ZERO;
                 }
             case LocomotionControlsMode::CONTROLS_ANALOG:
             case LocomotionControlsMode::CONTROLS_ANALOG_PLUS:
                 if (zSpeed || xSpeed) {
-                    glm::vec3 scaledForward = getSensorToWorldScale() * calculateGearedSpeed(zSpeed) * _walkSpeedScalar * ((zSpeed >= stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * forward;
-                    glm::vec3 scaledRight = getSensorToWorldScale() * calculateGearedSpeed(xSpeed) * _walkSpeedScalar * ((xSpeed > stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * right;
+                    glm::vec3 scaledForward = calculateGearedSpeed(zSpeed) * _walkSpeedScalar * ((zSpeed >= stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * forward;
+                    glm::vec3 scaledRight = calculateGearedSpeed(xSpeed) * _walkSpeedScalar * ((xSpeed > stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * right;
                     direction = scaledForward + scaledRight;
                     return direction;
                 } else {
@@ -4785,6 +4785,7 @@ void MyAvatar::triggerRotationRecenter() {
     _follow.setForceActivateRotation(true);
 }
 
+// Derive the sensor-space matrix for the body, based on the pose of the HMD and hips tracker.
 // old school meat hook style
 // forceFollowYPos (default false): true to force the body matrix to be affected by the HMD's
 // vertical position, even if crouch recentering is disabled.
@@ -4822,8 +4823,8 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor(const bool forceFollowYPos) const {
     glm::vec3 headToNeck = headOrientation * Quaternions::Y_180 * (localNeck - localHead);
     glm::vec3 neckToRoot = headOrientationYawOnly  * Quaternions::Y_180 * -localNeck;
 
-    float invSensorToWorldScale = getUserEyeHeight() / getEyeHeight();
-    glm::vec3 bodyPos = headPosition + invSensorToWorldScale * (headToNeck + neckToRoot);
+    const float worldToSensorScale = getUserEyeHeight() / getEyeHeight();
+    glm::vec3 bodyPos = headPosition + worldToSensorScale * (headToNeck + neckToRoot);
 	glm::quat bodyQuat;
 
     const controller::Pose hipsControllerPose = getControllerPoseInSensorFrame(controller::Action::HIPS);
@@ -4842,7 +4843,7 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor(const bool forceFollowYPos) const {
 
     if (!forceFollowYPos && !getHMDCrouchRecenterEnabled()) {
         // Set the body's vertical position as if it were standing in its T-pose.
-        bodyPos.y = rig.getUnscaledHipsHeight();
+        bodyPos.y = worldToSensorScale * rig.getUnscaledHipsHeight();
     }
 
     glm::mat4 bodyMat = createMatFromQuatAndPos(bodyQuat, bodyPos);
@@ -5230,6 +5231,7 @@ float MyAvatar::getUserHeight() const {
 
 void MyAvatar::setUserHeight(float value) {
     _userHeight.set(value);
+    centerBodyInternal(false);
 
     float sensorToWorldScale = getEyeHeight() / getUserEyeHeight();
     emit sensorToWorldScaleChanged(sensorToWorldScale);
