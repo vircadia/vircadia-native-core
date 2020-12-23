@@ -594,7 +594,7 @@ public:
      * the HMD.
      * @function MyAvatar.centerBody
      */
-    Q_INVOKABLE void centerBody(const bool forceFollowYPos); // thread-safe
+    Q_INVOKABLE void centerBody(); // thread-safe
 
 
     /**jsdoc
@@ -2812,6 +2812,7 @@ private:
     void resetLookAtRotation(const glm::vec3& avatarPosition, const glm::quat& avatarOrientation);
     void resetPointAt();
     static glm::vec3 aimToBlendValues(const glm::vec3& aimVector, const glm::quat& frameOrientation);
+    void centerBodyInternal(const bool forceFollowYPos = false);
 
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;

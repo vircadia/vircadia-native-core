@@ -497,14 +497,18 @@ void MyAvatar::resetSensorsAndBody() {
     reset(true, false, true);
 }
 
-// forceFollowYPos: true to force the body matrix to be affected by the HMD's
-// vertical position, even if crouch recentering is disabled.
-void MyAvatar::centerBody(const bool forceFollowYPos) {
+void MyAvatar::centerBody() {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "centerBody");
         return;
     }
 
+    centerBodyInternal(false);
+}
+
+// forceFollowYPos (default false): true to force the body matrix to be affected by the HMD's
+// vertical position, even if crouch recentering is disabled.
+void MyAvatar::centerBodyInternal(const bool forceFollowYPos) {
     // derive the desired body orientation from the current hmd orientation, before the sensor reset.
     auto newBodySensorMatrix =
         deriveBodyFromHMDSensor(forceFollowYPos);  // Based on current cached HMD position/rotation..
@@ -5323,7 +5327,7 @@ void MyAvatar::setAllowAvatarStandingPreference(const MyAvatar::AllowAvatarStand
 
     // Set the correct vertical position for the avatar body relative to the HMD,
     // according to the newly-selected avatar standing preference.
-    centerBody(false);
+    centerBodyInternal(false);
 }
 
 // Set the user preference of when the avatar may lean.
@@ -6693,7 +6697,7 @@ void MyAvatar::beginSit(const glm::vec3& position, const glm::quat& rotation) {
         setHMDLeanRecenterEnabled(false);
         // Disable movement
         setSitDriveKeysStatus(false);
-        centerBody(true);
+        centerBodyInternal(true);
         int hipIndex = getJointIndex("Hips");
         clearPinOnJoint(hipIndex);
         pinJoint(hipIndex, position, rotation);
@@ -6711,7 +6715,7 @@ void MyAvatar::endSit(const glm::vec3& position, const glm::quat& rotation) {
         _characterController.setSeated(false);
         setCollisionsEnabled(true);
         setHMDLeanRecenterEnabled(true);
-        centerBody(false);
+        centerBodyInternal(false);
         slamPosition(position);
         setWorldOrientation(rotation);
 
