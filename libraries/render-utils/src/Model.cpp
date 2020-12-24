@@ -362,6 +362,9 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
     // we can use the AABox's intersection by mapping our origin and direction into the model frame
     // and testing intersection there.
     if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, 1.0f / modelFrameDirection, distance, face, surfaceNormal)) {
+        if (getURL().toString().toLower().contains("sink")) {
+            qDebug() << "boop" << modelFrameBox;
+        }
         QMutexLocker locker(&_mutex);
 
         float bestDistance = FLT_MAX;
@@ -1427,7 +1430,7 @@ void Model::setUseDualQuaternionSkinning(bool value) {
     _useDualQuaternionSkinning = value;
 }
 
-void Model::simulate(float deltaTime, bool fullUpdate) {
+void Model::simulate(float deltaTime, bool fullUpdate, bool skeleton) {
     DETAILED_PROFILE_RANGE(simulation_detail, __FUNCTION__);
     fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint) || _needsTransformUpdate;
@@ -1443,7 +1446,7 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
             snapToRegistrationPoint();
         }
         // update the world space transforms for all joints
-        glm::mat4 parentTransform = glm::scale(_scale) * (_snapModelToRegistrationPoint ?
+        glm::mat4 parentTransform = glm::scale(_scale) * ((_snapModelToRegistrationPoint || skeleton) ?
             glm::translate(_offset) : glm::translate(getNaturalDimensions() * (0.5f - _registrationPoint)));
         updateRig(deltaTime, parentTransform);
         _needsTransformUpdate = false;

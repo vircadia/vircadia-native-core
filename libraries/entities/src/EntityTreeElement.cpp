@@ -241,9 +241,6 @@ EntityItemID EntityTreeElement::evalDetailedRayIntersection(const glm::vec3& ori
                 // now ask the entity if we actually intersect
                 if (entity->supportsDetailedIntersection()) {
                     QVariantMap localExtraInfo;
-                    if (entity->getName().contains("boop")) {
-                        qDebug() << entity->getName() << entity->getPivot() << entityFrameBox;
-                    }
                     if (entity->findDetailedRayIntersection(origin, direction, element, localDistance,
                             localFace, localSurfaceNormal, localExtraInfo, searchFilter.isPrecise())) {
                         if (localDistance < distance) {

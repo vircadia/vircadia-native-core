@@ -169,7 +169,7 @@ public:
     bool getSnapModelToRegistrationPoint() { return _snapModelToRegistrationPoint; }
     bool getSnappedToRegistrationPoint() { return _snappedToRegistrationPoint; }
 
-    virtual void simulate(float deltaTime, bool fullUpdate = true);
+    virtual void simulate(float deltaTime, bool fullUpdate = true, bool skeleton = false);
     virtual void updateClusterMatrices();
     virtual void updateBlendshapes();
 

@@ -152,11 +152,11 @@ void SkeletonModel::updateAttitude(const glm::quat& orientation) {
 
 // Called by Avatar::simulate after it has set the joint states (fullUpdate true if changed),
 // but just before head has been simulated.
-void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
+void SkeletonModel::simulate(float deltaTime, bool fullUpdate, bool skeleton) {
     updateAttitude(_owningAvatar->getWorldOrientation());
     setBlendshapeCoefficients(_owningAvatar->getHead()->getSummedBlendshapeCoefficients());
 
-    Parent::simulate(deltaTime, fullUpdate);
+    Parent::simulate(deltaTime, fullUpdate, true);
     if (fullUpdate) {
         // let rig compute the model offset
         glm::vec3 registrationPoint;
