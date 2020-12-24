@@ -368,10 +368,8 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
         btVector3 startPos = bodyTransform.getOrigin();
         btVector3 deltaPos = _followDesiredBodyTransform.getOrigin() - startPos;
 
-        btVector3 linearDisplacement(0, 0, 0);
+        btVector3 linearDisplacement(0.0f, 0.0f, 0.0f);
         {
-            linearDisplacement.setZero();
-
             const float horizontalTime = _followTimeRemainingPerType[static_cast<uint>(FollowType::Horizontal)];
             const float verticalTime = _followTimeRemainingPerType[static_cast<uint>(FollowType::Vertical)];
 
@@ -452,7 +450,6 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
         }
         _rigidBody->setWorldTransform(btTransform(endRot, endPos));
     }
-
     _followTime += dt;
 
     if (_steppingUp) {

@@ -5562,8 +5562,8 @@ MyAvatar::FollowHelper::FollowHelper() {
 }
 
 void MyAvatar::FollowHelper::deactivate() {
-    for (uint i = 0, e = static_cast<uint>(CharacterController::FollowType::Count); i < e; ++i) {
-        deactivate((CharacterController::FollowType)i);
+    for (uint i = 0; i < static_cast<uint>(CharacterController::FollowType::Count); i++) {
+        deactivate(static_cast<CharacterController::FollowType>(i));
     }
 }
 
@@ -5588,8 +5588,8 @@ bool MyAvatar::FollowHelper::isActive(CharacterController::FollowType type) cons
 }
 
 bool MyAvatar::FollowHelper::isActive() const {
-    for (uint i = 0, e = static_cast<uint>(CharacterController::FollowType::Count); i < e; ++i) {
-        if (isActive((CharacterController::FollowType)i)) {
+    for (uint i = 0; i < static_cast<uint>(CharacterController::FollowType::Count); i++) {
+        if (isActive(static_cast<CharacterController::FollowType>(i))) {
             return true;
         }
     }
@@ -5597,12 +5597,12 @@ bool MyAvatar::FollowHelper::isActive() const {
 }
 
 void MyAvatar::FollowHelper::decrementTimeRemaining(float dt) {
-    for (uint i = 0, e = static_cast<uint>(CharacterController::FollowType::Count); i < e; ++i) {
-        if (_timeRemaining[i] == CharacterController::FOLLOW_TIME_IMMEDIATE_SNAP) {
-            _timeRemaining[i] = 0.f;
+    for (auto& time : _timeRemaining) {
+        if (time == CharacterController::FOLLOW_TIME_IMMEDIATE_SNAP) {
+            time = 0.0f;
         }
         else {
-            _timeRemaining[i] -= dt;
+            time -= dt;
         }
     }
 }
@@ -5612,12 +5612,13 @@ bool MyAvatar::FollowHelper::shouldActivateRotation(const MyAvatar& myAvatar,
                                                     const glm::mat4& desiredBodyMatrix,
                                                     const glm::mat4& currentBodyMatrix,
                                                     bool& shouldSnapOut) const {
-    shouldSnapOut = false;
-
     // If hips are under direct control (tracked), they give our desired body rotation and we snap to it every frame.
     if (myAvatar.areHipsTracked()) {
         shouldSnapOut = true;
         return true;
+    }
+    else {
+        shouldSnapOut = false;
     }
 
     const float FOLLOW_ROTATION_THRESHOLD = cosf(myAvatar.getRotationThreshold());
@@ -5875,7 +5876,6 @@ glm::mat4 MyAvatar::FollowHelper::postPhysicsUpdate(MyAvatar& myAvatar, const gl
                 setTranslation(newBodyMat, extractTranslation(myAvatar.deriveBodyFromHMDSensor()));
             }
         }
-
         return newBodyMat;
     } else {
         return currentBodyMatrix;

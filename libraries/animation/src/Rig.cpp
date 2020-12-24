@@ -2716,7 +2716,7 @@ void Rig::computeAvatarBoundingCapsule(
     // HACK by convention our Avatars are always modeled such that y=0 (GEOMETRY_GROUND_Y) is the ground plane.
     // add the ground point so that our avatars will always have bounding volumes that are flush with the ground
     // even if they do not have legs (default robot)
-    totalExtents.addPoint(glm::vec3(0.f, GEOMETRY_GROUND_Y, 0.f));
+    totalExtents.addPoint(glm::vec3(0.0f, GEOMETRY_GROUND_Y, 0.0f));
 
     // To reduce the radius of the bounding capsule to be tight with the torso, we only consider joints
     // from the head to the hips when computing the rest of the bounding capsule.
