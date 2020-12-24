@@ -51,6 +51,7 @@ Preference {
             decimals: preference.decimals
             minimumValue: preference.min
             maximumValue: preference.max
+            realStepSize: preference.step
             width: 100
             anchors {
                 verticalCenter: parent.verticalCenter

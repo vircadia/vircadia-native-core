@@ -152,8 +152,8 @@ class FloatPreference : public Preference {
     Q_PROPERTY(float value READ getValue WRITE setValue NOTIFY valueChanged)
     Q_PROPERTY(float min READ getMin CONSTANT)
     Q_PROPERTY(float max READ getMax CONSTANT)
-    Q_PROPERTY(float step READ getStep CONSTANT)
-    Q_PROPERTY(float decimals READ getDecimals CONSTANT)
+    Q_PROPERTY(double step READ getStep CONSTANT)
+    Q_PROPERTY(uint decimals READ getDecimals CONSTANT)
 
 public:
     using Getter = std::function<float()>;
@@ -178,11 +178,11 @@ public:
     float getMax() const { return _max; }
     void setMax(float max) { _max = max; };
 
-    float getStep() const { return _step; }
-    void setStep(float step) { _step = step; };
+    double getStep() const { return _step; }
+    void setStep(double step) { _step = step; };
 
-    float getDecimals() const { return _decimals; }
-    void setDecimals(float decimals) { _decimals = decimals; };
+    uint getDecimals() const { return _decimals; }
+    void setDecimals(uint decimals) { _decimals = decimals; };
 
 signals:
     void valueChanged();
@@ -194,10 +194,10 @@ protected:
     const Getter _getter;
     const Setter _setter;
 
-    float _decimals { 0 };
+    uint _decimals { 0 };
     float _min { 0 };
     float _max { 1 };
-    float _step { 0.1f };
+    double _step { 0.1 };
 };
 
 class IntPreference : public Preference {

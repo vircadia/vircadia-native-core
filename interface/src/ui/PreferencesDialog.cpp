@@ -465,8 +465,8 @@ void setupPreferences() {
         auto preference = new SpinnerPreference(VR_MOVEMENT, "User real-world height (meters)", getter, setter);
         preference->setMin(1.0f);
         preference->setMax(2.2f);
-        preference->setDecimals(3);
-        preference->setStep(0.001f);
+        preference->setDecimals(2);
+        preference->setStep(0.01);
         preferences->addPreference(preference);
     }
 
