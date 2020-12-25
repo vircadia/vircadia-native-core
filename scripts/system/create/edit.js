@@ -109,6 +109,8 @@ var entityIconOverlayManager = new EntityIconOverlayManager(["Light", "ParticleE
 });
 
 var hmdMultiSelectMode = false;
+var expectingRotateAsClickedSurface = false;
+var keepSelectedOnNextClick = false;
 
 var cameraManager = new CameraManager();
 
@@ -1106,25 +1108,41 @@ function findClickedEntity(event) {
     }
 
     var result;
-
-    if (iconResult.intersects) {
-        result = iconResult;
-    } else if (entityResult.intersects) {
-        result = entityResult;
+    if (expectingRotateAsClickedSurface) {
+        if (!SelectionManager.hasSelection() || !SelectionManager.hasUnlockedSelection()) {
+                audioFeedback.rejection();
+                Window.notifyEditError("You have nothing selected, or the selection is locked.");
+                expectingRotateAsClickedSurface = false;
+        } else {
+                //Rotate Selection according the Surface Normal
+                selectionDisplay.rotateSelection(Quat.lookAt(Vec3.ZERO, Vec3.multiply(entityResult.surfaceNormal, -1), Vec3.UP));
+                selectionManager._update(false, this);
+                pushCommandForSelections();
+                expectingRotateAsClickedSurface = false;
+                audioFeedback.action();
+        }
+        keepSelectedOnNextClick = true;
+        return null;
     } else {
-        return null;
-    }
+        if (iconResult.intersects) {
+            result = iconResult;
+        } else if (entityResult.intersects) {
+            result = entityResult;
+        } else {
+            return null;
+        }
 
-    if (!result.accurate) {
-        return null;
-    }
+        if (!result.accurate) {
+            return null;
+        }
 
-    var foundEntity = result.entityID;
-    return {
-        pickRay: pickRay,
-        entityID: foundEntity,
-        intersection: result.intersection
-    };
+        var foundEntity = result.entityID;
+        return {
+            pickRay: pickRay,
+            entityID: foundEntity,
+            intersection: result.intersection
+        };
+    }
 }
 
 // Handles selections on overlays while in edit mode by querying entities from
@@ -1295,7 +1313,10 @@ function mouseClickEvent(event) {
 
         if (result === null || result === undefined) {
             if (!event.isShifted) {
-                selectionManager.clearSelections(this);
+                if (!keepSelectedOnNextClick) {
+                    selectionManager.clearSelections(this);
+                }
+                keepSelectedOnNextClick = false;
             }
             return;
         }
@@ -2050,6 +2071,26 @@ function snapKey(value) {
 function gridToAvatarKey(value) {
     if (value === 0) { // on release
         alignGridToAvatar();
+    }
+}
+function rotateAsNextClickedSurfaceKey(value) {
+    if (value === 0) { // on release
+        rotateAsNextClickedSurface();
+    }
+}
+function quickRotate90xKey(value) {
+    if (value === 0) { // on release
+        selectionDisplay.rotate90degreeSelection("X");
+    }
+}
+function quickRotate90yKey(value) {
+    if (value === 0) { // on release
+        selectionDisplay.rotate90degreeSelection("Y");
+    }
+}
+function quickRotate90zKey(value) {
+    if (value === 0) { // on release
+        selectionDisplay.rotate90degreeSelection("Z");
     }
 }
 function recursiveAdd(newParentID, parentData) {
@@ -2819,6 +2860,10 @@ mapping.from([Controller.Hardware.Keyboard.J]).to(gridKey);
 mapping.from([Controller.Hardware.Keyboard.G]).to(viewGridKey);
 mapping.from([Controller.Hardware.Keyboard.H]).to(snapKey);
 mapping.from([Controller.Hardware.Keyboard.K]).to(gridToAvatarKey);
+mapping.from([Controller.Hardware.Keyboard["0"]]).to(rotateAsNextClickedSurfaceKey);
+mapping.from([Controller.Hardware.Keyboard["7"]]).to(quickRotate90xKey);
+mapping.from([Controller.Hardware.Keyboard["8"]]).to(quickRotate90yKey);
+mapping.from([Controller.Hardware.Keyboard["9"]]).to(quickRotate90zKey);
 mapping.from([Controller.Hardware.Keyboard.X])
     .when([Controller.Hardware.Keyboard.Control])
     .to(whenReleased(function() { selectionManager.cutSelectedEntities() }));
@@ -2867,6 +2912,14 @@ keyUpEventFromUIWindow = function(keyUpEvent) {
         snapKey(pressedValue);    
     } else if (keyUpEvent.keyCodeString === "K") {
         gridToAvatarKey(pressedValue);
+    } else if (keyUpEvent.keyCodeString === "0") {
+        rotateAsNextClickedSurfaceKey(pressedValue);
+    } else if (keyUpEvent.keyCodeString === "7") {
+        quickRotate90xKey(pressedValue);
+    } else if (keyUpEvent.keyCodeString === "8") {
+        quickRotate90yKey(pressedValue);
+    } else if (keyUpEvent.keyCodeString === "9") {
+        quickRotate90zKey(pressedValue);        
     } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "X") {
         selectionManager.cutSelectedEntities();
     } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "C") {
@@ -3012,6 +3065,16 @@ function toggleGridVisibility() {
         grid.setVisible(true, true);
     } else {
         grid.setVisible(false, true);
+    }
+}
+
+function rotateAsNextClickedSurface() {
+    if (!SelectionManager.hasSelection() || !SelectionManager.hasUnlockedSelection()) {
+        audioFeedback.rejection();
+        Window.notifyEditError("You have nothing selected, or the selection is locked.");
+        expectingRotateAsClickedSurface = false;
+    } else {
+        expectingRotateAsClickedSurface = true;
     }
 }
 
