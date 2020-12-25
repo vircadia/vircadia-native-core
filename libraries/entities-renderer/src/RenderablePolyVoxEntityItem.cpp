@@ -1802,25 +1802,44 @@ ShapeKey PolyVoxEntityRenderer::getShapeKey() {
 }
 
 bool PolyVoxEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
-    if (entity->voxelToWorldMatrix() != _lastVoxelToWorldMatrix) {
+    if (resultWithReadLock<bool>([&] {
+        if (entity->voxelToWorldMatrix() != _lastVoxelToWorldMatrix) {
+            return true;
+        }
+
+        if (entity->_mesh != _mesh) {
+            return true;
+        }
+
+        return false;
+    })) {
         return true;
     }
 
-    if (entity->_mesh != _mesh) {
-        return true;
-    }
-
-    return false;
+    return Parent::needsRenderUpdateFromTypedEntity(entity);
 }
 
 void PolyVoxEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
-
 #ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
     if (!_hasTransitioned) {
         transaction.resetTransitionOnItem(_renderItemID, render::Transition::ELEMENT_ENTER_DOMAIN);
         _hasTransitioned = true;
     }
 #endif
+}
+
+void PolyVoxEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
+    _lastVoxelToWorldMatrix = entity->voxelToWorldMatrix();
+    _lastVoxelVolumeSize = entity->getVoxelVolumeSize();
+    _params->setSubData(0, vec4(_lastVoxelVolumeSize, 0.0));
+    graphics::MeshPointer newMesh;
+    entity->withReadLock([&] {
+        newMesh = entity->_mesh;
+    });
+
+    if (newMesh && newMesh->getIndexBuffer()._buffer) {
+        _mesh = newMesh;
+    }
 
     std::array<QString, 3> xyzTextureURLs{ {
         entity->getXTextureURL(),
@@ -1835,20 +1854,6 @@ void PolyVoxEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& s
         } else if (!texture || texture->getURL() != QUrl(textureURL)) {
             texture = DependencyManager::get<TextureCache>()->getTexture(textureURL);
         }
-    }
-}
-
-void PolyVoxEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
-    _lastVoxelToWorldMatrix = entity->voxelToWorldMatrix();
-    _lastVoxelVolumeSize = entity->getVoxelVolumeSize();
-    _params->setSubData(0, vec4(_lastVoxelVolumeSize, 0.0));
-    graphics::MeshPointer newMesh;
-    entity->withReadLock([&] {
-        newMesh = entity->_mesh;
-    });
-
-    if (newMesh && newMesh->getIndexBuffer()._buffer) {
-        _mesh = newMesh;
     }
 }
 

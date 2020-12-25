@@ -143,6 +143,7 @@ EntityShape.prototype = {
         var PROJECTED_MATERIALS = false;
         this.materialEntity = Entities.addEntity({
             type: "Material",
+            name: "MATERIAL_" + this.entityShapeVisualizerSessionName,
             localPosition: Vec3.ZERO,
             localRotation: Quat.IDENTITY,
             localDimensions: properties.localDimensions,

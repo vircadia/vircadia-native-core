@@ -10,7 +10,7 @@
 #
 
 macro(optional_win_executable_signing)
-  if (WIN32 AND PRODUCTION_BUILD)
+  if (WIN32 AND PRODUCTION_BUILD AND NOT BYPASS_SIGNING)
     if (DEFINED ENV{HF_PFX_FILE})
       if (DEFINED ENV{HF_PFX_PASSPHRASE})
         message(STATUS "Executable for ${TARGET_NAME} will be signed with SignTool.")

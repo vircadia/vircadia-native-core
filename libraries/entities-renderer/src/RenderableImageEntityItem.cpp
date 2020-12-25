@@ -29,44 +29,7 @@ bool ImageEntityRenderer::isTransparent() const {
     return Parent::isTransparent() || (_textureIsLoaded && _texture->getGPUTexture() && _texture->getGPUTexture()->getUsage().isAlpha()) || _alpha < 1.0f || _pulseProperties.getAlphaMode() != PulseMode::NONE;
 }
 
-bool ImageEntityRenderer::needsRenderUpdate() const {
-    if (resultWithReadLock<bool>([&] {
-        return !_textureIsLoaded;
-    })) {
-        return true;
-    }
-
-    return Parent::needsRenderUpdate();
-}
-
 void ImageEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
-    withWriteLock([&] {
-        auto imageURL = entity->getImageURL();
-        if (_imageURL != imageURL) {
-            _imageURL = imageURL;
-            if (imageURL.isEmpty()) {
-                _texture.reset();
-            } else {
-                _texture = DependencyManager::get<TextureCache>()->getTexture(_imageURL);
-            }
-            _textureIsLoaded = false;
-        }
-
-        _emissive = entity->getEmissive();
-        _keepAspectRatio = entity->getKeepAspectRatio();
-        _subImage = entity->getSubImage();
-
-        _color = entity->getColor();
-        _alpha = entity->getAlpha();
-        _pulseProperties = entity->getPulseProperties();
-        _billboardMode = entity->getBillboardMode();
-
-        if (!_textureIsLoaded) {
-            emit requestRenderUpdate();
-        }
-        _textureIsLoaded = _texture && (_texture->isLoaded() || _texture->isFailed());
-    });
-
     void* key = (void*)this;
     AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity] {
         withWriteLock([&] {
@@ -74,6 +37,33 @@ void ImageEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             _renderTransform.postScale(entity->getScaledDimensions());
         });
     });
+}
+
+void ImageEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
+    auto imageURL = entity->getImageURL();
+    if (_imageURL != imageURL) {
+        _imageURL = imageURL;
+        if (imageURL.isEmpty()) {
+            _texture.reset();
+        } else {
+            _texture = DependencyManager::get<TextureCache>()->getTexture(_imageURL);
+        }
+        _textureIsLoaded = false;
+    }
+
+    _emissive = entity->getEmissive();
+    _keepAspectRatio = entity->getKeepAspectRatio();
+    _subImage = entity->getSubImage();
+
+    _color = entity->getColor();
+    _alpha = entity->getAlpha();
+    _pulseProperties = entity->getPulseProperties();
+    _billboardMode = entity->getBillboardMode();
+
+    if (!_textureIsLoaded) {
+        emit requestRenderUpdate();
+    }
+    _textureIsLoaded = _texture && (_texture->isLoaded() || _texture->isFailed());
 }
 
 Item::Bound ImageEntityRenderer::getBound() {
@@ -93,33 +83,26 @@ ShapeKey ImageEntityRenderer::getShapeKey() {
         builder.withTranslucent();
     }
 
-    withReadLock([&] {
-        if (_emissive) {
-            builder.withUnlit();
-        }
+    if (_emissive) {
+        builder.withUnlit();
+    }
 
-        if (_primitiveMode == PrimitiveMode::LINES) {
-            builder.withWireframe();
-        }
-    });
+    if (_primitiveMode == PrimitiveMode::LINES) {
+        builder.withWireframe();
+    }
 
     return builder.build();
 }
 
 void ImageEntityRenderer::doRender(RenderArgs* args) {
-    NetworkTexturePointer texture;
-    QRect subImage;
-    glm::vec4 color;
+    glm::vec4 color = glm::vec4(toGlm(_color), _alpha);
+    color = EntityRenderer::calculatePulseColor(color, _pulseProperties, _created);
     Transform transform;
     withReadLock([&] {
-        texture = _texture;
-        subImage = _subImage;
-        color = glm::vec4(toGlm(_color), _alpha);
-        color = EntityRenderer::calculatePulseColor(color, _pulseProperties, _created);
         transform = _renderTransform;
     });
 
-    if (!_visible || !texture || !texture->isLoaded() || color.a == 0.0f) {
+    if (!_visible || !_texture || !_texture->isLoaded() || color.a == 0.0f) {
         return;
     }
 
@@ -129,28 +112,28 @@ void ImageEntityRenderer::doRender(RenderArgs* args) {
     transform.setRotation(EntityItem::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode, args->getViewFrustum().getPosition()));
 
     batch->setModelTransform(transform);
-    batch->setResourceTexture(0, texture->getGPUTexture());
+    batch->setResourceTexture(0, _texture->getGPUTexture());
 
-    float imageWidth = texture->getWidth();
-    float imageHeight = texture->getHeight();
+    float imageWidth = _texture->getWidth();
+    float imageHeight = _texture->getHeight();
 
     QRect fromImage;
-    if (subImage.width() <= 0) {
+    if (_subImage.width() <= 0) {
         fromImage.setX(0);
         fromImage.setWidth(imageWidth);
     } else {
-        float scaleX = imageWidth / texture->getOriginalWidth();
-        fromImage.setX(scaleX * subImage.x());
-        fromImage.setWidth(scaleX * subImage.width());
+        float scaleX = imageWidth / _texture->getOriginalWidth();
+        fromImage.setX(scaleX * _subImage.x());
+        fromImage.setWidth(scaleX * _subImage.width());
     }
 
-    if (subImage.height() <= 0) {
+    if (_subImage.height() <= 0) {
         fromImage.setY(0);
         fromImage.setHeight(imageHeight);
     } else {
-        float scaleY = imageHeight / texture->getOriginalHeight();
-        fromImage.setY(scaleY * subImage.y());
-        fromImage.setHeight(scaleY * subImage.height());
+        float scaleY = imageHeight / _texture->getOriginalHeight();
+        fromImage.setY(scaleY * _subImage.y());
+        fromImage.setHeight(scaleY * _subImage.height());
     }
 
     float maxSize = glm::max(fromImage.width(), fromImage.height());
