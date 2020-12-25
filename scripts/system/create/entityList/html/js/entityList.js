@@ -238,6 +238,10 @@ let elEntityTable,
     elParent,
     elUnparent,    
     elDelete,
+    elRotateAsTheNextClickedSurface,
+    elQuickRotate90x,
+    elQuickRotate90y,
+    elQuickRotate90z,
     elMoveEntitySelectionToAvatar,
     elSelectAll,
     elSelectInverse,
@@ -320,6 +324,10 @@ function loaded() {
         elParent = document.getElementById("parent");
         elUnparent = document.getElementById("unparent");
         elDelete = document.getElementById("delete");
+        elRotateAsTheNextClickedSurface = document.getElementById("rotateAsTheNextClickedSurface");
+        elQuickRotate90x = document.getElementById("quickRotate90x");
+        elQuickRotate90y = document.getElementById("quickRotate90y");
+        elQuickRotate90z = document.getElementById("quickRotate90z");
         elMoveEntitySelectionToAvatar = document.getElementById("moveEntitySelectionToAvatar"); 
         elSelectAll = document.getElementById("selectall");
         elSelectInverse = document.getElementById("selectinverse");
@@ -428,6 +436,22 @@ function loaded() {
         };         
         elDelete.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: "delete" }));
+            closeAllEntityListMenu();
+        };
+        elRotateAsTheNextClickedSurface.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "rotateAsTheNextClickedSurface" }));
+            closeAllEntityListMenu();
+        };
+        elQuickRotate90x.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "quickRotate90x" }));
+            closeAllEntityListMenu();
+        };
+        elQuickRotate90y.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "quickRotate90y" }));
+            closeAllEntityListMenu();
+        };
+        elQuickRotate90z.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "quickRotate90z" }));
             closeAllEntityListMenu();
         };
         elMoveEntitySelectionToAvatar.onclick = function() {
