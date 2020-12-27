@@ -93,15 +93,16 @@ git checkout master
 
 ### Using a custom Qt build
 
-Qt binaries are only provided for Ubuntu. In order to build on other distributions, a Qt5 install needs to be provided as follows:
+Qt binaries are only provided for Ubuntu. In order to build on other distributions, a Qt5 install
+ needs to be provided by setting the `VIRCADIA_QT_PATH` environment variable to a directory containing
+ a Qt install.
 
-* Set `VIRCADIA_USE_PREBUILT_QT=1`
-* Set `VIRCADIA_USE_QT_VERSION` to the Qt version (defaults to `5.12.3`)
-* Set `HIFI_QT_BASE=/path/to/qt`
+ ### Using the system's Qt
 
-Qt must be installed in `$HIFI_QT_BASE/$VIRCADIA_USE_QT_VERSION/qt5-install`.
+ The system's Qt can be used, if the development packages are installed, by setting the
+ `VIRCADIA_USE_SYSTEM_QT` environment variable. The minimum recommended version is Qt 5.15.0.
 
-### Compiling
+ ### Compiling
 
 Create the build directory:
 ```bash
