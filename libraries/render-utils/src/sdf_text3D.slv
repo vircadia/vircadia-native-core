@@ -44,14 +44,12 @@ void main() {
 
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-<@if HIFI_USE_TRANSLUCENT or HIFI_USE_FORWARD@>
+<@if HIFI_USE_FORWARD@>
     <$transformModelToEyeAndClipPos(cam, obj, position, _positionES, gl_Position)$>
+<@elif HIFI_USE_TRANSLUCENT@>
+    <$transformModelToEyeClipPosAndPrevClipPos(cam, obj, position, _positionES, gl_Position, _prevPositionCS)$>
 <@else@>
     <$transformModelToClipPos(cam, obj, position, gl_Position)$>
-<@endif@>
-
-<@if not HIFI_USE_FORWARD@>
-    <$transformModelToPrevClipPos(cam, obj, position, _prevPositionCS)$>
 <@endif@>
 
     const vec3 normal = vec3(0, 0, 1);
