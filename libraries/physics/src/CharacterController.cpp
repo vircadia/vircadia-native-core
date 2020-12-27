@@ -20,8 +20,6 @@
 #include "PhysicsLogging.h"
 #include "TemporaryPairwiseCollisionFilter.h"
 
-#pragma optimize("", off)
-
 const float STUCK_PENETRATION = -0.05f; // always negative into the object.
 const float STUCK_IMPULSE = 500.0f;
 
