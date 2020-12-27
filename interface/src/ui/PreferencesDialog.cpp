@@ -26,6 +26,8 @@
 #include "UserActivityLogger.h"
 #include "ui/Keyboard.h"
 
+#pragma optimize("", off)
+
 void setupPreferences() {
     auto preferences = DependencyManager::get<Preferences>();
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();

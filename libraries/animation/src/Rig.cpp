@@ -35,6 +35,8 @@
 #include "IKTarget.h"
 #include "PathUtils.h"
 
+#pragma optimize("", off)
+
 static int nextRigId = 1;
 static std::map<int, Rig*> rigRegistry;
 static std::mutex rigRegistryMutex;
