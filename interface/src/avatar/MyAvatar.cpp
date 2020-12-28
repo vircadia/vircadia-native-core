@@ -595,7 +595,7 @@ void MyAvatar::updateSitStandState(float newHeightReading, float dt) {
     const float SITTING_TIMEOUT = 4.0f;  // 4 seconds
     const float STANDING_TIMEOUT = 0.3333f; // 1/3 second
     const float SITTING_UPPER_BOUND = 1.52f;
-    if (!getIsAway() && getControllerPoseInAvatarFrame(controller::Action::HEAD).isValid()) {
+    if (!getIsAway() && _isBodyPartTracked._head) {
         if (getIsInSittingState()) {
             if (newHeightReading > (STANDING_HEIGHT_MULTIPLE * _tippingPoint)) {
                 // if we recenter upwards then no longer in sitting state
@@ -659,10 +659,35 @@ void MyAvatar::update(float deltaTime) {
     float tau = deltaTime / HMD_FACING_TIMESCALE;
     setHipToHandController(computeHandAzimuth());
 
+    // Determine which body parts are under direct control (tracked).
+    {
+        _isBodyPartTracked._leftHand = getControllerPoseInSensorFrame(controller::Action::LEFT_HAND).isValid();
+        _isBodyPartTracked._rightHand = getControllerPoseInSensorFrame(controller::Action::RIGHT_HAND).isValid();
+        _isBodyPartTracked._head = getControllerPoseInSensorFrame(controller::Action::HEAD).isValid();
+
+        // Check for either foot so that if one foot loses tracking, we don't break out of foot-tracking behaviour
+        // (in terms of avatar recentering for example).
+        _isBodyPartTracked._feet = _isBodyPartTracked._head &&  // Feet can't be tracked unless head is tracked.
+                                   (getControllerPoseInSensorFrame(controller::Action::LEFT_FOOT).isValid() ||
+                                    getControllerPoseInSensorFrame(controller::Action::RIGHT_FOOT).isValid());
+
+        _isBodyPartTracked._hips = _isBodyPartTracked._feet &&  // Hips can't be tracked unless feet are tracked.
+                                   getControllerPoseInSensorFrame(controller::Action::HIPS).isValid();
+    }
+
+    // Recenter the body when foot tracking starts or ends.
+    {
+        static bool prevFeetWereTracked = _isBodyPartTracked._feet;
+        if (_isBodyPartTracked._feet != prevFeetWereTracked) {
+            centerBodyInternal(false);
+            prevFeetWereTracked = _isBodyPartTracked._feet;
+        }
+    }
+
     // put the average hand azimuth into sensor space.
     // then mix it with head facing direction to determine rotation recenter
     int spine2Index = _skeletonModel->getRig().indexOfJoint("Spine2");
-    if (getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND).isValid() && getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND).isValid() && !(spine2Index < 0)) {
+    if (_isBodyPartTracked._leftHand && _isBodyPartTracked._rightHand && !(spine2Index < 0)) {
 
         // use the spine for the azimuth origin.
         glm::quat spine2Rot = getAbsoluteJointRotationInObjectFrame(spine2Index);
@@ -2760,8 +2785,7 @@ void MyAvatar::prepareForPhysicsSimulation() {
     _characterController.setScaleFactor(getSensorToWorldScale());
 
     _characterController.setPositionAndOrientation(getWorldPosition(), getWorldOrientation());
-    auto headPose = getControllerPoseInAvatarFrame(controller::Action::HEAD);
-    if (headPose.isValid()) {
+    if (_isBodyPartTracked._head) {
         _follow.prePhysicsUpdate(*this, deriveBodyFromHMDSensor(), _bodySensorMatrix, hasDriveInput());
     } else {
         _follow.deactivate();
@@ -5146,7 +5170,7 @@ float MyAvatar::computeStandingHeightMode(const controller::Pose& head) {
         modeInMeters = ((float)mode) / CENTIMETERS_PER_METER;
         if (!(modeInMeters > getCurrentStandingHeight())) {
             // if not greater check for a reset
-            if (getResetMode() && getControllerPoseInAvatarFrame(controller::Action::HEAD).isValid()) {
+            if (getResetMode() && _isBodyPartTracked._head) {
                 setResetMode(false);
                 float resetModeInCentimeters = glm::floor((head.getTranslation().y - MODE_CORRECTION_FACTOR)*CENTIMETERS_PER_METER);
                 modeInMeters = (resetModeInCentimeters / CENTIMETERS_PER_METER);
@@ -5746,8 +5770,6 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar,
                                               const glm::mat4& desiredBodyMatrix,
                                               const glm::mat4& currentBodyMatrix,
                                               bool hasDriveInput) {
-    const bool feetAreTracked = myAvatar.areFeetTracked();
-
     if (myAvatar.getHMDLeanRecenterEnabled()) {
 
         // Rotation recenter
@@ -5763,8 +5785,8 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar,
 
         // Horizontal and rotation recenter
 
-        if ((feetAreTracked || getForceActivateHorizontal()) && !isActive(CharacterController::FollowType::Horizontal)) {
-            activate(CharacterController::FollowType::Horizontal, feetAreTracked);
+        if ((myAvatar.areFeetTracked() || getForceActivateHorizontal()) && !isActive(CharacterController::FollowType::Horizontal)) {
+            activate(CharacterController::FollowType::Horizontal, myAvatar.areFeetTracked());
             setForceActivateHorizontal(false);
         } else {
             if ((myAvatar.getAllowAvatarLeaningPreference() != MyAvatar::AllowAvatarLeaningPreference::AlwaysNoRecenter) &&
@@ -7030,21 +7052,10 @@ bool MyAvatar::isAllowedToLean() const {
             !getIsInSittingState());
 }
 
-// Determine if the feet are under direct control (tracked).
-bool MyAvatar::areFeetTracked() const {
-    // Foot tracking only activates when both feet are tracked, so we only need to test one.
-    return getControllerPoseInSensorFrame(controller::Action::LEFT_FOOT).isValid();
-}
-
-// Determine if the hips are under direct control (tracked).
-bool MyAvatar::areHipsTracked() const {
-    return getControllerPoseInSensorFrame(controller::Action::HIPS).isValid();
-}
-
 // Determine if crouch recentering is enabled (making the avatar stand when the user is sitting in the real world).
 bool MyAvatar::getHMDCrouchRecenterEnabled() const {
     return (!_characterController.getSeated() &&
-            (_allowAvatarStandingPreference.get() == AllowAvatarStandingPreference::Always) && !areFeetTracked());
+            (_allowAvatarStandingPreference.get() == AllowAvatarStandingPreference::Always) && !_isBodyPartTracked._feet);
 }
 
 bool MyAvatar::setPointAt(const glm::vec3& pointAtTarget) {

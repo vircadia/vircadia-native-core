@@ -2008,8 +2008,8 @@ public:
     bool isJumping();
     bool getHMDCrouchRecenterEnabled() const;
     bool isAllowedToLean() const;
-    bool areFeetTracked() const;
-    bool areHipsTracked() const;
+    bool areFeetTracked() const { return _isBodyPartTracked._feet; };  // Determine if the feet are under direct control.
+    bool areHipsTracked() const { return _isBodyPartTracked._hips; };  // Determine if the hips are under direct control.
 
 public slots:
 
@@ -2729,6 +2729,15 @@ private:
     bool _isBeingPushed { false };
     bool _isBraking { false };
     bool _isAway { false };
+
+    // Indicates which parts of the body are under direct control (tracked).
+    struct {
+        bool _feet{ false };  // Left or right foot.
+        bool _hips{ false };
+        bool _leftHand{ false };
+        bool _rightHand{ false };
+        bool _head{ false };
+    } _isBodyPartTracked;
 
     float _boomLength { ZOOM_DEFAULT };
     float _yawSpeed; // degrees/sec
