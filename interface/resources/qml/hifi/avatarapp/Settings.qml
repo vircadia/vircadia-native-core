@@ -183,7 +183,6 @@ Rectangle {
         RowLayout {
             id: avatarScaleButtonsRow
             anchors.top: avatarScaleRow.bottom
-            anchors.topMargin: 0
 
             ShadowRectangle {
                 width: 37
