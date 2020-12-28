@@ -676,12 +676,9 @@ void MyAvatar::update(float deltaTime) {
     }
 
     // Recenter the body when foot tracking starts or ends.
-    {
-        static bool prevFeetWereTracked = _isBodyPartTracked._feet;
-        if (_isBodyPartTracked._feet != prevFeetWereTracked) {
-            centerBodyInternal(false);
-            prevFeetWereTracked = _isBodyPartTracked._feet;
-        }
+    if (_isBodyPartTracked._feet != _isBodyPartTracked._feetPreviousUpdate) {
+        centerBodyInternal(false);
+        _isBodyPartTracked._feetPreviousUpdate = _isBodyPartTracked._feet;
     }
 
     // put the average hand azimuth into sensor space.

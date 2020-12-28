@@ -2733,6 +2733,7 @@ private:
     // Indicates which parts of the body are under direct control (tracked).
     struct {
         bool _feet{ false };  // Left or right foot.
+        bool _feetPreviousUpdate{ false };// Value of _feet on the previous update.
         bool _hips{ false };
         bool _leftHand{ false };
         bool _rightHand{ false };
