@@ -1599,6 +1599,14 @@ public:
     Q_INVOKABLE float getAvatarScale();
 
     /**jsdoc
+     * Gets the scale for the avatar that makes the avatar's eye height match the user's real-world eye height (derived from
+     * the 'User real world height' setting).
+     * @function MyAvatar.getAutoAvatarScale
+     * @returns {number} The scale for the avatar that makes the avatar's eye height match the user's real-world eye height.
+     */
+    Q_INVOKABLE float getAutoAvatarScale() const;
+
+    /**jsdoc
      * Sets the target scale of the avatar. The target scale is the desired scale of the avatar without any restrictions on 
      * permissible scale values imposed by the domain. 
      * @function MyAvatar.setAvatarScale
