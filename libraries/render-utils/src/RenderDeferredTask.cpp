@@ -388,7 +388,7 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
             // Grab a texture map representing the different status icons and assign that to the drawStatusJob
             auto iconMapPath = PathUtils::resourcesPath() + "icons/statusIconAtlas.svg";
             auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath, image::TextureUsage::STRICT_TEXTURE);
-            task.addJob<DrawStatus>("DrawStatus", opaques, DrawStatus(statusIconMap));
+            task.addJob<DrawStatus>("DrawStatus", opaques, DrawStatus(statusIconMap, mainViewTransformSlot));
         }
 
         const auto debugZoneInputs = DebugZoneLighting::Inputs(deferredFrameTransform, lightFrame, backgroundFrame).asVarying();

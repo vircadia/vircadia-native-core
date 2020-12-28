@@ -49,7 +49,7 @@ void main() {
 <@elif HIFI_USE_TRANSLUCENT@>
     <$transformModelToEyeClipPosAndPrevClipPos(cam, obj, position, _positionES, gl_Position, _prevPositionCS)$>
 <@else@>
-    <$transformModelToClipPos(cam, obj, position, gl_Position)$>
+    <$transformModelToClipPosAndPrevClipPos(cam, obj, position, gl_Position, _prevPositionCS)$>
 <@endif@>
 
     const vec3 normal = vec3(0, 0, 1);

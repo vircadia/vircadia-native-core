@@ -216,7 +216,6 @@ const gpu::PipelinePointer& Antialiasing::getDebugBlendPipeline() {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         PrepareStencil::testNoAA(*state);
 
-
         // Good to go add the brand new pipeline
         _debugBlendPipeline = gpu::Pipeline::create(program, state);
     }

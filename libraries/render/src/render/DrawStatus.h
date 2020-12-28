@@ -45,7 +45,7 @@ namespace render {
         using JobModel = Job::ModelI<DrawStatus, Input, Config>;
 
         DrawStatus() {}
-        DrawStatus(const gpu::TexturePointer statusIconMap) { setStatusIconMap(statusIconMap); }
+        DrawStatus(const gpu::TexturePointer statusIconMap, uint transformSlot) : _transformSlot(transformSlot) { setStatusIconMap(statusIconMap); }
 
         void configure(const Config& config);
         void run(const RenderContextPointer& renderContext, const Input& input);
@@ -69,6 +69,8 @@ namespace render {
         gpu::BufferPointer _instanceBuffer;
         gpu::Stream::FormatPointer _vertexFormat;
         gpu::TexturePointer _statusIconMap;
+
+        uint _transformSlot;
     };
 }
 
