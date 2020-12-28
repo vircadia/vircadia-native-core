@@ -27,7 +27,7 @@ endif()
     def __init__(self, args):
         self.args = args
         self.configFilePath = os.path.join(args.build_root, 'qt.cmake')
-        self.version = os.getenv('VIRCADIA_USE_QT_VERSION', '5.12.3')
+        self.version = os.getenv('VIRCADIA_USE_QT_VERSION', '5.15.2')
 
         self.assets_url = hifi_utils.readEnviromentVariableFromFile(args.build_root, 'EXTERNAL_BUILD_ASSETS')
 
@@ -55,7 +55,7 @@ endif()
         system = platform.system()
 
         if 'Windows' == system:
-            self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-windows3.tar.gz%3FversionId=5ADqP0M0j5ZfimUHrx4zJld6vYceHEsI'
+            self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.15.2-windows.tar.gz'
         elif 'Darwin' == system:
             self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-macos.tar.gz%3FversionId=bLAgnoJ8IMKpqv8NFDcAu8hsyQy3Rwwz'
         elif 'Linux' == system:

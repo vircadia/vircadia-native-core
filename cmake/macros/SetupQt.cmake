@@ -18,7 +18,7 @@ endfunction()
 
 function(calculate_qt5_version result _QT_DIR)
   # All Qt5 packages have little "private" include directories named with the actual Qt version such as:
-  #   .../include/QtCore/5.12.3/QtCore/private
+  #   .../include/QtCore/5.15.2/QtCore/private
   # Sometimes we need to include these private headers for debug hackery.
   # Hence we find one of these directories and pick apart its path to determine the actual QT_VERSION.
   if (APPLE)
