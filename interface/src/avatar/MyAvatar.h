@@ -282,7 +282,7 @@ class MyAvatar : public Avatar {
      *     <p><strong>Warning:</strong> Setting this value also sets the value of <code>analogPlusSprintSpeed</code> to twice 
      *     the value.</p>
      * @property {number} analogPlusSprintSpeed - The sprint (run) speed of your avatar for the "AnalogPlus" control scheme.
-     * @property {number} isInSittingState - <code>true</code> if the user wearing the HMD is determined to be sitting;
+     * @property {boolean} isInSittingState - <code>true</code> if the user wearing the HMD is determined to be sitting;
      *     <code>false</code> if the user wearing the HMD is determined to be standing.  This can affect whether the avatar
      *     is allowed to stand, lean or recenter its footing, depending on user preferences.
      *     The property value automatically updates as the user sits or stands. Setting the property value overrides the current
@@ -543,12 +543,11 @@ public:
     Q_ENUM(SitStandModelType)
 
     // Note: The option strings in setupPreferences (PreferencesDialog.cpp) must match this order.
-    enum class AllowAvatarStandingPreference : uint
-    {
+    enum class AllowAvatarStandingPreference : uint {
         WhenUserIsStanding,
         Always,
         Count,
-        Default = Always,
+        Default = Always
     };
     Q_ENUM(AllowAvatarStandingPreference)
 
@@ -2732,7 +2731,7 @@ private:
 
     // Indicates which parts of the body are under direct control (tracked).
     struct {
-        bool _feet{ false };  // Left or right foot.
+        bool _feet { false };  // Left or right foot.
         bool _feetPreviousUpdate{ false };// Value of _feet on the previous update.
         bool _hips{ false };
         bool _leftHand{ false };

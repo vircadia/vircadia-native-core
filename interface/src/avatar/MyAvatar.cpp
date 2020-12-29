@@ -5622,8 +5622,7 @@ void MyAvatar::FollowHelper::decrementTimeRemaining(float dt) {
     for (auto& time : _timeRemaining) {
         if (time == CharacterController::FOLLOW_TIME_IMMEDIATE_SNAP) {
             time = 0.0f;
-        }
-        else {
+        } else {
             time -= dt;
         }
     }
@@ -5638,8 +5637,7 @@ bool MyAvatar::FollowHelper::shouldActivateRotation(const MyAvatar& myAvatar,
     if (myAvatar.areHipsTracked()) {
         shouldSnapOut = true;
         return true;
-    }
-    else {
+    } else {
         shouldSnapOut = false;
     }
 
