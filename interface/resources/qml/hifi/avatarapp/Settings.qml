@@ -185,7 +185,7 @@ Rectangle {
             anchors.top: avatarScaleRow.bottom
 
             ShadowRectangle {
-                width: 37
+                width: 31
                 height: 28
                 AvatarAppStyle {
                     id: style
@@ -217,7 +217,7 @@ Rectangle {
             }
 
             ShadowRectangle {
-                width: 50
+                width: 107
                 height: 28
                 AvatarAppStyle {
                     id: style2
@@ -233,7 +233,7 @@ Rectangle {
                 RalewaySemiBold {
                     color: 'white'
                     anchors.centerIn: parent
-                    text: "Auto"
+                    text: "Real Height"
                     size: 18
                 }
 
