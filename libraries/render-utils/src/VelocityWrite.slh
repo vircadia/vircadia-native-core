@@ -31,12 +31,4 @@ vec2 packVelocity(vec4 prevPositionCS) {
     return deltaUV;
 }
 
-vec2 packVelocity(vec4 positionCS, vec4 prevPositionCS) {
-    vec2 uv = positionCS.xy / positionCS.w;
-    vec2 prevUV =  prevPositionCS.xy / prevPositionCS.w;
-    vec2 deltaUV = (uv - prevUV) * 0.5;
-    // Velocity should be computed without any jitter inside.
-    return deltaUV;
-}
-
 <@endif@>
