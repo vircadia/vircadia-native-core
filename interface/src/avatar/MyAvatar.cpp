@@ -3821,8 +3821,7 @@ glm::vec3 MyAvatar::calculateScaledDirection() {
 
     // compute action input
     // Determine if we're head or controller relative...
-    glm::vec3 forward;
-    glm::vec3 right;
+    glm::vec3 forward, right;
 
     const int movementReference = getMovementReference();
     CameraMode cameraMode = qApp->getCamera().getMode();
