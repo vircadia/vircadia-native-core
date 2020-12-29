@@ -1600,7 +1600,7 @@ public:
 
     /**jsdoc
      * Gets the scale for the avatar that makes the avatar's eye height match the user's real-world eye height (derived from
-     * the 'User real world height' setting).
+     * the "User real world height" Interface setting).
      * @function MyAvatar.getAutoAvatarScale
      * @returns {number} The scale for the avatar that makes the avatar's eye height match the user's real-world eye height.
      */

@@ -4567,9 +4567,8 @@ float MyAvatar::getAvatarScale() {
 }
 
 // Gets the scale for the avatar that makes the avatar's eye height match the user's real-world eye height
-// (derived from the 'User real world height' setting).
-float MyAvatar::getAutoAvatarScale() const
-{
+// (derived from the 'User real world height' Interface setting).
+float MyAvatar::getAutoAvatarScale() const {
     return getUserEyeHeight() / getUnscaledEyeHeight();
 }
 
