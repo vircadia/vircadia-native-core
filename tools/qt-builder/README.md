@@ -190,7 +190,9 @@ The *.prl* files have an absolute path that needs to be removed (see http://www.
 1.  Run the following command:  
 `find . -name \*.prl -exec sed -i -e '/^QMAKE_PRL_BUILD_DIR/d' {} \;`  
 
-Copy the file *qt5-build\qtbase\bin\qt.conf* to *qt5-install\bin*.  
+Add a *qt.conf* file.  
+1. Copy the file *qt5-build\qtbase\bin\qt.conf* to *qt5-install\bin*.  
+1. Edit the *qt.conf* file: replace all absolute URLs with relative URLs.
 
 Copy the files *zlib1.dll*  and *zlib.pdb* from *qt5-build\qtbase\bin* to *qt5-install\bin*.  
 FIXME: Why aren't these zlib files automatically included?  
