@@ -6,7 +6,7 @@ set(CUSTOM_NITPICK_QRC_PATHS "")
 find_npm()
 
 set(RESOURCES_QRC ${CMAKE_CURRENT_BINARY_DIR}/resources.qrc)
-set(RESOURCES_RCC ${CMAKE_CURRENT_SOURCE_DIR}/compiledResources/resources.rcc)
+set(RESOURCES_RCC ${CMAKE_CURRENT_BINARY_DIR}/resources.rcc)
 generate_qrc(OUTPUT ${RESOURCES_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources CUSTOM_PATHS ${CUSTOM_NITPICK_QRC_PATHS} GLOBS *)
 
 add_custom_command(

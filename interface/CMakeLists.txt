@@ -22,11 +22,11 @@ set(CUSTOM_INTERFACE_QRC_PATHS "")
 find_npm()
 
 if (BUILD_TOOLS AND NPM_EXECUTABLE)
-  add_custom_qrc_path(CUSTOM_INTERFACE_QRC_PATHS "${CMAKE_SOURCE_DIR}/tools/jsdoc/out/hifiJSDoc.json" "auto-complete/hifiJSDoc.json")
+  add_custom_qrc_path(CUSTOM_INTERFACE_QRC_PATHS "${CMAKE_BINARY_DIR}/tools/jsdoc/out/hifiJSDoc.json" "auto-complete/hifiJSDoc.json")
 endif ()
 
 set(RESOURCES_QRC ${CMAKE_CURRENT_BINARY_DIR}/resources.qrc)
-set(RESOURCES_RCC ${CMAKE_CURRENT_SOURCE_DIR}/compiledResources/resources.rcc)
+set(RESOURCES_RCC ${CMAKE_CURRENT_BINARY_DIR}/resources.rcc)
 generate_qrc(OUTPUT ${RESOURCES_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources CUSTOM_PATHS ${CUSTOM_INTERFACE_QRC_PATHS} GLOBS *)
 
 if (ANDROID)
@@ -345,7 +345,7 @@ if (APPLE)
       "${RESOURCES_DEV_DIR}/scripts"
     # copy JSDoc files beside the executable
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
-      "${CMAKE_SOURCE_DIR}/tools/jsdoc/out"
+      "${CMAKE_CURRENT_BINARY_DIR}/tools/jsdoc"
       "${RESOURCES_DEV_DIR}/jsdoc"
     # copy the resources files beside the executable
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
@@ -408,9 +408,9 @@ else()
       "${PROJECT_SOURCE_DIR}/resources/serverless/redirect.json"
       "${RESOURCES_DEV_DIR}/serverless/redirect.json"
     # copy JSDoc files beside the executable
-    COMMAND "${CMAKE_COMMAND}" -E copy_directory
-      "${CMAKE_SOURCE_DIR}/tools/jsdoc/out"
-      "${INTERFACE_EXEC_DIR}/jsdoc"
+#    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+#      "${CMAKE_CURRENT_BINARY_DIR}/tools/jsdoc/out"
+#      "${INTERFACE_EXEC_DIR}/jsdoc"
   )
 
   # link target to external libraries
