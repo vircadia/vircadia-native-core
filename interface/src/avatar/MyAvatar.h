@@ -2920,7 +2920,6 @@ private:
         void setForceActivateHorizontal(bool val);
         bool getToggleHipsFollowing() const;
         void setToggleHipsFollowing(bool followHead);
-        bool _squatDetected { false };
         std::atomic<bool> _forceActivateRotation { false };
         std::atomic<bool> _forceActivateVertical { false };
         std::atomic<bool> _forceActivateHorizontal { false };
@@ -3027,7 +3026,6 @@ private:
         MyAvatar::AllowAvatarLeaningPreference::Default
     };  // The user preference of when MyAvatar may lean.
     float _sitStandStateTimer { 0.0f };
-    float _squatTimer { 0.0f };
     float _tippingPoint { _userHeight.get() };
 
     // load avatar scripts once when rig is ready
