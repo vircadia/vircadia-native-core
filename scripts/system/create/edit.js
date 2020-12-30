@@ -1110,16 +1110,16 @@ function findClickedEntity(event) {
     var result;
     if (expectingRotateAsClickedSurface) {
         if (!SelectionManager.hasSelection() || !SelectionManager.hasUnlockedSelection()) {
-                audioFeedback.rejection();
-                Window.notifyEditError("You have nothing selected, or the selection is locked.");
-                expectingRotateAsClickedSurface = false;
+            audioFeedback.rejection();
+            Window.notifyEditError("You have nothing selected, or the selection is locked.");
+            expectingRotateAsClickedSurface = false;
         } else {
-                //Rotate Selection according the Surface Normal
-                selectionDisplay.rotateSelection(Quat.lookAt(Vec3.ZERO, Vec3.multiply(entityResult.surfaceNormal, -1), Vec3.UP));
-                selectionManager._update(false, this);
-                pushCommandForSelections();
-                expectingRotateAsClickedSurface = false;
-                audioFeedback.action();
+            //Rotate Selection according the Surface Normal
+            selectionDisplay.rotateSelection(Quat.lookAt(Vec3.ZERO, Vec3.multiply(entityResult.surfaceNormal, -1), Vec3.UP));
+            selectionManager._update(false, this);
+            pushCommandForSelections();
+            expectingRotateAsClickedSurface = false;
+            audioFeedback.action();
         }
         keepSelectedOnNextClick = true;
         return null;

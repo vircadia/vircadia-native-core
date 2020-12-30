@@ -105,16 +105,16 @@ SelectionManager = (function() {
                 }
                 if (expectingRotateAsClickedSurface) {
                     if (!SelectionManager.hasSelection() || !SelectionManager.hasUnlockedSelection()) {
-                            audioFeedback.rejection();
-                            Window.notifyEditError("You have nothing selected, or the selection is locked.");
-                            expectingRotateAsClickedSurface = false;
+                        audioFeedback.rejection();
+                        Window.notifyEditError("You have nothing selected, or the selection is locked.");
+                        expectingRotateAsClickedSurface = false;
                     } else {
-                            //Rotate Selection according the Surface Normal
-                            selectionDisplay.rotateSelection(Quat.lookAt(Vec3.ZERO, Vec3.multiply(messageParsed.surfaceNormal, -1), Vec3.UP));
-                            that._update(false, this);
-                            pushCommandForSelections();
-                            expectingRotateAsClickedSurface = false;
-                            audioFeedback.action();
+                        //Rotate Selection according the Surface Normal
+                        selectionDisplay.rotateSelection(Quat.lookAt(Vec3.ZERO, Vec3.multiply(messageParsed.surfaceNormal, -1), Vec3.UP));
+                        that._update(false, this);
+                        pushCommandForSelections();
+                        expectingRotateAsClickedSurface = false;
+                        audioFeedback.action();
                     }
                 } else {
                     if (hmdMultiSelectMode) {
@@ -2411,7 +2411,7 @@ SelectionDisplay = (function() {
             SelectionManager.saveProperties();
             if (selectionManager.selections.length === 1 && spaceMode === SPACE_LOCAL) {
                 currentRotation = SelectionManager.localRotation;
-            }else{
+            } else {
                  currentRotation = SelectionManager.worldRotation;
             }
             switch(axis) {
