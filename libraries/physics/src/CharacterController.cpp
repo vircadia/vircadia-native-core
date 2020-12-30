@@ -370,8 +370,8 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
 
         btVector3 linearDisplacement(0.0f, 0.0f, 0.0f);
         {
-            const float horizontalTime = _followTimeRemainingPerType[static_cast<uint>(FollowType::Horizontal)];
-            const float verticalTime = _followTimeRemainingPerType[static_cast<uint>(FollowType::Vertical)];
+            float horizontalTime = _followTimeRemainingPerType[static_cast<uint>(FollowType::Horizontal)];
+            float verticalTime = _followTimeRemainingPerType[static_cast<uint>(FollowType::Vertical)];
 
             if (horizontalTime == FOLLOW_TIME_IMMEDIATE_SNAP) {
                 linearDisplacement.setX(deltaPos.x());
@@ -402,7 +402,7 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
         // startRot as default rotation
         btQuaternion endRot = startRot;
 
-        const float rotationTime = _followTimeRemainingPerType[static_cast<uint>(FollowType::Rotation)];
+        float rotationTime = _followTimeRemainingPerType[static_cast<uint>(FollowType::Rotation)];
         if (rotationTime > MINIMUM_TIME_REMAINING) {
             btQuaternion desiredRot = _followDesiredBodyTransform.getRotation();
 

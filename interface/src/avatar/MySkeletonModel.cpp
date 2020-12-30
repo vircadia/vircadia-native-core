@@ -65,7 +65,7 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
         return result;
     }
 
-    const bool useCenterOfGravityModel =
+    bool useCenterOfGravityModel =
         myAvatar->getCenterOfGravityModelEnabled() && !isFlying && !myAvatar->getIsInWalkingState() &&
         !myAvatar->getIsInSittingState() && myAvatar->getHMDLeanRecenterEnabled() &&
         (myAvatar->getAllowAvatarLeaningPreference() != MyAvatar::AllowAvatarLeaningPreference::AlwaysNoRecenter) &&

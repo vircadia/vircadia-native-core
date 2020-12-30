@@ -3823,31 +3823,31 @@ glm::vec3 MyAvatar::calculateScaledDirection() {
     // Determine if we're head or controller relative...
     glm::vec3 forward, right;
 
-    const int movementReference = getMovementReference();
+    int movementReference = getMovementReference();
     CameraMode cameraMode = qApp->getCamera().getMode();
 
     bool vectorsAreInAvatarFrame = true;
     bool removeLocalYComponent = false;
 
-    const bool HMDHandRelativeMovement =
+    bool HMDHandRelativeMovement =
         qApp->isHMDMode() && (movementReference == LocomotionRelativeMovementMode::MOVEMENT_HAND_RELATIVE ||
                               movementReference == LocomotionRelativeMovementMode::MOVEMENT_HAND_RELATIVE_LEVELED);
 
-    const bool desktopLookatOrSelfieMode =
+    bool desktopLookatOrSelfieMode =
         !qApp->isHMDMode() && (cameraMode == CAMERA_MODE_FIRST_PERSON_LOOK_AT || cameraMode == CAMERA_MODE_LOOK_AT ||
                                cameraMode == CAMERA_MODE_SELFIE);
 
-    const bool hoveringOrCollisionless = _characterController.getState() == CharacterController::State::Hover ||
+    bool hoveringOrCollisionless = _characterController.getState() == CharacterController::State::Hover ||
                                          _characterController.computeCollisionMask() == BULLET_COLLISION_MASK_COLLISIONLESS;
 
     if (HMDHandRelativeMovement) {
-        const controller::Action directionHand =
+        controller::Action directionHand =
             (getDominantHand() == DOMINANT_RIGHT_HAND) ? controller::Action::LEFT_HAND : controller::Action::RIGHT_HAND;
-        const controller::Pose handPoseInAvatarFrame = getControllerPoseInAvatarFrame(directionHand);
+        controller::Pose handPoseInAvatarFrame = getControllerPoseInAvatarFrame(directionHand);
 
         if (handPoseInAvatarFrame.isValid()) {
-            const glm::vec3 controllerForward(0.0f, 1.0f, 0.0f);
-            const glm::vec3 controllerRight(0.0f, 0.0f, (directionHand == controller::Action::LEFT_HAND) ? 1.0f : -1.0f);
+            glm::vec3 controllerForward(0.0f, 1.0f, 0.0f);
+            glm::vec3 controllerRight(0.0f, 0.0f, (directionHand == controller::Action::LEFT_HAND) ? 1.0f : -1.0f);
 
             forward = (handPoseInAvatarFrame.rotation * controllerForward);
             right = (handPoseInAvatarFrame.rotation * controllerRight);
@@ -3887,7 +3887,7 @@ glm::vec3 MyAvatar::calculateScaledDirection() {
         auto removeYAndNormalize = [](glm::vec3& vector) {
             vector.y = 0.f;
             // Normalize if the remaining components are large enough to get a reliable direction.
-            const float length = glm::length(vector);
+            float length = glm::length(vector);
             const float MIN_LENGTH_FOR_NORMALIZE = 0.061f;  // sin(3.5 degrees)
             if (length > MIN_LENGTH_FOR_NORMALIZE) {
                 vector /= length;
@@ -4843,16 +4843,16 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor(const bool forceFollowYPos) const {
     glm::vec3 headToNeck = headOrientation * Quaternions::Y_180 * (localNeck - localHead);
     glm::vec3 neckToRoot = headOrientationYawOnly  * Quaternions::Y_180 * -localNeck;
 
-    const float worldToSensorScale = getUserEyeHeight() / getEyeHeight();
+    float worldToSensorScale = getUserEyeHeight() / getEyeHeight();
     glm::vec3 bodyPos = headPosition + worldToSensorScale * (headToNeck + neckToRoot);
 	glm::quat bodyQuat;
 
-    const controller::Pose hipsControllerPose = getControllerPoseInSensorFrame(controller::Action::HIPS);
+    controller::Pose hipsControllerPose = getControllerPoseInSensorFrame(controller::Action::HIPS);
     if (hipsControllerPose.isValid()) {
-        const glm::quat hipsOrientation = hipsControllerPose.rotation * Quaternions::Y_180;
-        const glm::quat hipsOrientationYawOnly = cancelOutRollAndPitch(hipsOrientation);
+        glm::quat hipsOrientation = hipsControllerPose.rotation * Quaternions::Y_180;
+        glm::quat hipsOrientationYawOnly = cancelOutRollAndPitch(hipsOrientation);
 
-        const glm::vec3 hipsPos = hipsControllerPose.getTranslation();
+        glm::vec3 hipsPos = hipsControllerPose.getTranslation();
         bodyPos.x = hipsPos.x;
         bodyPos.z = hipsPos.z;
 
@@ -4863,7 +4863,7 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor(const bool forceFollowYPos) const {
 
     if (!forceFollowYPos && !getHMDCrouchRecenterEnabled()) {
         // Set the body's vertical position as if it were standing in its T-pose.
-        const float userToRigScale = getUserEyeHeight() / getUnscaledEyeHeight();
+        float userToRigScale = getUserEyeHeight() / getUnscaledEyeHeight();
         bodyPos.y = userToRigScale * rig.getUnscaledHipsHeight();
     }
 

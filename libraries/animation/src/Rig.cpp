@@ -2805,9 +2805,9 @@ float Rig::getUnscaledEyeHeight() const {
 // Get the vertical position of the hips joint, in the rig coordinate frame, ignoring the avatar scale.
 float Rig::getUnscaledHipsHeight() const {
     // This factor can be used to scale distances in the geometry frame into the unscaled rig frame.
-    const float scaleFactor = GetScaleFactorGeometryToUnscaledRig();
+    float scaleFactor = GetScaleFactorGeometryToUnscaledRig();
 
-    const int hipsJoint = indexOfJoint("Hips");
+    int hipsJoint = indexOfJoint("Hips");
 
     // Values from the skeleton are in the geometry coordinate frame.
     if (hipsJoint >= 0) {

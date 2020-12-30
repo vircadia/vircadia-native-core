@@ -422,11 +422,11 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
-        const IntPreference::Getter getter = [myAvatar]() -> int {
+        IntPreference::Getter getter = [myAvatar]() -> int {
             return static_cast<int>(myAvatar->getAllowAvatarStandingPreference());
         };
 
-        const IntPreference::Setter setter = [myAvatar](const int& value) {
+        IntPreference::Setter setter = [myAvatar](const int& value) {
             myAvatar->setAllowAvatarStandingPreference(static_cast<MyAvatar::AllowAvatarStandingPreference>(value));
         };
 
@@ -440,11 +440,11 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
-        const IntPreference::Getter getter = [myAvatar]() -> int {
+        IntPreference::Getter getter = [myAvatar]() -> int {
             return static_cast<int>(myAvatar->getAllowAvatarLeaningPreference());
         };
 
-        const IntPreference::Setter setter = [myAvatar](const int& value) {
+        IntPreference::Setter setter = [myAvatar](const int& value) {
             myAvatar->setAllowAvatarLeaningPreference(static_cast<MyAvatar::AllowAvatarLeaningPreference>(value));
         };
 
