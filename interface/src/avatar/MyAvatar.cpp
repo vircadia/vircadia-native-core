@@ -5273,6 +5273,33 @@ bool MyAvatar::getIsInSittingState() const {
     return _isInSittingState.get();
 }
 
+// Deprecated, will be removed.
+MyAvatar::SitStandModelType MyAvatar::getUserRecenterModel() const {
+    qCDebug(interfaceapp)
+        << "MyAvatar.getUserRecenterModel is deprecated and will be removed.  If you need it, please contact the developers.";
+
+    // The legacy SitStandModelType corresponding to each AllowAvatarLeaningPreference.
+    std::array<SitStandModelType, static_cast<uint>(AllowAvatarLeaningPreference::Count)> legacySitStandModels = {
+        SitStandModelType::Auto,           // AllowAvatarLeaningPreference::WhenUserIsStanding
+        SitStandModelType::ForceStand,     // AllowAvatarLeaningPreference::Always
+        SitStandModelType::ForceSit,       // AllowAvatarLeaningPreference::Never
+        SitStandModelType::DisableHMDLean  // AllowAvatarLeaningPreference::AlwaysNoRecenter
+    };
+
+    return legacySitStandModels[static_cast<uint>(_allowAvatarLeaningPreference.get())];
+}
+
+// Deprecated, will be removed.
+bool MyAvatar::getIsSitStandStateLocked() const {
+    qCDebug(interfaceapp) << "MyAvatar.getIsSitStandStateLocked is deprecated and will be removed.  If you need it, please "
+                             "contact the developers.  See also: MyAvatar.getUserRecenterModel.";
+
+    // In the old code, the record of the user's sit/stand state was locked except when using
+    // SitStandModelType::Auto or SitStandModelType::DisableHMDLean.
+    return (_allowAvatarStandingPreference.get() != AllowAvatarStandingPreference::WhenUserIsStanding) &&
+           (_allowAvatarLeaningPreference.get() != AllowAvatarLeaningPreference::AlwaysNoRecenter);
+}
+
 // Get the user preference of when MyAvatar may stand.
 MyAvatar::AllowAvatarStandingPreference MyAvatar::getAllowAvatarStandingPreference() const {
     return _allowAvatarStandingPreference.get();
@@ -5344,6 +5371,32 @@ void MyAvatar::setIsInSittingState(bool isSitting) {
     setSitStandStateChange(true);
 }
 
+// Deprecated, will be removed.
+void MyAvatar::setUserRecenterModel(MyAvatar::SitStandModelType modelName) {
+    qCDebug(interfaceapp)
+        << "MyAvatar.setUserRecenterModel is deprecated and will be removed.  If you need it, please contact the developers.";
+
+    switch (modelName) {
+        case SitStandModelType::ForceSit:
+            setAllowAvatarStandingPreference(AllowAvatarStandingPreference::Always);
+            setAllowAvatarLeaningPreference(AllowAvatarLeaningPreference::Never);
+            break;
+        case SitStandModelType::ForceStand:
+            setAllowAvatarStandingPreference(AllowAvatarStandingPreference::Always);
+            setAllowAvatarLeaningPreference(AllowAvatarLeaningPreference::Always);
+            break;
+        case SitStandModelType::Auto:
+        default:
+            setAllowAvatarStandingPreference(AllowAvatarStandingPreference::Always);
+            setAllowAvatarLeaningPreference(AllowAvatarLeaningPreference::WhenUserIsStanding);
+            break;
+        case SitStandModelType::DisableHMDLean:
+            setAllowAvatarStandingPreference(AllowAvatarStandingPreference::WhenUserIsStanding);
+            setAllowAvatarLeaningPreference(AllowAvatarLeaningPreference::AlwaysNoRecenter);
+            break;
+    }
+}
+
 // Set the user preference of when the avatar may stand.
 void MyAvatar::setAllowAvatarStandingPreference(const MyAvatar::AllowAvatarStandingPreference preference) {
     _allowAvatarStandingPreference.set(preference);
@@ -5351,6 +5404,13 @@ void MyAvatar::setAllowAvatarStandingPreference(const MyAvatar::AllowAvatarStand
     // Set the correct vertical position for the avatar body relative to the HMD,
     // according to the newly-selected avatar standing preference.
     centerBodyInternal(false);
+}
+
+// Deprecated, will be removed.
+void MyAvatar::setIsSitStandStateLocked(bool isLocked) {
+    Q_UNUSED(isLocked);
+    qCDebug(interfaceapp) << "MyAvatar.setIsSitStandStateLocked is deprecated and will be removed.  If you need it, please "
+                             "contact the developers.  See also: MyAvatar.setUserRecenterModel.";
 }
 
 // Set the user preference of when the avatar may lean.

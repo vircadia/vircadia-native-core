@@ -282,11 +282,18 @@ class MyAvatar : public Avatar {
      *     <p><strong>Warning:</strong> Setting this value also sets the value of <code>analogPlusSprintSpeed</code> to twice 
      *     the value.</p>
      * @property {number} analogPlusSprintSpeed - The sprint (run) speed of your avatar for the "AnalogPlus" control scheme.
+     * @property {MyAvatar.SitStandModelType} userRecenterModel - Controls avatar leaning and recentering behavior.
+     *     <p class="important">Deprecated: This property is deprecated and will be removed. If you need it, please contact 
+     *     the developers.</p>
      * @property {boolean} isInSittingState - <code>true</code> if the user wearing the HMD is determined to be sitting;
      *     <code>false</code> if the user wearing the HMD is determined to be standing.  This can affect whether the avatar
      *     is allowed to stand, lean or recenter its footing, depending on user preferences.
      *     The property value automatically updates as the user sits or stands. Setting the property value overrides the current
      *     sitting / standing state, which is updated when the user next sits or stands.
+     * @property {boolean} isSitStandStateLocked - <code>true</code> to lock the avatar sitting/standing state, i.e., use this 
+     *     to disable automatically changing state.
+     *     <p class="important">Deprecated: This property is deprecated and will be removed. If you need it, please contact 
+     *     the developers.  See also: <code>getUserRecenterModel</code> and <code>setUserRecenterModel</code>.</p>
      * @property {boolean} allowTeleporting - <code>true</code> if teleporting is enabled in the Interface settings, 
      *     <code>false</code> if it isn't. <em>Read-only.</em>
      *
@@ -408,6 +415,19 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float walkBackwardSpeed READ getWalkBackwardSpeed WRITE setWalkBackwardSpeed NOTIFY walkBackwardSpeedChanged);
     Q_PROPERTY(float sprintSpeed READ getSprintSpeed WRITE setSprintSpeed NOTIFY sprintSpeedChanged);
     Q_PROPERTY(bool isInSittingState READ getIsInSittingState WRITE setIsInSittingState);
+
+    /**jsdoc
+    * @deprecated This property is deprecated and will be removed. If you need it, please contact the developers.
+    */	
+    Q_PROPERTY(MyAvatar::SitStandModelType userRecenterModel READ getUserRecenterModel WRITE setUserRecenterModel);
+
+    /**jsdoc
+    * @deprecated This property is deprecated and will be removed.  If you need it, please contact the developers. 
+	*     See also: {@link MyAvatar.getUserRecenterModel|getUserRecenterModel} and 
+    *     {@link MyAvatar.setUserRecenterModel|setUserRecenterModel}.
+    */
+    Q_PROPERTY(bool isSitStandStateLocked READ getIsSitStandStateLocked WRITE setIsSitStandStateLocked);
+
     Q_PROPERTY(bool allowTeleporting READ getAllowTeleporting)
 
     const QString DOMINANT_LEFT_HAND = "left";
@@ -512,6 +532,8 @@ public:
 
     /**jsdoc
      * <p>Specifies different avatar leaning and recentering behaviors.</p>
+     * <p class="important">Deprecated: This enumeration is deprecated and will be removed. If you need it, please contact 
+     *     the developers</p>
      * <table>
      *   <thead>
      *     <tr><th>Value</th><th>Name</th><th>Description</th></tr>
@@ -1769,6 +1791,10 @@ public:
     bool getIsInWalkingState() const;
     void setIsInSittingState(bool isSitting);
     bool getIsInSittingState() const;
+    void setUserRecenterModel(MyAvatar::SitStandModelType modelName);  // Deprecated, will be removed.
+    MyAvatar::SitStandModelType getUserRecenterModel() const;          // Deprecated, will be removed.
+    void setIsSitStandStateLocked(bool isLocked);                      // Deprecated, will be removed.
+    bool getIsSitStandStateLocked() const;                             // Deprecated, will be removed.
     void setAllowAvatarStandingPreference(const AllowAvatarStandingPreference preference);
     AllowAvatarStandingPreference getAllowAvatarStandingPreference() const;
     void setAllowAvatarLeaningPreference(const AllowAvatarLeaningPreference preference);
