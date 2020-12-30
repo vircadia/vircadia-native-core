@@ -423,7 +423,7 @@ class MyAvatar : public Avatar {
 
     /**jsdoc
     * @deprecated This property is deprecated and will be removed.  If you need it, please contact the developers. 
-	*     See also: {@link MyAvatar.getUserRecenterModel|getUserRecenterModel} and 
+    *     See also: {@link MyAvatar.getUserRecenterModel|getUserRecenterModel} and 
     *     {@link MyAvatar.setUserRecenterModel|setUserRecenterModel}.
     */
     Q_PROPERTY(bool isSitStandStateLocked READ getIsSitStandStateLocked WRITE setIsSitStandStateLocked);
