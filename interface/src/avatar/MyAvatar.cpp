@@ -4863,8 +4863,8 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor(const bool forceFollowYPos) const {
 
     if (!forceFollowYPos && !getHMDCrouchRecenterEnabled()) {
         // Set the body's vertical position as if it were standing in its T-pose.
-        float userToRigScale = getUserEyeHeight() / getUnscaledEyeHeight();
-        bodyPos.y = userToRigScale * rig.getUnscaledHipsHeight();
+        float rigToUserScale = getUserEyeHeight() / getUnscaledEyeHeight();
+        bodyPos.y = rigToUserScale * rig.getUnscaledHipsHeight();
     }
 
     glm::mat4 bodyMat = createMatFromQuatAndPos(bodyQuat, bodyPos);
