@@ -2920,7 +2920,6 @@ private:
         void setForceActivateHorizontal(bool val);
         bool getToggleHipsFollowing() const;
         void setToggleHipsFollowing(bool followHead);
-        bool _squatDetected { false };
         std::atomic<bool> _forceActivateRotation { false };
         std::atomic<bool> _forceActivateVertical { false };
         std::atomic<bool> _forceActivateHorizontal { false };
