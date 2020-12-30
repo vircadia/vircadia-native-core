@@ -75,8 +75,7 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
     if (useCenterOfGravityModel) {
         // then we use center of gravity model
         hipsMat = myAvatar->deriveBodyUsingCgModel();
-    }
-    else {
+    } else {
         // otherwise use the default of putting the hips under the head
         hipsMat = myAvatar->deriveBodyFromHMDSensor(true);
     }
