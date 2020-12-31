@@ -4619,7 +4619,7 @@ bool MyAvatar::getFlyingHMDPref() {
 }
 
 // Public interface for targetscale
-float MyAvatar::getAvatarScale() {
+float MyAvatar::getAvatarScale() const {
     return getTargetScale();
 }
 
@@ -5341,7 +5341,6 @@ void MyAvatar::setIsInSittingState(bool isSitting) {
     // on reset height we need the count to be more than one in case the user sits and stands up quickly.
     _isInSittingState.set(isSitting);
     setResetMode(true);
-    setCenterOfGravityModelEnabled(!isSitting);
     setSitStandStateChange(true);
 }
 
@@ -5679,7 +5678,10 @@ bool MyAvatar::FollowHelper::shouldActivateRotation(const MyAvatar& myAvatar,
     return glm::dot(-myAvatar.getHeadControllerFacingMovingAverage(), bodyFacing) < FOLLOW_ROTATION_THRESHOLD;
 }
 
-bool MyAvatar::FollowHelper::shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
+// Determine if the horizontal following should activate, for a user who is sitting in the real world.
+bool MyAvatar::FollowHelper::shouldActivateHorizontal_userSitting(const MyAvatar& myAvatar,
+                                                                  const glm::mat4& desiredBodyMatrix,
+                                                                  const glm::mat4& currentBodyMatrix) const {
     if (!myAvatar.isAllowedToLean()) {
         controller::Pose currentHeadPose = myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD);
         if (!withinBaseOfSupport(currentHeadPose)) {
@@ -5711,13 +5713,19 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontal(const MyAvatar& myAvatar, 
     return stepDetected;
 }
 
-bool MyAvatar::FollowHelper::shouldActivateHorizontalCG(MyAvatar& myAvatar) const {
+// Determine if the horizontal following should activate, for a user who is standing in the real world.
+// resetModeOut: (out) true if setResetMode(true) should be called if this function returns true.
+// goToWalkingStateOut: (out) true if setIsInWalkingState(true) should be called if this function returns true.
+bool MyAvatar::FollowHelper::shouldActivateHorizontal_userStanding(
+    const MyAvatar& myAvatar,
+    bool& resetModeOut,
+    bool& goToWalkingStateOut) const {
 
     if (myAvatar.getIsInWalkingState()) {
         return true;
     }
 
-    controller::Pose currentHeadPose = myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD);
+	controller::Pose currentHeadPose = myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD);
     bool stepDetected = false;
 
     if (!withinBaseOfSupport(currentHeadPose)) {
@@ -5749,19 +5757,34 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontalCG(MyAvatar& myAvatar) cons
         glm::vec3 currentHeadPosition = currentHeadPose.getTranslation();
         float anatomicalHeadToHipsDistance = glm::length(defaultHeadPosition - defaultHipsPosition);
         if (!isActive(CharacterController::FollowType::Horizontal) && (!isActive(CharacterController::FollowType::Vertical)) &&
-            (glm::length(currentHeadPosition - defaultHipsPosition) > (anatomicalHeadToHipsDistance + (DEFAULT_AVATAR_SPINE_STRETCH_LIMIT * anatomicalHeadToHipsDistance)))) {
-            myAvatar.setResetMode(true);
+            (glm::length(currentHeadPosition - defaultHipsPosition) >
+             (anatomicalHeadToHipsDistance + (DEFAULT_AVATAR_SPINE_STRETCH_LIMIT * anatomicalHeadToHipsDistance)))) {
+            resetModeOut = true;
             stepDetected = true;
-        }
-    }
-
-    if (stepDetected) {
-        if (glm::length(currentHeadPose.velocity) > DEFAULT_AVATAR_WALK_SPEED_THRESHOLD) {
-            myAvatar.setIsInWalkingState(true);
+            if (currentHeadPose.isValid()) {
+                if (glm::length(currentHeadPose.velocity) > DEFAULT_AVATAR_WALK_SPEED_THRESHOLD) {
+                    goToWalkingStateOut = true;
+                }
+            }
         }
     }
 
     return stepDetected;
+}
+
+// Determine if the horizontal following should activate.
+// resetModeOut: (out) true if setResetMode(true) should be called if this function returns true.
+// goToWalkingStateOut: (out) true if setIsInWalkingState(true) should be called if this function returns true.
+bool MyAvatar::FollowHelper::shouldActivateHorizontal(const MyAvatar& myAvatar,
+                                                      const glm::mat4& desiredBodyMatrix,
+                                                      const glm::mat4& currentBodyMatrix,
+                                                      bool& resetModeOut,
+                                                      bool& goToWalkingStateOut) const {
+    if (myAvatar.getIsInSittingState()) {
+        return shouldActivateHorizontal_userSitting(myAvatar, desiredBodyMatrix, currentBodyMatrix);
+    } else {
+        return shouldActivateHorizontal_userStanding(myAvatar, resetModeOut, goToWalkingStateOut);
+    }
 }
 
 bool MyAvatar::FollowHelper::shouldActivateVertical(const MyAvatar& myAvatar,
@@ -5807,7 +5830,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar,
             }
         }
 
-        // Horizontal and rotation recenter
+        // Lean recenter
 
         if ((myAvatar.areFeetTracked() || getForceActivateHorizontal()) && !isActive(CharacterController::FollowType::Horizontal)) {
             activate(CharacterController::FollowType::Horizontal, myAvatar.areFeetTracked());
@@ -5815,23 +5838,32 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar,
         } else {
             if ((myAvatar.getAllowAvatarLeaningPreference() != MyAvatar::AllowAvatarLeaningPreference::AlwaysNoRecenter) &&
                 qApp->getCamera().getMode() != CAMERA_MODE_MIRROR) {
-                if (myAvatar.getCenterOfGravityModelEnabled()) {
-                    if (!isActive(CharacterController::FollowType::Horizontal) && (shouldActivateHorizontalCG(myAvatar) || hasDriveInput)) {
-                        activate(CharacterController::FollowType::Horizontal, false);
-                        if (myAvatar.getEnableStepResetRotation()) {
-                            activate(CharacterController::FollowType::Rotation, false);
-                            myAvatar.setHeadControllerFacingMovingAverage(myAvatar.getHeadControllerFacing());
-                        }
+
+                bool resetModeOut = false;
+                bool goToWalkingStateOut = false;
+
+                // True if the user can turn their body while sitting (eg. swivel chair).
+                // Todo?: We could expose this as an option.
+                // (Regardless, rotation recentering does kick-in if they turn too far).
+                constexpr bool USER_CAN_TURN_BODY_WHILE_SITTING = false;
+
+                if (!isActive(CharacterController::FollowType::Horizontal) &&
+                    (shouldActivateHorizontal(myAvatar, desiredBodyMatrix, currentBodyMatrix, resetModeOut,
+                                              goToWalkingStateOut) ||
+                     hasDriveInput)) {
+                    activate(CharacterController::FollowType::Horizontal, false);
+                    if (myAvatar.getEnableStepResetRotation() &&
+                        (USER_CAN_TURN_BODY_WHILE_SITTING || !myAvatar.getIsInSittingState())) {
+                        activate(CharacterController::FollowType::Rotation, false);
+                        myAvatar.setHeadControllerFacingMovingAverage(myAvatar.getHeadControllerFacing());
                     }
-                } else {
-                    // center of gravity model is not enabled
-                    if (!isActive(CharacterController::FollowType::Horizontal) &&
-                        (shouldActivateHorizontal(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
-                        activate(CharacterController::FollowType::Horizontal, false);
-                        if (myAvatar.getEnableStepResetRotation() && !myAvatar.getIsInSittingState()) {
-                            activate(CharacterController::FollowType::Rotation, false);
-                            myAvatar.setHeadControllerFacingMovingAverage(myAvatar.getHeadControllerFacing());
-                        }
+
+                    if (resetModeOut) {
+                        myAvatar.setResetMode(true);
+                    }
+
+                    if (goToWalkingStateOut) {
+                        myAvatar.setIsInWalkingState(true);
                     }
                 }
             }
