@@ -1634,7 +1634,7 @@ public:
      * @function MyAvatar.getAvatarScale
      * @returns {number} The target scale for the avatar, range <code>0.005</code> &ndash; <code>1000.0</code>.
      */
-    Q_INVOKABLE float getAvatarScale();
+    Q_INVOKABLE float getAvatarScale() const;
 
     /**jsdoc
      * Sets the target scale of the avatar. The target scale is the desired scale of the avatar without any restrictions on 
@@ -2908,8 +2908,11 @@ private:
         void decrementTimeRemaining(float dt);
         bool shouldActivateRotation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix, bool& shouldSnapOut) const;
         bool shouldActivateVertical(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
-        bool shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
-        bool shouldActivateHorizontalCG(MyAvatar& myAvatar) const;
+        bool shouldActivateHorizontal(const MyAvatar& myAvatar,
+                                      const glm::mat4& desiredBodyMatrix,
+                                      const glm::mat4& currentBodyMatrix,
+                                      bool& resetModeOut,
+                                      controller::Pose& currentHeadPoseForWalkingStateOut) const;
         void prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& bodySensorMatrix, const glm::mat4& currentBodyMatrix, bool hasDriveInput);
         glm::mat4 postPhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& currentBodyMatrix);
         bool getForceActivateRotation() const;
@@ -2924,6 +2927,14 @@ private:
         std::atomic<bool> _forceActivateVertical { false };
         std::atomic<bool> _forceActivateHorizontal { false };
         std::atomic<bool> _toggleHipsFollowing { true };
+
+    private:
+        bool shouldActivateHorizontal_userSitting(const MyAvatar& myAvatar,
+                                                  const glm::mat4& desiredBodyMatrix,
+                                                  const glm::mat4& currentBodyMatrix) const;
+        bool shouldActivateHorizontal_userStanding(const MyAvatar& myAvatar,
+                                                   bool& resetModeOut,
+                                                   controller::Pose& currentHeadPoseForWalkingStateOut) const;
     };
 
     FollowHelper _follow;
