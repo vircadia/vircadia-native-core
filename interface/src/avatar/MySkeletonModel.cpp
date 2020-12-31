@@ -65,11 +65,13 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
         return result;
     }
 
+    // Use the center-of-gravity model if the user and the avatar are standing, unless flying or walking.
+    // If artificial standing is disabled, use center-of-gravity regardless of the user's sit/stand state.
     bool useCenterOfGravityModel =
         myAvatar->getCenterOfGravityModelEnabled() && !isFlying && !myAvatar->getIsInWalkingState() &&
-        !myAvatar->getIsInSittingState() && myAvatar->getHMDLeanRecenterEnabled() &&
-        (myAvatar->getAllowAvatarLeaningPreference() != MyAvatar::AllowAvatarLeaningPreference::AlwaysNoRecenter) &&
-        myAvatar->getHMDCrouchRecenterEnabled();
+        (!myAvatar->getHMDCrouchRecenterEnabled() || !myAvatar->getIsInSittingState()) &&
+        myAvatar->getHMDLeanRecenterEnabled() &&
+        (myAvatar->getAllowAvatarLeaningPreference() != MyAvatar::AllowAvatarLeaningPreference::AlwaysNoRecenter);
 
     glm::mat4 hipsMat;
     if (useCenterOfGravityModel) {
