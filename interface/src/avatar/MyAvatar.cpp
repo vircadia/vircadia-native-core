@@ -4976,11 +4976,11 @@ glm::vec3 MyAvatar::computeCounterBalance() {
     glm::vec3 currentCg = (1.0f / totalMass) * sumOfMoments;
     currentCg.y = 0.0f;
     // dampening the center of gravity, in effect, limits the value to the perimeter of the base of support
-    float baseScale = 1.0f;
+    float baseAndAvatarScale = getAvatarScale();
     if (getUserEyeHeight() > 0.0f) {
-        baseScale = getUserEyeHeight() / DEFAULT_AVATAR_EYE_HEIGHT;
+        baseAndAvatarScale *= getUserEyeHeight() / DEFAULT_AVATAR_EYE_HEIGHT;
     }
-    glm::vec3 desiredCg = dampenCgMovement(currentCg, baseScale);
+    glm::vec3 desiredCg = dampenCgMovement(currentCg, baseAndAvatarScale);
 
     // compute hips position to maintain desiredCg
     glm::vec3 counterBalancedForHead = (totalMass + DEFAULT_AVATAR_HIPS_MASS) * desiredCg;
@@ -4999,9 +4999,10 @@ glm::vec3 MyAvatar::computeCounterBalance() {
 
     // this is to be sure that the feet don't lift off the floor.
     // add 5 centimeters to allow for going up on the toes.
-    if (counterBalancedCg.y > (tposeHips.y + 0.05f)) {
+    float maxCounterBalancedCGY = (tposeHips.y + 0.05f) * baseAndAvatarScale;
+    if (counterBalancedCg.y > maxCounterBalancedCGY) {
         // if the height is higher than default hips, clamp to default hips
-        counterBalancedCg.y = tposeHips.y + 0.05f;
+        counterBalancedCg.y = maxCounterBalancedCGY;
     }
     return counterBalancedCg;
 }
@@ -5032,7 +5033,7 @@ static void drawBaseOfSupport(float baseOfSupportScale, float footLocal, glm::ma
     float clampBack = DEFAULT_AVATAR_SUPPORT_BASE_BACK * baseOfSupportScale;
     float clampLeft = DEFAULT_AVATAR_SUPPORT_BASE_LEFT * baseOfSupportScale;
     float clampRight = DEFAULT_AVATAR_SUPPORT_BASE_RIGHT * baseOfSupportScale;
-    float floor = footLocal + 0.05f;
+    float floor = footLocal;
 
     // transform the base of support corners to world space
     glm::vec3 frontRight = transformPoint(avatarToWorld, { clampRight, floor, clampFront });
@@ -5063,7 +5064,7 @@ glm::mat4 MyAvatar::deriveBodyUsingCgModel() {
     glm::mat4 avatarHeadMat = glm::inverse(avatarToWorldMat) * sensorToWorldMat * sensorHeadMat;
 
     if (_enableDebugDrawBaseOfSupport) {
-        float scaleBaseOfSupport = getUserEyeHeight() / DEFAULT_AVATAR_EYE_HEIGHT;
+        float scaleBaseOfSupport = (getUserEyeHeight() / DEFAULT_AVATAR_EYE_HEIGHT) * getAvatarScale();
         glm::vec3 rightFootPositionLocal = getAbsoluteJointTranslationInObjectFrame(_skeletonModel->getRig().indexOfJoint("RightFoot"));
         drawBaseOfSupport(scaleBaseOfSupport, rightFootPositionLocal.y, avatarToWorldMat);
     }
@@ -5079,26 +5080,16 @@ glm::mat4 MyAvatar::deriveBodyUsingCgModel() {
     return worldToSensorMat * avatarToWorldMat * avatarHipsMat;
 }
 
-static bool isInsideLine(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c) {
-    return (((b.x - a.x) * (c.z - a.z) - (b.z - a.z) * (c.x - a.x)) > 0);
-}
-
-static bool withinBaseOfSupport(const controller::Pose& head) {
-    float userScale = 1.0f;
-
-    glm::vec3 frontLeft(-DEFAULT_AVATAR_LATERAL_STEPPING_THRESHOLD, 0.0f, -DEFAULT_AVATAR_ANTERIOR_STEPPING_THRESHOLD);
-    glm::vec3 frontRight(DEFAULT_AVATAR_LATERAL_STEPPING_THRESHOLD, 0.0f, -DEFAULT_AVATAR_ANTERIOR_STEPPING_THRESHOLD);
-    glm::vec3 backLeft(-DEFAULT_AVATAR_LATERAL_STEPPING_THRESHOLD, 0.0f, DEFAULT_AVATAR_POSTERIOR_STEPPING_THRESHOLD);
-    glm::vec3 backRight(DEFAULT_AVATAR_LATERAL_STEPPING_THRESHOLD, 0.0f, DEFAULT_AVATAR_POSTERIOR_STEPPING_THRESHOLD);
-
-    bool isWithinSupport = false;
-    if (head.isValid()) {
-        bool withinFrontBase = isInsideLine(userScale * frontLeft, userScale * frontRight, head.getTranslation());
-        bool withinBackBase = isInsideLine(userScale * backRight, userScale * backLeft, head.getTranslation());
-        bool withinLateralBase = (isInsideLine(userScale * frontRight, userScale * backRight, head.getTranslation()) &&
-            isInsideLine(userScale * backLeft, userScale * frontLeft, head.getTranslation()));
-        isWithinSupport = (withinFrontBase && withinBackBase && withinLateralBase);
+static bool withinBaseOfSupport(const controller::Pose& head, const float avatarScale) {
+    if (!head.isValid()) {
+        return false;
     }
+
+    vec3 headPosScaled = head.getTranslation() / avatarScale;
+    bool isWithinSupport = (headPosScaled.x > -DEFAULT_AVATAR_LATERAL_STEPPING_THRESHOLD) &&
+                           (headPosScaled.x < DEFAULT_AVATAR_LATERAL_STEPPING_THRESHOLD) &&
+                           (headPosScaled.z > -DEFAULT_AVATAR_ANTERIOR_STEPPING_THRESHOLD) &&
+                           (headPosScaled.z < DEFAULT_AVATAR_POSTERIOR_STEPPING_THRESHOLD);
     return isWithinSupport;
 }
 
@@ -5114,10 +5105,10 @@ static bool headAngularVelocityBelowThreshold(const controller::Pose& head) {
     return isBelowThreshold;
 }
 
-static bool isWithinThresholdHeightMode(const controller::Pose& head, const float& newMode, const float& scale) {
+static bool isWithinThresholdHeightMode(const controller::Pose& head, const float newMode, const float avatarScale) {
     bool isWithinThreshold = true;
     if (head.isValid()) {
-        isWithinThreshold = (head.getTranslation().y - newMode) > (DEFAULT_AVATAR_MODE_HEIGHT_STEPPING_THRESHOLD * scale);
+        isWithinThreshold = head.getTranslation().y > ((DEFAULT_AVATAR_MODE_HEIGHT_STEPPING_THRESHOLD + newMode) * avatarScale);
     }
     return isWithinThreshold;
 }
@@ -5198,12 +5189,12 @@ static bool handAngularVelocityBelowThreshold(const controller::Pose& leftHand, 
         (rightHandXZAngularVelocity < DEFAULT_HANDS_ANGULAR_VELOCITY_STEPPING_THRESHOLD));
 }
 
-static bool headVelocityGreaterThanThreshold(const controller::Pose& head) {
+static bool headVelocityGreaterThanThreshold(const controller::Pose& head, const float avatarScale) {
     float headVelocityMagnitude = 0.0f;
     if (head.isValid()) {
         headVelocityMagnitude = glm::length(head.getVelocity());
     }
-    return headVelocityMagnitude > DEFAULT_HEAD_VELOCITY_STEPPING_THRESHOLD;
+    return headVelocityMagnitude > (DEFAULT_HEAD_VELOCITY_STEPPING_THRESHOLD * avatarScale);
 }
 
 glm::quat MyAvatar::computeAverageHeadRotation(const controller::Pose& head) {
@@ -5686,7 +5677,7 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontal_userSitting(const MyAvatar
                                                                   const glm::mat4& currentBodyMatrix) const {
     if (!myAvatar.isAllowedToLean()) {
         controller::Pose currentHeadPose = myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD);
-        if (!withinBaseOfSupport(currentHeadPose)) {
+        if (!withinBaseOfSupport(currentHeadPose, myAvatar.getAvatarScale())) {
             return true;
         }
     }
@@ -5729,23 +5720,22 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontal_userStanding(
 
 	controller::Pose currentHeadPose = myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD);
     bool stepDetected = false;
+    float avatarScale = myAvatar.getAvatarScale();
 
-    if (!withinBaseOfSupport(currentHeadPose)) {
+    if (!withinBaseOfSupport(currentHeadPose, avatarScale)) {
         if (!myAvatar.isAllowedToLean()) {
             stepDetected = true;
         } else {
-            float myScale = myAvatar.getAvatarScale();
-
             // get the current readings
             controller::Pose currentLeftHandPose = myAvatar.getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND);
             controller::Pose currentRightHandPose = myAvatar.getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND);
             controller::Pose currentHeadSensorPose = myAvatar.getControllerPoseInSensorFrame(controller::Action::HEAD);
 
             if (headAngularVelocityBelowThreshold(currentHeadPose) &&
-                isWithinThresholdHeightMode(currentHeadSensorPose, myAvatar.getCurrentStandingHeight(), myScale) &&
+                isWithinThresholdHeightMode(currentHeadSensorPose, myAvatar.getCurrentStandingHeight(), avatarScale) &&
                 handDirectionMatchesHeadDirection(currentLeftHandPose, currentRightHandPose, currentHeadPose) &&
                 handAngularVelocityBelowThreshold(currentLeftHandPose, currentRightHandPose) &&
-                headVelocityGreaterThanThreshold(currentHeadPose) &&
+                headVelocityGreaterThanThreshold(currentHeadPose, avatarScale) &&
                 isHeadLevel(currentHeadPose, myAvatar.getAverageHeadRotation())) {
                 // a step is detected
                 stepDetected = true;
@@ -5764,7 +5754,7 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontal_userStanding(
             resetModeOut = true;
             stepDetected = true;
             if (currentHeadPose.isValid()) {
-                if (glm::length(currentHeadPose.velocity) > DEFAULT_AVATAR_WALK_SPEED_THRESHOLD) {
+                if (glm::length(currentHeadPose.velocity) > (DEFAULT_AVATAR_WALK_SPEED_THRESHOLD * avatarScale)) {
                     goToWalkingStateOut = true;
                 }
             }
