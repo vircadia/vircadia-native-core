@@ -5337,8 +5337,10 @@ void MyAvatar::setIsInWalkingState(bool isWalking) {
 
 // Specify whether the user is sitting or standing in the real world.
 void MyAvatar::setIsInSittingState(bool isSitting) {
+    // In updateSitStandState, we only change state if this timer is above a threshold (STANDING_TIMEOUT, SITTING_TIMEOUT).
+    // This avoids changing state if the user sits and stands up quickly.
     _sitStandStateTimer = 0.0f;
-    // on reset height we need the count to be more than one in case the user sits and stands up quickly.
+    
     _isInSittingState.set(isSitting);
     setResetMode(true);
     setSitStandStateChange(true);
