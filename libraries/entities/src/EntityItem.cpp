@@ -1628,16 +1628,16 @@ AACube EntityItem::getMaximumAACube(bool& success) const {
             _recalcMaxAACube = false;
             // we want to compute the furthestExtent that an entity can extend out from its "position"
             // to do this we compute the max of these two vec3s: registration and 1-registration
-            // and then scale by dimensions
-            glm::vec3 offset = getScaledDimensions() * getRegistrationPoint() + getPivot();
-            glm::vec3 maxExtents = glm::max(offset, glm::vec3(1.0f) - offset);
+            // and then scale by dimensions and add the absolute value of the pivot
+            glm::vec3 registrationPoint = getRegistrationPoint();
+            glm::vec3 maxExtents = getScaledDimensions() * glm::max(registrationPoint, glm::vec3(1.0f) - registrationPoint);
 
             // there exists a sphere that contains maxExtents for all rotations
             float radius = glm::length(maxExtents);
 
             // put a cube around the sphere
             // TODO? replace _maxAACube with _boundingSphereRadius
-            glm::vec3 minimumCorner = centerOfRotation - glm::vec3(radius, radius, radius);
+            glm::vec3 minimumCorner = (centerOfRotation + getPivot()) - glm::vec3(radius, radius, radius);
             _maxAACube = AACube(minimumCorner, radius * 2.0f);
         }
     } else {

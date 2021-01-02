@@ -227,12 +227,12 @@ EntityItemProperties RenderableModelEntityItem::getProperties(const EntityProper
 
 glm::vec3 RenderableModelEntityItem::getPivot() const {
     auto model = getModel();
-    auto raycastOffset = EntityItem::getPivot();
+    auto pivot = EntityItem::getPivot();
     if (!model || !model->isLoaded() || !_useOriginalPivot) {
-        return raycastOffset;
+        return pivot;
     }
 
-    return raycastOffset + model->getOriginalOffset();
+    return pivot + model->getOriginalOffset();
 }
 
 bool RenderableModelEntityItem::supportsDetailedIntersection() const {

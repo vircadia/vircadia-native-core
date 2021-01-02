@@ -413,7 +413,6 @@ protected:
     bool _snapModelToRegistrationPoint; /// is the model's offset automatically adjusted to a registration point in model space
     bool _snappedToRegistrationPoint; /// are we currently snapped to a registration point
     glm::vec3 _registrationPoint { glm::vec3(0.5f) }; /// the point in model space our center is snapped to
-    bool _needsTransformUpdate { false };
     bool _forceOffset { false };
 
     std::vector<MeshState> _meshStates;

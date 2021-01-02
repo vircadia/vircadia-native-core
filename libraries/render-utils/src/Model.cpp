@@ -151,7 +151,6 @@ void Model::setOffset(const glm::vec3& offset) {
     // if someone manually sets our offset, then we are no longer snapped to center
     _snapModelToRegistrationPoint = false;
     _snappedToRegistrationPoint = false;
-    _needsTransformUpdate = true;
 }
 
 void Model::calculateTextureInfo() {
@@ -384,9 +383,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         if (_snapModelToRegistrationPoint || _forceOffset) {
             meshToWorldMatrix = meshToWorldMatrix * (glm::scale(_scale) * glm::translate(_offset));
         } else {
-            Extents unscaledExtents = getUnscaledMeshExtents();
-            glm::vec3 unscaledDimensions = unscaledExtents.maximum - unscaledExtents.minimum;
-            meshToWorldMatrix = meshToWorldMatrix * (glm::scale(_scale) * glm::translate(unscaledDimensions * (0.5f - _registrationPoint)));
+            meshToWorldMatrix = meshToWorldMatrix * (glm::scale(_scale) * glm::translate(getNaturalDimensions() * (0.5f - _registrationPoint)));
         }
         glm::mat4 worldToMeshMatrix = glm::inverse(meshToWorldMatrix);
 
@@ -550,9 +547,7 @@ bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, co
         if (_snapModelToRegistrationPoint || _forceOffset) {
             meshToWorldMatrix = meshToWorldMatrix * (glm::scale(_scale) * glm::translate(_offset));
         } else {
-            Extents unscaledExtents = getUnscaledMeshExtents();
-            glm::vec3 unscaledDimensions = unscaledExtents.maximum - unscaledExtents.minimum;
-            meshToWorldMatrix = meshToWorldMatrix * (glm::scale(_scale) * glm::translate(unscaledDimensions * (0.5f - _registrationPoint)));
+            meshToWorldMatrix = meshToWorldMatrix * (glm::scale(_scale) * glm::translate(getNaturalDimensions() * (0.5f - _registrationPoint)));
         }
         glm::mat4 worldToMeshMatrix = glm::inverse(meshToWorldMatrix);
 
@@ -1418,7 +1413,6 @@ void Model::setSnapModelToRegistrationPoint(bool snapModelToRegistrationPoint, c
         _snapModelToRegistrationPoint = snapModelToRegistrationPoint;
         _registrationPoint = clampedRegistrationPoint;
         _snappedToRegistrationPoint = false; // force re-centering
-        _needsTransformUpdate = true;
     }
 }
 
@@ -1446,7 +1440,7 @@ void Model::setUseDualQuaternionSkinning(bool value) {
 void Model::simulate(float deltaTime, bool fullUpdate) {
     DETAILED_PROFILE_RANGE(simulation_detail, __FUNCTION__);
     fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
-                    || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint) || _needsTransformUpdate;
+                    || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
 
     if (isLoaded() && fullUpdate) {
         onInvalidate();
@@ -1462,7 +1456,6 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
         glm::mat4 parentTransform = glm::scale(_scale) * ((_snapModelToRegistrationPoint || _forceOffset) ?
             glm::translate(_offset) : glm::translate(getNaturalDimensions() * (0.5f - _registrationPoint)));
         updateRig(deltaTime, parentTransform);
-        _needsTransformUpdate = false;
     }
 }
 
