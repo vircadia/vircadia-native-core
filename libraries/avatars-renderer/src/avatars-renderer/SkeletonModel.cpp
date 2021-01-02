@@ -33,6 +33,7 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) :
 {
     // SkeletonModels, and by extention Avatars, use Dual Quaternion skinning.
     _useDualQuaternionSkinning = true;
+    _forceOffset = true;
 
     // Avatars all cast shadow
     setCanCastShadow(true);
@@ -152,11 +153,11 @@ void SkeletonModel::updateAttitude(const glm::quat& orientation) {
 
 // Called by Avatar::simulate after it has set the joint states (fullUpdate true if changed),
 // but just before head has been simulated.
-void SkeletonModel::simulate(float deltaTime, bool fullUpdate, bool skeleton) {
+void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     updateAttitude(_owningAvatar->getWorldOrientation());
     setBlendshapeCoefficients(_owningAvatar->getHead()->getSummedBlendshapeCoefficients());
 
-    Parent::simulate(deltaTime, fullUpdate, true);
+    Parent::simulate(deltaTime, fullUpdate);
     if (fullUpdate) {
         // let rig compute the model offset
         glm::vec3 registrationPoint;

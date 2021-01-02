@@ -152,8 +152,9 @@ void RenderableModelEntityItem::updateModelBounds() {
     bool needsSimulate = false;
     if (!overridingModelTransform &&
         (model->getScaleToFitDimensions() != scaledDimensions ||
-         model->getRegistrationPoint() != registrationPoint ||
-         !model->getIsScaledToFit() || _useOriginalPivot == model->getSnapModelToRegistrationPoint())) {
+        model->getRegistrationPoint() != registrationPoint ||
+        !model->getIsScaledToFit() || _needsToRescaleModel ||
+        _useOriginalPivot == model->getSnapModelToRegistrationPoint())) {
         // The machinery for updateModelBounds will give existing models the opportunity to fix their
         // translation/rotation/scale/registration.  The first two are straightforward, but the latter two
         // have guards to make sure they don't happen after they've already been set.  Here we reset those guards.

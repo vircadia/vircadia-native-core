@@ -169,7 +169,7 @@ public:
     bool getSnapModelToRegistrationPoint() { return _snapModelToRegistrationPoint; }
     bool getSnappedToRegistrationPoint() { return _snappedToRegistrationPoint; }
 
-    virtual void simulate(float deltaTime, bool fullUpdate = true, bool skeleton = false);
+    virtual void simulate(float deltaTime, bool fullUpdate = true);
     virtual void updateClusterMatrices();
     virtual void updateBlendshapes();
 
@@ -414,6 +414,7 @@ protected:
     bool _snappedToRegistrationPoint; /// are we currently snapped to a registration point
     glm::vec3 _registrationPoint { glm::vec3(0.5f) }; /// the point in model space our center is snapped to
     bool _needsTransformUpdate { false };
+    bool _forceOffset { false };
 
     std::vector<MeshState> _meshStates;
 
