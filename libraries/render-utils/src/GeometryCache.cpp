@@ -2207,7 +2207,7 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
     } else {
         state->setCullMode(gpu::State::CULL_BACK);
     }
-    state->setDepthTest(true, true, gpu::LESS_EQUAL);
+    state->setDepthTest(true, !config.isTransparent(), gpu::LESS_EQUAL);
     if (config.hasDepthBias()) {
         state->setDepthBias(1.0f);
         state->setDepthBiasSlopeScale(1.0f);
