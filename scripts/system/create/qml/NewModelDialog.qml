@@ -123,6 +123,7 @@ Rectangle {
                 CheckBox {
                     id: useOriginalPivot
                     text: qsTr("Use Original Pivot")
+                    checked: true
                 }
 
                 CheckBox {

@@ -1637,7 +1637,7 @@ AACube EntityItem::getMaximumAACube(bool& success) const {
 
             // put a cube around the sphere
             // TODO? replace _maxAACube with _boundingSphereRadius
-            glm::vec3 minimumCorner = (centerOfRotation + getPivot()) - glm::vec3(radius, radius, radius);
+            glm::vec3 minimumCorner = (centerOfRotation + getWorldOrientation() * getPivot()) - glm::vec3(radius, radius, radius);
             _maxAACube = AACube(minimumCorner, radius * 2.0f);
         }
     } else {

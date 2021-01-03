@@ -167,7 +167,6 @@ void RenderableModelEntityItem::updateModelBounds() {
         model->setSnapModelToRegistrationPoint(!_useOriginalPivot, registrationPoint);
         updateRenderItems = true;
         needsSimulate = true;
-        locationChanged();
         _needsToRescaleModel = false;
     }
 
@@ -183,6 +182,7 @@ void RenderableModelEntityItem::updateModelBounds() {
         // NOTE: on isAnimatingSomething() we need to call Model::simulate() which calls Rig::updateRig()
         // TODO: there is opportunity to further optimize the isAnimatingSomething() case.
         model->simulate(0.0f);
+        locationChanged();
         _needsInitialSimulation = false;
         _needsJointSimulation = false;
         updateRenderItems = true;
