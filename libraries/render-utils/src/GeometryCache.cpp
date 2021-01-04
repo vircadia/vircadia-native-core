@@ -2135,7 +2135,7 @@ gpu::PipelinePointer GeometryCache::getWebBrowserProgram(bool transparent, bool 
             auto pipeline = (transparent || forward) ? web_browser_forward : web_browser;
 
             gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-            state->setDepthTest(true, true, gpu::LESS_EQUAL);
+            state->setDepthTest(true, !transparent, gpu::LESS_EQUAL);
             // FIXME: do we need a testMaskDrawNoAA?
             PrepareStencil::testMaskDrawShapeNoAA(*state);
             state->setBlendFunction(transparent,
