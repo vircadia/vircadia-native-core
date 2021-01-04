@@ -283,8 +283,7 @@ class MyAvatar : public Avatar {
      *     the value.</p>
      * @property {number} analogPlusSprintSpeed - The sprint (run) speed of your avatar for the "AnalogPlus" control scheme.
      * @property {MyAvatar.SitStandModelType} userRecenterModel - Controls avatar leaning and recentering behavior.
-     *     <p class="important">Deprecated: This property is deprecated and will be removed. If you need it, please contact 
-     *     the developers.</p>
+     *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
      * @property {boolean} isInSittingState - <code>true</code> if the user wearing the HMD is determined to be sitting;
      *     <code>false</code> if the user wearing the HMD is determined to be standing.  This can affect whether the avatar
      *     is allowed to stand, lean or recenter its footing, depending on user preferences.
@@ -416,10 +415,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float sprintSpeed READ getSprintSpeed WRITE setSprintSpeed NOTIFY sprintSpeedChanged);
     Q_PROPERTY(bool isInSittingState READ getIsInSittingState WRITE setIsInSittingState);
 
-    /**jsdoc
-    * @deprecated This property is deprecated and will be removed. If you need it, please contact the developers.
-    */	
-    Q_PROPERTY(MyAvatar::SitStandModelType userRecenterModel READ getUserRecenterModel WRITE setUserRecenterModel);
+    Q_PROPERTY(MyAvatar::SitStandModelType userRecenterModel READ getUserRecenterModel WRITE setUserRecenterModel);  // Deprecated
 
     /**jsdoc
     * @deprecated This property is deprecated and will be removed.  If you need it, please contact the developers. 
@@ -532,8 +528,7 @@ public:
 
     /**jsdoc
      * <p>Specifies different avatar leaning and recentering behaviors.</p>
-     * <p class="important">Deprecated: This enumeration is deprecated and will be removed. If you need it, please contact 
-     *     the developers</p>
+     * <p class="important">Deprecated: This type is deprecated and will be removed.</p>
      * <table>
      *   <thead>
      *     <tr><th>Value</th><th>Name</th><th>Description</th></tr>
@@ -574,14 +569,13 @@ public:
     Q_ENUM(AllowAvatarStandingPreference)
 
     // Note: The option strings in setupPreferences (PreferencesDialog.cpp) must match this order.
-    enum class AllowAvatarLeaningPreference : uint
-    {
+    enum class AllowAvatarLeaningPreference : uint {
         WhenUserIsStanding,
         Always,
         Never,
         AlwaysNoRecenter,  // experimental
         Count,
-        Default = WhenUserIsStanding,
+        Default = WhenUserIsStanding
     };
     Q_ENUM(AllowAvatarLeaningPreference)
 
@@ -2981,7 +2975,7 @@ private:
 
     bool _centerOfGravityModelEnabled { true };
     bool _hmdLeanRecenterEnabled { true };
-    bool _hmdCrouchRecenterEnabled{
+    bool _hmdCrouchRecenterEnabled {
         true
     };  // Is MyAvatar allowed to recenter vertically (stand) when the user is sitting in the real world.
     bool _sprint { false };

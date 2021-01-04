@@ -53,8 +53,7 @@ const btScalar MIN_CHARACTER_MOTOR_TIMESCALE = 0.05f;
 class CharacterController : public btCharacterControllerInterface {
 
 public:
-    enum class FollowType : uint8_t
-    {
+    enum class FollowType : uint8_t {
         Rotation,
         Horizontal,
         Vertical,
