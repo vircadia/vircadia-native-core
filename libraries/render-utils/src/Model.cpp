@@ -1199,7 +1199,7 @@ glm::vec3 Model::getNaturalDimensions() const {
 
 Extents Model::getMeshExtents() const {
     Extents extents = getUnscaledMeshExtents();
-    return { extents.minimum * _scale, extents.maximum * _scale};
+    return { extents.minimum * _scale, extents.maximum * _scale };
 }
 
 Extents Model::getUnscaledMeshExtents() const {

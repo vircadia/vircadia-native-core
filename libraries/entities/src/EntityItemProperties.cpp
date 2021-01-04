@@ -1003,6 +1003,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {string} blendshapeCoefficients - A JSON string of a map of blendshape names to values.  Only stores set values.
  *     When editing this property, only coefficients that you are editing will change; it will not explicitly reset other
  *     coefficients.
+ * @property {boolean} useOriginalPivot=false - If false, the model will be centered based on its content, ignoring any offset
+ *     in the model itself. If true, the model will respect its original offset.
  * @property {string} textures="" - A JSON string of texture name, URL pairs used when rendering the model in place of the
  *     model's original textures. Use a texture name from the <code>originalTextures</code> property to override that texture.
  *     Only the texture names and URLs to be overridden need be specified; original textures are used where there are no
@@ -3236,6 +3238,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_RELAY_PARENT_JOINTS, properties.getRelayParentJoints());
                 APPEND_ENTITY_PROPERTY(PROP_GROUP_CULLED, properties.getGroupCulled());
                 APPEND_ENTITY_PROPERTY(PROP_BLENDSHAPE_COEFFICIENTS, properties.getBlendshapeCoefficients());
+                APPEND_ENTITY_PROPERTY(PROP_USE_ORIGINAL_PIVOT, properties.getUseOriginalPivot());
 
                 _staticAnimation.setProperties(properties);
                 _staticAnimation.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
@@ -3725,6 +3728,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RELAY_PARENT_JOINTS, bool, setRelayParentJoints);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GROUP_CULLED, bool, setGroupCulled);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BLENDSHAPE_COEFFICIENTS, QString, setBlendshapeCoefficients);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_USE_ORIGINAL_PIVOT, bool, setUseOriginalPivot);
 
         properties.getAnimation().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
     }
