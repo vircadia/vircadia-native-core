@@ -48,6 +48,7 @@ void LineEntityRenderer::doRender(RenderArgs* args) {
     Transform transform = Transform();
     transform.setTranslation(modelTransform.getTranslation());
     transform.setRotation(modelTransform.getRotation());
+    transform.setRotation(EntityItem::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode, args->getViewFrustum().getPosition()));
     batch.setModelTransform(transform);
     if (_linePoints.size() > 1) {
         DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, false, false, true,

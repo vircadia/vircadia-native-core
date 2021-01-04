@@ -325,8 +325,10 @@ void PolyLineEntityRenderer::doRender(RenderArgs* args) {
         buildPipelines();
     }
 
-    batch.setPipeline(_pipelines[{args->_renderMethod, isTransparent()}]);
+    transform.setRotation(EntityItem::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode, args->getViewFrustum().getPosition()));
     batch.setModelTransform(transform);
+
+    batch.setPipeline(_pipelines[{args->_renderMethod, isTransparent()}]);
     batch.setResourceTexture(0, texture);
     batch.draw(gpu::TRIANGLE_STRIP, (gpu::uint32)(2 * _numVertices), 0);
 }

@@ -138,7 +138,14 @@ EntityRenderer::~EntityRenderer() {}
 //
 
 Item::Bound EntityRenderer::getBound() {
-    return _bound;
+    auto bound = _bound;
+    if (_billboardMode != BillboardMode::NONE) {
+        glm::vec3 dimensions = bound.getScale();
+        float max = glm::max(dimensions.x, glm::max(dimensions.y, dimensions.z));
+        const float SQRT_2 = 1.41421356237f;
+        bound.setScaleStayCentered(glm::vec3(SQRT_2 * max));
+    }
+    return bound;
 }
 
 ShapeKey EntityRenderer::getShapeKey() {
@@ -198,12 +205,9 @@ uint32_t EntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) const {
 }
 
 bool EntityRenderer::passesZoneOcclusionTest(const std::unordered_set<QUuid>& containingZones) const {
-    auto renderWithZones = resultWithReadLock<QVector<QUuid>>([&] {
-        return _renderWithZones;
-    });
-    if (!renderWithZones.isEmpty()) {
+    if (!_renderWithZones.isEmpty()) {
         if (!containingZones.empty()) {
-            for (auto renderWithZone : renderWithZones) {
+            for (auto renderWithZone : _renderWithZones) {
                 if (containingZones.find(renderWithZone) != containingZones.end()) {
                     return true;
                 }
@@ -429,18 +433,22 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
 
         _moving = entity->isMovingRelativeToParent();
         _visible = entity->getVisible();
-        setIsVisibleInSecondaryCamera(entity->isVisibleInSecondaryCamera());
-        setRenderLayer(entity->getRenderLayer());
-        _primitiveMode = entity->getPrimitiveMode();
-        _canCastShadow = entity->getCanCastShadow();
-        setCullWithParent(entity->getCullWithParent());
-        _cauterized = entity->getCauterized();
-        if (entity->needsZoneOcclusionUpdate()) {
-            entity->resetNeedsZoneOcclusionUpdate();
-            _renderWithZones = entity->getRenderWithZones();
-        }
         entity->setNeedsRenderUpdate(false);
     });
+}
+
+void EntityRenderer::doRenderUpdateAsynchronous(const EntityItemPointer& entity) {
+    setIsVisibleInSecondaryCamera(entity->isVisibleInSecondaryCamera());
+    setRenderLayer(entity->getRenderLayer());
+    _billboardMode = entity->getBillboardMode();
+    _primitiveMode = entity->getPrimitiveMode();
+    _canCastShadow = entity->getCanCastShadow();
+    setCullWithParent(entity->getCullWithParent());
+    _cauterized = entity->getCauterized();
+    if (entity->needsZoneOcclusionUpdate()) {
+        entity->resetNeedsZoneOcclusionUpdate();
+        _renderWithZones = entity->getRenderWithZones();
+    }
 }
 
 void EntityRenderer::onAddToScene(const EntityItemPointer& entity) {

@@ -111,6 +111,9 @@ bool GizmoEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const
     glm::quat rotation = getWorldOrientation();
     rotation = glm::angleAxis(-(float)M_PI_2, rotation * Vectors::RIGHT) * rotation;
     glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
+    withReadLock([&] {
+        rotation = EntityItem::getBillboardRotation(position, rotation, _billboardMode, EntityItem::getPrimaryViewFrustumPosition());
+    });
 
     if (findRayRectangleIntersection(origin, direction, rotation, position, xyDimensions, distance)) {
         glm::vec3 hitPosition = origin + (distance * direction);

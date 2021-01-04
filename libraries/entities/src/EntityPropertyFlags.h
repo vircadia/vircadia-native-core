@@ -45,6 +45,7 @@ enum EntityPropertyList {
     PROP_PRIMITIVE_MODE,
     PROP_IGNORE_PICK_INTERSECTION,
     PROP_RENDER_WITH_ZONES,
+    PROP_BILLBOARD_MODE,
     // Grab
     PROP_GRAB_GRABBABLE,
     PROP_GRAB_KINEMATIC,
@@ -122,7 +123,6 @@ enum EntityPropertyList {
     PROP_PULSE_COLOR_MODE,
     PROP_PULSE_ALPHA_MODE,
     PROP_TEXTURES,
-    PROP_BILLBOARD_MODE,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new shared EntityItem properties to the list ABOVE this line

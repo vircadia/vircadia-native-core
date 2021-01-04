@@ -203,7 +203,7 @@ public:
     /// Dimensions in meters (0.0 - TREE_SCALE)
     virtual glm::vec3 getScaledDimensions() const;
     virtual void setScaledDimensions(const glm::vec3& value);
-    virtual glm::vec3 getRaycastDimensions() const { return getScaledDimensions(); }
+    virtual glm::vec3 getRaycastDimensions() const;
 
     glm::vec3 getUnscaledDimensions() const;
     virtual void setUnscaledDimensions(const glm::vec3& value);
@@ -587,6 +587,9 @@ public:
     bool needsZoneOcclusionUpdate() const { return _needsZoneOcclusionUpdate; }
     void resetNeedsZoneOcclusionUpdate() { withWriteLock([&] { _needsZoneOcclusionUpdate = false; }); }
 
+    void setBillboardMode(BillboardMode value);
+    BillboardMode getBillboardMode() const;
+
 signals:
     void spaceUpdate(std::pair<int32_t, glm::vec4> data);
 
@@ -777,6 +780,8 @@ protected:
 
     QVector<QUuid> _renderWithZones;
     mutable bool _needsZoneOcclusionUpdate { false };
+
+    BillboardMode _billboardMode { BillboardMode::NONE };
 
     bool _cullWithParent { false };
 

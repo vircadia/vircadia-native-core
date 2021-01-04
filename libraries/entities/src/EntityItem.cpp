@@ -107,6 +107,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_PRIMITIVE_MODE;
     requestedProperties += PROP_IGNORE_PICK_INTERSECTION;
     requestedProperties += PROP_RENDER_WITH_ZONES;
+    requestedProperties += PROP_BILLBOARD_MODE;
     requestedProperties += _grabProperties.getEntityProperties(params);
 
     // Physics
@@ -303,6 +304,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, (uint32_t)getPrimitiveMode());
         APPEND_ENTITY_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, getIgnorePickIntersection());
         APPEND_ENTITY_PROPERTY(PROP_RENDER_WITH_ZONES, getRenderWithZones());
+        APPEND_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, (uint32_t)getBillboardMode());
         withReadLock([&] {
             _grabProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
                 propertyFlags, propertiesDidntFit, propertyCount, appendState);
@@ -875,6 +877,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, PrimitiveMode, setPrimitiveMode);
     READ_ENTITY_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, bool, setIgnorePickIntersection);
     READ_ENTITY_PROPERTY(PROP_RENDER_WITH_ZONES, QVector<QUuid>, setRenderWithZones);
+    READ_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, BillboardMode, setBillboardMode);
     withWriteLock([&] {
         int bytesFromGrab = _grabProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
             propertyFlags, overwriteLocalData,
@@ -1358,6 +1361,7 @@ EntityItemProperties EntityItem::getProperties(const EntityPropertyFlags& desire
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(primitiveMode, getPrimitiveMode);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(ignorePickIntersection, getIgnorePickIntersection);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(renderWithZones, getRenderWithZones);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(billboardMode, getBillboardMode);
     withReadLock([&] {
         _grabProperties.getProperties(properties);
     });
@@ -1508,6 +1512,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(primitiveMode, setPrimitiveMode);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ignorePickIntersection, setIgnorePickIntersection);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(renderWithZones, setRenderWithZones);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(billboardMode, setBillboardMode);
     withWriteLock([&] {
         bool grabPropertiesChanged = _grabProperties.setProperties(properties);
         somethingChanged |= grabPropertiesChanged;
@@ -1903,6 +1908,16 @@ glm::vec3 EntityItem::getScaledDimensions() const {
 void EntityItem::setScaledDimensions(const glm::vec3& value) {
     glm::vec3 parentScale = getSNScale();
     setUnscaledDimensions(value / parentScale);
+}
+
+glm::vec3 EntityItem::getRaycastDimensions() const {
+    glm::vec3 dimensions = getScaledDimensions();
+    if (getBillboardMode() != BillboardMode::NONE) {
+        float max = glm::max(dimensions.x, glm::max(dimensions.y, dimensions.z));
+        const float SQRT_2 = 1.41421356237f;
+        return glm::vec3(SQRT_2 * max);
+    }
+    return dimensions;
 }
 
 void EntityItem::setUnscaledDimensions(const glm::vec3& value) {
@@ -3590,5 +3605,18 @@ void EntityItem::setRenderWithZones(const QVector<QUuid>& renderWithZones) {
 QVector<QUuid> EntityItem::getRenderWithZones() const {
     return resultWithReadLock<QVector<QUuid>>([&] {
         return _renderWithZones;
+    });
+}
+
+BillboardMode EntityItem::getBillboardMode() const {
+    return resultWithReadLock<BillboardMode>([&] {
+        return _billboardMode;
+    });
+}
+
+void EntityItem::setBillboardMode(BillboardMode value) {
+    withWriteLock([&] {
+        _needsRenderUpdate |= _billboardMode != value;
+        _billboardMode = value;
     });
 }

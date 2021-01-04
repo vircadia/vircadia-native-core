@@ -167,7 +167,6 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
         _color = entity->getColor();
         _alpha = entity->getAlpha();
         _pulseProperties = entity->getPulseProperties();
-        _billboardMode = entity->getBillboardMode();
 
         if (_contentType == ContentType::NoContent) {
             _tryingToBuildURL = newSourceURL;
@@ -257,17 +256,6 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
     });
 }
 
-Item::Bound WebEntityRenderer::getBound() {
-    auto bound = Parent::getBound();
-    if (_billboardMode != BillboardMode::NONE) {
-        glm::vec3 dimensions = bound.getScale();
-        float max = glm::max(dimensions.x, glm::max(dimensions.y, dimensions.z));
-        const float SQRT_2 = 1.41421356237f;
-        bound.setScaleStayCentered(glm::vec3(SQRT_2 * max));
-    }
-    return bound;
-}
-
 void WebEntityRenderer::doRender(RenderArgs* args) {
     PerformanceTimer perfTimer("WebEntityRenderer::render");
     withWriteLock([&] {
@@ -297,20 +285,20 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
     gpu::Batch& batch = *args->_batch;
     glm::vec4 color;
     Transform transform;
-    bool forward;
     bool transparent;
     withReadLock([&] {
         float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         color = glm::vec4(toGlm(_color), _alpha * fadeRatio);
         color = EntityRenderer::calculatePulseColor(color, _pulseProperties, _created);
         transform = _renderTransform;
-        forward = _renderLayer != RenderLayer::WORLD || args->_renderMethod == render::Args::FORWARD;
         transparent = isTransparent();
     });
 
     if (color.a == 0.0f) {
         return;
     }
+
+    bool forward = _renderLayer != RenderLayer::WORLD || args->_renderMethod == render::Args::FORWARD;
 
     batch.setResourceTexture(0, _texture);
 

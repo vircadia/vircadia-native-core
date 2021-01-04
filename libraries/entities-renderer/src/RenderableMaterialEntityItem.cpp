@@ -259,9 +259,9 @@ void MaterialEntityRenderer::doRender(RenderArgs* args) {
     textureTransform.setRotation(glm::vec3(0, 0, glm::radians(_materialMappingRot)));
     textureTransform.setScale(glm::vec3(_materialMappingScale, 1));
 
-    Transform renderTransform;
+    Transform transform;
     withReadLock([&] {
-        renderTransform = _renderTransform;
+        transform = _renderTransform;
     });
 
     if (!drawMaterial) {
@@ -272,7 +272,8 @@ void MaterialEntityRenderer::doRender(RenderArgs* args) {
         proceduralRender = true;
     }
 
-    batch.setModelTransform(renderTransform);
+    transform.setRotation(EntityItem::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode, args->getViewFrustum().getPosition()));
+    batch.setModelTransform(transform);
 
     if (!proceduralRender) {
         drawMaterial->setTextureTransforms(textureTransform, MaterialMappingMode::UV, true);
@@ -287,8 +288,8 @@ void MaterialEntityRenderer::doRender(RenderArgs* args) {
         auto proceduralDrawMaterial = std::static_pointer_cast<graphics::ProceduralMaterial>(drawMaterial);
         glm::vec4 outColor = glm::vec4(drawMaterial->getAlbedo(), drawMaterial->getOpacity());
         outColor = proceduralDrawMaterial->getColor(outColor);
-        proceduralDrawMaterial->prepare(batch, renderTransform.getTranslation(), renderTransform.getScale(),
-                                        renderTransform.getRotation(), _created, ProceduralProgramKey(outColor.a < 1.0f));
+        proceduralDrawMaterial->prepare(batch, transform.getTranslation(), transform.getScale(),
+                                        transform.getRotation(), _created, ProceduralProgramKey(outColor.a < 1.0f));
         if (render::ShapeKey(args->_globalShapeKey).isWireframe() || _primitiveMode == PrimitiveMode::LINES) {
             DependencyManager::get<GeometryCache>()->renderWireSphere(batch, outColor);
         } else {

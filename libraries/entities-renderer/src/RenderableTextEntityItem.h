@@ -33,7 +33,6 @@ public:
 protected:
     bool isTransparent() const override;
     bool isTextTransparent() const;
-    Item::Bound getBound() override;
     ShapeKey getShapeKey() override;
     ItemKey getKey() override;
     virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) const override;
@@ -63,7 +62,6 @@ private:
     float _topMargin;
     float _bottomMargin;
 
-    BillboardMode _billboardMode;
     glm::vec3 _dimensions;
 
     QString _font { "" };

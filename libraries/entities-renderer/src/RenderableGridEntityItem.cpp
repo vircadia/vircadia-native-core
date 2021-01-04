@@ -77,16 +77,16 @@ void GridEntityRenderer::doRender(RenderArgs* args) {
     color = EntityRenderer::calculatePulseColor(color, _pulseProperties, _created);
     glm::vec3 dimensions;
     Transform renderTransform;
-    bool forward;
     withReadLock([&] {
         dimensions = _dimensions;
         renderTransform = _renderTransform;
-        forward = _renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD;
     });
 
     if (!_visible || color.a == 0.0f) {
         return;
     }
+
+    bool forward = _renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD;
 
     auto batch = args->_batch;
 
