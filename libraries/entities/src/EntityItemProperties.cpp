@@ -1003,8 +1003,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {string} blendshapeCoefficients - A JSON string of a map of blendshape names to values.  Only stores set values.
  *     When editing this property, only coefficients that you are editing will change; it will not explicitly reset other
  *     coefficients.
- * @property {boolean} useOriginalPivot=false - If false, the model will be centered based on its content, ignoring any offset
- *     in the model itself. If true, the model will respect its original offset.
+ * @property {boolean} useOriginalPivot=false - If <code>false</code>, the model will be centered based on its content,
+ *     ignoring any offset in the model itself. If <code>true</code>, the model will respect its original offset.
  * @property {string} textures="" - A JSON string of texture name, URL pairs used when rendering the model in place of the
  *     model's original textures. Use a texture name from the <code>originalTextures</code> property to override that texture.
  *     Only the texture names and URLs to be overridden need be specified; original textures are used where there are no
