@@ -5242,7 +5242,7 @@ bool MyAvatar::getIsInSittingState() const {
 // Deprecated, will be removed.
 MyAvatar::SitStandModelType MyAvatar::getUserRecenterModel() const {
     qCDebug(interfaceapp)
-        << "MyAvatar.getUserRecenterModel is deprecated and will be removed.  If you need it, please contact the developers.";
+        << "MyAvatar.getUserRecenterModel is deprecated and will be removed.";
 
     // The legacy SitStandModelType corresponding to each AllowAvatarLeaningPreference.
     std::array<SitStandModelType, static_cast<uint>(AllowAvatarLeaningPreference::Count)> legacySitStandModels = {
@@ -5340,7 +5340,7 @@ void MyAvatar::setIsInSittingState(bool isSitting) {
 // Deprecated, will be removed.
 void MyAvatar::setUserRecenterModel(MyAvatar::SitStandModelType modelName) {
     qCDebug(interfaceapp)
-        << "MyAvatar.setUserRecenterModel is deprecated and will be removed.  If you need it, please contact the developers.";
+        << "MyAvatar.setUserRecenterModel is deprecated and will be removed.";
 
     switch (modelName) {
         case SitStandModelType::ForceSit:
@@ -5375,8 +5375,7 @@ void MyAvatar::setAllowAvatarStandingPreference(const MyAvatar::AllowAvatarStand
 // Deprecated, will be removed.
 void MyAvatar::setIsSitStandStateLocked(bool isLocked) {
     Q_UNUSED(isLocked);
-    qCDebug(interfaceapp) << "MyAvatar.setIsSitStandStateLocked is deprecated and will be removed.  If you need it, please "
-                             "contact the developers.  See also: MyAvatar.setUserRecenterModel.";
+    qCDebug(interfaceapp) << "MyAvatar.setIsSitStandStateLocked is deprecated and will be removed.";
 }
 
 // Set the user preference of when the avatar may lean.

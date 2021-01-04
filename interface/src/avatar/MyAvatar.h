@@ -291,8 +291,8 @@ class MyAvatar : public Avatar {
      *     sitting / standing state, which is updated when the user next sits or stands.
      * @property {boolean} isSitStandStateLocked - <code>true</code> to lock the avatar sitting/standing state, i.e., use this 
      *     to disable automatically changing state.
-     *     <p class="important">Deprecated: This property is deprecated and will be removed. If you need it, please contact 
-     *     the developers.  See also: <code>getUserRecenterModel</code> and <code>setUserRecenterModel</code>.</p>
+     *     <p class="important">Deprecated: This property is deprecated and will be removed.  
+     *     See also: <code>getUserRecenterModel</code> and <code>setUserRecenterModel</code>.</p>
      * @property {boolean} allowTeleporting - <code>true</code> if teleporting is enabled in the Interface settings, 
      *     <code>false</code> if it isn't. <em>Read-only.</em>
      *
@@ -414,16 +414,8 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float walkBackwardSpeed READ getWalkBackwardSpeed WRITE setWalkBackwardSpeed NOTIFY walkBackwardSpeedChanged);
     Q_PROPERTY(float sprintSpeed READ getSprintSpeed WRITE setSprintSpeed NOTIFY sprintSpeedChanged);
     Q_PROPERTY(bool isInSittingState READ getIsInSittingState WRITE setIsInSittingState);
-
     Q_PROPERTY(MyAvatar::SitStandModelType userRecenterModel READ getUserRecenterModel WRITE setUserRecenterModel);  // Deprecated
-
-    /**jsdoc
-    * @deprecated This property is deprecated and will be removed.  If you need it, please contact the developers. 
-    *     See also: {@link MyAvatar.getUserRecenterModel|getUserRecenterModel} and 
-    *     {@link MyAvatar.setUserRecenterModel|setUserRecenterModel}.
-    */
-    Q_PROPERTY(bool isSitStandStateLocked READ getIsSitStandStateLocked WRITE setIsSitStandStateLocked);
-
+    Q_PROPERTY(bool isSitStandStateLocked READ getIsSitStandStateLocked WRITE setIsSitStandStateLocked);      // Deprecated
     Q_PROPERTY(bool allowTeleporting READ getAllowTeleporting)
 
     const QString DOMINANT_LEFT_HAND = "left";
