@@ -5257,8 +5257,7 @@ MyAvatar::SitStandModelType MyAvatar::getUserRecenterModel() const {
 
 // Deprecated, will be removed.
 bool MyAvatar::getIsSitStandStateLocked() const {
-    qCDebug(interfaceapp) << "MyAvatar.getIsSitStandStateLocked is deprecated and will be removed.  If you need it, please "
-                             "contact the developers.  See also: MyAvatar.getUserRecenterModel.";
+    qCDebug(interfaceapp) << "MyAvatar.getIsSitStandStateLocked is deprecated and will be removed.";
 
     // In the old code, the record of the user's sit/stand state was locked except when using
     // SitStandModelType::Auto or SitStandModelType::DisableHMDLean.
