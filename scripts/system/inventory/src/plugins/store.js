@@ -149,6 +149,7 @@ export const store = new Vuex.Store({
                 ],
             },
             bazaar: {
+                dbName: 'inventory',
                 repo: 'https://vircadia-content-public.s3.amazonaws.com/Bazaar/inventoryDB'
             }
         },

@@ -211,15 +211,20 @@ export default {
     }),
     created: function () {
         vue_this = this;
-        
-        // eslint-disable-next-line
-        this.pouchDB = new PouchDB('inventory');
+
         // Import exported GZ file
         this.bazaarData = this.getSync(this.$store.state.settings.bazaar.repo + "/inventoryDB.gz?" + Date.now());
-        // Call function to load DB
-        this.makeDB(this.bazaarData);
-        // Call to create top level categories
-        this.getTopCategories();
+        // Clear the DB out then reload it...
+        this.clearDB.then(function (result) {
+            if (result === true) {
+                console.info('destruct successful.');
+                vue_this.makeDB(this.bazaarData);
+                // Call to create top level categories based on DB data
+                this.getTopCategories();
+            } else {
+                console.info('destruct failed:', result);
+            }
+        });
     },
     computed: {
         categoryStore: {
@@ -248,6 +253,10 @@ export default {
     watch: {
     },
     methods: {
+        clearDB: function () {
+            // eslint-disable-next-line
+            return new PouchDB(this.$store.state.settings.bazaar.dbName).destroy();
+        },
         // Unzip import and load into pouchDB
         makeDB: function (data) {
             // eslint-disable-next-line
@@ -255,19 +264,33 @@ export default {
                 to: 'string'
             });
             console.info('this.bazaarData', JSON.parse(data));
+
+            // eslint-disable-next-line
+            this.pouchDB = new PouchDB(this.$store.state.settings.bazaar.dbName);
+            
+            this.pouchDB.allDocs({include_docs: true},function(err, docs) {
+                if (err) {
+                    console.info("Pre-read fail: " + err);
+                } else {
+                    console.info("Pre-read success: ", docs);
+                }
+            });
+            
             this.pouchDB.bulkDocs(
                 JSON.parse(data), {
                     new_edits: false
-                } // not change revision
-            );
-            console.log('Finished Bazaar DB Import.');
-
-            // Write DB Info to console
-            this.pouchDB.info().then(function (info) {
-                var dbName = info.db_name;
-                var records = info.doc_count;
-                console.info('dbName', dbName, 'records', records);
+                }
+            )
+            .then(function(res) { 
+                console.log('bulkDocs-success', res); 
+                console.log('Finished Bazaar DB Import.');
+            
+                // Write DB Info to console
+                vue_this.pouchDB.info().then(function (info) {
+                    console.info('dbName', info.db_name, 'records', info.doc_count);
+                });
             })
+            .catch(function(res) { console.log('bulkDocs-failure', res); });
         },
         // GET synchronously
         getSync: function ($URL) {
@@ -296,8 +319,8 @@ export default {
         },
         selectCategory: function (category) {
             vue_this.pouchDB.search({
-                query: 'resource',
-                fields: ['r_type'],
+                query: category,
+                fields: ['parent'],
                 include_docs: true
             }).then(async function (data) {
                 console.info('Setting category to', category, data);
@@ -307,7 +330,7 @@ export default {
                 vue_this.currentCategoryRecordsLoaded = 0;
 
                 for (var i = 0; i < data.total_rows; i++) {
-                    console.info('Found item', data.rows[i].doc);
+                    console.info('Found item', data.rows[i]);
                     // var itemPath = data.rows[i].doc.path;
                     // var resourcePath = itemPath + '/resource.json';
                     // var retrievedData = vue_this.getSync(resourcePath);
