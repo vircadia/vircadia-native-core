@@ -23,17 +23,18 @@
                         dark
                         flat
                     >
-                        <v-toolbar-title>
-                            <!-- <v-breadcrumbs :items="items"></v-breadcrumbs> -->
-                        </v-toolbar-title>
                         <v-btn
-                            v-for="subCategory in subCategoryStore"
-                            :key="subCategory.title"
+                            @click="bazaarStore.categoryDrawer = true"
                             color="primary"
                             class="mx-1"
                         >
-                            {{ subCategory.title }}
+                            <v-icon dark>
+                                mdi-shape
+                            </v-icon>
                         </v-btn>
+                        <!-- <v-toolbar-title>
+                            <v-breadcrumbs :items="items"></v-breadcrumbs>
+                        </v-toolbar-title> -->
                     </v-toolbar>
                 </template>
 
@@ -206,42 +207,25 @@ export default {
         });
     },
     computed: {
-        selectedCategoryStore: {
+        bazaarStore: {
             get() {
-                return this.$store.state.selectedCategory;
+                return this.$store.state.bazaar;
             },
             set (value) {
                 this.$store.commit('mutate', {
-                    property: 'selectedCategory', 
+                    property: 'bazaar', 
                     with: value
                 });
             }
         },
-        categoryStore: {
-            get() {
-                return this.$store.state.categoryStore;
-            },
-            set (value) {
-                this.$store.commit('mutate', {
-                    property: 'categoryStore', 
-                    with: value
-                });
-            }
-        },
-        subCategoryStore: {
-            get() {
-                return this.$store.state.subCategoryStore;
-            },
-            set (value) {
-                this.$store.commit('mutate', {
-                    property: 'subCategoryStore', 
-                    with: value
-                });
+        watchSelectedCategory: {
+            get () {
+                return this.$store.state.bazaar.selectedCategory;
             }
         }
     },
     watch: {
-        selectedCategoryStore: {
+        watchSelectedCategory: {
             handler: function (newVal) {
                 this.selectCategory(newVal);
             }
@@ -300,10 +284,10 @@ export default {
                 fields: ['parent'],
                 include_docs: true
             }).then(function (res) {
-                vue_this.categoryStore = [];
+                vue_this.bazaarStore.categories = [];
                 res.rows.forEach (function (category) {
                     console.info('Adding top category', category);
-                    vue_this.categoryStore.push(
+                    vue_this.bazaarStore.categories.push(
                         {
                             'title': category.doc.name,
                         }

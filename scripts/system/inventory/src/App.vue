@@ -23,7 +23,7 @@
             app
         >
 
-            <v-app-bar-nav-icon 
+            <v-app-bar-nav-icon
                 @click="drawer = !drawer"
             ></v-app-bar-nav-icon>
 
@@ -174,6 +174,8 @@
 
             </v-list>
         </v-navigation-drawer>
+        
+        <CategoryDrawer></CategoryDrawer>
 
         <v-main
             v-show="settingsStore.currentView === 'Inventory'"
@@ -203,7 +205,7 @@
                 v-show="settingsStore.currentView === 'Bazaar'"
             >
                 <v-select
-                    :items="categoryStore"
+                    :items="bazaarStore.categories"
                     item-text="title"
                     item-value="title"
                     label="Category"
@@ -968,6 +970,10 @@
 </template>
 
 <script>
+import InventoryItemIterator from './components/InventoryItemIterator'
+import Bazaar from './components/Bazaar'
+import CategoryDrawer from './components/CategoryDrawer'
+import { EventBus } from './plugins/event-bus.js';
 var vue_this;
 
 function browserDevelopment() {
@@ -1012,8 +1018,6 @@ if (!browserDevelopment()) {
     
 }
 
-import { EventBus } from './plugins/event-bus.js';
-
 EventBus.$on('use-item', data => {
     vue_this.useItem(data.type, data.url);
 });
@@ -1029,14 +1033,12 @@ EventBus.$on('add-item-from-bazaar', data => {
     vue_this.getFolderList('add');
 });
 
-import InventoryItemIterator from './components/InventoryItemIterator'
-import Bazaar from './components/Bazaar'
-
 export default {
     name: 'App',
     components: {
         InventoryItemIterator,
-        Bazaar
+        Bazaar,
+        CategoryDrawer
     },
     data: () => ({
         possibleTags: [],
@@ -1088,12 +1090,11 @@ export default {
                 distance: 1,
             }
         ],
-        darkTheme: true,
         drawer: false
     }),
     created: function () {
         vue_this = this;
-        this.$vuetify.theme.dark = this.darkTheme;
+        this.$vuetify.theme.dark = this.settingsStore.darkTheme;
                 
         this.sendAppMessage("ready", "");
     },
@@ -1516,7 +1517,7 @@ export default {
             return this.recursiveFolderHoldingList;
         },
         selectCategory: function (category) {
-            this.selectedCategoryStore = category;
+            this.bazaarStore.selectedCategory = category;
         },
         
         // MAIN APP FUNCTIONS
@@ -1631,35 +1632,13 @@ export default {
                 });
             }
         },
-        selectedCategoryStore: {
+        bazaarStore: {
             get() {
-                return this.$store.state.selectedCategory;
+                return this.$store.state.bazaar;
             },
             set (value) {
                 this.$store.commit('mutate', {
-                    property: 'selectedCategory', 
-                    with: value
-                });
-            }
-        },
-        categoryStore: {
-            get() {
-                return this.$store.state.categoryStore;
-            },
-            set (value) {
-                this.$store.commit('mutate', {
-                    property: 'categoryStore', 
-                    with: value
-                });
-            }
-        },
-        subCategoryStore: {
-            get() {
-                return this.$store.state.subCategoryStore;
-            },
-            set (value) {
-                this.$store.commit('mutate', {
-                    property: 'subCategoryStore', 
+                    property: 'bazaar', 
                     with: value
                 });
             }

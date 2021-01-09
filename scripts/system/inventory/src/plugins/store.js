@@ -153,7 +153,8 @@ export const store = new Vuex.Store({
                 dbName: 'inventory',
                 repo: 'https://vircadia-content-public.s3.amazonaws.com/Bazaar/inventoryDB'
             },
-            debugMode: true
+            debugMode: true,
+            darkTheme: true
         },
         iconType: {
             "SCRIPT": {
@@ -264,23 +265,27 @@ export const store = new Vuex.Store({
             }
         },
         searchBox: '',
-        selectedCategory: '',
-        categoryStore: [
-            {
-                title: 'Category 1'
-            },
-            {
-                title: 'Category 2'
-            }
-        ],
-        subCategoryStore: [
-            {
-                title: 'Subcategory 1'
-            },
-            {
-                title: 'Subcategory 2'
-            }
-        ],
+        bazaar: {
+            categoryDrawer: false,
+            selectedCategory: '',
+            breadcrumbs: [],
+            categories: [
+                {
+                    title: 'Category 1'
+                },
+                {
+                    title: 'Category 2'
+                }
+            ],
+            subCategories: [
+                {
+                    title: 'Subcategory 1'
+                },
+                {
+                    title: 'Subcategory 2'
+                }
+            ]
+        },
         // --- CUSTOM DATA ---
         bizCardDialog: {
             show: false,
