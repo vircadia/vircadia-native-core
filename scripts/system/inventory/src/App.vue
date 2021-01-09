@@ -170,7 +170,7 @@
                     <v-list-item-title>Create Folder</v-list-item-title>
                 </v-list-item>
                                 
-                <p class="app-version">Version {{appVersion}}</p>
+                <p class="app-version">Version {{ settingsStore.DASHBOARD_VERSION }}</p>
 
             </v-list>
         </v-navigation-drawer>
@@ -1088,7 +1088,6 @@ export default {
                 distance: 1,
             }
         ],
-        appVersion: "3.1.0",
         darkTheme: true,
         drawer: false
     }),

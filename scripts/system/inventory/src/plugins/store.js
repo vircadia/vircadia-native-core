@@ -139,6 +139,7 @@ export const store = new Vuex.Store({
             },
         ],
         settings: {
+            DASHBOARD_VERSION: process.env.VUE_APP_VERSION,
             currentView: 'Inventory',
             displayDensity: {
                 size: 0,

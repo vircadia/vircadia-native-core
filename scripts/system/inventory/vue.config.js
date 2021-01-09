@@ -8,6 +8,8 @@
     See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 */
 
+process.env.VUE_APP_VERSION = require('./package.json').version
+
 module.exports = {
     publicPath: "./",
     assetsDir: "./",
