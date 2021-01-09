@@ -1,0 +1,51 @@
+<!doctype html public "-//w3c//dtd html 5//en">
+<html>
+<html>
+<script type="text/javascript" src="pouchdb-7.2.1.min.js"></script>
+<script type="text/javascript" src="pouchdb.find.js"></script>
+<script type="text/javascript" src="pouchdb.quick-search.min.js"></script>
+<script type="text/javascript" src="pako.min.js"></script>
+<script>
+
+
+var inventoryDB_ = new PouchDB('inventory');
+let $repo = "https://cdn-1.vircadia.com/us-e-1/Bazaar"
+data = Get($repo + "/inventoryDB/inventoryDB.gz");
+
+// GET Function to retrieve json
+function Get($URL) {
+    var Httpreq = new XMLHttpRequest(); // a new request
+    Httpreq.open("GET", $URL, false);
+    Httpreq.send(null);
+    return Httpreq.responseText;
+	
+}
+
+// Unzip import and load into inventoryDB
+function mkDB(data) {
+    data = pako.ungzip(data, {
+        to: 'string'
+    });
+    inventoryDB_.bulkDocs(
+        JSON.parse(data), {
+        new_edits: false
+    } // not change revision
+    );
+    console.log('Finished Import');
+	    console.log(inventoryDB_);
+};
+
+// DB Function to pull top level categories
+function getTcat() {
+    inventoryDB_.search({
+        query: 'resource',
+        fields: ['r_type'],
+        include_docs: true
+    }).then(function (res) {
+        console.log (res);
+    });
+
+};
+mkDB(data)
+getTcat();
+</script>
