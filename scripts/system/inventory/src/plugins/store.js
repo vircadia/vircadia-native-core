@@ -151,7 +151,8 @@ export const store = new Vuex.Store({
             bazaar: {
                 dbName: 'inventory',
                 repo: 'https://vircadia-content-public.s3.amazonaws.com/Bazaar/inventoryDB'
-            }
+            },
+            debugMode: true
         },
         iconType: {
             "SCRIPT": {
@@ -262,6 +263,7 @@ export const store = new Vuex.Store({
             }
         },
         searchBox: '',
+        selectedCategory: '',
         categoryStore: [
             {
                 title: 'Category 1'

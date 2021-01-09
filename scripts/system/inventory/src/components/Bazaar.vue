@@ -66,7 +66,7 @@
                                         fab
                                         color="primary"
                                         small
-                                        @click="console.log(item.main)"
+                                        @click="addItemToInventory(item)"
                                     >
                                         <v-icon dark>
                                             mdi-plus
@@ -149,27 +149,6 @@
             </v-data-iterator>
         </v-col>
         
-        <v-bottom-navigation
-            app
-        >
-            <span>
-                <v-select
-                    :items="categoryStore"
-                    item-text="title"
-                    item-value="title"
-                    label="Category"
-                    class=""
-                    @change="selectCategory"
-                ></v-select>
-            </span>
-            <div
-                v-show="currentCategoryRecords > 0"
-                class="ml-6 mt-4"
-            >
-                Loaded {{ currentCategoryRecordsLoaded }} of {{ currentCategoryRecords }} total items
-            </div>
-        </v-bottom-navigation>
-        
         <v-snackbar
             v-model="copiedToClipboardSnackbar"
             color="success"
@@ -214,19 +193,30 @@ export default {
 
         // Import exported GZ file
         this.bazaarData = this.getSync(this.$store.state.settings.bazaar.repo + "/inventoryDB.gz?" + Date.now());
-        // Clear the DB out then reload it...
-        this.clearDB.then(function (result) {
-            if (result === true) {
-                console.info('destruct successful.');
-                vue_this.makeDB(this.bazaarData);
-                // Call to create top level categories based on DB data
-                this.getTopCategories();
-            } else {
-                console.info('destruct failed:', result);
-            }
+        // Clean out DB cache and then recreate it.
+        // eslint-disable-next-line
+        var destroyDB = new PouchDB('inventory');
+        destroyDB.destroy().then(function () {
+            console.info('Destroyed DB successfully.');
+            vue_this.makeDB(vue_this.bazaarData);
+            // Call to create top level categories based on DB data
+            vue_this.getTopCategories();
+        }).catch(function (err) {
+            console.info('Failed to destroy DB: ', err);
         });
     },
     computed: {
+        selectedCategoryStore: {
+            get() {
+                return this.$store.state.selectedCategory;
+            },
+            set (value) {
+                this.$store.commit('mutate', {
+                    property: 'selectedCategory', 
+                    with: value
+                });
+            }
+        },
         categoryStore: {
             get() {
                 return this.$store.state.categoryStore;
@@ -251,11 +241,15 @@ export default {
         }
     },
     watch: {
+        selectedCategoryStore: {
+            handler: function (newVal) {
+                this.selectCategory(newVal);
+            }
+        }
     },
     methods: {
         clearDB: function () {
-            // eslint-disable-next-line
-            return new PouchDB(this.$store.state.settings.bazaar.dbName).destroy();
+            
         },
         // Unzip import and load into pouchDB
         makeDB: function (data) {
@@ -300,7 +294,7 @@ export default {
             return Httpreq.responseText;
         },
         // DB Function to pull top level categories
-        getTopCategories: function() {
+        getTopCategories: function () {
             this.pouchDB.search({
                 query: 'Bazaar',
                 fields: ['parent'],
@@ -308,7 +302,7 @@ export default {
             }).then(function (res) {
                 vue_this.categoryStore = [];
                 res.rows.forEach (function (category) {
-                    console.info('Setting top category', category);
+                    console.info('Adding top category', category);
                     vue_this.categoryStore.push(
                         {
                             'title': category.doc.name,
@@ -320,7 +314,7 @@ export default {
         selectCategory: function (category) {
             vue_this.pouchDB.search({
                 query: category,
-                fields: ['parent'],
+                fields: ['type'],
                 include_docs: true
             }).then(async function (data) {
                 console.info('Setting category to', category, data);
@@ -331,6 +325,7 @@ export default {
 
                 for (var i = 0; i < data.total_rows; i++) {
                     console.info('Found item', data.rows[i]);
+                    vue_this.pushItemToBazaar(data.rows[i].doc.path, data.rows[i].doc);
                     // var itemPath = data.rows[i].doc.path;
                     // var resourcePath = itemPath + '/resource.json';
                     // var retrievedData = vue_this.getSync(resourcePath);
@@ -357,16 +352,33 @@ export default {
                 }
             });
         },
-        pushItemToBazaar: function(itemRootPath, itemData) {
+        pushItemToBazaar: function (itemRootPath, itemData) {
+            var iconToPush;
+            if (itemData.icon) {
+                iconToPush = this.combinePaths(itemRootPath, itemData.icon);
+            } else {
+                iconToPush = '';
+            }
+
             this.bazaarIteratorData.push({
                 name: itemData.name,
                 description: itemData.description,
                 main: this.combinePaths(itemRootPath, itemData.main),
-                icon: this.combinePaths(itemRootPath, itemData.icon),
+                icon: iconToPush,
+                author: itemData.author,
+                image: itemData.image,
+                license: itemData.license,
+                parent: itemData.parent,
+                path: itemData.path,
+                type: itemData.type,
+                version: itemData.version,
                 currentTab: 0
             });
         },
-        combinePaths: function(path1, path2) {
+        addItemToInventory: function (item) {
+            this.sendEvent('add-item-from-bazaar', item);
+        },
+        combinePaths: function (path1, path2) {
             if (path1.endsWith('/') && !path2.startsWith('/')) {
                 return path1 + path2;
             }

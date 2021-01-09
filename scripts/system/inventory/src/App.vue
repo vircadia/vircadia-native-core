@@ -36,6 +36,7 @@
                 v-model="searchBoxStore"
                 class="mx-5 mt-7"
                 clearable
+                :disabled="settingsStore.currentView === 'Inventory'"
             ></v-text-field>
 
             <v-spacer></v-spacer>
@@ -194,6 +195,29 @@
         >
             <Bazaar></Bazaar>
         </v-main>
+        
+        <v-bottom-navigation
+            app
+        >
+            <span
+                v-show="settingsStore.currentView === 'Bazaar'"
+            >
+                <v-select
+                    :items="categoryStore"
+                    item-text="title"
+                    item-value="title"
+                    label="Category"
+                    class=""
+                    @change="selectCategory"
+                ></v-select>
+            </span>
+            <!-- <div
+                v-show="currentCategoryRecords > 0"
+                class="ml-6 mt-4"
+            >
+                Loaded {{ currentCategoryRecordsLoaded }} of {{ currentCategoryRecords }} total items
+            </div> -->
+        </v-bottom-navigation>
         
         <!-- ### DIALOGS ### -->
 
@@ -944,7 +968,6 @@
 </template>
 
 <script>
-
 var vue_this;
 
 function browserDevelopment() {
@@ -996,7 +1019,14 @@ EventBus.$on('use-item', data => {
 });
 
 EventBus.$on('add-item-from-bazaar', data => {
-    vue_this.addItem(data.type, data.url);
+    vue_this.addDialogStore.data.name = data.name;
+    vue_this.addDialogStore.data.folder = null;
+    vue_this.addDialogStore.data.url = data.main;
+    vue_this.addDialogStore.data.tags = data.tags;
+    vue_this.addDialogStore.data.metadata = data.description;
+    vue_this.addDialogStore.data.version = data.version;
+    vue_this.addDialogStore.show = true; 
+    vue_this.getFolderList('add');
 });
 
 import InventoryItemIterator from './components/InventoryItemIterator'
@@ -1058,22 +1088,9 @@ export default {
                 distance: 1,
             }
         ],
-        sortBy: "alphabetical",
-        settings: {
-            currentView: 'Inventory',
-            displayDensity: {
-                "size": 0,
-                "labels": [
-                    "List",
-                    "Compact",
-                    "Large",
-                ]
-            }
-        },
-        appVersion: "3.0.0",
+        appVersion: "3.1.0",
         darkTheme: true,
-        drawer: false,
-        disabledProp: true
+        drawer: false
     }),
     created: function () {
         vue_this = this;
@@ -1462,7 +1479,7 @@ export default {
                 }
             }
         },
-        recursiveSingularSearch: function(uuid, indexToSearch) {
+        recursiveSingularSearch: function (uuid, indexToSearch) {
             for (var i = 0; i < indexToSearch.length; i++) {
                 if (indexToSearch[i].uuid === uuid) {
                     var foundItem = {
@@ -1481,7 +1498,7 @@ export default {
             
             return null;
         },
-        recursiveFolderPopulate: function(indexToSearch, avoidFolder) {
+        recursiveFolderPopulate: function (indexToSearch, avoidFolder) {
             for (var i = 0; i < indexToSearch.length; i++) {
                 if (Object.prototype.hasOwnProperty.call(indexToSearch[i], "items")) {
                     // We want to avoid adding the folder itself and also any child folders it may have, putting a folder within its child folder will nuke it.
@@ -1499,6 +1516,12 @@ export default {
             
             return this.recursiveFolderHoldingList;
         },
+        selectCategory: function (category) {
+            this.selectedCategoryStore = category;
+        },
+        
+        // MAIN APP FUNCTIONS
+
         sendInventory: function() {
             this.sendAppMessage("web-to-script-inventory", this.itemsStore );
         },
@@ -1539,6 +1562,9 @@ export default {
             } else {
                 // alert(JSON.stringify(JSONtoSend));
             }
+        },
+        sendEvent: function (command, data) {
+            EventBus.$emit(command, data);
         },
         // --- CUSTOM METHODS ---
         addBusinessCard: function () {
@@ -1606,13 +1632,35 @@ export default {
                 });
             }
         },
-        bottomNavigationStore: {
+        selectedCategoryStore: {
             get() {
-                return this.$store.state.bottomNavigation;
+                return this.$store.state.selectedCategory;
             },
             set (value) {
                 this.$store.commit('mutate', {
-                    property: 'bottomNavigation', 
+                    property: 'selectedCategory', 
+                    with: value
+                });
+            }
+        },
+        categoryStore: {
+            get() {
+                return this.$store.state.categoryStore;
+            },
+            set (value) {
+                this.$store.commit('mutate', {
+                    property: 'categoryStore', 
+                    with: value
+                });
+            }
+        },
+        subCategoryStore: {
+            get() {
+                return this.$store.state.subCategoryStore;
+            },
+            set (value) {
+                this.$store.commit('mutate', {
+                    property: 'subCategoryStore', 
                     with: value
                 });
             }
