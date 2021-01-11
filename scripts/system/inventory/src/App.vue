@@ -213,6 +213,27 @@
                     @change="selectCategory"
                 ></v-select>
             </span>
+            <span
+                v-show="settingsStore.currentView === 'Bazaar'"
+            >
+                <v-select
+                    :items="bazaarStore.subCategories"
+                    item-text="title"
+                    item-value="title"
+                    label="Subcategories"
+                    class=""
+                    @change="selectCategory"
+                ></v-select>
+            </span>
+            <!-- <v-btn
+                @click="bazaarStore.categoryDrawer = true"
+                color="primary"
+                class="mx-1"
+            >
+                <v-icon dark>
+                    mdi-shape
+                </v-icon>
+            </v-btn> -->
             <!-- <div
                 v-show="currentCategoryRecords > 0"
                 class="ml-6 mt-4"

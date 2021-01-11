@@ -23,18 +23,9 @@
                         dark
                         flat
                     >
-                        <v-btn
-                            @click="bazaarStore.categoryDrawer = true"
-                            color="primary"
-                            class="mx-1"
-                        >
-                            <v-icon dark>
-                                mdi-shape
-                            </v-icon>
-                        </v-btn>
-                        <!-- <v-toolbar-title>
-                            <v-breadcrumbs :items="items"></v-breadcrumbs>
-                        </v-toolbar-title> -->
+                        <v-toolbar-title>
+                            <v-breadcrumbs :items="bazaarStore.breadcrumbs"></v-breadcrumbs>
+                        </v-toolbar-title>
                     </v-toolbar>
                 </template>
 
