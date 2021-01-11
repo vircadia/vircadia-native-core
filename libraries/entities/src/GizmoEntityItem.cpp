@@ -109,11 +109,9 @@ bool GizmoEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const
     glm::vec3 dimensions = getScaledDimensions();
     glm::vec2 xyDimensions(dimensions.x, dimensions.z);
     glm::quat rotation = getWorldOrientation();
-    rotation = glm::angleAxis(-(float)M_PI_2, rotation * Vectors::RIGHT) * rotation;
+    rotation *= glm::angleAxis(-(float)M_PI_2, Vectors::RIGHT);
     glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
-    withReadLock([&] {
-        rotation = EntityItem::getBillboardRotation(position, rotation, _billboardMode, EntityItem::getPrimaryViewFrustumPosition());
-    });
+    rotation = EntityItem::getBillboardRotation(position, rotation, getBillboardMode(), EntityItem::getPrimaryViewFrustumPosition(), false);
 
     if (findRayRectangleIntersection(origin, direction, rotation, position, xyDimensions, distance)) {
         glm::vec3 hitPosition = origin + (distance * direction);
@@ -146,8 +144,9 @@ bool GizmoEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, 
     glm::vec3 dimensions = getScaledDimensions();
     glm::vec2 xyDimensions(dimensions.x, dimensions.z);
     glm::quat rotation = getWorldOrientation();
-    rotation = glm::angleAxis(-(float)M_PI_2, rotation * Vectors::RIGHT) * rotation;
+    rotation *= glm::angleAxis(-(float)M_PI_2, Vectors::RIGHT);
     glm::vec3 position = getWorldPosition();
+    rotation = EntityItem::getBillboardRotation(position, rotation, getBillboardMode(), EntityItem::getPrimaryViewFrustumPosition(), true);
 
     glm::quat inverseRot = glm::inverse(rotation);
     glm::vec3 localOrigin = inverseRot * (origin - position);

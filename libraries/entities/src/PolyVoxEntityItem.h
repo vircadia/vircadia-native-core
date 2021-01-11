@@ -167,8 +167,8 @@ class PolyVoxEntityItem : public EntityItem {
 
     bool isEdged() const;
 
-    glm::mat4 voxelToWorldMatrix() const;
-    glm::mat4 worldToVoxelMatrix() const;
+    glm::mat4 voxelToWorldMatrix(bool includeBillboard = false) const;
+    glm::mat4 worldToVoxelMatrix(bool includeBillboard = false) const;
     glm::mat4 voxelToLocalMatrix() const;
     glm::mat4 localToVoxelMatrix() const;
 

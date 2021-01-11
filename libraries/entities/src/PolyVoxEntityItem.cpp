@@ -377,15 +377,21 @@ glm::mat4 PolyVoxEntityItem::localToVoxelMatrix() const {
     return localToModelMatrix;
 }
 
-glm::mat4 PolyVoxEntityItem::voxelToWorldMatrix() const {
-    glm::mat4 rotation = glm::mat4_cast(getWorldOrientation());
-    glm::mat4 translation = glm::translate(getWorldPosition());
+glm::mat4 PolyVoxEntityItem::voxelToWorldMatrix(bool includeBillboard) const {
+    glm::quat orientation = getWorldOrientation();
+    glm::vec3 position = getWorldPosition();
+    glm::mat4 translation = glm::translate(position);
+    glm::mat4 rotation;
+    if (includeBillboard) {
+        rotation = glm::mat4_cast(EntityItem::getBillboardRotation(position, orientation, getBillboardMode(), EntityItem::getPrimaryViewFrustumPosition()));
+    } else {
+        rotation = glm::mat4_cast(orientation);
+    }
     return translation * rotation * voxelToLocalMatrix();
 }
 
-glm::mat4 PolyVoxEntityItem::worldToVoxelMatrix() const {
-    glm::mat4 worldToModelMatrix = glm::inverse(voxelToWorldMatrix());
-    return worldToModelMatrix;
+glm::mat4 PolyVoxEntityItem::worldToVoxelMatrix(bool includeBillboard) const {
+    return glm::inverse(voxelToWorldMatrix(includeBillboard));
 }
 
 glm::vec3 PolyVoxEntityItem::voxelCoordsToWorldCoords(const glm::vec3& voxelCoords) const {

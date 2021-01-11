@@ -219,8 +219,10 @@ EntityItemID EntityTreeElement::evalDetailedRayIntersection(const glm::vec3& ori
         }
 
         // extents is the entity relative, scaled, centered extents of the entity
-        glm::mat4 rotation = glm::mat4_cast(entity->getWorldOrientation());
-        glm::mat4 translation = glm::translate(entity->getWorldPosition());
+        glm::vec3 position = entity->getWorldPosition();
+        glm::mat4 translation = glm::translate(position);
+        glm::quat orientation = entity->getWorldOrientation();
+        glm::mat4 rotation = glm::mat4_cast(EntityItem::getBillboardRotation(position, orientation, entity->getBillboardMode(), EntityItem::getPrimaryViewFrustumPosition()));
         glm::mat4 entityToWorldMatrix = translation * rotation;
         glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
@@ -368,8 +370,10 @@ EntityItemID EntityTreeElement::evalDetailedParabolaIntersection(const glm::vec3
         }
 
         // extents is the entity relative, scaled, centered extents of the entity
-        glm::mat4 rotation = glm::mat4_cast(entity->getWorldOrientation());
-        glm::mat4 translation = glm::translate(entity->getWorldPosition());
+        glm::vec3 position = entity->getWorldPosition();
+        glm::mat4 translation = glm::translate(position);
+        glm::quat orientation = entity->getWorldOrientation();
+        glm::mat4 rotation = glm::mat4_cast(EntityItem::getBillboardRotation(position, orientation, entity->getBillboardMode(), EntityItem::getPrimaryViewFrustumPosition()));
         glm::mat4 entityToWorldMatrix = translation * rotation;
         glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
@@ -472,8 +476,10 @@ void EntityTreeElement::evalEntitiesInSphere(const glm::vec3& position, float ra
             } else {
                 // determine the worldToEntityMatrix that doesn't include scale because
                 // we're going to use the registration aware aa box in the entity frame
-                glm::mat4 rotation = glm::mat4_cast(entity->getWorldOrientation());
-                glm::mat4 translation = glm::translate(entity->getWorldPosition());
+                glm::vec3 position = entity->getWorldPosition();
+                glm::mat4 translation = glm::translate(position);
+                glm::quat orientation = entity->getWorldOrientation();
+                glm::mat4 rotation = glm::mat4_cast(EntityItem::getBillboardRotation(position, orientation, entity->getBillboardMode(), EntityItem::getPrimaryViewFrustumPosition()));
                 glm::mat4 entityToWorldMatrix = translation * rotation;
                 glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
@@ -526,8 +532,10 @@ void EntityTreeElement::evalEntitiesInSphereWithType(const glm::vec3& position, 
             } else {
                 // determine the worldToEntityMatrix that doesn't include scale because
                 // we're going to use the registration aware aa box in the entity frame
-                glm::mat4 rotation = glm::mat4_cast(entity->getWorldOrientation());
-                glm::mat4 translation = glm::translate(entity->getWorldPosition());
+                glm::vec3 position = entity->getWorldPosition();
+                glm::mat4 translation = glm::translate(position);
+                glm::quat orientation = entity->getWorldOrientation();
+                glm::mat4 rotation = glm::mat4_cast(EntityItem::getBillboardRotation(position, orientation, entity->getBillboardMode(), EntityItem::getPrimaryViewFrustumPosition()));
                 glm::mat4 entityToWorldMatrix = translation * rotation;
                 glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
@@ -585,8 +593,10 @@ void EntityTreeElement::evalEntitiesInSphereWithName(const glm::vec3& position, 
             } else {
                 // determine the worldToEntityMatrix that doesn't include scale because
                 // we're going to use the registration aware aa box in the entity frame
-                glm::mat4 rotation = glm::mat4_cast(entity->getWorldOrientation());
-                glm::mat4 translation = glm::translate(entity->getWorldPosition());
+                glm::vec3 position = entity->getWorldPosition();
+                glm::mat4 translation = glm::translate(position);
+                glm::quat orientation = entity->getWorldOrientation();
+                glm::mat4 rotation = glm::mat4_cast(EntityItem::getBillboardRotation(position, orientation, entity->getBillboardMode(), EntityItem::getPrimaryViewFrustumPosition()));
                 glm::mat4 entityToWorldMatrix = translation * rotation;
                 glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 

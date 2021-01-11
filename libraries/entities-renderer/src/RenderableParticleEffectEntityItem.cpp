@@ -455,7 +455,6 @@ void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
     color.finish = EntityRenderer::calculatePulseColor(_particleProperties.getColorFinish(), _pulseProperties, _created);
     color.spread = EntityRenderer::calculatePulseColor(_particleProperties.getColorSpread(), _pulseProperties, _created);
 
-    transform.setRotation(EntityItem::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode, args->getViewFrustum().getPosition()));
     batch.setModelTransform(transform);
 
     batch.setUniformBuffer(0, _uniformBuffer);

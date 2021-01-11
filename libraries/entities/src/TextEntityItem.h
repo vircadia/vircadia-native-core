@@ -48,7 +48,7 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
-    virtual bool supportsDetailedIntersection() const override { return true; }
+    virtual bool supportsDetailedIntersection() const override { return getBillboardMode() != BillboardMode::NONE; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          OctreeElementPointer& element, float& distance,
                          BoxFace& face, glm::vec3& surfaceNormal,

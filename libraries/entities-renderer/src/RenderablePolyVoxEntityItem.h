@@ -83,12 +83,6 @@ public:
     virtual void setVoxelVolumeSize(const glm::vec3& voxelVolumeSize) override;
     virtual void setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) override;
 
-    glm::vec3 getSurfacePositionAdjustment() const;
-    glm::mat4 voxelToWorldMatrix() const;
-    glm::mat4 worldToVoxelMatrix() const;
-    glm::mat4 voxelToLocalMatrix() const;
-    glm::mat4 localToVoxelMatrix() const;
-
     virtual ShapeType getShapeType() const override;
     virtual bool isReadyToComputeShape() const override;
     virtual void computeShapeInfo(ShapeInfo& info) override;
@@ -226,7 +220,9 @@ private:
     gpu::BufferPointer _params;
     std::array<NetworkTexturePointer, 3> _xyzTextures;
     glm::vec3 _lastVoxelVolumeSize;
-    glm::mat4 _lastVoxelToWorldMatrix;
+    glm::mat4 _lastVoxelToLocalMatrix;
+    glm::vec3 _position;
+    glm::quat _orientation;
     PolyVoxEntityItem::PolyVoxSurfaceStyle _lastSurfaceStyle { PolyVoxEntityItem::SURFACE_MARCHING_CUBES };
     std::array<QString, 3> _xyzTextureUrls;
 };

@@ -55,6 +55,7 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     void* key = (void*)this;
     AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity] {
         withWriteLock([&] {
+            _shape = entity->getShape();
             _position = entity->getWorldPosition();
             _dimensions = entity->getUnscaledDimensions(); // get unscaled to avoid scaling twice
             _orientation = entity->getWorldOrientation();
@@ -69,7 +70,6 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 }
 
 void ShapeEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
-    _shape = entity->getShape();
     _pulseProperties = entity->getPulseProperties();
 
     bool materialChanged = false;
@@ -238,7 +238,10 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         return;
     }
 
-    transform.setRotation(EntityItem::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode, args->getViewFrustum().getPosition()));
+    transform.setRotation(EntityItem::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
+        args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? EntityItem::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition(),
+        _shape < entity::Shape::Cube || _shape > entity::Shape::Icosahedron));
+    batch.setModelTransform(transform);
 
     if (pipelineType == Pipeline::PROCEDURAL) {
         auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(materials.top().material);

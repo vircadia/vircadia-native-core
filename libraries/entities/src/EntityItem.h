@@ -572,8 +572,8 @@ public:
     virtual void removeGrab(GrabPointer grab) override;
     virtual void disableGrab(GrabPointer grab) override;
 
-    static void setBillboardRotationOperator(std::function<glm::quat(const glm::vec3&, const glm::quat&, BillboardMode, const glm::vec3&)> getBillboardRotationOperator) { _getBillboardRotationOperator = getBillboardRotationOperator; }
-    static glm::quat getBillboardRotation(const glm::vec3& position, const glm::quat& rotation, BillboardMode billboardMode, const glm::vec3& frustumPos) { return _getBillboardRotationOperator(position, rotation, billboardMode, frustumPos); }
+    static void setBillboardRotationOperator(std::function<glm::quat(const glm::vec3&, const glm::quat&, BillboardMode, const glm::vec3&, bool)> getBillboardRotationOperator) { _getBillboardRotationOperator = getBillboardRotationOperator; }
+    static glm::quat getBillboardRotation(const glm::vec3& position, const glm::quat& rotation, BillboardMode billboardMode, const glm::vec3& frustumPos, bool rotate90x = false) { return _getBillboardRotationOperator(position, rotation, billboardMode, frustumPos, rotate90x); }
     static void setPrimaryViewFrustumPositionOperator(std::function<glm::vec3()> getPrimaryViewFrustumPositionOperator) { _getPrimaryViewFrustumPositionOperator = getPrimaryViewFrustumPositionOperator; }
     static glm::vec3 getPrimaryViewFrustumPosition() { return _getPrimaryViewFrustumPositionOperator(); }
 
@@ -788,7 +788,7 @@ protected:
     mutable bool _needsRenderUpdate { false };
 
 private:
-    static std::function<glm::quat(const glm::vec3&, const glm::quat&, BillboardMode, const glm::vec3&)> _getBillboardRotationOperator;
+    static std::function<glm::quat(const glm::vec3&, const glm::quat&, BillboardMode, const glm::vec3&, bool)> _getBillboardRotationOperator;
     static std::function<glm::vec3()> _getPrimaryViewFrustumPositionOperator;
 };
 

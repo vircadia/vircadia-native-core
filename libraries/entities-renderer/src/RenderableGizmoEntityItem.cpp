@@ -254,7 +254,8 @@ void GizmoEntityRenderer::doRender(RenderArgs* args) {
 
         geometryCache->bindSimpleProgram(batch, false, transparent, wireframe, true, true, forward, graphics::MaterialKey::CULL_NONE);
 
-        transform.setRotation(EntityItem::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode, args->getViewFrustum().getPosition()));
+        transform.setRotation(EntityItem::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
+            args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? EntityItem::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition(), true));
         batch.setModelTransform(transform);
 
         // Background circle

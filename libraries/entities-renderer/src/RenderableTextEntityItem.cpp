@@ -131,7 +131,8 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
         return;
     }
 
-    transform.setRotation(EntityItem::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode, args->getViewFrustum().getPosition()));
+    transform.setRotation(EntityItem::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
+        args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? EntityItem::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
     batch.setModelTransform(transform);
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -312,7 +313,8 @@ void entities::TextPayload::render(RenderArgs* args) {
         return;
     }
 
-    modelTransform.setRotation(EntityItem::getBillboardRotation(modelTransform.getTranslation(), modelTransform.getRotation(), textRenderable->_billboardMode, args->getViewFrustum().getPosition()));
+    modelTransform.setRotation(EntityItem::getBillboardRotation(modelTransform.getTranslation(), modelTransform.getRotation(), textRenderable->_billboardMode,
+        args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? EntityItem::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
 
     float scale = textRenderable->_lineHeight / textRenderer->getFontSize();
     modelTransform.postTranslate(glm::vec3(-0.5, 0.5, 1.0f + EPSILON / dimensions.z));
