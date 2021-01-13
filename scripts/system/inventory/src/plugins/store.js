@@ -154,7 +154,8 @@ export const store = new Vuex.Store({
                 repo: 'https://vircadia-content-public.s3.amazonaws.com/Bazaar/inventoryDB'
             },
             debugMode: true,
-            darkTheme: true
+            darkTheme: true,
+            useFullscreenDialogs: false
         },
         iconType: {
             "SCRIPT": {

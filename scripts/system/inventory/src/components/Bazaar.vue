@@ -33,92 +33,42 @@
                     <v-row>
                         <v-col
                             v-for="item in props.items"
-                            :key="item.name"
+                            :key="item.main"
                             cols="12"
                             sm="6"
                             md="4"
                             lg="3"
                         >
                             <v-card>
-                                <v-card-title class="subheading font-weight-bold">
-                                    <v-avatar
-                                        class="mr-2"
-                                    >
-                                        <img
+                                <v-list-item>
+                                    <v-list-item-avatar>
+                                        <v-img 
                                             :src="item.icon"
                                             alt="Preview"
-                                        >
-                                    </v-avatar>
-                                    {{ item.name }}
+                                        ></v-img>
+                                    </v-list-item-avatar>
 
-                                    <v-spacer></v-spacer>
-
-                                    <v-btn
-                                        class="mx-2"
-                                        fab
-                                        color="primary"
-                                        small
-                                        @click="addItemToInventory(item)"
+                                    <v-list-item-content
+                                        @click="showItemPage = true"
                                     >
-                                        <v-icon dark>
-                                            mdi-plus
-                                        </v-icon>
-                                    </v-btn>
-                                </v-card-title>
-                                
-                                <v-tabs
-                                    fixed-tabs
-                                    v-model="item.currentTab"
-                                    background-color="deep-purple accent-4"
-                                    dark
-                                >
-                                    <v-tabs-slider></v-tabs-slider>
-
-                                    <v-tab @click="item.currentTab = 0">
-                                        <v-icon>mdi-information-variant</v-icon>
-                                    </v-tab>
-
-                                    <v-tab @click="item.currentTab = 1">
-                                        <v-icon>mdi-link</v-icon>
-                                    </v-tab>
-                                </v-tabs>
-
-                                <v-tabs-items v-model="item.currentTab">
-                                    <v-tab-item>
-                                        <v-card-text>
-                                            {{ item.description }}
-                                        </v-card-text>
-                                    </v-tab-item>
-                                    <v-tab-item>
-                                        <v-card-text>
-                                            <!-- <v-subheader></v-subheader> -->
-                                            <v-list-item class="mb-4">
-                                                <kbd
-                                                    class="text-center mt-4" 
-                                                    style="font-size: 1.0rem !important" 
-                                                    v-text="item.main"
-                                                >
-                                                </kbd>
-                                                <v-tooltip left>
-                                                    <template v-slot:activator="{ on, attrs }">
-                                                        <v-btn
-                                                            v-bind="attrs"
-                                                            v-on="on"
-                                                            @click="copyToClipboard(item.main)" 
-                                                            color="input"
-                                                            class="ml-3 mt-3"
-                                                            small
-                                                            fab
-                                                        >
-                                                            <v-icon>mdi-content-copy</v-icon>
-                                                        </v-btn>
-                                                    </template>
-                                                    <span>Copy</span>
-                                                </v-tooltip>
-                                            </v-list-item>
-                                        </v-card-text>
-                                    </v-tab-item>
-                                </v-tabs-items>
+                                        <v-list-item-title v-html="item.name"></v-list-item-title>
+                                        <v-list-item-subtitle v-html="item.description"></v-list-item-subtitle>
+                                    </v-list-item-content>
+                                    
+                                    <v-list-item-action>
+                                        <v-btn
+                                            class="mx-2"
+                                            fab
+                                            color="primary"
+                                            small
+                                            @click="addItemToInventory(item)"
+                                        >
+                                            <v-icon dark>
+                                                mdi-plus
+                                            </v-icon>
+                                        </v-btn>
+                                    </v-list-item-action>
+                                </v-list-item>
                             </v-card>
                         </v-col>
                     </v-row>
@@ -156,16 +106,31 @@
                 </v-btn>
             </template>
         </v-snackbar>
+
+        <v-dialog
+            v-model="showItemPage"
+            :fullscreen="$store.state.settings.useFullscreenDialogs"
+            persistent
+        >
+            <transition name="fade" mode="out-in">
+                <ItemPage 
+                    :item="itemData"
+                ></ItemPage>
+            </transition>
+        </v-dialog>
+
     </v-container>
 </template>
 
 <script>
 import { EventBus } from '../plugins/event-bus.js';
+import ItemPage from './Dialogs/ItemPage'
 var vue_this;
 
 export default {
     name: 'Bazaar',
     components: {
+        ItemPage
     },
     props: [],
     data: () => ({
@@ -178,7 +143,10 @@ export default {
         currentCategoryRecordsLoaded: 0,
         bazaarIteratorData: [],
         bazaarIteratorPage: 1,
-        copiedToClipboardSnackbar: false
+        copiedToClipboardSnackbar: false,
+        // Data to display in the ItemPage
+        itemData: {},
+        showItemPage: false
     }),
     created: function () {
         vue_this = this;

@@ -365,7 +365,7 @@
         <v-dialog
             v-model="editDialogStore.show"
             max-width="380"
-            fullscreen
+            :fullscreen="$store.state.settings.useFullscreenDialogs"
             hide-overlay
             transition="dialog-bottom-transition"
         >
@@ -469,7 +469,7 @@
         <v-dialog
             v-model="editFolderDialogStore.show"
             max-width="380"
-            fullscreen
+            :fullscreen="$store.state.settings.useFullscreenDialogs"
             hide-overlay
             transition="dialog-bottom-transition"
         >
@@ -531,7 +531,7 @@
         <v-dialog
             v-model="createFolderDialogStore.show"
             max-width="380"
-            fullscreen
+            :fullscreen="$store.state.settings.useFullscreenDialogs"
             hide-overlay
             transition="dialog-bottom-transition"
         >
@@ -586,7 +586,7 @@
         <v-dialog
             v-model="addDialogStore.show"
             max-width="380"
-            fullscreen
+            :fullscreen="$store.state.settings.useFullscreenDialogs"
             hide-overlay
             transition="dialog-bottom-transition"
         >
@@ -694,7 +694,7 @@
         <v-dialog
             v-model="bizCardDialogStore.show"
             max-width="380"
-            fullscreen
+            :fullscreen="$store.state.settings.useFullscreenDialogs"
             hide-overlay
             transition="dialog-bottom-transition"
         >
@@ -807,7 +807,7 @@
             v-model="receiveDialogStore.show"
             max-width="380"
             persistent
-            fullscreen
+            :fullscreen="$store.state.settings.useFullscreenDialogs"
             hide-overlay
             transition="dialog-bottom-transition"
         >
@@ -919,7 +919,7 @@
             v-model="shareDialogStore.show"
             max-width="380"
             persistent
-            fullscreen
+            :fullscreen="$store.state.settings.useFullscreenDialogs"
             hide-overlay
             transition="dialog-bottom-transition"
         >
