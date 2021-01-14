@@ -265,6 +265,24 @@ export const store = new Vuex.Store({
                 "recipient": null,
             }
         },
+        itemPage: {
+            show: false,
+            loading: false,
+            data: {
+                author: null,
+                description: null,
+                icon: null,
+                image: [],
+                license: null,
+                main: null,
+                name: null,
+                path: null,
+                sublicense: [],
+                tags: null,
+                type: null,
+                version: null
+            }
+        },
         searchBox: '',
         bazaar: {
             categoryDrawer: false,
@@ -322,8 +340,16 @@ export const store = new Vuex.Store({
     },
     mutations: {
         mutate (state, payload) {
-            state[payload.property] = payload.with;
-            // console.info("Payload:", payload.property, "with:", payload.with, "state is now:", this.state);
+            if (!payload.update) {
+                state[payload.property] = payload.with;
+            } else {
+                for (var item in payload.with) {
+                    if (Object.prototype.hasOwnProperty.call(state[payload.property], item)) {
+                        state[payload.property][item] = payload.with[item];
+                    }
+                }
+            }
+            // console.info('Updating property:', payload.property, 'with:', payload.with, 'state is now:', this.state);
         },
         sortTopInventory (state, payload) {
             let { items } = state;

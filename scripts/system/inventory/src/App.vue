@@ -987,14 +987,29 @@
                 </v-form>
             </v-card>
         </v-dialog>
+
+        <v-dialog
+            v-model="$store.state.itemPage.show"
+            :fullscreen="$store.state.settings.useFullscreenDialogs"
+            persistent
+        >
+            <transition name="fade" mode="out-in">
+                <ItemPage></ItemPage>
+            </transition>
+        </v-dialog>
+
     </v-app>
 </template>
 
 <script>
+// Components
 import InventoryItemIterator from './components/InventoryItemIterator'
 import Bazaar from './components/Bazaar'
 import CategoryDrawer from './components/CategoryDrawer'
+import ItemPage from './components/Dialogs/ItemPage'
+// Plugins
 import { EventBus } from './plugins/event-bus.js';
+
 var vue_this;
 
 function browserDevelopment() {
@@ -1057,9 +1072,11 @@ EventBus.$on('add-item-from-bazaar', data => {
 export default {
     name: 'App',
     components: {
-        InventoryItemIterator,
         Bazaar,
-        CategoryDrawer
+        CategoryDrawer,
+        InventoryItemIterator,
+        // Dialogs
+        ItemPage
     },
     data: () => ({
         possibleTags: [],
