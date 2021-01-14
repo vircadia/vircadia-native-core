@@ -133,7 +133,7 @@ bool GridEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const 
     glm::vec2 xyDimensions(dimensions.x, dimensions.y);
     glm::quat rotation = getWorldOrientation();
     glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
-    rotation = EntityItem::getBillboardRotation(position, rotation, getBillboardMode(), EntityItem::getPrimaryViewFrustumPosition());
+    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, getBillboardMode(), BillboardModeHelpers::getPrimaryViewFrustumPosition());
 
     if (findRayRectangleIntersection(origin, direction, rotation, position, xyDimensions, distance)) {
         glm::vec3 forward = rotation * Vectors::FRONT;
@@ -157,7 +157,7 @@ bool GridEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, c
     glm::vec2 xyDimensions(dimensions.x, dimensions.y);
     glm::quat rotation = getWorldOrientation();
     glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
-    rotation = EntityItem::getBillboardRotation(position, rotation, getBillboardMode(), EntityItem::getPrimaryViewFrustumPosition());
+    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, getBillboardMode(), BillboardModeHelpers::getPrimaryViewFrustumPosition());
 
     glm::quat inverseRot = glm::inverse(rotation);
     glm::vec3 localOrigin = inverseRot * (origin - position);

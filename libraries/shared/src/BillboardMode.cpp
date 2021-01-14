@@ -15,6 +15,8 @@ const char* billboardModeNames[] = {
 };
 
 static const size_t BILLBOARD_MODE_NAMES = (sizeof(billboardModeNames) / sizeof(billboardModeNames[0]));
+std::function<glm::quat(const glm::vec3&, const glm::quat&, BillboardMode, const glm::vec3&, bool)> BillboardModeHelpers::_getBillboardRotationOperator = [](const glm::vec3&, const glm::quat& rotation, BillboardMode, const glm::vec3&, bool) { return rotation; };
+std::function<glm::vec3()> BillboardModeHelpers::_getPrimaryViewFrustumPositionOperator = []() { return glm::vec3(0.0f); };
 
 QString BillboardModeHelpers::getNameForBillboardMode(BillboardMode mode) {
     if (((int)mode <= 0) || ((int)mode >= (int)BILLBOARD_MODE_NAMES)) {

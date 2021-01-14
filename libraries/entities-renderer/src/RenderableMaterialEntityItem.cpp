@@ -272,8 +272,8 @@ void MaterialEntityRenderer::doRender(RenderArgs* args) {
         proceduralRender = true;
     }
 
-    transform.setRotation(EntityItem::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
-        args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? EntityItem::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
+    transform.setRotation(BillboardModeHelpers::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
+        args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
     batch.setModelTransform(transform);
 
     if (!proceduralRender) {

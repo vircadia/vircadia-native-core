@@ -38,6 +38,7 @@
 #include "TextureCache.h"
 #include "Rig.h"
 #include "PrimitiveMode.h"
+#include "BillboardMode.h"
 
 // Use dual quaternion skinning!
 // Must match define in Skinning.slh
@@ -120,6 +121,9 @@ public:
 
     void setPrimitiveMode(PrimitiveMode primitiveMode, const render::ScenePointer& scene = nullptr);
     PrimitiveMode getPrimitiveMode() const { return _primitiveMode; }
+
+    void setBillboardMode(BillboardMode billboardMode, const render::ScenePointer& scene = nullptr);
+    BillboardMode getBillboardMode() const { return _billboardMode; }
 
     void setCullWithParent(bool value, const render::ScenePointer& scene = nullptr);
 
@@ -447,6 +451,7 @@ protected:
     virtual void createRenderItemSet();
 
     PrimitiveMode _primitiveMode { PrimitiveMode::SOLID };
+    BillboardMode _billboardMode { BillboardMode::NONE };
     bool _useDualQuaternionSkinning { false };
 
     // debug rendering support

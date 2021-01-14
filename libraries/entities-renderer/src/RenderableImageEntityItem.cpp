@@ -97,8 +97,8 @@ void ImageEntityRenderer::doRender(RenderArgs* args) {
     Q_ASSERT(args->_batch);
     gpu::Batch* batch = args->_batch;
 
-    transform.setRotation(EntityItem::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
-        args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? EntityItem::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
+    transform.setRotation(BillboardModeHelpers::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
+        args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
 
     batch->setModelTransform(transform);
     batch->setResourceTexture(0, _texture->getGPUTexture());

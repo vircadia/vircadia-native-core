@@ -2455,7 +2455,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         DependencyManager::get<PickManager>()->setPrecisionPicking(rayPickID, value);
     });
 
-    EntityItem::setBillboardRotationOperator([](const glm::vec3& position, const glm::quat& rotation, BillboardMode billboardMode, const glm::vec3& frustumPos, bool rotate90x) {
+    BillboardModeHelpers::setBillboardRotationOperator([](const glm::vec3& position, const glm::quat& rotation, BillboardMode billboardMode, const glm::vec3& frustumPos, bool rotate90x) {
         const glm::quat ROTATE_90X = glm::angleAxis(-(float)M_PI_2, Vectors::RIGHT);
         if (billboardMode == BillboardMode::YAW) {
             //rotate about vertical to face the camera
@@ -2484,7 +2484,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
         return rotation;
     });
-    EntityItem::setPrimaryViewFrustumPositionOperator([this]() {
+    BillboardModeHelpers::setPrimaryViewFrustumPositionOperator([this]() {
         ViewFrustum viewFrustum;
         copyViewFrustum(viewFrustum);
         return viewFrustum.getPosition();

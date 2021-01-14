@@ -1820,8 +1820,8 @@ void PolyVoxEntityRenderer::doRender(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderablePolyVoxEntityItem::render");
     gpu::Batch& batch = *args->_batch;
 
-    glm::mat4 rotation = glm::mat4_cast(EntityItem::getBillboardRotation(_position, _orientation, _billboardMode,
-        args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? EntityItem::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
+    glm::mat4 rotation = glm::mat4_cast(BillboardModeHelpers::getBillboardRotation(_position, _orientation, _billboardMode,
+        args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
     Transform transform(glm::translate(_position) * rotation * _lastVoxelToLocalMatrix);
     batch.setModelTransform(transform);
 

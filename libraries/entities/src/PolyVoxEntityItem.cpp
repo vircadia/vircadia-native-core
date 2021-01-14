@@ -383,7 +383,7 @@ glm::mat4 PolyVoxEntityItem::voxelToWorldMatrix(bool includeBillboard) const {
     glm::mat4 translation = glm::translate(position);
     glm::mat4 rotation;
     if (includeBillboard) {
-        rotation = glm::mat4_cast(EntityItem::getBillboardRotation(position, orientation, getBillboardMode(), EntityItem::getPrimaryViewFrustumPosition()));
+        rotation = glm::mat4_cast(BillboardModeHelpers::getBillboardRotation(position, orientation, getBillboardMode(), BillboardModeHelpers::getPrimaryViewFrustumPosition()));
     } else {
         rotation = glm::mat4_cast(orientation);
     }

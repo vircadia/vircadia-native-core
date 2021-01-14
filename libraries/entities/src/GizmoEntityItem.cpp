@@ -111,7 +111,7 @@ bool GizmoEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const
     glm::quat rotation = getWorldOrientation();
     rotation *= glm::angleAxis(-(float)M_PI_2, Vectors::RIGHT);
     glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
-    rotation = EntityItem::getBillboardRotation(position, rotation, getBillboardMode(), EntityItem::getPrimaryViewFrustumPosition(), false);
+    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, getBillboardMode(), BillboardModeHelpers::getPrimaryViewFrustumPosition(), false);
 
     if (findRayRectangleIntersection(origin, direction, rotation, position, xyDimensions, distance)) {
         glm::vec3 hitPosition = origin + (distance * direction);
@@ -146,7 +146,7 @@ bool GizmoEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, 
     glm::quat rotation = getWorldOrientation();
     rotation *= glm::angleAxis(-(float)M_PI_2, Vectors::RIGHT);
     glm::vec3 position = getWorldPosition();
-    rotation = EntityItem::getBillboardRotation(position, rotation, getBillboardMode(), EntityItem::getPrimaryViewFrustumPosition(), true);
+    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, getBillboardMode(), BillboardModeHelpers::getPrimaryViewFrustumPosition(), true);
 
     glm::quat inverseRot = glm::inverse(rotation);
     glm::vec3 localOrigin = inverseRot * (origin - position);

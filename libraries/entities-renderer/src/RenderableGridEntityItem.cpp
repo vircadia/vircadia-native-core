@@ -103,8 +103,8 @@ void GridEntityRenderer::doRender(RenderArgs* args) {
     } else {
         transform.setTranslation(renderTransform.getTranslation());
     }
-    transform.setRotation(EntityItem::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
-        args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? EntityItem::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
+    transform.setRotation(BillboardModeHelpers::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
+        args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
     batch->setModelTransform(transform);
 
     auto minCorner = glm::vec2(-0.5f, -0.5f);

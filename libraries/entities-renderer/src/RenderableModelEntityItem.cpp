@@ -1254,6 +1254,7 @@ void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
                     _model->setTagMask(getTagMask(), scene);
                     _model->setHifiRenderLayer(getHifiRenderLayer(), scene);
                     _model->setPrimitiveMode(_primitiveMode, scene);
+                    _model->setBillboardMode(_billboardMode, scene);
                     _model->setCullWithParent(_cullWithParent, scene);
                     _model->setRenderWithZones(_renderWithZones, scene);
                 });
@@ -1332,6 +1333,7 @@ void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
         model->setTagMask(getTagMask(), scene);
         model->setHifiRenderLayer(getHifiRenderLayer(), scene);
         model->setPrimitiveMode(_primitiveMode, scene);
+        model->setBillboardMode(_billboardMode, scene);
         model->setCullWithParent(_cullWithParent, scene);
         model->setRenderWithZones(_renderWithZones, scene);
     });

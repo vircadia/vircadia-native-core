@@ -222,7 +222,7 @@ EntityItemID EntityTreeElement::evalDetailedRayIntersection(const glm::vec3& ori
         glm::vec3 position = entity->getWorldPosition();
         glm::mat4 translation = glm::translate(position);
         glm::quat orientation = entity->getWorldOrientation();
-        glm::mat4 rotation = glm::mat4_cast(EntityItem::getBillboardRotation(position, orientation, entity->getBillboardMode(), EntityItem::getPrimaryViewFrustumPosition()));
+        glm::mat4 rotation = glm::mat4_cast(BillboardModeHelpers::getBillboardRotation(position, orientation, entity->getBillboardMode(), BillboardModeHelpers::getPrimaryViewFrustumPosition()));
         glm::mat4 entityToWorldMatrix = translation * rotation;
         glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
@@ -373,7 +373,7 @@ EntityItemID EntityTreeElement::evalDetailedParabolaIntersection(const glm::vec3
         glm::vec3 position = entity->getWorldPosition();
         glm::mat4 translation = glm::translate(position);
         glm::quat orientation = entity->getWorldOrientation();
-        glm::mat4 rotation = glm::mat4_cast(EntityItem::getBillboardRotation(position, orientation, entity->getBillboardMode(), EntityItem::getPrimaryViewFrustumPosition()));
+        glm::mat4 rotation = glm::mat4_cast(BillboardModeHelpers::getBillboardRotation(position, orientation, entity->getBillboardMode(), BillboardModeHelpers::getPrimaryViewFrustumPosition()));
         glm::mat4 entityToWorldMatrix = translation * rotation;
         glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
@@ -479,7 +479,7 @@ void EntityTreeElement::evalEntitiesInSphere(const glm::vec3& position, float ra
                 glm::vec3 position = entity->getWorldPosition();
                 glm::mat4 translation = glm::translate(position);
                 glm::quat orientation = entity->getWorldOrientation();
-                glm::mat4 rotation = glm::mat4_cast(EntityItem::getBillboardRotation(position, orientation, entity->getBillboardMode(), EntityItem::getPrimaryViewFrustumPosition()));
+                glm::mat4 rotation = glm::mat4_cast(BillboardModeHelpers::getBillboardRotation(position, orientation, entity->getBillboardMode(), BillboardModeHelpers::getPrimaryViewFrustumPosition()));
                 glm::mat4 entityToWorldMatrix = translation * rotation;
                 glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
@@ -535,7 +535,7 @@ void EntityTreeElement::evalEntitiesInSphereWithType(const glm::vec3& position, 
                 glm::vec3 position = entity->getWorldPosition();
                 glm::mat4 translation = glm::translate(position);
                 glm::quat orientation = entity->getWorldOrientation();
-                glm::mat4 rotation = glm::mat4_cast(EntityItem::getBillboardRotation(position, orientation, entity->getBillboardMode(), EntityItem::getPrimaryViewFrustumPosition()));
+                glm::mat4 rotation = glm::mat4_cast(BillboardModeHelpers::getBillboardRotation(position, orientation, entity->getBillboardMode(), BillboardModeHelpers::getPrimaryViewFrustumPosition()));
                 glm::mat4 entityToWorldMatrix = translation * rotation;
                 glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
@@ -596,7 +596,7 @@ void EntityTreeElement::evalEntitiesInSphereWithName(const glm::vec3& position, 
                 glm::vec3 position = entity->getWorldPosition();
                 glm::mat4 translation = glm::translate(position);
                 glm::quat orientation = entity->getWorldOrientation();
-                glm::mat4 rotation = glm::mat4_cast(EntityItem::getBillboardRotation(position, orientation, entity->getBillboardMode(), EntityItem::getPrimaryViewFrustumPosition()));
+                glm::mat4 rotation = glm::mat4_cast(BillboardModeHelpers::getBillboardRotation(position, orientation, entity->getBillboardMode(), BillboardModeHelpers::getPrimaryViewFrustumPosition()));
                 glm::mat4 entityToWorldMatrix = translation * rotation;
                 glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
