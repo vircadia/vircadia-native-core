@@ -128,8 +128,8 @@
                 <div class="text-center my-2">
                     <v-btn medium tile color="purple" class="mx-1 folder-button"
                         @click="
-                            editFolderDialogStore.data.uuid = item.uuid;
                             editFolderDialogStore.data.name = item.name;
+                            editFolderDialogStore.uuid = item.uuid;
                             editFolderDialogStore.show = true; 
                         "
                     >

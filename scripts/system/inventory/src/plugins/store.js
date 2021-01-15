@@ -138,6 +138,24 @@ export const store = new Vuex.Store({
                 "uuid": "542543sg45s4gg54353",
             },
         ],
+        folderList: [],
+        nearbyUsers: [
+            {
+                name: "Who",
+                uuid: "{4131531653652562}",
+                distance: 5,
+            },
+            {
+                name: "Is",
+                uuid: "{4131531653756756576543652562}",
+                distance: 3.23,
+            },
+            {
+                name: "This?",
+                uuid: "{4131531676575653652562}",
+                distance: 1,
+            }
+        ],
         settings: {
             DASHBOARD_VERSION: process.env.VUE_APP_VERSION,
             currentView: 'Inventory',
@@ -255,6 +273,35 @@ export const store = new Vuex.Store({
                 "metadata": null,
                 "version": null
             },
+        },
+        receivingItemsDialog: {
+            show: false,
+            data: {
+                receivingItemQueue: [
+                    {
+                        "senderUUID": "SENDERUUIDLOL",
+                        "senderName": "WHOISTHIS1",
+                        "senderDistance": 2.5,
+                        "data": {
+                            "type": "script",
+                            "name": "This Is A Real Script",
+                            "url": "https://butwhythough.com/lol.js",
+                            "uuid": "This Is A Real Script",
+                        }
+                    },
+                    {
+                        "senderUUID": "TEST2SENDERUUID",
+                        "senderName": "WHOTHISBE2",
+                        "senderDistance": 1.22,
+                        "data": {
+                            "type": "script",
+                            "name": "REALLYLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
+                            "url": "https://butwhythough.com/looool.js",
+                            "uuid": "REALLYLONNGGGGGGGG",
+                        }
+                    }
+                ]
+            }
         },
         shareDialog: {
             show: false,

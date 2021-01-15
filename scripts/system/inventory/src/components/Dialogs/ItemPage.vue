@@ -50,7 +50,7 @@
             <v-btn
                 color="primary"
                 block
-                @click="addItemToInventory(item)"
+                @click="addItemToInventory(itemPageStore.data)"
             >
                 <v-icon dark>
                     mdi-plus
@@ -62,6 +62,7 @@
             <v-btn
                 color="success"
                 style="width: 49%"
+                @click="useItem(itemPageStore.data)"
             >
                 <v-icon dark>
                     mdi-play
@@ -71,6 +72,7 @@
             <v-btn
                 color="primary"
                 style="width: 49%"
+                @click="shareItem(itemPageStore.data)"
             >
                 <v-icon dark>
                     mdi-share
@@ -206,6 +208,12 @@ export default {
         },
         addItemToInventory: function (item) {
             this.sendEvent('add-item-from-bazaar', item);
+        },
+        useItem: function (item) {
+            this.sendEvent('use-item-from-bazaar', item);
+        },
+        shareItem: function (item) {
+            this.sendEvent('share-item-from-bazaar', item);
         }
     }
 };

@@ -44,8 +44,8 @@
             <v-badge
                 bordered
                 color="primary"
-                :value="receivingItemQueueLength"
-                :content="receivingItemQueueLength"
+                :value="receivingItemsDialogStore.data.receivingItemQueue.length"
+                :content="receivingItemsDialogStore.data.receivingItemQueue.length"
                 overlap
                 class="mx-5"
                 v-show="settingsStore.currentView === 'Inventory'"
@@ -54,7 +54,7 @@
                     small 
                     color="red" 
                     fab 
-                    @click="receivingItemsDialog.show = true; sendAppMessage('web-to-script-request-receiving-item-queue', '')"
+                    @click="receivingItemsDialogStore.show = true; sendAppMessage('web-to-script-request-receiving-item-queue', '')"
                 >
                     <v-icon>
                         mdi-tray-full
@@ -243,291 +243,48 @@
         </v-bottom-navigation>
         
         <!-- ### DIALOGS ### -->
-
         <v-dialog
-            v-model="receivingItemsDialog.show"
-            max-width="380"
+            v-model="$store.state.removeDialog.show"
+            max-width="290"
         >
-            <v-card>
-                <v-card-title class="headline">Item Inbox</v-card-title>
-
-                <v-card-text v-show="receivingItemQueueLength > 0">
-                    A list of all items being received currently.
-                </v-card-text>
-                
-                <v-card-text v-show="receivingItemQueueLength === 0">
-                    There are currently no items in your inbox.
-                </v-card-text>
-
-                <v-card-actions>
-                    <v-list
-                        nav
-                        class="pt-5"
-                        max-width="370"
-                        v-show="receivingItemQueueLength > 0"
-                    >
-
-                        <v-list-item
-                            two-line
-                            v-for="item in receivingItemsDialog.data.receivingItemQueue" 
-                            v-bind:key="item.data.uuid"
-                        >
-                            <v-list-item-content>
-                                <v-list-item-title>{{item.data.name}}</v-list-item-title>
-                                <v-list-item-subtitle>Sent by {{item.senderName}}</v-list-item-subtitle>
-                                <v-list-item-subtitle>Distance: {{item.senderDistance.toFixed(1)}}m</v-list-item-subtitle>
-                            </v-list-item-content>
-                                <v-btn color="success" @click="acceptReceivingItem(item)">
-                                    <v-icon>mdi-plus</v-icon>
-                                </v-btn>
-                                <v-btn text color="red" @click="removeReceivingItem(item.data.uuid)">
-                                    <v-icon>mdi-minus</v-icon>
-                                </v-btn>
-                        </v-list-item>
-
-                    </v-list>
-                </v-card-actions>
-            </v-card>
-        </v-dialog>
-
-        <v-dialog
-          v-model="removeDialogStore.show"
-          max-width="290"
-        >
-          <v-card>
-              <v-card-title class="headline">Remove Item</v-card-title>
-
-              <v-card-text>
-                  Are you sure you want to delete this item from your inventory?
-              </v-card-text>
-
-              <v-card-actions>
-
-                  <v-btn
-                      color="blue"
-                      class="px-3"
-                      @click="removeDialogStore.show = false"
-                  >
-                      No
-                  </v-btn>
-                  
-                  <v-spacer></v-spacer>
-                  
-                  <v-btn
-                      color="red"
-                      class="px-3"                    
-                      @click="removeDialogStore.show = false; removeItem($store.state.removeDialog.uuid);"
-                  >
-                      Yes
-                  </v-btn>
-                  
-              </v-card-actions>
-              
-          </v-card>
+            <transition name="fade" mode="out-in">
+                <RemoveItem v-on:remove-item="removeItem"></RemoveItem>
+            </transition>
         </v-dialog>
         
         <v-dialog
-          v-model="removeFolderDialogStore.show"
-          max-width="290"
+            v-model="$store.state.removeFolderDialog.show"
+            max-width="290"
         >
-          <v-card>
-              <v-card-title class="headline">Remove Folder</v-card-title>
-
-              <v-card-text>
-                  Are you sure you want to delete this folder <b>and</b> all items within from your inventory?
-              </v-card-text>
-
-              <v-card-actions>
-
-                  <v-btn
-                      color="blue"
-                      class="px-3"
-                      @click="removeFolderDialogStore.show = false"
-                  >
-                      No
-                  </v-btn>
-                  
-                  <v-spacer></v-spacer>
-                  
-                  <v-btn
-                      color="red"
-                      class="px-3"                    
-                      @click="removeFolderDialogStore.show = false; removeFolder($store.state.removeFolderDialog.uuid);"
-                  >
-                      Yes
-                  </v-btn>
-                  
-              </v-card-actions>
-              
-          </v-card>
+            <transition name="fade" mode="out-in">
+                <RemoveFolder v-on:remove-folder="removeFolder"></RemoveFolder>
+            </transition>
         </v-dialog>
-
+        
         <v-dialog
-            v-model="editDialogStore.show"
+            v-model="$store.state.editDialog.show"
             max-width="380"
             :fullscreen="$store.state.settings.useFullscreenDialogs"
             hide-overlay
             transition="dialog-bottom-transition"
         >
-            <v-card>
-                <v-card-title class="headline">Edit Item</v-card-title>
-
-                <v-form
-                    ref="editForm"
-                    v-model="editDialogStore.valid"
-                    :lazy-validation="false"
-                >
-
-                    <v-select
-                        :items="$store.state.supportedItemTypes"
-                        class="my-2"
-                        v-model="editDialogStore.data.type"
-                        :rules="[v => !!v || 'Type is required.']"
-                        label="Item Type"
-                        outlined
-                    ></v-select>
-                    
-                    <v-select
-                        :items="folderList"
-                        item-text="name"
-                        item-value="uuid"
-                        class="my-2"
-                        v-model="editDialogStore.data.folder"
-                        label="Folder"
-                        outlined
-                    ></v-select>
-
-                    <v-text-field
-                        class="px-2"
-                        label="Name"
-                        v-model="editDialogStore.data.name"
-                        :rules="[v => !!v || 'Name is required.']"
-                        required
-                    ></v-text-field>
-
-                    <v-text-field
-                        class="px-2"
-                        label="URL"
-                        v-model="editDialogStore.data.url"
-                        :rules="[v => !!v || 'URL is required.']"
-                        required
-                    ></v-text-field>
-                    
-                    <v-text-field
-                        class="px-2"
-                        label="Version"
-                        v-model="editDialogStore.data.version"
-                        :rules="[v => !!v || 'Version is required.']"
-                        required
-                    ></v-text-field>
-                    
-                    <v-combobox
-                        class="px-2"
-                        label="Tags"
-                        v-model="editDialogStore.data.tags"
-                        multiple
-                        :chips="true"
-                        :deletable-chips="true"
-                        :disable-lookup="true"
-                        :items="possibleTags"
-                    ></v-combobox>
-                    
-                    <v-textarea
-                        class="px-2"
-                        label="Metadata"
-                        v-model="editDialogStore.data.metadata"
-                    ></v-textarea>
-
-                    <v-card-actions>
-
-                        <v-btn
-                            color="red"
-                            class="px-3"
-                            @click="editDialogStore.show = false"
-                        >
-                            Cancel
-                        </v-btn>
-
-                        <v-spacer></v-spacer>
-
-                        <v-btn
-                            color="blue"
-                            class="px-3"       
-                            :disabled="!$store.state.editDialog.valid"             
-                            @click="editDialogStore.show = false; editItem($store.state.editDialog.uuid);"
-                        >
-                            Done
-                        </v-btn>
-
-                    </v-card-actions>
-
-                </v-form>
-
-            </v-card>
+            <transition name="fade" mode="out-in">
+                <EditItem v-on:edit-item="editItem"></EditItem>
+            </transition>
         </v-dialog>
         
         <v-dialog
-            v-model="editFolderDialogStore.show"
+            v-model="$store.state.editFolderDialog.show"
             max-width="380"
             :fullscreen="$store.state.settings.useFullscreenDialogs"
             hide-overlay
             transition="dialog-bottom-transition"
         >
-          <v-card>
-              <v-card-title class="headline">Edit Folder</v-card-title>
-              
-              <v-form
-                  ref="editFolderForm"
-                  v-model="editFolderDialogStore.valid"
-                  :lazy-validation="false"
-              >
-
-                  <v-text-field
-                      class="px-2"
-                      label="Name"
-                      v-model="editFolderDialogStore.data.name"
-                      :rules="[v => !!v || 'Name is required.']"
-                      required
-                  ></v-text-field>
-                  
-                  <v-select
-                      :items="folderList"
-                      item-text="name"
-                      item-value="uuid"
-                      class="my-2"
-                      v-model="editFolderDialogStore.data.folder"
-                      label="Parent Folder"
-                      outlined
-                  ></v-select>
-
-                  <v-card-actions>
-
-                      <v-btn
-                          color="red"
-                          class="px-3"
-                          @click="editFolderDialogStore.show = false"
-                      >
-                          Cancel
-                      </v-btn>
-                      
-                      <v-spacer></v-spacer>
-                      
-                      <v-btn
-                          color="blue"
-                          class="px-3"       
-                          :disabled="!$store.state.editFolderDialog.valid"             
-                          @click="editFolderDialogStore.show = false; editFolder($store.state.editFolderDialog.data.uuid);"
-                      >
-                          Done
-                      </v-btn>
-                  
-                  </v-card-actions>
-                  
-              </v-form>
-
-          </v-card>
+            <transition name="fade" mode="out-in">
+                <EditFolder v-on:edit-folder="editFolder"></EditFolder>
+            </transition>
         </v-dialog>
-
+        
         <v-dialog
             v-model="createFolderDialogStore.show"
             max-width="380"
@@ -535,54 +292,24 @@
             hide-overlay
             transition="dialog-bottom-transition"
         >
-            <v-card>
-                <v-card-title class="headline">Create Folder</v-card-title>
-
-                <v-card-text>
-                Enter the name of the folder.
-                </v-card-text>
-
-                <v-form
-                    ref="createFolderForm"
-                    v-model="createFolderDialogStore.valid"
-                    :lazy-validation="false"
-                >
-
-                    <v-text-field
-                        class="px-2"
-                        label="Name"
-                        v-model="createFolderDialogStore.data.name"
-                        :rules="[v => !!v || 'Name is required.']"
-                        required
-                    ></v-text-field>
-
-                    <v-card-actions>
-
-                        <v-btn
-                            color="red"
-                            class="px-3"
-                            @click="createFolderDialogStore.show = false"
-                        >
-                            Cancel
-                        </v-btn>
-
-                        <v-spacer></v-spacer>
-
-                        <v-btn
-                            color="blue"
-                            class="px-3"
-                            :disabled="!$store.state.createFolderDialog.valid"
-                            @click="createFolderDialogStore.show = false; createFolder($store.state.createFolderDialog.data.name)"
-                        >
-                            Create
-                        </v-btn>
-
-                    </v-card-actions>
-
-                </v-form>
-            </v-card>
+            <transition name="fade" mode="out-in">
+                <CreateFolder v-on:create-folder="createFolder"></CreateFolder>
+            </transition>
         </v-dialog>
-
+        
+        <v-dialog
+            v-model="receiveDialogStore.show"
+            max-width="380"
+            persistent
+            :fullscreen="$store.state.settings.useFullscreenDialogs"
+            hide-overlay
+            transition="dialog-bottom-transition"
+        >
+            <transition name="fade" mode="out-in">
+                <ReceiveItem v-on:confirm-item-receipt="confirmItemReceipt"></ReceiveItem>
+            </transition>
+        </v-dialog>
+        
         <v-dialog
             v-model="addDialogStore.show"
             max-width="380"
@@ -590,104 +317,44 @@
             hide-overlay
             transition="dialog-bottom-transition"
         >
-            <v-card>
-                <v-card-title class="headline">Add Item</v-card-title>
-
-
-                <v-form
-                    ref="addForm"
-                    v-model="addDialogStore.valid"
-                    :lazy-validation="false"
-                >
-
-                    <v-card-text>
-                        Enter the name of the item.
-                    </v-card-text>
-
-                    <v-text-field
-                        class="px-2"
-                        label="Name"
-                        v-model="addDialogStore.data.name"
-                        :rules="[v => !!v || 'Name is required.']"
-                        required
-                    ></v-text-field>
-
-                    <v-card-text>
-                        Select a folder (optional).
-                    </v-card-text>
-
-                    <v-select
-                        class="my-2"
-                        :items="folderList"
-                        v-model="addDialogStore.data.folder"
-                        label="Folder"
-                        outlined
-                        item-text="name"
-                        item-value="uuid"
-                    ></v-select>
-
-                    <v-card-text>
-                        Enter the URL of the item.
-                    </v-card-text>
-
-                    <v-text-field
-                        class="px-2"
-                        label="URL"
-                        v-model="addDialogStore.data.url"
-                        :rules="[v => !!v || 'URL is required.']"
-                        required
-                    ></v-text-field>
-                    
-                    <v-text-field
-                        class="px-2"
-                        label="Version"
-                        v-model="addDialogStore.data.version"
-                        :rules="[v => !!v || 'Version is required.']"
-                        required
-                    ></v-text-field>
-
-                    <v-combobox
-                        class="px-2"
-                        label="Tags"
-                        v-model="addDialogStore.data.tags"
-                        multiple
-                        :chips="true"
-                        :deletable-chips="true"
-                        :disable-lookup="true"
-                        :items="possibleTags"
-                    ></v-combobox>
-
-                    <v-textarea
-                        class="px-2"
-                        label="Metadata"
-                        v-model="addDialogStore.data.metadata"
-                    ></v-textarea>
-
-                    <v-card-actions>
-
-                        <v-btn
-                            color="red"
-                            class="px-3"
-                            @click="addDialogStore.show = false"
-                        >
-                            Cancel
-                        </v-btn>
-
-                        <v-spacer></v-spacer>
-
-                        <v-btn
-                            color="blue"
-                            class="px-3"
-                            :disabled="!$store.state.addDialog.valid"
-                            @click="addDialogStore.show = false; addItem()"
-                        >
-                            Add
-                        </v-btn>
-
-                    </v-card-actions>
-
-                </v-form>
-            </v-card>
+            <transition name="fade" mode="out-in">
+                <AddItem v-on:add-item="addItem"></AddItem>
+            </transition>
+        </v-dialog>
+        
+        <v-dialog
+            v-model="$store.state.shareDialog.show"
+            max-width="380"
+            persistent
+            :fullscreen="$store.state.settings.useFullscreenDialogs"
+            hide-overlay
+            transition="dialog-bottom-transition"
+        >
+            <transition name="fade" mode="out-in">
+                <ShareItem v-on:share-item="shareItem"></ShareItem>
+            </transition>
+        </v-dialog>
+        
+        <v-dialog
+            v-model="$store.state.itemPage.show"
+            :fullscreen="$store.state.settings.useFullscreenDialogs"
+            persistent
+        >
+            <transition name="fade" mode="out-in">
+                <ItemPage></ItemPage>
+            </transition>
+        </v-dialog>
+        
+        <v-dialog
+            v-model="receivingItemsDialogStore.show"
+            max-width="380"
+        >
+            <transition name="fade" mode="out-in">
+                <ReceivingItems 
+                    v-on:accept-receiving-item="acceptReceivingItem"
+                    v-on:remove-receiving-item="removeReceivingItem"
+                ></ReceivingItems>
+            </transition>
         </v-dialog>
         
         <!-- CUSTOM DIALOG -->
@@ -803,201 +470,6 @@
             </v-card>
         </v-dialog>
 
-        <v-dialog
-            v-model="receiveDialogStore.show"
-            max-width="380"
-            persistent
-            :fullscreen="$store.state.settings.useFullscreenDialogs"
-            hide-overlay
-            transition="dialog-bottom-transition"
-        >
-            <v-card>
-                <v-card-title class="headline">Receiving Item</v-card-title>
-
-                <v-card-text>
-                    <b>{{$store.state.receiveDialog.data.userDisplayName}} sent you an item.</b> <br />
-                    <i class="caption">User UUID: {{$store.state.receiveDialog.data.userUUID}}</i>
-                </v-card-text>
-
-                <v-form
-                    ref="receiveForm"
-                    v-model="receiveDialogStore.valid"
-                    :lazy-validation="false"
-                >
-
-                    <v-text-field
-                        class="px-2"
-                        label="Type"
-                        :rules="[v => !!v || 'Type is required.']"
-                        v-model="receiveDialogStore.data.type"
-                        required
-                    ></v-text-field>
-
-                    <v-text-field
-                        class="px-2"
-                        label="Name"
-                        :rules="[v => !!v || 'Name is required.']"
-                        v-model="receiveDialogStore.data.name"
-                        required
-                    ></v-text-field>
-
-                    <v-card-text>
-                        Select a folder (optional).
-                    </v-card-text>
-
-                    <v-select
-                        class="my-2"
-                        :items="folderList"
-                        v-model="receiveDialogStore.data.folder"
-                        label="Folder"
-                        outlined
-                        item-text="name"
-                        item-value="uuid"
-                    ></v-select>
-
-                    <v-text-field
-                        class="px-2"
-                        label="URL"
-                        :rules="[v => !!v || 'URL is required.']"
-                        v-model="receiveDialogStore.data.url"
-                        required
-                    ></v-text-field>
-                    
-                    <v-text-field
-                        class="px-2"
-                        label="Version"
-                        v-model="receiveDialogStore.data.version"
-                        :rules="[v => !!v || 'Version is required.']"
-                        required
-                    ></v-text-field>
-
-                    <v-combobox
-                        class="px-2"
-                        label="Tags"
-                        v-model="receiveDialogStore.data.tags"
-                        multiple
-                        :chips="true"
-                        :deletable-chips="true"
-                        :disable-lookup="true"
-                        :items="possibleTags"
-                    ></v-combobox>
-
-                    <v-textarea
-                        class="px-2"
-                        label="Metadata"
-                        v-model="receiveDialogStore.data.metadata"
-                    ></v-textarea>
-
-                    <v-card-actions>
-
-                        <v-btn
-                            color="red"
-                            class="px-3"
-                            @click="receiveDialogStore.show = false"
-                        >
-                            Reject
-                        </v-btn>
-
-                        <v-spacer></v-spacer>
-
-                        <v-btn
-                            color="blue"
-                            class="px-3"
-                            :disabled="!$store.state.receiveDialog.valid"
-                            @click="receiveDialogStore.show = false; confirmItemReceipt();"
-                        >
-                            Accept
-                        </v-btn>
-
-                    </v-card-actions>
-
-                </v-form>
-            </v-card>
-        </v-dialog>
-
-        <v-dialog
-            v-model="shareDialogStore.show"
-            max-width="380"
-            persistent
-            :fullscreen="$store.state.settings.useFullscreenDialogs"
-            hide-overlay
-            transition="dialog-bottom-transition"
-        >
-            <v-card>
-                <v-card-title class="headline">Share Item</v-card-title>
-
-                <v-card-text>
-                    Select a user to send this item to.
-                </v-card-text>
-
-                <v-form
-                    ref="shareForm"
-                    v-model="shareDialogStore.valid"
-                    :lazy-validation="false"
-                    class="px-2"
-                >
-
-                    <v-select
-                        v-model="shareDialogStore.data.recipient"
-                        :items="nearbyUsers"
-                        item-value="uuid"
-                        :rules="[v => !!v || 'A recipient is required']"
-                        label="Nearby Users"
-                        required
-                    >
-                        <template v-slot:item="data">
-                            <i style="color: grey; margin-right: 5px;">{{data.item.distance.toFixed(1)}}m</i> {{data.item.name}}
-                        </template>
-                        <template v-slot:selection="data">
-                            <i style="color: grey; margin-right: 5px;">{{data.item.distance.toFixed(1)}}m</i> {{data.item.name}}
-                        </template>
-                    </v-select>
-
-                    <v-text-field
-                        class="px-2"
-                        label="URL"
-                        :rules="[v => !!v || 'URL is required.']"
-                        v-model="shareDialogStore.data.url"
-                        required
-                    ></v-text-field>
-
-                    <v-card-actions>
-
-                        <v-btn
-                            color="red"
-                            class="px-3"
-                            @click="shareDialogStore.show = false"
-                        >
-                            Cancel
-                        </v-btn>
-
-                        <v-spacer></v-spacer>
-
-                        <v-btn
-                            color="blue"
-                            class="px-3"
-                            :disabled="!$store.state.shareDialog.valid"
-                            @click="shareDialogStore.show = false; shareItem($store.state.shareDialog.data.uuid);"
-                        >
-                            Send
-                        </v-btn>
-
-                    </v-card-actions>
-
-                </v-form>
-            </v-card>
-        </v-dialog>
-
-        <v-dialog
-            v-model="$store.state.itemPage.show"
-            :fullscreen="$store.state.settings.useFullscreenDialogs"
-            persistent
-        >
-            <transition name="fade" mode="out-in">
-                <ItemPage></ItemPage>
-            </transition>
-        </v-dialog>
-
     </v-app>
 </template>
 
@@ -1006,7 +478,17 @@
 import InventoryItemIterator from './components/InventoryItemIterator'
 import Bazaar from './components/Bazaar'
 import CategoryDrawer from './components/CategoryDrawer'
+// Components -> Dialogs
+import AddItem from './components/Dialogs/AddItem'
+import CreateFolder from './components/Dialogs/CreateFolder'
+import EditFolder from './components/Dialogs/EditFolder'
+import EditItem from './components/Dialogs/EditItem'
 import ItemPage from './components/Dialogs/ItemPage'
+import ReceiveItem from './components/Dialogs/ReceiveItem'
+import ReceivingItems from './components/Dialogs/ReceivingItems'
+import RemoveFolder from './components/Dialogs/RemoveFolder'
+import RemoveItem from './components/Dialogs/RemoveItem'
+import ShareItem from './components/Dialogs/ShareItem'
 // Plugins
 import { EventBus } from './plugins/event-bus.js';
 
@@ -1076,58 +558,19 @@ export default {
         CategoryDrawer,
         InventoryItemIterator,
         // Dialogs
-        ItemPage
+        AddItem,
+        CreateFolder,
+        EditFolder,
+        EditItem,
+        ItemPage,
+        ReceiveItem,
+        ReceivingItems,
+        RemoveItem,
+        RemoveFolder,
+        ShareItem
     },
     data: () => ({
-        possibleTags: [],
-        receivingItemsDialog: {
-            show: false,
-            data: {
-                receivingItemQueue: [
-                    {
-                        "senderUUID": "SENDERUUIDLOL",
-                        "senderName": "WHOISTHIS1",
-                        "senderDistance": 2.5,
-                        "data": {
-                            "type": "script",
-                            "name": "This Is A Real Script",
-                            "url": "https://butwhythough.com/lol.js",
-                            "uuid": "This Is A Real Script",
-                        }
-                    },
-                    {
-                        "senderUUID": "TEST2SENDERUUID",
-                        "senderName": "WHOTHISBE2",
-                        "senderDistance": 1.22,
-                        "data": {
-                            "type": "script",
-                            "name": "REALLYLONGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",
-                            "url": "https://butwhythough.com/looool.js",
-                            "uuid": "REALLYLONNGGGGGGGG",
-                        }
-                    }
-                ]
-            }
-        },
-        folderList: [],
         recursiveFolderHoldingList: [],
-        nearbyUsers: [
-            {
-                name: "Who",
-                uuid: "{4131531653652562}",
-                distance: 5,
-            },
-            {
-                name: "Is",
-                uuid: "{4131531653756756576543652562}",
-                distance: 3.23,
-            },
-            {
-                name: "This?",
-                uuid: "{4131531676575653652562}",
-                distance: 1,
-            }
-        ],
         drawer: false
     }),
     created: function () {
@@ -1257,7 +700,7 @@ export default {
                 "items": [],
                 "uuid": this.createUUID()
             });
-            
+
             this.createFolderDialogStore.data.name = null;
         },
         editFolder: function (uuid) {
@@ -1316,15 +759,15 @@ export default {
             findItem.returnedItem.tags = this.$store.state.editDialog.data.tags;
             findItem.returnedItem.metadata = this.$store.state.editDialog.data.metadata;
             findItem.returnedItem.version = this.$store.state.editDialog.data.version;
-            
+
             var folderName;
-            
+
             for (var i = 0; i < this.folderList.length; i++) {
                 if (this.folderList[i].name === findItem.returnedItem.folder) {
                     folderName = this.folderList[i].name;
                 }
             }
-            
+
             if (this.$store.state.editDialog.data.folder !== null) {
                 if (folderName !== this.$store.state.editDialog.data.folder && this.$store.state.editDialog.data.folder !== "No Folder") {
                     this.moveItem(uuid, this.$store.state.editDialog.data.folder);
@@ -1332,7 +775,6 @@ export default {
                     this.moveItem(uuid, "top");
                 }
             }
-
         },
         acceptReceivingItem: function (data) {
             this.removeReceivingItem(data.data.uuid);
@@ -1351,18 +793,18 @@ export default {
             this.receiveDialogStore.show = true;
         },
         removeReceivingItem: function (uuid) {
-            for (var i = 0; i < this.receivingItemsDialog.data.receivingItemQueue.length; i++) {
-                if (this.receivingItemsDialog.data.receivingItemQueue[i].data.uuid === uuid) {
-                    this.receivingItemsDialog.data.receivingItemQueue.splice(i, 1);
-                    this.sendAppMessage('web-to-script-update-receiving-item-queue', this.receivingItemQueue);
-                    if (this.receivingItemsDialog.data.receivingItemQueue.length === 0) {
-                        this.receivingItemsDialog.show = false; // Close the dialog if there's nothing left.
+            for (var i = 0; i < this.receivingItemsDialogStore.data.receivingItemQueue.length; i++) {
+                if (this.receivingItemsDialogStore.data.receivingItemQueue[i].data.uuid === uuid) {
+                    this.receivingItemsDialogStore.data.receivingItemQueue.splice(i, 1);
+                    this.sendAppMessage('web-to-script-update-receiving-item-queue', this.receivingItemsDialogStore.data.receivingItemQueue);
+                    if (this.receivingItemsDialogStore.data.receivingItemQueue.length === 0) {
+                        this.receivingItemsDialogStore.show = false; // Close the dialog if there's nothing left.
                     }
                 }
             }
         },
         receiveReceivingItemQueue: function (data) {
-            this.receivingItemsDialog.data.receivingItemQueue = data;
+            this.receivingItemsDialogStore.data.receivingItemQueue = data;
         },
         receiveAppendItem: function (data) {
             this.pushToItems(data.type, data.name, "No Folder", data.url, data.tags, data.metadata, data.version, null);
@@ -1386,7 +828,7 @@ export default {
                 "recipient": this.$store.state.shareDialog.data.recipient,
             });
         },
-        confirmItemReceipt: function() {
+        confirmItemReceipt: function () {
             this.pushToItems(
                 this.checkItemType(this.$store.state.receiveDialog.data.type), 
                 this.$store.state.receiveDialog.data.name,
@@ -1398,28 +840,28 @@ export default {
                 null
             );
         },
-        useItem: function(type, url) {
+        useItem: function (type, url) {
             this.sendAppMessage("use-item", { 
                 "type": type, 
                 "url": url 
             });
         },
-        onDragStart: function() {
+        onDragStart: function () {
             console.info("Drag start.");
         },
-        onDragUpdate: function() {
+        onDragUpdate: function () {
             console.info("Drag Update.");
         },
-        onDragEnd: function() {
+        onDragEnd: function () {
             console.info("Drag End.");
         },
-        onDragChange: function(ev) {
+        onDragChange: function (ev) {
             console.info("Drag Update.", ev);
         },
-        sortTopInventory: function(order) {
+        sortTopInventory: function (order) {
             this.$store.commit('sortTopInventory', { "sort": order });
         },
-        getFolderList: function(request) {
+        getFolderList: function (request) {
             var generateList;
             this.recursiveFolderHoldingList = []; // Clear that list before we do anything.
             
@@ -1467,7 +909,7 @@ export default {
                 this.folderList = combinedArray;
             }
         },
-        moveItem: function(uuid, parentFolderUUID) {
+        moveItem: function (uuid, parentFolderUUID) {
             var findItem = this.searchForItem(uuid);
             var findParentFolder;
             
@@ -1486,7 +928,7 @@ export default {
             });
 
         },
-        moveFolder: function(uuid, parentFolderUUID) {
+        moveFolder: function (uuid, parentFolderUUID) {
             var findFolder = this.searchForItem(uuid);
             var findParentFolder;
             
@@ -1505,7 +947,7 @@ export default {
             });
             
         },
-        searchForItem: function(uuid) {
+        searchForItem: function (uuid) {
             var foundItem = this.recursiveSingularSearch(uuid, this.itemsStore);
             
             if (foundItem) {
@@ -1560,7 +1002,7 @@ export default {
         
         // MAIN APP FUNCTIONS
 
-        sendInventory: function() {
+        sendInventory: function () {
             this.sendAppMessage("web-to-script-inventory", this.itemsStore );
         },
         receiveInventory: function(receivedInventory) {
@@ -1570,24 +1012,32 @@ export default {
                 this.itemsStore = receivedInventory;
             }
         },
-        sendSettings: function() {
+        sendSettings: function () {
             this.sendAppMessage("web-to-script-settings", this.$store.state.settings );
         },
-        receiveSettings: function(receivedSettings) {
+        receiveSettings: function (receivedSettings) {
             if (!receivedSettings) {
                 // Don't do anything, let the defaults stand. Otherwise, it will break the app.
             } else {
                 this.settings = receivedSettings;
             }
         },
-        receiveNearbyUsers: function(receivedUsers) {
+        receiveNearbyUsers: function (receivedUsers) {
             if (!receivedUsers) {
-                this.nearbyUsers = [];
+                this.$store.commit('mutate', {
+                    update: true,
+                    property: 'nearbyUsers', 
+                    with: []
+                });
             } else {
-                this.nearbyUsers = receivedUsers;
+                this.$store.commit('mutate', {
+                    update: true,
+                    property: 'nearbyUsers', 
+                    with: receivedUsers
+                });
             }
         },
-        sendAppMessage: function(command, data) {
+        sendAppMessage: function (command, data) {
             var JSONtoSend = {
                 "app": "inventory",
                 "command": command,
@@ -1648,6 +1098,17 @@ export default {
                 });
             }
         },
+        folderList: {
+            get() {
+                return this.$store.state.folderList;
+            },
+            set (value) {
+                this.$store.commit('mutate', {
+                    property: 'folderList', 
+                    with: value
+                });
+            }
+        },
         addDialogStore: {
             get() {
                 return this.$store.state.addDialog;
@@ -1655,17 +1116,6 @@ export default {
             set (value) {
                 this.$store.commit('mutate', {
                     property: 'addDialog', 
-                    with: value
-                });
-            }
-        },
-        editDialogStore: {
-            get() {
-                return this.$store.state.editDialog;
-            },
-            set (value) {
-                this.$store.commit('mutate', {
-                    property: 'editDialog', 
                     with: value
                 });
             }
@@ -1683,17 +1133,6 @@ export default {
         },
         editDialogShow: function() {
             return this.$store.state.editDialog.show;
-        },
-        editFolderDialogStore: {
-            get() {
-                return this.$store.state.editFolderDialog;
-            },
-            set (value) {
-                this.$store.commit('mutate', {
-                    property: 'editFolderDialog', 
-                    with: value
-                });
-            }
         },
         editFolderDialogShow: function() {
             return this.$store.state.editFolderDialog.show;
@@ -1723,47 +1162,15 @@ export default {
         shareDialogShow: function() {
             return this.$store.state.shareDialog.show;
         },
-        shareDialogStore: {
-            get () {
-                return this.$store.state.shareDialog;
+        receivingItemsDialogStore: {
+            get() {
+                return this.$store.state.receivingItemsDialog;
             },
             set (value) {
                 this.$store.commit('mutate', {
-                    property: 'shareDialog', 
+                    property: 'receivingItemsDialog', 
                     with: value
                 });
-            }
-        },
-        removeFolderDialogStore: {
-            get () {
-                return this.$store.state.removeFolderDialog;
-            },
-            set (value) {
-                this.$store.commit('mutate', {
-                    property: 'removeFolderDialog', 
-                    with: value
-                });
-            }
-        },
-        removeDialogStore: {
-            get () {
-                return this.$store.state.removeDialog;
-            },
-            set (value) {
-                this.$store.commit('mutate', {
-                    property: 'removeDialog', 
-                    with: value
-                });
-            }
-        },
-        receivingItemQueue: {
-            get () {
-                return this.receivingItemsDialog.data.receivingItemQueue;
-            }
-        },
-        receivingItemQueueLength: {
-            get () {
-                return this.receivingItemsDialog.data.receivingItemQueue.length;
             }
         },
         searchBoxStore: {
@@ -1788,7 +1195,7 @@ export default {
                 });
             }
         },
-        settingsStoreCurrentView: function() {
+        settingsStoreCurrentView: function () {
             return this.$store.state.settings.currentView;
         },
         // --- CUSTOM DATA ---
@@ -1838,11 +1245,6 @@ export default {
                 if (newVal === true) {
                     this.sendAppMessage('web-to-script-request-nearby-users', '');
                 }
-            }
-        },
-        receivingItemQueue: {
-            handler: function() {
-                // Do nothing.
             }
         },
         settingsStoreCurrentView: {
