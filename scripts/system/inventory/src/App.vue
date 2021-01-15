@@ -193,7 +193,7 @@
         </v-main>
 
         <v-main
-            v-show="settingsStore.currentView === 'Bazaar'"
+            v-if="settingsStore.currentView === 'Bazaar'"
         >
             <Bazaar></Bazaar>
         </v-main>

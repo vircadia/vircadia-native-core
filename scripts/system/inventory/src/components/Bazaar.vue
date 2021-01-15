@@ -111,6 +111,7 @@
 </template>
 
 <script>
+import PouchDB from 'pouchdb-browser';
 import { EventBus } from '../plugins/event-bus.js';
 
 var vue_this;
@@ -123,8 +124,10 @@ export default {
     data: () => ({
         // Modules
         path: null,
+        // pako: null,
+        PouchDB: null,
         // Main
-        pouchDB: null,
+        bazaarPouchDB: null,
         bazaarData: null,
         bazaarIteratorItemsPerPage: 4,
         // Data to display in the iterator
@@ -139,20 +142,14 @@ export default {
         this.path = require('path');
 
         vue_this = this;
-
-        // Import exported GZ file
-        this.bazaarData = this.getSync(this.$store.state.settings.bazaar.repo + "/inventoryDB.gz?" + Date.now());
-        // Clean out DB cache and then recreate it.
-        // eslint-disable-next-line
-        var destroyDB = new PouchDB('inventory');
-        destroyDB.destroy().then(function () {
-            console.info('Destroyed DB successfully.');
-            vue_this.makeDB(vue_this.bazaarData);
-            // Call to create top level categories based on DB data
-            vue_this.getTopCategories();
-        }).catch(function (err) {
-            console.info('Failed to destroy DB: ', err);
-        });
+    },
+    mounted: function () {
+        // this.pako = require('pako');
+        this.PouchDB = PouchDB;
+        this.PouchDB.plugin(require('pouchdb-quick-search'));
+        this.PouchDB.plugin(require('pouchdb-find'));
+        
+        this.initializeForDB();
     },
     computed: {
         bazaarStore: {
@@ -180,21 +177,31 @@ export default {
         }
     },
     methods: {
-        clearDB: function () {
-            
+        initializeForDB: async function () {
+            // Import exported GZ file
+            this.bazaarData = await this.getAsync(this.$store.state.settings.bazaar.repo + "/inventoryDB.gz?" + Date.now());
+            // Clean out DB cache and then recreate it.
+            var destroyDB = new this.PouchDB('inventory');
+            destroyDB.destroy().then(function () {
+                console.info('Destroyed DB successfully.');
+                vue_this.createDB(vue_this.bazaarData);
+                // Call to create top level categories based on DB data
+                vue_this.getTopCategories();
+            }).catch(function (err) {
+                console.info('Failed to init DB:', err);
+            });
         },
         // Unzip import and load into pouchDB
-        makeDB: function (data) {
+        createDB: function (data) {
             // eslint-disable-next-line
             data = pako.ungzip(data, {
                 to: 'string'
             });
             console.info('this.bazaarData', JSON.parse(data));
 
-            // eslint-disable-next-line
-            this.pouchDB = new PouchDB(this.$store.state.settings.bazaar.dbName);
+            this.bazaarPouchDB = new this.PouchDB(this.$store.state.settings.bazaar.dbName);
             
-            this.pouchDB.allDocs({include_docs: true},function(err, docs) {
+            this.bazaarPouchDB.allDocs({include_docs: true},function(err, docs) {
                 if (err) {
                     console.info("Pre-read fail: " + err);
                 } else {
@@ -202,7 +209,7 @@ export default {
                 }
             });
             
-            this.pouchDB.bulkDocs(
+            this.bazaarPouchDB.bulkDocs(
                 JSON.parse(data), {
                     new_edits: false
                 }
@@ -212,7 +219,7 @@ export default {
                 console.log('Finished Bazaar DB Import.');
             
                 // Write DB Info to console
-                vue_this.pouchDB.info().then(function (info) {
+                vue_this.bazaarPouchDB.info().then(function (info) {
                     console.info('dbName', info.db_name, 'records', info.doc_count);
                 });
             })
@@ -225,9 +232,33 @@ export default {
             Httpreq.send(null);
             return Httpreq.responseText;
         },
+        // GET asynchronously
+        getAsync: function (url) {
+            return new Promise(function (resolve, reject) {
+                let xhr = new XMLHttpRequest();
+                xhr.open('GET', url, false);
+                xhr.onload = function () {
+                    if (this.status >= 200 && this.status < 300) {
+                        resolve(xhr.responseText);
+                    } else {
+                        reject({
+                            status: this.status,
+                            statusText: xhr.statusText
+                        });
+                    }
+                };
+                xhr.onerror = function () {
+                    reject({
+                        status: this.status,
+                        statusText: xhr.statusText
+                    });
+                };
+                xhr.send(null);
+            });
+        },
         // DB Function to pull top level categories
         getTopCategories: function () {
-            this.pouchDB.search({
+            this.bazaarPouchDB.search({
                 query: 'Bazaar',
                 fields: ['parent'],
                 include_docs: true
@@ -244,7 +275,7 @@ export default {
             });
         },
         selectCategory: function (category) {
-            vue_this.pouchDB.search({
+            vue_this.bazaarPouchDB.search({
                 query: category,
                 fields: ['type'],
                 include_docs: true
