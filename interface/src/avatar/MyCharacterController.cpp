@@ -26,7 +26,9 @@ void MyCharacterController::RayShotgunResult::reset() {
     walkable = true;
 }
 
-MyCharacterController::MyCharacterController(std::shared_ptr<MyAvatar> avatar) {
+MyCharacterController::MyCharacterController(std::shared_ptr<MyAvatar> avatar,
+                                             const FollowTimePerType& followTimeRemainingPerType) :
+    CharacterController(followTimeRemainingPerType) {
 
     assert(avatar);
     _avatar = avatar;
