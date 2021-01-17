@@ -109,10 +109,8 @@ Verify again
 Check if needed `git --version`  
 Install from https://git-scm.com/download/mac  
 Verify again  
-1.  pkg-config  
-brew fontconfig dbus-glib pkg-config  
-1.  dbus-1  
-brew install dbus-glib  
+1.  install pkg-config, dbug-glib, and fontconfig
+brew install fontconfig dbus-glib pkg-config  
 
 
 ## Build Process
