@@ -313,7 +313,7 @@ git clone --recursive git://code.qt.io/qt/qt5.git -b 5.15.2 --single-branch
 
 Add a *qt.conf* file.  
 1. Copy the file *qt5-build\qtbase\bin\qt.conf* to *qt5-install\bin*
-1. Edit the *qt.conf* file: replace all absolute URLs with relative URLs (begining with .. or .)
+1. Edit the *qt.conf* file: replace all absolute URLs with relative URLs (beginning with .. or .)
 
 #### Uploading
 `tar -zcvf qt5-install-5.15.2-macos.tar.gz qt5-install`  
