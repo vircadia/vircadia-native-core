@@ -59,7 +59,7 @@ For example, under Windows:
 
 For example, under OSX:
 
-    set QT_CMAKE_PREFIX_PATH=QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.15.2/lib/cmake
+    export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.15.2/lib/cmake
 
 Note: You only need the following components checked under Qt 5.15.2 (select the "Custom Installation" option): 
 		"MSVC 2019 64-bit", "Qt WebEngine", and "Qt Script (Deprecated)".
