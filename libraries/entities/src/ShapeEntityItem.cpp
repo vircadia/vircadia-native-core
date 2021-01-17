@@ -269,17 +269,17 @@ void ShapeEntityItem::setUnscaledDimensions(const glm::vec3& value) {
 }
 
 bool ShapeEntityItem::supportsDetailedIntersection() const {
-    return getShape() == entity::Sphere || getBillboardMode() != BillboardMode::NONE;
+    return getShape() == entity::Sphere;
 }
 
 bool ShapeEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                   OctreeElementPointer& element,
-                                                   float& distance, BoxFace& face, glm::vec3& surfaceNormal,
-                                                   QVariantMap& extraInfo, bool precisionPicking) const {
+                                                  const glm::vec3& viewFrustumPos, OctreeElementPointer& element,
+                                                  float& distance, BoxFace& face, glm::vec3& surfaceNormal,
+                                                  QVariantMap& extraInfo, bool precisionPicking) const {
     glm::vec3 dimensions = getScaledDimensions();
     glm::quat rotation = getWorldOrientation();
     glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
-    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, getBillboardMode(), BillboardModeHelpers::getPrimaryViewFrustumPosition());
+    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, getBillboardMode(), viewFrustumPos);
 
     // determine the ray in the frame of the entity transformed from a unit sphere
     glm::mat4 entityToWorldMatrix = glm::translate(position) * glm::mat4_cast(rotation) * glm::scale(dimensions);
@@ -287,35 +287,31 @@ bool ShapeEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const
     glm::vec3 entityFrameOrigin = glm::vec3(worldToEntityMatrix * glm::vec4(origin, 1.0f));
     glm::vec3 entityFrameDirection = glm::vec3(worldToEntityMatrix * glm::vec4(direction, 0.0f));
 
-    if (getShape() == entity::Sphere) {
-        // NOTE: unit sphere has center of 0,0,0 and radius of 0.5
-        if (findRaySphereIntersection(entityFrameOrigin, entityFrameDirection, glm::vec3(0.0f), 0.5f, distance)) {
-            bool success;
-            glm::vec3 center = getCenterPosition(success);
-            if (success) {
-                // FIXME: this is only correct for uniformly scaled spheres
-                // determine where on the unit sphere the hit point occured
-                glm::vec3 hitAt = origin + (direction * distance);
-                surfaceNormal = glm::normalize(hitAt - center);
-            } else {
-                return false;
-            }
-            return true;
+    // NOTE: unit sphere has center of 0,0,0 and radius of 0.5
+    if (findRaySphereIntersection(entityFrameOrigin, entityFrameDirection, glm::vec3(0.0f), 0.5f, distance)) {
+        bool success;
+        glm::vec3 center = getCenterPosition(success);
+        if (success) {
+            // FIXME: this is only correct for uniformly scaled spheres
+            // determine where on the unit sphere the hit point occured
+            glm::vec3 hitAt = origin + (direction * distance);
+            surfaceNormal = glm::normalize(hitAt - center);
+        } else {
+            return false;
         }
-    } else if (findRayAABoxIntersection(entityFrameOrigin, entityFrameDirection, 1.0f / entityFrameDirection, glm::vec3(-0.5f), glm::vec3(1.0f), distance, face, surfaceNormal)) {
         return true;
     }
     return false;
 }
 
 bool ShapeEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
-                                                       OctreeElementPointer& element, float& parabolicDistance,
+                                                       const glm::vec3& viewFrustumPos, OctreeElementPointer& element, float& parabolicDistance,
                                                        BoxFace& face, glm::vec3& surfaceNormal,
                                                        QVariantMap& extraInfo, bool precisionPicking) const {
     glm::vec3 dimensions = getScaledDimensions();
     glm::quat rotation = getWorldOrientation();
     glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
-    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, getBillboardMode(), BillboardModeHelpers::getPrimaryViewFrustumPosition());
+    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, getBillboardMode(), viewFrustumPos);
 
     // determine the parabola in the frame of the entity transformed from a unit sphere
     glm::mat4 entityToWorldMatrix = glm::translate(position) * glm::mat4_cast(rotation) * glm::scale(dimensions);
@@ -324,23 +320,24 @@ bool ShapeEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, 
     glm::vec3 entityFrameVelocity = glm::vec3(worldToEntityMatrix * glm::vec4(velocity, 0.0f));
     glm::vec3 entityFrameAcceleration = glm::vec3(worldToEntityMatrix * glm::vec4(acceleration, 0.0f));
 
-    if (getShape() == entity::Sphere) {
-        // NOTE: unit sphere has center of 0,0,0 and radius of 0.5
-        if (findParabolaSphereIntersection(entityFrameOrigin, entityFrameVelocity, entityFrameAcceleration, glm::vec3(0.0f), 0.5f, parabolicDistance)) {
-            bool success;
-            glm::vec3 center = getCenterPosition(success);
-            if (success) {
-                // FIXME: this is only correct for uniformly scaled spheres
-                surfaceNormal = glm::normalize((origin + velocity * parabolicDistance + 0.5f * acceleration * parabolicDistance * parabolicDistance) - center);
-            } else {
-                return false;
-            }
-            return true;
+    // NOTE: unit sphere has center of 0,0,0 and radius of 0.5
+    if (findParabolaSphereIntersection(entityFrameOrigin, entityFrameVelocity, entityFrameAcceleration, glm::vec3(0.0f), 0.5f, parabolicDistance)) {
+        bool success;
+        glm::vec3 center = getCenterPosition(success);
+        if (success) {
+            // FIXME: this is only correct for uniformly scaled spheres
+            surfaceNormal = glm::normalize((origin + velocity * parabolicDistance + 0.5f * acceleration * parabolicDistance * parabolicDistance) - center);
+        } else {
+            return false;
         }
-    } else if (findParabolaAABoxIntersection(entityFrameOrigin, entityFrameVelocity, entityFrameAcceleration, glm::vec3(-0.5f), glm::vec3(1.0f), parabolicDistance, face, surfaceNormal)) {
         return true;
     }
     return false;
+}
+
+bool ShapeEntityItem::getRotateForPicking() const {
+    auto shape = getShape();
+    return getBillboardMode() != BillboardMode::NONE && (_shape < entity::Shape::Cube || _shape > entity::Shape::Icosahedron);
 }
 
 void ShapeEntityItem::debugDump() const {

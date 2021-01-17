@@ -254,7 +254,7 @@ float LightEntityItem::getCutoff() const {
 }
 
 bool LightEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                        OctreeElementPointer& element, float& distance,
+                        const glm::vec3& viewFrustumPos, OctreeElementPointer& element, float& distance,
                         BoxFace& face, glm::vec3& surfaceNormal,
                         QVariantMap& extraInfo, bool precisionPicking) const {
 
@@ -267,8 +267,8 @@ bool LightEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const
 }
 
 bool LightEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
-                        const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
-                        BoxFace& face, glm::vec3& surfaceNormal,
+                        const glm::vec3& acceleration, const glm::vec3& viewFrustumPos, OctreeElementPointer& element,
+                        float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal,
                         QVariantMap& extraInfo, bool precisionPicking) const {
     // TODO: consider if this is really what we want to do. We've made it so that "lights are pickable" is a global state
     // this is probably reasonable since there's typically only one tree you'd be picking on at a time. Technically we could

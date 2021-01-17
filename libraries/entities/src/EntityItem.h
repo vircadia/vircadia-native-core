@@ -175,12 +175,12 @@ public:
 
     virtual bool supportsDetailedIntersection() const { return false; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         OctreeElementPointer& element, float& distance,
+                         const glm::vec3& viewFrustumPos, OctreeElementPointer& element, float& distance,
                          BoxFace& face, glm::vec3& surfaceNormal,
                          QVariantMap& extraInfo, bool precisionPicking) const { return true; }
     virtual bool findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
-                        const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
-                        BoxFace& face, glm::vec3& surfaceNormal,
+                        const glm::vec3& acceleration, const glm::vec3& viewFrustumPos, OctreeElementPointer& element,
+				        float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal,
                         QVariantMap& extraInfo, bool precisionPicking) const { return true; }
 
     // attributes applicable to all entity types
@@ -203,7 +203,6 @@ public:
     /// Dimensions in meters (0.0 - TREE_SCALE)
     virtual glm::vec3 getScaledDimensions() const;
     virtual void setScaledDimensions(const glm::vec3& value);
-    virtual glm::vec3 getRaycastDimensions() const;
 
     glm::vec3 getUnscaledDimensions() const;
     virtual void setUnscaledDimensions(const glm::vec3& value);
@@ -584,6 +583,7 @@ public:
 
     void setBillboardMode(BillboardMode value);
     BillboardMode getBillboardMode() const;
+    virtual bool getRotateForPicking() const { return false; }
 
 signals:
     void spaceUpdate(std::pair<int32_t, glm::vec4> data);

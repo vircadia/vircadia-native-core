@@ -1907,16 +1907,6 @@ void EntityItem::setScaledDimensions(const glm::vec3& value) {
     setUnscaledDimensions(value / parentScale);
 }
 
-glm::vec3 EntityItem::getRaycastDimensions() const {
-    glm::vec3 dimensions = getScaledDimensions();
-    if (getBillboardMode() != BillboardMode::NONE) {
-        float max = glm::max(dimensions.x, glm::max(dimensions.y, dimensions.z));
-        const float SQRT_2 = 1.41421356237f;
-        return glm::vec3(SQRT_2 * max);
-    }
-    return dimensions;
-}
-
 void EntityItem::setUnscaledDimensions(const glm::vec3& value) {
     glm::vec3 newDimensions = glm::max(value, glm::vec3(ENTITY_ITEM_MIN_DIMENSION));
     const float MIN_SCALE_CHANGE_SQUARED = 1.0e-6f;

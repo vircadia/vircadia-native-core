@@ -162,7 +162,7 @@ bool EntityTreeElement::checkFilterSettings(const EntityItemPointer& entity, Pic
     return true;
 }
 
-EntityItemID EntityTreeElement::evalRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+EntityItemID EntityTreeElement::evalRayIntersection(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& viewFrustumPos,
         OctreeElementPointer& element, float& distance, BoxFace& face, glm::vec3& surfaceNormal,
         const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard,
         PickFilter searchFilter, QVariantMap& extraInfo) {
@@ -177,7 +177,7 @@ EntityItemID EntityTreeElement::evalRayIntersection(const glm::vec3& origin, con
 
     QVariantMap localExtraInfo;
     float distanceToElementDetails = distance;
-    EntityItemID entityID = evalDetailedRayIntersection(origin, direction, element, distanceToElementDetails,
+    EntityItemID entityID = evalDetailedRayIntersection(origin, direction, viewFrustumPos, element, distanceToElementDetails,
             localFace, localSurfaceNormal, entityIdsToInclude, entityIdsToDiscard, searchFilter, localExtraInfo);
     if (!entityID.isNull() && distanceToElementDetails < distance) {
         distance = distanceToElementDetails;
@@ -189,7 +189,7 @@ EntityItemID EntityTreeElement::evalRayIntersection(const glm::vec3& origin, con
     return result;
 }
 
-EntityItemID EntityTreeElement::evalDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+EntityItemID EntityTreeElement::evalDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& viewFrustumPos,
                                     OctreeElementPointer& element, float& distance, BoxFace& face, glm::vec3& surfaceNormal,
                                     const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIDsToDiscard,
                                     PickFilter searchFilter, QVariantMap& extraInfo) {
@@ -222,11 +222,12 @@ EntityItemID EntityTreeElement::evalDetailedRayIntersection(const glm::vec3& ori
         glm::vec3 position = entity->getWorldPosition();
         glm::mat4 translation = glm::translate(position);
         glm::quat orientation = entity->getWorldOrientation();
-        glm::mat4 rotation = glm::mat4_cast(BillboardModeHelpers::getBillboardRotation(position, orientation, entity->getBillboardMode(), BillboardModeHelpers::getPrimaryViewFrustumPosition()));
+        glm::mat4 rotation = glm::mat4_cast(BillboardModeHelpers::getBillboardRotation(position, orientation, entity->getBillboardMode(),
+            viewFrustumPos, entity->getRotateForPicking()));
         glm::mat4 entityToWorldMatrix = translation * rotation;
         glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
-        glm::vec3 dimensions = entity->getRaycastDimensions();
+        glm::vec3 dimensions = entity->getScaledDimensions();
         glm::vec3 registrationPoint = entity->getRegistrationPoint();
         glm::vec3 corner = -(dimensions * registrationPoint);
 
@@ -246,7 +247,7 @@ EntityItemID EntityTreeElement::evalDetailedRayIntersection(const glm::vec3& ori
                 // now ask the entity if we actually intersect
                 if (entity->supportsDetailedIntersection()) {
                     QVariantMap localExtraInfo;
-                    if (entity->findDetailedRayIntersection(origin, direction, element, localDistance,
+                    if (entity->findDetailedRayIntersection(origin, direction, viewFrustumPos, element, localDistance,
                             localFace, localSurfaceNormal, localExtraInfo, searchFilter.isPrecise())) {
                         if (localDistance < distance) {
                             distance = localDistance;
@@ -300,7 +301,7 @@ bool EntityTreeElement::findSpherePenetration(const glm::vec3& center, float rad
 }
 
 EntityItemID EntityTreeElement::evalParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
-    const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
+    const glm::vec3& acceleration, const glm::vec3& viewFrustumPos, OctreeElementPointer& element, float& parabolicDistance,
     BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
     const QVector<EntityItemID>& entityIdsToDiscard, PickFilter searchFilter, QVariantMap& extraInfo) {
 
@@ -323,7 +324,7 @@ EntityItemID EntityTreeElement::evalParabolaIntersection(const glm::vec3& origin
     }
     // Get the normal of the plane, the cross product of two vectors on the plane
     glm::vec3 normal = glm::normalize(glm::cross(vectorOnPlane, acceleration));
-    EntityItemID entityID = evalDetailedParabolaIntersection(origin, velocity, acceleration, normal, element, distanceToElementDetails,
+    EntityItemID entityID = evalDetailedParabolaIntersection(origin, velocity, acceleration, viewFrustumPos, normal, element, distanceToElementDetails,
             localFace, localSurfaceNormal, entityIdsToInclude, entityIdsToDiscard, searchFilter, localExtraInfo);
     if (!entityID.isNull() && distanceToElementDetails < parabolicDistance) {
         parabolicDistance = distanceToElementDetails;
@@ -336,9 +337,9 @@ EntityItemID EntityTreeElement::evalParabolaIntersection(const glm::vec3& origin
 }
 
 EntityItemID EntityTreeElement::evalDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
-                                    const glm::vec3& normal, OctreeElementPointer& element, float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal,
-                                    const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIDsToDiscard,
-                                    PickFilter searchFilter, QVariantMap& extraInfo) {
+                                    const glm::vec3& viewFrustumPos,const glm::vec3& normal, OctreeElementPointer& element, float& parabolicDistance,
+                                    BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
+                                    const QVector<EntityItemID>& entityIDsToDiscard, PickFilter searchFilter, QVariantMap& extraInfo) {
 
     // only called if we do intersect our bounding cube, but find if we actually intersect with entities...
     EntityItemID entityID;
@@ -373,11 +374,12 @@ EntityItemID EntityTreeElement::evalDetailedParabolaIntersection(const glm::vec3
         glm::vec3 position = entity->getWorldPosition();
         glm::mat4 translation = glm::translate(position);
         glm::quat orientation = entity->getWorldOrientation();
-        glm::mat4 rotation = glm::mat4_cast(BillboardModeHelpers::getBillboardRotation(position, orientation, entity->getBillboardMode(), BillboardModeHelpers::getPrimaryViewFrustumPosition()));
+        glm::mat4 rotation = glm::mat4_cast(BillboardModeHelpers::getBillboardRotation(position, orientation, entity->getBillboardMode(),
+            viewFrustumPos, entity->getRotateForPicking()));
         glm::mat4 entityToWorldMatrix = translation * rotation;
         glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
-        glm::vec3 dimensions = entity->getRaycastDimensions();
+        glm::vec3 dimensions = entity->getScaledDimensions();
         glm::vec3 registrationPoint = entity->getRegistrationPoint();
         glm::vec3 corner = -(dimensions * registrationPoint);
 
@@ -398,7 +400,7 @@ EntityItemID EntityTreeElement::evalDetailedParabolaIntersection(const glm::vec3
                 // now ask the entity if we actually intersect
                 if (entity->supportsDetailedIntersection()) {
                     QVariantMap localExtraInfo;
-                    if (entity->findDetailedParabolaIntersection(origin, velocity, acceleration, element, localDistance,
+                    if (entity->findDetailedParabolaIntersection(origin, velocity, acceleration, viewFrustumPos, element, localDistance,
                             localFace, localSurfaceNormal, localExtraInfo, searchFilter.isPrecise())) {
                         if (localDistance < parabolicDistance) {
                             parabolicDistance = localDistance;
@@ -454,7 +456,7 @@ void EntityTreeElement::evalEntitiesInSphere(const glm::vec3& position, float ra
         glm::vec3 penetration;
         if (success && entityBox.findSpherePenetration(position, radius, penetration)) {
 
-            glm::vec3 dimensions = entity->getRaycastDimensions();
+            glm::vec3 dimensions = entity->getScaledDimensions();
 
             // FIXME - consider allowing the entity to determine penetration so that
             //         entities could presumably do actual hull testing if they wanted to
@@ -476,10 +478,8 @@ void EntityTreeElement::evalEntitiesInSphere(const glm::vec3& position, float ra
             } else {
                 // determine the worldToEntityMatrix that doesn't include scale because
                 // we're going to use the registration aware aa box in the entity frame
-                glm::vec3 position = entity->getWorldPosition();
-                glm::mat4 translation = glm::translate(position);
-                glm::quat orientation = entity->getWorldOrientation();
-                glm::mat4 rotation = glm::mat4_cast(BillboardModeHelpers::getBillboardRotation(position, orientation, entity->getBillboardMode(), BillboardModeHelpers::getPrimaryViewFrustumPosition()));
+                glm::mat4 translation = glm::translate(entity->getWorldPosition());
+                glm::mat4 rotation = glm::mat4_cast(entity->getWorldOrientation());
                 glm::mat4 entityToWorldMatrix = translation * rotation;
                 glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
@@ -510,7 +510,7 @@ void EntityTreeElement::evalEntitiesInSphereWithType(const glm::vec3& position, 
         glm::vec3 penetration;
         if (success && entityBox.findSpherePenetration(position, radius, penetration)) {
 
-            glm::vec3 dimensions = entity->getRaycastDimensions();
+            glm::vec3 dimensions = entity->getScaledDimensions();
 
             // FIXME - consider allowing the entity to determine penetration so that
             //         entities could presumably do actual hull testing if they wanted to
@@ -532,10 +532,8 @@ void EntityTreeElement::evalEntitiesInSphereWithType(const glm::vec3& position, 
             } else {
                 // determine the worldToEntityMatrix that doesn't include scale because
                 // we're going to use the registration aware aa box in the entity frame
-                glm::vec3 position = entity->getWorldPosition();
-                glm::mat4 translation = glm::translate(position);
-                glm::quat orientation = entity->getWorldOrientation();
-                glm::mat4 rotation = glm::mat4_cast(BillboardModeHelpers::getBillboardRotation(position, orientation, entity->getBillboardMode(), BillboardModeHelpers::getPrimaryViewFrustumPosition()));
+                glm::mat4 translation = glm::translate(entity->getWorldPosition());
+                glm::mat4 rotation = glm::mat4_cast(entity->getWorldOrientation());
                 glm::mat4 entityToWorldMatrix = translation * rotation;
                 glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
@@ -571,7 +569,7 @@ void EntityTreeElement::evalEntitiesInSphereWithName(const glm::vec3& position, 
         glm::vec3 penetration;
         if (success && entityBox.findSpherePenetration(position, radius, penetration)) {
 
-            glm::vec3 dimensions = entity->getRaycastDimensions();
+            glm::vec3 dimensions = entity->getScaledDimensions();
 
             // FIXME - consider allowing the entity to determine penetration so that
             //         entities could presumably do actual hull testing if they wanted to
@@ -593,10 +591,8 @@ void EntityTreeElement::evalEntitiesInSphereWithName(const glm::vec3& position, 
             } else {
                 // determine the worldToEntityMatrix that doesn't include scale because
                 // we're going to use the registration aware aa box in the entity frame
-                glm::vec3 position = entity->getWorldPosition();
-                glm::mat4 translation = glm::translate(position);
-                glm::quat orientation = entity->getWorldOrientation();
-                glm::mat4 rotation = glm::mat4_cast(BillboardModeHelpers::getBillboardRotation(position, orientation, entity->getBillboardMode(), BillboardModeHelpers::getPrimaryViewFrustumPosition()));
+                glm::mat4 translation = glm::translate(entity->getWorldPosition());
+                glm::mat4 rotation = glm::mat4_cast(entity->getWorldOrientation());
                 glm::mat4 entityToWorldMatrix = translation * rotation;
                 glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 

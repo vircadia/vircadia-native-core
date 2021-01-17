@@ -319,8 +319,8 @@ void Model::initJointStates() {
     _rig.initJointStates(hfmModel, modelOffset);
 }
 
-bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-                                                BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
+bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& viewFrustumPos,
+                                                float& distance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
                                                 bool pickAgainstTriangles, bool allowBackface) {
     bool intersectedSomething = false;
 
@@ -330,7 +330,8 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
     }
 
     // extents is the entity relative, scaled, centered extents of the entity
-    glm::mat4 modelToWorldMatrix = createMatFromQuatAndPos(_rotation, _translation);
+    glm::quat rotation = BillboardModeHelpers::getBillboardRotation(_translation, _rotation, _billboardMode, viewFrustumPos);
+    glm::mat4 modelToWorldMatrix = createMatFromQuatAndPos(rotation, _translation);
     glm::mat4 worldToModelMatrix = glm::inverse(modelToWorldMatrix);
 
     Extents modelExtents = getMeshExtents(); // NOTE: unrotated
@@ -475,8 +476,8 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 }
 
 bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
-                                                     float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
-                                                     bool pickAgainstTriangles, bool allowBackface) {
+                                                     const glm::vec3& viewFrustumPos, float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal,
+                                                     QVariantMap& extraInfo, bool pickAgainstTriangles, bool allowBackface) {
     bool intersectedSomething = false;
 
     // if we aren't active, we can't pick yet...
@@ -485,7 +486,8 @@ bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, co
     }
 
     // extents is the entity relative, scaled, centered extents of the entity
-    glm::mat4 modelToWorldMatrix = createMatFromQuatAndPos(_rotation, _translation);
+    glm::quat rotation = BillboardModeHelpers::getBillboardRotation(_translation, _rotation, _billboardMode, viewFrustumPos);
+    glm::mat4 modelToWorldMatrix = createMatFromQuatAndPos(rotation, _translation);
     glm::mat4 worldToModelMatrix = glm::inverse(modelToWorldMatrix);
 
     Extents modelExtents = getMeshExtents(); // NOTE: unrotated

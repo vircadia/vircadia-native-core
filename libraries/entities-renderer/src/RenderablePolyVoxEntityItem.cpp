@@ -526,7 +526,7 @@ public:
 #endif
 
 bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                              OctreeElementPointer& element,
+                                                              const glm::vec3& viewFrustumPos, OctreeElementPointer& element,
                                                               float& distance, BoxFace& face, glm::vec3& surfaceNormal,
                                                               QVariantMap& extraInfo, bool precisionPicking) const {
     // TODO -- correctly pick against marching-cube generated meshes
@@ -567,7 +567,7 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
 }
 
 bool RenderablePolyVoxEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
-                                                                   const glm::vec3& acceleration, OctreeElementPointer& element,
+                                                                   const glm::vec3& acceleration, const glm::vec3& viewFrustumPos, OctreeElementPointer& element,
                                                                    float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal,
                                                                    QVariantMap& extraInfo, bool precisionPicking) const {
     // TODO -- correctly pick against marching-cube generated meshes

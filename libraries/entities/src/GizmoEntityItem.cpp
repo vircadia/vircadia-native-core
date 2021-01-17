@@ -103,7 +103,7 @@ bool GizmoEntityItem::supportsDetailedIntersection() const {
 }
 
 bool GizmoEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                  OctreeElementPointer& element,
+                                                  const glm::vec3& viewFrustumPos, OctreeElementPointer& element,
                                                   float& distance, BoxFace& face, glm::vec3& surfaceNormal,
                                                   QVariantMap& extraInfo, bool precisionPicking) const {
     glm::vec3 dimensions = getScaledDimensions();
@@ -111,7 +111,7 @@ bool GizmoEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const
     glm::quat rotation = getWorldOrientation();
     rotation *= glm::angleAxis(-(float)M_PI_2, Vectors::RIGHT);
     glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
-    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, getBillboardMode(), BillboardModeHelpers::getPrimaryViewFrustumPosition(), false);
+    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, getBillboardMode(), viewFrustumPos);
 
     if (findRayRectangleIntersection(origin, direction, rotation, position, xyDimensions, distance)) {
         glm::vec3 hitPosition = origin + (distance * direction);
@@ -137,7 +137,7 @@ bool GizmoEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const
 }
 
 bool GizmoEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
-                                                       OctreeElementPointer& element, float& parabolicDistance,
+                                                       const glm::vec3& viewFrustumPos, OctreeElementPointer& element, float& parabolicDistance,
                                                        BoxFace& face, glm::vec3& surfaceNormal,
                                                        QVariantMap& extraInfo, bool precisionPicking) const {
     //// Scale the dimensions by the diameter
@@ -146,7 +146,7 @@ bool GizmoEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, 
     glm::quat rotation = getWorldOrientation();
     rotation *= glm::angleAxis(-(float)M_PI_2, Vectors::RIGHT);
     glm::vec3 position = getWorldPosition();
-    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, getBillboardMode(), BillboardModeHelpers::getPrimaryViewFrustumPosition(), true);
+    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, getBillboardMode(), viewFrustumPos);
 
     glm::quat inverseRot = glm::inverse(rotation);
     glm::vec3 localOrigin = inverseRot * (origin - position);

@@ -224,26 +224,26 @@ bool RenderableModelEntityItem::supportsDetailedIntersection() const {
 }
 
 bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         OctreeElementPointer& element, float& distance, BoxFace& face,
+                         const glm::vec3& viewFrustumPos, OctreeElementPointer& element, float& distance, BoxFace& face,
                          glm::vec3& surfaceNormal, QVariantMap& extraInfo, bool precisionPicking) const {
     auto model = getModel();
     if (!model || !model->isLoaded()) {
         return false;
     }
 
-    return model->findRayIntersectionAgainstSubMeshes(origin, direction, distance,
+    return model->findRayIntersectionAgainstSubMeshes(origin, direction, viewFrustumPos, distance,
                face, surfaceNormal, extraInfo, precisionPicking, false);
 }
 
 bool RenderableModelEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
-                        const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance, BoxFace& face,
-                        glm::vec3& surfaceNormal, QVariantMap& extraInfo, bool precisionPicking) const {
+                        const glm::vec3& acceleration, const glm::vec3& viewFrustumPos, OctreeElementPointer& element,
+                        float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo, bool precisionPicking) const {
     auto model = getModel();
     if (!model || !model->isLoaded()) {
         return false;
     }
 
-    return model->findParabolaIntersectionAgainstSubMeshes(origin, velocity, acceleration, parabolicDistance,
+    return model->findParabolaIntersectionAgainstSubMeshes(origin, velocity, acceleration, viewFrustumPos, parabolicDistance,
         face, surfaceNormal, extraInfo, precisionPicking, false);
 }
 
