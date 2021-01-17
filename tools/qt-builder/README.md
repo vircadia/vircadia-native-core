@@ -104,8 +104,7 @@ Verify again
 1.  nss (needed for qtwebengine)  
 `sudo apt-get install libnss3-dev -y`  
 
-### Mac
-**TODO: Update this section for Qt 5.15.2**  
+### Mac  
 1.  git >= 1.6  
 Check if needed `git --version`  
 Install from https://git-scm.com/download/mac  
@@ -288,26 +287,18 @@ Zip up this directory and upload it to Backtrace or other crash log handlng tool
 
 
 ### Mac  
-**TODO: Update this section for Qt 5.15.2**  
 
 #### Preparing source files  
-git clone --recursive git://code.qt.io/qt/qt5.git -b 5.12.3 --single-branch    
-  
-*  Copy the **patches** folder to qt5  
-*   Apply the patches to Qt  
-`cd qt5`  
-`git apply --ignore-space-change --ignore-whitespace patches/aec.patch`  
-`git apply --ignore-space-change --ignore-whitespace patches/qtscript-crash-fix.patch`  
-`git apply --ignore-space-change --ignore-whitespace patches/mac-web-video.patch`  
-`cd ..`  
+git clone --recursive git://code.qt.io/qt/qt5.git -b 5.15.2 --single-branch    
+
+*  If you are compiling with MacOSX11.1.SDK or greater, edit qt5/qtwebengine/src/3rdparty/chromium/build/mac/find_sdk.py line 91 and replace "MacOSX(10" with "MacOSX(11".
 
 #### Configuring
 `mkdir qt5-install`  
 `mkdir qt5-build`  
 `cd ../qt5-build`  
 
-`../qt5/configure -force-debug-info -opensource -confirm-license -qt-zlib -qt-libjpeg -qt-libpng -qt-freetype -qt-pcre -qt-harfbuzz -nomake examples -nomake tests -skip qttranslations -skip qtserialport -skip qt3d -skip qtlocation -skip qtwayland -skip qtsensors -skip qtgamepad -skip qtspeech -skip qtcharts -skip qtx11extras -skip qtmacextras -skip qtvirtualkeyboard -skip qtpurchasing -skip qtdatavis3d -no-warnings-are-errors  -no-pch -prefix ../qt5-install`  
-**TODO: Remove `-skip qtspeech`**
+`../qt5/configure -force-debug-info -opensource -confirm-license -qt-zlib -qt-libjpeg -qt-libpng -qt-freetype -qt-pcre -qt-harfbuzz -nomake examples -nomake tests -skip qttranslations -skip qtserialport -skip qt3d -skip qtlocation -skip qtwayland -skip qtsensors -skip qtgamepad -skip qtcharts -skip qtx11extras -skip qtmacextras -skip qtvirtualkeyboard -skip qtpurchasing -skip qtdatavis3d -no-warnings-are-errors  -no-pch -prefix ../qt5-install`  
 
 #### Make
 `make`  
@@ -315,17 +306,21 @@ git clone --recursive git://code.qt.io/qt/qt5.git -b 5.12.3 --single-branch
 
 #### Fixing
 1.  The *.prl* files have an absolute path that needs to be removed (see http://www.linuxfromscratch.org/blfs/view/stable-systemd/x/qtwebengine.html)  
-`cd ../qt5-install`  
+`cd` to the `qt5-install directory`  
 `find . -name \*.prl -exec sed -i -e '/^QMAKE_PRL_BUILD_DIR/d' {} \;`  
 `cd ..`  
-1.   Copy *qt.conf* to *qt5-install\bin*
+1.   Note: you may have additional files in qt5-install/lib and qt5-install/lib/pkg/pkgconfig that have your local build absolute path included.  Optionally you can fix these as well, but it will not effect the build if left alone.
+
+Add a *qt.conf* file.  
+1. Copy the file *qt5-build\qtbase\bin\qt.conf* to *qt5-install\bin*
+1. Edit the *qt.conf* file: replace all absolute URLs with relative URLs (begining with .. or .)
 
 #### Uploading
-`tar -zcvf qt5-install-5.13.2-macos.tar.gz qt5-install`  
-Upload qt5-install-5.13.2-macos.tar.gz to our Amazon S3 vircadia-public bucket, under the dependencies/vckpg directory
+`tar -zcvf qt5-install-5.15.2-macos.tar.gz qt5-install`  
+Upload qt5-install-5.15.2-macos.tar.gz to our Amazon S3 vircadia-public bucket, under the dependencies/vckpg directory
 
-#### Creating symbols
-Run `python3 prepare-mac-symbols-for-backtrace.py qt5-install` to scan the qt5-build directory for any dylibs and execute dsymutil to create dSYM bundles.  After running this command the backtrace directory will be created.  Zip this directory up, but make sure that all dylibs and dSYM fiels are in the root of the zip file, not under a sub-directory.  This file can then be uploaded to backtrace here: https://highfidelity.sp.backtrace.io/p/Interface/settings/symbol/upload
+#### Creating symbols (optional)
+Run `python3 prepare-mac-symbols-for-backtrace.py qt5-install` to scan the qt5-build directory for any dylibs and execute dsymutil to create dSYM bundles.  After running this command the backtrace directory will be created.  Zip this directory up, but make sure that all dylibs and dSYM fiels are in the root of the zip file, not under a sub-directory.  This file can then be uploaded to backtrace or other crash log handling tool.
 
 ## Problems
 *configure* errors, if any, may be viewed in **config.log** and **config.summary**

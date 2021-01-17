@@ -11,7 +11,7 @@
 
 ### Dependencies
 - [git](https://git-scm.com/downloads): >= 1.6  
-- [cmake](https://cmake.org/download/):  3.9
+- [cmake](https://cmake.org/download/):  3.9 (or greater up to 3.18.x)
 - [Python](https://www.python.org/downloads/): 3.6 or higher
 - [Node.JS](https://nodejs.org/en/): >= 12.13.1 LTS
     - Used to build the Screen Sharing executable.
@@ -21,7 +21,7 @@
 These dependencies need not be installed manually. They are automatically downloaded on the platforms where they are required.
 - [Bullet Physics Engine](https://github.com/bulletphysics/bullet3/releases):  2.83  
 - [glm](https://glm.g-truc.net/0.9.8/index.html):  0.9.8  
-- [Oculus SDK](https://developer.oculus.com/downloads/):   1.11 (Windows) / 0.5 (Mac)  
+- [Oculus SDK](https://developer.oculus.com/downloads/):   23.0 (Android)  
 - [OpenVR](https://github.com/ValveSoftware/openvr):   1.11.11 (Windows, Linux)  
 - [Polyvox](http://www.volumesoffun.com/):   0.2.1  
 - [QuaZip](https://sourceforge.net/projects/quazip/files/quazip/):   0.7.3  
@@ -56,6 +56,10 @@ For example, under Linux:
 For example, under Windows:
 
     set QT_CMAKE_PREFIX_PATH=C:\Qt\5.15.2\msvc2019_64\lib\cmake
+
+For example, under OSX:
+
+    set QT_CMAKE_PREFIX_PATH=QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.15.2/lib/cmake
 
 Note: You only need the following components checked under Qt 5.15.2 (select the "Custom Installation" option): 
 		"MSVC 2019 64-bit", "Qt WebEngine", and "Qt Script (Deprecated)".

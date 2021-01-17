@@ -1,6 +1,6 @@
 # Build OSX
 
-*Last Updated on August 26, 2020*
+*Last Updated on January 16, 2021*
 
 Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only macOS specific instructions are found in this document.
 
@@ -9,6 +9,8 @@ Please read the [general build guide](BUILD.md) for information on dependencies 
 [Homebrew](https://brew.sh/) is an excellent package manager for macOS. It makes install of some Vircadia dependencies very simple.
 
     brew install cmake openssl npm
+
+Note: cmake versions > 3.18.x have known problems building Vircadia, so alternatively you can download cmake 3.18.4 (or earlier versions) from [Github](https://github.com/Kitware/CMake/releases).   
 
 ### Python 3
 
