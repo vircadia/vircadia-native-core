@@ -161,7 +161,7 @@ ShapeKey ParticleEffectEntityRenderer::getShapeKey() {
     return builder.build();
 }
 
-Item::Bound ParticleEffectEntityRenderer::getBound() {
+Item::Bound ParticleEffectEntityRenderer::getBound(RenderArgs* args) {
     return _bound;
 }
 

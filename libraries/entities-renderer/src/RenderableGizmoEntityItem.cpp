@@ -195,8 +195,8 @@ void GizmoEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
     }
 }
 
-Item::Bound GizmoEntityRenderer::getBound() {
-    auto bound = Parent::getBound();
+Item::Bound GizmoEntityRenderer::getBound(RenderArgs* args) {
+    auto bound = Parent::getBound(args);
     if (_ringProperties.getHasTickMarks()) {
         glm::vec3 scale = bound.getScale();
         for (int i = 0; i < 3; i += 2) {

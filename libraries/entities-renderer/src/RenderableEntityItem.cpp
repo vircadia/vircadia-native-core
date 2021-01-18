@@ -137,7 +137,7 @@ EntityRenderer::~EntityRenderer() {}
 // Smart payload proxy members, implementing the payload interface
 //
 
-Item::Bound EntityRenderer::getBound() {
+Item::Bound EntityRenderer::getBound(RenderArgs* args) {
     auto bound = _bound;
     if (_billboardMode != BillboardMode::NONE) {
         glm::vec3 dimensions = bound.getScale();

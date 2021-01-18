@@ -88,7 +88,7 @@ public:
     typedef Payload::DataPointer Pointer;
 
     ItemKey getKey() const;
-    Item::Bound getBound() const;
+    Item::Bound getBound(RenderArgs* args) const;
     ShapeKey getShapeKey() const;
     void render(RenderArgs* args);
     bool passesZoneOcclusionTest(const std::unordered_set<QUuid>& containingZones) const;
@@ -104,7 +104,7 @@ protected:
 
 namespace render {
     template <> const ItemKey payloadGetKey(const entities::TextPayload::Pointer& payload);
-    template <> const Item::Bound payloadGetBound(const entities::TextPayload::Pointer& payload);
+    template <> const Item::Bound payloadGetBound(const entities::TextPayload::Pointer& payload, RenderArgs* args);
     template <> const ShapeKey shapeGetShapeKey(const entities::TextPayload::Pointer& payload);
     template <> void payloadRender(const entities::TextPayload::Pointer& payload, RenderArgs* args);
     template <> bool payloadPassesZoneOcclusionTest(const entities::TextPayload::Pointer& payload, const std::unordered_set<QUuid>& containingZones);

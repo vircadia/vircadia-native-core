@@ -45,7 +45,7 @@ public:
 
     // Render Item interface
     render::ItemKey getKey() const;
-    render::Item::Bound getBound() const;
+    render::Item::Bound getBound(RenderArgs* args) const;
     render::ShapeKey getShapeKey() const;
     void render(RenderArgs* args);
 
@@ -99,12 +99,11 @@ private:
     Transform _parentTransform;
     graphics::Box _localBound;
     graphics::Box _adjustedLocalBound;
-    mutable graphics::Box _worldBound;
 };
 
 namespace render {
     template <> const ItemKey payloadGetKey(const ModelMeshPartPayload::Pointer& payload);
-    template <> const Item::Bound payloadGetBound(const ModelMeshPartPayload::Pointer& payload);
+    template <> const Item::Bound payloadGetBound(const ModelMeshPartPayload::Pointer& payload, RenderArgs* args);
     template <> const ShapeKey shapeGetShapeKey(const ModelMeshPartPayload::Pointer& payload);
     template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, RenderArgs* args);
     template <> bool payloadPassesZoneOcclusionTest(const ModelMeshPartPayload::Pointer& payload, const std::unordered_set<QUuid>& containingZones);

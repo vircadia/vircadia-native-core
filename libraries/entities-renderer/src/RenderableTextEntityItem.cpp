@@ -227,12 +227,12 @@ ItemKey entities::TextPayload::getKey() const {
     return ItemKey::Builder::opaqueShape();
 }
 
-Item::Bound entities::TextPayload::getBound() const {
+Item::Bound entities::TextPayload::getBound(RenderArgs* args) const {
     auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>();
     if (entityTreeRenderer) {
         auto renderable = entityTreeRenderer->renderableForEntityId(_entityID);
         if (renderable) {
-            return std::static_pointer_cast<TextEntityRenderer>(renderable)->getBound();
+            return std::static_pointer_cast<TextEntityRenderer>(renderable)->getBound(args);
         }
     }
     return Item::Bound();
@@ -335,9 +335,9 @@ template <> const ItemKey payloadGetKey(const TextPayload::Pointer& payload) {
     return ItemKey::Builder::opaqueShape();
 }
 
-template <> const Item::Bound payloadGetBound(const TextPayload::Pointer& payload) {
+template <> const Item::Bound payloadGetBound(const TextPayload::Pointer& payload, RenderArgs* args) {
     if (payload) {
-        return payload->getBound();
+        return payload->getBound(args);
     }
     return Item::Bound();
 }

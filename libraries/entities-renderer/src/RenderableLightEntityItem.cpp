@@ -60,8 +60,8 @@ ItemKey LightEntityRenderer::getKey() {
     return payloadGetKey(_lightPayload);
 }
 
-Item::Bound LightEntityRenderer::getBound() {
-    return payloadGetBound(_lightPayload);
+Item::Bound LightEntityRenderer::getBound(RenderArgs* args) {
+    return payloadGetBound(_lightPayload, args);
 }
 
 void LightEntityRenderer::doRender(RenderArgs* args) {

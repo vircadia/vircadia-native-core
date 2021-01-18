@@ -177,8 +177,6 @@ void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& modelT
     }
 
     _parentTransform = modelTransform;
-    _worldBound = _adjustedLocalBound;
-    _worldBound.transform(_parentTransform);
 }
 
 void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) {
@@ -289,15 +287,23 @@ ItemKey ModelMeshPartPayload::getKey() const {
     return _itemKey;
 }
 
-Item::Bound ModelMeshPartPayload::getBound() const {
+Item::Bound ModelMeshPartPayload::getBound(RenderArgs* args) const {
     graphics::MaterialPointer material = _drawMaterials.empty() ? nullptr : _drawMaterials.top().material;
     if (material && material->isProcedural() && material->isReady()) {
         auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(_drawMaterials.top().material);
         if (procedural->hasVertexShader() && procedural->hasBoundOperator()) {
-           return procedural->getBound();
+           return procedural->getBound(args);
         }
     }
-    return _worldBound;
+
+    auto worldBound = _adjustedLocalBound;
+    auto parentTransform = _parentTransform;
+    if (args) {
+        parentTransform.setRotation(BillboardModeHelpers::getBillboardRotation(parentTransform.getTranslation(), parentTransform.getRotation(), _billboardMode,
+            args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
+    }
+    worldBound.transform(parentTransform);
+    return worldBound;
 }
 
 ShapeKey ModelMeshPartPayload::getShapeKey() const {
@@ -396,9 +402,9 @@ template <> const ItemKey payloadGetKey(const ModelMeshPartPayload::Pointer& pay
     return ItemKey::Builder::opaqueShape(); // for lack of a better idea
 }
 
-template <> const Item::Bound payloadGetBound(const ModelMeshPartPayload::Pointer& payload) {
+template <> const Item::Bound payloadGetBound(const ModelMeshPartPayload::Pointer& payload, RenderArgs* args) {
     if (payload) {
-        return payload->getBound();
+        return payload->getBound(args);
     }
     return Item::Bound();
 }

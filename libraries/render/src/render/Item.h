@@ -431,7 +431,7 @@ public:
     class PayloadInterface {
     public:
         virtual const ItemKey getKey() const = 0;
-        virtual const Bound getBound() const = 0;
+        virtual const Bound getBound(RenderArgs* args) const = 0;
         virtual void render(RenderArgs* args) = 0;
 
         virtual const ShapeKey getShapeKey() const = 0;
@@ -476,7 +476,7 @@ public:
     // Payload Interface
 
     // Get the bound of the item expressed in world space (or eye space depending on the key.isWorldSpace())
-    const Bound getBound() const { return _payload->getBound(); }
+    const Bound getBound(RenderArgs* args) const { return _payload->getBound(args); }
 
     // Get the layer where the item belongs, simply reflecting the key.
     int getLayer() const { return _key.getLayer(); }
@@ -489,7 +489,7 @@ public:
 
     // Meta Type Interface
     uint32_t fetchMetaSubItems(ItemIDs& subItems) const { return _payload->fetchMetaSubItems(subItems); }
-    uint32_t fetchMetaSubItemBounds(ItemBounds& subItemBounds, Scene& scene) const;
+    uint32_t fetchMetaSubItemBounds(ItemBounds& subItemBounds, Scene& scene, RenderArgs* args) const;
 
     bool passesZoneOcclusionTest(const std::unordered_set<QUuid>& containingZones) const { return _payload->passesZoneOcclusionTest(containingZones); }
 
@@ -524,13 +524,13 @@ public:
 
 
 inline QDebug operator<<(QDebug debug, const Item& item) {
-    debug << "[Item: _key:" << item.getKey() << ", bounds:" << item.getBound() << "]";
+    debug << "[Item: _key:" << item.getKey() << "]";
     return debug;
 }
 
 // Item shared interface supported by the payload
 template <class T> const ItemKey payloadGetKey(const std::shared_ptr<T>& payloadData) { return ItemKey(); }
-template <class T> const Item::Bound payloadGetBound(const std::shared_ptr<T>& payloadData) { return Item::Bound(); }
+template <class T> const Item::Bound payloadGetBound(const std::shared_ptr<T>& payloadData, RenderArgs* args) { return Item::Bound(); }
 template <class T> void payloadRender(const std::shared_ptr<T>& payloadData, RenderArgs* args) { }
 
 // Shape type interface
@@ -561,7 +561,7 @@ public:
 
     // Payload general interface
     virtual const ItemKey getKey() const override { return payloadGetKey<T>(_data); }
-    virtual const Item::Bound getBound() const override { return payloadGetBound<T>(_data); }
+    virtual const Item::Bound getBound(RenderArgs* args) const override { return payloadGetBound<T>(_data, args); }
 
     virtual void render(RenderArgs* args) override { payloadRender<T>(_data, args); }
 
@@ -607,9 +607,9 @@ template <> const ItemKey payloadGetKey(const FooPointer& foo) {
     foo->makeMyKey();
     return foo->_myownKey;
 }
-template <> const Item::Bound payloadGetBound(const FooPointer& foo) {
+template <> const Item::Bound payloadGetBound(const FooPointer& foo, RenderArgs* args) {
     // evaluate Foo's own bound
-    return foo->evaluateMyBound();
+    return foo->evaluateMyBound(args);
 }
 
 // In this example, do not specialize the payloadRender call which means the compiler will use the default version which does nothing
@@ -624,7 +624,7 @@ public:
 
     virtual ItemKey getKey() = 0;
     virtual ShapeKey getShapeKey() = 0;
-    virtual Item::Bound getBound() = 0;
+    virtual Item::Bound getBound(RenderArgs* args) = 0;
     virtual void render(RenderArgs* args) = 0;
     virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) const = 0;
     virtual bool passesZoneOcclusionTest(const std::unordered_set<QUuid>& containingZones) const = 0;
@@ -635,7 +635,7 @@ public:
 };
 
 template <> const ItemKey payloadGetKey(const PayloadProxyInterface::Pointer& payload);
-template <> const Item::Bound payloadGetBound(const PayloadProxyInterface::Pointer& payload);
+template <> const Item::Bound payloadGetBound(const PayloadProxyInterface::Pointer& payload, RenderArgs* args);
 template <> void payloadRender(const PayloadProxyInterface::Pointer& payload, RenderArgs* args);
 template <> uint32_t metaFetchMetaSubItems(const PayloadProxyInterface::Pointer& payload, ItemIDs& subItems);
 template <> const ShapeKey shapeGetShapeKey(const PayloadProxyInterface::Pointer& payload);

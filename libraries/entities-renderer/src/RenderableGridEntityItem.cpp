@@ -49,13 +49,13 @@ void GridEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointe
     _minorGridEvery = entity->getMinorGridEvery();
 }
 
-Item::Bound GridEntityRenderer::getBound() {
+Item::Bound GridEntityRenderer::getBound(RenderArgs* args) {
     if (_followCamera) {
         // This is a UI element that should always be in view, lie to the octree to avoid culling
         const AABox DOMAIN_BOX = AABox(glm::vec3(-TREE_SCALE / 2), TREE_SCALE);
         return DOMAIN_BOX;
     }
-    return Parent::getBound();
+    return Parent::getBound(args);
 }
 
 ShapeKey GridEntityRenderer::getShapeKey() {

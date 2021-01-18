@@ -376,7 +376,7 @@ void MaterialEntityRenderer::applyMaterial(const TypedEntityPointer& entity) {
 
     if (material->isProcedural()) {
         auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(material);
-        procedural->setBoundOperator([this] { return getBound(); });
+        procedural->setBoundOperator([this](RenderArgs* args) { return getBound(args); });
         entity->setHasVertexShader(procedural->hasVertexShader());
     }
 

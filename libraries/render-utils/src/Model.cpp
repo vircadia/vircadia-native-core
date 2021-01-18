@@ -1527,7 +1527,7 @@ AABox Model::getRenderableMeshBound() const {
         // Build a bound using the last known bound from all the renderItems.
         AABox totalBound;
         for (auto& renderItem : _modelMeshRenderItems) {
-            totalBound += renderItem->getBound();
+            totalBound += renderItem->getBound(nullptr);
         }
         return totalBound;
     }
