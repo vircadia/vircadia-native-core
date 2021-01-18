@@ -21,7 +21,7 @@
 These dependencies need not be installed manually. They are automatically downloaded on the platforms where they are required.
 - [Bullet Physics Engine](https://github.com/bulletphysics/bullet3/releases):  2.83  
 - [glm](https://glm.g-truc.net/0.9.8/index.html):  0.9.8  
-- [Oculus SDK](https://developer.oculus.com/downloads/):   23.0 (Android)  
+- [Oculus SDK](https://developer.oculus.com/downloads/):   1.11 (Windows) / 0.5 (Mac)  
 - [OpenVR](https://github.com/ValveSoftware/openvr):   1.11.11 (Windows, Linux)  
 - [Polyvox](http://www.volumesoffun.com/):   0.2.1  
 - [QuaZip](https://sourceforge.net/projects/quazip/files/quazip/):   0.7.3  
