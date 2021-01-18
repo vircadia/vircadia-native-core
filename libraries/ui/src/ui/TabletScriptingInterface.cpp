@@ -385,9 +385,11 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
         connect(tabletRootWindow, &QmlWindowClass::fromQml, this, &TabletProxy::fromQml);
 #endif
     } else {
+#if !defined(DISABLE_QML)
         if (_currentPathLoaded != TABLET_HOME_SOURCE_URL) {
             loadHomeScreen(true);
         }
+#endif
         //check if running scripts window opened and save it for reopen in Tablet
         if (offscreenUi->isVisible("RunningScripts")) {
             offscreenUi->hide("RunningScripts");
