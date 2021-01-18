@@ -26,12 +26,12 @@ if (!getSettings().hasProperty("SUPPRESS_QUEST_INTERFACE")) {
 // Test projects
 //
 
-if (!getSettings().hasProperty("SUPPRESS_FRAME_PLAYER")) {
-    include ':framePlayer'
-    project(':framePlayer').projectDir = new File(settingsDir, 'apps/framePlayer')
-}
+// if (!getSettings().hasProperty("SUPPRESS_FRAME_PLAYER")) {
+//     include ':framePlayer'
+//     project(':framePlayer').projectDir = new File(settingsDir, 'apps/framePlayer')
+// }
 
-if (!getSettings().hasProperty("SUPPRESS_QUEST_FRAME_PLAYER")) {
-    include ':questFramePlayer'
-    project(':questFramePlayer').projectDir = new File(settingsDir, 'apps/questFramePlayer')
-}
+// if (!getSettings().hasProperty("SUPPRESS_QUEST_FRAME_PLAYER")) {
+//     include ':questFramePlayer'
+//     project(':questFramePlayer').projectDir = new File(settingsDir, 'apps/questFramePlayer')
+// }

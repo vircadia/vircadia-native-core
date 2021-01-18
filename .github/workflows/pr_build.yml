@@ -32,13 +32,13 @@ jobs:
     strategy:
         matrix:
           include:
-            - os: windows-latest
-              build_type: full
-            - os: macOS-latest
-              build_type: full
-            - os: ubuntu-18.04
-              build_type: full
-              apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
+            #- os: windows-latest
+            #  build_type: full
+            #- os: macOS-latest
+            #  build_type: full
+            #- os: ubuntu-18.04
+            #  build_type: full
+            #  apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
             - os: ubuntu-18.04
               build_type: android
               apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
