@@ -984,13 +984,6 @@ void Model::setBillboardMode(BillboardMode billboardMode, const render::ScenePoi
             return;
         }
 
-        bool useDualQuaternionSkinning = _useDualQuaternionSkinning;
-        std::unordered_map<int, bool> shouldInvalidatePayloadShapeKeyMap;
-
-        for (auto& shape : _modelMeshRenderItemShapes) {
-            shouldInvalidatePayloadShapeKeyMap[shape.meshIndex] = shouldInvalidatePayloadShapeKey(shape.meshIndex);
-        }
-
         render::Transaction transaction;
         for (auto item : _modelMeshRenderItemIDs) {
             transaction.updateItem<ModelMeshPartPayload>(item, [billboardMode](ModelMeshPartPayload& data) {
