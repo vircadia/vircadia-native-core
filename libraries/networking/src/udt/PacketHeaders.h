@@ -283,6 +283,7 @@ enum class EntityVersion : PacketVersion {
     ZoneOcclusion,
     ModelBlendshapes,
     TransparentWeb,
+    UserAgent,
 
     // Add new versions above here
     NUM_PACKET_TYPE,

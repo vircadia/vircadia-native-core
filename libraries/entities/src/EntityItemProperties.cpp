@@ -603,6 +603,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_INPUT_MODE, inputMode);
     CHECK_PROPERTY_CHANGE(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, showKeyboardFocusHighlight);
     CHECK_PROPERTY_CHANGE(PROP_WEB_USE_BACKGROUND, useBackground);
+    CHECK_PROPERTY_CHANGE(PROP_USER_AGENT, userAgent);
 
     // Polyline
     CHECK_PROPERTY_CHANGE(PROP_LINE_POINTS, linePoints);
@@ -1387,6 +1388,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {boolean} useBackground=true - <code>true</code> if the web entity should have a background,
  *     <code>false</code> if the web entity's background should be transparent. The webpage must have CSS properties for transparency set
  *     on the <code>background-color</code> for this property to have an effect.
+ * @property {string} userAgent="Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Mobile Safari/537.36" - The user agent for the web entity to use when visiting web pages.
  * @example <caption>Create a Web entity displaying at 1920 x 1080 resolution.</caption>
  * var METERS_TO_INCHES = 39.3701;
  * var entity = Entities.addEntity({
@@ -1825,6 +1827,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_INPUT_MODE, inputMode, getInputModeAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, showKeyboardFocusHighlight);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_WEB_USE_BACKGROUND, useBackground);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_USER_AGENT, userAgent);
     }
 
     // PolyVoxel only
@@ -2207,6 +2210,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(inputMode, InputMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(showKeyboardFocusHighlight, bool, setShowKeyboardFocusHighlight);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(useBackground, bool, setUseBackground);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(userAgent, QString, setUserAgent);
 
     // Polyline
     COPY_PROPERTY_FROM_QSCRIPTVALUE(linePoints, qVectorVec3, setLinePoints);
@@ -2499,6 +2503,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(inputMode);
     COPY_PROPERTY_IF_CHANGED(showKeyboardFocusHighlight);
     COPY_PROPERTY_IF_CHANGED(useBackground);
+    COPY_PROPERTY_IF_CHANGED(userAgent);
 
     // Polyline
     COPY_PROPERTY_IF_CHANGED(linePoints);
@@ -2899,6 +2904,7 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_INPUT_MODE, InputMode, inputMode, WebInputMode);
         ADD_PROPERTY_TO_MAP(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, ShowKeyboardFocusHighlight, showKeyboardFocusHighlight, bool);
         ADD_PROPERTY_TO_MAP(PROP_WEB_USE_BACKGROUND, useBackground, useBackground, bool);
+        ADD_PROPERTY_TO_MAP(PROP_USER_AGENT, UserAgent, userAgent, QString);
 
         // Polyline
         ADD_PROPERTY_TO_MAP(PROP_LINE_POINTS, LinePoints, linePoints, QVector<vec3>);
@@ -3330,6 +3336,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_INPUT_MODE, (uint32_t)properties.getInputMode());
                 APPEND_ENTITY_PROPERTY(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, properties.getShowKeyboardFocusHighlight());
                 APPEND_ENTITY_PROPERTY(PROP_WEB_USE_BACKGROUND, properties.getUseBackground());
+                APPEND_ENTITY_PROPERTY(PROP_USER_AGENT, properties.getUserAgent());
             }
 
             if (properties.getType() == EntityTypes::Line) {
@@ -3806,6 +3813,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_INPUT_MODE, WebInputMode, setInputMode);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, bool, setShowKeyboardFocusHighlight);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_WEB_USE_BACKGROUND, bool, setUseBackground);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_USER_AGENT, QString, setUserAgent);
     }
 
     if (properties.getType() == EntityTypes::Line) {
@@ -4194,6 +4202,7 @@ void EntityItemProperties::markAllChanged() {
     _inputModeChanged = true;
     _showKeyboardFocusHighlightChanged = true;
     _useBackgroundChanged = true;
+    _userAgentChanged = true;
 
     // Polyline
     _linePointsChanged = true;
@@ -4886,6 +4895,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (useBackgroundChanged()) {
         out += "useBackground";
+    }
+    if (userAgentChanged()) {
+        out += "userAgent";
     }
 
     // Shape

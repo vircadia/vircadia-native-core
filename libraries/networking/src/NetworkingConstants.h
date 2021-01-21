@@ -46,6 +46,7 @@ namespace NetworkingConstants {
     
     // WebEntity Defaults
     const QString WEB_ENTITY_DEFAULT_SOURCE_URL = "https://vircadia.com/";
+    const QString WEB_ENTITY_DEFAULT_USER_AGENT = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Mobile Safari/537.36";
     
     const QString DEFAULT_AVATAR_COLLISION_SOUND_URL = "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/Body_Hits_Impact.wav";
 
