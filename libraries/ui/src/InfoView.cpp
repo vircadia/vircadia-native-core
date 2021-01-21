@@ -65,17 +65,18 @@ void InfoView::show(const QString& path, bool firstOrChangedOnly, QString urlQue
         }
         infoVersion.set(version);
     }
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    QString infoViewName(NAME + "_" + path);
-    offscreenUi->show(QML, NAME + "_" + path, [=](QQmlContext* context, QObject* newObject){
-        QQuickItem* item = dynamic_cast<QQuickItem*>(newObject);
-        item->setWidth(1024);
-        item->setHeight(720);
-        InfoView* newInfoView = newObject->findChild<InfoView*>();
-        Q_ASSERT(newInfoView);
-        newInfoView->parent()->setObjectName(infoViewName);
-        newInfoView->setUrl(url);
-    });
+    if (auto offscreenUI = DependencyManager::get<OffscreenUi>()) {
+        QString infoViewName(NAME + "_" + path);
+        offscreenUI->show(QML, NAME + "_" + path, [=](QQmlContext* context, QObject* newObject){
+            QQuickItem* item = dynamic_cast<QQuickItem*>(newObject);
+            item->setWidth(1024);
+            item->setHeight(720);
+            InfoView* newInfoView = newObject->findChild<InfoView*>();
+            Q_ASSERT(newInfoView);
+            newInfoView->parent()->setObjectName(infoViewName);
+            newInfoView->setUrl(url);
+        });
+    }
 }
 
 QUrl InfoView::url() {

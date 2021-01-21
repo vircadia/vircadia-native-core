@@ -57,15 +57,15 @@ void AboutUtil::openUrl(const QString& url) const {
 
     auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    auto offscreenUI = DependencyManager::get<OffscreenUi>();
 
-    if (tablet->getToolbarMode()) {
-        offscreenUi->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
+    if (tablet->getToolbarMode() && offscreenUI) {
+        offscreenUI->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
             newObject->setProperty("url", url);
         });
     } else {
-        if (!hmd->getShouldShowTablet() && !qApp->isHMDMode()) {
-            offscreenUi->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
+        if (!hmd->getShouldShowTablet() && !qApp->isHMDMode() && offscreenUI) {
+            offscreenUI->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
                 newObject->setProperty("url", url);
             });
         } else {

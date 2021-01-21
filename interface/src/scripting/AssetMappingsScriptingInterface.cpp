@@ -77,6 +77,11 @@ void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, 
         "Specifying a new folder name will automatically create that folder for you.";
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    if (!offscreenUi) {
+        completedCallback.call({ -1 });
+        return;
+    }
+
     auto result = offscreenUi->inputDialog(OffscreenUi::ICON_INFORMATION, "Specify Asset Path",
                                            dropEvent ? dropHelpText : helpText, mapping);
 
