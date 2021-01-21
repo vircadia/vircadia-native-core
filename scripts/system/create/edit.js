@@ -1115,7 +1115,16 @@ function findClickedEntity(event) {
             expectingRotateAsClickedSurface = false;
         } else {
             //Rotate Selection according the Surface Normal
-            selectionDisplay.rotateSelection(Quat.lookAt(Vec3.ZERO, Vec3.multiply(entityResult.surfaceNormal, -1), Vec3.UP));
+            var normalRotation = Quat.lookAtSimple(Vec3.ZERO, Vec3.multiply(entityResult.surfaceNormal, -1));
+            selectionDisplay.rotateSelection(normalRotation);
+            //Translate Selection according the clicked Surface
+            var distanceFromSurface;
+            if (selectionDisplay.getSpaceMode() === "world"){
+                distanceFromSurface = SelectionManager.worldDimensions.z / 2;
+            } else {
+                distanceFromSurface = SelectionManager.localDimensions.z / 2;
+            }
+            selectionDisplay.moveSelection(Vec3.sum(entityResult.intersection, Vec3.multiplyQbyV( normalRotation, {"x": 0.0, "y":0.0, "z": distanceFromSurface})));
             selectionManager._update(false, this);
             pushCommandForSelections();
             expectingRotateAsClickedSurface = false;

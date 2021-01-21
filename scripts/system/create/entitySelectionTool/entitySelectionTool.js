@@ -110,7 +110,16 @@ SelectionManager = (function() {
                         expectingRotateAsClickedSurface = false;
                     } else {
                         //Rotate Selection according the Surface Normal
-                        selectionDisplay.rotateSelection(Quat.lookAt(Vec3.ZERO, Vec3.multiply(messageParsed.surfaceNormal, -1), Vec3.UP));
+                        var normalRotation = Quat.lookAtSimple(Vec3.ZERO, Vec3.multiply(messageParsed.surfaceNormal, -1));
+                        selectionDisplay.rotateSelection(normalRotation);
+                        //Translate Selection according the clicked Surface
+                        var distanceFromSurface;
+                        if (selectionDisplay.getSpaceMode() === SPACE_WORLD){
+                            distanceFromSurface = SelectionManager.worldDimensions.z / 2;
+                        } else {
+                            distanceFromSurface = SelectionManager.localDimensions.z / 2;
+                        }
+                        selectionDisplay.moveSelection(Vec3.sum(messageParsed.intersection, Vec3.multiplyQbyV( normalRotation, {"x": 0.0, "y":0.0, "z": distanceFromSurface})));
                         that._update(false, this);
                         pushCommandForSelections();
                         expectingRotateAsClickedSurface = false;
@@ -2399,6 +2408,26 @@ SelectionDisplay = (function() {
             SelectionManager.savedProperties[SelectionManager.selections[0]].rotation = Quat.IDENTITY;
         }
         updateSelectionsRotation(rotation, SelectionManager.worldPosition);
+    };
+
+    that.moveSelection = function(targetPosition) {
+        SelectionManager.saveProperties();
+        // editing a parent will cause all the children to automatically follow along, so don't
+        // edit any entity who has an ancestor in SelectionManager.selections
+        var toMove = SelectionManager.selections.filter(function (selection) {
+            if (SelectionManager.selections.indexOf(SelectionManager.savedProperties[selection].parentID) >= 0) {
+                return false; // a parent is also being moved, so don't issue an edit for this entity
+            } else {
+                return true;
+            }
+        });
+
+        for (var i = 0; i < toMove.length; i++) {
+            var id = toMove[i];
+            var properties = SelectionManager.savedProperties[id];
+            var newPosition = Vec3.sum(targetPosition, Vec3.subtract(properties.position, SelectionManager.worldPosition));
+            Entities.editEntity(id, { position: newPosition });
+        }
     };
 
     that.rotate90degreeSelection = function(axis) {
