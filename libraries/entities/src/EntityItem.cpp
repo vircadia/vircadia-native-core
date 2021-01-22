@@ -1734,11 +1734,22 @@ float EntityItem::getRadius() const {
     return 0.5f * glm::length(getScaledDimensions());
 }
 
-void EntityItem::adjustShapeInfoByRegistration(ShapeInfo& info) const {
+void EntityItem::adjustShapeInfoByRegistration(ShapeInfo& info, bool includePivot) const {
+    glm::vec3 offset;
     glm::vec3 registrationPoint = getRegistrationPoint();
     if (registrationPoint != ENTITY_ITEM_DEFAULT_REGISTRATION_POINT) {
-        glm::vec3 registration = (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - registrationPoint) * getScaledDimensions();
-        info.setOffset(registration);
+        offset += (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - registrationPoint) * getScaledDimensions();
+    }
+
+    if (includePivot) {
+        glm::vec3 pivot = getPivot();
+        if (pivot != ENTITY_ITEM_ZERO_VEC3) {
+            offset += pivot;
+        }
+    }
+
+    if (offset != ENTITY_ITEM_ZERO_VEC3) {
+        info.setOffset(offset);
     }
 }
 

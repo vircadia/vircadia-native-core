@@ -404,7 +404,7 @@ public:
     // TODO: get rid of users of getRadius()...
     float getRadius() const;
 
-    virtual void adjustShapeInfoByRegistration(ShapeInfo& info) const;
+    virtual void adjustShapeInfoByRegistration(ShapeInfo& info, bool includePivot = true) const;
     virtual bool contains(const glm::vec3& point) const;
 
     virtual bool isReadyToComputeShape() const { return !isDead(); }
