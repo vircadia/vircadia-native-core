@@ -22,6 +22,7 @@ When selecting components, check "Desktop development with C++". On the right on
 
 #### If you're installing Visual Studio 2019,
 
+* MSVC v142 - VS 2019 C++ X64/x86 build tools
 * MSVC v141 - VS 2017 C++ x64/x86 build tools
 * MSVC v140 - VS 2015 C++ build tools (v14.00)
 

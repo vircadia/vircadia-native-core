@@ -416,7 +416,7 @@ gpu::PipelinePointer ParabolaPointer::RenderState::ParabolaRenderItem::getParabo
 
         for (auto& key : keys) {
             gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-            state->setDepthTest(true, true, gpu::LESS_EQUAL);
+            state->setDepthTest(true, !std::get<0>(key), gpu::LESS_EQUAL);
             if (std::get<0>(key)) {
                 PrepareStencil::testMask(*state);
             } else {

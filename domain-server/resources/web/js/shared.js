@@ -129,9 +129,10 @@ function getCurrentDomainIDType() {
     return DOMAIN_ID_TYPE_UNKNOWN;
   }
   if (DomainInfo !== null) {
-    if (DomainInfo.name !== undefined) {
-      return DOMAIN_ID_TYPE_TEMP;
-    }
+    // Disabled because detecting as temp domain... and we're not even using temp domains right now.
+    // if (DomainInfo.name !== undefined) {
+    //   return DOMAIN_ID_TYPE_TEMP;
+    // }
     return DOMAIN_ID_TYPE_FULL;
   }
   return DOMAIN_ID_TYPE_UNKNOWN;

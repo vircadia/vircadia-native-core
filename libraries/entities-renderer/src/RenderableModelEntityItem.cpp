@@ -190,9 +190,6 @@ void RenderableModelEntityItem::updateModelBounds() {
         glm::vec3 scale = model->getScale();
         model->setUseDualQuaternionSkinning(!isNonUniformScale(scale));
         model->updateRenderItems();
-
-        markDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
-        locationChanged();
     }
 }
 
@@ -1268,6 +1265,9 @@ void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
                 entity->_originalTexturesRead = false;
                 entity->_needsJointSimulation = true;
                 entity->_needsToRescaleModel = true;
+
+                entity->markDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
+                entity->locationChanged();
                 emit requestRenderUpdate();
             });
             scene->enqueueTransaction(transaction);

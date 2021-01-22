@@ -251,6 +251,7 @@ public:
     Flow& getFlow() { return _internalFlow; }
 
     float getUnscaledEyeHeight() const;
+    float getUnscaledHipsHeight() const;
     void buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut) const;
 
     int getOverrideJointCount() const;
@@ -287,6 +288,11 @@ protected:
     glm::vec3 deflectHandFromTorso(const glm::vec3& handPosition, const HFMJointShapeInfo& hipsShapeInfo, const HFMJointShapeInfo& spineShapeInfo,
                                    const HFMJointShapeInfo& spine1ShapeInfo, const HFMJointShapeInfo& spine2ShapeInfo) const;
 
+    // Get the scale factor to convert distances in the geometry frame into the unscaled rig frame.
+    float GetScaleFactorGeometryToUnscaledRig() const;
+
+    // The ground plane Y position in geometry space.
+    static constexpr float GEOMETRY_GROUND_Y = 0.0f;
 
     AnimPose _modelOffset;  // model to rig space
     AnimPose _geometryOffset; // geometry to model space (includes unit offset & fst offsets)

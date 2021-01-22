@@ -29,7 +29,7 @@ EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
                     overlayProperties[key] = customProperties[key];
                 }
             }
-            Overlays.editOverlay(entityOverlays[entityID], overlayProperties);
+            Entities.editEntity(entityOverlays[entityID], overlayProperties);
         }
     };
 
@@ -63,7 +63,7 @@ EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
         if (visible !== isVisible) {
             visible = isVisible;
             for (var id in entityOverlays) {
-                Overlays.editOverlay(entityOverlays[id], {
+                Entities.editEntity(entityOverlays[id], {
                     visible: visible,
                     ignorePickIntersection: !visible
                 });
@@ -75,7 +75,11 @@ EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
     function getOverlay() {
         var overlay;
         if (unusedOverlays.length === 0) {
-            overlay = Overlays.addOverlay("image3d", {});
+            overlay = Entities.addEntity({
+                type: "Image", 
+                billboardMode: "full", 
+                emissive: true
+            }, "local");
             allOverlays.push(overlay);
         } else {
             overlay = unusedOverlays.pop();
@@ -85,7 +89,7 @@ EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
 
     function releaseOverlay(overlay) {
         unusedOverlays.push(overlay);
-        Overlays.editOverlay(overlay, {
+        Entities.editEntity(overlay, {
             visible: false,
             ignorePickIntersection: true
         });
@@ -103,9 +107,8 @@ EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
                 visible: visible,
                 ignorePickIntersection: !visible,
                 alpha: 0.9,
-                scale: 0.5,
-                drawInFront: true,
-                isFacingAvatar: true,
+                dimensions: { x: 0.5, y: 0.5, z: 0.01 },
+                renderLayer: "front",
                 color: {
                     red: 255,
                     green: 255,
@@ -118,7 +121,7 @@ EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
                     overlayProperties[key] = customProperties[key];
                 }
             }
-            Overlays.editOverlay(overlay, overlayProperties);
+            Entities.editEntity(overlay, overlayProperties); 
         }
     }
 
@@ -149,7 +152,7 @@ EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
 
     Script.scriptEnding.connect(function() {
         for (var i = 0; i < allOverlays.length; i++) {
-            Overlays.deleteOverlay(allOverlays[i]);
+            Entities.deleteEntity(allOverlays[i]);
         }
     });
 };
