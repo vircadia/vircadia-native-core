@@ -811,7 +811,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Uuid[]} renderWithZones=[]] - A list of entity IDs representing with which zones this entity should render.
  *     If it is empty, this entity will render normally.  Otherwise, this entity will only render if your avatar is within
  *     one of the zones in this list.
- * @property {BillboardMode} billboardMode="none" - Whether the entity is billboarded to face the camera.
+ * @property {BillboardMode} billboardMode="none" - Whether the entity is billboarded to face the camera.  Use the rotation
+ *     property to control which axis is facing you.
  *
  * @property {Entities.Grab} grab - The entity's grab-related properties.
  *

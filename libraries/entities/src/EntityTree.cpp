@@ -3141,6 +3141,13 @@ bool EntityTree::readFromMap(QVariantMap& map, const bool isImport) {
             }
         }
 
+        // Before, billboarded entities ignored rotation.  Now, they use it to determine which axis is facing you.
+        if (contentVersion < (int)EntityVersion::AllBillboardMode) {
+            if (properties.getBillboardMode() != BillboardMode::NONE) {
+                properties.setRotation(glm::quat());
+            }
+        }
+
         EntityItemPointer entity = addEntity(entityItemID, properties, isImport);
         if (!entity) {
             qCDebug(entities) << "adding Entity failed:" << entityItemID << properties.getType();

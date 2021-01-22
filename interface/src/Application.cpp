@@ -2462,7 +2462,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             glm::vec3 dPosition = frustumPos - position;
             // If x and z are 0, atan(x, z) is undefined, so default to 0 degrees
             float yawRotation = dPosition.x == 0.0f && dPosition.z == 0.0f ? 0.0f : glm::atan(dPosition.x, dPosition.z);
-            glm::quat result = glm::quat(glm::vec3(0.0f, yawRotation, 0.0f));
+            glm::quat result = glm::quat(glm::vec3(0.0f, yawRotation, 0.0f)) * rotation;
             if (rotate90x) {
                 result *= ROTATE_90X;
             }
@@ -2475,7 +2475,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
             // make sure s is not NaN for any component
             if (glm::length2(s) > 0.0f) {
-                glm::quat result = glm::conjugate(glm::toQuat(glm::lookAt(frustumPos, position, avatarUP)));
+                glm::quat result = glm::conjugate(glm::toQuat(glm::lookAt(frustumPos, position, avatarUP))) * rotation;
                 if (rotate90x) {
                     result *= ROTATE_90X;
                 }
