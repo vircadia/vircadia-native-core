@@ -1,0 +1,41 @@
+{
+    "name": "Appreciate App",
+    "version": "1.5.0",
+    "description": "Show someone else that you like what they're doing. Open the app to see usage instructions and some options!",
+    "homepage": "http://www.vircadia.com",
+    "bugs": "",
+    "keywords": [
+        "Clapping",
+		"Clap",
+		"Applause"
+    ],
+    "icon": "/appreciate.jpg",
+    "images": [
+        "/appreciate.jpg"
+    ],
+    "author": {
+        "name": "High Fidelity",
+        "email": "",
+        "url": "",
+        "license": "Apache 2.0"		
+    },
+    "sublicense": [		
+	],	
+    "contributors": [
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/vircadia/vircadia-content.git"
+    },
+    "main": "/appreciate_app.js",
+    "type": "app",
+    "meta": {
+    },
+    "dependencies": {       
+    },
+    "engines": {
+    },
+    "resource": {
+        "version": 1.0.0
+    }
+}
