@@ -12,6 +12,7 @@
 
 Script.include('/~/system/libraries/utils.js');
 var NyxSit = Script.require('./modules/sit.js');
+var NyxParentSelf = Script.require('./modules/parentSelf.js');
 
 var SETTING_NYX_PREFIX = 'nyx/';
 var NYX_UI_CHANNEL = 'nyx-ui';
@@ -98,14 +99,6 @@ function toggleEntityMenu(pressedEntityID) {
     }
 }
 
-function toggleParent() {
-    if (MyAvatar.getParentID() === null || MyAvatar.getParentID() === Uuid.NULL) {
-        MyAvatar.setParentID(lastTriggeredEntityInfo.id);
-    } else {
-        MyAvatar.setParentID(Uuid.NULL);
-    }
-}
-
 ///////////////// ENTITY MENU OVERLAY ---> IN-WORLD ENTITY MENU
 
 function bootstrapEntityMenu() {
@@ -185,7 +178,7 @@ function onOverlayWebEventReceived(event) {
     }
     
     if (eventJSON.command === 'parent-to-entity-triggered') {
-        toggleParent();
+        NyxParentSelf.toggleParent(lastTriggeredEntityInfo.id);
     }
     
     if (eventJSON.command === 'close-entity-menu') {

@@ -16,15 +16,14 @@
 
         var initialProps = Entities.getEntityProperties(_entityID, ['text']);
         
-        NyxAlpha1.registerWithEntityMenu(entityID, {
-            textFields: [
-                {
-                    name: ':)',
-                    hint: 'just smile!',
-                    initialValue: initialProps.text
-                }
-            ]
-        });
+        NyxAlpha1.registerWithEntityMenu(entityID, [
+            {
+                type: 'textField',
+                name: ':)',
+                hint: 'just smile!',
+                initialValue: initialProps.text
+            }
+        ]);
         NyxAlpha1.dynamicEntityMenuTriggered.connect(onDynamicEntityMenuTriggered);
     };
 
