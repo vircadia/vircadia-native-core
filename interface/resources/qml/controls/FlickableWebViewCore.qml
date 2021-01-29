@@ -43,12 +43,10 @@ Item {
     }
 
     function onLoadingChanged(loadRequest) {
-        webViewCore.profile.httpUserAgent: "LOLICON"
     }
 
     ControlsUit.ProxyWebView {
-        id: 
-        profile: WebEngineProfile { httpUserAgent: "TEST2"}
+        id: webViewCore
         width: parent.width
         height: parent.height
     }
