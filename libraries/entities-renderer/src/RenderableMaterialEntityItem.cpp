@@ -274,7 +274,9 @@ void MaterialEntityRenderer::doRender(RenderArgs* args) {
     }
 
     batch.setModelTransform(renderTransform, _prevRenderTransform);
-    _prevRenderTransform = renderTransform;
+    if (args->_renderMode == Args::RenderMode::DEFAULT_RENDER_MODE || args->_renderMode == Args::RenderMode::MIRROR_RENDER_MODE) {
+        _prevRenderTransform = renderTransform;
+    }
 
     if (!proceduralRender) {
         drawMaterial->setTextureTransforms(textureTransform, MaterialMappingMode::UV, true);

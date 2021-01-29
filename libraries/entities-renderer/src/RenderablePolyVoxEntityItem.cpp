@@ -1869,7 +1869,9 @@ void PolyVoxEntityRenderer::doRender(RenderArgs* args) {
 
     Transform transform(_lastVoxelToWorldMatrix);
     batch.setModelTransform(transform, _prevRenderTransform);
-    _prevRenderTransform = transform;
+    if (args->_renderMode == Args::RenderMode::DEFAULT_RENDER_MODE || args->_renderMode == Args::RenderMode::MIRROR_RENDER_MODE) {
+        _prevRenderTransform = transform;
+    }
 
     batch.setInputFormat(_vertexFormat);
     batch.setInputBuffer(gpu::Stream::POSITION, _mesh->getVertexBuffer()._buffer, 0,

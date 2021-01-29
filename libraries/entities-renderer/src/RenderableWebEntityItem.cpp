@@ -316,7 +316,9 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
 
     transform.setRotation(EntityItem::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode, args->getViewFrustum().getPosition()));
     batch.setModelTransform(transform, _prevRenderTransform);
-    _prevRenderTransform = transform;
+    if (args->_renderMode == Args::RenderMode::DEFAULT_RENDER_MODE || args->_renderMode == Args::RenderMode::MIRROR_RENDER_MODE) {
+        _prevRenderTransform = transform;
+    }
 
     // Turn off jitter for these entities
     batch.pushProjectionJitterEnabled(false);

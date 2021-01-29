@@ -256,7 +256,9 @@ void GizmoEntityRenderer::doRender(RenderArgs* args) {
         geometryCache->bindSimpleProgram(batch, false, transparent, wireframe, true, true, forward, graphics::MaterialKey::CULL_NONE);
 
         batch.setModelTransform(transform, _prevRenderTransform);
-        _prevRenderTransform = transform;
+        if (args->_renderMode == Args::RenderMode::DEFAULT_RENDER_MODE || args->_renderMode == Args::RenderMode::MIRROR_RENDER_MODE) {
+            _prevRenderTransform = transform;
+        }
 
         // Background circle
         geometryCache->renderVertices(batch, wireframe ? gpu::LINE_STRIP : _solidPrimitive, _ringGeometryID);

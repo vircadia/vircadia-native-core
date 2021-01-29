@@ -202,9 +202,17 @@ public:
     const gpu::PipelinePointer& getDebugBlendPipeline();
 
 private:
+    struct AntialiasingBuffer {
+        gpu::FramebufferSwapChainPointer _swapChain;
+        gpu::TexturePointer _textures[2];
 
-    gpu::FramebufferSwapChainPointer _antialiasingBuffers;
-    gpu::TexturePointer _antialiasingTextures[2];
+        void clear() {
+            _swapChain.reset();
+            _textures[0].reset();
+            _textures[1].reset();
+        }
+    };
+    AntialiasingBuffer _antialiasingBuffers;
     gpu::FramebufferPointer _intensityFramebuffer;
     gpu::TexturePointer _intensityTexture;
     gpu::BufferPointer _blendParamsBuffer;

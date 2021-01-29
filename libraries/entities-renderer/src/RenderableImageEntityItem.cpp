@@ -111,7 +111,10 @@ void ImageEntityRenderer::doRender(RenderArgs* args) {
 
     transform.setRotation(EntityItem::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode, args->getViewFrustum().getPosition()));
 
-    batch->setModelTransform(transform);
+    batch->setModelTransform(transform, _prevRenderTransform);
+    if (args->_renderMode == Args::RenderMode::DEFAULT_RENDER_MODE || args->_renderMode == Args::RenderMode::MIRROR_RENDER_MODE) {
+        _prevRenderTransform = transform;
+    }
     batch->setResourceTexture(0, _texture->getGPUTexture());
 
     float imageWidth = _texture->getWidth();

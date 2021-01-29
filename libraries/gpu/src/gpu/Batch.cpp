@@ -596,7 +596,7 @@ void Batch::captureDrawCallInfoImpl() {
     if (_invalidModel) {
         TransformObject object;
         _currentModel.getMatrix(object._model);
-        _previousModel.getMatrix(object._previousModel); 
+        _previousModel.getMatrix(object._previousModel);
 
         // FIXME - we don't want to be using glm::inverse() here but it fixes the flickering issue we are
         // seeing with planky blocks in toybox. Our implementation of getInverseMatrix() is buggy in cases

@@ -231,7 +231,9 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         renderLayer = _renderLayer;
 
         batch.setModelTransform(_renderTransform, _prevRenderTransform); // use a transform with scale, rotation, registration point and translation
-        _prevRenderTransform = _renderTransform;
+        if (args->_renderMode == Args::RenderMode::DEFAULT_RENDER_MODE || args->_renderMode == Args::RenderMode::MIRROR_RENDER_MODE) {
+            _prevRenderTransform = _renderTransform;
+        }
 
         materials = _materials["0"];
         pipelineType = getPipelineType(materials);

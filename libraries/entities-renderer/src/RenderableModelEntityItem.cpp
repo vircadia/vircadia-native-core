@@ -1458,7 +1458,9 @@ void ModelEntityRenderer::doRender(RenderArgs* args) {
     gpu::Batch& batch = *args->_batch;
     Transform transform = getModelTransform();
     batch.setModelTransform(transform, _prevRenderTransform); // we want to include the scale as well
-    _prevRenderTransform = transform;
+    if (args->_renderMode == Args::RenderMode::DEFAULT_RENDER_MODE || args->_renderMode == Args::RenderMode::MIRROR_RENDER_MODE) {
+        _prevRenderTransform = transform;
+    }
     auto geometryCache = DependencyManager::get<GeometryCache>();
     geometryCache->renderWireCubeInstance(args, batch, greenColor, geometryCache->getShapePipelinePointer(false, false, args->_renderMethod == Args::RenderMethod::FORWARD));
 

@@ -103,7 +103,10 @@ void GridEntityRenderer::doRender(RenderArgs* args) {
     } else {
         transform.setTranslation(renderTransform.getTranslation());
     }
-    batch->setModelTransform(transform);
+    batch->setModelTransform(transform, _prevRenderTransform);
+    if (args->_renderMode == Args::RenderMode::DEFAULT_RENDER_MODE || args->_renderMode == Args::RenderMode::MIRROR_RENDER_MODE) {
+        _prevRenderTransform = transform;
+    }
 
     auto minCorner = glm::vec2(-0.5f, -0.5f);
     auto maxCorner = glm::vec2(0.5f, 0.5f);

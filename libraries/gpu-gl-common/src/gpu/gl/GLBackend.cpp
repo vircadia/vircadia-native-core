@@ -1004,12 +1004,10 @@ void GLBackend::recycle() const {
 }
 
 void GLBackend::updatePresentFrame(const Mat4& correction) {
-    auto invCorrection = glm::inverse(correction);
     _transform._presentFrame.correction = correction;
-    _transform._presentFrame.correctionInverse = invCorrection;
+    _transform._presentFrame.correctionInverse = glm::inverse(correction);
 
-    auto& projectionJitter = _transform._projectionJitter;
-    projectionJitter._currentSampleIndex++;
+    _transform._projectionJitter._currentSampleIndex++;
 
     // Update previous views of saved transforms
     for (auto& viewProjState : _transform._savedTransforms) {

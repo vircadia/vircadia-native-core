@@ -150,7 +150,9 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
 
     modelTransform.setRotation(EntityItem::getBillboardRotation(modelTransform.getTranslation(), modelTransform.getRotation(), _billboardMode, args->getViewFrustum().getPosition()));
     batch.setModelTransform(modelTransform, _prevRenderTransform);
-    _prevRenderTransform = modelTransform;
+    if (args->_renderMode == Args::RenderMode::DEFAULT_RENDER_MODE || args->_renderMode == Args::RenderMode::MIRROR_RENDER_MODE) {
+        _prevRenderTransform = modelTransform;
+    }
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
     // FIXME: we want to use instanced rendering here, but if textAlpha < 1 and backgroundAlpha < 1, the transparency sorting will be wrong
@@ -339,7 +341,9 @@ void entities::TextPayload::render(RenderArgs* args) {
     modelTransform.postTranslate(glm::vec3(-0.5, 0.5, 1.0f + EPSILON / dimensions.z));
     modelTransform.setScale(scale);
     batch.setModelTransform(modelTransform, _prevRenderTransform);
-    _prevRenderTransform = modelTransform;
+    if (args->_renderMode == Args::RenderMode::DEFAULT_RENDER_MODE || args->_renderMode == Args::RenderMode::MIRROR_RENDER_MODE) {
+        _prevRenderTransform = modelTransform;
+    }
 
     glm::vec2 bounds = glm::vec2(dimensions.x - (textRenderable->_leftMargin + textRenderable->_rightMargin), dimensions.y - (textRenderable->_topMargin + textRenderable->_bottomMargin));
     textRenderer->draw(batch, textRenderable->_leftMargin / scale, -textRenderable->_topMargin / scale, bounds / scale, scale,

@@ -232,13 +232,14 @@ void GLBackend::do_saveViewProjectionTransform(const Batch& batch, size_t paramO
     auto slotId = batch._params[paramOffset + 0]._uint;
     slotId = std::min<gpu::uint32>(slotId, gpu::Batch::MAX_TRANSFORM_SAVE_SLOT_COUNT);
 
-    _transform._savedTransforms[slotId]._cameraOffset = INVALID_OFFSET;
+    auto& savedTransform = _transform._savedTransforms[slotId];
+    savedTransform._cameraOffset = INVALID_OFFSET;
     _transform._currentSavedTransformSlot = slotId;
     // If we are saving this transform to a save slot, then it means we are tracking the history of the view
     // so copy the previous corrected view to the transform state.
-    _transform._viewProjectionState._previousCorrectedView = _transform._savedTransforms[slotId]._state._previousCorrectedView;
+    _transform._viewProjectionState._previousCorrectedView = savedTransform._state._previousCorrectedView;
     preUpdateTransform();
-    _transform._savedTransforms[slotId]._state.copyExceptPrevious(_transform._viewProjectionState);
+    savedTransform._state.copyExceptPrevious(_transform._viewProjectionState);
 }
 
 void GLBackend::do_setSavedViewProjectionTransform(const Batch& batch, size_t paramOffset) {
