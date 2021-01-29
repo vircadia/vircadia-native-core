@@ -44,7 +44,7 @@ Item {
         id: webroot
         width: parent.width
         height: keyboardEnabled && keyboardRaised ? parent.height - keyboard.height : parent.height
-        
+
         onLoadingChangedCallback: {
             keyboardRaised = false;
             punctuationMode = false;
