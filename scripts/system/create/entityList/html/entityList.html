@@ -24,6 +24,11 @@
         <script type="text/javascript" src="js/entityList.js"></script>
     </head>
     <body onload='loaded();' id="entity-list-body">
+        <div id="entity-list-menubar">
+            <input type="button" class="normal" id="selection" value="Select&#9662;" />
+            <input type="button" class="normal" id="actions" value="Edit&#9662;" />
+            <input type="button" class="normal" id="tools" value="Tools&#9662;" />            
+        </div>
         <div id="entity-list-header">
             <input type="button" class="glyph" id="refresh" value="F" />
             <div>
@@ -32,9 +37,7 @@
             </div>
             <button id="toggle-space-mode" class="hifi-edit-button space-mode-local">Local</button>
             <input type="button" class="vglyph" id="hmdmultiselect" value="I" style="display: none;" />
-            <input type="button" class="normal" id="selection" value="Select&#9662;" />
-            <input type="button" class="normal" id="actions" value="Edit&#9662;" />
-            <input type="button" class="normal" id="tools" value="Tools&#9662;" />
+            <input type="button" class="red glyph" id="delete" value="{" />
         </div>
         <div id="entity-list">
             <div id="filter-area">
@@ -58,8 +61,7 @@
                 </div>
                 <input type="button" id="filter-in-view" class="glyph" value="&#xe007;" />
                 <div id="filter-radius-and-unit" class="number">
-                    <label for="radius">Search radius <span class="unit">m</span></label>
-                    <input type="text" id="filter-radius" maxlength="9" value="100" />
+                    <span class="icon-input-radius"><input type="text" id="filter-radius" maxlength="8" value="100" /><span>D</span><label>m</label></span>
                 </div>
             </div>
             <div id="entity-table-scroll">
@@ -130,12 +132,6 @@
                     <div class = "menu-item-shortcut">Ctrl-D</div>
                 </div>
             </button>            
-            <button class="menu-button" id="delete" >
-                <div class = "menu-item">
-                    <div class = "menu-item-caption">Delete</div>
-                    <div class = "menu-item-shortcut">Del</div>
-                </div>
-            </button>
             <div class="menu-separator"></div>
             <button class="menu-button" id="parent" >
                 <div class = "menu-item">
