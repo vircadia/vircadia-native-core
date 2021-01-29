@@ -13,10 +13,11 @@ Item {
     property alias url: webViewCore.url
     property alias canGoBack: webViewCore.canGoBack
     property alias webViewCore: webViewCore
-    property alias webViewCoreProfile: webViewCore.profile
+    // property alias webViewCoreProfile: webViewCore.profile
     property string webViewCoreUserAgent
 
     property bool useBackground: webViewCore.useBackground
+    property string userAgent: webViewCore.profile.httpUserAgent
     property string userScriptUrl: ""
     property string urlTag: "noDownload=false";
 
@@ -32,6 +33,10 @@ Item {
 
     onUrlChanged: {
         permissionPopupBackground.visible = false;
+    }
+
+    onUserAgentChanged: {
+        webViewCore.profile.httpUserAgent = flick.userAgent;
     }
 
     StylesUIt.HifiConstants {
@@ -74,7 +79,7 @@ Item {
 
     function onLoadingChanged(loadRequest) {
         if (WebEngineView.LoadStartedStatus === loadRequest.status) {
-
+            webViewCore.profile.httpUserAgent = flick.userAgent;
             // Required to support clicking on "hifi://" links
             var url = loadRequest.url.toString();
             url = (url.indexOf("?") >= 0) ? url + urlTag : url + "?" + urlTag;
@@ -101,7 +106,6 @@ Item {
         height: parent.height
         backgroundColor: (flick.useBackground) ? "white" : "transparent"
 
-        profile: HFWebEngineProfile;
         settings.pluginsEnabled: true
         settings.touchIconsEnabled: true
         settings.allowRunningInsecureContent: true
@@ -136,8 +140,10 @@ Item {
             webChannel.registerObject("eventBridge", eventBridge);
             webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
 
-            if (webViewCoreUserAgent !== undefined) {
-                webViewCore.profile.httpUserAgent = webViewCoreUserAgent
+            if (flick.userAgent !== undefined) {
+                webViewCore.profile.httpUserAgent = flick.userAgent;
+                webViewCore.profile.offTheRecord = false;
+                webViewCore.profile.storageName = "qmlWebEngine";
             } else {
                 webViewCore.profile.httpUserAgent += " (VircadiaInterface)";
             }

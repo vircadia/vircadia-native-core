@@ -11,12 +11,12 @@ Item {
     property alias url: webViewCore.url
     property alias canGoBack: webViewCore.canGoBack
     property alias webViewCore: webViewCore
-    property alias webViewCoreProfile: webViewCore.profile
-    property string webViewCoreUserAgent
+    // property alias webViewCoreProfile: webViewCore.profile
 
-    property bool useBackground: webViewCore.useBackground
+    property alias useBackground: webViewCore.useBackground
+    property alias userAgent: webViewCore.userAgent
     property string userScriptUrl: ""
-    property string urlTag: "noDownload=false";
+    property string urlTag: "noDownload=false"
 
     signal newViewRequestedCallback(var request)
     signal loadingChangedCallback(var loadRequest)
@@ -43,10 +43,12 @@ Item {
     }
 
     function onLoadingChanged(loadRequest) {
+        webViewCore.profile.httpUserAgent: "LOLICON"
     }
 
     ControlsUit.ProxyWebView {
-        id: webViewCore
+        id: 
+        profile: WebEngineProfile { httpUserAgent: "TEST2"}
         width: parent.width
         height: parent.height
     }

@@ -24,6 +24,7 @@ Item {
     property alias flickable: webroot.interactive
     property alias blurOnCtrlShift: webroot.blurOnCtrlShift
     property alias useBackground: webroot.useBackground
+    property alias userAgent: webroot.userAgent
 
     function stop() {
         webroot.stop();
@@ -37,13 +38,13 @@ Item {
     }
     */
 
-    property alias viewProfile: webroot.webViewCoreProfile
+    // property alias viewProfile: webroot.webViewCoreProfile
 
     FlickableWebViewCore {
         id: webroot
         width: parent.width
         height: keyboardEnabled && keyboardRaised ? parent.height - keyboard.height : parent.height
-
+        
         onLoadingChangedCallback: {
             keyboardRaised = false;
             punctuationMode = false;
