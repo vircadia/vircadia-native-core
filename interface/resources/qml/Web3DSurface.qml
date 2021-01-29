@@ -52,7 +52,7 @@ Item {
     property var item: null
 
     function load(url, scriptUrl, useBackground, userAgent) {
-        // Ensure we reset any existing item toB "about:blank" to ensure web audio stops: DEV-2375
+        // Ensure we reset any existing item to "about:blank" to ensure web audio stops: DEV-2375
         if (root.item != null) {
             root.item.url = "about:blank"
             root.item.destroy()
