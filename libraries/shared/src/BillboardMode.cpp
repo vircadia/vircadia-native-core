@@ -25,7 +25,7 @@ void BillboardModeHelpers::setBillboardRotationOperator(std::function<glm::quat(
 }
 
 glm::quat BillboardModeHelpers::getBillboardRotation(const glm::vec3& position, const glm::quat& rotation, BillboardMode billboardMode,
-                                                     const glm::vec3& frustumPos, bool rotate90x = false) {
+                                                     const glm::vec3& frustumPos, bool rotate90x) {
     return _getBillboardRotationOperator(position, rotation, billboardMode, frustumPos, rotate90x);
 }
 
