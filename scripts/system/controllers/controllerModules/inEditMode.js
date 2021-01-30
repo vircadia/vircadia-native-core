@@ -85,7 +85,7 @@ Script.include("/~/system/libraries/utils.js");
                                 entityID: this.selectedTarget.objectID,
                                 hand: hand,
                                 surfaceNormal: this.selectedTarget.surfaceNormal,
-                                intersection: this.selectedTarget.intersection,
+                                intersection: this.selectedTarget.intersection
                             }));
                         } else if (this.selectedTarget.type === Picks.INTERSECTED_OVERLAY) {
                             Messages.sendLocalMessage(this.ENTITY_TOOL_UPDATES_CHANNEL, JSON.stringify({
