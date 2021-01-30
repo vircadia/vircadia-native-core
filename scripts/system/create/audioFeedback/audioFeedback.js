@@ -12,7 +12,7 @@
 
 audioFeedback = (function() {
     var that = {};
-    
+
     var confirmationSound = SoundCache.getSound(Script.resolvePath("./sounds/confirmation.mp3"));
     var rejectionSound = SoundCache.getSound(Script.resolvePath("./sounds/rejection.mp3"));
     var actionSound = SoundCache.getSound(Script.resolvePath("./sounds/action.mp3"));
@@ -26,15 +26,15 @@ audioFeedback = (function() {
 
     that.rejection = function() { //Play a rejection sound
         var injector = Audio.playSound(rejectionSound, {
-             "volume": 0.3,
-            "localOnly": true           
+            "volume": 0.3,
+            "localOnly": true
         });
     }
 
     that.action = function() { //Play an action sound
         var injector = Audio.playSound(actionSound, {
-             "volume": 0.3,
-            "localOnly": true           
+            "volume": 0.3,
+            "localOnly": true
         });
     }
 
