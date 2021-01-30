@@ -180,7 +180,7 @@ public:
                          QVariantMap& extraInfo, bool precisionPicking) const { return true; }
     virtual bool findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
                         const glm::vec3& acceleration, const glm::vec3& viewFrustumPos, OctreeElementPointer& element,
-				        float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal,
+                        float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal,
                         QVariantMap& extraInfo, bool precisionPicking) const { return true; }
 
     // attributes applicable to all entity types

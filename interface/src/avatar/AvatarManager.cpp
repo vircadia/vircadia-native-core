@@ -843,7 +843,8 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
                 BoxFace subMeshFace = BoxFace::UNKNOWN_FACE;
                 glm::vec3 subMeshSurfaceNormal;
                 QVariantMap subMeshExtraInfo;
-                if (avatar->getSkeletonModel()->findRayIntersectionAgainstSubMeshes(defaultFrameRayOrigin, defaultFrameRayDirection, viewFrustumPos, subMeshDistance, subMeshFace, subMeshSurfaceNormal, subMeshExtraInfo, true, false)) {
+                if (avatar->getSkeletonModel()->findRayIntersectionAgainstSubMeshes(defaultFrameRayOrigin, defaultFrameRayDirection, viewFrustumPos, subMeshDistance,
+                                                                                    subMeshFace, subMeshSurfaceNormal, subMeshExtraInfo, true, false)) {
                     rayAvatarResult._distance = subMeshDistance;
                     rayAvatarResult._intersectionPoint = ray.origin + subMeshDistance * rayDirection;
                     rayAvatarResult._intersectionNormal = subMeshSurfaceNormal;

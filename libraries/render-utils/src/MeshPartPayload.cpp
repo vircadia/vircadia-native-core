@@ -292,7 +292,7 @@ Item::Bound ModelMeshPartPayload::getBound(RenderArgs* args) const {
     if (material && material->isProcedural() && material->isReady()) {
         auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(_drawMaterials.top().material);
         if (procedural->hasVertexShader() && procedural->hasBoundOperator()) {
-           return procedural->getBound(args);
+            return procedural->getBound(args);
         }
     }
 
