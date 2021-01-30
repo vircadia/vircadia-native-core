@@ -81,14 +81,14 @@ macro(setup_qt)
         message(FATAL_ERROR "Unable to locate Qt5CoreConfig.cmake in '${QT_CMAKE_PREFIX_PATH}'")
     endif()
 
-    set(RCC_BINARY "${QT_DIR}/bin/rcc")
+    set(RCC_BINARY "${QT_DIR}/bin/rcc${CMAKE_EXECUTABLE_SUFFIX}")
 
     if(NOT EXISTS "${RCC_BINARY}")
-    set(RCC_BINARY "${QT_DIR}/bin/rcc-qt5")
+    set(RCC_BINARY "${QT_DIR}/bin/rcc-qt5${CMAKE_EXECUTABLE_SUFFIX}")
     endif()
 
     if(NOT EXISTS "${RCC_BINARY}")
-    message(FATAL_ERROR "Unable to locate rcc '${QT_DIR}'")
+    message(FATAL_ERROR "Unable to locate rcc. Last looked in '${RCC_BINARY}'")
     endif()
 
 
