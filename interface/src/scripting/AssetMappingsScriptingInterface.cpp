@@ -76,8 +76,8 @@ void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, 
         "Use the field below to place your file in a specific folder or to rename it. "
         "Specifying a new folder name will automatically create that folder for you.";
 
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    if (!offscreenUi) {
+    auto offscreenUI = DependencyManager::get<OffscreenUi>();
+    if (!offscreenUI) {
         completedCallback.call({ -1 });
         return;
     }
