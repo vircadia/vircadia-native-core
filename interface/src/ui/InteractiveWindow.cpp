@@ -363,9 +363,9 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
             object->setProperty(SOURCE_PROPERTY, sourceURL);
         };
 
-        if (auto offscreenUi = DependencyManager::get<OffscreenUi>()) {
+        if (auto offscreenUI = DependencyManager::get<OffscreenUi>()) {
             // Build the event bridge and wrapper on the main thread
-            offscreenUi->loadInNewContext(CONTENT_WINDOW_QML, objectInitLambda, contextInitLambda);
+            offscreenUI->loadInNewContext(CONTENT_WINDOW_QML, objectInitLambda, contextInitLambda);
         }
     }
 }
