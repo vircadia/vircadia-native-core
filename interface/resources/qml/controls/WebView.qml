@@ -38,8 +38,6 @@ Item {
     }
     */
 
-    // property alias viewProfile: webroot.webViewCoreProfile
-
     FlickableWebViewCore {
         id: webroot
         width: parent.width
