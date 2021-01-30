@@ -197,9 +197,7 @@ if (BUILD_TOOLS AND NPM_EXECUTABLE)
   add_dependencies(resources jsdoc)
 endif()
 
-if (WIN32 OR APPLE)
-  add_dependencies(${TARGET_NAME} resources)
-if (WIN32 OR APPLE OR UNIX)
+if ((WIN32 OR APPLE OR UNIX) AND NOT ANDROID)
     add_dependencies(${TARGET_NAME} resources screenshare)
 endif()
 
