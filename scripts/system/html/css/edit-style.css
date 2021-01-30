@@ -1364,7 +1364,7 @@ div#grid-section, body#entity-list-body {
 }
 #entity-list-menubar {
     margin: 0px -8px 6px -8px;
-    padding: 0px 8px 0px 8px;;
+    padding: 0px 8px 0px 8px;
     border: none;
     background-color: #000;
     background: linear-gradient(#343434 20%, #000 100%);
