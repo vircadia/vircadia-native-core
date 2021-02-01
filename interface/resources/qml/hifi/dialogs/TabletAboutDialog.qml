@@ -34,7 +34,7 @@ Rectangle {
             anchors.left: parent.left
             anchors.leftMargin: 0
             RalewayRegular {
-                text: "Interface (Codename Athena)"
+                text: "Interface"
                 size: 16
                 color: "white"
             }
@@ -133,7 +133,7 @@ Rectangle {
         Item { height: 20; width: 1 }
         RalewayRegular {
             color: "white"
-            text: "© 2019-2021 Vircadia contributors."
+            text: "© 2019 - 2021 Vircadia contributors."
             size: 14
         }
         RalewayRegular {
