@@ -14,7 +14,7 @@ import stylesUit 1.0
 
 Rectangle {
     width: 480
-    height: 950
+    height: 706
 
     color: "#404040"
 
@@ -28,7 +28,7 @@ Rectangle {
             fillMode: Image.PreserveAspectFit
             source: "../../../images/vircadia-banner.svg"
         }
-        Item { height: 30; width: 1 }
+        Item { height: 25; width: 1 }
         Column {
             id: buildColumn
             anchors.left: parent.left
@@ -77,7 +77,7 @@ Rectangle {
             }
 
         }
-        Item { height: 40; width: 1 }
+        Item { height: 25; width: 1 }
         Row {
             spacing: 5
             Image {
@@ -151,7 +151,7 @@ Rectangle {
                 About.openUrl("http://www.apache.org/licenses/LICENSE-2.0.html");
             }
         }
-        Item { height: 40; width: 1 }
+        Item { height: 35; width: 1 }
         RalewayRegular {
             color: "white"
             text: "In memoriam,"
