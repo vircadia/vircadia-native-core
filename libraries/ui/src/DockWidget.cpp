@@ -26,14 +26,15 @@ static void quickViewDeleter(QQuickView* quickView) {
 }
 
 DockWidget::DockWidget(const QString& title, QWidget* parent) : QDockWidget(title, parent) {
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    auto qmlEngine = offscreenUi->getSurfaceContext()->engine();
-    _quickView = std::shared_ptr<QQuickView>(new QQuickView(qmlEngine, nullptr), quickViewDeleter);
-    _quickView->setFormat(getDefaultOpenGLSurfaceFormat());
-    QWidget* widget = QWidget::createWindowContainer(_quickView.get());
-    setWidget(widget);
-    QWidget* headerWidget = new QWidget();
-    setTitleBarWidget(headerWidget);
+    if (auto offscreenUI = DependencyManager::get<OffscreenUi>()) {
+        auto qmlEngine = offscreenUI->getSurfaceContext()->engine();
+        _quickView = std::shared_ptr<QQuickView>(new QQuickView(qmlEngine, nullptr), quickViewDeleter);
+        _quickView->setFormat(getDefaultOpenGLSurfaceFormat());
+        QWidget* widget = QWidget::createWindowContainer(_quickView.get());
+        setWidget(widget);
+        QWidget* headerWidget = new QWidget();
+        setTitleBarWidget(headerWidget);
+    }
 }
 
 void DockWidget::setSource(const QUrl& url) {
