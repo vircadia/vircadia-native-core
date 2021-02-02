@@ -73,9 +73,9 @@ SpinBox {
         }
     }
 
-    stepSize: realStepSize * factor
-    to : realTo*factor
-    from : realFrom*factor
+    stepSize: Math.round(realStepSize * factor)
+    to : Math.round(realTo*factor)
+    from : Math.round(realFrom*factor)
 
     font.family: "Fira Sans SemiBold"
     font.pixelSize: hifi.fontSizes.textFieldInput
