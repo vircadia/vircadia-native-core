@@ -276,7 +276,7 @@ void Font::setupGPU() {
         for (auto& key : keys) {
             auto state = std::make_shared<gpu::State>();
             state->setCullMode(gpu::State::CULL_BACK);
-            state->setDepthTest(true, true, gpu::LESS_EQUAL);
+            state->setDepthTest(true, !std::get<0>(key), gpu::LESS_EQUAL);
             state->setBlendFunction(std::get<0>(key),
                 gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
