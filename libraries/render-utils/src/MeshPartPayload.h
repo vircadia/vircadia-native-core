@@ -55,7 +55,7 @@ public:
     // Payload resource cached values
     Transform _drawTransform;
     Transform _transform;
-    mutable Transform _previousModelTransform;
+    mutable Transform _prevRenderTransform;
     int _partIndex = 0;
     bool _hasColorAttrib { false };
 

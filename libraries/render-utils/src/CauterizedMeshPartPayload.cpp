@@ -63,8 +63,10 @@ void CauterizedMeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::Ren
         if (_cauterizedClusterBuffer) {
             batch.setUniformBuffer(graphics::slot::buffer::Skinning, _cauterizedClusterBuffer);
         }
-        batch.setModelTransform(_cauterizedTransform, _previousModelTransform);
-        _previousModelTransform = _cauterizedTransform;
+        batch.setModelTransform(_cauterizedTransform, _prevRenderTransform);
+        if (renderMode == Args::RenderMode::DEFAULT_RENDER_MODE || renderMode == Args::RenderMode::MIRROR_RENDER_MODE) {
+            _prevRenderTransform = _cauterizedTransform;
+        }
     } else {
         ModelMeshPartPayload::bindTransform(batch, renderMode);
     }

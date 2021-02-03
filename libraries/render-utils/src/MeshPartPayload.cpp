@@ -176,8 +176,10 @@ void MeshPartPayload::bindMesh(gpu::Batch& batch) {
 }
 
 void MeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const {
-    batch.setModelTransform(_drawTransform, _previousModelTransform);
-    _previousModelTransform = _drawTransform;
+    batch.setModelTransform(_drawTransform, _prevRenderTransform);
+    if (renderMode == Args::RenderMode::DEFAULT_RENDER_MODE || renderMode == Args::RenderMode::MIRROR_RENDER_MODE) {
+        _prevRenderTransform = _drawTransform;
+    }
 }
 
 bool MeshPartPayload::passesZoneOcclusionTest(const std::unordered_set<QUuid>& containingZones) const {
@@ -499,8 +501,10 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMo
     if (_clusterBuffer) {
         batch.setUniformBuffer(graphics::slot::buffer::Skinning, _clusterBuffer);
     }
-    batch.setModelTransform(_transform, _previousModelTransform);
-    _previousModelTransform = _transform;
+    batch.setModelTransform(_transform, _prevRenderTransform);
+    if (renderMode == Args::RenderMode::DEFAULT_RENDER_MODE || renderMode == Args::RenderMode::MIRROR_RENDER_MODE) {
+        _prevRenderTransform = _transform;
+    }
 }
 
 void ModelMeshPartPayload::render(RenderArgs* args) {
