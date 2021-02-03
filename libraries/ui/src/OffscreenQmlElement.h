@@ -53,25 +53,30 @@ private:
     } \
     \
     void x::show(std::function<void(QQmlContext*, QObject*)> f) { \
-        auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
+        auto offscreenUI = DependencyManager::get<OffscreenUi>(); \
         if (!registered) { \
             x::registerType(); \
         } \
-        offscreenUi->show(QML, NAME, f); \
+        if (offscreenUI) { \
+            offscreenUI->show(QML, NAME, f); \
+        } \
     } \
     \
     void x::hide() { \
-        auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
-        offscreenUi->hide(NAME); \
+        if (auto offscreenUI = DependencyManager::get<OffscreenUi>()) { \
+            offscreenUI->hide(NAME); \
+        } \
     } \
     \
     void x::toggle(std::function<void(QQmlContext*, QObject*)> f) { \
-        auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
-        offscreenUi->toggle(QML, NAME, f); \
+        if (auto offscreenUI = DependencyManager::get<OffscreenUi>()) { \
+            offscreenUI->toggle(QML, NAME, f); \
+        } \
     } \
     void x::load(std::function<void(QQmlContext*, QObject*)> f) { \
-        auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
-        offscreenUi->load(QML, f); \
+        if (auto offscreenUI = DependencyManager::get<OffscreenUi>()) { \
+            offscreenUI->load(QML, f); \
+        } \
     }
 
 #define HIFI_QML_DEF_LAMBDA(x, f) \
@@ -82,21 +87,25 @@ private:
         qmlRegisterType<x>("Hifi", 1, 0, NAME.toLocal8Bit().constData()); \
     } \
     void x::show() { \
-        auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
-        offscreenUi->show(QML, NAME, f); \
+        if (auto offscreenUI = DependencyManager::get<OffscreenUi>()) { \
+            offscreenUI->show(QML, NAME, f); \
+        } \
     } \
     void x::hide() { \
-        auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
-        offscreenUi->hide(NAME); \
+        if (auto offscreenUI = DependencyManager::get<OffscreenUi>()) { \
+            offscreenUI->hide(NAME); \
+        } \
     } \
     \
     void x::toggle() { \
-        auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
-        offscreenUi->toggle(QML, NAME, f); \
+        if (auto offscreenUI = DependencyManager::get<OffscreenUi>()) { \
+            offscreenUI->toggle(QML, NAME, f); \
+        } \
     } \
     void x::load() { \
-        auto offscreenUi = DependencyManager::get<OffscreenUi>(); \
-        offscreenUi->load(QML, f); \
+        if (auto offscreenUI = DependencyManager::get<OffscreenUi>()) { \
+            offscreenUI->load(QML, f); \
+        } \
     }
 
 #endif

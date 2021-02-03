@@ -321,8 +321,8 @@ void TabletScriptingInterface::processEvent(const QKeyEvent* event) {
 
 QObject* TabletScriptingInterface::getFlags() {
     Q_ASSERT(QThread::currentThread() == qApp->thread());
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    return offscreenUi->getFlags();
+    auto offscreenUI = DependencyManager::get<OffscreenUi>();
+    return offscreenUI ? offscreenUI->getFlags() : nullptr;
 }
 
 //
@@ -364,8 +364,6 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
 
     _toolbarMode = toolbarMode;
 
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-
     if (toolbarMode) {
 #if !defined(DISABLE_QML)
         closeDialog();
@@ -388,13 +386,18 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
         if (_currentPathLoaded != TABLET_HOME_SOURCE_URL) {
             loadHomeScreen(true);
         }
-        //check if running scripts window opened and save it for reopen in Tablet
-        if (offscreenUi->isVisible("RunningScripts")) {
-            offscreenUi->hide("RunningScripts");
-            _showRunningScripts = true;
+
+        auto offscreenUI = DependencyManager::get<OffscreenUi>();
+        if (offscreenUI) {
+            //check if running scripts window opened and save it for reopen in Tablet
+            if (offscreenUI->isVisible("RunningScripts")) {
+                offscreenUI->hide("RunningScripts");
+                _showRunningScripts = true;
+            }
+
+            offscreenUI->hideDesktopWindows();
         }
 
-        offscreenUi->hideDesktopWindows();
         // destroy desktop window
         if (_desktopWindow) {
             _desktopWindow->deleteLater();
@@ -577,9 +580,9 @@ void TabletProxy::gotoMenuScreen(const QString& submenu) {
         root = _desktopWindow->asQuickItem();
     }
 
-    if (root) {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        QObject* menu = offscreenUi->getRootMenu();
+    auto offscreenUI = DependencyManager::get<OffscreenUi>();
+    if (root && offscreenUI) {
+        QObject* menu = offscreenUI->getRootMenu();
         QMetaObject::invokeMethod(root, "setMenuProperties", Q_ARG(QVariant, QVariant::fromValue(menu)), Q_ARG(const QVariant&, QVariant(submenu)));
         QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, QVariant(VRMENU_SOURCE_URL)));
         _state = State::Menu;
