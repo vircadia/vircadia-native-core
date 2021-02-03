@@ -40,6 +40,7 @@ Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye,
                                                                 const StereoState& _stereo,
                                                                 const Transform& view,
                                                                 const Transform& previousView,
+                                                                const Mat4& previousProjection,
                                                                 Vec2 normalizedJitter) const {
     TransformCamera result = *this;
     Transform eyeView = view;
@@ -58,7 +59,7 @@ Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye,
     result._projection[2][0] += normalizedJitter.x;
     result._projection[2][1] += normalizedJitter.y;
 
-    result.recomputeDerived(eyeView, eyePreviousView);
+    result.recomputeDerived(eyeView, eyePreviousView, previousProjection);
 
     result._stereoInfo = Vec4(1.0f, (float)eye, 1.0f / result._viewport.z, 1.0f / result._viewport.w);
 
@@ -68,6 +69,7 @@ Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye,
 Backend::TransformCamera Backend::TransformCamera::getMonoCamera(bool isSkybox,
                                                                  const Transform& view,
                                                                  Transform previousView,
+                                                                 const Mat4& previousProjection,
                                                                  Vec2 normalizedJitter) const {
     TransformCamera result = *this;
 
@@ -76,14 +78,15 @@ Backend::TransformCamera Backend::TransformCamera::getMonoCamera(bool isSkybox,
     }
     result._projection[2][0] += normalizedJitter.x;
     result._projection[2][1] += normalizedJitter.y;
-    result.recomputeDerived(view, previousView);
+    result.recomputeDerived(view, previousView, previousProjection);
 
     result._stereoInfo = Vec4(0.0f, 0.0f, 1.0f / result._viewport.z, 1.0f / result._viewport.w);
     return result;
 }
 
 const Backend::TransformCamera& Backend::TransformCamera::recomputeDerived(const Transform& view,
-                                                                           const Transform& previousView) const {
+                                                                           const Transform& previousView,
+                                                                           const Mat4& previousProjection) const {
     _projectionInverse = glm::inverse(_projection);
 
     // Get the viewEyeToWorld matrix form the transformView as passed to the gpu::Batch
@@ -100,18 +103,7 @@ const Backend::TransformCamera& Backend::TransformCamera::recomputeDerived(const
 
     viewUntranslated = _previousView;
     viewUntranslated[3] = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    // We suppose that the projection, including jitter, hasn't changed from previous frame
-    // This may sound counter-intuitive to use the same jitter value but in fact it is needed.
-    // Think of it this way:
-    // If we have no velocity (no camera or object movement) then we wish to reproject to exactly
-    // the same pixel value. The current pixel UV when computing the motion vector is trivially computed
-    // from the fragment coordinates but the previous UV is computed conceptually with an unjittered
-    // projection * previous view matrix in the vertex shader and sent to the fragment to write in the
-    // motion vector as an interpolated attribute. But since the current projection * view matrix is
-    // jittered, the effectively rasterized interpolated previous UV will be slightly offset. That offset
-    // is exactly the jitter amount. So we add that jitter amount to the projection in the projection * previous
-    // view matrix computation. Hope this makes sense.
-    _previousProjectionViewUntranslated = _projection * viewUntranslated;
+    _previousProjectionViewUntranslated = previousProjection * viewUntranslated;
 
     _stereoInfo = Vec4(0.0f);
 

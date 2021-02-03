@@ -23,6 +23,7 @@ void GLBackend::do_setViewTransform(const Batch& batch, size_t paramOffset) {
     // then, in consequence, the view will NOT be corrected in the present thread. In which case
     // the previousCorrectedView should be the same as the view.
     _transform._viewProjectionState._previousCorrectedView = _transform._viewProjectionState._view;
+    _transform._viewProjectionState._previousProjection = _transform._viewProjectionState._projection;
     _transform._viewProjectionState._viewIsCamera = batch._params[paramOffset + 1]._uint != 0;
     _transform._invalidView = true;
     // The current view / proj doesn't correspond to a saved camera slot
@@ -131,22 +132,26 @@ void GLBackend::TransformStageState::pushCameraBufferElement(const StereoState& 
     if (stereo.isStereo()) {
 #ifdef GPU_STEREO_CAMERA_BUFFER
         cameras.push_back(CameraBufferElement(_camera.getEyeCamera(0, stereo, _viewProjectionState._correctedView,
-                                                                   _viewProjectionState._previousCorrectedView, jitter),
+                                                                   _viewProjectionState._previousCorrectedView, _viewProjectionState._previousProjection,
+                                                                    jitter),
                                               _camera.getEyeCamera(1, stereo, _viewProjectionState._correctedView,
-                                                                   _viewProjectionState._previousCorrectedView, jitter)));
+                                                                   _viewProjectionState._previousCorrectedView, _viewProjectionState._previousProjection,
+                                                                   jitter)));
 #else
         cameras.push_back((_camera.getEyeCamera(0, stereo, _viewProjectionState._correctedView,
-                                                _viewProjectionState._previousCorrectedView, jitter)));
+                                                _viewProjectionState._previousCorrectedView, _viewProjectionState._previousProjection, jitter)));
         cameras.push_back((_camera.getEyeCamera(1, stereo, _viewProjectionState._correctedView,
-                                                _viewProjectionState._previousCorrectedView, jitter)));
+                                                _viewProjectionState._previousCorrectedView, _viewProjectionState._previousProjection, jitter)));
 #endif
     } else {
 #ifdef GPU_STEREO_CAMERA_BUFFER
         cameras.push_back(CameraBufferElement(
-            _camera.getMonoCamera(_skybox, _viewProjectionState._correctedView, _viewProjectionState._previousCorrectedView, jitter)));
+            _camera.getMonoCamera(_skybox, _viewProjectionState._correctedView, _viewProjectionState._previousCorrectedView,
+                                  _viewProjectionState._previousProjection, jitter)));
 #else
         cameras.push_back((_camera.getMonoCamera(_skybox, _viewProjectionState._correctedView,
-                                                 _viewProjectionState._previousCorrectedView, jitter)));
+                                                 _viewProjectionState._previousCorrectedView, _viewProjectionState._previousProjection,
+                                                 jitter)));
 #endif
     }
 }
@@ -238,6 +243,7 @@ void GLBackend::do_saveViewProjectionTransform(const Batch& batch, size_t paramO
     // If we are saving this transform to a save slot, then it means we are tracking the history of the view
     // so copy the previous corrected view to the transform state.
     _transform._viewProjectionState._previousCorrectedView = savedTransform._state._previousCorrectedView;
+    _transform._viewProjectionState._previousProjection = savedTransform._state._previousProjection;
     preUpdateTransform();
     savedTransform._state.copyExceptPrevious(_transform._viewProjectionState);
 }

@@ -429,6 +429,7 @@ protected:
             Transform _correctedView;
             Transform _previousCorrectedView;
             Mat4 _projection;
+            Mat4 _previousProjection;
             bool _viewIsCamera;
 
             void copyExceptPrevious(const ViewProjectionState& other) {
