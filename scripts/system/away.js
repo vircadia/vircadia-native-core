@@ -3,8 +3,6 @@
 //
 //  away.js
 //
-//  examples
-//
 //  Created by Howard Stearns 11/3/15
 //  Copyright 2015 High Fidelity, Inc.
 //
@@ -255,17 +253,6 @@ function setActiveProperties() {
     Script.clearInterval(avatarMovedInterval);
 }
 
-function maybeGoActive(event) {
-    if (event.isAutoRepeat) { // isAutoRepeat is true when held down (or when Windows feels like it)
-        return;
-    }
-    if (!isAway && (event.text === 'ESC')) {
-        goAway();
-    } else {
-        goActive();
-    }
-}
-
 var wasHmdActive = HMD.active;
 var wasMouseCaptured = Reticle.mouseCaptured;
 
@@ -329,11 +316,23 @@ var CHANNEL_AWAY_ENABLE = "Hifi-Away-Enable";
 var handleMessage = function(channel, message, sender) {
     if (channel === CHANNEL_AWAY_ENABLE && sender === MyAvatar.sessionUUID) {
         print("away.js | Got message on Hifi-Away-Enable: ", message);
-        setEnabled(message === 'enable');
+        if (message === 'enable') {
+            setEnabled(message === 'enable');
+        } else if (message === 'toggle') {
+            toggleAway();
+        }
     }
 };
 Messages.subscribe(CHANNEL_AWAY_ENABLE);
 Messages.messageReceived.connect(handleMessage);
+
+function toggleAway() {
+    if (!isAway) {
+        goAway();
+    } else {
+        goActive();
+    }
+}
 
 var maybeIntervalTimer = Script.setInterval(function() {
     maybeMoveOverlay();
@@ -343,7 +342,6 @@ var maybeIntervalTimer = Script.setInterval(function() {
 
 
 Controller.mousePressEvent.connect(goActive);
-Controller.keyPressEvent.connect(maybeGoActive);
 // Note peek() so as to not interfere with other mappings.
 eventMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(goActive);
 eventMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(goActive);
@@ -371,7 +369,6 @@ Script.scriptEnding.connect(function () {
     HMD.awayStateWhenFocusLostInVRChanged.disconnect(awayStateWhenFocusLostInVRChanged);
     Controller.disableMapping(eventMappingName);
     Controller.mousePressEvent.disconnect(goActive);
-    Controller.keyPressEvent.disconnect(maybeGoActive);
     Messages.messageReceived.disconnect(handleMessage);
     Messages.unsubscribe(CHANNEL_AWAY_ENABLE);
 });
