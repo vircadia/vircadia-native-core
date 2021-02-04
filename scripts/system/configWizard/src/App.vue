@@ -10,10 +10,6 @@
 //
 -->
 
-<script>
-/* eslint-disable */
-</script>
-
 <template>
     <v-app>
         <v-main>
@@ -25,7 +21,7 @@
 <script>
 import FirstRunWizard from './components/FirstRunWizard';
 
-var vue_this;
+// var vue_this;
 
 function browserDevelopment() {
     if (typeof EventBridge !== 'undefined') {
@@ -79,7 +75,7 @@ export default {
     },
     
     created: function () {
-        vue_this = this;
+        // vue_this = this;
 
         this.$vuetify.theme.dark = this.useDarkTheme;
         this.sendMessageToScript('ready', '');
