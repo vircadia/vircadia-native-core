@@ -4,6 +4,7 @@
 //
 //  Created by Vlad Stelmahovsky on 15/5/2018.
 //  Copyright 2018 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -38,6 +39,10 @@ QString AboutUtil::getBuildDate() const {
 
 QString AboutUtil::getBuildVersion() const {
     return BuildInfo::VERSION;
+}
+
+QString AboutUtil::getReleaseName() const {
+    return BuildInfo::RELEASE_NAME;
 }
 
 QString AboutUtil::getQtVersion() const {
