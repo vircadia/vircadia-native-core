@@ -721,10 +721,19 @@ QVector<float> ModelEntityItem::getBlendshapeCoefficientVector() {
 }
 
 void ModelEntityItem::setUseOriginalPivot(bool value) {
+    bool changed = false;
     withWriteLock([&] {
-        _needsRenderUpdate |= _useOriginalPivot != value;
-        _useOriginalPivot = value;
+        if (_useOriginalPivot != value) {
+            _needsRenderUpdate = true;
+            _useOriginalPivot = value;
+            changed = true;
+        }
     });
+
+    if (changed) {
+        markDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
+        locationChanged();
+    }
 }
 
 bool ModelEntityItem::getUseOriginalPivot() const {

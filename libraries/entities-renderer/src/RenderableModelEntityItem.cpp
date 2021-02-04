@@ -456,10 +456,11 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         // multiply each point by scale before handing the point-set off to the physics engine.
         // also determine the extents of the collision model.
         glm::vec3 registrationOffset = dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint());
+        glm::vec3 offset = model->getSnapModelToRegistrationPoint() ? model->getOffset() : glm::vec3(0.0f);
         for (int32_t i = 0; i < pointCollection.size(); i++) {
             for (int32_t j = 0; j < pointCollection[i].size(); j++) {
                 // back compensate for registration so we can apply that offset to the shapeInfo later
-                pointCollection[i][j] = scaleToFit * (pointCollection[i][j] + model->getOffset()) - registrationOffset;
+                pointCollection[i][j] = scaleToFit * (pointCollection[i][j] + offset) - registrationOffset;
             }
         }
         shapeInfo.setParams(type, 0.5f * extents, getCompoundShapeURL() + model->getSnapModelToRegistrationPoint());
