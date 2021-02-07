@@ -71,11 +71,11 @@ public:
     public:
         const Backend::TransformCamera& recomputeDerived(const Transform& view, const Transform& previousView, const Mat4& previousProjection) const;
         // Jitter should be divided by framebuffer size
-        TransformCamera getMonoCamera(bool isSkybox, const Transform& view, Transform previousView, const Mat4& previousProjection,
+        TransformCamera getMonoCamera(bool isSkybox, const Transform& view, Transform previousView, Mat4 previousProjection,
             Vec2 normalizedJitter) const;
         // Jitter should be divided by framebuffer size
         TransformCamera getEyeCamera(int eye, const StereoState& stereo, const Transform& view, const Transform& previousView,
-            const Mat4& previousProjection, Vec2 normalizedJitter) const;
+            Mat4 previousProjection, Vec2 normalizedJitter) const;
     };
 
     template <typename T, typename U>

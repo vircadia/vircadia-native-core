@@ -40,7 +40,7 @@ Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye,
                                                                 const StereoState& _stereo,
                                                                 const Transform& view,
                                                                 const Transform& previousView,
-                                                                const Mat4& previousProjection,
+                                                                Mat4 previousProjection,
                                                                 Vec2 normalizedJitter) const {
     TransformCamera result = *this;
     Transform eyeView = view;
@@ -59,6 +59,9 @@ Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye,
     result._projection[2][0] += normalizedJitter.x;
     result._projection[2][1] += normalizedJitter.y;
 
+    previousProjection[2][0] += normalizedJitter.x;
+    previousProjection[2][1] += normalizedJitter.y;
+
     result.recomputeDerived(eyeView, eyePreviousView, previousProjection);
 
     result._stereoInfo = Vec4(1.0f, (float)eye, 1.0f / result._viewport.z, 1.0f / result._viewport.w);
@@ -69,7 +72,7 @@ Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye,
 Backend::TransformCamera Backend::TransformCamera::getMonoCamera(bool isSkybox,
                                                                  const Transform& view,
                                                                  Transform previousView,
-                                                                 const Mat4& previousProjection,
+                                                                 Mat4 previousProjection,
                                                                  Vec2 normalizedJitter) const {
     TransformCamera result = *this;
 
@@ -78,6 +81,10 @@ Backend::TransformCamera Backend::TransformCamera::getMonoCamera(bool isSkybox,
     }
     result._projection[2][0] += normalizedJitter.x;
     result._projection[2][1] += normalizedJitter.y;
+
+    previousProjection[2][0] += normalizedJitter.x;
+    previousProjection[2][1] += normalizedJitter.y;
+
     result.recomputeDerived(view, previousView, previousProjection);
 
     result._stereoInfo = Vec4(0.0f, 0.0f, 1.0f / result._viewport.z, 1.0f / result._viewport.w);
