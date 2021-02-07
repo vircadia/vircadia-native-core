@@ -37,6 +37,7 @@
 #include "UpdateEntityOperator.h"
 #include "QVariantGLM.h"
 #include "EntitiesLogging.h"
+#include "EntitiesAuditLogging.h"
 #include "RecurseOctreeToMapOperator.h"
 #include "RecurseOctreeToJSONOperator.h"
 #include "LogHandler.h"
@@ -1795,12 +1796,45 @@ void EntityTree::processChallengeOwnershipPacket(ReceivedMessage& message, const
     }
 }
 
+QJsonObject auditLogAddBuffer;
+QJsonObject auditLogEditBuffer;
+QTimer* auditLogProcessorTimer;
+int AUDIT_LOG_OUTPUT_INTERVAL = 5000;
+
+void EntityTree::processAuditLogBuffers() {
+    if (!auditLogAddBuffer.isEmpty()) {
+        QJsonObject objectToOutput;
+        objectToOutput.insert("add", auditLogAddBuffer);
+        qCDebug(entities_audit) << objectToOutput;
+        auditLogAddBuffer = QJsonObject();
+    }
+    if (!auditLogEditBuffer.isEmpty()) {
+        QJsonObject objectToOutput;
+        objectToOutput.insert("edit", auditLogEditBuffer);
+        qCDebug(entities_audit) << objectToOutput;
+        auditLogEditBuffer = QJsonObject();
+    }
+}
+
+void EntityTree::startAuditLogProcessor() {
+    auditLogProcessorTimer = new QTimer(this);
+    connect(auditLogProcessorTimer, &QTimer::timeout, this, &EntityTree::processAuditLogBuffers);
+    auditLogProcessorTimer->start(AUDIT_LOG_OUTPUT_INTERVAL);
+}
+
+void EntityTree::stopAuditLogProcessor() {
+    auditLogProcessorTimer->stop();
+}
+
 // NOTE: Caller must lock the tree before calling this.
 int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
                                      const SharedNodePointer& senderNode) {
     if (!getIsServer()) {
         qCWarning(entities) << "EntityTree::processEditPacketData() should only be called on a server tree.";
         return 0;
+    }
+    if (wantAuditEditLogging() && !auditLogProcessorTimer) {
+        EntityTree::startAuditLogProcessor();
     }
 
     int processedBytes = 0;
@@ -1828,6 +1862,9 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             quint64 startCreate = 0, endCreate = 0;
             quint64 startFilter = 0, endFilter = 0;
             quint64 startLogging = 0, endLogging = 0;
+            quint64 startProcessing = 0, endProcessing = 0;
+
+            startProcessing = usecTimestampNow();
 
             bool suppressDisallowedClientScript = false;
             bool suppressDisallowedServerScript = false;
@@ -2003,6 +2040,22 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                         qCDebug(entities) << "User [" << senderNode->getUUID() << "] editing entity. ID:" << entityItemID;
                         qCDebug(entities) << "   properties:" << properties;
                     }
+                    /*if (wantAuditEditLogging()) {*/
+                    if (true) {
+                        HifiSockAddr senderSocket = senderNode->getPublicSocket();
+
+                        QJsonValue findExisting = auditLogEditBuffer.take(senderSocket.toString());
+                        if (!findExisting.isUndefined()) {
+                            QJsonObject existingObject = findExisting.toObject();
+                            if (!existingObject.contains(entityItemID.toString())) {
+                                existingObject.insert(entityItemID.toString(), "");
+                            }
+                            auditLogEditBuffer.insert(senderSocket.toString(), existingObject);
+                        } else {
+                            QJsonObject newEntry{ { entityItemID.toString(), "" } };
+                            auditLogEditBuffer.insert(senderSocket.toString(), newEntry);
+                        }
+                    }
                     if (wantTerseEditLogging()) {
                         QList<QString> changedProperties = properties.listChangedProperties();
                         fixupTerseEditLogging(properties, changedProperties);
@@ -2082,6 +2135,22 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                                   << newEntity->getEntityItemID();
                                 qCDebug(entities) << "   properties:" << properties;
                             }
+                            /*if (wantAuditEditLogging()) {*/
+                            if (true) {
+                                HifiSockAddr senderSocket = senderNode->getPublicSocket();
+
+                                QJsonValue findExisting = auditLogAddBuffer.take(senderSocket.toString());
+                                if (!findExisting.isUndefined()) {
+                                    QJsonObject existingObject = findExisting.toObject();
+                                    if (!existingObject.contains(entityItemID.toString())) {
+                                        existingObject.insert(entityItemID.toString(), "");
+                                    }
+                                    auditLogAddBuffer.insert(senderSocket.toString(), existingObject);
+                                } else {
+                                    QJsonObject newEntry{ { entityItemID.toString(), "" } };
+                                    auditLogAddBuffer.insert(senderSocket.toString(), newEntry);
+                                }
+                            }
                             if (wantTerseEditLogging()) {
                                 QList<QString> changedProperties = properties.listChangedProperties();
                                 fixupTerseEditLogging(properties, changedProperties);
@@ -2105,6 +2174,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                 }
             }
 
+            endProcessing = usecTimestampNow();
 
             _totalDecodeTime += endDecode - startDecode;
             _totalLookupTime += endLookup - startLookup;
@@ -2112,7 +2182,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             _totalCreateTime += endCreate - startCreate;
             _totalLoggingTime += endLogging - startLogging;
             _totalFilterTime += endFilter - startFilter;
-
+            qDebug() << "totalProcessingTime" << (startProcessing - endProcessing);
             break;
         }
 

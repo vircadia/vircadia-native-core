@@ -310,6 +310,10 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
     bool wantEditLogging = false;
     readOptionBool(QString("wantEditLogging"), settingsSectionObject, wantEditLogging);
     qDebug("wantEditLogging=%s", debug::valueOf(wantEditLogging));
+    
+    bool wantAuditEditLogging = false;
+    readOptionBool(QString("wantAuditEditLogging"), settingsSectionObject, wantAuditEditLogging);
+    qDebug("wantAuditEditLogging=%s", debug::valueOf(wantAuditEditLogging));
 
     bool wantTerseEditLogging = false;
     readOptionBool(QString("wantTerseEditLogging"), settingsSectionObject, wantTerseEditLogging);
@@ -337,6 +341,7 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
     startDynamicDomainVerification();
 
     tree->setWantEditLogging(wantEditLogging);
+    tree->setWantAuditEditLogging(wantAuditEditLogging);
     tree->setWantTerseEditLogging(wantTerseEditLogging);
 
     QString entityScriptSourceWhitelist;

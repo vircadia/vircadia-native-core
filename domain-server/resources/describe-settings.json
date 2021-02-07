@@ -1617,6 +1617,14 @@
           "advanced": true
         },
         {
+          "name": "wantAuditEditLogging",
+          "type": "checkbox",
+          "label": "Audit Edit Logging",
+          "help": "Log edits with audit information.",
+          "default": true,
+          "advanced": true
+        },
+        {
           "name": "verboseDebug",
           "type": "checkbox",
           "label": "Verbose Debug",

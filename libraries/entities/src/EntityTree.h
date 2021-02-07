@@ -190,6 +190,9 @@ public:
 
     bool wantEditLogging() const { return _wantEditLogging; }
     void setWantEditLogging(bool value) { _wantEditLogging = value; }
+    
+    bool wantAuditEditLogging() const { return _wantAuditEditLogging; }
+    void setWantAuditEditLogging(bool value) { _wantAuditEditLogging = value; }
 
     bool wantTerseEditLogging() const { return _wantTerseEditLogging; }
     void setWantTerseEditLogging(bool value) { _wantTerseEditLogging = value; }
@@ -339,6 +342,7 @@ protected:
     EntitySimulationPointer _simulation;
 
     bool _wantEditLogging = false;
+    bool _wantAuditEditLogging = true;
     bool _wantTerseEditLogging = false;
 
 
@@ -388,6 +392,10 @@ private:
     void sendChallengeOwnershipPacket(const QString& certID, const QString& ownerKey, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
     void sendChallengeOwnershipRequestPacket(const QByteArray& id, const QByteArray& text, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode);
     void validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
+
+    void EntityTree::processAuditLogBuffers();
+    void EntityTree::startAuditLogProcessor();
+    void EntityTree::stopAuditLogProcessor();
 
     std::shared_ptr<AvatarData> _myAvatar{ nullptr };
 
