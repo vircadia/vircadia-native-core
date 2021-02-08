@@ -399,9 +399,9 @@ private:
     void sendChallengeOwnershipRequestPacket(const QByteArray& id, const QByteArray& text, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode);
     void validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
 
-    void EntityTree::processAuditLogBuffers();
-    void EntityTree::startAuditLogProcessor();
-    void EntityTree::stopAuditLogProcessor();
+    void processAuditLogBuffers();
+    void startAuditLogProcessor();
+    void stopAuditLogProcessor();
 
     std::shared_ptr<AvatarData> _myAvatar{ nullptr };
 
