@@ -58,7 +58,9 @@ bool AvatarPackager::open() {
 
     if (tablet->getToolbarMode()) {
         static const QUrl url{ "hifi/AvatarPackagerWindow.qml" };
-        DependencyManager::get<OffscreenUi>()->show(url, "AvatarPackager", packageModelDialogCreated);
+        if (auto offscreenUI = DependencyManager::get<OffscreenUi>()) {
+            offscreenUI->show(url, "AvatarPackager", packageModelDialogCreated);
+        }
         return true;
     }
 

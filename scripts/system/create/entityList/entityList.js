@@ -383,6 +383,14 @@ EntityListTool = function(shouldUseEditTabletApp) {
             SelectionManager.selectTopFamily();
         } else if (data.type === 'teleportToEntity') {
             SelectionManager.teleportToEntity();
+        } else if (data.type === 'rotateAsTheNextClickedSurface') {
+            rotateAsNextClickedSurface();
+        } else if (data.type === 'quickRotate90x') {
+            selectionDisplay.rotate90degreeSelection("X");
+        } else if (data.type === 'quickRotate90y') {
+            selectionDisplay.rotate90degreeSelection("Y");
+        } else if (data.type === 'quickRotate90z') {
+            selectionDisplay.rotate90degreeSelection("Z");
         } else if (data.type === 'moveEntitySelectionToAvatar') {
             SelectionManager.moveEntitiesSelectionToAvatar();
         } else if (data.type === 'loadConfigSetting') {

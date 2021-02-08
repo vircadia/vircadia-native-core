@@ -1197,7 +1197,7 @@ void LimitedNodeList::stopInitialSTUNUpdate(bool success) {
     }
 
     // We now setup a timer here to fire every so often to check that our IP address has not changed.
-    // Or, if we failed - if will check if we can eventually get a public socket
+    // Or, if we failed - it will check if we can eventually get a public socket
     const int STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS = 10 * 1000;
 
     QTimer* stunOccasionalTimer = new QTimer { this };

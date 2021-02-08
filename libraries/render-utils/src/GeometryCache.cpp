@@ -2027,7 +2027,7 @@ void GeometryCache::useGridPipeline(gpu::Batch& batch, GridBuffer gridBuffer, bo
 
         for (auto& key : keys) {
             gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-            state->setDepthTest(true, true, gpu::LESS_EQUAL);
+            state->setDepthTest(true, !std::get<0>(key), gpu::LESS_EQUAL);
             if (std::get<0>(key)) {
                 PrepareStencil::testMask(*state);
             } else {
@@ -2135,7 +2135,7 @@ gpu::PipelinePointer GeometryCache::getWebBrowserProgram(bool transparent, bool 
             auto pipeline = (transparent || forward) ? web_browser_forward : web_browser;
 
             gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-            state->setDepthTest(true, true, gpu::LESS_EQUAL);
+            state->setDepthTest(true, !transparent, gpu::LESS_EQUAL);
             // FIXME: do we need a testMaskDrawNoAA?
             PrepareStencil::testMaskDrawShapeNoAA(*state);
             state->setBlendFunction(transparent,
@@ -2207,7 +2207,7 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
     } else {
         state->setCullMode(gpu::State::CULL_BACK);
     }
-    state->setDepthTest(true, true, gpu::LESS_EQUAL);
+    state->setDepthTest(true, !config.isTransparent(), gpu::LESS_EQUAL);
     if (config.hasDepthBias()) {
         state->setDepthBias(1.0f);
         state->setDepthBiasSlopeScale(1.0f);
