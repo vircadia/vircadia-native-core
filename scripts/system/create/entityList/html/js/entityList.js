@@ -226,9 +226,10 @@ let elEntityTable,
     elToggleVisible,
     elActionsMenu,
     elSelectionMenu,
-    elToolsMenu,    
+    elTransformMenu,
+    elToolsMenu,
     elMenuBackgroundOverlay,
-    elHmdMultiSelect, 
+    elHmdMultiSelect,
     elHmdCopy,
     elHmdCut,
     elHmdPaste,
@@ -313,6 +314,7 @@ function loaded() {
         elHmdMultiSelect = document.getElementById("hmdmultiselect");
         elActionsMenu = document.getElementById("actions");
         elSelectionMenu = document.getElementById("selection");
+        elTransformMenu = document.getElementById("transform");
         elToolsMenu = document.getElementById("tools");
         elMenuBackgroundOverlay = document.getElementById("menuBackgroundOverlay");
         elHmdCopy = document.getElementById("hmdcopy");
@@ -395,6 +397,10 @@ function loaded() {
             document.getElementById("menuBackgroundOverlay").style.display = "block";
             document.getElementById("selection-menu").style.display = "block";
         };
+        elTransformMenu.onclick = function() {
+            document.getElementById("menuBackgroundOverlay").style.display = "block";
+            document.getElementById("transform-menu").style.display = "block";
+        };        
         elToolsMenu.onclick = function() {
             document.getElementById("menuBackgroundOverlay").style.display = "block";
             document.getElementById("tools-menu").style.display = "block";
@@ -1850,6 +1856,7 @@ function loaded() {
         document.getElementById("menuBackgroundOverlay").style.display = "none";
         document.getElementById("selection-menu").style.display = "none";
         document.getElementById("actions-menu").style.display = "none";
+        document.getElementById("transform-menu").style.display = "none";
         document.getElementById("tools-menu").style.display = "none";
     }
 
