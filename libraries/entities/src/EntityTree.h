@@ -193,6 +193,9 @@ public:
     
     bool wantAuditEditLogging() const { return _wantAuditEditLogging; }
     void setWantAuditEditLogging(bool value) { _wantAuditEditLogging = value; }
+    
+    float auditEditLoggingInterval() const { return _auditEditLoggingInterval; }
+    void setAuditEditLoggingInterval(float value) { _auditEditLoggingInterval = value; }
 
     bool wantTerseEditLogging() const { return _wantTerseEditLogging; }
     void setWantTerseEditLogging(bool value) { _wantTerseEditLogging = value; }
@@ -253,6 +256,8 @@ public:
     void notifyNewCollisionSoundURL(const QString& newCollisionSoundURL, const EntityItemID& entityID);
 
     static const float DEFAULT_MAX_TMP_ENTITY_LIFETIME;
+    
+    static const float DEFAULT_AUDIT_EDIT_INTERVAL;
 
     QByteArray computeNonce(const EntityItemID& entityID, const QString ownerKey);
     bool verifyNonce(const EntityItemID& entityID, const QString& nonce);
@@ -343,6 +348,7 @@ protected:
 
     bool _wantEditLogging = false;
     bool _wantAuditEditLogging = true;
+    float _auditEditLoggingInterval { DEFAULT_AUDIT_EDIT_INTERVAL };
     bool _wantTerseEditLogging = false;
 
 

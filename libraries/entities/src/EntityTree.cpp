@@ -46,6 +46,7 @@
 
 static const quint64 DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER = USECS_PER_MSEC * 50;
 const float EntityTree::DEFAULT_MAX_TMP_ENTITY_LIFETIME = 60 * 60; // 1 hour
+const float EntityTree::DEFAULT_AUDIT_EDIT_INTERVAL = 10000; // 10 seconds
 static const QString DOMAIN_UNLIMITED = "domainUnlimited";
 
 EntityTree::EntityTree(bool shouldReaverage) :
@@ -1799,7 +1800,6 @@ void EntityTree::processChallengeOwnershipPacket(ReceivedMessage& message, const
 QJsonObject auditLogAddBuffer;
 QJsonObject auditLogEditBuffer;
 QTimer* auditLogProcessorTimer;
-int AUDIT_LOG_OUTPUT_INTERVAL = 5000;
 
 void EntityTree::processAuditLogBuffers() {
     if (!auditLogAddBuffer.isEmpty()) {
@@ -1819,7 +1819,7 @@ void EntityTree::processAuditLogBuffers() {
 void EntityTree::startAuditLogProcessor() {
     auditLogProcessorTimer = new QTimer(this);
     connect(auditLogProcessorTimer, &QTimer::timeout, this, &EntityTree::processAuditLogBuffers);
-    auditLogProcessorTimer->start(AUDIT_LOG_OUTPUT_INTERVAL);
+    auditLogProcessorTimer->start(auditEditLoggingInterval());
 }
 
 void EntityTree::stopAuditLogProcessor() {
@@ -1862,9 +1862,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             quint64 startCreate = 0, endCreate = 0;
             quint64 startFilter = 0, endFilter = 0;
             quint64 startLogging = 0, endLogging = 0;
-            quint64 startProcessing = 0, endProcessing = 0;
 
-            startProcessing = usecTimestampNow();
 
             bool suppressDisallowedClientScript = false;
             bool suppressDisallowedServerScript = false;
@@ -2040,19 +2038,20 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                         qCDebug(entities) << "User [" << senderNode->getUUID() << "] editing entity. ID:" << entityItemID;
                         qCDebug(entities) << "   properties:" << properties;
                     }
-                    /*if (wantAuditEditLogging()) {*/
-                    if (true) {
+                    if (wantAuditEditLogging()) {
                         HifiSockAddr senderSocket = senderNode->getPublicSocket();
 
                         QJsonValue findExisting = auditLogEditBuffer.take(senderSocket.toString());
                         if (!findExisting.isUndefined()) {
                             QJsonObject existingObject = findExisting.toObject();
                             if (!existingObject.contains(entityItemID.toString())) {
-                                existingObject.insert(entityItemID.toString(), "");
+                                existingObject.insert(entityItemID.toString(), 1);
+                            } else {
+                                existingObject[entityItemID.toString()] = existingObject[entityItemID.toString()].toInt() + 1;
                             }
                             auditLogEditBuffer.insert(senderSocket.toString(), existingObject);
                         } else {
-                            QJsonObject newEntry{ { entityItemID.toString(), "" } };
+                            QJsonObject newEntry{ { entityItemID.toString(), 1 } };
                             auditLogEditBuffer.insert(senderSocket.toString(), newEntry);
                         }
                     }
@@ -2135,19 +2134,20 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                                   << newEntity->getEntityItemID();
                                 qCDebug(entities) << "   properties:" << properties;
                             }
-                            /*if (wantAuditEditLogging()) {*/
-                            if (true) {
+                            if (wantAuditEditLogging()) {
                                 HifiSockAddr senderSocket = senderNode->getPublicSocket();
 
                                 QJsonValue findExisting = auditLogAddBuffer.take(senderSocket.toString());
                                 if (!findExisting.isUndefined()) {
                                     QJsonObject existingObject = findExisting.toObject();
                                     if (!existingObject.contains(entityItemID.toString())) {
-                                        existingObject.insert(entityItemID.toString(), "");
+                                        existingObject.insert(entityItemID.toString(), EntityTypes::getEntityTypeName(properties.getType()));
                                     }
                                     auditLogAddBuffer.insert(senderSocket.toString(), existingObject);
                                 } else {
-                                    QJsonObject newEntry{ { entityItemID.toString(), "" } };
+                                    QJsonObject newEntry{ { 
+                                        entityItemID.toString(), EntityTypes::getEntityTypeName(properties.getType()) 
+                                    } };
                                     auditLogAddBuffer.insert(senderSocket.toString(), newEntry);
                                 }
                             }
@@ -2174,15 +2174,13 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                 }
             }
 
-            endProcessing = usecTimestampNow();
-
             _totalDecodeTime += endDecode - startDecode;
             _totalLookupTime += endLookup - startLookup;
             _totalUpdateTime += endUpdate - startUpdate;
             _totalCreateTime += endCreate - startCreate;
             _totalLoggingTime += endLogging - startLogging;
             _totalFilterTime += endFilter - startFilter;
-            qDebug() << "totalProcessingTime" << (startProcessing - endProcessing);
+
             break;
         }
 
