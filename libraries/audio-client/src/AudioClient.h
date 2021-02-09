@@ -408,7 +408,7 @@ private:
     bool _shouldEchoToServer{ false };
     bool _isNoiseGateEnabled{ true };
     bool _isNoiseReductionAutomatic{ true };
-    float _noiseReductionThreshold{ 0.2f };
+    float _noiseReductionThreshold{ 0.1f };
     bool _warnWhenMuted;
     bool _isAECEnabled{ true };
 

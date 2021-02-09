@@ -557,7 +557,7 @@ private:
     float _localInjectorGain { 0.0f };      // in dB
     float _systemInjectorGain { 0.0f };     // in dB
     float _pttOutputGainDesktop { 0.0f };   // in dB
-    float _noiseReductionThreshold { 0.2f }; // Match default value of AudioClient::_noiseReductionThreshold.
+    float _noiseReductionThreshold { 0.1f }; // Match default value of AudioClient::_noiseReductionThreshold.
     bool _isClipping { false };
     bool _enableNoiseReduction { true };  // Match default value of AudioClient::_isNoiseGateEnabled.
     bool _noiseReductionAutomatic { true }; // Match default value of AudioClient::_noiseReductionAutomatic.
