@@ -92,6 +92,8 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
 
     Q_PROPERTY(bool muted READ isMuted WRITE setMuted NOTIFY mutedChanged)
     Q_PROPERTY(bool noiseReduction READ noiseReductionEnabled WRITE enableNoiseReduction NOTIFY noiseReductionChanged)
+    Q_PROPERTY(bool noiseReductionAutomatic READ noiseReductionAutomatic WRITE enableNoiseReductionAutomatic NOTIFY noiseReductionAutomaticChanged)
+    Q_PROPERTY(float noiseReductionThreshold READ getNoiseReductionThreshold WRITE setNoiseReductionThreshold NOTIFY noiseReductionThresholdChanged)
     Q_PROPERTY(bool warnWhenMuted READ warnWhenMutedEnabled WRITE enableWarnWhenMuted NOTIFY warnWhenMutedChanged)
     Q_PROPERTY(bool acousticEchoCancellation
                READ acousticEchoCancellationEnabled WRITE enableAcousticEchoCancellation NOTIFY acousticEchoCancellationChanged)
@@ -124,6 +126,8 @@ public:
 
     bool isMuted() const;
     bool noiseReductionEnabled() const;
+    bool noiseReductionAutomatic() const;
+    float getNoiseReductionThreshold() const;
     bool warnWhenMutedEnabled() const;
     bool acousticEchoCancellationEnabled() const;
     float getInputVolume() const;
@@ -398,6 +402,24 @@ signals:
      * @returns {Signal}
      */
     void noiseReductionChanged(bool isEnabled);
+    
+    /**jsdoc
+     * Triggered when the audio input noise reduction mode is changed.
+     * @function Audio.noiseReductionAutomaticChanged
+     * @param {boolean} isEnabled - <code>true</code> if audio input noise reduction automatic mode is enabled, otherwise <code>false</code>. 
+     *     This means the mode is set to 'manual'.
+     * @returns {Signal}
+     */
+    void noiseReductionAutomaticChanged(bool isEnabled);
+    
+    /**jsdoc
+     * Triggered when audio input noise reduction threshold is changed.
+     * @function Audio.noiseReductionThresholdChanged
+     * @param {number} threshold - The threshold for the audio input noise reduction, range <code>0.0</code> (open the gate completely) &ndash; <code>1.0</code>
+     *     (close the gate completely).
+     * @returns {Signal}
+     */
+    void noiseReductionThresholdChanged(float threshold);
 
     /**jsdoc
      * Triggered when "warn when muted" is enabled or disabled.
@@ -512,6 +534,8 @@ public slots:
 private slots:
     void setMuted(bool muted);
     void enableNoiseReduction(bool enable);
+    void enableNoiseReductionAutomatic(bool enable);
+    void setNoiseReductionThreshold(float threshold);
     void enableWarnWhenMuted(bool enable);
     void enableAcousticEchoCancellation(bool enable);
     void setInputVolume(float volume);
@@ -533,8 +557,10 @@ private:
     float _localInjectorGain { 0.0f };      // in dB
     float _systemInjectorGain { 0.0f };     // in dB
     float _pttOutputGainDesktop { 0.0f };   // in dB
+    float _noiseReductionThreshold { 0.2f }; // Match default value of AudioClient::_noiseReductionThreshold.
     bool _isClipping { false };
     bool _enableNoiseReduction { true };  // Match default value of AudioClient::_isNoiseGateEnabled.
+    bool _noiseReductionAutomatic { true }; // Match default value of AudioClient::_noiseReductionAutomatic.
     bool _enableWarnWhenMuted { true };
     bool _enableAcousticEchoCancellation { true }; // AudioClient::_isAECEnabled
     bool _contextIsHMD { false };

@@ -25,6 +25,8 @@ QString Audio::DESKTOP { "Desktop" };
 QString Audio::HMD { "VR" };
 
 Setting::Handle<bool> enableNoiseReductionSetting { QStringList { Audio::AUDIO, "NoiseReduction" }, true };
+Setting::Handle<bool> enableNoiseReductionAutomaticSetting { QStringList { Audio::AUDIO, "NoiseReductionAutomatic" }, false };
+Setting::Handle<float> setNoiseReductionThresholdSetting { QStringList { Audio::AUDIO, "NoiseReductionThreshold" }, 0.2f };
 Setting::Handle<bool> enableWarnWhenMutedSetting { QStringList { Audio::AUDIO, "WarnWhenMuted" }, true };
 Setting::Handle<bool> enableAcousticEchoCancellationSetting { QStringList { Audio::AUDIO, "AcousticEchoCancellation" }, true };
 
@@ -40,6 +42,8 @@ Audio::Audio() : _devices(_contextIsHMD) {
     auto client = DependencyManager::get<AudioClient>().data();
     connect(client, &AudioClient::muteToggled, this, &Audio::setMuted);
     connect(client, &AudioClient::noiseReductionChanged, this, &Audio::enableNoiseReduction);
+    connect(client, &AudioClient::noiseReductionAutomaticChanged, this, &Audio::enableNoiseReductionAutomatic);
+    connect(client, &AudioClient::noiseReductionThresholdChanged, this, &Audio::setNoiseReductionThreshold);
     connect(client, &AudioClient::warnWhenMutedChanged, this, &Audio::enableWarnWhenMuted);
     connect(client, &AudioClient::acousticEchoCancellationChanged, this, &Audio::enableAcousticEchoCancellation);
     connect(client, &AudioClient::inputLoudnessChanged, this, &Audio::onInputLoudnessChanged);
@@ -47,6 +51,8 @@ Audio::Audio() : _devices(_contextIsHMD) {
     connect(this, &Audio::contextChanged, &_devices, &AudioDevices::onContextChanged);
     connect(this, &Audio::pushingToTalkChanged, this, &Audio::handlePushedToTalk);
     enableNoiseReduction(enableNoiseReductionSetting.get());
+    enableNoiseReductionAutomatic(enableNoiseReductionAutomaticSetting.get());
+    setNoiseReductionThreshold(setNoiseReductionThresholdSetting.get());
     enableWarnWhenMuted(enableWarnWhenMutedSetting.get());
     enableAcousticEchoCancellation(enableAcousticEchoCancellationSetting.get());
     onContextChanged();
@@ -283,6 +289,50 @@ void Audio::enableNoiseReduction(bool enable) {
     });
     if (changed) {
         emit noiseReductionChanged(enable);
+    }
+}
+
+bool Audio::noiseReductionAutomatic() const {
+    return resultWithReadLock<bool>([&] {
+        return _noiseReductionAutomatic;
+    });
+}
+
+void Audio::enableNoiseReductionAutomatic(bool enable) {
+    bool changed = false;
+    withWriteLock([&] {
+        if (_noiseReductionAutomatic != enable) {
+            _noiseReductionAutomatic = enable;
+            auto client = DependencyManager::get<AudioClient>().data();
+            QMetaObject::invokeMethod(client, "setNoiseReductionAutomatic", Q_ARG(bool, enable), Q_ARG(bool, false));
+            enableNoiseReductionAutomaticSetting.set(enable);
+            changed = true;
+        }
+    });
+    if (changed) {
+        emit noiseReductionAutomaticChanged(enable);
+    }
+}
+
+float Audio::getNoiseReductionThreshold() const {
+    return resultWithReadLock<float>([&] {
+        return _noiseReductionThreshold;
+    });
+}
+
+void Audio::setNoiseReductionThreshold(float threshold) {
+    bool changed = false;
+    withWriteLock([&] {
+        if (_noiseReductionThreshold != threshold) {
+            _noiseReductionThreshold = threshold;
+            auto client = DependencyManager::get<AudioClient>().data();
+            QMetaObject::invokeMethod(client, "setNoiseReductionThreshold", Q_ARG(float, threshold), Q_ARG(bool, false));
+            setNoiseReductionThresholdSetting.set(threshold);
+            changed = true;
+        }
+    });
+    if (changed) {
+        emit noiseReductionAutomaticChanged(threshold);
     }
 }
 

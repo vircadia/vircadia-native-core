@@ -217,6 +217,12 @@ public slots:
 
     void setNoiseReduction(bool isNoiseGateEnabled, bool emitSignal = true);
     bool isNoiseReductionEnabled() const { return _isNoiseGateEnabled; }
+    
+    void setNoiseReductionAutomatic(bool isNoiseGateAutomatic, bool emitSignal = true);
+    bool isNoiseReductionAutomatic() const { return _isNoiseReductionAutomatic; }
+    
+    void setNoiseReductionThreshold(float noiseReductionThreshold, bool emitSignal = true);
+    float noiseReductionThreshold() const { return _noiseReductionThreshold; }
 
     void setWarnWhenMuted(bool isNoiseGateEnabled, bool emitSignal = true);
     bool isWarnWhenMutedEnabled() const { return _warnWhenMuted; }
@@ -265,6 +271,8 @@ signals:
     void inputVolumeChanged(float volume);
     void muteToggled(bool muted);
     void noiseReductionChanged(bool noiseReductionEnabled);
+    void noiseReductionAutomaticChanged(bool noiseReductionAutomatic);
+    void noiseReductionThresholdChanged(bool noiseReductionThreshold);
     void warnWhenMutedChanged(bool warnWhenMutedEnabled);
     void acousticEchoCancellationChanged(bool acousticEchoCancellationEnabled);
     void mutedByMixer();
@@ -309,6 +317,8 @@ private:
 
     friend class CheckDevicesThread;
     friend class LocalInjectorsThread;
+
+    float loudnessToLevel(float loudness);
 
     // background tasks
     void checkDevices();
@@ -397,6 +407,8 @@ private:
     bool _shouldEchoLocally{ false };
     bool _shouldEchoToServer{ false };
     bool _isNoiseGateEnabled{ true };
+    bool _isNoiseReductionAutomatic{ true };
+    float _noiseReductionThreshold{ 0.2f };
     bool _warnWhenMuted;
     bool _isAECEnabled{ true };
 

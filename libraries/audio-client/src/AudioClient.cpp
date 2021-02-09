@@ -1342,6 +1342,13 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     }
 }
 
+float AudioClient::loudnessToLevel(float loudness) {
+    float level = loudness * (1 / 32768.0f);  // level in [0, 1]
+    level = 6.02059991f * fastLog2f(level);   // convert to dBFS
+    level = (level + 48.0f) * (1 / 42.0f);    // map [-48, -6] dBFS to [0, 1]
+    return glm::clamp(level, 0.0f, 1.0f);
+}
+
 void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
     if (!_audioPaused) {
 
@@ -1352,9 +1359,14 @@ void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
             int numSamples = audioBuffer.size() / AudioConstants::SAMPLE_SIZE;
             int numFrames = numSamples / (_isStereoInput ? AudioConstants::STEREO : AudioConstants::MONO);
 
-            if (_isNoiseGateEnabled) {
+            if (_isNoiseGateEnabled && _isNoiseReductionAutomatic) {
                 // The audio gate includes DC removal
                 audioGateOpen = _audioGate->render(samples, samples, numFrames);
+            } else if (_isNoiseGateEnabled && !_isNoiseReductionAutomatic &&
+                       loudnessToLevel(_lastSmoothedRawInputLoudness) >= _noiseReductionThreshold) {
+                audioGateOpen = _audioGate->removeDC(samples, samples, numFrames);
+            } else if (_isNoiseGateEnabled && !_isNoiseReductionAutomatic) {
+                audioGateOpen = false;
             } else {
                 audioGateOpen = _audioGate->removeDC(samples, samples, numFrames);
             }
@@ -1746,6 +1758,24 @@ void AudioClient::setNoiseReduction(bool enable, bool emitSignal) {
         _isNoiseGateEnabled = enable;
         if (emitSignal) {
             emit noiseReductionChanged(_isNoiseGateEnabled);
+        }
+    }
+}
+
+void AudioClient::setNoiseReductionAutomatic(bool enable, bool emitSignal) {
+    if (_isNoiseReductionAutomatic != enable) {
+        _isNoiseReductionAutomatic = enable;
+        if (emitSignal) {
+            emit noiseReductionAutomaticChanged(_isNoiseReductionAutomatic);
+        }
+    }
+}
+
+void AudioClient::setNoiseReductionThreshold(float threshold, bool emitSignal) {
+    if (_noiseReductionThreshold != threshold) {
+        _noiseReductionThreshold = threshold;
+        if (emitSignal) {
+            emit noiseReductionThresholdChanged(_noiseReductionThreshold);
         }
     }
 }
