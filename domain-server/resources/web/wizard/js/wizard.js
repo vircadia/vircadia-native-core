@@ -193,6 +193,7 @@ function promptToCreateDomainID() {
 
         var formJSON = {
           "metaverse": {
+            "automatic_networking": "full",
             "id": domainID
           }
         };
