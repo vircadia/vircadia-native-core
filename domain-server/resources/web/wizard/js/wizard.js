@@ -195,6 +195,9 @@ function promptToCreateDomainID() {
           "metaverse": {
             "automatic_networking": "full",
             "id": domainID
+          },
+          "descriptors": {
+              "world_name": label
           }
         };
 
