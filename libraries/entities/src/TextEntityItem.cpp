@@ -53,7 +53,6 @@ EntityItemProperties TextEntityItem::getProperties(const EntityPropertyFlags& de
     withReadLock([&] {
         _pulseProperties.getProperties(properties);
     });
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(billboardMode, getBillboardMode);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(text, getText);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lineHeight, getLineHeight);
@@ -81,7 +80,6 @@ bool TextEntityItem::setSubClassProperties(const EntityItemProperties& propertie
         somethingChanged |= pulsePropertiesChanged;
         _needsRenderUpdate |= pulsePropertiesChanged;
     });
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(billboardMode, setBillboardMode);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(text, setText);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lineHeight, setLineHeight);
@@ -117,7 +115,6 @@ int TextEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
         bytesRead += bytesFromPulse;
         dataAt += bytesFromPulse;
     });
-    READ_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, BillboardMode, setBillboardMode);
 
     READ_ENTITY_PROPERTY(PROP_TEXT, QString, setText);
     READ_ENTITY_PROPERTY(PROP_LINE_HEIGHT, float, setLineHeight);
@@ -142,7 +139,6 @@ EntityPropertyFlags TextEntityItem::getEntityProperties(EncodeBitstreamParams& p
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
     requestedProperties += _pulseProperties.getEntityProperties(params);
-    requestedProperties += PROP_BILLBOARD_MODE;
 
     requestedProperties += PROP_TEXT;
     requestedProperties += PROP_LINE_HEIGHT;
@@ -177,7 +173,6 @@ void TextEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
         _pulseProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
             propertyFlags, propertiesDidntFit, propertyCount, appendState);
     });
-    APPEND_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, (uint32_t)getBillboardMode());
 
     APPEND_ENTITY_PROPERTY(PROP_TEXT, getText());
     APPEND_ENTITY_PROPERTY(PROP_LINE_HEIGHT, getLineHeight());
@@ -194,69 +189,6 @@ void TextEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_TEXT_EFFECT, (uint32_t)getTextEffect());
     APPEND_ENTITY_PROPERTY(PROP_TEXT_EFFECT_COLOR, getTextEffectColor());
     APPEND_ENTITY_PROPERTY(PROP_TEXT_EFFECT_THICKNESS, getTextEffectThickness());
-}
-
-glm::vec3 TextEntityItem::getRaycastDimensions() const {
-    glm::vec3 dimensions = getScaledDimensions();
-    if (getBillboardMode() != BillboardMode::NONE) {
-        float max = glm::max(dimensions.x, glm::max(dimensions.y, dimensions.z));
-        const float SQRT_2 = 1.41421356237f;
-        return glm::vec3(SQRT_2 * max);
-    }
-    return dimensions;
-}
-
-bool TextEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                 OctreeElementPointer& element, float& distance,
-                                                 BoxFace& face, glm::vec3& surfaceNormal,
-                                                 QVariantMap& extraInfo, bool precisionPicking) const {
-    glm::vec3 dimensions = getScaledDimensions();
-    glm::vec2 xyDimensions(dimensions.x, dimensions.y);
-    glm::quat rotation = getWorldOrientation();
-    glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
-    rotation = EntityItem::getBillboardRotation(position, rotation, _billboardMode, EntityItem::getPrimaryViewFrustumPosition());
-
-    if (findRayRectangleIntersection(origin, direction, rotation, position, xyDimensions, distance)) {
-        glm::vec3 forward = rotation * Vectors::FRONT;
-        if (glm::dot(forward, direction) > 0.0f) {
-            face = MAX_Z_FACE;
-            surfaceNormal = -forward;
-        } else {
-            face = MIN_Z_FACE;
-            surfaceNormal = forward;
-        }
-        return true;
-    }
-    return false;
-}
-
-bool TextEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
-                                                      OctreeElementPointer& element, float& parabolicDistance,
-                                                      BoxFace& face, glm::vec3& surfaceNormal,
-                                                      QVariantMap& extraInfo, bool precisionPicking) const {
-    glm::vec3 dimensions = getScaledDimensions();
-    glm::vec2 xyDimensions(dimensions.x, dimensions.y);
-    glm::quat rotation = getWorldOrientation();
-    glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
-
-    glm::quat inverseRot = glm::inverse(rotation);
-    glm::vec3 localOrigin = inverseRot * (origin - position);
-    glm::vec3 localVelocity = inverseRot * velocity;
-    glm::vec3 localAcceleration = inverseRot * acceleration;
-
-    if (findParabolaRectangleIntersection(localOrigin, localVelocity, localAcceleration, xyDimensions, parabolicDistance)) {
-        float localIntersectionVelocityZ = localVelocity.z + localAcceleration.z * parabolicDistance;
-        glm::vec3 forward = rotation * Vectors::FRONT;
-        if (localIntersectionVelocityZ > 0.0f) {
-            face = MIN_Z_FACE;
-            surfaceNormal = forward;
-        } else {
-            face = MAX_Z_FACE;
-            surfaceNormal = -forward;
-        }
-        return true;
-    }
-    return false;
 }
 
 void TextEntityItem::setText(const QString& value) {
@@ -336,21 +268,6 @@ void TextEntityItem::setBackgroundAlpha(float value) {
 float TextEntityItem::getBackgroundAlpha() const {
     return resultWithReadLock<float>([&] {
         return _backgroundAlpha;
-    });
-}
-
-BillboardMode TextEntityItem::getBillboardMode() const {
-    BillboardMode result;
-    withReadLock([&] {
-        result = _billboardMode;
-    });
-    return result;
-}
-
-void TextEntityItem::setBillboardMode(BillboardMode value) {
-    withWriteLock([&] {
-        _needsRenderUpdate |= _billboardMode != value;
-        _billboardMode = value;
     });
 }
 

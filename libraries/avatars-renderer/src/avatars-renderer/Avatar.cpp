@@ -63,7 +63,7 @@ namespace render {
         }
         return keyBuilder.build();
     }
-    template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar) {
+    template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar, RenderArgs* args) {
         auto avatarPtr = static_pointer_cast<Avatar>(avatar);
         if (avatarPtr) {
             return avatarPtr->getRenderBounds();

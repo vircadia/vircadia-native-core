@@ -175,12 +175,12 @@ public:
 
     virtual bool supportsDetailedIntersection() const { return false; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         OctreeElementPointer& element, float& distance,
+                         const glm::vec3& viewFrustumPos, OctreeElementPointer& element, float& distance,
                          BoxFace& face, glm::vec3& surfaceNormal,
                          QVariantMap& extraInfo, bool precisionPicking) const { return true; }
     virtual bool findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
-                        const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
-                        BoxFace& face, glm::vec3& surfaceNormal,
+                        const glm::vec3& acceleration, const glm::vec3& viewFrustumPos, OctreeElementPointer& element,
+                        float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal,
                         QVariantMap& extraInfo, bool precisionPicking) const { return true; }
 
     // attributes applicable to all entity types
@@ -203,7 +203,7 @@ public:
     /// Dimensions in meters (0.0 - TREE_SCALE)
     virtual glm::vec3 getScaledDimensions() const;
     virtual void setScaledDimensions(const glm::vec3& value);
-    virtual glm::vec3 getRaycastDimensions() const { return getScaledDimensions(); }
+
     virtual glm::vec3 getPivot() const { return glm::vec3(0.0f); } // pivot offset for positioning, mainly for model entities
 
     glm::vec3 getUnscaledDimensions() const;
@@ -573,11 +573,6 @@ public:
     virtual void removeGrab(GrabPointer grab) override;
     virtual void disableGrab(GrabPointer grab) override;
 
-    static void setBillboardRotationOperator(std::function<glm::quat(const glm::vec3&, const glm::quat&, BillboardMode, const glm::vec3&)> getBillboardRotationOperator) { _getBillboardRotationOperator = getBillboardRotationOperator; }
-    static glm::quat getBillboardRotation(const glm::vec3& position, const glm::quat& rotation, BillboardMode billboardMode, const glm::vec3& frustumPos) { return _getBillboardRotationOperator(position, rotation, billboardMode, frustumPos); }
-    static void setPrimaryViewFrustumPositionOperator(std::function<glm::vec3()> getPrimaryViewFrustumPositionOperator) { _getPrimaryViewFrustumPositionOperator = getPrimaryViewFrustumPositionOperator; }
-    static glm::vec3 getPrimaryViewFrustumPosition() { return _getPrimaryViewFrustumPositionOperator(); }
-
     bool stillHasMyGrab() const;
 
     bool needsRenderUpdate() const { return _needsRenderUpdate; }
@@ -587,6 +582,10 @@ public:
     QVector<QUuid> getRenderWithZones() const;
     bool needsZoneOcclusionUpdate() const { return _needsZoneOcclusionUpdate; }
     void resetNeedsZoneOcclusionUpdate() { withWriteLock([&] { _needsZoneOcclusionUpdate = false; }); }
+
+    void setBillboardMode(BillboardMode value);
+    BillboardMode getBillboardMode() const;
+    virtual bool getRotateForPicking() const { return false; }
 
 signals:
     void spaceUpdate(std::pair<int32_t, glm::vec4> data);
@@ -779,13 +778,11 @@ protected:
     QVector<QUuid> _renderWithZones;
     mutable bool _needsZoneOcclusionUpdate { false };
 
+    BillboardMode _billboardMode { BillboardMode::NONE };
+
     bool _cullWithParent { false };
 
     mutable bool _needsRenderUpdate { false };
-
-private:
-    static std::function<glm::quat(const glm::vec3&, const glm::quat&, BillboardMode, const glm::vec3&)> _getBillboardRotationOperator;
-    static std::function<glm::vec3()> _getPrimaryViewFrustumPositionOperator;
 };
 
 #endif // hifi_EntityItem_h

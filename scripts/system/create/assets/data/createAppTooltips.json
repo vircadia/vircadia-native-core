@@ -38,10 +38,6 @@
     "textEffectThickness": {
         "tooltip": "The magnitude of the text effect."
     },
-    "textBillboardMode": {
-        "tooltip": "If enabled, determines how the entity will face the camera.",
-        "jsPropertyName": "billboardMode"
-    },
     "topMargin": {
         "tooltip": "The top margin, in meters."
     },
@@ -223,10 +219,6 @@
     "subImage": {
         "tooltip": "The area of the image that is displayed."
     },
-    "imageBillboardMode": {
-        "tooltip": "If enabled, determines how the entity will face the camera.",
-        "jsPropertyName": "billboardMode"
-    },
     "keepAspectRatio": {
         "tooltip": "If enabled, the image will maintain its original aspect ratio."
     },
@@ -235,10 +227,6 @@
     },
     "dpi": {
         "tooltip": "The resolution to display the page at, in pixels per inch. Use this to resize your web source in the frame."
-    },
-    "webBillboardMode": {
-        "tooltip": "If enabled, determines how the entity will face the camera.",
-        "jsPropertyName": "billboardMode"
     },
     "inputMode": {
         "tooltip": "The user input mode to use."
@@ -594,6 +582,9 @@
     },
     "primitiveMode": {
         "tooltip": "The mode in which to draw an entity, either \"Solid\" or \"Wireframe\"."
+    },
+    "billboardMode": {
+        "tooltip": "Determines if and how the entity will face the camera.",
     },
     "renderWithZones": {
         "tooltip": "If set, this entity will only render when your avatar is inside of a zone in this list."

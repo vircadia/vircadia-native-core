@@ -226,6 +226,7 @@ void Model::updateRenderItems() {
         modelTransform.setScale(glm::vec3(1.0f));
 
         PrimitiveMode primitiveMode = self->getPrimitiveMode();
+        BillboardMode billboardMode = self->getBillboardMode();
         auto renderWithZones = self->getRenderWithZones();
         auto renderItemKeyGlobalFlags = self->getRenderItemKeyGlobalFlags();
         bool cauterized = self->isCauterized();
@@ -242,7 +243,7 @@ void Model::updateRenderItems() {
             bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
             transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, meshState, useDualQuaternionSkinning,
-                                                                  invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags,
+                                                                  invalidatePayloadShapeKey, primitiveMode, billboardMode, renderItemKeyGlobalFlags,
                                                                   cauterized, renderWithZones](ModelMeshPartPayload& data) {
                 if (useDualQuaternionSkinning) {
                     data.updateClusterBuffer(meshState.clusterDualQuaternions);
@@ -252,25 +253,11 @@ void Model::updateRenderItems() {
                     data.computeAdjustedLocalBound(meshState.clusterMatrices);
                 }
 
-                Transform renderTransform = modelTransform;
-
-                if (useDualQuaternionSkinning) {
-                    if (meshState.clusterDualQuaternions.size() == 1 || meshState.clusterDualQuaternions.size() == 2) {
-                        const auto& dq = meshState.clusterDualQuaternions[0];
-                        Transform transform(dq.getRotation(),
-                                            dq.getScale(),
-                                            dq.getTranslation());
-                        renderTransform = modelTransform.worldTransform(Transform(transform));
-                    }
-                } else {
-                    if (meshState.clusterMatrices.size() == 1 || meshState.clusterMatrices.size() == 2) {
-                        renderTransform = modelTransform.worldTransform(Transform(meshState.clusterMatrices[0]));
-                    }
-                }
-                data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
+                data.updateTransformForSkinnedMesh(modelTransform, meshState, useDualQuaternionSkinning);
 
                 data.setCauterized(cauterized);
                 data.setRenderWithZones(renderWithZones);
+                data.setBillboardMode(billboardMode);
                 data.updateKey(renderItemKeyGlobalFlags);
                 data.setShapeKey(invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning);
             });
@@ -332,8 +319,8 @@ void Model::initJointStates() {
     _rig.initJointStates(hfmModel, modelOffset);
 }
 
-bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-                                                BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
+bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& viewFrustumPos,
+                                                float& distance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
                                                 bool pickAgainstTriangles, bool allowBackface) {
     bool intersectedSomething = false;
 
@@ -343,7 +330,8 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
     }
 
     // extents is the entity relative, scaled, centered extents of the entity
-    glm::mat4 transRot = createMatFromQuatAndPos(_rotation, _translation);
+    glm::quat rotation = BillboardModeHelpers::getBillboardRotation(_translation, _rotation, _billboardMode, viewFrustumPos);
+    glm::mat4 transRot = createMatFromQuatAndPos(rotation, _translation);
     glm::mat4 modelToWorldMatrix = transRot;
     if (!_snapModelToRegistrationPoint) {
         modelToWorldMatrix = modelToWorldMatrix * glm::translate(getOriginalOffset());
@@ -496,8 +484,8 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 }
 
 bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
-                                                     float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
-                                                     bool pickAgainstTriangles, bool allowBackface) {
+                                                     const glm::vec3& viewFrustumPos, float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal,
+                                                     QVariantMap& extraInfo, bool pickAgainstTriangles, bool allowBackface) {
     bool intersectedSomething = false;
 
     // if we aren't active, we can't pick yet...
@@ -506,7 +494,8 @@ bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, co
     }
 
     // extents is the entity relative, scaled, centered extents of the entity
-    glm::mat4 transRot = createMatFromQuatAndPos(_rotation, _translation);
+    glm::quat rotation = BillboardModeHelpers::getBillboardRotation(_translation, _rotation, _billboardMode, viewFrustumPos);
+    glm::mat4 transRot = createMatFromQuatAndPos(rotation, _translation);
     glm::mat4 modelToWorldMatrix = transRot;
     if (!_snapModelToRegistrationPoint) {
         modelToWorldMatrix = modelToWorldMatrix * glm::translate(getOriginalOffset());
@@ -1003,6 +992,24 @@ void Model::setPrimitiveMode(PrimitiveMode primitiveMode, const render::ScenePoi
     }
 }
 
+void Model::setBillboardMode(BillboardMode billboardMode, const render::ScenePointer& scene) {
+    if (_billboardMode != billboardMode) {
+        _billboardMode = billboardMode;
+        if (!scene) {
+            _needsFixupInScene = true;
+            return;
+        }
+
+        render::Transaction transaction;
+        for (auto item : _modelMeshRenderItemIDs) {
+            transaction.updateItem<ModelMeshPartPayload>(item, [billboardMode](ModelMeshPartPayload& data) {
+                data.setBillboardMode(billboardMode);
+            });
+        }
+        scene->enqueueTransaction(transaction);
+    }
+}
+
 void Model::setCullWithParent(bool cullWithParent, const render::ScenePointer& scene) {
     if (_cullWithParent != cullWithParent) {
         _cullWithParent = cullWithParent;
@@ -1033,9 +1040,8 @@ void Model::setRenderWithZones(const QVector<QUuid>& renderWithZones, const rend
         }
 
         render::Transaction transaction;
-        auto renderItemsKey = _renderItemKeyGlobalFlags;
         for (auto item : _modelMeshRenderItemIDs) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [renderWithZones, renderItemsKey](ModelMeshPartPayload& data) {
+            transaction.updateItem<ModelMeshPartPayload>(item, [renderWithZones](ModelMeshPartPayload& data) {
                 data.setRenderWithZones(renderWithZones);
             });
         }
@@ -1531,7 +1537,7 @@ AABox Model::getRenderableMeshBound() const {
         // Build a bound using the last known bound from all the renderItems.
         AABox totalBound;
         for (auto& renderItem : _modelMeshRenderItems) {
-            totalBound += renderItem->getBound();
+            totalBound += renderItem->getBound(nullptr);
         }
         return totalBound;
     }
@@ -1562,10 +1568,6 @@ void Model::createRenderItemSet() {
     transform.setTranslation(_translation);
     transform.setRotation(_rotation);
 
-    Transform offset;
-    offset.setScale(_scale);
-    offset.postTranslate(_offset);
-
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
     int shapeID = 0;
     uint32_t numMeshes = (uint32_t)meshes.size();
@@ -1578,7 +1580,7 @@ void Model::createRenderItemSet() {
         // Create the render payloads
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
-            _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset, _created);
+            _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, _created);
             auto material = getGeometry()->getShapeMaterial(shapeID);
             _modelMeshMaterialNames.push_back(material ? material->getName() : "");
             _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)i });

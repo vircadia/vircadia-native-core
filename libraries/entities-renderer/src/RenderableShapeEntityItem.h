@@ -26,7 +26,7 @@ public:
 
 protected:
     ShapeKey getShapeKey() override;
-    Item::Bound getBound() override;
+    Item::Bound getBound(RenderArgs* args) override;
 
 private:
     virtual bool needsRenderUpdate() const override;

@@ -60,7 +60,6 @@ protected:
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
     virtual void doRender(RenderArgs* args) override;
     virtual bool isTransparent() const override;
-    Item::Bound getBound() override;
 
     virtual bool wantsHandControllerPointerEvents() const override { return true; }
     virtual bool wantsKeyboardFocus() const override { return true; }
@@ -91,7 +90,6 @@ private:
     glm::u8vec3 _color;
     float _alpha { 1.0f };
     PulsePropertyGroup _pulseProperties;
-    BillboardMode _billboardMode;
 
     QString _sourceURL;
     uint16_t _dpi;

@@ -38,6 +38,7 @@
 #include "TextureCache.h"
 #include "Rig.h"
 #include "PrimitiveMode.h"
+#include "BillboardMode.h"
 
 // Use dual quaternion skinning!
 // Must match define in Skinning.slh
@@ -121,6 +122,9 @@ public:
     void setPrimitiveMode(PrimitiveMode primitiveMode, const render::ScenePointer& scene = nullptr);
     PrimitiveMode getPrimitiveMode() const { return _primitiveMode; }
 
+    void setBillboardMode(BillboardMode billboardMode, const render::ScenePointer& scene = nullptr);
+    BillboardMode getBillboardMode() const { return _billboardMode; }
+
     void setCullWithParent(bool value, const render::ScenePointer& scene = nullptr);
 
     void setRenderWithZones(const QVector<QUuid>& renderWithZones, const render::ScenePointer& scene = nullptr);
@@ -195,11 +199,11 @@ public:
     void setJointRotation(int index, bool valid, const glm::quat& rotation, float priority);
     void setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority);
 
-    bool findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-                                             BoxFace& face, glm::vec3& surfaceNormal,
+    bool findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& viewFrustumPos,
+                                             float& distance, BoxFace& face, glm::vec3& surfaceNormal,
                                              QVariantMap& extraInfo, bool pickAgainstTriangles = false, bool allowBackface = false);
     bool findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
-                                                  float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal,
+                                                  const glm::vec3& viewFrustumPos, float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal,
                                                   QVariantMap& extraInfo, bool pickAgainstTriangles = false, bool allowBackface = false);
 
     void setOffset(const glm::vec3& offset);
@@ -450,6 +454,7 @@ protected:
     virtual void createRenderItemSet();
 
     PrimitiveMode _primitiveMode { PrimitiveMode::SOLID };
+    BillboardMode _billboardMode { BillboardMode::NONE };
     bool _useDualQuaternionSkinning { false };
 
     // debug rendering support

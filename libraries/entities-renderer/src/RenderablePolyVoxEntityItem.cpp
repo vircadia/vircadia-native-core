@@ -238,53 +238,6 @@ void RenderablePolyVoxEntityItem::setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxel
     startUpdates();
 }
 
-glm::vec3 RenderablePolyVoxEntityItem::getSurfacePositionAdjustment() const {
-    glm::vec3 result;
-    withReadLock([&] {
-        glm::vec3 scale = getScaledDimensions() / _voxelVolumeSize; // meters / voxel-units
-        if (isEdged(_voxelSurfaceStyle)) {
-            result = scale / -2.0f;
-        }
-        return scale / 2.0f;
-    });
-    return result;
-}
-
-glm::mat4 RenderablePolyVoxEntityItem::voxelToLocalMatrix() const {
-    glm::vec3 voxelVolumeSize;
-    withReadLock([&] {
-        voxelVolumeSize = _voxelVolumeSize;
-    });
-
-    glm::vec3 dimensions = getScaledDimensions();
-    glm::vec3 scale = dimensions / voxelVolumeSize; // meters / voxel-units
-    bool success; // TODO -- Does this actually have to happen in world space?
-    glm::vec3 center = getCenterPosition(success); // this handles registrationPoint changes
-    glm::vec3 position = getWorldPosition(success);
-    glm::vec3 positionToCenter = center - position;
-
-    positionToCenter -= dimensions * Vectors::HALF - getSurfacePositionAdjustment();
-    glm::mat4 centerToCorner = glm::translate(glm::mat4(), positionToCenter);
-    glm::mat4 scaled = glm::scale(centerToCorner, scale);
-    return scaled;
-}
-
-glm::mat4 RenderablePolyVoxEntityItem::localToVoxelMatrix() const {
-    glm::mat4 localToModelMatrix = glm::inverse(voxelToLocalMatrix());
-    return localToModelMatrix;
-}
-
-glm::mat4 RenderablePolyVoxEntityItem::voxelToWorldMatrix() const {
-    glm::mat4 rotation = glm::mat4_cast(getWorldOrientation());
-    glm::mat4 translation = glm::translate(getWorldPosition());
-    return translation * rotation * voxelToLocalMatrix();
-}
-
-glm::mat4 RenderablePolyVoxEntityItem::worldToVoxelMatrix() const {
-    glm::mat4 worldToModelMatrix = glm::inverse(voxelToWorldMatrix());
-    return worldToModelMatrix;
-}
-
 bool RenderablePolyVoxEntityItem::setVoxel(const ivec3& v, uint8_t toValue) {
     if (_locked) {
         return false;
@@ -573,7 +526,7 @@ public:
 #endif
 
 bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                              OctreeElementPointer& element,
+                                                              const glm::vec3& viewFrustumPos, OctreeElementPointer& element,
                                                               float& distance, BoxFace& face, glm::vec3& surfaceNormal,
                                                               QVariantMap& extraInfo, bool precisionPicking) const {
     // TODO -- correctly pick against marching-cube generated meshes
@@ -582,7 +535,7 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
         return true;
     }
 
-    glm::mat4 wtvMatrix = worldToVoxelMatrix();
+    glm::mat4 wtvMatrix = worldToVoxelMatrix(true);
     glm::vec3 normDirection = glm::normalize(direction);
 
     // the PolyVox ray intersection code requires a near and far point.
@@ -614,7 +567,7 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
 }
 
 bool RenderablePolyVoxEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
-                                                                   const glm::vec3& acceleration, OctreeElementPointer& element,
+                                                                   const glm::vec3& acceleration, const glm::vec3& viewFrustumPos, OctreeElementPointer& element,
                                                                    float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal,
                                                                    QVariantMap& extraInfo, bool precisionPicking) const {
     // TODO -- correctly pick against marching-cube generated meshes
@@ -623,7 +576,7 @@ bool RenderablePolyVoxEntityItem::findDetailedParabolaIntersection(const glm::ve
         return true;
     }
 
-    glm::mat4 wtvMatrix = worldToVoxelMatrix();
+    glm::mat4 wtvMatrix = worldToVoxelMatrix(true);
     glm::vec4 originInVoxel = wtvMatrix * glm::vec4(origin, 1.0f);
     glm::vec4 velocityInVoxel = wtvMatrix * glm::vec4(velocity, 0.0f);
     glm::vec4 accelerationInVoxel = wtvMatrix * glm::vec4(acceleration, 0.0f);
@@ -1805,7 +1758,7 @@ ShapeKey PolyVoxEntityRenderer::getShapeKey() {
 
 bool PolyVoxEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
     if (resultWithReadLock<bool>([&] {
-        if (entity->voxelToWorldMatrix() != _lastVoxelToWorldMatrix) {
+        if (entity->voxelToLocalMatrix() != _lastVoxelToLocalMatrix) {
             return true;
         }
 
@@ -1831,7 +1784,9 @@ void PolyVoxEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& s
 }
 
 void PolyVoxEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
-    _lastVoxelToWorldMatrix = entity->voxelToWorldMatrix();
+    _lastVoxelToLocalMatrix = entity->voxelToLocalMatrix();
+    _position = entity->getWorldPosition();
+    _orientation = entity->getWorldOrientation();
     _lastVoxelVolumeSize = entity->getVoxelVolumeSize();
     _params->setSubData(0, vec4(_lastVoxelVolumeSize, 0.0));
     graphics::MeshPointer newMesh;
@@ -1864,16 +1819,17 @@ void PolyVoxEntityRenderer::doRender(RenderArgs* args) {
         return;
     }
 
-
     PerformanceTimer perfTimer("RenderablePolyVoxEntityItem::render");
     gpu::Batch& batch = *args->_batch;
 
-    Transform transform(_lastVoxelToWorldMatrix);
+    glm::mat4 rotation = glm::mat4_cast(BillboardModeHelpers::getBillboardRotation(_position, _orientation, _billboardMode,
+        args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
+    Transform transform(glm::translate(_position) * rotation * _lastVoxelToLocalMatrix);
     batch.setModelTransform(transform);
+
     batch.setInputFormat(_vertexFormat);
     batch.setInputBuffer(gpu::Stream::POSITION, _mesh->getVertexBuffer()._buffer, 0,
         sizeof(PolyVox::PositionMaterialNormal));
-
 
     // TODO -- should we be setting this?
     // batch.setInputBuffer(gpu::Stream::NORMAL, mesh->getVertexBuffer()._buffer,
