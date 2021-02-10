@@ -119,6 +119,9 @@ public:
     bool blendshapesChanged() const { return _blendshapesChanged; }
     QVector<float> getBlendshapeCoefficientVector();
 
+    bool getUseOriginalPivot() const;
+    void setUseOriginalPivot(bool useOriginalPivot);
+
 private:
     void setAnimationSettings(const QString& value); // only called for old bitstream format
     bool applyNewAnimationProperties(AnimationPropertyGroup newProperties);
@@ -152,6 +155,7 @@ protected:
     bool _relayParentJoints;
     bool _groupCulled { false };
     QVariantMap _blendshapeCoefficientsMap;
+    bool _useOriginalPivot { false };
 
     ThreadSafeValueCache<QString> _compoundShapeURL;
 

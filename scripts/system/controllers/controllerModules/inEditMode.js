@@ -2,6 +2,9 @@
 
 //  inEditMode.js
 //
+//  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
+//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
@@ -80,7 +83,9 @@ Script.include("/~/system/libraries/utils.js");
                             Messages.sendLocalMessage(this.ENTITY_TOOL_UPDATES_CHANNEL, JSON.stringify({
                                 method: "selectEntity",
                                 entityID: this.selectedTarget.objectID,
-                                hand: hand
+                                hand: hand,
+                                surfaceNormal: this.selectedTarget.surfaceNormal,
+                                intersection: this.selectedTarget.intersection
                             }));
                         } else if (this.selectedTarget.type === Picks.INTERSECTED_OVERLAY) {
                             Messages.sendLocalMessage(this.ENTITY_TOOL_UPDATES_CHANNEL, JSON.stringify({

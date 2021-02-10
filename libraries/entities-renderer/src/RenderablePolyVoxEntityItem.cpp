@@ -676,8 +676,10 @@ ShapeType RenderablePolyVoxEntityItem::getShapeType() const {
 }
 
 void RenderablePolyVoxEntityItem::setRegistrationPoint(const glm::vec3& value) {
-    if (value != _registrationPoint) {
-        _shapeReady = false;
+    if (value != getRegistrationPoint()) {
+        withWriteLock([&] {
+            _shapeReady = false;
+        });
         EntityItem::setRegistrationPoint(value);
         startUpdates();
     }

@@ -592,6 +592,9 @@
     "groupCulled": {
         "tooltip": "If false, individual pieces of the entity may be culled by the render engine. If true, either the entire entity will be culled, or it won't at all."
     },
+    "useOriginalPivot": {
+        "tooltip": "If false, the model will be centered based on its content, ignoring any offset in the model itself. If true, the model will respect its original offset."
+    },
     "webColor": {
         "tooltip": "The tint of the web entity."
     },

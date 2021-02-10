@@ -24,13 +24,17 @@ QmlOverlay::QmlOverlay(const QUrl& url, const QmlOverlay* overlay)
 }
 
 void QmlOverlay::buildQmlElement(const QUrl& url) {
+    auto offscreenUI = DependencyManager::get<OffscreenUi>();
+    if (!offscreenUI) {
+        return;
+    }
+
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "buildQmlElement", Q_ARG(QUrl, url));
         return;
     }
 
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->load(url, [=](QQmlContext* context, QObject* object) {
+    offscreenUI->load(url, [=](QQmlContext* context, QObject* object) {
         _qmlElement = dynamic_cast<QQuickItem*>(object);
         connect(_qmlElement, &QObject::destroyed, this, &QmlOverlay::qmlElementDestroyed);
     });

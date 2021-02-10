@@ -283,6 +283,7 @@ enum class EntityVersion : PacketVersion {
     ZoneOcclusion,
     ModelBlendshapes,
     TransparentWeb,
+    UseOriginalPivot,
     AllBillboardMode,
 
     // Add new versions above here
