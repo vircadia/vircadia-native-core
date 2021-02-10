@@ -283,6 +283,7 @@ enum class EntityVersion : PacketVersion {
     ZoneOcclusion,
     ModelBlendshapes,
     TransparentWeb,
+    UseOriginalPivot,
     UserAgent,
 
     // Add new versions above here

@@ -302,6 +302,7 @@ public:
     DEFINE_PROPERTY(PROP_RELAY_PARENT_JOINTS, RelayParentJoints, relayParentJoints, bool, ENTITY_ITEM_DEFAULT_RELAY_PARENT_JOINTS);
     DEFINE_PROPERTY_REF(PROP_GROUP_CULLED, GroupCulled, groupCulled, bool, false);
     DEFINE_PROPERTY_REF(PROP_BLENDSHAPE_COEFFICIENTS, BlendshapeCoefficients, blendshapeCoefficients, QString, "");
+    DEFINE_PROPERTY_REF(PROP_USE_ORIGINAL_PIVOT, UseOriginalPivot, useOriginalPivot, bool, false);
     DEFINE_PROPERTY_GROUP(Animation, animation, AnimationPropertyGroup);
 
     // Light

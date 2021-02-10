@@ -1,0 +1,284 @@
+*, *:before, *:after {
+    -webkit-box-sizing: inherit;
+    -moz-box-sizing: inherit;
+    box-sizing: inherit;
+}
+
+html {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Raleway', sans-serif;
+    background-color: #393939;
+    color: #afafaf;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+}
+
+#mainContainer {
+  width: 100vw;
+  height: 100vh;
+}
+
+#loadingContainer {
+    background-color: rgba(0, 0, 0, 0.8);
+    background-image: url('../images/loadingSpinner.svg');
+    background-repeat: no-repeat;
+    background-position: center center;
+    width: 100vw;
+    height: 100vh;
+    position: fixed;
+    z-index: 999;
+}
+
+#firstRun {
+  background-color: rgba(0, 0, 0, 0.9);
+  width: 100vw;
+  height: calc(100vh - 60px);
+  position: fixed;
+  z-index: 998;
+  padding: 8px 12px 0 50%;
+  font-size: 24px;
+  text-align: right;
+}
+
+#tutorialArrow {
+  border: solid #00b4ef;
+  border-width: 0 5px 5px 0;
+  margin-right: 28px;
+  display: inline-block;
+  padding: 5px;
+  transform: rotate(-135deg);
+  -webkit-transform: rotate(-135deg);
+}
+
+/* START SWITCH CSS
+Mostly from: https://www.w3schools.com/howto/howto_css_switch.asp
+*/
+#titleBarContainer {
+  display: flex;
+  align-items: center;
+  height: 60px;
+  padding: 0 16px;
+  font-size: 24px;
+  background-color: #121212;
+  color: #ffffff;
+  justify-content: space-between;
+}
+
+/* The switch - the box around the slider */
+.switch {
+  position: relative;
+  display: block;
+  width: 70px;
+  height: 34px;
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* The slider */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: #00b4ef;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #00b4ef;
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(35px);
+  -ms-transform: translateX(35px);
+  transform: translateX(35px);
+}
+
+/* Rounded sliders */
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+/* END SWITCH CSS */
+
+/* START PROGRESS BAR CSS */
+#progressBarContainer {
+  width: calc(100vw - 24px);
+  margin: 24px auto 0 auto;
+}
+
+#progressBarContainer > span {
+  font-size: 18px;
+}
+
+#currentIntensityDisplay {
+  width: 100%;
+  height: 175px;
+  margin-top: 8px;
+  background: #FFFFFF;
+  background-image: linear-gradient(to right, #EEE 0, #EEE 55%, #FFF 55%, #FFF 100%);
+}
+
+#crosshatch {
+  display: none;
+  float: right;
+  position: relative;
+  top: -175px;
+  height: 175px;
+  width: 45%;
+  background: repeating-linear-gradient(45deg, transparent 0px, transparent 4px, rgba(0, 0, 0, 0.1) 4px, rgba(0, 0, 0, 0.1) 8px);
+}
+
+#currentIntensity {
+  display: block;
+  height: 100%;
+  background-color: #1ac567;
+  background-image: linear-gradient(to right,#1ac567 0, #C62147 100%);
+  position: relative;
+  overflow: hidden;
+}
+/* END PROGRESS BAR CSS */
+
+#optionsContainer {
+  display: flex;
+  flex-direction: column;
+  height: 150px;
+  width: calc(100vw - 24px);
+  margin: 12px 12px 0 12px;
+  position: absolute;
+}
+
+#colorPickerContainer {
+  margin: 8px 0 0 0;
+  visibility: hidden;
+}
+
+#colorPickerContainer > input {
+  font-family: 'Raleway', sans-serif;
+  height: 34px;
+  font-size: 18px;
+  min-width: 185px;
+}
+
+.checkmark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 25px;
+  width: 25px;
+  background-color: #eee;
+}
+
+/* Create the checkmark/indicator (hidden when not checked) */
+.checkmark:after {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+#neverWhistleContainer,
+#showAppreciationEntityContainer {
+  display: block;
+  margin: 8px 0 0 0;
+  height: 25px;
+  position: relative;
+  padding-left: 35px;
+  cursor: pointer;
+  font-size: 18px;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+#showAppreciationEntityContainer {
+  margin-top: 16px;
+}
+
+/* Hide the browser's default checkbox */
+#neverWhistleContainer input,
+#showAppreciationEntityContainer input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+/* On mouse-over, add a grey background color */
+#neverWhistleContainer:hover input ~ .checkmark,
+#showAppreciationEntityContainer:hover input ~ .checkmark {
+  background-color: #ccc;
+}
+
+/* When the checkbox is checked, add a blue background */
+#neverWhistleContainer input:checked ~ .checkmark,
+#showAppreciationEntityContainer input:checked ~ .checkmark {
+  background-color: #0093C5;
+}
+
+/* Show the checkmark when checked */
+#neverWhistleContainer input:checked ~ .checkmark:after,
+#showAppreciationEntityContainer input:checked ~ .checkmark:after {
+  display: block;
+}
+
+/* Style the checkmark/indicator */
+#neverWhistleContainer .checkmark:after,
+#showAppreciationEntityContainer .checkmark:after {
+  left: 9px;
+  top: 3px;
+  width: 8px;
+  height: 15px;
+  border: solid white;
+  border-width: 0 3px 3px 0;
+  transform: rotate(45deg);
+  -webkit-transform: rotate(45deg);
+}
+
+#instructions {
+  position: fixed;
+  height: 150px;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: 0 12px;
+  font-size: 18px;
+}
+
+#instructions > div {
+  margin-top: 16px;
+}

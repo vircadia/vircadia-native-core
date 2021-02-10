@@ -538,6 +538,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
     CHECK_PROPERTY_CHANGE(PROP_GROUP_CULLED, groupCulled);
     CHECK_PROPERTY_CHANGE(PROP_BLENDSHAPE_COEFFICIENTS, blendshapeCoefficients);
+    CHECK_PROPERTY_CHANGE(PROP_USE_ORIGINAL_PIVOT, useOriginalPivot);
     changedProperties += _animation.getChangedProperties();
 
     // Light
@@ -1003,6 +1004,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {string} blendshapeCoefficients - A JSON string of a map of blendshape names to values.  Only stores set values.
  *     When editing this property, only coefficients that you are editing will change; it will not explicitly reset other
  *     coefficients.
+ * @property {boolean} useOriginalPivot=false - If <code>false</code>, the model will be centered based on its content,
+ *     ignoring any offset in the model itself. If <code>true</code>, the model will respect its original offset.  Currently,
+ *     only pivots relative to <code>{x: 0, y: 0, z: 0}</code> are supported.
  * @property {string} textures="" - A JSON string of texture name, URL pairs used when rendering the model in place of the
  *     model's original textures. Use a texture name from the <code>originalTextures</code> property to override that texture.
  *     Only the texture names and URLs to be overridden need be specified; original textures are used where there are no
@@ -1737,6 +1741,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_GROUP_CULLED, groupCulled);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_BLENDSHAPE_COEFFICIENTS, blendshapeCoefficients);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_USE_ORIGINAL_PIVOT, useOriginalPivot);
         if (!psuedoPropertyFlagsButDesiredEmpty) {
             _animation.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         }
@@ -2147,6 +2152,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(relayParentJoints, bool, setRelayParentJoints);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(groupCulled, bool, setGroupCulled);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(blendshapeCoefficients, QString, setBlendshapeCoefficients);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(useOriginalPivot, bool, setUseOriginalPivot);
     _animation.copyFromScriptValue(object, _defaultSettings);
 
     // Light
@@ -2440,6 +2446,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(relayParentJoints);
     COPY_PROPERTY_IF_CHANGED(groupCulled);
     COPY_PROPERTY_IF_CHANGED(blendshapeCoefficients);
+    COPY_PROPERTY_IF_CHANGED(useOriginalPivot);
     _animation.merge(other._animation);
 
     // Light
@@ -2797,6 +2804,7 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_RELAY_PARENT_JOINTS, RelayParentJoints, relayParentJoints, bool);
         ADD_PROPERTY_TO_MAP(PROP_GROUP_CULLED, GroupCulled, groupCulled, bool);
         ADD_PROPERTY_TO_MAP(PROP_BLENDSHAPE_COEFFICIENTS, BlendshapeCoefficients, blendshapeCoefficients, QString);
+        ADD_PROPERTY_TO_MAP(PROP_USE_ORIGINAL_PIVOT, UseOriginalPivot, useOriginalPivot, bool);
         { // Animation
             ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_URL, Animation, animation, URL, url);
             ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_ALLOW_TRANSLATION, Animation, animation, AllowTranslation, allowTranslation);
@@ -3239,6 +3247,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_RELAY_PARENT_JOINTS, properties.getRelayParentJoints());
                 APPEND_ENTITY_PROPERTY(PROP_GROUP_CULLED, properties.getGroupCulled());
                 APPEND_ENTITY_PROPERTY(PROP_BLENDSHAPE_COEFFICIENTS, properties.getBlendshapeCoefficients());
+                APPEND_ENTITY_PROPERTY(PROP_USE_ORIGINAL_PIVOT, properties.getUseOriginalPivot());
 
                 _staticAnimation.setProperties(properties);
                 _staticAnimation.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
@@ -3729,6 +3738,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RELAY_PARENT_JOINTS, bool, setRelayParentJoints);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GROUP_CULLED, bool, setGroupCulled);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BLENDSHAPE_COEFFICIENTS, QString, setBlendshapeCoefficients);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_USE_ORIGINAL_PIVOT, bool, setUseOriginalPivot);
 
         properties.getAnimation().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
     }
@@ -4139,6 +4149,7 @@ void EntityItemProperties::markAllChanged() {
     _relayParentJointsChanged = true;
     _groupCulledChanged = true;
     _blendshapeCoefficientsChanged = true;
+    _useOriginalPivotChanged = true;
     _animation.markAllChanged();
 
     // Light
@@ -4711,6 +4722,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (blendshapeCoefficientsChanged()) {
         out += "blendshapeCoefficients";
+    }
+    if (useOriginalPivotChanged()) {
+        out += "useOriginalPivot";
     }
     getAnimation().listChangedProperties(out);
 

@@ -615,6 +615,11 @@ const GROUPS = [
                 hideIfCertified: true,
             },
             {
+                label: "Use Original Pivot",
+                type: "bool",
+                propertyID: "useOriginalPivot",
+            },
+            {
                 label: "Animation",
                 type: "string",
                 propertyID: "animation.url",

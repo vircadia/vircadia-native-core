@@ -167,6 +167,7 @@ public:
 
     void setSnapModelToRegistrationPoint(bool snapModelToRegistrationPoint, const glm::vec3& registrationPoint);
     bool getSnapModelToRegistrationPoint() { return _snapModelToRegistrationPoint; }
+    bool getSnappedToRegistrationPoint() { return _snappedToRegistrationPoint; }
 
     virtual void simulate(float deltaTime, bool fullUpdate = true);
     virtual void updateClusterMatrices();
@@ -203,6 +204,7 @@ public:
 
     void setOffset(const glm::vec3& offset);
     const glm::vec3& getOffset() const { return _offset; }
+    glm::vec3 getOriginalOffset() const;
 
     void setScaleToFit(bool scaleToFit, float largestDimension = 0.0f, bool forceRescale = false);
     void setScaleToFit(bool scaleToFit, const glm::vec3& dimensions, bool forceRescale = false);
@@ -348,6 +350,7 @@ public:
     virtual bool replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer model, int meshIndex, int partIndex) override;
 
     void scaleToFit();
+    void snapToRegistrationPoint();
     bool getUseDualQuaternionSkinning() const { return _useDualQuaternionSkinning; }
     void setUseDualQuaternionSkinning(bool value);
 
@@ -409,14 +412,14 @@ protected:
 
     bool _snapModelToRegistrationPoint; /// is the model's offset automatically adjusted to a registration point in model space
     bool _snappedToRegistrationPoint; /// are we currently snapped to a registration point
-    glm::vec3 _registrationPoint = glm::vec3(0.5f); /// the point in model space our center is snapped to
+    glm::vec3 _registrationPoint { glm::vec3(0.5f) }; /// the point in model space our center is snapped to
+    bool _forceOffset { false };
 
     std::vector<MeshState> _meshStates;
 
     virtual void initJointStates();
 
     void setScaleInternal(const glm::vec3& scale);
-    void snapToRegistrationPoint();
 
     virtual void updateRig(float deltaTime, glm::mat4 parentTransform);
 

@@ -83,15 +83,15 @@ jobs:
       shell: bash
       run: |
         echo "${{ steps.buildenv1.outputs.symbols_archive }}"
-        echo "ARTIFACT_PATTERN=Vircadia-Alpha-*.$INSTALLER_EXT" >> $GITHUB_ENV
+        echo "ARTIFACT_PATTERN=Vircadia-*.$INSTALLER_EXT" >> $GITHUB_ENV
         # Build type variables
         echo "GIT_COMMIT_SHORT=${{ steps.buildenv1.outputs.github_sha_short }}" >> $GITHUB_ENV
         if [ "${{ matrix.build_type }}" = "full" ]; then
           echo "CLIENT_ONLY=FALSE" >> $GITHUB_ENV
-          echo "INSTALLER=Vircadia-Alpha-$BUILD_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT" >> $GITHUB_ENV
+          echo "INSTALLER=Vircadia-$BUILD_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT" >> $GITHUB_ENV
         else
           echo "CLIENT_ONLY=TRUE" >> $GITHUB_ENV
-          echo "INSTALLER=Vircadia-Alpha-Interface-$BUILD_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT" >> $GITHUB_ENV
+          echo "INSTALLER=Vircadia-Interface-$BUILD_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT" >> $GITHUB_ENV
         fi
     - name: Clear working directory
       if: startsWith(matrix.os, 'windows')
