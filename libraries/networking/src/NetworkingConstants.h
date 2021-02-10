@@ -25,6 +25,8 @@ namespace NetworkingConstants {
     // You can avoid changing that and still effectively use a connected domain on staging
     // if you manually generate a personal access token for the domains scope
     // at https://staging.highfidelity.com/user/tokens/new?for_domain_server=true
+    
+    const QString WEB_ENGINE_VERSION = "Chrome/69.0.3497.113";
 
     // For now we only have one Metaverse server.
     const QUrl METAVERSE_SERVER_URL_STABLE { "https://metaverse.vircadia.com/live" };
@@ -37,15 +39,16 @@ namespace NetworkingConstants {
     // Use a custom User-Agent to avoid ModSecurity filtering, e.g. by hosting providers.
     const QByteArray VIRCADIA_USER_AGENT = "Mozilla/5.0 (VircadiaInterface)";
     
-    const QString WEB_ENGINE_USER_AGENT = "Chrome/48.0 (VircadiaInterface)";
-    const QString METAVERSE_USER_AGENT = "Chrome/48.0 (VircadiaInterface)";
-    const QString MOBILE_USER_AGENT = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Mobile Safari/537.36";
-
-    const QUrl BUILDS_XML_URL("https://highfidelity.com/builds.xml");
-    const QUrl MASTER_BUILDS_XML_URL("https://highfidelity.com/dev-builds.xml");
+    const QString WEB_ENGINE_USER_AGENT = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) " + WEB_ENGINE_VERSION + " Mobile Safari/537.36";
+    const QString MOBILE_USER_AGENT = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) " + WEB_ENGINE_VERSION + " Mobile Safari/537.36";
     
     // WebEntity Defaults
     const QString WEB_ENTITY_DEFAULT_SOURCE_URL = "https://vircadia.com/";
+    const QString WEB_ENTITY_DEFAULT_USER_AGENT = WEB_ENGINE_USER_AGENT;
+    
+    // Builds URLs
+    const QUrl BUILDS_XML_URL("https://highfidelity.com/builds.xml");
+    const QUrl MASTER_BUILDS_XML_URL("https://highfidelity.com/dev-builds.xml");
     
     const QString DEFAULT_AVATAR_COLLISION_SOUND_URL = "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/Body_Hits_Impact.wav";
 

@@ -619,6 +619,9 @@
     "scriptURL": {
         "tooltip": "The URL of a script to inject into the web page."
     },
+    "userAgent": {
+        "tooltip": "The user agent that the web entity will use when visiting web pages."
+    },
     "alignToGrid": {
         "tooltip": "Used to align entities to the grid, or floor of the environment.",
         "skipJSProperty": true
