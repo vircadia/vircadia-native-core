@@ -33,6 +33,7 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) :
 {
     // SkeletonModels, and by extention Avatars, use Dual Quaternion skinning.
     _useDualQuaternionSkinning = true;
+    _forceOffset = true;
 
     // Avatars all cast shadow
     setCanCastShadow(true);
@@ -156,17 +157,13 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     updateAttitude(_owningAvatar->getWorldOrientation());
     setBlendshapeCoefficients(_owningAvatar->getHead()->getSummedBlendshapeCoefficients());
 
+    Parent::simulate(deltaTime, fullUpdate);
     if (fullUpdate) {
-
-        Parent::simulate(deltaTime, fullUpdate);
-
         // let rig compute the model offset
         glm::vec3 registrationPoint;
         if (_rig.getModelRegistrationPoint(registrationPoint)) {
             setOffset(registrationPoint);
         }
-    } else {
-        Parent::simulate(deltaTime, fullUpdate);
     }
 
     // FIXME: This texture loading logic should probably live in Avatar, to mirror RenderableModelEntityItem,

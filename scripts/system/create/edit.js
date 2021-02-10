@@ -741,6 +741,7 @@ var toolBar = (function () {
                         grabbable: result.grabbable
                     },
                     dynamic: dynamic,
+                    useOriginalPivot: result.useOriginalPivot
                 });
             }
         }
