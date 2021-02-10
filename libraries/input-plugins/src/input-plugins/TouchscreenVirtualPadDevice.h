@@ -71,7 +71,7 @@ protected:
         virtual controller::Input::NamedVector getAvailableInputs() const override;
         virtual QString getDefaultMappingConfig() const override;
 
-        virtual bool triggerHapticPulse(float strength, float duration, controller::Hand hand) override;
+        virtual bool triggerHapticPulse(float strength, float duration, uint16_t index) override;
         virtual void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
         virtual void focusOutEvent() override;
 

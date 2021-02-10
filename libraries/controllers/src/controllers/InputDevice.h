@@ -118,7 +118,7 @@ public:
     const QString& getName() const { return _name; }
 
     // By default, Input Devices do not support haptics
-    virtual bool triggerHapticPulse(float strength, float duration, controller::Hand hand) { return false; }
+    virtual bool triggerHapticPulse(float strength, float duration, uint16_t index) { return false; }
 
     // Update call MUST be called once per simulation loop
     // It takes care of updating the action states and deltas
