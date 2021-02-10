@@ -75,6 +75,10 @@ public:
     
     bool getUseBackground() const;
     void setUseBackground(bool value);
+    
+    static const QString DEFAULT_USER_AGENT;
+    QString getUserAgent() const;
+    void setUserAgent(const QString& value);
 
     PulsePropertyGroup getPulseProperties() const;
 
@@ -90,6 +94,7 @@ protected:
     WebInputMode _inputMode;
     bool _showKeyboardFocusHighlight;
     bool _useBackground;
+    QString _userAgent;
     bool _localSafeContext { false };
 };
 

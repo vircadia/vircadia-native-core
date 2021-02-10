@@ -25,6 +25,7 @@
 #include "EntityTreeElement.h"
 
 const QString WebEntityItem::DEFAULT_SOURCE_URL = NetworkingConstants::WEB_ENTITY_DEFAULT_SOURCE_URL;
+const QString WebEntityItem::DEFAULT_USER_AGENT = NetworkingConstants::WEB_ENTITY_DEFAULT_USER_AGENT;
 const uint8_t WebEntityItem::DEFAULT_MAX_FPS = 10;
 
 EntityItemPointer WebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
@@ -62,6 +63,7 @@ EntityItemProperties WebEntityItem::getProperties(const EntityPropertyFlags& des
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(inputMode, getInputMode);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(showKeyboardFocusHighlight, getShowKeyboardFocusHighlight);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(useBackground, getUseBackground);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(userAgent, getUserAgent);
     return properties;
 }
 
@@ -83,6 +85,7 @@ bool WebEntityItem::setSubClassProperties(const EntityItemProperties& properties
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(inputMode, setInputMode);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(showKeyboardFocusHighlight, setShowKeyboardFocusHighlight);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(useBackground, setUseBackground);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(userAgent, setUserAgent);
 
     return somethingChanged;
 }
@@ -112,6 +115,7 @@ int WebEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, i
     READ_ENTITY_PROPERTY(PROP_INPUT_MODE, WebInputMode, setInputMode);
     READ_ENTITY_PROPERTY(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, bool, setShowKeyboardFocusHighlight);
     READ_ENTITY_PROPERTY(PROP_WEB_USE_BACKGROUND, bool, setUseBackground);
+    READ_ENTITY_PROPERTY(PROP_USER_AGENT, QString, setUserAgent);
 
     return bytesRead;
 }
@@ -129,6 +133,7 @@ EntityPropertyFlags WebEntityItem::getEntityProperties(EncodeBitstreamParams& pa
     requestedProperties += PROP_INPUT_MODE;
     requestedProperties += PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT;
     requestedProperties += PROP_WEB_USE_BACKGROUND;
+    requestedProperties += PROP_USER_AGENT;
     return requestedProperties;
 }
 
@@ -155,6 +160,7 @@ void WebEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
     APPEND_ENTITY_PROPERTY(PROP_INPUT_MODE, (uint32_t)getInputMode());
     APPEND_ENTITY_PROPERTY(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, getShowKeyboardFocusHighlight());
     APPEND_ENTITY_PROPERTY(PROP_WEB_USE_BACKGROUND, getUseBackground());
+    APPEND_ENTITY_PROPERTY(PROP_USER_AGENT, getUserAgent());
 }
 
 void WebEntityItem::setColor(const glm::u8vec3& value) {
@@ -280,6 +286,17 @@ void WebEntityItem::setUseBackground(bool value) {
 
 bool WebEntityItem::getUseBackground() const {
     return resultWithReadLock<bool>([&] { return _useBackground; });
+}
+
+void WebEntityItem::setUserAgent(const QString& value) {
+    withWriteLock([&] {
+        _needsRenderUpdate |= _userAgent != value;
+        _userAgent = value;
+    });
+}
+
+QString WebEntityItem::getUserAgent() const {
+    return resultWithReadLock<QString>([&] { return _userAgent; });
 }
 
 PulsePropertyGroup WebEntityItem::getPulseProperties() const {

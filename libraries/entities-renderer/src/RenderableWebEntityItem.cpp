@@ -39,6 +39,7 @@ const char* WebEntityRenderer::URL_PROPERTY = "url";
 const char* WebEntityRenderer::SCRIPT_URL_PROPERTY = "scriptURL";
 const char* WebEntityRenderer::GLOBAL_POSITION_PROPERTY = "globalPosition";
 const char* WebEntityRenderer::USE_BACKGROUND_PROPERTY = "useBackground";
+const char* WebEntityRenderer::USER_AGENT_PROPERTY = "userAgent";
 
 std::function<void(QString, bool, QSharedPointer<OffscreenQmlSurface>&, bool&)> WebEntityRenderer::_acquireWebSurfaceOperator = nullptr;
 std::function<void(QSharedPointer<OffscreenQmlSurface>&, bool&, std::vector<QMetaObject::Connection>&)> WebEntityRenderer::_releaseWebSurfaceOperator = nullptr;
@@ -193,6 +194,7 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
                     _webSurface->getRootItem()->setProperty(URL_PROPERTY, newSourceURL);
                     _webSurface->getRootItem()->setProperty(SCRIPT_URL_PROPERTY, _scriptURL);
                     _webSurface->getRootItem()->setProperty(USE_BACKGROUND_PROPERTY, _useBackground);
+                    _webSurface->getRootItem()->setProperty(USER_AGENT_PROPERTY, _userAgent);
                     _webSurface->getSurfaceContext()->setContextProperty(GLOBAL_POSITION_PROPERTY, vec3toVariant(_contextPosition));
                     _webSurface->setMaxFps((QUrl(newSourceURL).host().endsWith("youtube.com", Qt::CaseInsensitive)) ? YOUTUBE_MAX_FPS : _maxFPS);
                     ::hifi::scripting::setLocalAccessSafeThread(false);
@@ -228,6 +230,14 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
                     if (_useBackground != useBackground) {
                         _webSurface->getRootItem()->setProperty(USE_BACKGROUND_PROPERTY, useBackground);
                         _useBackground = useBackground;
+                    }
+                }
+                
+                { 
+                    auto userAgent = entity->getUserAgent();
+                    if (_userAgent != userAgent) {
+                        _webSurface->getRootItem()->setProperty(USER_AGENT_PROPERTY, userAgent);
+                        _userAgent = userAgent;
                     }
                 }
 

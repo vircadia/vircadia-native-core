@@ -36,6 +36,7 @@ public:
     static const char* SCRIPT_URL_PROPERTY;
     static const char* GLOBAL_POSITION_PROPERTY;
     static const char* USE_BACKGROUND_PROPERTY;
+    static const char* USER_AGENT_PROPERTY;
 
     static void setAcquireWebSurfaceOperator(std::function<void(const QString&, bool, QSharedPointer<OffscreenQmlSurface>&, bool&)> acquireWebSurfaceOperator) { _acquireWebSurfaceOperator = acquireWebSurfaceOperator; }
     static void acquireWebSurface(const QString& url, bool htmlContent, QSharedPointer<OffscreenQmlSurface>& webSurface, bool& cachedWebSurface) {
@@ -95,6 +96,7 @@ private:
     QString _scriptURL;
     uint8_t _maxFPS;
     bool _useBackground;
+    QString _userAgent;
     WebInputMode _inputMode;
 
     glm::vec3 _contextPosition;

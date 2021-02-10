@@ -24,6 +24,7 @@ Item {
     property alias flickable: webroot.interactive
     property alias blurOnCtrlShift: webroot.blurOnCtrlShift
     property alias useBackground: webroot.useBackground
+    property alias userAgent: webroot.userAgent
 
     function stop() {
         webroot.stop();
@@ -36,8 +37,6 @@ Item {
         keyboardEnabled = HMDinfo.active;
     }
     */
-
-    property alias viewProfile: webroot.webViewCoreProfile
 
     FlickableWebViewCore {
         id: webroot

@@ -794,6 +794,12 @@ const GROUPS = [
                 type: "string",
                 propertyID: "scriptURL",
                 placeholder: "URL",
+            },
+            {
+                label: "User Agent",
+                type: "string",
+                propertyID: "userAgent",
+                placeholder: "User Agent",
             }
         ]
     },
