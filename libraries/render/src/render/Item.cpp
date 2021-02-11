@@ -97,7 +97,7 @@ const ShapeKey Item::getShapeKey() const {
     return shapeKey;
 }
 
-uint32_t Item::fetchMetaSubItemBounds(ItemBounds& subItemBounds, Scene& scene) const {
+uint32_t Item::fetchMetaSubItemBounds(ItemBounds& subItemBounds, Scene& scene, RenderArgs* args) const {
     ItemIDs subItems;
     auto numSubs = fetchMetaSubItems(subItems);
 
@@ -107,7 +107,7 @@ uint32_t Item::fetchMetaSubItemBounds(ItemBounds& subItemBounds, Scene& scene) c
         if (scene.isAllocatedID(id)) {
             auto& item = scene.getItem(id);
             if (item.exist()) {
-                subItemBounds.emplace_back(id, item.getBound());
+                subItemBounds.emplace_back(id, item.getBound(args));
             } else {
                 numSubs--;
             }
@@ -133,11 +133,11 @@ namespace render {
         return payload->getShapeKey();
     }
 
-    template <> const Item::Bound payloadGetBound(const PayloadProxyInterface::Pointer& payload) {
+    template <> const Item::Bound payloadGetBound(const PayloadProxyInterface::Pointer& payload, RenderArgs* args) {
         if (!payload) {
             return render::Item::Bound();
         }
-        return payload->getBound();
+        return payload->getBound(args);
     }
 
     template <> void payloadRender(const PayloadProxyInterface::Pointer& payload, RenderArgs* args) {

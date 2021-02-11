@@ -161,7 +161,7 @@ ShapeKey ParticleEffectEntityRenderer::getShapeKey() {
     return builder.build();
 }
 
-Item::Bound ParticleEffectEntityRenderer::getBound() {
+Item::Bound ParticleEffectEntityRenderer::getBound(RenderArgs* args) {
     return _bound;
 }
 
@@ -456,6 +456,7 @@ void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
     color.spread = EntityRenderer::calculatePulseColor(_particleProperties.getColorSpread(), _pulseProperties, _created);
 
     batch.setModelTransform(transform);
+
     batch.setUniformBuffer(0, _uniformBuffer);
     batch.setInputFormat(_vertexFormat);
     batch.setInputBuffer(0, _particleBuffer, 0, sizeof(GpuParticle));

@@ -31,7 +31,7 @@ public:
 
             void render(RenderArgs* args);
             render::Item::Bound& editBound() { return _bound; }
-            const render::Item::Bound& getBound() { return _bound; }
+            const render::Item::Bound& getBound(RenderArgs* args) { return _bound; }
             render::ItemKey getKey() const { return _key; }
 
             void setVisible(bool visible);
@@ -128,7 +128,7 @@ private:
 
 namespace render {
     template <> const ItemKey payloadGetKey(const ParabolaPointer::RenderState::ParabolaRenderItem::Pointer& payload);
-    template <> const Item::Bound payloadGetBound(const ParabolaPointer::RenderState::ParabolaRenderItem::Pointer& payload);
+    template <> const Item::Bound payloadGetBound(const ParabolaPointer::RenderState::ParabolaRenderItem::Pointer& payload, RenderArgs* args);
     template <> void payloadRender(const ParabolaPointer::RenderState::ParabolaRenderItem::Pointer& payload, RenderArgs* args);
     template <> const ShapeKey shapeGetShapeKey(const ParabolaPointer::RenderState::ParabolaRenderItem::Pointer& payload);
 }

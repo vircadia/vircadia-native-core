@@ -117,6 +117,16 @@ const GROUPS = [
                 propertyID: "primitiveMode",
             },
             {
+                label: "Billboard Mode",
+                type: "dropdown",
+                options: {
+                    none: "None",
+                    yaw: "Yaw",
+                    full: "Full"
+                },
+                propertyID: "billboardMode",
+            },
+            {
                 label: "Render With Zones",
                 type: "multipleZonesSelection",
                 propertyID: "renderWithZones",
@@ -238,13 +248,6 @@ const GROUPS = [
                     right: "Right"
                 },
                 propertyID: "textAlignment",
-            },
-            {
-                label: "Billboard Mode",
-                type: "dropdown",
-                options: { none: "None", yaw: "Yaw", full: "Full"},
-                propertyID: "textBillboardMode",
-                propertyName: "billboardMode", // actual entity property name
             },
             {
                 label: "Top Margin",
@@ -625,6 +628,11 @@ const GROUPS = [
                 hideIfCertified: true,
             },
             {
+                label: "Use Original Pivot",
+                type: "bool",
+                propertyID: "useOriginalPivot",
+            },
+            {
                 label: "Animation",
                 type: "string",
                 propertyID: "animation.url",
@@ -729,13 +737,6 @@ const GROUPS = [
                 propertyID: "subImage",
             },
             {
-                label: "Billboard Mode",
-                type: "dropdown",
-                options: { none: "None", yaw: "Yaw", full: "Full"},
-                propertyID: "imageBillboardMode",
-                propertyName: "billboardMode", // actual entity property name
-            },
-            {
                 label: "Keep Aspect Ratio",
                 type: "bool",
                 propertyID: "keepAspectRatio",
@@ -785,13 +786,6 @@ const GROUPS = [
                 propertyID: "maxFPS",
             },
             {
-                label: "Billboard Mode",
-                type: "dropdown",
-                options: { none: "None", yaw: "Yaw", full: "Full"},
-                propertyID: "webBillboardMode",
-                propertyName: "billboardMode", // actual entity property name
-            },
-            {
                 label: "Input Mode",
                 type: "dropdown",
                 options: {
@@ -810,6 +804,12 @@ const GROUPS = [
                 type: "string",
                 propertyID: "scriptURL",
                 placeholder: "URL",
+            },
+            {
+                label: "User Agent",
+                type: "string",
+                propertyID: "userAgent",
+                placeholder: "User Agent",
             }
         ]
     },

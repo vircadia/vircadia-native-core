@@ -12,152 +12,98 @@
 #ifndef hifi_MeshPartPayload_h
 #define hifi_MeshPartPayload_h
 
-#include <Interpolate.h>
-
-#include <gpu/Batch.h>
-
-#include <render/Scene.h>
-
-#include <graphics/Geometry.h>
-
 #include "Model.h"
 
-class Model;
+#include <gpu/Batch.h>
+#include <render/Scene.h>
+#include <graphics/Geometry.h>
 
-class MeshPartPayload {
+class ModelMeshPartPayload {
 public:
-    MeshPartPayload() = default;
-    MeshPartPayload(const std::shared_ptr<const graphics::Mesh>& mesh, int partIndex, graphics::MaterialPointer material, const uint64_t& created);
-    virtual ~MeshPartPayload() = default;
-
-    typedef render::Payload<MeshPartPayload> Payload;
+    typedef render::Payload<ModelMeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
 
-    virtual void updateKey(const render::ItemKey& key);
+    ModelMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const uint64_t& created);
 
     virtual void updateMeshPart(const std::shared_ptr<const graphics::Mesh>& drawMesh, int partIndex);
 
-    virtual void notifyLocationChanged() {}
-    void updateTransform(const Transform& transform, const Transform& offsetTransform);
+    void updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices); // matrix palette skinning
+    void updateClusterBuffer(const std::vector<Model::TransformDualQuaternion>& clusterDualQuaternions); // dual quaternion skinning
 
-    // Render Item interface
-    virtual render::ItemKey getKey() const;
-    virtual render::Item::Bound getBound() const;
-    virtual render::ShapeKey getShapeKey() const;
-    virtual void render(RenderArgs* args);
+    void computeAdjustedLocalBound(const std::vector<glm::mat4>& clusterMatrices); // matrix palette skinning
+    void computeAdjustedLocalBound(const std::vector<Model::TransformDualQuaternion>& clusterDualQuaternions); // dual quaternion skinning
+
+    void updateTransformForSkinnedMesh(const Transform& modelTransform, const Model::MeshState& meshState, bool useDualQuaternionSkinning);
 
     // ModelMeshPartPayload functions to perform render
+    void bindMesh(gpu::Batch& batch);
+    virtual void bindTransform(gpu::Batch& batch, const Transform& transform, RenderArgs::RenderMode renderMode) const;
     void drawCall(gpu::Batch& batch) const;
-    virtual void bindMesh(gpu::Batch& batch);
-    virtual void bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const;
 
-    // Payload resource cached values
-    Transform _drawTransform;
-    Transform _transform;
-    int _partIndex = 0;
-    bool _hasColorAttrib { false };
+    void updateKey(const render::ItemKey& key);
+    void setShapeKey(bool invalidateShapeKey, PrimitiveMode primitiveMode, bool useDualQuaternionSkinning);
 
-    graphics::Box _localBound;
-    graphics::Box _adjustedLocalBound;
-    mutable graphics::Box _worldBound;
-    std::shared_ptr<const graphics::Mesh> _drawMesh;
-
-    graphics::MultiMaterial _drawMaterials;
-    graphics::Mesh::Part _drawPart;
+    // Render Item interface
+    render::ItemKey getKey() const;
+    render::Item::Bound getBound(RenderArgs* args) const;
+    render::ShapeKey getShapeKey() const;
+    void render(RenderArgs* args);
 
     size_t getVerticesCount() const { return _drawMesh ? _drawMesh->getNumVertices() : 0; }
     size_t getMaterialTextureSize() { return _drawMaterials.getTextureSize(); }
     int getMaterialTextureCount() { return _drawMaterials.getTextureCount(); }
     bool hasTextureInfo() const { return _drawMaterials.hasTextureInfo(); }
 
-    void addMaterial(graphics::MaterialLayer material);
-    void removeMaterial(graphics::MaterialPointer material);
-
+    void setCauterized(bool cauterized) { _cauterized = cauterized; }
     void setCullWithParent(bool value) { _cullWithParent = value; }
-
     void setRenderWithZones(const QVector<QUuid>& renderWithZones) { _renderWithZones = renderWithZones; }
+    void setBillboardMode(BillboardMode billboardMode) { _billboardMode = billboardMode; }
     bool passesZoneOcclusionTest(const std::unordered_set<QUuid>& containingZones) const;
 
-    static bool enableMaterialProceduralShaders;
-
-protected:
-    render::ItemKey _itemKey{ render::ItemKey::Builder::opaqueShape().build() };
-    bool _cullWithParent { false };
-    QVector<QUuid> _renderWithZones;
-    uint64_t _created;
-};
-
-namespace render {
-    template <> const ItemKey payloadGetKey(const MeshPartPayload::Pointer& payload);
-    template <> const Item::Bound payloadGetBound(const MeshPartPayload::Pointer& payload);
-    template <> const ShapeKey shapeGetShapeKey(const MeshPartPayload::Pointer& payload);
-    template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderArgs* args);
-    template <> bool payloadPassesZoneOcclusionTest(const MeshPartPayload::Pointer& payload, const std::unordered_set<QUuid>& containingZones);
-}
-
-class ModelMeshPartPayload : public MeshPartPayload {
-public:
-    ModelMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform, const uint64_t& created);
-
-    typedef render::Payload<ModelMeshPartPayload> Payload;
-    typedef Payload::DataPointer Pointer;
-
-    void notifyLocationChanged() override;
-
-    void updateKey(const render::ItemKey& key) override;
-
-    // matrix palette skinning
-    void updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices);
-
-    // dual quaternion skinning
-    void updateClusterBuffer(const std::vector<Model::TransformDualQuaternion>& clusterDualQuaternions);
-    void updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform);
-
-    // Render Item interface
-    render::ShapeKey getShapeKey() const override;
-    void render(RenderArgs* args) override;
-
-    void setShapeKey(bool invalidateShapeKey, PrimitiveMode primitiveMode, bool useDualQuaternionSkinning);
-    void setCauterized(bool cauterized) { _cauterized = cauterized; }
-
-    // ModelMeshPartPayload functions to perform render
-    void bindMesh(gpu::Batch& batch) override;
-    void bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const override;
-
-    // matrix palette skinning
-    void computeAdjustedLocalBound(const std::vector<glm::mat4>& clusterMatrices);
-
-    // dual quaternion skinning
-    void computeAdjustedLocalBound(const std::vector<Model::TransformDualQuaternion>& clusterDualQuaternions);
-
-    gpu::BufferPointer _clusterBuffer;
-
-    enum class ClusterBufferType { Matrices, DualQuaternions };
-    ClusterBufferType _clusterBufferType { ClusterBufferType::Matrices };
-
-    int _meshIndex;
-    int _shapeID;
-
-    bool _isSkinned{ false };
-    bool _isBlendShaped { false };
-    bool _hasTangents { false };
+    void addMaterial(graphics::MaterialLayer material) { _drawMaterials.push(material); }
+    void removeMaterial(graphics::MaterialPointer material) { _drawMaterials.remove(material); }
 
     void setBlendshapeBuffer(const std::unordered_map<int, gpu::BufferPointer>& blendshapeBuffers, const QVector<int>& blendedMeshSizes);
 
+    static bool enableMaterialProceduralShaders;
+
 private:
-    void initCache(const ModelPointer& model);
+    void initCache(const ModelPointer& model, int shapeID);
+
+    int _meshIndex;
+    std::shared_ptr<const graphics::Mesh> _drawMesh;
+    graphics::Mesh::Part _drawPart;
+    graphics::MultiMaterial _drawMaterials;
+
+    gpu::BufferPointer _clusterBuffer;
+    enum class ClusterBufferType { Matrices, DualQuaternions };
+    ClusterBufferType _clusterBufferType { ClusterBufferType::Matrices };
 
     gpu::BufferPointer _meshBlendshapeBuffer;
     int _meshNumVertices;
+
+    render::ItemKey _itemKey { render::ItemKey::Builder::opaqueShape().build() };
     render::ShapeKey _shapeKey { render::ShapeKey::Builder::invalid() };
+
+    bool _isSkinned { false };
+    bool _isBlendShaped { false };
+    bool _hasTangents { false };
     bool _prevUseDualQuaternionSkinning { false };
     bool _cauterized { false };
+    bool _cullWithParent { false };
+    QVector<QUuid> _renderWithZones;
+    BillboardMode _billboardMode;
+    uint64_t _created;
 
+    Transform _localTransform;
+    Transform _parentTransform;
+    graphics::Box _localBound;
+    graphics::Box _adjustedLocalBound;
 };
 
 namespace render {
     template <> const ItemKey payloadGetKey(const ModelMeshPartPayload::Pointer& payload);
-    template <> const Item::Bound payloadGetBound(const ModelMeshPartPayload::Pointer& payload);
+    template <> const Item::Bound payloadGetBound(const ModelMeshPartPayload::Pointer& payload, RenderArgs* args);
     template <> const ShapeKey shapeGetShapeKey(const ModelMeshPartPayload::Pointer& payload);
     template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, RenderArgs* args);
     template <> bool payloadPassesZoneOcclusionTest(const ModelMeshPartPayload::Pointer& payload, const std::unordered_set<QUuid>& containingZones);

@@ -198,6 +198,7 @@ public:
     DEFINE_PROPERTY_REF_ENUM(PROP_PRIMITIVE_MODE, PrimitiveMode, primitiveMode, PrimitiveMode, PrimitiveMode::SOLID);
     DEFINE_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, IgnorePickIntersection, ignorePickIntersection, bool, false);
     DEFINE_PROPERTY_REF(PROP_RENDER_WITH_ZONES, RenderWithZones, renderWithZones, QVector<QUuid>, QVector<QUuid>());
+    DEFINE_PROPERTY_REF_ENUM(PROP_BILLBOARD_MODE, BillboardMode, billboardMode, BillboardMode, BillboardMode::NONE);
     DEFINE_PROPERTY_GROUP(Grab, grab, GrabPropertyGroup);
 
     // Physics
@@ -258,7 +259,6 @@ public:
     DEFINE_PROPERTY(PROP_ALPHA, Alpha, alpha, float, ENTITY_ITEM_DEFAULT_ALPHA);
     DEFINE_PROPERTY_GROUP(Pulse, pulse, PulsePropertyGroup);
     DEFINE_PROPERTY_REF(PROP_TEXTURES, Textures, textures, QString, "");
-    DEFINE_PROPERTY_REF_ENUM(PROP_BILLBOARD_MODE, BillboardMode, billboardMode, BillboardMode, BillboardMode::NONE);
 
     // Particles
     DEFINE_PROPERTY(PROP_MAX_PARTICLES, MaxParticles, maxParticles, quint32, particle::DEFAULT_MAX_PARTICLES);
@@ -303,6 +303,7 @@ public:
     DEFINE_PROPERTY(PROP_RELAY_PARENT_JOINTS, RelayParentJoints, relayParentJoints, bool, ENTITY_ITEM_DEFAULT_RELAY_PARENT_JOINTS);
     DEFINE_PROPERTY_REF(PROP_GROUP_CULLED, GroupCulled, groupCulled, bool, false);
     DEFINE_PROPERTY_REF(PROP_BLENDSHAPE_COEFFICIENTS, BlendshapeCoefficients, blendshapeCoefficients, QString, "");
+    DEFINE_PROPERTY_REF(PROP_USE_ORIGINAL_PIVOT, UseOriginalPivot, useOriginalPivot, bool, false);
     DEFINE_PROPERTY_GROUP(Animation, animation, AnimationPropertyGroup);
 
     // Light
@@ -369,6 +370,7 @@ public:
     DEFINE_PROPERTY_REF_ENUM(PROP_INPUT_MODE, InputMode, inputMode, WebInputMode, WebInputMode::TOUCH);
     DEFINE_PROPERTY_REF(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, ShowKeyboardFocusHighlight, showKeyboardFocusHighlight, bool, true);
     DEFINE_PROPERTY_REF(PROP_WEB_USE_BACKGROUND, UseBackground, useBackground, bool, true);
+    DEFINE_PROPERTY_REF(PROP_USER_AGENT, UserAgent, userAgent, QString, WebEntityItem::DEFAULT_USER_AGENT);
 
     // Polyline
     DEFINE_PROPERTY_REF(PROP_LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
