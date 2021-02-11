@@ -583,6 +583,7 @@ Rectangle {
                     labelTextSize: 16;
                     backgroundOnColor: "#E3E3E3";
                     checked: AudioScriptingInterface.noiseReductionAutomatic;
+                    visible: AudioScriptingInterface.noiseReduction === true;
                     onCheckedChanged: {
                         AudioScriptingInterface.noiseReductionAutomatic = checked;
                         checked = Qt.binding(function() { return AudioScriptingInterface.noiseReductionAutomatic; }); // restore binding
@@ -598,7 +599,7 @@ Rectangle {
             anchors.topMargin: 16;
             width: parent.width - margins.paddings*2;
             height: avatarGainSliderTextMetrics.height;
-            visible: AudioScriptingInterface.noiseReductionAutomatic !== true;
+            visible: AudioScriptingInterface.noiseReduction === true && AudioScriptingInterface.noiseReductionAutomatic !== true;
 
             HifiControlsUit.Slider {
                 id: noiseReductionThresholdSlider
