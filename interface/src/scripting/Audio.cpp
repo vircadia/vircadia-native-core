@@ -314,7 +314,7 @@ void Audio::enableNoiseReductionAutomatic(bool enable) {
     }
 }
 
-float Audio::getNoiseReductionThreshold() const {
+float Audio::getNoiseReductionThreshold() {
     return resultWithReadLock<float>([&] {
         return _noiseReductionThreshold;
     });

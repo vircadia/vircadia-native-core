@@ -104,6 +104,11 @@ Rectangle {
             AudioScriptingInterface.setSystemInjectorGain(sliderValue);
         }
     }
+    function updateNoiseReductionThresholdFromQML(sliderValue) {
+        if (AudioScriptingInterface.getNoiseReductionThreshold() != sliderValue) {
+            AudioScriptingInterface.setNoiseReductionThreshold(sliderValue);
+        }
+    }
 
     Component.onCompleted: {
         enablePeakValues();
@@ -164,7 +169,7 @@ Rectangle {
             x: 2 * margins.paddings;
             width: parent.width;
             // switch heights + 2 * top margins
-            height: (root.switchHeight) * 6 + 48;
+            height: (bar.currentIndex === 0) ? (root.switchHeight) * 2 + 48 : (root.switchHeight) * 4 + 48;
             anchors.top: firstSeparator.bottom;
             anchors.topMargin: 10;
 
@@ -175,6 +180,7 @@ Rectangle {
                 height: parent.height;
                 anchors.top: parent.top
                 anchors.left: parent.left;
+
                 HifiControlsUit.Switch {
                     id: muteMic;
                     height: root.switchHeight;
@@ -194,44 +200,10 @@ Rectangle {
                 }
 
                 HifiControlsUit.Switch {
-                    id: noiseReductionSwitch;
-                    height: root.switchHeight;
-                    switchWidth: root.switchWidth;
-                    anchors.top: muteMic.bottom;
-                    anchors.topMargin: 24
-                    anchors.left: parent.left
-                    labelTextOn: "Noise Reduction";
-                    labelTextSize: 16;
-                    backgroundOnColor: "#E3E3E3";
-                    checked: AudioScriptingInterface.noiseReduction;
-                    onCheckedChanged: {
-                        AudioScriptingInterface.noiseReduction = checked;
-                        checked = Qt.binding(function() { return AudioScriptingInterface.noiseReduction; }); // restore binding
-                    }
-                }
-
-                HifiControlsUit.Switch {
-                    id: acousticEchoCancellationSwitch;
-                    height: root.switchHeight;
-                    switchWidth: root.switchWidth;
-                    anchors.top: noiseReductionSwitch.bottom
-                    anchors.topMargin: 24
-                    anchors.left: parent.left
-                    labelTextOn: "Echo Cancellation";
-                    labelTextSize: 16;
-                    backgroundOnColor: "#E3E3E3";
-                    checked: AudioScriptingInterface.acousticEchoCancellation;
-                    onCheckedChanged: {
-                        AudioScriptingInterface.acousticEchoCancellation = checked;
-                        checked = Qt.binding(function() { return AudioScriptingInterface.acousticEchoCancellation; });
-                    }
-                }
-
-                HifiControlsUit.Switch {
                     id: pttSwitch
                     height: root.switchHeight;
                     switchWidth: root.switchWidth;
-                    anchors.top: acousticEchoCancellationSwitch.bottom;
+                    anchors.top: muteMic.bottom;
                     anchors.topMargin: 24
                     anchors.left: parent.left
                     labelTextOn: (bar.currentIndex === 0) ? qsTr("Push To Talk (T)") : qsTr("Push To Talk");
@@ -254,6 +226,7 @@ Rectangle {
                 height: parent.height;
                 anchors.top: parent.top
                 anchors.left: switchContainer.right;
+
                 HifiControlsUit.Switch {
                     id: warnMutedSwitch
                     height: root.switchHeight;
@@ -270,7 +243,6 @@ Rectangle {
                         checked = Qt.binding(function() { return AudioScriptingInterface.warnWhenMuted; }); // restore binding
                     }
                 }
-
 
                 HifiControlsUit.Switch {
                     id: audioLevelSwitch
@@ -519,13 +491,181 @@ Rectangle {
             anchors.top: systemInjectorGainContainer.bottom;
             anchors.topMargin: 10;
         }
+        
+        Item {
+            id: noiseReductionHeader
+            x: margins.paddings;
+            width: parent.width - margins.paddings*2;
+            height: 36;
+            anchors.top: secondSeparator.bottom;
+            anchors.topMargin: 10;
+
+            HiFiGlyphs {
+                width: margins.sizeCheckBox;
+                text: hifi.glyphs.mic;
+                color: hifi.colors.white;
+                anchors.left: parent.left;
+                anchors.leftMargin: -size/4; //the glyph has empty space at left about 25%
+                anchors.verticalCenter: parent.verticalCenter;
+                size: 30;
+            }
+
+            RalewayRegular {
+                anchors.verticalCenter: parent.verticalCenter;
+                width: margins.sizeText + margins.sizeLevel;
+                anchors.left: parent.left;
+                anchors.leftMargin: margins.sizeCheckBox;
+                size: 22;
+                color: hifi.colors.white;
+                text: qsTr("Noise Reduction");
+            }
+        }
+        
+        Item {
+            id: noiseReductionSwitches;
+            x: 2 * margins.paddings;
+            width: parent.width;
+            // switch heights + 2 * top margins
+            height: (root.switchHeight) * 5 + 48;
+            anchors.top: noiseReductionHeader.bottom;
+            anchors.topMargin: 0;
+        
+            Item {
+                 id: noiseReductionSwitchContainer;
+                 x: margins.paddings;
+                 width: parent.width / 2;
+                 height: parent.height;
+                 anchors.top: parent.top;
+                 anchors.left: parent.left;
+            
+                HifiControlsUit.Switch {
+                    id: acousticEchoCancellationSwitch;
+                    height: root.switchHeight;
+                    switchWidth: root.switchWidth;
+                    anchors.top: noiseReductionSwitchContainer.top
+                    anchors.topMargin: 24
+                    anchors.left: parent.left
+                    labelTextOn: "Echo Cancellation";
+                    labelTextSize: 16;
+                    backgroundOnColor: "#E3E3E3";
+                    checked: AudioScriptingInterface.acousticEchoCancellation;
+                    onCheckedChanged: {
+                        AudioScriptingInterface.acousticEchoCancellation = checked;
+                        checked = Qt.binding(function() { return AudioScriptingInterface.acousticEchoCancellation; });
+                    }
+                }
+                
+                HifiControlsUit.Switch {
+                    id: noiseReductionSwitch;
+                    height: root.switchHeight;
+                    switchWidth: root.switchWidth;
+                    anchors.top: acousticEchoCancellationSwitch.bottom;
+                    anchors.topMargin: 24
+                    anchors.left: parent.left
+                    labelTextOn: "Noise Reduction";
+                    labelTextSize: 16;
+                    backgroundOnColor: "#E3E3E3";
+                    checked: AudioScriptingInterface.noiseReduction;
+                    onCheckedChanged: {
+                        AudioScriptingInterface.noiseReduction = checked;
+                        checked = Qt.binding(function() { return AudioScriptingInterface.noiseReduction; }); // restore binding
+                    }
+                }
+                
+                HifiControlsUit.Switch {
+                    id: noiseReductionAutomaticSwitch;
+                    height: root.switchHeight;
+                    switchWidth: root.switchWidth;
+                    anchors.top: noiseReductionSwitch.bottom;
+                    anchors.topMargin: 24;
+                    anchors.left: parent.left;
+                    labelTextOn: "Noise Reduction: Manual/Automatic";
+                    labelTextSize: 16;
+                    backgroundOnColor: "#E3E3E3";
+                    checked: AudioScriptingInterface.noiseReductionAutomatic;
+                    onCheckedChanged: {
+                        AudioScriptingInterface.noiseReductionAutomatic = checked;
+                        checked = Qt.binding(function() { return AudioScriptingInterface.noiseReductionAutomatic; }); // restore binding
+                    }
+                }
+            }
+        }
+        
+        Item {
+            id: noiseReductionThresholdContainer
+            x: margins.paddings;
+            anchors.top: noiseReductionSwitches.bottom;
+            anchors.topMargin: 16;
+            width: parent.width - margins.paddings*2;
+            height: avatarGainSliderTextMetrics.height;
+            visible: AudioScriptingInterface.noiseReductionAutomatic !== true;
+
+            HifiControlsUit.Slider {
+                id: noiseReductionThresholdSlider
+                anchors.right: parent.right
+                height: parent.height
+                width: 200
+                minimumValue: 0.0
+                maximumValue: 1.0
+                stepSize: 0.1
+                value: AudioScriptingInterface.getNoiseReductionThreshold()
+                onValueChanged: {
+                    updateNoiseReductionThresholdFromQML(value);
+                }
+                onPressedChanged: {
+                    if (!pressed) {
+                        updateNoiseReductionThresholdFromQML(value);
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onWheel: {
+                        // Do nothing.
+                    }
+                    onDoubleClicked: {
+                        noiseReductionThresholdSlider.value = 0.0
+                    }
+                    onPressed: {
+                        // Pass through to Slider
+                        mouse.accepted = false
+                    }
+                    onReleased: {
+                        // the above mouse.accepted seems to make this
+                        // never get called, nonetheless...
+                        mouse.accepted = false
+                    }
+                }
+            }
+            TextMetrics {
+                id: noiseReductionThresholdSliderTextMetrics
+                text: noiseReductionThresholdSliderText.text
+                font: noiseReductionThresholdSliderText.font
+            }
+            RalewayRegular {
+                // The slider for my card is special, it controls the master gain
+                id: noiseReductionThresholdSliderText;
+                text: "Audio input threshold";
+                size: 16;
+                anchors.left: parent.left;
+                color: hifi.colors.white;
+                horizontalAlignment: Text.AlignLeft;
+                verticalAlignment: Text.AlignTop;
+            }
+        }
+        
+        Separator {
+            id: thirdSeparator;
+            anchors.top: noiseReductionThresholdContainer.bottom;
+            anchors.topMargin: 14;
+        }
 
         Item {
             id: inputDeviceHeader
             x: margins.paddings;
             width: parent.width - margins.paddings*2;
             height: 36;
-            anchors.top: secondSeparator.bottom;
+            anchors.top: thirdSeparator.bottom;
             anchors.topMargin: 10;
 
             HiFiGlyphs {
@@ -609,7 +749,7 @@ Rectangle {
         }
 
         Separator {
-            id: thirdSeparator;
+            id: fourthSeparator;
             anchors.top: inputView.bottom;
             anchors.topMargin: 10;
         }
@@ -617,7 +757,7 @@ Rectangle {
         Item {
             id: outputDeviceHeader;
             anchors.topMargin: 10;
-            anchors.top: thirdSeparator.bottom;
+            anchors.top: fourthSeparator.bottom;
             x: margins.paddings;
             width: parent.width - margins.paddings*2
             height: 36

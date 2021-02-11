@@ -127,7 +127,6 @@ public:
     bool isMuted() const;
     bool noiseReductionEnabled() const;
     bool noiseReductionAutomatic() const;
-    float getNoiseReductionThreshold() const;
     bool warnWhenMutedEnabled() const;
     bool acousticEchoCancellationEnabled() const;
     float getInputVolume() const;
@@ -274,6 +273,20 @@ public:
      * @returns {number} The injector gain (dB) in the client.
     */
     Q_INVOKABLE float getSystemInjectorGain();
+    
+    /**jsdoc
+     * Sets the noise gate threshold before your mic audio is transmitted. (Applies only if Audio.noiseReductionAutomatic is off.)
+     * @function Audio.setNoiseReductionThreshold
+     * @param {number} threshold - The level that your input must surpass to be transmitted. (0 - 1.0)
+     */
+    Q_INVOKABLE void setNoiseReductionThreshold(float threshold);
+
+    /**jsdoc
+     * Gets the noise reduction threshold.
+     * @function Audio.getNoiseReductionThreshold
+     * @returns {number} The noise reduction threshold. (0 - 1.0)
+    */
+    Q_INVOKABLE float getNoiseReductionThreshold();
 
     /**jsdoc
      * Starts making an audio recording of the audio being played in-world (i.e., not local-only audio) to a file in WAV format.
@@ -535,7 +548,6 @@ private slots:
     void setMuted(bool muted);
     void enableNoiseReduction(bool enable);
     void enableNoiseReductionAutomatic(bool enable);
-    void setNoiseReductionThreshold(float threshold);
     void enableWarnWhenMuted(bool enable);
     void enableAcousticEchoCancellation(bool enable);
     void setInputVolume(float volume);
