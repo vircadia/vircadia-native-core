@@ -14,6 +14,22 @@
 
 #include <QLoggingCategory>
 
-Q_DECLARE_LOGGING_CATEGORY(entities_audit)
+Q_DECLARE_LOGGING_CATEGORY(entities_audit);
+
+class EntitiesAuditLogging : public QObject {
+    Q_OBJECT
+public:
+    bool isProcessorRunning();
+    void startAuditLogProcessor();
+    void stopAuditLogProcessor();
+    void setAuditEditLoggingInterval(float interval) { _auditEditLoggingInterval = interval; };
+    void processAddEntityPacket(const QString& sender, const QString& entityID, const QString& entityType);
+    void processEditEntityPacket(const QString& sender, const QString& entityID);
+
+private:
+    void processAuditLogBuffers();
+
+    float _auditEditLoggingInterval;
+};
 
 #endif // vircadia_EntitiesAuditLogging_h

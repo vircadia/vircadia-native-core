@@ -1797,33 +1797,8 @@ void EntityTree::processChallengeOwnershipPacket(ReceivedMessage& message, const
     }
 }
 
-QJsonObject auditLogAddBuffer;
-QJsonObject auditLogEditBuffer;
-QTimer* auditLogProcessorTimer;
-
-void EntityTree::processAuditLogBuffers() {
-    if (!auditLogAddBuffer.isEmpty()) {
-        QJsonObject objectToOutput;
-        objectToOutput.insert("add", auditLogAddBuffer);
-        qCDebug(entities_audit) << objectToOutput;
-        auditLogAddBuffer = QJsonObject();
-    }
-    if (!auditLogEditBuffer.isEmpty()) {
-        QJsonObject objectToOutput;
-        objectToOutput.insert("edit", auditLogEditBuffer);
-        qCDebug(entities_audit) << objectToOutput;
-        auditLogEditBuffer = QJsonObject();
-    }
-}
-
-void EntityTree::startAuditLogProcessor() {
-    auditLogProcessorTimer = new QTimer(this);
-    connect(auditLogProcessorTimer, &QTimer::timeout, this, &EntityTree::processAuditLogBuffers);
-    auditLogProcessorTimer->start(auditEditLoggingInterval());
-}
-
-void EntityTree::stopAuditLogProcessor() {
-    auditLogProcessorTimer->stop();
+void EntityTree::setAuditEditLoggingInterval(float interval) {
+    entitiesAuditLogProcessor.setAuditEditLoggingInterval(interval);
 }
 
 // NOTE: Caller must lock the tree before calling this.
@@ -1833,8 +1808,9 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
         qCWarning(entities) << "EntityTree::processEditPacketData() should only be called on a server tree.";
         return 0;
     }
-    if (wantAuditEditLogging() && !auditLogProcessorTimer) {
-        EntityTree::startAuditLogProcessor();
+
+    if (wantAuditEditLogging() && !entitiesAuditLogProcessor.isProcessorRunning()) {
+        entitiesAuditLogProcessor.startAuditLogProcessor();
     }
 
     int processedBytes = 0;
@@ -2039,21 +2015,8 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                         qCDebug(entities) << "   properties:" << properties;
                     }
                     if (wantAuditEditLogging()) {
-                        HifiSockAddr senderSocket = senderNode->getPublicSocket();
-
-                        QJsonValue findExisting = auditLogEditBuffer.take(senderSocket.toString());
-                        if (!findExisting.isUndefined()) {
-                            QJsonObject existingObject = findExisting.toObject();
-                            if (!existingObject.contains(entityItemID.toString())) {
-                                existingObject.insert(entityItemID.toString(), 1);
-                            } else {
-                                existingObject[entityItemID.toString()] = existingObject[entityItemID.toString()].toInt() + 1;
-                            }
-                            auditLogEditBuffer.insert(senderSocket.toString(), existingObject);
-                        } else {
-                            QJsonObject newEntry{ { entityItemID.toString(), 1 } };
-                            auditLogEditBuffer.insert(senderSocket.toString(), newEntry);
-                        }
+                        entitiesAuditLogProcessor.processEditEntityPacket(senderNode->getPublicSocket().toString(),
+                                                                     entityItemID.toString());
                     }
                     if (wantTerseEditLogging()) {
                         QList<QString> changedProperties = properties.listChangedProperties();
@@ -2135,21 +2098,9 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                 qCDebug(entities) << "   properties:" << properties;
                             }
                             if (wantAuditEditLogging()) {
-                                HifiSockAddr senderSocket = senderNode->getPublicSocket();
-
-                                QJsonValue findExisting = auditLogAddBuffer.take(senderSocket.toString());
-                                if (!findExisting.isUndefined()) {
-                                    QJsonObject existingObject = findExisting.toObject();
-                                    if (!existingObject.contains(entityItemID.toString())) {
-                                        existingObject.insert(entityItemID.toString(), EntityTypes::getEntityTypeName(properties.getType()));
-                                    }
-                                    auditLogAddBuffer.insert(senderSocket.toString(), existingObject);
-                                } else {
-                                    QJsonObject newEntry{ { 
-                                        entityItemID.toString(), EntityTypes::getEntityTypeName(properties.getType()) 
-                                    } };
-                                    auditLogAddBuffer.insert(senderSocket.toString(), newEntry);
-                                }
+                                entitiesAuditLogProcessor.processAddEntityPacket(senderNode->getPublicSocket().toString(),
+                                                                             entityItemID.toString(),
+                                                                             EntityTypes::getEntityTypeName(properties.getType()));
                             }
                             if (wantTerseEditLogging()) {
                                 QList<QString> changedProperties = properties.listChangedProperties();

@@ -20,6 +20,7 @@
 
 #include "AddEntityOperator.h"
 #include "EntityTreeElement.h"
+#include "EntitiesAuditLogging.h"
 #include "DeleteEntityOperator.h"
 #include "MovingEntitiesOperator.h"
 
@@ -193,9 +194,8 @@ public:
     
     bool wantAuditEditLogging() const { return _wantAuditEditLogging; }
     void setWantAuditEditLogging(bool value) { _wantAuditEditLogging = value; }
-    
-    float auditEditLoggingInterval() const { return _auditEditLoggingInterval; }
-    void setAuditEditLoggingInterval(float value) { _auditEditLoggingInterval = value; }
+
+    void setAuditEditLoggingInterval(float value);
 
     bool wantTerseEditLogging() const { return _wantTerseEditLogging; }
     void setWantTerseEditLogging(bool value) { _wantTerseEditLogging = value; }
@@ -399,10 +399,6 @@ private:
     void sendChallengeOwnershipRequestPacket(const QByteArray& id, const QByteArray& text, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode);
     void validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
 
-    void processAuditLogBuffers();
-    void startAuditLogProcessor();
-    void stopAuditLogProcessor();
-
     std::shared_ptr<AvatarData> _myAvatar{ nullptr };
 
     static std::function<QObject*(const QUuid&)> _getEntityObjectOperator;
@@ -414,6 +410,8 @@ private:
     std::vector<int32_t> _staleProxies;
 
     bool _serverlessDomain { false };
+
+    EntitiesAuditLogging entitiesAuditLogProcessor;
 
     std::map<QString, QString> _namedPaths;
 

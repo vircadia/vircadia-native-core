@@ -11,4 +11,74 @@
 
 #include "EntitiesAuditLogging.h"
 
-Q_LOGGING_CATEGORY(entities_audit, "vircadia.entities.audit")
+#include <QJsonObject>
+#include <QTimer> 
+
+Q_LOGGING_CATEGORY(entities_audit, "vircadia.entities.audit");
+
+QJsonObject auditLogAddBuffer;
+QJsonObject auditLogEditBuffer;
+QTimer* auditLogProcessorTimer;
+
+void EntitiesAuditLogging::processAuditLogBuffers() {
+    if (!auditLogAddBuffer.isEmpty()) {
+        QJsonObject objectToOutput;
+        objectToOutput.insert("add", auditLogAddBuffer);
+        qCDebug(entities_audit) << objectToOutput;
+        auditLogAddBuffer = QJsonObject();
+    }
+    if (!auditLogEditBuffer.isEmpty()) {
+        QJsonObject objectToOutput;
+        objectToOutput.insert("edit", auditLogEditBuffer);
+        qCDebug(entities_audit) << objectToOutput;
+        auditLogEditBuffer = QJsonObject();
+    }
+}
+
+void EntitiesAuditLogging::startAuditLogProcessor() {
+    auditLogProcessorTimer = new QTimer(this);
+    connect(auditLogProcessorTimer, &QTimer::timeout, this, &EntitiesAuditLogging::processAuditLogBuffers);
+    auditLogProcessorTimer->start(_auditEditLoggingInterval);
+}
+
+void EntitiesAuditLogging::stopAuditLogProcessor() {
+    auditLogProcessorTimer->stop();
+}
+
+bool EntitiesAuditLogging::isProcessorRunning() {
+    if (!auditLogProcessorTimer) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+void EntitiesAuditLogging::processAddEntityPacket(const QString& sender, const QString& entityID, const QString& entityType) {
+    QJsonValue findExisting = auditLogAddBuffer.take(sender);
+    if (!findExisting.isUndefined()) {
+        QJsonObject existingObject = findExisting.toObject();
+        if (!existingObject.contains(entityID)) {
+            existingObject.insert(entityID, entityType);
+        }
+        auditLogAddBuffer.insert(sender, existingObject);
+    } else {
+        QJsonObject newEntry{ { entityID, entityType } };
+        auditLogAddBuffer.insert(sender, newEntry);
+    }
+}
+
+void EntitiesAuditLogging::processEditEntityPacket(const QString& sender, const QString& entityID) {
+    QJsonValue findExisting = auditLogEditBuffer.take(sender);
+    if (!findExisting.isUndefined()) {
+        QJsonObject existingObject = findExisting.toObject();
+        if (!existingObject.contains(entityID)) {
+            existingObject.insert(entityID, 1);
+        } else {
+            existingObject[entityID] = existingObject[entityID].toInt() + 1;
+        }
+        auditLogEditBuffer.insert(sender, existingObject);
+    } else {
+        QJsonObject newEntry{ { entityID, 1 } };
+        auditLogEditBuffer.insert(sender, newEntry);
+    }
+}
