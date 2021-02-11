@@ -3009,7 +3009,7 @@ Application::~Application() {
     // We do this here because there is a possiblty that [NSApplication terminate:]
     // will be called during processEvents which will invoke all static destructors.
     // We want to postpone this utill the last possible moment.
-    //QCoreApplication::processEvents();
+    QCoreApplication::processEvents();
 #endif
 }
 
