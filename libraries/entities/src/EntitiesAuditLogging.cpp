@@ -16,11 +16,8 @@
 
 Q_LOGGING_CATEGORY(entities_audit, "vircadia.entities.audit");
 
-QJsonObject auditLogAddBuffer;
-QJsonObject auditLogEditBuffer;
-QTimer* auditLogProcessorTimer;
-
 void EntitiesAuditLogging::processAuditLogBuffers() {
+    qDebug() << "PROCESSING...";
     if (!auditLogAddBuffer.isEmpty()) {
         QJsonObject objectToOutput;
         objectToOutput.insert("add", auditLogAddBuffer);
@@ -36,21 +33,18 @@ void EntitiesAuditLogging::processAuditLogBuffers() {
 }
 
 void EntitiesAuditLogging::startAuditLogProcessor() {
-    auditLogProcessorTimer = new QTimer(this);
+    auditLogProcessorTimer = new QTimer();
     connect(auditLogProcessorTimer, &QTimer::timeout, this, &EntitiesAuditLogging::processAuditLogBuffers);
     auditLogProcessorTimer->start(_auditEditLoggingInterval);
 }
 
 void EntitiesAuditLogging::stopAuditLogProcessor() {
-    auditLogProcessorTimer->stop();
+    delete auditLogProcessorTimer;
+    auditLogProcessorTimer = NULL;
 }
 
 bool EntitiesAuditLogging::isProcessorRunning() {
-    if (!auditLogProcessorTimer) {
-        return false;
-    } else {
-        return true;
-    }
+    return auditLogProcessorTimer;
 }
 
 void EntitiesAuditLogging::processAddEntityPacket(const QString& sender, const QString& entityID, const QString& entityType) {

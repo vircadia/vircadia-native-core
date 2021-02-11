@@ -347,7 +347,7 @@ protected:
     EntitySimulationPointer _simulation;
 
     bool _wantEditLogging = false;
-    bool _wantAuditEditLogging = true;
+    bool _wantAuditEditLogging { false };
     float _auditEditLoggingInterval { DEFAULT_AUDIT_EDIT_INTERVAL };
     bool _wantTerseEditLogging = false;
 

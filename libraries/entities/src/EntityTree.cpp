@@ -67,6 +67,7 @@ EntityTree::~EntityTree() {
     // TODO: EntityTreeElement::_tree should be raw back pointer.
     // AND: EntityItem::_element should be a raw back pointer.
     //eraseAllOctreeElements(false); // KEEP THIS
+    entitiesAuditLogProcessor.stopAuditLogProcessor();
 }
 
 void EntityTree::setEntityScriptSourceWhitelist(const QString& entityScriptSourceWhitelist) { 
@@ -1812,6 +1813,8 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
     if (wantAuditEditLogging() && !entitiesAuditLogProcessor.isProcessorRunning()) {
         entitiesAuditLogProcessor.startAuditLogProcessor();
     }
+
+    qDebug() << "PROCESSING" << wantAuditEditLogging() << " - " << entitiesAuditLogProcessor.isProcessorRunning();
 
     int processedBytes = 0;
     bool isAdd = false;

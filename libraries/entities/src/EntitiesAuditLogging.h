@@ -13,6 +13,8 @@
 #define vircadia_EntitiesAuditLogging_h
 
 #include <QLoggingCategory>
+#include <QJsonObject>
+#include <QTimer> 
 
 Q_DECLARE_LOGGING_CATEGORY(entities_audit);
 
@@ -29,6 +31,9 @@ public:
 private:
     void processAuditLogBuffers();
 
+    QJsonObject auditLogAddBuffer;
+    QJsonObject auditLogEditBuffer;
+    QTimer* auditLogProcessorTimer;
     float _auditEditLoggingInterval;
 };
 
