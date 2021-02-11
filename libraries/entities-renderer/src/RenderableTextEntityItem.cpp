@@ -121,6 +121,7 @@ void TextEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointe
     _effect = entity->getTextEffect();
     _effectColor = toGlm(entity->getTextEffectColor());
     _effectThickness = entity->getTextEffectThickness();
+    _alignment = entity->getAlignment();
     updateTextRenderItem();
 }
 
@@ -341,7 +342,7 @@ void entities::TextPayload::render(RenderArgs* args) {
     glm::vec2 bounds = glm::vec2(dimensions.x - (textRenderable->_leftMargin + textRenderable->_rightMargin), dimensions.y - (textRenderable->_topMargin + textRenderable->_bottomMargin));
     textRenderer->draw(batch, textRenderable->_leftMargin / scale, -textRenderable->_topMargin / scale, bounds / scale, scale,
                        textRenderable->_text, textRenderable->_font, textColor, effectColor, textRenderable->_effectThickness, textRenderable->_effect,
-                       textRenderable->_unlit, forward);
+                       textRenderable->_alignment, textRenderable->_unlit, forward);
 }
 
 namespace render {

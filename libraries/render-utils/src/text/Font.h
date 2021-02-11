@@ -14,6 +14,7 @@
 
 #include "Glyph.h"
 #include "TextEffect.h"
+#include "TextAlignment.h"
 #include <gpu/Batch.h>
 #include <gpu/Pipeline.h>
 
@@ -58,7 +59,7 @@ public:
 
     // Render string to batch
     void drawString(gpu::Batch& batch, DrawInfo& drawInfo, const QString& str, const glm::vec4& color,
-                    const glm::vec3& effectColor, float effectThickness, TextEffect effect, 
+                    const glm::vec3& effectColor, float effectThickness, TextEffect effect, TextAlignment alignment,
                     const glm::vec2& origin, const glm::vec2& bound, float scale, bool unlit, bool forward);
 
     static Pointer load(const QString& family);
@@ -76,7 +77,8 @@ private:
     glm::vec2 computeTokenExtent(const QString& str) const;
 
     const Glyph& getGlyph(const QChar& c) const;
-    void buildVertices(DrawInfo& drawInfo, const QString& str, const glm::vec2& origin, const glm::vec2& bounds, float scale, bool enlargeForShadows);
+    void buildVertices(DrawInfo& drawInfo, const QString& str, const glm::vec2& origin, const glm::vec2& bounds, float scale, bool enlargeForShadows,
+                       TextAlignment alignment);
 
     void setupGPU();
 
@@ -96,6 +98,7 @@ private:
     float _spaceWidth { 0.0f };
 
     float _scale { 0.0f };
+    TextAlignment _alignment;
 
     bool _loaded { true };
 

@@ -67,6 +67,7 @@
 #include "WebInputMode.h"
 #include "GizmoType.h"
 #include "TextEffect.h"
+#include "TextAlignment.h"
 
 const quint64 UNKNOWN_CREATED_TIME = 0;
 
@@ -327,6 +328,7 @@ public:
     DEFINE_PROPERTY_REF_ENUM(PROP_TEXT_EFFECT, TextEffect, textEffect, TextEffect, TextEffect::NO_EFFECT);
     DEFINE_PROPERTY_REF(PROP_TEXT_EFFECT_COLOR, TextEffectColor, textEffectColor, u8vec3Color, TextEntityItem::DEFAULT_TEXT_COLOR);
     DEFINE_PROPERTY(PROP_TEXT_EFFECT_THICKNESS, TextEffectThickness, textEffectThickness, float, TextEntityItem::DEFAULT_TEXT_EFFECT_THICKNESS);
+    DEFINE_PROPERTY_REF_ENUM(PROP_TEXT_ALIGNMENT, Alignment, alignment, TextAlignment, TextAlignment::LEFT);
 
     // Zone
     DEFINE_PROPERTY_GROUP(KeyLight, keyLight, KeyLightPropertyGroup);

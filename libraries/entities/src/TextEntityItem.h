@@ -15,7 +15,6 @@
 #include "EntityItem.h"
 
 #include "PulsePropertyGroup.h"
-#include "TextEffect.h"
 
 class TextEntityItem : public EntityItem {
 public:
@@ -114,6 +113,9 @@ public:
     float getTextEffectThickness() const;
     void setTextEffectThickness(float value);
 
+    TextAlignment getAlignment() const;
+    void setAlignment(TextAlignment value);
+
     PulsePropertyGroup getPulseProperties() const;
 
 private:
@@ -133,6 +135,7 @@ private:
     bool _unlit;
 
     QString _font;
+    TextAlignment _alignment;
     TextEffect _effect;
     glm::u8vec3 _effectColor;
     float _effectThickness;

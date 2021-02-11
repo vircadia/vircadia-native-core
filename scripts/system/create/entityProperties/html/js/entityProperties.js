@@ -230,6 +230,16 @@ const GROUPS = [
                 propertyID: "textEffectThickness",
             },
             {
+                label: "Alignment",
+                type: "dropdown",
+                options: {
+                    left: "Left",
+                    center: "Center",
+                    right: "Right"
+                },
+                propertyID: "textAlignment",
+            },
+            {
                 label: "Billboard Mode",
                 type: "dropdown",
                 options: { none: "None", yaw: "Yaw", full: "Full"},

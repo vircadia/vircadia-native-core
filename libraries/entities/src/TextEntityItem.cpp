@@ -70,6 +70,7 @@ EntityItemProperties TextEntityItem::getProperties(const EntityPropertyFlags& de
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textEffect, getTextEffect);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textEffectColor, getTextEffectColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textEffectThickness, getTextEffectThickness);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(alignment, getAlignment);
     return properties;
 }
 
@@ -98,7 +99,8 @@ bool TextEntityItem::setSubClassProperties(const EntityItemProperties& propertie
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textEffect, setTextEffect);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textEffectColor, setTextEffectColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textEffectThickness, setTextEffectThickness);
-    
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(alignment, setAlignment);
+
     return somethingChanged;
 }
 
@@ -134,6 +136,7 @@ int TextEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_TEXT_EFFECT, TextEffect, setTextEffect);
     READ_ENTITY_PROPERTY(PROP_TEXT_EFFECT_COLOR, glm::u8vec3, setTextEffectColor);
     READ_ENTITY_PROPERTY(PROP_TEXT_EFFECT_THICKNESS, float, setTextEffectThickness);
+    READ_ENTITY_PROPERTY(PROP_TEXT_ALIGNMENT, TextAlignment, setAlignment);
 
     return bytesRead;
 }
@@ -159,6 +162,7 @@ EntityPropertyFlags TextEntityItem::getEntityProperties(EncodeBitstreamParams& p
     requestedProperties += PROP_TEXT_EFFECT;
     requestedProperties += PROP_TEXT_EFFECT_COLOR;
     requestedProperties += PROP_TEXT_EFFECT_THICKNESS;
+    requestedProperties += PROP_TEXT_ALIGNMENT;
 
     return requestedProperties;
 }
@@ -194,6 +198,7 @@ void TextEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_TEXT_EFFECT, (uint32_t)getTextEffect());
     APPEND_ENTITY_PROPERTY(PROP_TEXT_EFFECT_COLOR, getTextEffectColor());
     APPEND_ENTITY_PROPERTY(PROP_TEXT_EFFECT_THICKNESS, getTextEffectThickness());
+    APPEND_ENTITY_PROPERTY(PROP_TEXT_ALIGNMENT, (uint32_t)getAlignment());
 }
 
 glm::vec3 TextEntityItem::getRaycastDimensions() const {
@@ -468,6 +473,19 @@ void TextEntityItem::setTextEffectThickness(float value) {
 float TextEntityItem::getTextEffectThickness() const {
     return resultWithReadLock<float>([&] {
         return _effectThickness;
+    });
+}
+
+void TextEntityItem::setAlignment(TextAlignment value) {
+    withWriteLock([&] {
+        _needsRenderUpdate |= _alignment != value;
+        _alignment = value;
+    });
+}
+
+TextAlignment TextEntityItem::getAlignment() const {
+    return resultWithReadLock<TextAlignment>([&] {
+        return _alignment;
     });
 }
 

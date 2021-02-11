@@ -309,7 +309,6 @@ void EntityItemProperties::setScreenshareFromString(const QString& mode) {
     }
 }
 
-
 inline void addTextEffect(QHash<QString, TextEffect>& lookup, TextEffect effect) { lookup[TextEffectHelpers::getNameForTextEffect(effect)] = effect; }
 const QHash<QString, TextEffect> stringToTextEffectLookup = [] {
     QHash<QString, TextEffect> toReturn;
@@ -325,6 +324,23 @@ void EntityItemProperties::setTextEffectFromString(const QString& effect) {
     if (textEffectItr != stringToTextEffectLookup.end()) {
         _textEffect = textEffectItr.value();
         _textEffectChanged = true;
+    }
+}
+
+inline void addTextAlignment(QHash<QString, TextAlignment>& lookup, TextAlignment alignment) { lookup[TextAlignmentHelpers::getNameForTextAlignment(alignment)] = alignment; }
+const QHash<QString, TextAlignment> stringToTextAlignmentLookup = [] {
+    QHash<QString, TextAlignment> toReturn;
+    addTextAlignment(toReturn, TextAlignment::LEFT);
+    addTextAlignment(toReturn, TextAlignment::CENTER);
+    addTextAlignment(toReturn, TextAlignment::RIGHT);
+    return toReturn;
+}();
+QString EntityItemProperties::getAlignmentAsString() const { return TextAlignmentHelpers::getNameForTextAlignment(_alignment); }
+void EntityItemProperties::setAlignmentFromString(const QString& alignment) {
+    auto textAlignmentItr = stringToTextAlignmentLookup.find(alignment.toLower());
+    if (textAlignmentItr != stringToTextAlignmentLookup.end()) {
+        _alignment = textAlignmentItr.value();
+        _alignmentChanged = true;
     }
 }
 
@@ -563,6 +579,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_TEXT_EFFECT, textEffect);
     CHECK_PROPERTY_CHANGE(PROP_TEXT_EFFECT_COLOR, textEffectColor);
     CHECK_PROPERTY_CHANGE(PROP_TEXT_EFFECT_THICKNESS, textEffectThickness);
+    CHECK_PROPERTY_CHANGE(PROP_TEXT_ALIGNMENT, alignment);
 
     // Zone
     changedProperties += _keyLight.getChangedProperties();
@@ -1332,6 +1349,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Entities.TextEffect} textEffect="none" - The effect that is applied to the text.
  * @property {Color} textEffectColor=255,255,255 - The color of the effect.
  * @property {number} textEffectThickness=0.2 - The magnitude of the text effect, range <code>0.0</code> &ndash; <code>0.5</code>.
+ * @property {Entities.TextAlignment} alignment="left" - How the text is aligned against its background.
  * @property {BillboardMode} billboardMode="none" - Whether the entity is billboarded to face the camera.
  * @property {boolean} faceCamera - <code>true</code> if <code>billboardMode</code> is <code>"yaw"</code>, <code>false</code>
  *     if it isn't. Setting this property to <code>false</code> sets the <code>billboardMode</code> to <code>"none"</code>.
@@ -1783,6 +1801,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_TEXT_EFFECT, textEffect, getTextEffectAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_TEXT_EFFECT_COLOR, textEffectColor, u8vec3Color);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXT_EFFECT_THICKNESS, textEffectThickness);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_TEXT_ALIGNMENT, alignment, getAlignmentAsString());
     }
 
     // Zones only
@@ -2167,6 +2186,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(textEffect, TextEffect);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(textEffectColor, u8vec3Color, setTextEffectColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(textEffectThickness, float, setTextEffectThickness);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(alignment, Alignment);
 
     // Zone
     _keyLight.copyFromScriptValue(object, _defaultSettings);
@@ -2459,6 +2479,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(textEffect);
     COPY_PROPERTY_IF_CHANGED(textEffectColor);
     COPY_PROPERTY_IF_CHANGED(textEffectThickness);
+    COPY_PROPERTY_IF_CHANGED(alignment);
 
     // Zone
     _keyLight.merge(other._keyLight);
@@ -2826,6 +2847,7 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_TEXT_EFFECT, TextEffect, textEffect, TextEffect);
         ADD_PROPERTY_TO_MAP(PROP_TEXT_EFFECT_COLOR, TextEffectColor, textEffectColor, u8vec3Color);
         ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_TEXT_EFFECT_THICKNESS, TextEffectThickness, textEffectThickness, float, 0.0, 0.5);
+        ADD_PROPERTY_TO_MAP(PROP_TEXT_ALIGNMENT, Alignment, alignment, TextAlignment);
 
         // Zone
         { // Keylight
@@ -3266,6 +3288,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_TEXT_EFFECT, (uint32_t)properties.getTextEffect());
                 APPEND_ENTITY_PROPERTY(PROP_TEXT_EFFECT_COLOR, properties.getTextEffectColor());
                 APPEND_ENTITY_PROPERTY(PROP_TEXT_EFFECT_THICKNESS, properties.getTextEffectThickness());
+                APPEND_ENTITY_PROPERTY(PROP_TEXT_ALIGNMENT, (uint32_t)properties.getAlignment());
             }
 
             if (properties.getType() == EntityTypes::Zone) {
@@ -3753,6 +3776,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT_EFFECT, TextEffect, setTextEffect);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT_EFFECT_COLOR, u8vec3Color, setTextEffectColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT_EFFECT_THICKNESS, float, setTextEffectThickness);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT_ALIGNMENT, TextAlignment, setAlignment);
     }
 
     if (properties.getType() == EntityTypes::Zone) {
@@ -4154,6 +4178,7 @@ void EntityItemProperties::markAllChanged() {
     _textEffectChanged = true;
     _textEffectColorChanged = true;
     _textEffectThicknessChanged = true;
+    _alignmentChanged = true;
 
     // Zone
     _keyLight.markAllChanged();
@@ -4765,6 +4790,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (textEffectThicknessChanged()) {
         out += "textEffectThickness";
+    }
+    if (alignmentChanged()) {
+        out += "alignment";
     }
 
     // Zone

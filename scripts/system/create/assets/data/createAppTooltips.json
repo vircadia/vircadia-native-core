@@ -38,6 +38,9 @@
     "textEffectThickness": {
         "tooltip": "The magnitude of the text effect."
     },
+    "textAlignment": {
+        "tooltip": "How the text is aligned within its left and right bounds."
+    },
     "textBillboardMode": {
         "tooltip": "If enabled, determines how the entity will face the camera.",
         "jsPropertyName": "billboardMode"
