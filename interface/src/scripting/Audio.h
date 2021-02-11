@@ -277,14 +277,14 @@ public:
     /**jsdoc
      * Sets the noise gate threshold before your mic audio is transmitted. (Applies only if Audio.noiseReductionAutomatic is off.)
      * @function Audio.setNoiseReductionThreshold
-     * @param {number} threshold - The level that your input must surpass to be transmitted. (0 - 1.0)
+     * @param {number} threshold - The level that your input must surpass to be transmitted. <code>0.0</code> (open the gate completely) &ndash; <code>1.0</code>
      */
     Q_INVOKABLE void setNoiseReductionThreshold(float threshold);
 
     /**jsdoc
      * Gets the noise reduction threshold.
      * @function Audio.getNoiseReductionThreshold
-     * @returns {number} The noise reduction threshold. (0 - 1.0)
+     * @returns {number} The noise reduction threshold. <code>0.0</code> &ndash; <code>1.0</code>
     */
     Q_INVOKABLE float getNoiseReductionThreshold();
 

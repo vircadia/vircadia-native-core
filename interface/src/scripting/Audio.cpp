@@ -332,7 +332,7 @@ void Audio::setNoiseReductionThreshold(float threshold) {
         }
     });
     if (changed) {
-        emit noiseReductionAutomaticChanged(threshold);
+        emit noiseReductionThresholdChanged(threshold);
     }
 }
 
