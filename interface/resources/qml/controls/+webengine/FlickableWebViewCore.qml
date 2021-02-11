@@ -13,6 +13,9 @@ Item {
     property alias url: webViewCore.url
     property alias canGoBack: webViewCore.canGoBack
     property alias webViewCore: webViewCore
+    // FIXME - This was commented out to allow for manual setting of the userAgent.
+    //
+    // property alias webViewCoreProfile: webViewCore.profile
     property string webViewCoreUserAgent
 
     property bool useBackground: webViewCore.useBackground
