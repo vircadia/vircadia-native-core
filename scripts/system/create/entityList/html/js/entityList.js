@@ -155,7 +155,15 @@ const COLUMNS = {
         propertyID: "lastEdited",
         initialWidth: 0.38,
         defaultSortOrder: DESCENDING_SORT,
-    },    
+    },
+    urlWithPath: {
+        columnHeader: "URL",
+        dropdownLabel: "URL",
+        propertyID: "urlWithPath",
+        initialWidth: 0.54,
+        initiallyShown: false,
+        defaultSortOrder: ASCENDING_SORT,
+    },
 };
 
 const FILTER_TYPES = [
@@ -935,13 +943,14 @@ function loaded() {
                 entityData.forEach(function(entity) {
                     let type = entity.type;
                     let filename = getFilename(entity.url);
-            
+                    
                     let entityData = {
                         id: entity.id,
                         name: entity.name,
                         type: type,
                         url: entity.certificateID === "" ? filename : "<i>" + CERTIFIED_PLACEHOLDER + "</i>",
                         fullUrl: entity.certificateID === "" ? filename : CERTIFIED_PLACEHOLDER,
+                        urlWithPath: entity.certificateID === "" ? entity.url : "<i>" + CERTIFIED_PLACEHOLDER + "</i>",
                         locked: entity.locked,
                         visible: entity.visible,
                         certificateID: entity.certificateID,
@@ -981,11 +990,13 @@ function loaded() {
                         let searchFilter = searchTerm === '' || (e.name.toLowerCase().indexOf(searchTerm) > -1 ||
                                                                  e.type.toLowerCase().indexOf(searchTerm) > -1 ||
                                                                  e.fullUrl.toLowerCase().indexOf(searchTerm) > -1 ||
+                                                                 (e.urlWithPath.toLowerCase().indexOf(searchTerm) > -1 && 
+                                                                 columnsByID["urlWithPath"].elTh.style.visibility === "visible")||
                                                                  e.id.toLowerCase().indexOf(searchTerm) > -1);
                         return typeFilter && searchFilter;
                     });
                 });
-                
+
                 PROFILE("sort", function() {
                     let isAscendingSort = currentSortOrder === ASCENDING_SORT;
                     let isDefaultSort = currentSortOrder === COLUMNS[currentSortColumnID].defaultSortOrder;
