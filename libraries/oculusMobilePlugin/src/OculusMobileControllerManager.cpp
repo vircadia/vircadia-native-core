@@ -161,7 +161,7 @@ public:
     QString getDefaultMappingConfig() const override;
     void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
     void focusOutEvent() override;
-    bool triggerHapticPulse(float strength, float duration, controller::Hand hand) override;
+    bool triggerHapticPulse(float strength, float duration, uint16_t index) override;
 
 private:
     void handlePose(float deltaTime, const controller::InputCalibrationData& inputCalibrationData,
@@ -516,11 +516,15 @@ void OculusMobileInputDevice::handleRotationForUntrackedHand(const controller::I
     pose = pose.transform(controllerToAvatar);
 }
 
-bool OculusMobileInputDevice::triggerHapticPulse(float strength, float duration, controller::Hand hand) {
+bool OculusMobileInputDevice::triggerHapticPulse(float strength, float duration, uint16_t index) {
+    if (index > 2) {
+        return false;
+    }
+
+    controller::Hand hand = (controller::Hand)index;
+
     Locker locker(_lock);
     bool success = true;
-
-    qDebug()<<"AAAA: Haptic duration %f " << duration;
 
     if (hand == controller::BOTH || hand == controller::LEFT) {
         success &= _hands[0].setHapticFeedback(strength, duration);
