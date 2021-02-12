@@ -151,6 +151,7 @@ void Model::setOffset(const glm::vec3& offset) {
     // if someone manually sets our offset, then we are no longer snapped to center
     _snapModelToRegistrationPoint = false;
     _snappedToRegistrationPoint = false;
+    _forceOffset = true;
 }
 
 void Model::calculateTextureInfo() {
