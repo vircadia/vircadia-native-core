@@ -1764,8 +1764,7 @@ bool EntityItem::contains(const glm::vec3& point) const {
         // therefore we must do math using an unscaled localPoint relative to sphere center
         glm::vec3 dimensions = getScaledDimensions();
         glm::vec3 localPoint = point - (getWorldPosition() + getWorldOrientation() * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()) + getPivot()));
-        const float HALF_SQUARED = 0.25f;
-        return glm::length2(localPoint) < HALF_SQUARED * glm::length2(dimensions);
+        return glm::length2(localPoint) < glm::length2(0.5f * glm::max(dimensions.x, glm::max(dimensions.y, dimensions.z)));
     }
 
     // we transform into the "normalized entity-frame" where the bounding box is centered on the origin
