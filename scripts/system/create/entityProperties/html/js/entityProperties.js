@@ -248,6 +248,7 @@ const GROUPS = [
                     right: "Right"
                 },
                 propertyID: "textAlignment",
+                propertyName: "alignment", // actual entity property name
             },
             {
                 label: "Top Margin",
