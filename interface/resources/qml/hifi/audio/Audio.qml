@@ -15,6 +15,7 @@
 import QtQuick 2.10
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
+import QtGraphicalEffects 1.0
 
 import stylesUit 1.0
 import controlsUit 1.0 as HifiControlsUit
@@ -598,17 +599,17 @@ Rectangle {
             anchors.top: noiseReductionSwitches.bottom;
             anchors.topMargin: 16;
             width: parent.width - margins.paddings*2;
-            height: avatarGainSliderTextMetrics.height;
+            height: avatarGainSliderTextMetrics.height + 10;
             visible: AudioScriptingInterface.noiseReduction === true && AudioScriptingInterface.noiseReductionAutomatic !== true;
 
             HifiControlsUit.Slider {
                 id: noiseReductionThresholdSlider
                 anchors.right: parent.right
-                height: parent.height
+                height: noiseReductionThresholdSliderTextMetrics.height
                 width: 200
                 minimumValue: 0.0
                 maximumValue: 1.0
-                stepSize: 0.1
+                stepSize: 0.05
                 value: AudioScriptingInterface.getNoiseReductionThreshold()
                 onValueChanged: {
                     updateNoiseReductionThresholdFromQML(value);
@@ -652,6 +653,88 @@ Rectangle {
                 color: hifi.colors.white;
                 horizontalAlignment: Text.AlignLeft;
                 verticalAlignment: Text.AlignTop;
+            }
+            
+            Item {
+                id: noisePeak
+                anchors.right: parent.right
+                anchors.rightMargin: 5;
+                anchors.top: noiseReductionThresholdSlider.bottom;
+
+                width: noiseReductionThresholdSlider.width - 10;
+                height: 8;
+            
+                Text {
+                    id: status;
+
+                    anchors {
+                        horizontalCenter: parent.horizontalCenter;
+                        verticalCenter: parent.verticalCenter;
+                    }
+            
+                    visible: AudioScriptingInterface.muted;
+                    color: "#E2334D";
+            
+                    text: "MUTED";
+                    font.pointSize: 10;
+                }
+            
+                Item {
+                    id: noiseBar;
+                    
+                    property bool gated: false;
+                    property var level: AudioScriptingInterface.inputLevel;
+
+                    width: parent.width;
+                    height: parent.height;
+
+                    anchors { fill: parent }
+
+                    visible: !status.visible;
+
+                    Component.onCompleted: {
+                        AudioScriptingInterface.noiseGateOpened.connect(function() { noiseBar.gated = false; });
+                        AudioScriptingInterface.noiseGateClosed.connect(function() { noiseBar.gated = true; });
+                        AudioScriptingInterface.inputLevelChanged.connect(function() { noiseBar.level = AudioScriptingInterface.inputLevel; });
+                    }
+
+                    Rectangle { // base
+                        radius: 4;
+                        anchors { fill: parent }
+                        color: colors.gutter;
+                    }
+
+                    Rectangle { // noiseMask
+                        id: noiseMask;
+                        width: parent.width * noiseBar.level;
+                        radius: 5;
+                        anchors {
+                            bottom: parent.bottom;
+                            bottomMargin: 0;
+                            top: parent.top;
+                            topMargin: 0;
+                            left: parent.left;
+                            leftMargin: 0;
+                        }
+                    }
+
+                    LinearGradient {
+                        anchors { fill: noiseMask }
+                        source: noiseMask
+                        start: Qt.point(0, 0);
+                        end: Qt.point(noiseBar.width, 0);
+                        gradient: Gradient {
+                            GradientStop {
+                                position: 0;
+                                color: noiseBar.gated ? "#E2334D" : "#39A38F";
+                            }
+                            GradientStop {
+                                position: 1;
+                                color: noiseBar.gated ? "#E2334D" : "#39A38F";
+                            }
+                        }
+                    }
+                }
             }
         }
         
@@ -738,13 +821,13 @@ Rectangle {
                     }
                 }
                 AudioControls.InputPeak {
-                id: inputLevel
-                anchors.right: parent.right
-                peak: model.peak;
-                anchors.verticalCenter: parent.verticalCenter
-                visible: ((bar.currentIndex === 1 && isVR) ||
-                         (bar.currentIndex === 0 && !isVR)) &&
-                         AudioScriptingInterface.devices.input.peakValuesAvailable;
+                    id: inputLevel
+                    anchors.right: parent.right
+                    peak: model.peak;
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: ((bar.currentIndex === 1 && isVR) ||
+                             (bar.currentIndex === 0 && !isVR)) &&
+                             AudioScriptingInterface.devices.input.peakValuesAvailable;
                 }
             }
         }
