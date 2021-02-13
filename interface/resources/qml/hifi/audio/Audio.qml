@@ -580,14 +580,14 @@ Rectangle {
                     anchors.top: noiseReductionSwitch.bottom;
                     anchors.topMargin: 24;
                     anchors.left: parent.left;
-                    labelTextOn: "Noise Reduction: Manual/Automatic";
+                    labelTextOn: "Manual Noise Reduction";
                     labelTextSize: 16;
                     backgroundOnColor: "#E3E3E3";
-                    checked: AudioScriptingInterface.noiseReductionAutomatic;
+                    checked: !AudioScriptingInterface.noiseReductionAutomatic;
                     visible: AudioScriptingInterface.noiseReduction === true;
                     onCheckedChanged: {
-                        AudioScriptingInterface.noiseReductionAutomatic = checked;
-                        checked = Qt.binding(function() { return AudioScriptingInterface.noiseReductionAutomatic; }); // restore binding
+                        AudioScriptingInterface.noiseReductionAutomatic = !checked;
+                        checked = Qt.binding(function() { return !AudioScriptingInterface.noiseReductionAutomatic; }); // restore binding
                     }
                 }
             }
@@ -663,7 +663,7 @@ Rectangle {
 
                 width: noiseReductionThresholdSlider.width - 10;
                 height: 8;
-            
+
                 Text {
                     id: status;
 
