@@ -8,8 +8,10 @@
 
 #include "GLTexture.h"
 
+#include <QObject>
 #include <QtCore/QThread>
 #include <NumericalConstants.h>
+#include <ThreadHelpers.h>
 
 #include "GLBackend.h"
 
@@ -64,7 +66,7 @@ public:
 protected:
     class TextureBufferThread : public QThread {
     public:
-        TextureBufferThread(GLTextureTransferEngineDefault& parent) : _parent(parent) { start(); }
+        TextureBufferThread(GLTextureTransferEngineDefault& parent) : _parent(parent) {}
 
     protected:
         void run() override {
@@ -302,6 +304,8 @@ void GLTextureTransferEngineDefault::processTransferQueues() {
 #if THREADED_TEXTURE_BUFFERING
     if (!_transferThread) {
         _transferThread = new TextureBufferThread(*this);
+        QObject::connect(_transferThread, &QThread::started, [] { setThreadName("TextureBufferThread"); });
+        _transferThread->start();
     }
 #endif
 
