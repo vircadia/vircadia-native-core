@@ -290,7 +290,10 @@ set_packaging_parameters()
 
 # Locate the required Qt build on the filesystem
 setup_qt()
-list(APPEND CMAKE_PREFIX_PATH "${QT_CMAKE_PREFIX_PATH}")
+
+if (NOT $ENV{VIRCADIA_USE_SYSTEM_QT})
+  list(APPEND CMAKE_PREFIX_PATH "${QT_CMAKE_PREFIX_PATH}")
+endif()
 
 find_package( Threads )
 

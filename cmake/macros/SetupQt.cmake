@@ -48,60 +48,64 @@ endfunction()
 # Sets the QT_CMAKE_PREFIX_PATH and QT_DIR variables
 # Also enables CMAKE_AUTOMOC and CMAKE_AUTORCC
 macro(setup_qt)
-    # if we are in a development build and QT_CMAKE_PREFIX_PATH is specified
-    # then use it,
-    # otherwise, use the vcpkg'ed version
-    if(NOT DEFINED QT_CMAKE_PREFIX_PATH)
-        message(FATAL_ERROR "QT_CMAKE_PREFIX_PATH should have been set by hifi_qt.py")
+    if ($ENV{VIRCADIA_USE_SYSTEM_QT})
+        message(STATUS "Using system Qt")
+    else()
+        # if we are in a development build and QT_CMAKE_PREFIX_PATH is specified
+        # then use it,
+        # otherwise, use the vcpkg'ed version
+        if(NOT DEFINED QT_CMAKE_PREFIX_PATH)
+            message(FATAL_ERROR "QT_CMAKE_PREFIX_PATH should have been set by hifi_qt.py")
+        endif()
+        if (DEV_BUILD)
+          if (DEFINED ENV{QT_CMAKE_PREFIX_PATH})
+            set(QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
+          endif()
+        endif()
+
+        message("QT_CMAKE_PREFIX_PATH = " ${QT_CMAKE_PREFIX_PATH})
+
+        # figure out where the qt dir is
+        get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../" ABSOLUTE)
+        set(QT_VERSION "unknown")
+        calculate_qt5_version(QT_VERSION "${QT_DIR}")
+        if (QT_VERSION STREQUAL "unknown")
+            message(FATAL_ERROR "Could not determine QT_VERSION")
+        endif()
+
+        if(WIN32)
+            # windows shell does not like backslashes expanded on the command line,
+            # so convert all backslashes in the QT path to forward slashes
+            string(REPLACE \\ / QT_CMAKE_PREFIX_PATH ${QT_CMAKE_PREFIX_PATH})
+            string(REPLACE \\ / QT_DIR ${QT_DIR})
+        endif()
+
+        if(NOT EXISTS "${QT_CMAKE_PREFIX_PATH}/Qt5Core/Qt5CoreConfig.cmake")
+            message(FATAL_ERROR "Unable to locate Qt5CoreConfig.cmake in '${QT_CMAKE_PREFIX_PATH}'")
+        endif()
+
+        set(RCC_BINARY "${QT_DIR}/bin/rcc${CMAKE_EXECUTABLE_SUFFIX}")
+
+        if(NOT EXISTS "${RCC_BINARY}")
+            set(RCC_BINARY "${QT_DIR}/bin/rcc-qt5${CMAKE_EXECUTABLE_SUFFIX}")
+        endif()
+
+        if(NOT EXISTS "${RCC_BINARY}")
+            message(FATAL_ERROR "Unable to locate rcc. Last looked in '${RCC_BINARY}'")
+        endif()
+
+
+        message(STATUS "Using Qt build in : '${QT_DIR}' with version ${QT_VERSION}")
+        if (WIN32)
+          add_paths_to_fixup_libs("${QT_DIR}/bin")
+        endif ()
+
     endif()
-    if (DEV_BUILD)
-      if (DEFINED ENV{QT_CMAKE_PREFIX_PATH})
-        set(QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
-      endif()
-    endif()
-
-    message("QT_CMAKE_PREFIX_PATH = " ${QT_CMAKE_PREFIX_PATH})
-
-    # figure out where the qt dir is
-    get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../" ABSOLUTE)
-    set(QT_VERSION "unknown")
-    calculate_qt5_version(QT_VERSION "${QT_DIR}")
-    if (QT_VERSION STREQUAL "unknown")
-      message(FATAL_ERROR "Could not determine QT_VERSION")
-    endif()
-
-    if(WIN32)
-        # windows shell does not like backslashes expanded on the command line,
-        # so convert all backslashes in the QT path to forward slashes
-        string(REPLACE \\ / QT_CMAKE_PREFIX_PATH ${QT_CMAKE_PREFIX_PATH})
-        string(REPLACE \\ / QT_DIR ${QT_DIR})
-    endif()
-
-    if(NOT EXISTS "${QT_CMAKE_PREFIX_PATH}/Qt5Core/Qt5CoreConfig.cmake")
-        message(FATAL_ERROR "Unable to locate Qt5CoreConfig.cmake in '${QT_CMAKE_PREFIX_PATH}'")
-    endif()
-
-    set(RCC_BINARY "${QT_DIR}/bin/rcc${CMAKE_EXECUTABLE_SUFFIX}")
-
-    if(NOT EXISTS "${RCC_BINARY}")
-    set(RCC_BINARY "${QT_DIR}/bin/rcc-qt5${CMAKE_EXECUTABLE_SUFFIX}")
-    endif()
-
-    if(NOT EXISTS "${RCC_BINARY}")
-    message(FATAL_ERROR "Unable to locate rcc. Last looked in '${RCC_BINARY}'")
-    endif()
-
-
-    message(STATUS "Using Qt build in : '${QT_DIR}' with version ${QT_VERSION}")
 
     # Instruct CMake to run moc automatically when needed.
     set(CMAKE_AUTOMOC ON)
 
     # Instruct CMake to run rcc automatically when needed
     set(CMAKE_AUTORCC ON)
-
-    if (WIN32)
-        add_paths_to_fixup_libs("${QT_DIR}/bin")
-    endif ()
 
 endmacro()
