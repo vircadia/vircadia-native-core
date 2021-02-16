@@ -42,7 +42,7 @@ var BOOTSTRAP_MENU_WEB_OVERLAY_SOURCE;
 var BOOTSTRAP_MENU_WEB_OVERLAY_DPI = 7;
 
 function registerWithEntityMenu(messageData) {
-    registeredEntityMenus[messageData.entityID] = messageData.menuItems;
+    registeredEntityMenus[messageData.entityID] = { 'actions': messageData.actions };
 
     var dataToSend = {
         registeredEntityMenus: registeredEntityMenus
@@ -153,24 +153,19 @@ function onOverlayWebEventReceived(event) {
         var dataToSend = {
             command: eventJSON.command,
             entityID: eventJSON.data.triggeredEntityID,
-            menuItem: eventJSON.data.menuItem
-        };
-
-        Messages.sendLocalMessage(NYX_UI_CHANNEL, JSON.stringify(dataToSend));
-        
-        if (entityWebMenuOverlay.isVisible()) {
-            toggleEntityMenu(); // Close the menu if a menu item was pressed.
-        }
-    }
-    
-    if (eventJSON.command === 'dynamic-menu-item-triggered') {
-        var dataToSend = {
-            command: eventJSON.command,
-            entityID: eventJSON.data.triggeredEntityID,
             data: eventJSON.data.data
         };
 
         Messages.sendLocalMessage(NYX_UI_CHANNEL, JSON.stringify(dataToSend));
+        console.log("hi" + JSON.stringify(eventJSON));
+        // console.log("############@@@" + JSON.stringify(eventJSON.data));
+        // console.log("############!!!" + JSON.stringify(eventJSON.data.data));
+        // console.log("############$$$" + JSON.stringify(eventJSON.data.data.type));
+        // var itemData = JSON.parse(eventJSON.data.data);
+        // console.log("############&&&" + JSON.stringify(itemData.type));
+        if (eventJSON.data.data.type === 'button' && entityWebMenuOverlay.isVisible()) {
+            toggleEntityMenu(); // Close the menu if a menu item was pressed.
+        }
     }
     
     if (eventJSON.command === 'sit-on-entity-triggered') {
@@ -179,6 +174,14 @@ function onOverlayWebEventReceived(event) {
     
     if (eventJSON.command === 'parent-to-entity-triggered') {
         NyxParentSelf.toggleParent(lastTriggeredEntityInfo.id);
+    }
+    
+    if (eventJSON.command === 'entity-move-mode-triggered') {
+        if (Entities.getEntityProperties(lastTriggeredEntityInfo.id, ['grab']).grab.grabbable === false) {
+            Entities.editEntity(lastTriggeredEntityInfo.id, {'grab': { 'grabbable': true }});
+        } else {
+            Entities.editEntity(lastTriggeredEntityInfo.id, {'grab': { 'grabbable': false }});
+        }
     }
     
     if (eventJSON.command === 'close-entity-menu') {

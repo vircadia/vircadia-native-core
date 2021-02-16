@@ -1,9 +1,9 @@
 (function () {
-    var NyxAlpha1 = Script.require('../nyx-helpers.js?12dsadsddsadssaddddsadassadasdsasaddseras3');
+    var NyxAlpha1 = Script.require('../nyx-helpers.js?12dsadsddsadssdassaddseras3');
 
     var _entityID;
     
-    function onDynamicEntityMenuTriggered(triggeredEntityID, command, data) {
+    function onEntityMenuTriggered(triggeredEntityID, command, data) {
         if (data.name === ':)' && triggeredEntityID === _entityID) {
             Entities.editEntity(_entityID, { 
                 text: data.value
@@ -24,11 +24,11 @@
                 initialValue: initialProps.text
             }
         ]);
-        NyxAlpha1.dynamicEntityMenuTriggered.connect(onDynamicEntityMenuTriggered);
+        NyxAlpha1.entityMenuTriggered.connect(onEntityMenuTriggered);
     };
 
     this.unload = function () {
-        NyxAlpha1.dynamicEntityMenuTriggered.disconnect(onDynamicEntityMenuTriggered);
+        NyxAlpha1.entityMenuTriggered.disconnect(onEntityMenuTriggered);
     };
 
 });

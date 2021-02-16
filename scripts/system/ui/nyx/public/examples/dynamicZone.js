@@ -1,5 +1,5 @@
 (function () {
-    var NyxAlpha1 = Script.require('../nyx-helpers.js?12dsadsddsadssaddddsadassadasdsasaddseras3');
+    var NyxAlpha1 = Script.require('../nyx-helpers.js?12dsadsddsadssaddddsadassadasdsdsadasasaddseras3');
 
     var _entityID;
 
@@ -17,7 +17,7 @@
         }
     }
     
-    function onDynamicEntityMenuTriggered(triggeredEntityID, command, data) {
+    function onEntityMenuTriggered(triggeredEntityID, command, data) {
         if (data.name === 'Keylight Color' && triggeredEntityID === _entityID) {
             Entities.editEntity(_entityID, { 
                 keyLightColor: { 
@@ -40,37 +40,33 @@
 
         var initialProps = Entities.getEntityProperties(_entityID, ['color', 'alpha']);
         
-        NyxAlpha1.registerWithEntityMenu(entityID, {
-            buttons: [
-                {
-                    name: 'Keylight On'
-                },
-                {
-                    name: 'Keylight Off'
-                }
-            ],
-            colorPickers: [
-                {
-                    name: 'Keylight Color',
-                }
-            ],
-            sliders: [
-                {
-                    name: 'Brightness',
-                    step: 0.1,
-                    color: 'yellow',
-                    minValue: 0,
-                    maxValue: 1
-                }
-            ]
-        });
-        NyxAlpha1.entityMenuPressed.connect(onEntityMenuTriggered);
-        NyxAlpha1.dynamicEntityMenuTriggered.connect(onDynamicEntityMenuTriggered);
+        NyxAlpha1.registerWithEntityMenu(entityID, [
+            {
+                type: 'button',
+                name: 'Keylight On'
+            },
+            {
+                type: 'button',
+                name: 'Keylight Off'
+            }
+            {
+                type: 'colorPicker',
+                name: 'Keylight Color',
+            }
+            {
+                type: 'slider',
+                name: 'Brightness',
+                step: 0.1,
+                color: 'yellow',
+                minValue: 0,
+                maxValue: 1
+            }
+        ]);
+        NyxAlpha1.entityMenuTriggered.connect(onEntityMenuTriggered);
     };
 
     this.unload = function () {
-        NyxAlpha1.entityMenuPressed.disconnect(onEntityMenuTriggered);
-        NyxAlpha1.dynamicEntityMenuTriggered.disconnect(onDynamicEntityMenuTriggered);
+        NyxAlpha1.entityMenuTriggered.disconnect(onEntityMenuTriggered);
     };
 
 });

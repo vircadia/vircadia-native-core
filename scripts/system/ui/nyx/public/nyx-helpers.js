@@ -18,11 +18,11 @@ var NYX_UI_CHANNEL = "nyx-ui";
 ///////////////// BEGIN HELPERS
 
 // REGISTER HELPER
-function registerWithEntityMenu (entityID, menuItems) {
+function registerWithEntityMenu (entityID, actions) {
     var messageToSend = {
         'command': 'register-with-entity-menu',
         'entityID': entityID,
-        'menuItems': menuItems
+        'actions': actions
     };
 
     Messages.sendLocalMessage(NYX_UI_CHANNEL, JSON.stringify(messageToSend));
@@ -38,19 +38,6 @@ function connectEntityMenu (callback) {
 function disconnectEntityMenu (callback) {
     if (entityMenuCallBack === callback) {
         entityMenuCallBack = null;
-    }
-}
-
-// DYNAMIC ENTITY MENU TRIGGERED HELPER
-var dynamicEntityMenuCallBack = null;
-
-function connectDynamicEntityMenuItem (callback) {
-    dynamicEntityMenuCallBack = callback;
-}
-
-function disconnectDynamicEntityMenuItem (callback) {
-    if (dynamicEntityMenuCallBack === callback) {
-        dynamicEntityMenuCallBack = null;
     }
 }
 
@@ -77,24 +64,16 @@ function onMessageReceived(channel, message, senderID, localOnly) {
         messageData = JSON.parse(message);
         
         if (messageData.command === "menu-item-triggered") {
-            entityMenuCallBack(messageData.entityID, messageData.command, messageData.menuItem);
-        }
-        
-        if (messageData.command === "dynamic-menu-item-triggered") {
-            dynamicEntityMenuCallBack(messageData.entityID, messageData.command, messageData.data);
+            entityMenuCallBack(messageData.entityID, messageData.command, messageData.data);
         }
     }
 }
 
 module.exports = {
     registerWithEntityMenu: registerWithEntityMenu,
-    entityMenuPressed: {
+    entityMenuTriggered: {
         connect: connectEntityMenu,
         disconnect: disconnectEntityMenu
     },
-    dynamicEntityMenuTriggered: {
-        connect: connectDynamicEntityMenuItem,
-        disconnect: disconnectDynamicEntityMenuItem
-    },
-    version: "0.0.1"
+    version: "0.0.2"
 }

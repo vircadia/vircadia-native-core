@@ -1,5 +1,5 @@
 (function () {
-    var NyxAlpha1 = Script.require('../nyx-helpers.js?12dsadsddsadssaddddsadassadasdsasaddseras3');
+    var NyxAlpha1 = Script.require('../nyx-helpers.js?rasssdsadas3');
 
     var _entityID;
     var gunID;
@@ -33,26 +33,23 @@
             userData: "{ \"grabbableKey\": { \"grabbable\": false, \"triggerable\": false}}" 
         },"avatar");
 
-        NyxAlpha1.registerWithEntityMenu(gunID, {
-            buttons: [
-                {
-                    name: 'Unequip'
-                }
-            ]
-        });
+        NyxAlpha1.registerWithEntityMenu(gunID, [
+            {
+                type: 'button',
+                name: 'Unequip'
+            }
+        ]);
     }
 
-    function onEntityMenuTriggered(triggeredEntityID, command, menuItem) {
-        if (menuItem === 'Equip' && triggeredEntityID === _entityID) {
+    function onEntityMenuTriggered(triggeredEntityID, command, data) {
+        if (data.name === 'Equip' && triggeredEntityID === _entityID) {
             equipGun();
         }
         
-        if (menuItem === 'Unequip' && triggeredEntityID === gunID) {
+        if (data.name === 'Unequip' && triggeredEntityID === gunID) {
             Entities.deleteEntity(gunID);
         }
-    }
-    
-    function onDynamicEntityMenuTriggered(triggeredEntityID, command, data) {
+        
         if (data.name === 'Color Picker' && triggeredEntityID === _entityID) {
             Entities.editEntity(_entityID, { 
                 color: { 
@@ -76,41 +73,36 @@
 
         var initialProps = Entities.getEntityProperties(_entityID, ['color', 'alpha']);
         
-        NyxAlpha1.registerWithEntityMenu(entityID, {
-            buttons: [
-                {
-                    name: 'Equip'
+        NyxAlpha1.registerWithEntityMenu(entityID, [
+            {
+                type: 'button',
+                name: 'Equip'
+            },
+            {
+                type: 'colorPicker',
+                name: 'Color Picker',
+                initialColor: {
+                    r: initialProps.color.r,
+                    g: initialProps.color.g,
+                    b: initialProps.color.b,
+                    a: '1'
                 }
-            ],
-            colorPickers: [
-                {
-                    name: 'Color Picker',
-                    initialColor: {
-                        r: initialProps.color.r,
-                        g: initialProps.color.g,
-                        b: initialProps.color.b,
-                        a: '1'
-                    }
-                }
-            ],
-            sliders: [
-                {
-                    name: 'Alpha',
-                    step: 0.1,
-                    color: 'yellow',
-                    initialValue: initialProps.alpha,
-                    minValue: 0,
-                    maxValue: 1
-                }
-            ]
-        });
-        NyxAlpha1.entityMenuPressed.connect(onEntityMenuTriggered);
-        NyxAlpha1.dynamicEntityMenuTriggered.connect(onDynamicEntityMenuTriggered);
+            },
+            {
+                type: 'slider',
+                name: 'Alpha',
+                step: 0.1,
+                color: 'yellow',
+                initialValue: initialProps.alpha,
+                minValue: 0,
+                maxValue: 1
+            }
+        ]);
+        NyxAlpha1.entityMenuTriggered.connect(onEntityMenuTriggered);
     };
 
     this.unload = function () {
-        NyxAlpha1.entityMenuPressed.disconnect(onEntityMenuTriggered);
-        NyxAlpha1.dynamicEntityMenuTriggered.disconnect(onDynamicEntityMenuTriggered);
+        NyxAlpha1.entityMenuTriggered.disconnect(onEntityMenuTriggered);
     };
 
 });

@@ -107,99 +107,26 @@
                         width="100%"
                     >
                         <v-tab-item>
-                            <!-- This needs to move to its own component. -->
                             <v-card
                                 class="mx-auto"
                                 height="100%"
                                 width="100%"
                             >
                                 <v-list
-                                    v-show="registeredEntityMenus[triggeredEntity.id]"
+                                    v-if="registeredEntityMenus[triggeredEntity.id]"
                                 >
                                     <v-subheader>ACTIONS</v-subheader>
                                     <v-list>
-                                        <div v-if="registeredEntityMenus[triggeredEntity.id] && registeredEntityMenus[triggeredEntity.id].buttons">
-                                            <v-divider></v-divider>
-                                            <v-list-item
-                                                v-for="(item, i) in registeredEntityMenus[triggeredEntity.id].buttons"
-                                                :key="i"
-                                                @click="triggeredMenuItem(item.name)"
-                                                width="100%"
-                                            >
-                                                <v-list-item-content>
-                                                    <v-list-item-title v-text="item.name"></v-list-item-title>
-                                                </v-list-item-content>
-                                            </v-list-item>
-                                        </div>
-                                        <div v-if="registeredEntityMenus[triggeredEntity.id] && registeredEntityMenus[triggeredEntity.id].sliders">
-                                            <v-divider></v-divider>
-                                            <div
-                                                v-for="(item, i) in registeredEntityMenus[triggeredEntity.id].sliders"
-                                                :key="i"
-                                                width="100%"
-                                            >
-                                                <v-list-item-content>
-                                                    <v-slider
-                                                        v-on:change="sliderUpdated(item.name, $event)"
-                                                        :label="item.name"
-                                                        :color="item.color"
-                                                        :value="item.initialValue"
-                                                        :min="item.minValue"
-                                                        :max="item.maxValue"
-                                                        :step="item.step"
-                                                    ></v-slider>
-                                                </v-list-item-content>
-                                            </div>
-                                        </div>
-                                        <div v-if="registeredEntityMenus[triggeredEntity.id] && registeredEntityMenus[triggeredEntity.id].textFields">
-                                            <v-divider></v-divider>
-                                            <div
-                                                v-for="(item, i) in registeredEntityMenus[triggeredEntity.id].textFields"
-                                                :key="i"
-                                                width="100%"
-                                            >
-                                                <v-list-item-content>
-                                                    <v-text-field
-                                                        :label="item.name"
-                                                        :value="item.initialValue"
-                                                        :hint="item.hint"
-                                                        v-model="textFields[item.name]"
-                                                    >
-                                                        <v-tooltip slot="append" left>
-                                                            <template v-slot:activator="{ on, attrs }">
-                                                                <v-icon
-                                                                    @click="textFieldUpdated(item.name)" 
-                                                                    v-bind="attrs"
-                                                                    v-on="on"
-                                                                    color="green"
-                                                                >
-                                                                    mdi-check
-                                                                </v-icon>
-                                                            </template>
-                                                            <span>Apply</span>
-                                                        </v-tooltip>
-                                                    </v-text-field>
-                                                </v-list-item-content>
-                                            </div>
-                                        </div>
-                                        <div v-if="registeredEntityMenus[triggeredEntity.id] && registeredEntityMenus[triggeredEntity.id].colorPickers">
-                                            <v-divider></v-divider>
-                                            <div
-                                                v-for="(item, i) in registeredEntityMenus[triggeredEntity.id].colorPickers"
-                                                :key="i"
-                                                width="100%"
-                                            >
-                                                <v-list-item-content>
-                                                    <v-color-picker
-                                                        @update:color="colorPickerUpdated(item.name, $event)"
-                                                        :value="item.initialColor"
-                                                    ></v-color-picker>
-                                                </v-list-item-content>
-                                            </div>
-                                        </div>
+                                        <Action
+                                            v-for="item in registeredEntityMenus[triggeredEntity.id].actions"
+                                            :key="item.name"
+                                            @emit-framework-message="sendFrameworkMessage" 
+                                            :triggeredEntity="triggeredEntity"
+                                            :action="item"
+                                        ></Action>
                                     </v-list>
                                 </v-list>
-                                <div v-show="!registeredEntityMenus[triggeredEntity.id]">
+                                <div v-else-if="!registeredEntityMenus[triggeredEntity.id]">
                                     <v-list-item-subtitle>No Actions Available</v-list-item-subtitle>
                                 </div>
                             </v-card>
@@ -325,6 +252,9 @@
 </template>
 
 <script>
+// Components
+import Action from './components/Action'
+
 var vue_this;
 
 function browserDevelopment() {
@@ -362,6 +292,7 @@ if (!browserDevelopment()) {
 export default {
     name: 'App',
     components: {
+        Action
     },
     data: () => ({
         // Settings
@@ -382,16 +313,38 @@ export default {
                 ]
             }
         },
-        // Dynamic Menu Item Data
-        textFields: {},
         // General
         tabs: 0,
         // Entity Context Menu
         registeredEntityMenus: {
             "{768542d0-e962-49e3-94fb-85651d56f5ae}": {
-                buttons: [
+                'actions': [
                     {
+                        type: 'button',
                         name: 'Equip'
+                    },
+                    {
+                        type: 'colorPicker',
+                        name: 'Color Picker',
+                        initialColor: {
+                            r: '1',
+                            g: '1',
+                            b: '1',
+                            a: '1'
+                        }
+                    },
+                    {
+                        type: 'slider',
+                        name: 'Alpha',
+                        step: 0.1,
+                        color: 'yellow',
+                        initialValue: '0.1',
+                        minValue: 0,
+                        maxValue: 1
+                    },
+                    {
+                        type: 'button',
+                        name: 'Unequip'
                     }
                 ]
             }
@@ -434,57 +387,19 @@ export default {
         updateSettings: function (data) {
             this.settings = data.settings;
         },
-        triggeredMenuItem: function (menuItem) {
-            var dataToSend = {
-                'triggeredEntityID': this.triggeredEntity.id,
-                'menuItem': menuItem
-            }
-
-            this.sendFrameworkMessage('menu-item-triggered', dataToSend);
-        },
         triggerSitOnEntity: function () {
             this.sendFrameworkMessage('sit-on-entity-triggered', {});
         },
         triggerParentToEntity: function () {
             this.sendFrameworkMessage('parent-to-entity-triggered', {});
         },
-        colorPickerUpdated: function (colorPicker, colorEvent) {
-            var dataToSend = {
-                'triggeredEntityID': this.triggeredEntity.id,
-                data: {
-                    'name': colorPicker,
-                    'colors': colorEvent
-                }
-            }
-
-            this.sendFrameworkMessage('dynamic-menu-item-triggered', dataToSend);
-        },
-        sliderUpdated: function (slider, sliderEvent) {
-            var dataToSend = {
-                'triggeredEntityID': this.triggeredEntity.id,
-                data: {
-                    'name': slider,
-                    'value': sliderEvent
-                }
-            }
-
-            this.sendFrameworkMessage('dynamic-menu-item-triggered', dataToSend);
-        },
-        textFieldUpdated: function (textField) {
-            var dataToSend = {
-                'triggeredEntityID': this.triggeredEntity.id,
-                data: {
-                    'name': textField,
-                    'value': this.textFields[textField]
-                }
-            }
-
-            this.sendFrameworkMessage('dynamic-menu-item-triggered', dataToSend);
+        triggerMoveModeOnEntity: function () {
+            this.sendFrameworkMessage('entity-move-mode-triggered', {});
         },
         closeEntityMenu: function () {
             this.sendFrameworkMessage('close-entity-menu', '');
         },
-        sendFrameworkMessage: function(command, data) {
+        sendFrameworkMessage: function (command, data) {
             var JSONtoSend = {
                 "command": command,
                 "data": data
@@ -494,7 +409,7 @@ export default {
                 // eslint-disable-next-line
                 EventBridge.emitWebEvent(JSON.stringify(JSONtoSend));
             } else {
-                // alert(JSON.stringify(JSONtoSend));
+                // console.info(JSON.stringify(JSONtoSend));
             }
         }
     },
