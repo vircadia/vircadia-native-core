@@ -102,7 +102,7 @@ include("${CMAKE_BINARY_DIR}/vcpkg.cmake")
 if (HIFI_ANDROID)
   set(QT_CMAKE_PREFIX_PATH "$ENV{HIFI_ANDROID_PRECOMPILED}/qt/lib/cmake")
 else()
-  if (NOT $ENV{VIRCADIA_USE_SYSTEM_QT})
+  if (NOT DEFINED ENV{VIRCADIA_USE_SYSTEM_QT})
     if(NOT EXISTS "${CMAKE_BINARY_DIR}/qt.cmake")
         message(FATAL_ERROR "qt configuration missing.")
     endif()
@@ -293,7 +293,7 @@ set_packaging_parameters()
 # Locate the required Qt build on the filesystem
 setup_qt()
 
-if (NOT $ENV{VIRCADIA_USE_SYSTEM_QT})
+if (NOT DEFINED ENV{VIRCADIA_USE_SYSTEM_QT})
   list(APPEND CMAKE_PREFIX_PATH "${QT_CMAKE_PREFIX_PATH}")
 endif()
 

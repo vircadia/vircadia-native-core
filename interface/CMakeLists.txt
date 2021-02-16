@@ -435,7 +435,7 @@ else()
   endif()
 endif()
 
-if (NOT $ENV{VIRCADIA_USE_SYSTEM_QT})
+if (NOT DEFINED ENV{VIRCADIA_USE_SYSTEM_QT})
   if (DEV_BUILD AND (APPLE OR UNIX))
     # create a qt.conf file to override hard-coded search paths in Qt libs
     set(QT_LIB_PATH "${QT_CMAKE_PREFIX_PATH}/../..")
