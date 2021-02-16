@@ -13,6 +13,7 @@
 var SHAPETYPE_TO_SHAPE = {
     "box": "Cube",
     "ellipsoid": "Sphere",
+    "sphere": "Sphere",
     "cylinder-y": "Cylinder",
 };
 
@@ -34,14 +35,6 @@ function getEntityShapePropertiesForType(properties) {
                     type: "Model",
                     modelURL: properties.compoundShapeURL,
                     localDimensions: properties.localDimensions
-                };
-            } else if (properties.shapeType === "sphere") {
-                var sphereDiameter = Math.max(properties.localDimensions.x, properties.localDimensions.y,
-                    properties.localDimensions.z);
-                return {
-                    type: "Sphere",
-                    modelURL: properties.compoundShapeURL,
-                    localDimensions: {x: sphereDiameter, y: sphereDiameter, z: sphereDiameter}
                 };
             }
             break;

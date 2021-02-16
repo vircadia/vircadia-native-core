@@ -281,7 +281,7 @@ const GROUPS = [
             {
                 label: "Shape Type",
                 type: "dropdown",
-                options: { "box": "Box", "sphere": "Sphere", "ellipsoid": "Ellipsoid", 
+                options: { "box": "Box", "sphere": "Sphere",
                            "cylinder-y": "Cylinder", "compound": "Use Compound Shape URL" },
                 propertyID: "zoneShapeType",
                 propertyName: "shapeType", // actual entity property name
