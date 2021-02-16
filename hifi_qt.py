@@ -34,6 +34,7 @@ endif()
         system = platform.system()
 
         qt_found = False
+        system_qt = False
 
         # Here we handle the 3 possible cases of dealing with Qt:
         if os.getenv('VIRCADIA_USE_SYSTEM_QT'):
@@ -45,25 +46,11 @@ endif()
             if system != "Linux":
                 raise Exception("Using the system Qt is only supported on Linux")
 
-            cmake_paths = [ "lib64/cmake", "lib/cmake" ]
-            cmake_path_ok = False
-
-            # This makes the lockFile stuff happy. Needs to be writable.
-            self.path = tempfile.mkdtemp()
-
-            self.fullPath = '/usr'
-
-            # Find the cmake directory
-            for cp in cmake_paths:
-                self.cmakePath = os.path.join(self.fullPath, cp)
-                if os.path.isdir(self.cmakePath):
-                    cmake_path_ok = True
-                    break
-
-            if not cmake_path_ok:
-                raise Exception("Failed to find cmake directory. Looked under " + self.fullPath + " in " + (', '.join(cmake_paths)))
+            self.path = None
+            self.cmakePath = None
 
             qt_found = True
+            system_qt = True
             print("Using system Qt")
 
         elif os.getenv('VIRCADIA_QT_PATH'):
@@ -98,19 +85,21 @@ endif()
             qt_found = os.path.isdir(self.fullPath)
             print("Using a packaged Qt")
 
-        if qt_found:
-            # Sanity check, ensure we have a good cmake directory
-            if not os.path.isdir(os.path.join(self.cmakePath, "Qt5")):
-                raise Exception("Failed to find Qt5 directory under " + self.cmakePath)
 
-        # I'm not sure why this is needed. It's used by hifi_singleton.
-        # Perhaps it stops multiple build processes from interferring?
-        lockDir, lockName = os.path.split(self.path)
-        lockName += '.lock'
-        if not os.path.isdir(lockDir):
-            os.makedirs(lockDir)
+        if not system_qt:
+            if qt_found:
+                # Sanity check, ensure we have a good cmake directory
+                if not os.path.isdir(os.path.join(self.cmakePath, "Qt5")):
+                    raise Exception("Failed to find Qt5 directory under " + self.cmakePath)
 
-        self.lockFile = os.path.join(lockDir, lockName)
+            # I'm not sure why this is needed. It's used by hifi_singleton.
+            # Perhaps it stops multiple build processes from interferring?
+            lockDir, lockName = os.path.split(self.path)
+            lockName += '.lock'
+            if not os.path.isdir(lockDir):
+                os.makedirs(lockDir)
+
+            self.lockFile = os.path.join(lockDir, lockName)
 
         if qt_found:
             print("Found pre-built Qt5")

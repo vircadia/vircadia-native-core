@@ -130,23 +130,26 @@ def main():
         with timer('NSIS'):
             hifi_utils.downloadAndExtract(assets_url + '/dependencies/NSIS-hifi-plugins-1.0.tgz', "C:/Program Files (x86)")
 
-    qtInstallPath = ''
+    qtInstallPath = None
     # If not android, install our Qt build
     if not args.android:
         qt = hifi_qt.QtDownloader(args)
         qtInstallPath = qt.cmakePath
-        with hifi_singleton.Singleton(qt.lockFile) as lock:
-            with timer('Qt'):
-                qt.installQt()
-                qt.writeConfig()
+
+        if qtInstallPath is not None:
+            # qtInstallPath is None when we're doing a system Qt build
+            with hifi_singleton.Singleton(qt.lockFile) as lock:
+                with timer('Qt'):
+                    qt.installQt()
+                    qt.writeConfig()
 
     pm = hifi_vcpkg.VcpkgRepo(args)
-    if qtInstallPath != '':
+    if qtInstallPath is not None:
         pm.writeVar('QT_CMAKE_PREFIX_PATH', qtInstallPath)
 
     # Only allow one instance of the program to run at a time
 
-    if qtInstallPath != '':
+    if qtInstallPath is not None:
         pm.writeVar('QT_CMAKE_PREFIX_PATH', qtInstallPath)
 
     # Only allow one instance of the program to run at a time
