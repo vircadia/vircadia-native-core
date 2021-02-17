@@ -933,7 +933,7 @@ function loaded() {
                 entityIds: selection,
             }));
         }
-        
+
         function updateEntityData(entityData) {
             entities = [];
             entitiesByID = {};
@@ -943,7 +943,7 @@ function loaded() {
                 entityData.forEach(function(entity) {
                     let type = entity.type;
                     let filename = getFilename(entity.url);
-                    
+
                     let entityData = {
                         id: entity.id,
                         name: entity.name,
@@ -991,7 +991,7 @@ function loaded() {
                                                                  e.type.toLowerCase().indexOf(searchTerm) > -1 ||
                                                                  e.fullUrl.toLowerCase().indexOf(searchTerm) > -1 ||
                                                                  (e.urlWithPath.toLowerCase().indexOf(searchTerm) > -1 && 
-                                                                 columnsByID["urlWithPath"].elTh.style.visibility === "visible")||
+                                                                 columnsByID["urlWithPath"].elTh.style.visibility === "visible") ||
                                                                  e.id.toLowerCase().indexOf(searchTerm) > -1);
                         return typeFilter && searchFilter;
                     });
