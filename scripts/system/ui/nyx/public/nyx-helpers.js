@@ -29,15 +29,17 @@ function registerWithEntityMenu (entityID, actions) {
 }
 
 // ENTITY MENU TRIGGERED HELPER
-var entityMenuCallBack = null;
+// This is the callback of the function that's been connected, so fulfilling 
+// this will fulfill the function that is using the NyxHelper.
+var entityMenuCallBack = {};
 
-function connectEntityMenu (callback) {
-    entityMenuCallBack = callback;
+function connectEntityMenu (entityID, callback) {
+    entityMenuCallBack[entityID] = callback;
 }
 
-function disconnectEntityMenu (callback) {
+function disconnectEntityMenu (entityID, callback) {
     if (entityMenuCallBack === callback) {
-        entityMenuCallBack = null;
+        delete entityMenuCallBack[entityID];
     }
 }
 
@@ -63,8 +65,8 @@ function onMessageReceived(channel, message, senderID, localOnly) {
     if (channel === NYX_UI_CHANNEL && MyAvatar.sessionUUID === senderID) {
         messageData = JSON.parse(message);
         
-        if (messageData.command === "menu-item-triggered") {
-            entityMenuCallBack(messageData.entityID, messageData.command, messageData.data);
+        if (messageData.command === "menu-item-triggered" && entityMenuCallBack[messageData.entityID] !== null) {
+            entityMenuCallBack[messageData.entityID](messageData.entityID, messageData.command, messageData.data);
         }
     }
 }

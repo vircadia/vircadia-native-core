@@ -157,12 +157,7 @@ function onOverlayWebEventReceived(event) {
         };
 
         Messages.sendLocalMessage(NYX_UI_CHANNEL, JSON.stringify(dataToSend));
-        console.log("hi" + JSON.stringify(eventJSON));
-        // console.log("############@@@" + JSON.stringify(eventJSON.data));
-        // console.log("############!!!" + JSON.stringify(eventJSON.data.data));
-        // console.log("############$$$" + JSON.stringify(eventJSON.data.data.type));
-        // var itemData = JSON.parse(eventJSON.data.data);
-        // console.log("############&&&" + JSON.stringify(itemData.type));
+        // console.log(JSON.stringify(eventJSON));
         if (eventJSON.data.data.type === 'button' && entityWebMenuOverlay.isVisible()) {
             toggleEntityMenu(); // Close the menu if a menu item was pressed.
         }

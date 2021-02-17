@@ -1,5 +1,5 @@
 (function () {
-    var NyxAlpha1 = Script.require('../nyx-helpers.js?rasssdsadas3');
+    var NyxAlpha1 = Script.require('../nyx-helpers.js?fadgfdagfdadfdafds3');
 
     var _entityID;
     var gunID;
@@ -98,11 +98,12 @@
                 maxValue: 1
             }
         ]);
-        NyxAlpha1.entityMenuTriggered.connect(onEntityMenuTriggered);
+
+        NyxAlpha1.entityMenuTriggered.connect(_entityID, onEntityMenuTriggered);
     };
 
     this.unload = function () {
-        NyxAlpha1.entityMenuTriggered.disconnect(onEntityMenuTriggered);
+        NyxAlpha1.entityMenuTriggered.disconnect(_entityID, onEntityMenuTriggered);
     };
 
 });
