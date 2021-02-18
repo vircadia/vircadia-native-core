@@ -87,7 +87,7 @@
                     r: initialProps.color.r,
                     g: initialProps.color.g,
                     b: initialProps.color.b,
-                    a: '1'
+                    a: initialProps.alpha
                 }
             },
             {
