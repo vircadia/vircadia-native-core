@@ -14,49 +14,22 @@
 
 <template>
     <v-app>
-        <v-toolbar
-            flat
+        <v-app-bar
+            app
         >
             <v-toolbar-title 
-                v-show="triggeredEntity.name"
+                v-if="triggeredEntity.name"
             >
                 {{ triggeredEntity.name }}
             </v-toolbar-title>
             <v-toolbar-title 
-                v-show="!triggeredEntity.name"
+                v-if="!triggeredEntity.name"
             >
                 Unnamed
             </v-toolbar-title>
-
+            
             <v-spacer></v-spacer>
-
-            <v-btn
-                small
-                fab
-                color="primary"
-                @click="triggerParentToEntity();"
-                class="mr-3"
-            >
-                <v-icon>mdi-account-child</v-icon>
-            </v-btn>
-            <v-btn
-                small
-                fab
-                color="primary"
-                @click="triggerSitOnEntity();"
-                class="mr-3"
-            >
-                <v-icon>mdi-sofa-single</v-icon>
-            </v-btn>
-            <v-btn
-                small
-                fab
-                color="primary"
-                @click="tabs = 2"
-                class="mr-3"
-            >
-                <v-icon>mdi-cog</v-icon>
-            </v-btn>
+            
             <v-btn
                 small
                 fab
@@ -67,32 +40,58 @@
             </v-btn>
 
             <template v-slot:extension>
-                <v-tabs
-                    v-model="tabs"
-                    fixed-tabs
-                >
-                    <v-tabs-slider></v-tabs-slider>
-                    <v-tab
-                        class="primary--text"
-                    >
-                        <v-icon class="mr-2">mdi-format-list-bulleted</v-icon>
-                        Actions
-                    </v-tab>
-                    <v-tab
-                        class="primary--text"
-                    >
-                        <v-icon class="mr-2">mdi-cube</v-icon>
-                        Properties
-                    </v-tab>
-                    <v-tab
-                        class="primary--text"
-                        style="display: none;"
-                    >
-                        <v-icon>mdi-cog</v-icon>
-                    </v-tab>
-                </v-tabs>
+                <v-spacer></v-spacer>
+
+                <v-tooltip bottom>
+                    <template v-slot:activator="{ on }">
+                        <v-btn
+                            small
+                            fab
+                            color="primary"
+                            @click="triggerParentToEntity();"
+                            class="mr-3"
+                            v-on="on"
+                        >
+                            <v-icon>mdi-account-child</v-icon>
+                        </v-btn>
+                    </template>
+                    <span>Parent self to entity</span>
+                </v-tooltip>
+
+                <v-tooltip bottom>
+                    <template v-slot:activator="{ on }">
+                        <v-btn
+                            small
+                            fab
+                            color="primary"
+                            @click="triggerSitOnEntity();"
+                            class="mr-3"
+                            v-on="on"
+                        >
+                            <v-icon>mdi-sofa-single</v-icon>
+                        </v-btn>
+                    </template>
+                    <span>Sit on entity</span>
+                </v-tooltip>
+
+                <v-tooltip bottom>
+                    <template v-slot:activator="{ on }">
+                        <v-btn
+                            small
+                            fab
+                            color="green"
+                            @click="tabs = 2"
+                            v-on="on"
+                        >
+                            <v-icon>mdi-cog</v-icon>
+                        </v-btn>
+                    </template>
+                    <span>Settings</span>
+                </v-tooltip>
+
+                <v-spacer></v-spacer>
             </template>
-        </v-toolbar>
+        </v-app-bar>
         <v-main>
             <v-container
                 class="fill-height"
@@ -101,6 +100,7 @@
                 <v-card
                     height="100%"
                     width="100%"
+                    class="pa-2"
                 >
                     <v-tabs-items 
                         v-model="tabs"
@@ -108,29 +108,29 @@
                         width="100%"
                     >
                         <v-tab-item>
-                            <v-card
-                                class="mx-auto"
-                                height="100%"
-                                width="100%"
+                            <v-list
+                                v-if="registeredEntityMenus[triggeredEntity.id]"
                             >
-                                <v-list
-                                    v-if="registeredEntityMenus[triggeredEntity.id]"
-                                >
-                                    <v-list>
-                                        <Action
-                                            v-for="item in registeredEntityMenus[triggeredEntity.id].actions"
-                                            :key="item.name"
-                                            @emit-framework-message="sendFrameworkMessage" 
-                                            :triggeredEntity="triggeredEntity"
-                                            :action="item"
-                                            class="pa-2"
-                                        ></Action>
-                                    </v-list>
+                                <v-list>
+                                    <Action
+                                        v-for="item in registeredEntityMenus[triggeredEntity.id].actions"
+                                        :key="item.name"
+                                        @emit-framework-message="sendFrameworkMessage" 
+                                        :triggeredEntity="triggeredEntity"
+                                        :action="item"
+                                    ></Action>
                                 </v-list>
-                                <div v-else-if="!registeredEntityMenus[triggeredEntity.id]">
-                                    <v-list-item-subtitle>No Actions Available</v-list-item-subtitle>
-                                </div>
-                            </v-card>
+                            </v-list>
+                            <div 
+                                v-else-if="!registeredEntityMenus[triggeredEntity.id]"
+                                class="text-center"
+                            >
+                                <v-list-item-subtitle
+                                    class="text-h6"
+                                >
+                                    No Actions Available
+                                </v-list-item-subtitle>
+                            </div>
                         </v-tab-item>
                         <v-tab-item>
                             <!-- This needs to move to its own component. -->
@@ -205,13 +205,17 @@
                                 height="100%"
                                 width="100%"
                             >
-                                <v-card-text>
+                                <v-card-text
+                                    class="pt-0"
+                                >
                                     <v-card-title>
                                         Trigger Entity Menu
                                     </v-card-title>
                                     <v-divider></v-divider>
                                     <v-row>
-                                        <v-card-title>
+                                        <v-card-title
+                                            class="subtitle-1"
+                                        >
                                             <v-checkbox
                                                 v-model="settings.entityMenu.useMouseTriggers"
                                                 hide-details
@@ -242,6 +246,30 @@
                                             dense
                                         ></v-combobox>
                                     </v-row>
+
+                                    <v-divider></v-divider>
+
+                                    <v-card-title>
+                                        Sit Offsets
+                                    </v-card-title>
+                                    <v-divider></v-divider>
+                                    <v-row>
+                                        <v-text-field
+                                            label="x"
+                                            v-model="settings.sit.offset.position.x"
+                                            type="number"
+                                        ></v-text-field>
+                                        <v-text-field
+                                            label="y"
+                                            v-model="settings.sit.offset.position.y"
+                                            type="number"
+                                        ></v-text-field>
+                                        <v-text-field
+                                            label="z"
+                                            v-model="settings.sit.offset.position.z"
+                                            type="number"
+                                        ></v-text-field>
+                                    </v-row>
                                 </v-card-text>
                             </v-card>
                         </v-tab-item>
@@ -250,20 +278,32 @@
             </v-container>
         </v-main>
         <v-bottom-navigation
-            dark
-            shift
+            app
         >
-            <v-btn>
-                <span>Video</span>
-
-                <v-icon>mdi-television-play</v-icon>
-            </v-btn>
-
-            <v-btn>
-                <span>Music</span>
-
-                <v-icon>mdi-music-note</v-icon>
-            </v-btn>
+            <v-tabs
+                v-model="tabs"
+                fixed-tabs
+            >
+                <v-tabs-slider></v-tabs-slider>
+                <v-tab
+                    class="primary--text"
+                >
+                    <v-icon class="mr-2">mdi-format-list-bulleted</v-icon>
+                    Actions
+                </v-tab>
+                <v-tab
+                    class="primary--text"
+                >
+                    <v-icon class="mr-2">mdi-cube</v-icon>
+                    Properties
+                </v-tab>
+                <v-tab
+                    class="primary--text"
+                    style="display: none;"
+                >
+                    <v-icon>mdi-cog</v-icon>
+                </v-tab>
+            </v-tabs>
         </v-bottom-navigation>
     </v-app>
 </template>
@@ -328,6 +368,15 @@ export default {
                     'Control',
                     'Alt'
                 ]
+            },
+            sit: {
+                offset: {
+                    position: {
+                        x: 0,
+                        y: 0,
+                        z: 0
+                    }
+                }
             }
         },
         // General
@@ -368,7 +417,7 @@ export default {
         },
         triggeredEntity: {
             id: '{768542d0-e962-49e3-94fb-85651d56f5ae}',
-            name: 'test',
+            name: 'TESTTTTTTTT',
             type: 'test',
             lastEditedBy: 'test',
             lastEditedByName: 'test',

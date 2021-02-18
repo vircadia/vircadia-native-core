@@ -11,7 +11,7 @@
 -->
 
 <template>
-    <v-main>
+    <div>
         <div v-if="action.type === 'button'">
             <v-divider></v-divider>
             <v-list-item
@@ -77,7 +77,7 @@
                 </v-list-item-content>
             </div>
         </div>
-    </v-main>
+    </div>
 </template>
 
 <script>

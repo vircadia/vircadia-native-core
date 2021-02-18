@@ -38,9 +38,7 @@ function connectEntityMenu (entityID, callback) {
 }
 
 function disconnectEntityMenu (entityID, callback) {
-    if (entityMenuCallBack === callback) {
-        delete entityMenuCallBack[entityID];
-    }
+    delete entityMenuCallBack[entityID];
 }
 
 // MAIN FUNCTIONALITY
@@ -65,7 +63,7 @@ function onMessageReceived(channel, message, senderID, localOnly) {
     if (channel === NYX_UI_CHANNEL && MyAvatar.sessionUUID === senderID) {
         messageData = JSON.parse(message);
         
-        if (messageData.command === "menu-item-triggered" && entityMenuCallBack[messageData.entityID] !== null) {
+        if (messageData.command === "menu-item-triggered" && entityMenuCallBack[messageData.entityID]) {
             entityMenuCallBack[messageData.entityID](messageData.entityID, messageData.command, messageData.data);
         }
     }

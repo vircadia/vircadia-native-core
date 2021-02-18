@@ -1,5 +1,5 @@
 (function () {
-    var NyxAlpha1 = Script.require('../nyx-helpers.js?fadgfdagfdadfdafds3');
+    var NyxAlpha1 = Script.require('../nyx-helpers.js?ds3545');
 
     var _entityID;
     var gunID;
@@ -39,6 +39,7 @@
                 name: 'Unequip'
             }
         ]);
+        NyxAlpha1.entityMenuTriggered.connect(gunID, onEntityMenuTriggered);
     }
 
     function onEntityMenuTriggered(triggeredEntityID, command, data) {
@@ -48,6 +49,7 @@
         
         if (data.name === 'Unequip' && triggeredEntityID === gunID) {
             Entities.deleteEntity(gunID);
+            NyxAlpha1.entityMenuTriggered.disconnect(gunID, onEntityMenuTriggered);
         }
         
         if (data.name === 'Color Picker' && triggeredEntityID === _entityID) {

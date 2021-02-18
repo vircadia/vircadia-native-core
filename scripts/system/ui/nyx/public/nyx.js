@@ -11,10 +11,11 @@
 //
 
 Script.include('/~/system/libraries/utils.js');
-var NyxSit = Script.require('./modules/sit.js');
+var NyxSit = Script.require('./modules/sit.js?12dsadsadsdsadadadsad3dfdsadasdssa45');
 var NyxParentSelf = Script.require('./modules/parentSelf.js');
 
 var SETTING_NYX_PREFIX = 'nyx/';
+var NYX_SETTINGS_SETTINGS = 'Nyx Settings'; // lol
 var NYX_UI_CHANNEL = 'nyx-ui';
 
 var nyxSettings = null;
@@ -119,8 +120,6 @@ function bootstrapEntityMenu() {
 ///////////////// END ENTITY MENU OVERLAY
 
 ///////////////// NYX MESSAGE HANDLING
-
-var NYX_SETTINGS_SETTINGS = 'Nyx Settings'; // lol
 
 function sendToWeb(command, data) {
     var dataToSend = {
