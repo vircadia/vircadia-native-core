@@ -4,6 +4,56 @@
     "/": "/0.155245,-0.941538,23.9289/0,0.791589,0,0.611053"
 },
   "Entities": [
+      {
+      "id": "{0a199807-4a83-4286-b09c-f21124627c3e}",
+      "type": "Box",
+      "name": "Config Wizard Loader",
+      "lastEdited": 1613737207915514,
+      "visible": false,
+      "position": {
+          "x": -1.2722,
+          "y": 0.4266,
+          "z": 24.2307
+      },
+      "dimensions": {
+          "x": 0.20000000298023224,
+          "y": 0.20000000298023224,
+          "z": 0.20000000298023224
+      },
+      "rotation": {
+          "x": 0,
+          "y": -0.7660443782806396,
+          "z": 0,
+          "w": -0.6427876949310303
+      },
+      "created": 1613736996738696,
+      "lastEditedBy": "{ff9b500e-e450-4127-b41f-1c42be16f71b}",
+      "queryAACube": {
+          "x": -0.17320507764816284,
+          "y": -0.17320507764816284,
+          "z": -0.17320507764816284,
+          "scale": 0.3464101552963257
+      },
+      "grab": {
+          "grabbable": false
+      },
+      "damping": 0,
+      "angularDamping": 0,
+      "collisionless": true,
+      "ignoreForCollisions": true,
+      "script": "https://cdn-1.vircadia.com/us-e-1/DomainContent/Tutorial/Apps/configWizard/dist/wizardLoader.js",
+      "color": {
+          "red": 0,
+          "green": 180,
+          "blue": 239
+      },
+      "shape": "Cube",
+      "clientOnly": false,
+      "avatarEntity": false,
+      "localEntity": false,
+      "faceCamera": false,
+      "isFacingAvatar": false
+  },
     {
     "id": "{eb485a2d-2040-42f6-a960-51c88e2434b9}",
     "type": "Box",
