@@ -53,7 +53,7 @@ public:
     virtual void shutdown() {}
     virtual const std::string& getVersion() const = 0;
 
-    void setStereoState(const StereoState& stereo) { _stereo = stereo; }
+    void setStereoState(const StereoState& stereo);
 
     virtual void render(const Batch& batch) = 0;
     virtual void syncCache() = 0;
@@ -71,11 +71,10 @@ public:
     public:
         const Backend::TransformCamera& recomputeDerived(const Transform& view, const Transform& previousView, const Mat4& previousProjection) const;
         // Jitter should be divided by framebuffer size
-        TransformCamera getMonoCamera(bool isSkybox, const Transform& view, Transform previousView, Mat4 previousProjection,
-            Vec2 normalizedJitter) const;
+        TransformCamera getMonoCamera(bool isSkybox, const Transform& view, Transform previousView, Mat4 previousProjection, Vec2 normalizedJitter) const;
         // Jitter should be divided by framebuffer size
-        TransformCamera getEyeCamera(int eye, const StereoState& stereo, const Transform& view, const Transform& previousView,
-            Mat4 previousProjection, Vec2 normalizedJitter) const;
+        TransformCamera getEyeCamera(int eye, const StereoState& stereo, const StereoState& prevStereo, const Transform& view, const Transform& previousView,
+            Vec2 normalizedJitter) const;
     };
 
     template <typename T, typename U>
@@ -134,6 +133,7 @@ protected:
     friend class Context;
     mutable ContextStats _stats;
     StereoState _stereo;
+    StereoState _prevStereo;
 };
 
 }

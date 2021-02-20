@@ -36,25 +36,33 @@ ContextMetricSize Backend::texturePendingGPUTransferMemSize;
 ContextMetricSize Backend::textureResourcePopulatedGPUMemSize;
 ContextMetricSize Backend::textureResourceIdealGPUMemSize;
 
+void Backend::setStereoState(const StereoState& stereo) {
+    _prevStereo = _stereo;
+    _stereo = stereo;
+}
+
 Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye,
-                                                                const StereoState& _stereo,
+                                                                const StereoState& stereo,
+                                                                const StereoState& prevStereo,
                                                                 const Transform& view,
                                                                 const Transform& previousView,
-                                                                Mat4 previousProjection,
                                                                 Vec2 normalizedJitter) const {
     TransformCamera result = *this;
     Transform eyeView = view;
     Transform eyePreviousView = previousView;
-    if (!_stereo._skybox) {
-        eyeView.postTranslate(-Vec3(_stereo._eyeViews[eye][3]));
-        eyePreviousView.postTranslate(-Vec3(_stereo._eyeViews[eye][3]));
+    if (!stereo._skybox) {
+        eyeView.postTranslate(-Vec3(stereo._eyeViews[eye][3]));
+        eyePreviousView.postTranslate(-Vec3(prevStereo._eyeViews[eye][3]));
     } else {
         // FIXME: If "skybox" the ipd is set to 0 for now, let s try to propose a better solution for this in the future
         eyePreviousView.setTranslation(vec3());
     }
-    result._projection = _stereo._eyeProjections[eye];
+    result._projection = stereo._eyeProjections[eye];
+    Mat4 previousProjection = prevStereo._eyeProjections[eye];
 
     // Apply jitter to projections
+    // We divided by the framebuffer size, which was double-sized, to normalize the jitter, but we want a normal amount of jitter
+    // for each eye, so we multiply by 2 to get back to normal
     normalizedJitter.x *= 2.0f;
     result._projection[2][0] += normalizedJitter.x;
     result._projection[2][1] += normalizedJitter.y;

@@ -124,24 +124,22 @@ void GLBackend::syncTransformStateCache() {
     _transform._enabledDrawcallInfoBuffer = false;
 }
 
-void GLBackend::TransformStageState::pushCameraBufferElement(const StereoState& stereo, TransformCameras& cameras) const {
+void GLBackend::TransformStageState::pushCameraBufferElement(const StereoState& stereo, const StereoState& prevStereo, TransformCameras& cameras) const {
     const float jitterAmplitude = _projectionJitter._scale;
     const Vec2 jitterScale = Vec2(jitterAmplitude * float(_projectionJitter._isEnabled & 1)) / Vec2(_viewport.z, _viewport.w);
     const Vec2 jitter = jitterScale * _projectionJitter._offset;
 
     if (stereo.isStereo()) {
 #ifdef GPU_STEREO_CAMERA_BUFFER
-        cameras.push_back(CameraBufferElement(_camera.getEyeCamera(0, stereo, _viewProjectionState._correctedView,
-                                                                   _viewProjectionState._previousCorrectedView, _viewProjectionState._previousProjection,
-                                                                    jitter),
-                                              _camera.getEyeCamera(1, stereo, _viewProjectionState._correctedView,
-                                                                   _viewProjectionState._previousCorrectedView, _viewProjectionState._previousProjection,
-                                                                   jitter)));
+        cameras.push_back(CameraBufferElement(_camera.getEyeCamera(0, stereo, prevStereo, _viewProjectionState._correctedView,
+                                                                   _viewProjectionState._previousCorrectedView, jitter),
+                                              _camera.getEyeCamera(1, stereo, prevStereo, _viewProjectionState._correctedView,
+                                                                   _viewProjectionState._previousCorrectedView, jitter)));
 #else
-        cameras.push_back((_camera.getEyeCamera(0, stereo, _viewProjectionState._correctedView,
-                                                _viewProjectionState._previousCorrectedView, _viewProjectionState._previousProjection, jitter)));
-        cameras.push_back((_camera.getEyeCamera(1, stereo, _viewProjectionState._correctedView,
-                                                _viewProjectionState._previousCorrectedView, _viewProjectionState._previousProjection, jitter)));
+        cameras.push_back((_camera.getEyeCamera(0, stereo, prevStereo, _viewProjectionState._correctedView,
+                                                _viewProjectionState._previousCorrectedView, jitter)));
+        cameras.push_back((_camera.getEyeCamera(1, stereo, prevStereo, _viewProjectionState._correctedView,
+                                                _viewProjectionState._previousCorrectedView, jitter)));
 #endif
     } else {
 #ifdef GPU_STEREO_CAMERA_BUFFER
@@ -157,10 +155,10 @@ void GLBackend::TransformStageState::pushCameraBufferElement(const StereoState& 
 }
 
 void GLBackend::preUpdateTransform() {
-    _transform.preUpdate(_commandIndex, _stereo);
+    _transform.preUpdate(_commandIndex, _stereo, _prevStereo);
 }
 
-void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const StereoState& stereo) {
+void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const StereoState& stereo, const StereoState& prevStereo) {
     // Check all the dirty flags and update the state accordingly
     if (_invalidViewport) {
         _camera._viewport = glm::vec4(_viewport);
@@ -189,7 +187,7 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
         size_t offset = _cameraUboSize * _cameras.size();
         _cameraOffsets.push_back(TransformStageState::Pair(commandIndex, offset));
 
-        pushCameraBufferElement(stereo, _cameras);
+        pushCameraBufferElement(stereo, prevStereo, _cameras);
         if (_currentSavedTransformSlot != INVALID_SAVED_CAMERA_SLOT) {
             // Save the offset of the saved camera slot in the camera buffer. Can be used to copy
             // that data, or (in the future) to reuse the offset.
