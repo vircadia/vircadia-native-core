@@ -304,7 +304,9 @@ void GLTextureTransferEngineDefault::processTransferQueues() {
 #if THREADED_TEXTURE_BUFFERING
     if (!_transferThread) {
         _transferThread = new TextureBufferThread(*this);
-        QObject::connect(_transferThread, &QThread::started, [] { setThreadName("TextureBufferThread"); });
+        QString name = "TextureBufferThread";
+        _transferThread->setObjectName(name);
+        QObject::connect(_transferThread, &QThread::started, [name] { setThreadName(name.toStdString()); });
         _transferThread->start();
     }
 #endif
