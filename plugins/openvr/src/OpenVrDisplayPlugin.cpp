@@ -31,6 +31,7 @@
 #include <display-plugins/CompositorHelper.h>
 #include <ui-plugins/PluginContainer.h>
 #include <gl/OffscreenGLCanvas.h>
+#include <ThreadHelpers.h>
 
 #include "OpenVrHelpers.h"
 
@@ -494,6 +495,7 @@ bool OpenVrDisplayPlugin::internalActivate() {
                 _submitCanvas->doneCurrent();
             });
         }
+        connect(_submitThread.get(), &QThread::started, [] { setThreadName("OpenVR Submit Thread"); });
         _submitCanvas->moveToThread(_submitThread.get());
     }
 

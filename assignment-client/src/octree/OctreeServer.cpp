@@ -34,6 +34,7 @@
 #include <QtCore/QDir>
 
 #include <OctreeDataUtils.h>
+#include <ThreadHelpers.h>
 
 Q_LOGGING_CATEGORY(octree_server, "hifi.octree-server")
 
@@ -1192,7 +1193,10 @@ void OctreeServer::domainSettingsRequestComplete() {
                                                  _persistAsFileType);
         _persistManager->moveToThread(&_persistThread);
         connect(&_persistThread, &QThread::finished, _persistManager, &QObject::deleteLater);
-        connect(&_persistThread, &QThread::started, _persistManager, &OctreePersistThread::start);
+        connect(&_persistThread, &QThread::started, _persistManager, [this] {
+            setThreadName("OctreePersistThread");
+            _persistManager->start();
+        });
         connect(_persistManager, &OctreePersistThread::loadCompleted, this, [this]() {
             beginRunning();
         });
