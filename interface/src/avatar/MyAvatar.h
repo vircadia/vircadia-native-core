@@ -1800,7 +1800,7 @@ public:
     void setAnalogPlusSprintSpeed(float value);
     float getAnalogPlusSprintSpeed() const;
     void setSitStandStateChange(bool stateChanged);
-    float getSitStandStateChange() const;
+    bool getSitStandStateChange() const;
     void updateSitStandState(float newHeightReading, float dt);
 
     QVector<QString> getScriptUrls();
@@ -2180,13 +2180,6 @@ public slots:
      * @function MyAvatar.updateMotionBehaviorFromMenu
      */
     Q_INVOKABLE void updateMotionBehaviorFromMenu();
-
-    /**jsdoc
-     * @function MyAvatar.setToggleHips
-     * @param {boolean} enabled - Enabled.
-     * @deprecated This function is deprecated and will be removed.
-     */
-    void setToggleHips(bool followHead);
 
     /**jsdoc
      * Displays the base of support area debug graphics if in HMD mode. If your head goes outside this area your avatar's hips 
@@ -2907,8 +2900,6 @@ private:
         void setForceActivateVertical(bool val);
         bool getForceActivateHorizontal() const;
         void setForceActivateHorizontal(bool val);
-        bool getToggleHipsFollowing() const;
-        void setToggleHipsFollowing(bool followHead);
         std::atomic<bool> _forceActivateRotation { false };
         std::atomic<bool> _forceActivateVertical { false };
         std::atomic<bool> _forceActivateHorizontal { false };
