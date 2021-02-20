@@ -260,9 +260,9 @@ void MaterialEntityRenderer::doRender(RenderArgs* args) {
     textureTransform.setRotation(glm::vec3(0, 0, glm::radians(_materialMappingRot)));
     textureTransform.setScale(glm::vec3(_materialMappingScale, 1));
 
-    Transform renderTransform;
+    Transform transform;
     withReadLock([&] {
-        renderTransform = _renderTransform;
+        transform = _renderTransform;
     });
 
     if (!drawMaterial) {
@@ -273,9 +273,11 @@ void MaterialEntityRenderer::doRender(RenderArgs* args) {
         proceduralRender = true;
     }
 
-    batch.setModelTransform(renderTransform, _prevRenderTransform);
+    transform.setRotation(BillboardModeHelpers::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
+        args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
+    batch.setModelTransform(transform, _prevRenderTransform);
     if (args->_renderMode == Args::RenderMode::DEFAULT_RENDER_MODE || args->_renderMode == Args::RenderMode::MIRROR_RENDER_MODE) {
-        _prevRenderTransform = renderTransform;
+        _prevRenderTransform = transform;
     }
 
     if (!proceduralRender) {
@@ -291,8 +293,8 @@ void MaterialEntityRenderer::doRender(RenderArgs* args) {
         auto proceduralDrawMaterial = std::static_pointer_cast<graphics::ProceduralMaterial>(drawMaterial);
         glm::vec4 outColor = glm::vec4(drawMaterial->getAlbedo(), drawMaterial->getOpacity());
         outColor = proceduralDrawMaterial->getColor(outColor);
-        proceduralDrawMaterial->prepare(batch, renderTransform.getTranslation(), renderTransform.getScale(),
-                                        renderTransform.getRotation(), _created, ProceduralProgramKey(outColor.a < 1.0f));
+        proceduralDrawMaterial->prepare(batch, transform.getTranslation(), transform.getScale(),
+                                        transform.getRotation(), _created, ProceduralProgramKey(outColor.a < 1.0f));
         if (render::ShapeKey(args->_globalShapeKey).isWireframe() || _primitiveMode == PrimitiveMode::LINES) {
             DependencyManager::get<GeometryCache>()->renderWireSphere(batch, outColor);
         } else {
@@ -378,7 +380,7 @@ void MaterialEntityRenderer::applyMaterial(const TypedEntityPointer& entity) {
 
     if (material->isProcedural()) {
         auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(material);
-        procedural->setBoundOperator([this] { return getBound(); });
+        procedural->setBoundOperator([this](RenderArgs* args) { return getBound(args); });
         entity->setHasVertexShader(procedural->hasVertexShader());
     }
 

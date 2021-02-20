@@ -118,7 +118,7 @@ void GLBackend::syncTransformStateCache() {
 
     Mat4 modelView;
     auto modelViewInv = glm::inverse(modelView);
-    _transform._viewProjectionState._view.evalFromRawMatrix(modelViewInv); 
+    _transform._viewProjectionState._view.evalFromRawMatrix(modelViewInv);
 
     glDisableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO);
     _transform._enabledDrawcallInfoBuffer = false;

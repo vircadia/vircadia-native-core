@@ -32,7 +32,7 @@ public:
 
 namespace render {
     template <> const ItemKey payloadGetKey(const WorldBoxRenderData::Pointer& stuff);
-    template <> const Item::Bound payloadGetBound(const WorldBoxRenderData::Pointer& stuff);
+    template <> const Item::Bound payloadGetBound(const WorldBoxRenderData::Pointer& stuff, RenderArgs* args);
     template <> void payloadRender(const WorldBoxRenderData::Pointer& stuff, RenderArgs* args);
 }
 

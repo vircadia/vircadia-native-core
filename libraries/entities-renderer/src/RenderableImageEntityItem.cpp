@@ -58,23 +58,11 @@ void ImageEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
     _color = entity->getColor();
     _alpha = entity->getAlpha();
     _pulseProperties = entity->getPulseProperties();
-    _billboardMode = entity->getBillboardMode();
 
     if (!_textureIsLoaded) {
         emit requestRenderUpdate();
     }
     _textureIsLoaded = _texture && (_texture->isLoaded() || _texture->isFailed());
-}
-
-Item::Bound ImageEntityRenderer::getBound() {
-    auto bound = Parent::getBound();
-    if (_billboardMode != BillboardMode::NONE) {
-        glm::vec3 dimensions = bound.getScale();
-        float max = glm::max(dimensions.x, glm::max(dimensions.y, dimensions.z));
-        const float SQRT_2 = 1.41421356237f;
-        bound.setScaleStayCentered(glm::vec3(SQRT_2 * max));
-    }
-    return bound;
 }
 
 ShapeKey ImageEntityRenderer::getShapeKey() {
@@ -109,7 +97,8 @@ void ImageEntityRenderer::doRender(RenderArgs* args) {
     Q_ASSERT(args->_batch);
     gpu::Batch* batch = args->_batch;
 
-    transform.setRotation(EntityItem::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode, args->getViewFrustum().getPosition()));
+    transform.setRotation(BillboardModeHelpers::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
+        args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
 
     batch->setModelTransform(transform, _prevRenderTransform);
     if (args->_renderMode == Args::RenderMode::DEFAULT_RENDER_MODE || args->_renderMode == Args::RenderMode::MIRROR_RENDER_MODE) {

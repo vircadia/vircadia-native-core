@@ -136,24 +136,24 @@ public:
 
     static bool checkFilterSettings(const EntityItemPointer& entity, PickFilter searchFilter);
     virtual bool canPickIntersect() const override { return hasEntities(); }
-    virtual EntityItemID evalRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+    virtual EntityItemID evalRayIntersection(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& viewFrustumPos,
         OctreeElementPointer& element, float& distance, BoxFace& face, glm::vec3& surfaceNormal,
         const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard,
         PickFilter searchFilter, QVariantMap& extraInfo);
     virtual EntityItemID evalDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         OctreeElementPointer& element, float& distance,
+                         const glm::vec3& viewFrustumPos, OctreeElementPointer& element, float& distance,
                          BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
                          const QVector<EntityItemID>& entityIdsToDiscard, PickFilter searchFilter, QVariantMap& extraInfo);
     virtual bool findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const override;
 
     virtual EntityItemID evalParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
-        const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
+        const glm::vec3& acceleration, const glm::vec3& viewFrustumPos, OctreeElementPointer& element, float& parabolicDistance,
         BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
         const QVector<EntityItemID>& entityIdsToDiscard, PickFilter searchFilter, QVariantMap& extraInfo);
     virtual EntityItemID evalDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
-        const glm::vec3& normal, const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
-        BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
+        const glm::vec3& normal, const glm::vec3& acceleration, const glm::vec3& viewFrustumPos, OctreeElementPointer& element,
+        float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
         const QVector<EntityItemID>& entityIdsToDiscard, PickFilter searchFilter, QVariantMap& extraInfo);
 
     template <typename F>

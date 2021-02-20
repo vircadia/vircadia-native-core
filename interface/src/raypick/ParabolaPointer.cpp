@@ -466,9 +466,9 @@ namespace render {
     template <> const ItemKey payloadGetKey(const ParabolaPointer::RenderState::ParabolaRenderItem::Pointer& payload) {
         return payload->getKey();
     }
-    template <> const Item::Bound payloadGetBound(const ParabolaPointer::RenderState::ParabolaRenderItem::Pointer& payload) {
+    template <> const Item::Bound payloadGetBound(const ParabolaPointer::RenderState::ParabolaRenderItem::Pointer& payload, RenderArgs* args) {
         if (payload) {
-            return payload->getBound();
+            return payload->getBound(args);
         }
         return Item::Bound();
     }

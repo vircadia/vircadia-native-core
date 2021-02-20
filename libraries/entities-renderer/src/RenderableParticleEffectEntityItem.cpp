@@ -167,7 +167,7 @@ ShapeKey ParticleEffectEntityRenderer::getShapeKey() {
     return builder.build();
 }
 
-Item::Bound ParticleEffectEntityRenderer::getBound() {
+Item::Bound ParticleEffectEntityRenderer::getBound(RenderArgs* args) {
     return _bound;
 }
 
@@ -460,8 +460,9 @@ void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
     color.middle = EntityRenderer::calculatePulseColor(_particleProperties.getColorMiddle(), _pulseProperties, _created);
     color.finish = EntityRenderer::calculatePulseColor(_particleProperties.getColorFinish(), _pulseProperties, _created);
     color.spread = EntityRenderer::calculatePulseColor(_particleProperties.getColorSpread(), _pulseProperties, _created);
-    
+
     batch.setModelTransform(transform); // particles are currently always transparent so we don't worry about TAA right now
+
     batch.setUniformBuffer(0, _uniformBuffer);
     batch.setInputFormat(_vertexFormat);
     batch.setInputBuffer(0, _particleBuffer, 0, sizeof(GpuParticle));
