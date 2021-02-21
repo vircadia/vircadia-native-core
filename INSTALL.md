@@ -1,6 +1,6 @@
 # Creating an Installer
 
-*Last Updated on December 2, 2020*
+*Last Updated on February 21, 2021*
 
 Follow the [build guide](BUILD.md) to figure out how to build Vircadia for your platform.
 
@@ -105,47 +105,60 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
 ##### Ubuntu | .deb
 
 1. Ensure you are using an Ubuntu 18.04 system.
-1. Set up Vircadia Builder to compile the server.
+2. Get and bootstrap Vircadia Builder.
     ```
-    git clone https://github.com/kasenvr/vircadia-builder.git
+    git clone https://github.com/vircadia/vircadia-builder.git
     cd vircadia-builder
     chmod +x vircadia-builder
-    ./vircadia-builder
     ```
-1. Build the server.
+3. Set up Vircadia Builder to compile the server. See [here](BUILD.md#possible-environment-variables) for possible environment variables and settings.
     ```
     ./vircadia-builder --build server
     ```
-1. Navigate to the `pkg-scripts` directory.
+4. Build the server.
+    ```
+    ./vircadia-builder --build server
+    ```
+5. Navigate to the `pkg-scripts` directory.
     ```
     cd ../Vircadia/source/pkg-scripts/
     ```
-1. Generate the .deb package.
+6. Generate the .deb package.
     ```
     DEBEMAIL="your-email@somewhere.com" DEBFULLNAME="Your Full Name" ./make-deb-server
     ```
-1. If successful, the generated .deb package will be in the `pkg-scripts` folder.
+7. If successful, the generated .deb package will be in the `pkg-scripts` folder.
 
 ##### Amazon Linux 2 | .rpm
 
 1. Ensure you are using an Amazon Linux 2 system.
-1. Set up Vircadia Builder to compile the server.
+2. Update the system and install dependencies.
     ```
-    git clone https://github.com/kasenvr/vircadia-builder.git
+    sudo yum update -y
+    sudo yum install git -y
+    sudo yum install rpm-build
+    ```
+3. Get and bootstrap Vircadia Builder.
+    ```
+    git clone https://github.com/vircadia/vircadia-builder.git
     cd vircadia-builder
+    sudo ./install_amazon_linux_deps.sh
     chmod +x vircadia-builder
-    ./vircadia-builder
     ```
-1. Build the server.
+4. Set up Vircadia Builder to compile the server. See [here](BUILD.md#possible-environment-variables) for possible environment variables and settings.
     ```
     ./vircadia-builder --build server
     ```
-1. Navigate to the `pkg-scripts` directory.
+5. Build the server.
+    ```
+    ./vircadia-builder --build server
+    ```
+6. Navigate to the `pkg-scripts` directory.
     ```
     cd ../Vircadia/source/pkg-scripts/
     ```
-1. Generate the .rpm package.
+7. Generate the .rpm package.
     ```
     ./make-rpm-server
     ```
-1. If successful, the generated .rpm package will be in the `pkg-scripts` folder.
+8. If successful, the generated .rpm package will be in the `pkg-scripts` folder.
