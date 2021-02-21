@@ -63,6 +63,8 @@ public:
 
     PulsePropertyGroup getPulseProperties() const;
 
+    void setNaturalDimension(const glm::vec3& naturalDimensions) const;
+
 protected:
     glm::u8vec3 _color;
     float _alpha;
@@ -72,6 +74,8 @@ protected:
     bool _emissive { false };
     bool _keepAspectRatio { true };
     QRect _subImage;
+
+    mutable glm::vec3 _naturalDimensions;
 };
 
 #endif // hifi_ImageEntityItem_h

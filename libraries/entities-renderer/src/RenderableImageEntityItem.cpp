@@ -59,10 +59,22 @@ void ImageEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
     _alpha = entity->getAlpha();
     _pulseProperties = entity->getPulseProperties();
 
+    bool nextTextureLoaded = _texture && (_texture->isLoaded() || _texture->isFailed());
     if (!_textureIsLoaded) {
         emit requestRenderUpdate();
+        if (nextTextureLoaded) {
+            float width = _texture->getWidth();
+            float height = _texture->getHeight();
+            glm::vec3 naturalDimensions = glm::vec3(1.0f, 1.0f, 0.01f);
+            if (width < height) {
+                naturalDimensions.x = width / height;
+            } else {
+                naturalDimensions.y = height / width;
+            }
+            entity->setNaturalDimension(naturalDimensions);
+        }
     }
-    _textureIsLoaded = _texture && (_texture->isLoaded() || _texture->isFailed());
+    _textureIsLoaded = nextTextureLoaded;
 }
 
 ShapeKey ImageEntityRenderer::getShapeKey() {
@@ -100,7 +112,6 @@ void ImageEntityRenderer::doRender(RenderArgs* args) {
     transform.setRotation(BillboardModeHelpers::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
         args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
 
-    batch->setModelTransform(transform);
     batch->setResourceTexture(0, _texture->getGPUTexture());
 
     float imageWidth = _texture->getWidth();
@@ -125,15 +136,25 @@ void ImageEntityRenderer::doRender(RenderArgs* args) {
         fromImage.setHeight(scaleY * _subImage.height());
     }
 
-    float maxSize = glm::max(fromImage.width(), fromImage.height());
-    float x = _keepAspectRatio ? fromImage.width() / (2.0f * maxSize) : 0.5f;
-    float y = _keepAspectRatio ? fromImage.height() / (2.0f * maxSize) : 0.5f;
-
     glm::vec2 texCoordBottomLeft((fromImage.x() + 0.5f) / imageWidth, (fromImage.y() + fromImage.height() - 0.5f) / imageHeight);
     glm::vec2 texCoordTopRight((fromImage.x() + fromImage.width() - 0.5f) / imageWidth, (fromImage.y() + 0.5f) / imageHeight);
 
+    if (_keepAspectRatio) {
+        glm::vec3 scale = transform.getScale();
+        float targetAspectRatio = imageWidth / imageHeight;
+        float currentAspectRatio = scale.x / scale.y;
+
+        if (targetAspectRatio < currentAspectRatio) {
+            scale.x *= targetAspectRatio / currentAspectRatio;
+        } else {
+            scale.y /= targetAspectRatio / currentAspectRatio;
+        }
+        transform.setScale(scale);
+    }
+    batch->setModelTransform(transform);
+
     DependencyManager::get<GeometryCache>()->renderQuad(
-        *batch, glm::vec2(-x, -y), glm::vec2(x, y), texCoordBottomLeft, texCoordTopRight,
+        *batch, glm::vec2(-0.5f), glm::vec2(0.5f), texCoordBottomLeft, texCoordTopRight,
         color, _geometryId
     );
 
