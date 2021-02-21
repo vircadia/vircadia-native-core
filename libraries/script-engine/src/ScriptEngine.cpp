@@ -315,7 +315,9 @@ bool ScriptEngine::isDebugMode() const {
 #endif
 }
 
-ScriptEngine::~ScriptEngine() {}
+ScriptEngine::~ScriptEngine() {
+    waitTillDoneRunning();
+}
 
 void ScriptEngine::disconnectNonEssentialSignals() {
     disconnect();
