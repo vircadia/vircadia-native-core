@@ -706,7 +706,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *
  * @property {Vec3} naturalPosition=0,0,0 - The center of the entity's unscaled mesh model if it has one, otherwise
  *     {@link Vec3(0)|Vec3.ZERO}. <em>Read-only.</em>
- * @property {Vec3} naturalDimensions - The dimensions of the entity's unscaled mesh model if it has one, otherwise
+ * @property {Vec3} naturalDimensions - The dimensions of the entity's unscaled mesh model or image if it has one, otherwise
  *     {@link Vec3(0)|Vec3.ONE}. <em>Read-only.</em>
  *
  * @property {Vec3} velocity=0,0,0 - The linear velocity of the entity in m/s with respect to world coordinates.
