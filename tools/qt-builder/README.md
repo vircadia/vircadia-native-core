@@ -1,5 +1,9 @@
 # General
-This document describes the process to build Qt 5.51.2.
+This document describes the process to build Qt 5.15.2.
+Note that there are several patches.
+* The first (to qfloat16.h) is needed to compile QT 5.12.3 on Visual Studio 2017 due to a bug in Visual Studio (*bitset* will not compile.  Note that there is a change in CMakeLists.txt to support this.
+* The second patch is to OpenSL ES audio and allow audio echo cancelllation on Android.
+* The third is a patch which fixes video playback on WebEngineViews on mac.  See https://bugreports.qt.io/browse/QTBUG-70967
 
 ## Requirements
 ### Windows
@@ -159,7 +163,7 @@ As of qt version 5.15.0, no patches are needed anymore.
 #### Configuring
 ```bash
 mkdir qt5-install
-mkdir qt5-build 
+mkdir qt5-build
 cd qt5-build
 ```
 
@@ -177,17 +181,28 @@ aarch64:
 You can accelerate the build process by installing some of the optional system dependencies.
 
 #### Make
-Replace `4` with the number of threads you want to use. Keep in mind that the QT build process uses a lot of memory. It is recommended to have at *least* 1,2 GiB per thread.
-Be warned that the qtwebengine build process ignores this setting and just uses your actual number of available threads instead. In my case it needed ~24GiB of memory for the build process.
+Replace `4` with the number of threads you want to use. Keep in mind that the QT build process uses a lot of memory. It is recommended to have at least 1,2 GiB per thread.
+```bash
+NINJAFLAGS='-j4' make -j4
+```
+
 On some systems qtscript, qtwebengine, qtwebchannel and qtspeech will be build by `make` without you manually specifying it, while others require you to build modules individually.
 Check the folders of each needed module for binary files, to make sure that they have actually been built.
+If a module has not been built, make the module "manually":
 ```bash
-make -j4
 make -j4 module-qtscript
-make -j4 module-qtwebengine
+NINJAFLAGS='-j4' make -j4 module-qtwebengine
 make -j4 module-qtspeech
 make -j4 module-qtwebchannel
+```
+
+Now Qt can be installed to qt5-install:
+```bash
 make -j4 install
+```
+
+If some modules were missing in previous steps, it is needed to install them individually as well:
+```bash
 cd qtwebengine
 make -j4 install
 cd ../qtscript
@@ -208,11 +223,11 @@ find . -name \*.prl -exec sed -i -e '/^QMAKE_PRL_BUILD_DIR/d' {} \;
 1.   Copy *qt.conf* to *qt5-install\bin*
 
 #### Uploading  
-1.  Tar and gzip qt5-install to create the package. Replace `ubuntu-18.04` with the relevant system and `amd64` with the relevant architecture.
+1.  Tar and xz qt5-install to create the package. Replace `ubuntu-18.04` with the relevant system and `amd64` with the relevant architecture.
 ```bash
-tar -zcvf qt5-install-5.15.2-ubuntu-18.04-amd64.tar.gz qt5-install
+tar -Jcvf qt5-install-5.15.2-ubuntu-18.04-amd64.tar.xz qt5-install
 ```
-1.  Upload qt5-install-5.15.2-ubuntu-18.04-amd64.tar.gz to https://athena-public.s3.amazonaws.com/dependencies/vcpkg/  
+1.  Upload qt5-install-5.15.2-ubuntu-18.04-amd64.tar.xz to https://athena-public.s3.amazonaws.com/dependencies/vcpkg/
 
 
 ### Mac  
