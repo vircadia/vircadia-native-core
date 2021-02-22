@@ -123,7 +123,7 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
     ```
     cd ../Vircadia/source/pkg-scripts/
     ```
-6. Generate the .deb package.
+6. Generate the .deb package. Set `DEBVERSION` to a valid semantic version value e.g. "2021.1.0".
     ```
     DEBVERSION="Semver e.g. 2021.1.0" DEBEMAIL="your-email@somewhere.com" DEBFULLNAME="Your Full Name" ./make-deb-server
     ```
@@ -157,7 +157,7 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
     ```
     cd ../Vircadia/source/pkg-scripts/
     ```
-7. Generate the .rpm package.
+7. Generate the .rpm package. Set `RPMVERSION` to a valid semantic version value e.g. "2021.1.0".
     ```
     RPMVERSION="Semver e.g. 2021.1.0" ./make-rpm-server
     ```
