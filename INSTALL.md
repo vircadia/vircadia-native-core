@@ -125,7 +125,7 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
     ```
 6. Generate the .deb package.
     ```
-    DEBEMAIL="your-email@somewhere.com" DEBFULLNAME="Your Full Name" ./make-deb-server
+    DEBVERSION="Semver e.g. 2021.1.0" DEBEMAIL="your-email@somewhere.com" DEBFULLNAME="Your Full Name" ./make-deb-server
     ```
 7. If successful, the generated .deb package will be in the `pkg-scripts` folder.
 
@@ -159,6 +159,6 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
     ```
 7. Generate the .rpm package.
     ```
-    ./make-rpm-server
+    RPMVERSION="Semver e.g. 2021.1.0" ./make-rpm-server
     ```
 8. If successful, the generated .rpm package will be in the `pkg-scripts` folder.
