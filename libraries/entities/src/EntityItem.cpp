@@ -1620,6 +1620,19 @@ const Transform EntityItem::getTransformToCenter(bool& success) const {
     return result;
 }
 
+const Transform EntityItem::getTransformToCenterWithOnlyLocalRotation(bool& success) const {
+    Transform result = getTransformWithOnlyLocalRotation(success);
+    glm::vec3 pivot = getPivot();
+    if (pivot != ENTITY_ITEM_ZERO_VEC3) {
+        result.postTranslate(pivot);
+    }
+    glm::vec3 registrationPoint = getRegistrationPoint();
+    if (registrationPoint != ENTITY_ITEM_HALF_VEC3) { // If it is not already centered, translate to center
+        result.postTranslate((ENTITY_ITEM_HALF_VEC3 - registrationPoint) * getScaledDimensions()); // Position to center
+    }
+    return result;
+}
+
 /// The maximum bounding cube for the entity, independent of it's rotation.
 /// This accounts for the registration point (upon which rotation occurs around).
 ///

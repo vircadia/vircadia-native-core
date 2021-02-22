@@ -71,6 +71,7 @@ public:
     virtual void setScaledDimensions(const glm::vec3& value) override;
 
     virtual const Transform getTransform(bool& success, int depth = 0) const override;
+    virtual const Transform getTransformWithOnlyLocalRotation(bool& success, int depth = 0) const override;
     virtual const Transform getTransform() const override;
 
     static const QString DEFAULT_COMPOUND_SHAPE_URL;

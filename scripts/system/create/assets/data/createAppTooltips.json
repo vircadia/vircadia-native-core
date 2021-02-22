@@ -38,6 +38,9 @@
     "textEffectThickness": {
         "tooltip": "The magnitude of the text effect."
     },
+    "textAlignment": {
+        "tooltip": "How the text is aligned within its left and right bounds."
+    },
     "topMargin": {
         "tooltip": "The top margin, in meters."
     },
