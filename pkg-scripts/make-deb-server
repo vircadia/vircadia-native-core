@@ -6,11 +6,11 @@ fi
 
 GITDATE=`git -C $VIRCADIA/source log -n 1 --format=raw | grep author | cut -d">" -f 2 | cut -d" " -f 2 | xargs -I {} date -d @{} +"%Y%m%d"`
 GITCOMMIT=`git -C $VIRCADIA/source rev-parse HEAD | cut -c 1-7`
-VERSION=2020.2.0-asteria-$GITDATE-$GITCOMMIT
+VERSION=$DEBVERSION-$GITDATE-$GITCOMMIT
 
 sudo apt-get install chrpath binutils dh-make
 
-DEB_BUILD_ROOT=temp-make-deb/vircadia-server-$VERSION-0ubuntu1
+DEB_BUILD_ROOT=temp-make-deb/vircadia-server_$VERSION-0ubuntu1
 rm -r temp-make-deb
 mkdir -p $DEB_BUILD_ROOT
 
