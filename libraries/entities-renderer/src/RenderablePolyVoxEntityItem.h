@@ -71,23 +71,17 @@ public:
 
     virtual bool supportsDetailedIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                             OctreeElementPointer& element, float& distance,
+                                             const glm::vec3& viewFrustumPos, OctreeElementPointer& element, float& distance,
                                              BoxFace& face, glm::vec3& surfaceNormal,
                                              QVariantMap& extraInfo, bool precisionPicking) const override;
     virtual bool findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const vec3& accleration,
-                                                  OctreeElementPointer& element, float& parabolicDistance,
-                                                  BoxFace& face, glm::vec3& surfaceNormal,
+                                                  const glm::vec3& viewFrustumPos, OctreeElementPointer& element,
+                                                  float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal,
                                                   QVariantMap& extraInfo, bool precisionPicking) const override;
 
     virtual void setVoxelData(const QByteArray& voxelData) override;
     virtual void setVoxelVolumeSize(const glm::vec3& voxelVolumeSize) override;
     virtual void setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) override;
-
-    glm::vec3 getSurfacePositionAdjustment() const;
-    glm::mat4 voxelToWorldMatrix() const;
-    glm::mat4 worldToVoxelMatrix() const;
-    glm::mat4 voxelToLocalMatrix() const;
-    glm::mat4 localToVoxelMatrix() const;
 
     virtual ShapeType getShapeType() const override;
     virtual bool isReadyToComputeShape() const override;
@@ -226,7 +220,9 @@ private:
     gpu::BufferPointer _params;
     std::array<NetworkTexturePointer, 3> _xyzTextures;
     glm::vec3 _lastVoxelVolumeSize;
-    glm::mat4 _lastVoxelToWorldMatrix;
+    glm::mat4 _lastVoxelToLocalMatrix;
+    glm::vec3 _position;
+    glm::quat _orientation;
     PolyVoxEntityItem::PolyVoxSurfaceStyle _lastSurfaceStyle { PolyVoxEntityItem::SURFACE_MARCHING_CUBES };
     std::array<QString, 3> _xyzTextureUrls;
 };

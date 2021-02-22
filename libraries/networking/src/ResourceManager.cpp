@@ -16,6 +16,7 @@
 #include <QFileInfo>
 
 #include <SharedUtil.h>
+#include <ThreadHelpers.h>
 
 #include "AssetResourceRequest.h"
 #include "FileResourceRequest.h"
@@ -25,11 +26,15 @@
 #include "NetworkingConstants.h"
 
 ResourceManager::ResourceManager(bool atpSupportEnabled) : _atpSupportEnabled(atpSupportEnabled) {
-    _thread.setObjectName("Resource Manager Thread");
+    QString name = "Resource Manager Thread";
+    _thread.setObjectName(name);
 
     if (_atpSupportEnabled) {
         auto assetClient = DependencyManager::set<AssetClient>();
         assetClient->moveToThread(&_thread);
+        QObject::connect(&_thread, &QThread::started, assetClient.data(), [assetClient, name] {
+            setThreadName(name.toStdString());
+        });
     }
 
     _thread.start();

@@ -115,11 +115,12 @@ bool RenderableModelEntityItem::needsUpdateModelBounds() const {
     }
 
     bool success;
-    auto transform = getTransform(success);
+    auto transform = getBillboardMode() == BillboardMode::NONE ? getTransform(success) : getTransformWithOnlyLocalRotation(success);
     if (success) {
         if (model->getTranslation() != transform.getTranslation()) {
             return true;
         }
+
         if (model->getRotation() != transform.getRotation()) {
             return true;
         }
@@ -149,10 +150,12 @@ void RenderableModelEntityItem::updateModelBounds() {
     bool overridingModelTransform = model->isOverridingModelTransformAndOffset();
     glm::vec3 scaledDimensions = getScaledDimensions();
     glm::vec3 registrationPoint = getRegistrationPoint();
+    bool needsSimulate = false;
     if (!overridingModelTransform &&
         (model->getScaleToFitDimensions() != scaledDimensions ||
-         model->getRegistrationPoint() != registrationPoint ||
-         !model->getIsScaledToFit() || _needsToRescaleModel)) {
+        model->getRegistrationPoint() != registrationPoint ||
+        !model->getIsScaledToFit() || _needsToRescaleModel ||
+        _useOriginalPivot == model->getSnapModelToRegistrationPoint())) {
         // The machinery for updateModelBounds will give existing models the opportunity to fix their
         // translation/rotation/scale/registration.  The first two are straightforward, but the latter two
         // have guards to make sure they don't happen after they've already been set.  Here we reset those guards.
@@ -162,24 +165,25 @@ void RenderableModelEntityItem::updateModelBounds() {
 
         // now recalculate the bounds and registration
         model->setScaleToFit(true, scaledDimensions);
-        model->setSnapModelToRegistrationPoint(true, registrationPoint);
+        model->setSnapModelToRegistrationPoint(!_useOriginalPivot, registrationPoint);
         updateRenderItems = true;
-        model->scaleToFit();
+        needsSimulate = true;
         _needsToRescaleModel = false;
     }
 
     bool success;
-    auto transform = getTransform(success);
+    auto transform = getBillboardMode() == BillboardMode::NONE ? getTransform(success) : getTransformWithOnlyLocalRotation(success);
     if (success && (model->getTranslation() != transform.getTranslation() ||
             model->getRotation() != transform.getRotation())) {
         model->setTransformNoUpdateRenderItems(transform);
         updateRenderItems = true;
     }
 
-    if (_needsInitialSimulation || _needsJointSimulation || isAnimatingSomething()) {
+    if (_needsInitialSimulation || _needsJointSimulation || needsSimulate || isAnimatingSomething()) {
         // NOTE: on isAnimatingSomething() we need to call Model::simulate() which calls Rig::updateRig()
         // TODO: there is opportunity to further optimize the isAnimatingSomething() case.
         model->simulate(0.0f);
+        locationChanged();
         _needsInitialSimulation = false;
         _needsJointSimulation = false;
         updateRenderItems = true;
@@ -219,31 +223,41 @@ EntityItemProperties RenderableModelEntityItem::getProperties(const EntityProper
     return properties;
 }
 
+glm::vec3 RenderableModelEntityItem::getPivot() const {
+    auto model = getModel();
+    auto pivot = EntityItem::getPivot();
+    if (!model || !model->isLoaded() || !_useOriginalPivot) {
+        return pivot;
+    }
+
+    return pivot + model->getOriginalOffset();
+}
+
 bool RenderableModelEntityItem::supportsDetailedIntersection() const {
     return true;
 }
 
 bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         OctreeElementPointer& element, float& distance, BoxFace& face,
+                         const glm::vec3& viewFrustumPos, OctreeElementPointer& element, float& distance, BoxFace& face,
                          glm::vec3& surfaceNormal, QVariantMap& extraInfo, bool precisionPicking) const {
     auto model = getModel();
     if (!model || !model->isLoaded()) {
         return false;
     }
 
-    return model->findRayIntersectionAgainstSubMeshes(origin, direction, distance,
+    return model->findRayIntersectionAgainstSubMeshes(origin, direction, viewFrustumPos, distance,
                face, surfaceNormal, extraInfo, precisionPicking, false);
 }
 
 bool RenderableModelEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
-                        const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance, BoxFace& face,
-                        glm::vec3& surfaceNormal, QVariantMap& extraInfo, bool precisionPicking) const {
+                        const glm::vec3& acceleration, const glm::vec3& viewFrustumPos, OctreeElementPointer& element,
+                        float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo, bool precisionPicking) const {
     auto model = getModel();
     if (!model || !model->isLoaded()) {
         return false;
     }
 
-    return model->findParabolaIntersectionAgainstSubMeshes(origin, velocity, acceleration, parabolicDistance,
+    return model->findParabolaIntersectionAgainstSubMeshes(origin, velocity, acceleration, viewFrustumPos, parabolicDistance,
         face, surfaceNormal, extraInfo, precisionPicking, false);
 }
 
@@ -443,14 +457,15 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         // multiply each point by scale before handing the point-set off to the physics engine.
         // also determine the extents of the collision model.
         glm::vec3 registrationOffset = dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint());
+        glm::vec3 offset = model->getSnapModelToRegistrationPoint() ? model->getOffset() : glm::vec3(0.0f);
         for (int32_t i = 0; i < pointCollection.size(); i++) {
             for (int32_t j = 0; j < pointCollection[i].size(); j++) {
                 // back compensate for registration so we can apply that offset to the shapeInfo later
-                pointCollection[i][j] = scaleToFit * (pointCollection[i][j] + model->getOffset()) - registrationOffset;
+                pointCollection[i][j] = scaleToFit * (pointCollection[i][j] + offset) - registrationOffset;
             }
         }
-        shapeInfo.setParams(type, 0.5f * extents, getCompoundShapeURL());
-        adjustShapeInfoByRegistration(shapeInfo);
+        shapeInfo.setParams(type, 0.5f * extents, getCompoundShapeURL() + model->getSnapModelToRegistrationPoint());
+        adjustShapeInfoByRegistration(shapeInfo, model->getSnapModelToRegistrationPoint());
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
         updateModelBounds();
         model->updateGeometry();
@@ -682,8 +697,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
             }
         }
 
-        shapeInfo.setParams(type, 0.5f * extents.size(), getModelURL());
-        adjustShapeInfoByRegistration(shapeInfo);
+        shapeInfo.setParams(type, 0.5f * extents.size(), getModelURL() + model->getSnapModelToRegistrationPoint());
+        adjustShapeInfoByRegistration(shapeInfo, model->getSnapModelToRegistrationPoint());
     } else {
         EntityItem::computeShapeInfo(shapeInfo);
     }
@@ -1254,6 +1269,7 @@ void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
                     _model->setTagMask(getTagMask(), scene);
                     _model->setHifiRenderLayer(getHifiRenderLayer(), scene);
                     _model->setPrimitiveMode(_primitiveMode, scene);
+                    _model->setBillboardMode(_billboardMode, scene);
                     _model->setCullWithParent(_cullWithParent, scene);
                     _model->setRenderWithZones(_renderWithZones, scene);
                 });
@@ -1332,6 +1348,7 @@ void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
         model->setTagMask(getTagMask(), scene);
         model->setHifiRenderLayer(getHifiRenderLayer(), scene);
         model->setPrimitiveMode(_primitiveMode, scene);
+        model->setBillboardMode(_billboardMode, scene);
         model->setCullWithParent(_cullWithParent, scene);
         model->setRenderWithZones(_renderWithZones, scene);
     });
