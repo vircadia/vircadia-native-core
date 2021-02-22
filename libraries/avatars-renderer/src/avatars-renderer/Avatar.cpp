@@ -63,7 +63,7 @@ namespace render {
         }
         return keyBuilder.build();
     }
-    template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar) {
+    template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar, RenderArgs* args) {
         auto avatarPtr = static_pointer_cast<Avatar>(avatar);
         if (avatarPtr) {
             return avatarPtr->getRenderBounds();
@@ -1246,7 +1246,7 @@ glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
         }
         case CAMERA_MATRIX_INDEX: {
             glm::quat rotation;
-            if (_skeletonModel && _skeletonModel->isActive()) {
+            if (_skeletonModel && _skeletonModel->isLoaded()) {
                 int headJointIndex = getJointIndex("Head");
                 if (headJointIndex >= 0) {
                     _skeletonModel->getAbsoluteJointRotationInRigFrame(headJointIndex, rotation);
@@ -1298,7 +1298,7 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
         }
         case CAMERA_MATRIX_INDEX: {
             glm::vec3 translation;
-            if (_skeletonModel && _skeletonModel->isActive()) {
+            if (_skeletonModel && _skeletonModel->isLoaded()) {
                 int headJointIndex = getJointIndex("Head");
                 if (headJointIndex >= 0) {
                     _skeletonModel->getAbsoluteJointTranslationInRigFrame(headJointIndex, translation);
@@ -1427,7 +1427,7 @@ void Avatar::withValidJointIndicesCache(std::function<void()> const& worker) con
             QWriteLocker writeLock(&_modelJointIndicesCacheLock);
             if (!_modelJointsCached) {
                 _modelJointIndicesCache.clear();
-                if (_skeletonModel && _skeletonModel->isActive()) {
+                if (_skeletonModel && _skeletonModel->isLoaded()) {
                     _modelJointIndicesCache = _skeletonModel->getHFMModel().jointIndices;
                     _modelJointsCached = true;
                 }

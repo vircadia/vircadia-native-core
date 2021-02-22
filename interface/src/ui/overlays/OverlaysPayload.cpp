@@ -14,7 +14,7 @@ namespace render {
     template <> const ItemKey payloadGetKey(const Overlay::Pointer& overlay) {
         return overlay->getKey();
     }
-    template <> const Item::Bound payloadGetBound(const Overlay::Pointer& overlay) {
+    template <> const Item::Bound payloadGetBound(const Overlay::Pointer& overlay, RenderArgs* args) {
         return overlay->getBounds();
     }
     template <> void payloadRender(const Overlay::Pointer& overlay, RenderArgs* args) {

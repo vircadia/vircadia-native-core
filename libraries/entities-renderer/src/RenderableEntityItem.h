@@ -64,7 +64,7 @@ public:
     static glm::vec3 calculatePulseColor(const glm::vec3& color, const PulsePropertyGroup& pulseProperties, quint64 start);
 
     virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) const override;
-    virtual Item::Bound getBound() override;
+    virtual Item::Bound getBound(RenderArgs* args) override;
     bool passesZoneOcclusionTest(const std::unordered_set<QUuid>& containingZones) const override;
 
 protected:
@@ -95,8 +95,7 @@ protected:
     // Will be called by the lambda posted to the scene in updateInScene.  
     // This function will execute on the rendering thread, so you cannot use network caches to fetch
     // data in this method if using multi-threaded rendering
-    
-    virtual void doRenderUpdateAsynchronous(const EntityItemPointer& entity) { }
+    virtual void doRenderUpdateAsynchronous(const EntityItemPointer& entity);
 
     // Called by the `render` method after `needsRenderUpdate`
     virtual void doRender(RenderArgs* args) = 0;
@@ -108,18 +107,7 @@ protected:
 
     virtual void setIsVisibleInSecondaryCamera(bool value) { _isVisibleInSecondaryCamera = value; }
     virtual void setRenderLayer(RenderLayer value) { _renderLayer = value; }
-    virtual void setPrimitiveMode(PrimitiveMode value) { _primitiveMode = value; }
     virtual void setCullWithParent(bool value) { _cullWithParent = value; }
-    virtual void setRenderWithZones(const QVector<QUuid>& renderWithZones) { _renderWithZones = renderWithZones; }
-
-    template <typename F, typename T>
-    T withReadLockResult(const std::function<T()>& f) {
-        T result;
-        withReadLock([&] {
-            result = f();
-        });
-        return result;
-    }
 
 signals:
     void requestRenderUpdate();
@@ -146,6 +134,7 @@ protected:
     RenderLayer _renderLayer { RenderLayer::WORLD };
     PrimitiveMode _primitiveMode { PrimitiveMode::SOLID };
     QVector<QUuid> _renderWithZones;
+    BillboardMode _billboardMode;
     bool _cauterized { false };
     bool _moving { false };
     Transform _renderTransform;

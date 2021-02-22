@@ -121,6 +121,12 @@ Rectangle {
                 spacing: 10
 
                 CheckBox {
+                    id: useOriginalPivot
+                    text: qsTr("Use Original Pivot")
+                    checked: true
+                }
+
+                CheckBox {
                     id: grabbable
                     text: qsTr("Grabbable")
                 }
@@ -219,7 +225,8 @@ Rectangle {
                                     url: modelURL.text,
                                     dynamic: dynamic.checked,
                                     collisionShapeIndex: collisionType.currentIndex,
-                                    grabbable: grabbable.checked
+                                    grabbable: grabbable.checked,
+                                    useOriginalPivot: useOriginalPivot.checked
                                 }
                             });
                         }

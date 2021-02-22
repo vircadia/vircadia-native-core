@@ -45,25 +45,11 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
-    glm::vec3 getRaycastDimensions() const override;
-    virtual bool supportsDetailedIntersection() const override { return true; }
-    virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         OctreeElementPointer& element, float& distance,
-                         BoxFace& face, glm::vec3& surfaceNormal,
-                         QVariantMap& extraInfo, bool precisionPicking) const override;
-    virtual bool findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
-                         const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
-                         BoxFace& face, glm::vec3& surfaceNormal,
-                         QVariantMap& extraInfo, bool precisionPicking) const override;
-
     glm::u8vec3 getColor() const;
     void setColor(const glm::u8vec3& value);
 
     float getAlpha() const;
     void setAlpha(float alpha);
-
-    void setBillboardMode(BillboardMode value);
-    BillboardMode getBillboardMode() const;
 
     static const QString DEFAULT_SOURCE_URL;
     void setSourceUrl(const QString& value);
@@ -89,6 +75,10 @@ public:
     
     bool getUseBackground() const;
     void setUseBackground(bool value);
+    
+    static const QString DEFAULT_USER_AGENT;
+    QString getUserAgent() const;
+    void setUserAgent(const QString& value);
 
     PulsePropertyGroup getPulseProperties() const;
 
@@ -96,7 +86,6 @@ protected:
     glm::u8vec3 _color;
     float _alpha { 1.0f };
     PulsePropertyGroup _pulseProperties;
-    BillboardMode _billboardMode;
 
     QString _sourceUrl;
     uint16_t _dpi;
@@ -105,6 +94,7 @@ protected:
     WebInputMode _inputMode;
     bool _showKeyboardFocusHighlight;
     bool _useBackground;
+    QString _userAgent;
     bool _localSafeContext { false };
 };
 

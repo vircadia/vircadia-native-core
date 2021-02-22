@@ -575,7 +575,7 @@ void FadeJob::run(const render::RenderContextPointer& renderContext, FadeJob::Ou
         auto& item = scene->getItem(state.itemId);
         assert(item.getTransitionId() == transitionId);
 #endif
-        if (update(*jobConfig, scene, transaction, state, deltaTime)) {
+        if (update(renderContext->args, *jobConfig, scene, transaction, state, deltaTime)) {
             hasTransaction = true;
         }
         if (isFirstItem && (state.threshold != jobConfig->threshold)) {
@@ -599,7 +599,7 @@ const FadeCategory FadeJob::transitionToCategory[render::Transition::TYPE_COUNT]
     FADE_AVATAR_CHANGE
 };
 
-bool FadeJob::update(const Config& config, const render::ScenePointer& scene, render::Transaction& transaction, render::Transition& transition, const double deltaTime) const {
+bool FadeJob::update(RenderArgs* args, const Config& config, const render::ScenePointer& scene, render::Transaction& transaction, render::Transition& transition, const double deltaTime) const {
     const auto fadeCategory = transitionToCategory[transition.eventType];
     auto& eventConfig = config.events[fadeCategory];
     auto item = scene->getItemSafe(transition.itemId);
@@ -607,11 +607,11 @@ bool FadeJob::update(const Config& config, const render::ScenePointer& scene, re
     const FadeConfig::Timing timing = (FadeConfig::Timing) eventConfig.timing;
 
     if (item.exist()) {
-        auto aabb = item.getBound();
+        auto aabb = item.getBound(args);
         if (render::Item::isValidID(transition.boundItemId)) {
             auto boundItem = scene->getItemSafe(transition.boundItemId);
             if (boundItem.exist()) {
-                aabb = boundItem.getBound();
+                aabb = boundItem.getBound(args);
             }
         }
         auto& dimensions = aabb.getDimensions();

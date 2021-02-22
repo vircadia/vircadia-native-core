@@ -257,7 +257,8 @@ float ShapeEntityItem::getAlpha() const {
 
 void ShapeEntityItem::setUnscaledDimensions(const glm::vec3& value) {
     const float MAX_FLAT_DIMENSION = 0.0001f;
-    if ((_shape == entity::Shape::Circle || _shape == entity::Shape::Quad) && value.y > MAX_FLAT_DIMENSION) {
+    const auto shape = getShape();
+    if ((shape == entity::Shape::Circle || shape == entity::Shape::Quad) && value.y > MAX_FLAT_DIMENSION) {
         // enforce flatness in Y
         glm::vec3 newDimensions = value;
         newDimensions.y = MAX_FLAT_DIMENSION;
@@ -268,15 +269,20 @@ void ShapeEntityItem::setUnscaledDimensions(const glm::vec3& value) {
 }
 
 bool ShapeEntityItem::supportsDetailedIntersection() const {
-    return _shape == entity::Sphere;
+    return getShape() == entity::Sphere;
 }
 
 bool ShapeEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                   OctreeElementPointer& element,
-                                                   float& distance, BoxFace& face, glm::vec3& surfaceNormal,
-                                                   QVariantMap& extraInfo, bool precisionPicking) const {
+                                                  const glm::vec3& viewFrustumPos, OctreeElementPointer& element,
+                                                  float& distance, BoxFace& face, glm::vec3& surfaceNormal,
+                                                  QVariantMap& extraInfo, bool precisionPicking) const {
+    glm::vec3 dimensions = getScaledDimensions();
+    glm::quat rotation = getWorldOrientation();
+    glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
+    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, getBillboardMode(), viewFrustumPos);
+
     // determine the ray in the frame of the entity transformed from a unit sphere
-    glm::mat4 entityToWorldMatrix = getEntityToWorldMatrix();
+    glm::mat4 entityToWorldMatrix = glm::translate(position) * glm::mat4_cast(rotation) * glm::scale(dimensions);
     glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
     glm::vec3 entityFrameOrigin = glm::vec3(worldToEntityMatrix * glm::vec4(origin, 1.0f));
     glm::vec3 entityFrameDirection = glm::vec3(worldToEntityMatrix * glm::vec4(direction, 0.0f));
@@ -299,11 +305,16 @@ bool ShapeEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const
 }
 
 bool ShapeEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
-                                                       OctreeElementPointer& element, float& parabolicDistance,
+                                                       const glm::vec3& viewFrustumPos, OctreeElementPointer& element, float& parabolicDistance,
                                                        BoxFace& face, glm::vec3& surfaceNormal,
                                                        QVariantMap& extraInfo, bool precisionPicking) const {
+    glm::vec3 dimensions = getScaledDimensions();
+    glm::quat rotation = getWorldOrientation();
+    glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
+    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, getBillboardMode(), viewFrustumPos);
+
     // determine the parabola in the frame of the entity transformed from a unit sphere
-    glm::mat4 entityToWorldMatrix = getEntityToWorldMatrix();
+    glm::mat4 entityToWorldMatrix = glm::translate(position) * glm::mat4_cast(rotation) * glm::scale(dimensions);
     glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
     glm::vec3 entityFrameOrigin = glm::vec3(worldToEntityMatrix * glm::vec4(origin, 1.0f));
     glm::vec3 entityFrameVelocity = glm::vec3(worldToEntityMatrix * glm::vec4(velocity, 0.0f));
@@ -322,6 +333,11 @@ bool ShapeEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, 
         return true;
     }
     return false;
+}
+
+bool ShapeEntityItem::getRotateForPicking() const {
+    auto shape = getShape();
+    return getBillboardMode() != BillboardMode::NONE && (_shape < entity::Shape::Cube || _shape > entity::Shape::Icosahedron);
 }
 
 void ShapeEntityItem::debugDump() const {
@@ -343,8 +359,9 @@ void ShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
     // is set.
 
     const glm::vec3 entityDimensions = getScaledDimensions();
+    const auto shape = getShape();
 
-    switch (_shape){
+    switch (shape){
         case entity::Shape::Quad:
             // Quads collide like flat Cubes
         case entity::Shape::Cube: {
@@ -441,5 +458,12 @@ ShapeType ShapeEntityItem::getShapeType() const {
 PulsePropertyGroup ShapeEntityItem::getPulseProperties() const {
     return resultWithReadLock<PulsePropertyGroup>([&] {
         return _pulseProperties;
+    });
+}
+
+void ShapeEntityItem::setUserData(const QString& value) {
+    withWriteLock([&] {
+        _needsRenderUpdate |= _userData != value;
+        _userData = value;
     });
 }

@@ -3,7 +3,7 @@
 //  plugins/JSAPIExample/src
 //
 //  Copyright (c) 2019-2020 humbletim (humbletim@gmail.com)
-//  Copyright (c) 2019 Kalila L. (kasenvr@gmail.com)
+//  Copyright (c) 2019 Kalila L. (somnilibertas@gmail.com)
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html

@@ -324,7 +324,7 @@ struct VrSurface : public TaskQueue {
                     vrapi_SetTrackingSpace( session, VRAPI_TRACKING_SPACE_LOCAL);
                     vrapi_SetPerfThread(session, VRAPI_PERF_THREAD_TYPE_RENDERER, gettid());
                     vrapi_SetClockLevels(session, 2, 4);
-                    vrapi_SetExtraLatencyMode(session, VRAPI_EXTRA_LATENCY_MODE_DYNAMIC);
+                    vrapi_SetExtraLatencyMode(session, VRAPI_EXTRA_LATENCY_MODE_ON);
                     // Generates a warning on the quest: "vrapi_SetDisplayRefreshRate: Dynamic Display Refresh Rate not supported"
                     // vrapi_SetDisplayRefreshRate(session, 72);
                 });

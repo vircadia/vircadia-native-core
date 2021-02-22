@@ -60,8 +60,8 @@ To produce an executable installer on Windows, the following are required:
    1.  Copy `Release\ApplicationID.dll` to `C:\Program Files (x86)\NSIS\Plugins\x86-ansi\`
    1.  Copy `ReleaseUnicode\ApplicationID.dll` to `C:\Program Files (x86)\NSIS\Plugins\x86-unicode\`
 
-1. [Node.JS and NPM](<https://www.npmjs.com/get-npm>)
-    1.  Install version 10.15.0 LTS
+1. [Node.JS and NPM](<https://nodejs.org/en/download/>)
+    1.  Install version 10.15.0 LTS (or greater)
     
 #### Code Signing (optional)
 

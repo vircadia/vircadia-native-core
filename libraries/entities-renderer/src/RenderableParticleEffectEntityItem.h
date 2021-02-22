@@ -25,13 +25,12 @@ public:
     ParticleEffectEntityRenderer(const EntityItemPointer& entity);
 
 protected:
-    virtual bool needsRenderUpdate() const override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
 
     virtual ItemKey getKey() override;
     virtual ShapeKey getShapeKey() override;
-    virtual Item::Bound getBound() override;
+    virtual Item::Bound getBound(RenderArgs* args) override;
     virtual void doRender(RenderArgs* args) override;
 
 private:

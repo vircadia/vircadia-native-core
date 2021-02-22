@@ -23,7 +23,7 @@ OverlayConductor::OverlayConductor() {
 OverlayConductor::~OverlayConductor() {
 }
 
-bool OverlayConductor::headOutsideOverlay() const {
+bool OverlayConductor::headNotCenteredInOverlay() const {
     glm::mat4 hmdMat = qApp->getHMDSensorPose();
     glm::vec3 hmdPos = extractTranslation(hmdMat);
     glm::vec3 hmdForward = transformVectorFast(hmdMat, glm::vec3(0.0f, 0.0f, -1.0f));
@@ -32,8 +32,8 @@ bool OverlayConductor::headOutsideOverlay() const {
     glm::vec3 uiPos = uiTransform.getTranslation();
     glm::vec3 uiForward = uiTransform.getRotation() * glm::vec3(0.0f, 0.0f, -1.0f);
 
-    const float MAX_COMPOSITOR_DISTANCE = 0.99f;  // If you're 1m from center of ui sphere, you're at the surface.
-    const float MAX_COMPOSITOR_ANGLE = 180.0f;    // rotation check is effectively disabled
+    const float MAX_COMPOSITOR_DISTANCE = 0.33f;
+    const float MAX_COMPOSITOR_ANGLE = 90.0f;
     if (glm::distance(uiPos, hmdPos) > MAX_COMPOSITOR_DISTANCE ||
         glm::dot(uiForward, hmdForward) < cosf(glm::radians(MAX_COMPOSITOR_ANGLE))) {
         return true;
@@ -70,6 +70,8 @@ bool OverlayConductor::updateAvatarIsAtRest() {
 void OverlayConductor::centerUI() {
     // place the overlay at the current hmd position in sensor space
     auto camMat = cancelOutRollAndPitch(qApp->getHMDSensorPose());
+    // Set its radius.
+    camMat = glm::scale(camMat, glm::vec3(HUD_RADIUS));
     qApp->getApplicationCompositor().setModelTransform(Transform(camMat));
 }
 
@@ -83,7 +85,6 @@ void OverlayConductor::update(float dt) {
     if (!desktop) {
         return;
     }
-    bool currentVisible = !desktop->property("pinned").toBool();
 
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     // centerUI when hmd mode is first enabled and mounted
@@ -96,24 +97,24 @@ void OverlayConductor::update(float dt) {
         _hmdMode = false;
     }
 
-    bool shouldRecenter = false;
-
-    if (_suppressedByHead) {
-        if (updateAvatarIsAtRest()) {
-            _suppressedByHead = false;
-            shouldRecenter = true;
-        }
-    } else {
-        if (_hmdMode && headOutsideOverlay()) {
-            _suppressedByHead = true;
-        }
+    bool initiateRecenter = false;
+    if (_hmdMode && headNotCenteredInOverlay()) {
+        initiateRecenter = true;
     }
 
+    bool shouldRecenter = false;
+    if (initiateRecenter || _suppressedByHead) {
+        _suppressedByHead = !updateAvatarIsAtRest();
+        shouldRecenter = !_suppressedByHead;
+    }
+
+    bool currentVisible = !desktop->property("pinned").toBool();
     bool targetVisible = Menu::getInstance()->isOptionChecked(MenuOption::Overlays) && !_suppressedByHead;
     if (targetVisible != currentVisible) {
         offscreenUi->setPinned(!targetVisible);
     }
-    if (shouldRecenter && !_suppressedByHead) {
+
+    if (shouldRecenter) {
         centerUI();
     }
 #endif

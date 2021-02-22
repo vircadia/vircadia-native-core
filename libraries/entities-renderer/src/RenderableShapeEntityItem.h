@@ -26,11 +26,10 @@ public:
 
 protected:
     ShapeKey getShapeKey() override;
-    Item::Bound getBound() override;
+    Item::Bound getBound(RenderArgs* args) override;
 
 private:
     virtual bool needsRenderUpdate() const override;
-    virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
     virtual void doRender(RenderArgs* args) override;

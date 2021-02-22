@@ -90,8 +90,8 @@ endif()
         if 'Windows' == system:
             self.exe = os.path.join(self.path, 'vcpkg.exe')
             self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.bat'), '-disableMetrics' ]
-            self.vcpkgUrl = self.assets_url + '/dependencies/vcpkg/builds/vcpkg-win32-client.zip%3FversionId=tSFzbw01VkkVFeRQ6YuAY4dro2HxJR9U'
-            self.vcpkgHash = 'a650db47a63ccdc9904b68ddd16af74772e7e78170b513ea8de5a3b47d032751a3b73dcc7526d88bcb500753ea3dd9880639ca842bb176e2bddb1710f9a58cd3'
+            self.vcpkgUrl = self.assets_url + '/dependencies/vcpkg/vcpkg-win32-client-20210122.zip'
+            self.vcpkgHash = '3df86b7d58c827bf08b3b7744f456f414b86a6d9bd58a507924103bc5a88f01ee495ce1f0fbf2f5b27f1ef6bfb1526e580ec13d3b9f87a89a462b3c50589fd6a'
             self.hostTriplet = 'x64-windows'
             if usePrebuilt:
                 self.prebuiltArchive = self.assets_url + "/dependencies/vcpkg/builds/vcpkg-win32.zip%3FversionId=3SF3mDC8dkQH1JP041m88xnYmWNzZflx"

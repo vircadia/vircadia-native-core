@@ -64,6 +64,8 @@ LogHandler::LogHandler() {
             _shouldOutputThreadID = true;
         } else if (option == "milliseconds") {
             _shouldDisplayMilliseconds = true;
+        } else if (option == "keep_repeats") {
+            _keepRepeats = true;
         } else if (option != "") {
             fprintf(stdout, "Unrecognized option in VIRCADIA_LOG_OPTIONS: '%s'\n", option.toUtf8().constData());
         }
@@ -202,7 +204,18 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
         resetColor = colorReset();
     }
 
-    fprintf(stdout, "%s%s%s", color, qPrintable(logMessage), resetColor);
+    if (_keepRepeats || _previousMessage != message) {
+        if (_repeatCount > 0) {
+            fprintf(stdout, "[Previous message was repeated %i times]\n", _repeatCount);
+        }
+
+        fprintf(stdout, "%s%s%s", color, qPrintable(logMessage), resetColor);
+        _repeatCount = 0;
+    } else {
+        _repeatCount++;
+    }
+
+    _previousMessage = message;
 #ifdef Q_OS_WIN
     // On windows, this will output log lines into the Visual Studio "output" tab
     OutputDebugStringA(qPrintable(logMessage));

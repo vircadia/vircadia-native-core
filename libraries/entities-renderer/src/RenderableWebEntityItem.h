@@ -36,6 +36,7 @@ public:
     static const char* SCRIPT_URL_PROPERTY;
     static const char* GLOBAL_POSITION_PROPERTY;
     static const char* USE_BACKGROUND_PROPERTY;
+    static const char* USER_AGENT_PROPERTY;
 
     static void setAcquireWebSurfaceOperator(std::function<void(const QString&, bool, QSharedPointer<OffscreenQmlSurface>&, bool&)> acquireWebSurfaceOperator) { _acquireWebSurfaceOperator = acquireWebSurfaceOperator; }
     static void acquireWebSurface(const QString& url, bool htmlContent, QSharedPointer<OffscreenQmlSurface>& webSurface, bool& cachedWebSurface) {
@@ -55,12 +56,10 @@ public:
     virtual QObject* getEventHandler() override;
 
 protected:
-    virtual bool needsRenderUpdate() const override;
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
     virtual void doRender(RenderArgs* args) override;
     virtual bool isTransparent() const override;
-    Item::Bound getBound() override;
 
     virtual bool wantsHandControllerPointerEvents() const override { return true; }
     virtual bool wantsKeyboardFocus() const override { return true; }
@@ -91,13 +90,13 @@ private:
     glm::u8vec3 _color;
     float _alpha { 1.0f };
     PulsePropertyGroup _pulseProperties;
-    BillboardMode _billboardMode;
 
     QString _sourceURL;
     uint16_t _dpi;
     QString _scriptURL;
     uint8_t _maxFPS;
     bool _useBackground;
+    QString _userAgent;
     WebInputMode _inputMode;
 
     glm::vec3 _contextPosition;

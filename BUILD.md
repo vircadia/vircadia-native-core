@@ -60,9 +60,9 @@ You do not need to install vcpkg.
 Building the dependencies can be lengthy and the resulting files will be stored in your OS temp directory.
 However, those files can potentially get cleaned up by the OS, so in order to avoid this and having to redo the lengthy build step, you can set the following environment variable:
 
-export HIFI_VCPKG_BASE=/path/to/directory
+    export HIFI_VCPKG_BASE=/path/to/directory
 
-Where /path/to/directory is the path to a directory where you wish the build files to get stored.
+Where `/path/to/directory` is the path to a directory where you wish the build files to get stored.
 
 #### Generating Build Files
 

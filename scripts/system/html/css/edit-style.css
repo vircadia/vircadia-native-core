@@ -404,7 +404,7 @@ input[type=button], button.hifi-edit-button {
     text-transform: uppercase;
     vertical-align: top;
     height: 28px;
-    min-width: 120px;
+    min-width: 70px;
     padding: 0 18px;
     margin-right: 6px;
     border-radius: 5px;
@@ -1208,7 +1208,7 @@ div.refresh input[type="button"] {
 }
 
 .fieldset .checkbox-sub-props .property:first-child {
-    margin-top: 0;
+    margin-top: 0px;
 }
 
 .column {
@@ -1252,18 +1252,18 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
 }
 
 div#grid-section, body#entity-list-body {
-    padding-bottom: 0;
-    margin: 16px;
+    padding-bottom: 0px;
+    margin: 0px 8px 8px 8px;
 }
 
 #entity-list-header {
-    margin-bottom: 36px;
+    margin-bottom: 6px;
 }
 
 #entity-list-header div {
     display: inline-block;
     width: 65px;
-    margin-right: 6px;
+    margin-right: 4px;
 }
 
 #entity-list-header div input:first-child {
@@ -1281,13 +1281,19 @@ div#grid-section, body#entity-list-body {
     border-bottom-left-radius: 0;
 }
 
+#delete {
+    float: right;
+    margin-right: 0;
+    background-color: #ff0000;
+}
+
 #entity-list {
     position: relative; /* New positioning context. */
 }
 
 #filter-area {
     padding-right: 168px;
-    padding-bottom: 24px;
+    padding-bottom: 8px;
 }
 
 #filter-type-multiselect-box select {
@@ -1340,34 +1346,58 @@ div#grid-section, body#entity-list-body {
 #filter-type-options input[type=button]:enabled:hover {
     background: linear-gradient(#afafaf 20%, #575757 100%);
 }
-
 #filter-search-and-icon {
     position: relative;
     left: 118px;
     width: calc(100% - 126px);
 }
-
 #filter-in-view {
     position: absolute;
-    top: 0;
+    top: 0px;
     right: 126px;
 }
-
 #filter-radius-and-unit {
     position: relative;
     float: right;
     margin-right: -168px;
-    top: -45px;
+    top: -28px;
 }
-#filter-radius-and-unit label {
-    margin-left: 2px;
+#entity-list-menubar {
+    margin: 0px -8px 6px -8px;
+    padding: 0px 8px 0px 8px;
+    border: none;
+    background-color: #000;
+    background: linear-gradient(#343434 20%, #000 100%);
 }
-#filter-radius-and-unit span {
+.icon-input-radius input {
     position: relative;
-    top: 25px;
+    padding-left: 36px;
+}
+.icon-input-radius span {
+    position: absolute;
+    left: 4px;
+    top: -4px;
+    font-family: Vircadia-Glyphs;
+    font-size: 23px;
+    color: #afafaf;
+}
+.icon-input-radius input:focus + span + label {
+    color: #ffffff;
+}
+.icon-input-radius label {
+    position: absolute;
+    margin-left: 3px;
+    bottom: 6px;
     right: 9px;
-    z-index: 2;
     font-style: italic;
+}
+#filter-radius:focus {
+    outline: none;
+    box-sizing: border-box;
+    height: 26px;
+    margin-top: 1px;
+    margin-bottom: 1px;
+    box-shadow: 0 0 0 1px #00b4ef;
 }
 #filter-radius-and-unit input {
     width: 120px;
@@ -1384,12 +1414,12 @@ div#grid-section, body#entity-list-body {
 
 #footer-text {
     float: right;
-    padding-top: 12px;
+    padding-top: 6px;
     padding-right: 22px;
 }
 
 input[type=button]#export {
-    height: 38px;
+    height: 26px;
     width: 180px;
 }
 
@@ -1441,7 +1471,7 @@ input[type=button]#export {
     overflow-x: hidden;
     overflow-y: auto;
     box-sizing: border-box;
-    padding-top: 28px; /* Space for header and footer outside of scroll region. */
+    padding-top: 37px; /* Space for header and footer outside of scroll region. */
     margin-top: 28px;
     border-left: 2px solid #575757;
     border-right: 2px solid #575757;
@@ -1462,7 +1492,7 @@ input[type=button]#export {
 }
 
 #entity-table {
-    margin-top: -28px;
+    margin-top: -20px;
     margin-bottom: -18px;
     table-layout: fixed;
     border: none;
@@ -1539,7 +1569,7 @@ input[type=button]#export {
 }
 #entity-table td .glyph .vglyph {
     text-align: center;
-    padding: 0;
+    padding: 0px;
 }
 
 #properties-base {
@@ -1888,10 +1918,10 @@ div.multiZoneSelToolbar {
 div.entity-list-menu {
     position: fixed;
     display: none;
-    width: 70%;
+    width: 370px;
     height: 30px;
-    top: 42px;
-    left: 150px;
+    top: 27px;
+    left: 8px;
     right: 0;
     bottom: 0;
     border-style: solid;

@@ -35,11 +35,6 @@ class GLPaintEngine : public QPaintEngine {
 };
 
 GLWidget::GLWidget() {
-#ifdef Q_OS_LINUX
-    // Cause GLWidget::eventFilter to be called.
-    // It wouldn't hurt to do this on Mac and PC too; but apparently it's only needed on linux.
-    qApp->installEventFilter(this);
-#endif
     setAttribute(Qt::WA_AcceptTouchEvents);
     setAttribute(Qt::WA_NativeWindow);
     setAttribute(Qt::WA_PaintOnScreen);
@@ -117,39 +112,6 @@ bool GLWidget::event(QEvent* event) {
     }
     return QWidget::event(event);
 }
-
-// Pressing Alt (and Meta) key alone activates the menubar because its style inherits the
-// SHMenuBarAltKeyNavigation from QWindowsStyle. This makes it impossible for a scripts to
-// receive keyPress events for the Alt (and Meta) key in a reliable manner.
-//
-// This filter catches events before QMenuBar can steal the keyboard focus.
-// The idea was borrowed from
-// http://www.archivum.info/qt-interest@trolltech.com/2006-09/00053/Re-(Qt4)-Alt-key-focus-QMenuBar-(solved).html
-
-bool GLWidget::eventFilter(QObject*, QEvent* event) {
-    switch (event->type()) {
-        case QEvent::KeyPress:
-        case QEvent::KeyRelease:
-        case QEvent::ShortcutOverride:
-        {
-            QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
-            if (keyEvent->key() == Qt::Key_Alt || keyEvent->key() == Qt::Key_Meta) {
-                if (event->type() == QEvent::KeyPress) {
-                    keyPressEvent(keyEvent);
-                } else if (event->type() == QEvent::KeyRelease) {
-                    keyReleaseEvent(keyEvent);
-                } else {
-                    QWidget::event(event);
-                }
-                return true;
-            }
-        }
-        default:
-            break;
-    }
-    return false;
-}
-
 
 bool GLWidget::nativeEvent(const QByteArray &eventType, void *message, long *result) {
 #ifdef Q_OS_WIN32

@@ -39,6 +39,7 @@ const char* WebEntityRenderer::URL_PROPERTY = "url";
 const char* WebEntityRenderer::SCRIPT_URL_PROPERTY = "scriptURL";
 const char* WebEntityRenderer::GLOBAL_POSITION_PROPERTY = "globalPosition";
 const char* WebEntityRenderer::USE_BACKGROUND_PROPERTY = "useBackground";
+const char* WebEntityRenderer::USER_AGENT_PROPERTY = "userAgent";
 
 std::function<void(QString, bool, QSharedPointer<OffscreenQmlSurface>&, bool&)> WebEntityRenderer::_acquireWebSurfaceOperator = nullptr;
 std::function<void(QSharedPointer<OffscreenQmlSurface>&, bool&, std::vector<QMetaObject::Connection>&)> WebEntityRenderer::_releaseWebSurfaceOperator = nullptr;
@@ -125,16 +126,6 @@ bool WebEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointe
     return false;
 }
 
-bool WebEntityRenderer::needsRenderUpdate() const {
-    if (resultWithReadLock<bool>([this] {
-        return !_webSurface;
-    })) {
-        return true;
-    }
-
-    return Parent::needsRenderUpdate();
-}
-
 void WebEntityRenderer::onTimeout() {
     uint64_t lastRenderTime;
     if (!resultWithReadLock<bool>([&] {
@@ -177,7 +168,6 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
         _color = entity->getColor();
         _alpha = entity->getAlpha();
         _pulseProperties = entity->getPulseProperties();
-        _billboardMode = entity->getBillboardMode();
 
         if (_contentType == ContentType::NoContent) {
             _tryingToBuildURL = newSourceURL;
@@ -204,6 +194,7 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
                     _webSurface->getRootItem()->setProperty(URL_PROPERTY, newSourceURL);
                     _webSurface->getRootItem()->setProperty(SCRIPT_URL_PROPERTY, _scriptURL);
                     _webSurface->getRootItem()->setProperty(USE_BACKGROUND_PROPERTY, _useBackground);
+                    _webSurface->getRootItem()->setProperty(USER_AGENT_PROPERTY, _userAgent);
                     _webSurface->getSurfaceContext()->setContextProperty(GLOBAL_POSITION_PROPERTY, vec3toVariant(_contextPosition));
                     _webSurface->setMaxFps((QUrl(newSourceURL).host().endsWith("youtube.com", Qt::CaseInsensitive)) ? YOUTUBE_MAX_FPS : _maxFPS);
                     ::hifi::scripting::setLocalAccessSafeThread(false);
@@ -241,6 +232,14 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
                         _useBackground = useBackground;
                     }
                 }
+                
+                { 
+                    auto userAgent = entity->getUserAgent();
+                    if (_userAgent != userAgent) {
+                        _webSurface->getRootItem()->setProperty(USER_AGENT_PROPERTY, userAgent);
+                        _userAgent = userAgent;
+                    }
+                }
 
                 {
                     auto contextPosition = entity->getWorldPosition();
@@ -261,19 +260,10 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
                     _renderTransform.postScale(entity->getScaledDimensions());
                 });
             });
+        } else {
+            emit requestRenderUpdate();
         }
     });
-}
-
-Item::Bound WebEntityRenderer::getBound() {
-    auto bound = Parent::getBound();
-    if (_billboardMode != BillboardMode::NONE) {
-        glm::vec3 dimensions = bound.getScale();
-        float max = glm::max(dimensions.x, glm::max(dimensions.y, dimensions.z));
-        const float SQRT_2 = 1.41421356237f;
-        bound.setScaleStayCentered(glm::vec3(SQRT_2 * max));
-    }
-    return bound;
 }
 
 void WebEntityRenderer::doRender(RenderArgs* args) {
@@ -305,14 +295,12 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
     gpu::Batch& batch = *args->_batch;
     glm::vec4 color;
     Transform transform;
-    bool forward;
     bool transparent;
     withReadLock([&] {
         float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         color = glm::vec4(toGlm(_color), _alpha * fadeRatio);
         color = EntityRenderer::calculatePulseColor(color, _pulseProperties, _created);
         transform = _renderTransform;
-        forward = _renderLayer != RenderLayer::WORLD || args->_renderMethod == render::Args::FORWARD;
         transparent = isTransparent();
     });
 
@@ -320,9 +308,12 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
         return;
     }
 
+    bool forward = _renderLayer != RenderLayer::WORLD || args->_renderMethod == render::Args::FORWARD;
+
     batch.setResourceTexture(0, _texture);
 
-    transform.setRotation(EntityItem::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode, args->getViewFrustum().getPosition()));
+    transform.setRotation(BillboardModeHelpers::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
+        args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
     batch.setModelTransform(transform);
 
     // Turn off jitter for these entities
@@ -339,8 +330,11 @@ void WebEntityRenderer::buildWebSurface(const EntityItemPointer& entity, const Q
         return;
     }
 
-    ++_currentWebCount;
-    WebEntityRenderer::acquireWebSurface(newSourceURL, _contentType == ContentType::HtmlContent, _webSurface, _cachedWebSurface);
+    bool isHTML = _contentType == ContentType::HtmlContent;
+    if (isHTML) {
+        ++_currentWebCount;
+    }
+    WebEntityRenderer::acquireWebSurface(newSourceURL, isHTML, _webSurface, _cachedWebSurface);
     _fadeStartTime = usecTimestampNow();
     _webSurface->resume();
 
@@ -358,12 +352,15 @@ void WebEntityRenderer::destroyWebSurface() {
     QSharedPointer<OffscreenQmlSurface> webSurface;
     withWriteLock([&] {
         webSurface.swap(_webSurface);
-        _contentType = ContentType::NoContent;
 
         if (webSurface) {
-            --_currentWebCount;
+            if (_contentType == ContentType::HtmlContent) {
+                --_currentWebCount;
+            }
             WebEntityRenderer::releaseWebSurface(webSurface, _cachedWebSurface, _connections);
         }
+
+        _contentType = ContentType::NoContent;
     });
 }
 

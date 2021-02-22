@@ -51,9 +51,6 @@ int EntityItem::_maxActionsDataSize = 800;
 quint64 EntityItem::_rememberDeletedActionTime = 20 * USECS_PER_SECOND;
 QString EntityItem::_marketplacePublicKey;
 
-std::function<glm::quat(const glm::vec3&, const glm::quat&, BillboardMode, const glm::vec3&)> EntityItem::_getBillboardRotationOperator = [](const glm::vec3&, const glm::quat& rotation, BillboardMode, const glm::vec3&) { return rotation; };
-std::function<glm::vec3()> EntityItem::_getPrimaryViewFrustumPositionOperator = []() { return glm::vec3(0.0f); };
-
 EntityItem::EntityItem(const EntityItemID& entityItemID) :
     SpatiallyNestable(NestableType::Entity, entityItemID)
 {
@@ -107,6 +104,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_PRIMITIVE_MODE;
     requestedProperties += PROP_IGNORE_PICK_INTERSECTION;
     requestedProperties += PROP_RENDER_WITH_ZONES;
+    requestedProperties += PROP_BILLBOARD_MODE;
     requestedProperties += _grabProperties.getEntityProperties(params);
 
     // Physics
@@ -303,6 +301,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, (uint32_t)getPrimitiveMode());
         APPEND_ENTITY_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, getIgnorePickIntersection());
         APPEND_ENTITY_PROPERTY(PROP_RENDER_WITH_ZONES, getRenderWithZones());
+        APPEND_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, (uint32_t)getBillboardMode());
         withReadLock([&] {
             _grabProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
                 propertyFlags, propertiesDidntFit, propertyCount, appendState);
@@ -875,6 +874,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, PrimitiveMode, setPrimitiveMode);
     READ_ENTITY_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, bool, setIgnorePickIntersection);
     READ_ENTITY_PROPERTY(PROP_RENDER_WITH_ZONES, QVector<QUuid>, setRenderWithZones);
+    READ_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, BillboardMode, setBillboardMode);
     withWriteLock([&] {
         int bytesFromGrab = _grabProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
             propertyFlags, overwriteLocalData,
@@ -1358,6 +1358,7 @@ EntityItemProperties EntityItem::getProperties(const EntityPropertyFlags& desire
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(primitiveMode, getPrimitiveMode);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(ignorePickIntersection, getIgnorePickIntersection);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(renderWithZones, getRenderWithZones);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(billboardMode, getBillboardMode);
     withReadLock([&] {
         _grabProperties.getProperties(properties);
     });
@@ -1508,6 +1509,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(primitiveMode, setPrimitiveMode);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ignorePickIntersection, setIgnorePickIntersection);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(renderWithZones, setRenderWithZones);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(billboardMode, setBillboardMode);
     withWriteLock([&] {
         bool grabPropertiesChanged = _grabProperties.setProperties(properties);
         somethingChanged |= grabPropertiesChanged;
@@ -1607,8 +1609,13 @@ void EntityItem::recordCreationTime() {
 
 const Transform EntityItem::getTransformToCenter(bool& success) const {
     Transform result = getTransform(success);
-    if (getRegistrationPoint() != ENTITY_ITEM_HALF_VEC3) { // If it is not already centered, translate to center
-        result.postTranslate((ENTITY_ITEM_HALF_VEC3 - getRegistrationPoint()) * getScaledDimensions()); // Position to center
+    glm::vec3 pivot = getPivot();
+    if (pivot != ENTITY_ITEM_ZERO_VEC3) {
+        result.postTranslate(pivot);
+    }
+    glm::vec3 registrationPoint = getRegistrationPoint();
+    if (registrationPoint != ENTITY_ITEM_HALF_VEC3) { // If it is not already centered, translate to center
+        result.postTranslate((ENTITY_ITEM_HALF_VEC3 - registrationPoint) * getScaledDimensions()); // Position to center
     }
     return result;
 }
@@ -1623,15 +1630,16 @@ AACube EntityItem::getMaximumAACube(bool& success) const {
             _recalcMaxAACube = false;
             // we want to compute the furthestExtent that an entity can extend out from its "position"
             // to do this we compute the max of these two vec3s: registration and 1-registration
-            // and then scale by dimensions
-            glm::vec3 maxExtents = getScaledDimensions() * glm::max(_registrationPoint, glm::vec3(1.0f) - _registrationPoint);
+            // and then scale by dimensions and add the absolute value of the pivot
+            glm::vec3 registrationPoint = getRegistrationPoint();
+            glm::vec3 maxExtents = getScaledDimensions() * glm::max(registrationPoint, glm::vec3(1.0f) - registrationPoint);
 
             // there exists a sphere that contains maxExtents for all rotations
             float radius = glm::length(maxExtents);
 
             // put a cube around the sphere
             // TODO? replace _maxAACube with _boundingSphereRadius
-            glm::vec3 minimumCorner = centerOfRotation - glm::vec3(radius, radius, radius);
+            glm::vec3 minimumCorner = (centerOfRotation + getWorldOrientation() * getPivot()) - glm::vec3(radius, radius, radius);
             _maxAACube = AACube(minimumCorner, radius * 2.0f);
         }
     } else {
@@ -1650,9 +1658,12 @@ AACube EntityItem::getMinimumAACube(bool& success) const {
         if (success) {
             _recalcMinAACube = false;
             glm::vec3 dimensions = getScaledDimensions();
-            glm::vec3 unrotatedMinRelativeToEntity = - (dimensions * _registrationPoint);
-            glm::vec3 unrotatedMaxRelativeToEntity = dimensions * (glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint);
+            glm::vec3 registrationPoint = getRegistrationPoint();
+            glm::vec3 pivot = getPivot();
+            glm::vec3 unrotatedMinRelativeToEntity = -(dimensions * registrationPoint);
+            glm::vec3 unrotatedMaxRelativeToEntity = dimensions * (ENTITY_ITEM_ONE_VEC3 - registrationPoint);
             Extents extents = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
+            extents.shiftBy(pivot);
             extents.rotate(getWorldOrientation());
 
             // shift the extents to be relative to the position/registration point
@@ -1680,9 +1691,12 @@ AABox EntityItem::getAABox(bool& success) const {
         if (success) {
             _recalcAABox = false;
             glm::vec3 dimensions = getScaledDimensions();
-            glm::vec3 unrotatedMinRelativeToEntity = - (dimensions * _registrationPoint);
-            glm::vec3 unrotatedMaxRelativeToEntity = dimensions * (glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint);
+            glm::vec3 registrationPoint = getRegistrationPoint();
+            glm::vec3 pivot = getPivot();
+            glm::vec3 unrotatedMinRelativeToEntity = -(dimensions * registrationPoint);
+            glm::vec3 unrotatedMaxRelativeToEntity = dimensions * (ENTITY_ITEM_ONE_VEC3 - registrationPoint);
             Extents extents = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
+            extents.shiftBy(pivot);
             extents.rotate(getWorldOrientation());
 
             // shift the extents to be relative to the position/registration point
@@ -1722,12 +1736,22 @@ float EntityItem::getRadius() const {
     return 0.5f * glm::length(getScaledDimensions());
 }
 
-void EntityItem::adjustShapeInfoByRegistration(ShapeInfo& info) const {
-    if (_registrationPoint != ENTITY_ITEM_DEFAULT_REGISTRATION_POINT) {
-        glm::mat4 scale = glm::scale(getScaledDimensions());
-        glm::mat4 registration = scale * glm::translate(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint());
-        glm::vec3 regTransVec = glm::vec3(registration[3]); // extract position component from matrix
-        info.setOffset(regTransVec);
+void EntityItem::adjustShapeInfoByRegistration(ShapeInfo& info, bool includePivot) const {
+    glm::vec3 offset;
+    glm::vec3 registrationPoint = getRegistrationPoint();
+    if (registrationPoint != ENTITY_ITEM_DEFAULT_REGISTRATION_POINT) {
+        offset += (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - registrationPoint) * getScaledDimensions();
+    }
+
+    if (includePivot) {
+        glm::vec3 pivot = getPivot();
+        if (pivot != ENTITY_ITEM_ZERO_VEC3) {
+            offset += pivot;
+        }
+    }
+
+    if (offset != ENTITY_ITEM_ZERO_VEC3) {
+        info.setOffset(offset);
     }
 }
 
@@ -1739,7 +1763,7 @@ bool EntityItem::contains(const glm::vec3& point) const {
         // anything with shapeType == SPHERE must collide as a bounding sphere in the world-frame regardless of dimensions
         // therefore we must do math using an unscaled localPoint relative to sphere center
         glm::vec3 dimensions = getScaledDimensions();
-        glm::vec3 localPoint = point - (getWorldPosition() + getWorldOrientation() * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint())));
+        glm::vec3 localPoint = point - (getWorldPosition() + getWorldOrientation() * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()) + getPivot()));
         const float HALF_SQUARED = 0.25f;
         return glm::length2(localPoint) < HALF_SQUARED * glm::length2(dimensions);
     }
@@ -1797,11 +1821,16 @@ float EntityItem::getVolumeEstimate() const {
 }
 
 void EntityItem::setRegistrationPoint(const glm::vec3& value) {
-    if (value != _registrationPoint) {
-        withWriteLock([&] {
+    bool changed = false;
+    withWriteLock([&] {
+        if (value != _registrationPoint) {
             _registrationPoint = glm::clamp(value, glm::vec3(ENTITY_ITEM_MIN_REGISTRATION_POINT), 
                                                    glm::vec3(ENTITY_ITEM_MAX_REGISTRATION_POINT));
-        });
+            changed = true;
+        }
+    });
+
+    if (changed) {
         dimensionsChanged(); // Registration Point affects the bounding box
         markDirtyFlags(Simulation::DIRTY_SHAPE);
     }
@@ -1911,13 +1940,11 @@ void EntityItem::setUnscaledDimensions(const glm::vec3& value) {
     if (glm::length2(getUnscaledDimensions() - newDimensions) > MIN_SCALE_CHANGE_SQUARED) {
         withWriteLock([&] {
             _unscaledDimensions = newDimensions;
-        });
-        locationChanged();
-        dimensionsChanged();
-        withWriteLock([&] {
             _flags |= (Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
             _queryAACubeSet = false;
         });
+        locationChanged();
+        dimensionsChanged();
     }
 }
 
@@ -2894,11 +2921,9 @@ QString EntityItem::getCollisionSoundURL() const {
 }
 
 glm::vec3 EntityItem::getRegistrationPoint() const {
-    glm::vec3 result;
-    withReadLock([&] {
-        result = _registrationPoint;
+    return resultWithReadLock<glm::vec3>([&] {
+        return _registrationPoint;
     });
-    return result;
 }
 
 float EntityItem::getAngularDamping() const {
@@ -3592,5 +3617,18 @@ void EntityItem::setRenderWithZones(const QVector<QUuid>& renderWithZones) {
 QVector<QUuid> EntityItem::getRenderWithZones() const {
     return resultWithReadLock<QVector<QUuid>>([&] {
         return _renderWithZones;
+    });
+}
+
+BillboardMode EntityItem::getBillboardMode() const {
+    return resultWithReadLock<BillboardMode>([&] {
+        return _billboardMode;
+    });
+}
+
+void EntityItem::setBillboardMode(BillboardMode value) {
+    withWriteLock([&] {
+        _needsRenderUpdate |= _billboardMode != value;
+        _billboardMode = value;
     });
 }

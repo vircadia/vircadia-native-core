@@ -24,6 +24,11 @@
         <script type="text/javascript" src="js/entityList.js"></script>
     </head>
     <body onload='loaded();' id="entity-list-body">
+        <div id="entity-list-menubar">
+            <input type="button" class="normal" id="selection" value="Select&#9662;" />
+            <input type="button" class="normal" id="actions" value="Edit&#9662;" />
+            <input type="button" class="normal" id="tools" value="Tools&#9662;" />            
+        </div>
         <div id="entity-list-header">
             <input type="button" class="glyph" id="refresh" value="F" />
             <div>
@@ -32,8 +37,7 @@
             </div>
             <button id="toggle-space-mode" class="hifi-edit-button space-mode-local">Local</button>
             <input type="button" class="vglyph" id="hmdmultiselect" value="I" style="display: none;" />
-            <input type="button" class="normal" id="selection" value="Selection..." />
-            <input type="button" class="normal" id="actions" value="Actions..." />
+            <input type="button" class="red glyph" id="delete" value="{" />
         </div>
         <div id="entity-list">
             <div id="filter-area">
@@ -57,8 +61,7 @@
                 </div>
                 <input type="button" id="filter-in-view" class="glyph" value="&#xe007;" />
                 <div id="filter-radius-and-unit" class="number">
-                    <label for="radius">Search radius <span class="unit">m</span></label>
-                    <input type="text" id="filter-radius" maxlength="9" value="100" />
+                    <span class="icon-input-radius"><input type="text" id="filter-radius" maxlength="8" value="100" /><span>D</span><label>m</label></span>
                 </div>
             </div>
             <div id="entity-table-scroll">
@@ -129,12 +132,6 @@
                     <div class = "menu-item-shortcut">Ctrl-D</div>
                 </div>
             </button>            
-            <button class="menu-button" id="delete" >
-                <div class = "menu-item">
-                    <div class = "menu-item-caption">Delete</div>
-                    <div class = "menu-item-shortcut">Del</div>
-                </div>
-            </button>
             <div class="menu-separator"></div>
             <button class="menu-button" id="parent" >
                 <div class = "menu-item">
@@ -155,11 +152,36 @@
                     <div class = "menu-item-shortcut"></div>
                 </div>
             </button>
+            <div class="menu-separator"></div>
+            <button class="menu-button" id="rotateAsTheNextClickedSurface" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Snap To Next Clicked Surface</div>
+                    <div class = "menu-item-shortcut">0</div>
+                </div>
+            </button>
+            <button class="menu-button" id="quickRotate90x" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Rotate 90&deg; on X axis</div>
+                    <div class = "menu-item-shortcut">7</div>
+                </div>
+            </button>
+            <button class="menu-button" id="quickRotate90y" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Rotate 90&deg; on Y axis</div>
+                    <div class = "menu-item-shortcut">8</div>
+                </div>
+            </button>
+            <button class="menu-button" id="quickRotate90z" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Rotate 90&deg; on Z axis</div>
+                    <div class = "menu-item-shortcut">9</div>
+                </div>
+            </button>
         </div>
         <div class="entity-list-menu" id="selection-menu" >
             <button class="menu-button" id="selectall" >
                 <div class = "menu-item">
-                    <div class = "menu-item-caption">Select All</div>
+                    <div class = "menu-item-caption">Select All (in List)</div>
                     <div class = "menu-item-shortcut">Ctrl-A</div>
                 </div>
             </button>
@@ -171,7 +193,7 @@
             </button>            
             <button class="menu-button" id="selectinverse" >
                 <div class = "menu-item">
-                    <div class = "menu-item-caption">Inverse Selection</div>
+                    <div class = "menu-item-caption">Inverse Selection (in List)</div>
                     <div class = "menu-item-shortcut">Ctrl-I</div>
                 </div>
             </button>
@@ -219,13 +241,71 @@
                     <div class = "menu-item-shortcut"></div>
                 </div>
             </button>
-            <div class="menu-separator"></div>
+        </div>
+        <div class="entity-list-menu" id="tools-menu" >
+            <button class="menu-button" id="setCameraFocusToSelection" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Set Camera Focus To Selection</div>
+                    <div class = "menu-item-shortcut">F</div>
+                </div>
+            </button>
             <button class="menu-button" id="teleport-to-entity" >
                 <div class = "menu-item">
                     <div class = "menu-item-caption">Teleport To Selected Entities</div>
                     <div class = "menu-item-shortcut"></div>
                 </div>
             </button>
+            <div class="menu-separator"></div>
+            <button class="menu-button" id="toggleLocalWorldMode" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Toggle Local/World Mode</div>
+                    <div class = "menu-item-shortcut">T</div>
+                </div>
+            </button>
+            <div class="menu-separator"></div>
+            <button class="menu-button" id="exportSelectedEntities" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Export Selected Entities</div>
+                    <div class = "menu-item-shortcut"></div>
+                </div>
+            </button>
+            <button class="menu-button" id="importEntitiesFromFile" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Import Entities (.json) From a File</div>
+                    <div class = "menu-item-shortcut"></div>
+                </div>
+            </button>
+            <button class="menu-button" id="importEntitiesFromUrl" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Import Entities (.json) From a URL</div>
+                    <div class = "menu-item-shortcut"></div>
+                </div>
+            </button>            
+            <div class="menu-separator"></div>
+            <button class="menu-button" id="gridActivator" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Toggle Grid</div>
+                    <div class = "menu-item-shortcut">G</div>
+                </div>
+            </button>
+            <button class="menu-button" id="snapToGridActivator" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption" id="snapToGridActivatorCaption">Activate Snap to Grid</div>
+                    <div class = "menu-item-shortcut">H</div>
+                </div>
+            </button>
+            <button class="menu-button" id="alignGridToSelection" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Align Grid to Selected Entities</div>
+                    <div class = "menu-item-shortcut">J</div>
+                </div>
+            </button>
+            <button class="menu-button" id="alignGridToAvatar" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Align Grid to Avatar</div>
+                    <div class = "menu-item-shortcut">K</div>
+                </div>
+            </button>            
         </div>
         <div id="menuBackgroundOverlay" ></div>
     </body>

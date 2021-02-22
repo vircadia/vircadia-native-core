@@ -83,7 +83,7 @@ void FetchNonspatialItems::run(const RenderContextPointer& renderContext, const 
     for (auto& id : items) {
         auto& item = scene->getItem(id);
         if (filter.test(item.getKey()) && item.passesZoneOcclusionTest(CullTest::_containingZones)) {
-            outItems.emplace_back(ItemBound(id, item.getBound()));
+            outItems.emplace_back(ItemBound(id, item.getBound(renderContext->args)));
         }
     }
 }
@@ -188,10 +188,10 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
                 for (auto id : inSelection.insideItems) {
                     auto& item = scene->getItem(id);
                     if (filter.test(item.getKey()) && test.zoneOcclusionTest(item)) {
-                        ItemBound itemBound(id, item.getBound());
+                        ItemBound itemBound(id, item.getBound(args));
                         outItems.emplace_back(itemBound);
                         if (item.getKey().isMetaCullGroup()) {
-                            item.fetchMetaSubItemBounds(outItems, (*scene));
+                            item.fetchMetaSubItemBounds(outItems, (*scene), args);
                         }
                     }
                 }
@@ -203,10 +203,10 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
                 for (auto id : inSelection.insideSubcellItems) {
                     auto& item = scene->getItem(id);
                     if (filter.test(item.getKey()) && test.zoneOcclusionTest(item)) {
-                        ItemBound itemBound(id, item.getBound());
+                        ItemBound itemBound(id, item.getBound(args));
                         outItems.emplace_back(itemBound);
                         if (item.getKey().isMetaCullGroup()) {
-                            item.fetchMetaSubItemBounds(outItems, (*scene));
+                            item.fetchMetaSubItemBounds(outItems, (*scene), args);
                         }
                     }
                 }
@@ -218,10 +218,10 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
                 for (auto id : inSelection.partialItems) {
                     auto& item = scene->getItem(id);
                     if (filter.test(item.getKey()) && test.zoneOcclusionTest(item)) {
-                        ItemBound itemBound(id, item.getBound());
+                        ItemBound itemBound(id, item.getBound(args));
                         outItems.emplace_back(itemBound);
                         if (item.getKey().isMetaCullGroup()) {
-                            item.fetchMetaSubItemBounds(outItems, (*scene));
+                            item.fetchMetaSubItemBounds(outItems, (*scene), args);
                         }
                     }
                 }
@@ -233,10 +233,10 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
                 for (auto id : inSelection.partialSubcellItems) {
                     auto& item = scene->getItem(id);
                     if (filter.test(item.getKey()) && test.zoneOcclusionTest(item)) {
-                        ItemBound itemBound(id, item.getBound());
+                        ItemBound itemBound(id, item.getBound(args));
                         outItems.emplace_back(itemBound);
                         if (item.getKey().isMetaCullGroup()) {
-                            item.fetchMetaSubItemBounds(outItems, (*scene));
+                            item.fetchMetaSubItemBounds(outItems, (*scene), args);
                         }
                     }
                 }
@@ -250,10 +250,10 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
                 for (auto id : inSelection.insideItems) {
                     auto& item = scene->getItem(id);
                     if (filter.test(item.getKey()) && test.zoneOcclusionTest(item)) {
-                        ItemBound itemBound(id, item.getBound());
+                        ItemBound itemBound(id, item.getBound(args));
                         outItems.emplace_back(itemBound);
                         if (item.getKey().isMetaCullGroup()) {
-                            item.fetchMetaSubItemBounds(outItems, (*scene));
+                            item.fetchMetaSubItemBounds(outItems, (*scene), args);
                         }
                     }
                 }
@@ -265,11 +265,11 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
                 for (auto id : inSelection.insideSubcellItems) {
                     auto& item = scene->getItem(id);
                     if (filter.test(item.getKey()) && test.zoneOcclusionTest(item)) {
-                        ItemBound itemBound(id, item.getBound());
+                        ItemBound itemBound(id, item.getBound(args));
                         if (test.solidAngleTest(itemBound.bound)) {
                             outItems.emplace_back(itemBound);
                             if (item.getKey().isMetaCullGroup()) {
-                                item.fetchMetaSubItemBounds(outItems, (*scene));
+                                item.fetchMetaSubItemBounds(outItems, (*scene), args);
                             }
                         }
                     }
@@ -282,11 +282,11 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
                 for (auto id : inSelection.partialItems) {
                     auto& item = scene->getItem(id);
                     if (filter.test(item.getKey()) && test.zoneOcclusionTest(item)) {
-                        ItemBound itemBound(id, item.getBound());
+                        ItemBound itemBound(id, item.getBound(args));
                         if (test.frustumTest(itemBound.bound)) {
                             outItems.emplace_back(itemBound);
                             if (item.getKey().isMetaCullGroup()) {
-                                item.fetchMetaSubItemBounds(outItems, (*scene));
+                                item.fetchMetaSubItemBounds(outItems, (*scene), args);
                             }
                         }
                     }
@@ -299,11 +299,11 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
                 for (auto id : inSelection.partialSubcellItems) {
                     auto& item = scene->getItem(id);
                     if (filter.test(item.getKey()) && test.zoneOcclusionTest(item)) {
-                        ItemBound itemBound(id, item.getBound());
+                        ItemBound itemBound(id, item.getBound(args));
                         if (test.frustumTest(itemBound.bound) && test.solidAngleTest(itemBound.bound)) {
                             outItems.emplace_back(itemBound);
                             if (item.getKey().isMetaCullGroup()) {
-                                item.fetchMetaSubItemBounds(outItems, (*scene));
+                                item.fetchMetaSubItemBounds(outItems, (*scene), args);
                             }
                         }
                     }

@@ -52,14 +52,11 @@ void GizmoEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 void GizmoEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     bool dirty = false;
     RingGizmoPropertyGroup ringProperties = entity->getRingProperties();
-    withWriteLock([&] {
-        _gizmoType = entity->getGizmoType();
-        if (_ringProperties != ringProperties) {
-            _ringProperties = ringProperties;
-            dirty = true;
-
-        }
-    });
+    _gizmoType = entity->getGizmoType();
+    if (_ringProperties != ringProperties) {
+        _ringProperties = ringProperties;
+        dirty = true;
+    }
 
     if (dirty || _prevPrimitiveMode != _primitiveMode || !_ringGeometryID || !_majorTicksGeometryID || !_minorTicksGeometryID) {
         _prevPrimitiveMode = _primitiveMode;
@@ -198,8 +195,8 @@ void GizmoEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
     }
 }
 
-Item::Bound GizmoEntityRenderer::getBound() {
-    auto bound = Parent::getBound();
+Item::Bound GizmoEntityRenderer::getBound(RenderArgs* args) {
+    auto bound = Parent::getBound(args);
     if (_ringProperties.getHasTickMarks()) {
         glm::vec3 scale = bound.getScale();
         for (int i = 0; i < 3; i += 2) {
@@ -242,20 +239,23 @@ void GizmoEntityRenderer::doRender(RenderArgs* args) {
 
     if (_gizmoType == GizmoType::RING) {
         Transform transform;
-        bool hasTickMarks;
-        glm::vec4 tickProperties;
-        bool forward;
+        bool hasTickMarks = _ringProperties.getHasTickMarks();
+        glm::vec4 tickProperties = glm::vec4(_ringProperties.getMajorTickMarksAngle(), _ringProperties.getMajorTickMarksLength(),
+                                             _ringProperties.getMinorTickMarksAngle(), _ringProperties.getMinorTickMarksLength());
+
+        bool transparent;
         withReadLock([&] {
             transform = _renderTransform;
-            hasTickMarks = _ringProperties.getHasTickMarks();
-            tickProperties = glm::vec4(_ringProperties.getMajorTickMarksAngle(), _ringProperties.getMajorTickMarksLength(),
-                                       _ringProperties.getMinorTickMarksAngle(), _ringProperties.getMinorTickMarksLength());
-            forward = _renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD;
+            transparent = isTransparent();
         });
 
         bool wireframe = render::ShapeKey(args->_globalShapeKey).isWireframe() || _primitiveMode == PrimitiveMode::LINES;
-        geometryCache->bindSimpleProgram(batch, false, isTransparent(), wireframe, true, true, forward, graphics::MaterialKey::CULL_NONE);
+        bool forward = _renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD;
 
+        geometryCache->bindSimpleProgram(batch, false, transparent, wireframe, true, true, forward, graphics::MaterialKey::CULL_NONE);
+
+        transform.setRotation(BillboardModeHelpers::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
+            args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition(), true));
         batch.setModelTransform(transform);
 
         // Background circle
