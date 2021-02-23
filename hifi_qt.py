@@ -66,12 +66,8 @@ endif()
                 u_major = int( distro.major_version() )
                 u_minor = int( distro.minor_version() )
 
-                if u_major == 16:
-                    self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04-with-symbols.tar.gz'
-                elif u_major == 18:
+                if u_major == 18:
                     self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.15.2-ubuntu-18.04-amd64.tar.xz'
-                elif u_major == 19 and u_minor == 10:
-                    self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.6-ubuntu-19.10.tar.xz'
                 elif u_major > 19:
                     print("We don't support " + distro.name(pretty=True) + " yet. Perhaps consider helping us out?")
                     raise Exception('LINUX DISTRO IS NOT SUPPORTED YET!!!')
