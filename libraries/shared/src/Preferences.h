@@ -197,7 +197,7 @@ protected:
     uint _decimals { 0 };
     float _min { 0 };
     float _max { 1 };
-    float _step { 0.1f };
+    float _step { 1 };
 };
 
 class IntPreference : public Preference {
