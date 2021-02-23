@@ -1,6 +1,6 @@
 # General Build Information
 
-*Last Updated on August 26, 2020*
+*Last Updated on January 16, 2021*
 
 ### OS Specific Build Guides
 
@@ -11,7 +11,7 @@
 
 ### Dependencies
 - [git](https://git-scm.com/downloads): >= 1.6  
-- [cmake](https://cmake.org/download/):  3.9
+- [cmake](https://cmake.org/download/):  3.9 (or greater up to 3.18.x)
 - [Python](https://www.python.org/downloads/): 3.6 or higher
 - [Node.JS](https://nodejs.org/en/): >= 12.13.1 LTS
     - Used to build the Screen Sharing executable.
@@ -56,6 +56,10 @@ For example, under Linux:
 For example, under Windows:
 
     set QT_CMAKE_PREFIX_PATH=C:\Qt\5.15.2\msvc2019_64\lib\cmake
+
+For example, under OSX:
+
+    export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.15.2/lib/cmake
 
 Note: You only need the following components checked under Qt 5.15.2 (select the "Custom Installation" option): 
 		"MSVC 2019 64-bit", "Qt WebEngine", and "Qt Script (Deprecated)".
