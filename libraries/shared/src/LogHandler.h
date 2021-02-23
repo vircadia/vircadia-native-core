@@ -67,6 +67,11 @@ private:
     bool _shouldOutputThreadID { false };
     bool _shouldDisplayMilliseconds { false };
     bool _useColor { false };
+    bool _keepRepeats { false };
+
+    QString _previousMessage;
+    int _repeatCount { 0 };
+
 
     int _currentMessageID { 0 };
     struct RepeatedMessageRecord {

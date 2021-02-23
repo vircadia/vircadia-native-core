@@ -19,8 +19,8 @@
 using namespace render;
 
 CauterizedMeshPartPayload::CauterizedMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex,
-                                                     const Transform& transform, const Transform& offsetTransform, const uint64_t& created)
-    : ModelMeshPartPayload(model, meshIndex, partIndex, shapeIndex, transform, offsetTransform, created) {}
+                                                     const Transform& transform, const uint64_t& created)
+    : ModelMeshPartPayload(model, meshIndex, partIndex, shapeIndex, transform, created) {}
 
 void CauterizedMeshPartPayload::updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices,
                                                     const std::vector<glm::mat4>& cauterizedClusterMatrices) {
@@ -52,11 +52,26 @@ void CauterizedMeshPartPayload::updateClusterBuffer(const std::vector<Model::Tra
     }
 }
 
-void CauterizedMeshPartPayload::updateTransformForCauterizedMesh(const Transform& renderTransform) {
+void CauterizedMeshPartPayload::updateTransformForCauterizedMesh(const Transform& modelTransform, const Model::MeshState& meshState, bool useDualQuaternionSkinning) {
+    Transform renderTransform = modelTransform;
+    if (useDualQuaternionSkinning) {
+        if (meshState.clusterDualQuaternions.size() == 1 || meshState.clusterDualQuaternions.size() == 2) {
+            const auto& dq = meshState.clusterDualQuaternions[0];
+            Transform transform(dq.getRotation(),
+                                dq.getScale(),
+                                dq.getTranslation());
+            renderTransform = modelTransform.worldTransform(Transform(transform));
+        }
+    } else {
+        if (meshState.clusterMatrices.size() == 1 || meshState.clusterMatrices.size() == 2) {
+            renderTransform = modelTransform.worldTransform(Transform(meshState.clusterMatrices[0]));
+        }
+    }
+
     _cauterizedTransform = renderTransform;
 }
 
-void CauterizedMeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const {
+void CauterizedMeshPartPayload::bindTransform(gpu::Batch& batch, const Transform& transform, RenderArgs::RenderMode renderMode) const {
     bool useCauterizedMesh = (renderMode != RenderArgs::RenderMode::SHADOW_RENDER_MODE && renderMode != RenderArgs::RenderMode::SECONDARY_CAMERA_RENDER_MODE) && _enableCauterization;
     if (useCauterizedMesh) {
         if (_cauterizedClusterBuffer) {
@@ -64,7 +79,6 @@ void CauterizedMeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::Ren
         }
         batch.setModelTransform(_cauterizedTransform);
     } else {
-        ModelMeshPartPayload::bindTransform(batch, renderMode);
+        ModelMeshPartPayload::bindTransform(batch, transform, renderMode);
     }
 }
-

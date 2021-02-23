@@ -39,7 +39,7 @@
 
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar);
-    template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar);
+    template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar, RenderArgs* args);
     template <> void payloadRender(const AvatarSharedPointer& avatar, RenderArgs* args);
     template <> uint32_t metaFetchMetaSubItems(const AvatarSharedPointer& avatar, ItemIDs& subItems);
 }

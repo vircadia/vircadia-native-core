@@ -85,7 +85,7 @@ Windows:
 
     set HIFI_VCPKG_BASE=/path/to/directory
 
-Where /path/to/directory is the path to a directory where you wish the build files to get stored.
+Where `/path/to/directory` is the path to a directory where you wish the build files to get stored.
 
 #### Generating Build Files
 

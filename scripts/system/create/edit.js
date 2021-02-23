@@ -87,25 +87,30 @@ var PARTICLE_SYSTEM_URL = Script.resolvePath("assets/images/icon-particles.svg")
 var POINT_LIGHT_URL = Script.resolvePath("assets/images/icon-point-light.svg");
 var SPOT_LIGHT_URL = Script.resolvePath("assets/images/icon-spot-light.svg");
 var ZONE_URL = Script.resolvePath("assets/images/icon-zone.svg");
+var MATERIAL_URL = Script.resolvePath("assets/images/icon-material.svg");
 
-var entityIconOverlayManager = new EntityIconOverlayManager(['Light', 'ParticleEffect', 'Zone'], function(entityID) {
-    var properties = Entities.getEntityProperties(entityID, ['type', 'isSpotlight']);
-    if (properties.type === 'Light') {
-        return {
-            url: properties.isSpotlight ? SPOT_LIGHT_URL : POINT_LIGHT_URL,
+var entityIconOverlayManager = new EntityIconOverlayManager(["Light", "ParticleEffect", "Zone", "Material"], function(entityID) {
+    var properties = Entities.getEntityProperties(entityID, ["type", "isSpotlight", "parentID", "name"]);
+    if (properties.type === "Light") {
+        return { 
+            imageURL: properties.isSpotlight ? SPOT_LIGHT_URL : POINT_LIGHT_URL 
         };
-    } else if (properties.type === 'Zone') {
-        return {
-            url: ZONE_URL,
-        };
+    } else if (properties.type === "Zone") {
+        return { imageURL: ZONE_URL };
+    } else if (properties.type === "Material") {
+        if (properties.parentID !== Uuid.NULL && properties.name !== "MATERIAL_" + entityShapeVisualizerSessionName) {
+            return { imageURL: MATERIAL_URL };
+        } else {
+            return { imageURL: "" };
+        }
     } else {
-        return {
-            url: PARTICLE_SYSTEM_URL,
-        };
+        return { imageURL: PARTICLE_SYSTEM_URL };
     }
 });
 
 var hmdMultiSelectMode = false;
+var expectingRotateAsClickedSurface = false;
+var keepSelectedOnNextClick = false;
 
 var cameraManager = new CameraManager();
 
@@ -154,8 +159,7 @@ var MENU_CREATE_SEPARATOR = "Create Application";
 var SUBMENU_ENTITY_EDITOR_PREFERENCES = "Edit > Preferences";
 var MENU_AUTO_FOCUS_ON_SELECT = "Auto Focus on Select";
 var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
-var MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE = "Show Lights and Particle Systems in Create Mode";
-var MENU_SHOW_ZONES_IN_EDIT_MODE = "Show Zones in Create Mode";
+var MENU_SHOW_ICONS_IN_CREATE_MODE = "Show Icons in Create Mode";
 var MENU_CREATE_ENTITIES_GRABBABLE = "Create Entities As Grabbable (except Zones, Particles, and Lights)";
 var MENU_ALLOW_SELECTION_LARGE = "Allow Selecting of Large Models";
 var MENU_ALLOW_SELECTION_SMALL = "Allow Selecting of Small Models";
@@ -737,6 +741,7 @@ var toolBar = (function () {
                         grabbable: result.grabbable
                     },
                     dynamic: dynamic,
+                    useOriginalPivot: result.useOriginalPivot
                 });
             }
         }
@@ -1041,8 +1046,7 @@ var toolBar = (function () {
             // everybody else to think that Interface has lost focus overall. fogbugzid:558
             // Window.setFocus();
         }
-        entityIconOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
-        Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
+        entityIconOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_ICONS_IN_CREATE_MODE));
     };
 
     initialize();
@@ -1105,25 +1109,50 @@ function findClickedEntity(event) {
     }
 
     var result;
-
-    if (iconResult.intersects) {
-        result = iconResult;
-    } else if (entityResult.intersects) {
-        result = entityResult;
+    if (expectingRotateAsClickedSurface) {
+        if (!SelectionManager.hasSelection() || !SelectionManager.hasUnlockedSelection()) {
+            audioFeedback.rejection();
+            Window.notifyEditError("You have nothing selected, or the selection is locked.");
+            expectingRotateAsClickedSurface = false;
+        } else {
+            //Rotate Selection according the Surface Normal
+            var normalRotation = Quat.lookAtSimple(Vec3.ZERO, Vec3.multiply(entityResult.surfaceNormal, -1));
+            selectionDisplay.rotateSelection(normalRotation);
+            //Translate Selection according the clicked Surface
+            var distanceFromSurface;
+            if (selectionDisplay.getSpaceMode() === "world"){
+                distanceFromSurface = SelectionManager.worldDimensions.z / 2;
+            } else {
+                distanceFromSurface = SelectionManager.localDimensions.z / 2;
+            }
+            selectionDisplay.moveSelection(Vec3.sum(entityResult.intersection, Vec3.multiplyQbyV( normalRotation, {"x": 0.0, "y":0.0, "z": distanceFromSurface})));
+            selectionManager._update(false, this);
+            pushCommandForSelections();
+            expectingRotateAsClickedSurface = false;
+            audioFeedback.action();
+        }
+        keepSelectedOnNextClick = true;
+        return null;
     } else {
-        return null;
-    }
+        if (iconResult.intersects) {
+            result = iconResult;
+        } else if (entityResult.intersects) {
+            result = entityResult;
+        } else {
+            return null;
+        }
 
-    if (!result.accurate) {
-        return null;
-    }
+        if (!result.accurate) {
+            return null;
+        }
 
-    var foundEntity = result.entityID;
-    return {
-        pickRay: pickRay,
-        entityID: foundEntity,
-        intersection: result.intersection
-    };
+        var foundEntity = result.entityID;
+        return {
+            pickRay: pickRay,
+            entityID: foundEntity,
+            intersection: result.intersection
+        };
+    }
 }
 
 // Handles selections on overlays while in edit mode by querying entities from
@@ -1294,7 +1323,10 @@ function mouseClickEvent(event) {
 
         if (result === null || result === undefined) {
             if (!event.isShifted) {
-                selectionManager.clearSelections(this);
+                if (!keepSelectedOnNextClick) {
+                    selectionManager.clearSelections(this);
+                }
+                keepSelectedOnNextClick = false;
             }
             return;
         }
@@ -1465,22 +1497,15 @@ function setupModelMenus() {
     });
     Menu.addMenuItem({
         menuName: SUBMENU_ENTITY_EDITOR_PREFERENCES,
-        menuItemName: MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE,
+        menuItemName: MENU_SHOW_ICONS_IN_CREATE_MODE,
         afterItem: MENU_EASE_ON_FOCUS,
         isCheckable: true,
         isChecked: Settings.getValue(SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE) !== "false"
     });
     Menu.addMenuItem({
         menuName: SUBMENU_ENTITY_EDITOR_PREFERENCES,
-        menuItemName: MENU_SHOW_ZONES_IN_EDIT_MODE,
-        afterItem: MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE,
-        isCheckable: true,
-        isChecked: Settings.getValue(SETTING_SHOW_ZONES_IN_EDIT_MODE) !== "false"
-    });
-    Menu.addMenuItem({
-        menuName: SUBMENU_ENTITY_EDITOR_PREFERENCES,
         menuItemName: MENU_ENTITY_LIST_DEFAULT_RADIUS,
-        afterItem: MENU_SHOW_ZONES_IN_EDIT_MODE
+        afterItem: MENU_SHOW_ICONS_IN_CREATE_MODE
     });
 
     Entities.setLightsArePickable(false);
@@ -1497,8 +1522,7 @@ function cleanupModelMenus() {
     Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_ALLOW_SELECTION_LIGHTS);
     Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_AUTO_FOCUS_ON_SELECT);
     Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_EASE_ON_FOCUS);
-    Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE);
-    Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_SHOW_ZONES_IN_EDIT_MODE);
+    Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_SHOW_ICONS_IN_CREATE_MODE);
     Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_CREATE_ENTITIES_GRABBABLE);
     Menu.removeMenuItem(SUBMENU_ENTITY_EDITOR_PREFERENCES, MENU_ENTITY_LIST_DEFAULT_RADIUS);
     Menu.removeMenu(SUBMENU_ENTITY_EDITOR_PREFERENCES);
@@ -1511,8 +1535,7 @@ Script.scriptEnding.connect(function () {
     toolBar.setActive(false);
     Settings.setValue(SETTING_AUTO_FOCUS_ON_SELECT, Menu.isOptionChecked(MENU_AUTO_FOCUS_ON_SELECT));
     Settings.setValue(SETTING_EASE_ON_FOCUS, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
-    Settings.setValue(SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
-    Settings.setValue(SETTING_SHOW_ZONES_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
+    Settings.setValue(SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_ICONS_IN_CREATE_MODE));
 
     Settings.setValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LARGE, Menu.isOptionChecked(MENU_ALLOW_SELECTION_LARGE));
     Settings.setValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_SMALL, Menu.isOptionChecked(MENU_ALLOW_SELECTION_SMALL));
@@ -1869,10 +1892,8 @@ function handleMenuEvent(menuItem) {
         undoHistory.undo();
     } else if (menuItem === "Redo") {
         undoHistory.redo();
-    } else if (menuItem === MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE) {
-        entityIconOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
-    } else if (menuItem === MENU_SHOW_ZONES_IN_EDIT_MODE) {
-        Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
+    } else if (menuItem === MENU_SHOW_ICONS_IN_CREATE_MODE) {
+        entityIconOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_ICONS_IN_CREATE_MODE));
     } else if (menuItem === MENU_CREATE_ENTITIES_GRABBABLE) {
         Settings.setValue(SETTING_EDIT_PREFIX + menuItem, Menu.isOptionChecked(menuItem));
     } else if (menuItem === MENU_ENTITY_LIST_DEFAULT_RADIUS) {
@@ -2060,6 +2081,26 @@ function snapKey(value) {
 function gridToAvatarKey(value) {
     if (value === 0) { // on release
         alignGridToAvatar();
+    }
+}
+function rotateAsNextClickedSurfaceKey(value) {
+    if (value === 0) { // on release
+        rotateAsNextClickedSurface();
+    }
+}
+function quickRotate90xKey(value) {
+    if (value === 0) { // on release
+        selectionDisplay.rotate90degreeSelection("X");
+    }
+}
+function quickRotate90yKey(value) {
+    if (value === 0) { // on release
+        selectionDisplay.rotate90degreeSelection("Y");
+    }
+}
+function quickRotate90zKey(value) {
+    if (value === 0) { // on release
+        selectionDisplay.rotate90degreeSelection("Z");
     }
 }
 function recursiveAdd(newParentID, parentData) {
@@ -2829,6 +2870,10 @@ mapping.from([Controller.Hardware.Keyboard.J]).to(gridKey);
 mapping.from([Controller.Hardware.Keyboard.G]).to(viewGridKey);
 mapping.from([Controller.Hardware.Keyboard.H]).to(snapKey);
 mapping.from([Controller.Hardware.Keyboard.K]).to(gridToAvatarKey);
+mapping.from([Controller.Hardware.Keyboard["0"]]).to(rotateAsNextClickedSurfaceKey);
+mapping.from([Controller.Hardware.Keyboard["7"]]).to(quickRotate90xKey);
+mapping.from([Controller.Hardware.Keyboard["8"]]).to(quickRotate90yKey);
+mapping.from([Controller.Hardware.Keyboard["9"]]).to(quickRotate90zKey);
 mapping.from([Controller.Hardware.Keyboard.X])
     .when([Controller.Hardware.Keyboard.Control])
     .to(whenReleased(function() { selectionManager.cutSelectedEntities() }));
@@ -2877,6 +2922,14 @@ keyUpEventFromUIWindow = function(keyUpEvent) {
         snapKey(pressedValue);    
     } else if (keyUpEvent.keyCodeString === "K") {
         gridToAvatarKey(pressedValue);
+    } else if (keyUpEvent.keyCodeString === "0") {
+        rotateAsNextClickedSurfaceKey(pressedValue);
+    } else if (keyUpEvent.keyCodeString === "7") {
+        quickRotate90xKey(pressedValue);
+    } else if (keyUpEvent.keyCodeString === "8") {
+        quickRotate90yKey(pressedValue);
+    } else if (keyUpEvent.keyCodeString === "9") {
+        quickRotate90zKey(pressedValue);        
     } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "X") {
         selectionManager.cutSelectedEntities();
     } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "C") {
@@ -3022,6 +3075,16 @@ function toggleGridVisibility() {
         grid.setVisible(true, true);
     } else {
         grid.setVisible(false, true);
+    }
+}
+
+function rotateAsNextClickedSurface() {
+    if (!SelectionManager.hasSelection() || !SelectionManager.hasUnlockedSelection()) {
+        audioFeedback.rejection();
+        Window.notifyEditError("You have nothing selected, or the selection is locked.");
+        expectingRotateAsClickedSurface = false;
+    } else {
+        expectingRotateAsClickedSurface = true;
     }
 }
 

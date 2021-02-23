@@ -23,7 +23,7 @@ public:
     ~GizmoEntityRenderer();
 
 protected:
-    Item::Bound getBound() override;
+    Item::Bound getBound(RenderArgs* args) override;
     ShapeKey getShapeKey() override;
 
     bool isTransparent() const override;

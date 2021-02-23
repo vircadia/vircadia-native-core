@@ -65,13 +65,21 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
         return result;
     }
 
+    // Use the center-of-gravity model if the user and the avatar are standing, unless flying or walking.
+    // If artificial standing is disabled, use center-of-gravity regardless of the user's sit/stand state.
+    bool useCenterOfGravityModel =
+        myAvatar->getCenterOfGravityModelEnabled() && !isFlying && !myAvatar->getIsInWalkingState() &&
+        (!myAvatar->getHMDCrouchRecenterEnabled() || !myAvatar->getIsInSittingState()) &&
+        myAvatar->getHMDLeanRecenterEnabled() &&
+        (myAvatar->getAllowAvatarLeaningPreference() != MyAvatar::AllowAvatarLeaningPreference::AlwaysNoRecenter);
+
     glm::mat4 hipsMat;
-    if (myAvatar->getCenterOfGravityModelEnabled() && !isFlying && !(myAvatar->getIsInWalkingState()) && !(myAvatar->getIsInSittingState()) && myAvatar->getHMDLeanRecenterEnabled()) {
+    if (useCenterOfGravityModel) {
         // then we use center of gravity model
         hipsMat = myAvatar->deriveBodyUsingCgModel();
     } else {
         // otherwise use the default of putting the hips under the head
-        hipsMat = myAvatar->deriveBodyFromHMDSensor();
+        hipsMat = myAvatar->deriveBodyFromHMDSensor(true);
     }
     glm::vec3 hipsPos = extractTranslation(hipsMat);
     glm::quat hipsRot = glmExtractRotation(hipsMat);
@@ -82,7 +90,7 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
 
     // dampen hips rotation, by mixing it with the avatar orientation in sensor space
     // turning this off for center of gravity model because it is already mixed in there
-    if (!(myAvatar->getCenterOfGravityModelEnabled())) {
+    if (!useCenterOfGravityModel) {
         const float MIX_RATIO = 0.5f;
         hipsRot = safeLerp(glmExtractRotation(avatarToSensorMat), hipsRot, MIX_RATIO);
     }
