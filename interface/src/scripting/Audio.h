@@ -51,7 +51,7 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
      *     enabled, the input audio signal is blocked (fully attenuated) when it falls below an adaptive threshold set just
      *     above the noise floor.
      * @property {boolean} noiseReductionAutomatic - <code>true</code> if audio input noise reduction automatic mode is enabled, 
-     *     <code>false</code> if in manual mode. Manual mode will allow you to use <code>Audio.noiseReductionAutomatic</code>
+     *     <code>false</code> if in manual mode. Manual mode allows you to use <code>Audio.noiseReductionThreshold</code>
      *     to set a manual sensitivity for the noise gate.
      * @property {number} noiseReductionThreshold - Sets the noise gate threshold before your mic audio is transmitted. 
      *     (Applies only if <code>Audio.noiseReductionAutomatic</code> is <code>false</code>.)
