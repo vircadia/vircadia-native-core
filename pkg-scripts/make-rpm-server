@@ -5,7 +5,7 @@ if [ "$VIRCADIA" = "" ]; then
 fi
 GITDATE=`git -C $VIRCADIA/source log -n 1 --format=raw | grep author | cut -d">" -f 2 | cut -d" " -f 2 | xargs -I {} date -d @{} +"%Y%m%d"`
 GITCOMMIT=`git -C $VIRCADIA/source rev-parse HEAD | cut -c 1-7`
-VERSION=${RPMVERSION}-${GITDATE}-${GITCOMMIT}
+VERSION=${RPMVERSION}_${GITDATE}_${GITCOMMIT}
 
 SOFILES=`ls \
 		$VIRCADIA/build/libraries/*/*.so \
