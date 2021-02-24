@@ -50,6 +50,11 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
      * @property {boolean} noiseReduction - <code>true</code> if noise reduction is enabled, otherwise <code>false</code>. When
      *     enabled, the input audio signal is blocked (fully attenuated) when it falls below an adaptive threshold set just
      *     above the noise floor.
+     * @property {boolean} noiseReductionAutomatic - <code>true</code> if audio input noise reduction automatic mode is enabled, 
+     *     <code>false</code> if in manual mode. Manual mode will allow you to use <code>Audio.noiseReductionAutomatic</code>
+     *     to set a manual sensitivity for the noise gate.
+     * @property {number} noiseReductionThreshold - Sets the noise gate threshold before your mic audio is transmitted. 
+     *     (Applies only if <code>Audio.noiseReductionAutomatic</code> is <code>false</code>.)
      * @property {number} inputVolume - Adjusts the volume of the input audio, range <code>0.0</code> &ndash; <code>1.0</code>. 
      *     If set to a value, the resulting value depends on the input device: for example, the volume can't be changed on some 
      *     devices, and others might only support values of <code>0.0</code> and <code>1.0</code>.
