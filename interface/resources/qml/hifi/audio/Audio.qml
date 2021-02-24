@@ -106,7 +106,7 @@ Rectangle {
         }
     }
     function updateNoiseReductionThresholdFromQML(sliderValue) {
-        if (AudioScriptingInterface.getNoiseReductionThreshold() != sliderValue) {
+        if (AudioScriptingInterface.getNoiseReductionThreshold() !== sliderValue) {
             AudioScriptingInterface.setNoiseReductionThreshold(sliderValue);
         }
     }
@@ -496,7 +496,7 @@ Rectangle {
         Item {
             id: noiseReductionHeader
             x: margins.paddings;
-            width: parent.width - margins.paddings*2;
+            width: parent.width - margins.paddings * 2;
             height: 36;
             anchors.top: secondSeparator.bottom;
             anchors.topMargin: 10;
@@ -506,7 +506,7 @@ Rectangle {
                 text: hifi.glyphs.mic;
                 color: hifi.colors.white;
                 anchors.left: parent.left;
-                anchors.leftMargin: -size/4; //the glyph has empty space at left about 25%
+                anchors.leftMargin: -size / 4; // The glyph has empty space at left about 25%
                 anchors.verticalCenter: parent.verticalCenter;
                 size: 30;
             }
@@ -552,7 +552,7 @@ Rectangle {
                     checked: AudioScriptingInterface.acousticEchoCancellation;
                     onCheckedChanged: {
                         AudioScriptingInterface.acousticEchoCancellation = checked;
-                        checked = Qt.binding(function() { return AudioScriptingInterface.acousticEchoCancellation; });
+                        checked = Qt.binding(function () { return AudioScriptingInterface.acousticEchoCancellation; });
                     }
                 }
                 
@@ -569,7 +569,7 @@ Rectangle {
                     checked: AudioScriptingInterface.noiseReduction;
                     onCheckedChanged: {
                         AudioScriptingInterface.noiseReduction = checked;
-                        checked = Qt.binding(function() { return AudioScriptingInterface.noiseReduction; }); // restore binding
+                        checked = Qt.binding(function () { return AudioScriptingInterface.noiseReduction; }); // restore binding
                     }
                 }
                 
@@ -584,10 +584,10 @@ Rectangle {
                     labelTextSize: 16;
                     backgroundOnColor: "#E3E3E3";
                     checked: !AudioScriptingInterface.noiseReductionAutomatic;
-                    visible: AudioScriptingInterface.noiseReduction === true;
+                    visible: AudioScriptingInterface.noiseReduction;
                     onCheckedChanged: {
                         AudioScriptingInterface.noiseReductionAutomatic = !checked;
-                        checked = Qt.binding(function() { return !AudioScriptingInterface.noiseReductionAutomatic; }); // restore binding
+                        checked = Qt.binding(function () { return !AudioScriptingInterface.noiseReductionAutomatic; }); // restore binding
                     }
                 }
             }
@@ -598,9 +598,9 @@ Rectangle {
             x: margins.paddings;
             anchors.top: noiseReductionSwitches.bottom;
             anchors.topMargin: 16;
-            width: parent.width - margins.paddings*2;
+            width: parent.width - margins.paddings * 2;
             height: avatarGainSliderTextMetrics.height + 10;
-            visible: AudioScriptingInterface.noiseReduction === true && AudioScriptingInterface.noiseReductionAutomatic !== true;
+            visible: AudioScriptingInterface.noiseReduction && !AudioScriptingInterface.noiseReductionAutomatic;
 
             HifiControlsUit.Slider {
                 id: noiseReductionThresholdSlider
@@ -626,16 +626,16 @@ Rectangle {
                         // Do nothing.
                     }
                     onDoubleClicked: {
-                        noiseReductionThresholdSlider.value = 0.0
+                        noiseReductionThresholdSlider.value = 0.0;
                     }
                     onPressed: {
                         // Pass through to Slider
-                        mouse.accepted = false
+                        mouse.accepted = false;
                     }
                     onReleased: {
                         // the above mouse.accepted seems to make this
                         // never get called, nonetheless...
-                        mouse.accepted = false
+                        mouse.accepted = false;
                     }
                 }
             }
@@ -693,9 +693,9 @@ Rectangle {
                     visible: !status.visible;
 
                     Component.onCompleted: {
-                        AudioScriptingInterface.noiseGateOpened.connect(function() { noiseBar.gated = false; });
-                        AudioScriptingInterface.noiseGateClosed.connect(function() { noiseBar.gated = true; });
-                        AudioScriptingInterface.inputLevelChanged.connect(function() { noiseBar.level = AudioScriptingInterface.inputLevel; });
+                        AudioScriptingInterface.noiseGateOpened.connect(function () { noiseBar.gated = false; });
+                        AudioScriptingInterface.noiseGateClosed.connect(function () { noiseBar.gated = true; });
+                        AudioScriptingInterface.inputLevelChanged.connect(function () { noiseBar.level = AudioScriptingInterface.inputLevel; });
                     }
 
                     Rectangle { // base

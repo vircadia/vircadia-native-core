@@ -275,7 +275,7 @@ public:
     Q_INVOKABLE float getSystemInjectorGain();
     
     /**jsdoc
-     * Sets the noise gate threshold before your mic audio is transmitted. (Applies only if Audio.noiseReductionAutomatic is off.)
+     * Sets the noise gate threshold before your mic audio is transmitted. (Applies only if <code>Audio.noiseReductionAutomatic</code> is <code>false</code>.)
      * @function Audio.setNoiseReductionThreshold
      * @param {number} threshold - The level that your input must surpass to be transmitted. <code>0.0</code> (open the gate completely) &ndash; <code>1.0</code>
      */
@@ -419,14 +419,13 @@ signals:
     /**jsdoc
      * Triggered when the audio input noise reduction mode is changed.
      * @function Audio.noiseReductionAutomaticChanged
-     * @param {boolean} isEnabled - <code>true</code> if audio input noise reduction automatic mode is enabled, otherwise <code>false</code>. 
-     *     This means the mode is set to 'manual'.
+     * @param {boolean} isEnabled - <code>true</code> if audio input noise reduction automatic mode is enabled, <code>false</code> if in manual mode.
      * @returns {Signal}
      */
     void noiseReductionAutomaticChanged(bool isEnabled);
     
     /**jsdoc
-     * Triggered when audio input noise reduction threshold is changed.
+     * Triggered when the audio input noise reduction threshold is changed.
      * @function Audio.noiseReductionThresholdChanged
      * @param {number} threshold - The threshold for the audio input noise reduction, range <code>0.0</code> (open the gate completely) &ndash; <code>1.0</code>
      *     (close the gate completely).
