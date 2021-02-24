@@ -55,8 +55,14 @@ public:
 
     const uint64_t& getUpdateTime() const { return _updateTime; }
 
+    enum class Pipeline {
+        SIMPLE,
+        MATERIAL,
+        PROCEDURAL
+    };
     virtual void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
     virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
+    static Pipeline getPipelineType(const graphics::MultiMaterial& materials);
 
     virtual scriptable::ScriptableModelBase getScriptableModel() override { return scriptable::ScriptableModelBase(); }
 
@@ -119,6 +125,15 @@ protected:
     static void makeStatusGetters(const EntityItemPointer& entity, Item::Status::Getters& statusGetters);
     const Transform& getModelTransform() const;
 
+    // Shared methods for entities that support materials
+    using MaterialMap = std::unordered_map<std::string, graphics::MultiMaterial>;
+    bool needsRenderUpdateFromMaterials() const;
+    void updateMaterials(bool baseMaterialChanged = false);
+    bool materialsTransparent() const;
+    Item::Bound getMaterialBound(RenderArgs* args);
+    MaterialMap::iterator getAndUpdateMaterials();
+    void updateShapeKeyBuilderFromMaterials(ShapeKey::Builder& builder, MaterialMap::iterator materials) const;
+
     Item::Bound _bound;
     SharedSoundPointer _collisionSound;
     QUuid _changeHandlerId;
@@ -139,8 +154,8 @@ protected:
     bool _moving { false };
     Transform _renderTransform;
 
-    std::unordered_map<std::string, graphics::MultiMaterial> _materials;
-    std::mutex _materialsLock;
+    MaterialMap _materials;
+    mutable std::mutex _materialsLock;
 
     quint64 _created;
 

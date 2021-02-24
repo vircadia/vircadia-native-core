@@ -25,8 +25,8 @@ ImageEntityRenderer::~ImageEntityRenderer() {
     }
 }
 
-bool ImageEntityRenderer::isTransparent() const {
-    return Parent::isTransparent() || (_textureIsLoaded && _texture->getGPUTexture() && _texture->getGPUTexture()->getUsage().isAlpha()) || _alpha < 1.0f || _pulseProperties.getAlphaMode() != PulseMode::NONE;
+bool ImageEntityRenderer::needsRenderUpdate() const {
+    return needsRenderUpdateFromMaterials() || Parent::needsRenderUpdate();
 }
 
 void ImageEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
@@ -63,6 +63,18 @@ void ImageEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
         emit requestRenderUpdate();
     }
     _textureIsLoaded = _texture && (_texture->isLoaded() || _texture->isFailed());
+
+    updateMaterials();
+}
+
+bool ImageEntityRenderer::isTransparent() const {
+    bool imageTransparent = _alpha < 1.0f || _pulseProperties.getAlphaMode() != PulseMode::NONE ||
+        (_textureIsLoaded && _texture->getGPUTexture() && _texture->getGPUTexture()->getUsage().isAlpha());
+    return imageTransparent || Parent::isTransparent() || materialsTransparent();
+}
+
+Item::Bound ImageEntityRenderer::getBound(RenderArgs* args) {
+    return Parent::getMaterialBound(args);
 }
 
 ShapeKey ImageEntityRenderer::getShapeKey() {

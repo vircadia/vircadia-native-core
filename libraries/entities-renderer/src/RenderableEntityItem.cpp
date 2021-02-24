@@ -29,6 +29,8 @@
 #include "RenderableZoneEntityItem.h"
 #include "RenderableMaterialEntityItem.h"
 
+#include "RenderPipelines.h"
+
 using namespace render;
 using namespace render::entities;
 
@@ -149,10 +151,11 @@ Item::Bound EntityRenderer::getBound(RenderArgs* args) {
 }
 
 ShapeKey EntityRenderer::getShapeKey() {
+    ShapeKey::Builder builder = ShapeKey::Builder().withOwnPipeline();
     if (_primitiveMode == PrimitiveMode::LINES) {
-        return ShapeKey::Builder().withOwnPipeline().withWireframe();
+        builder.withWireframe();
     }
-    return ShapeKey::Builder().withOwnPipeline();
+    return builder.build();
 }
 
 render::hifi::Tag EntityRenderer::getTagMask() const {
@@ -365,6 +368,7 @@ bool EntityRenderer::needsRenderUpdate() const {
     if (_prevIsTransparent != isTransparent()) {
         return true;
     }
+
     return needsRenderUpdateFromEntity(_entity);
 }
 
@@ -484,6 +488,170 @@ void EntityRenderer::removeMaterial(graphics::MaterialPointer material, const st
     std::lock_guard<std::mutex> lock(_materialsLock);
     _materials[parentMaterialName].remove(material);
     emit requestRenderUpdate();
+}
+
+EntityRenderer::Pipeline EntityRenderer::getPipelineType(const graphics::MultiMaterial& materials) {
+    if (materials.top().material && materials.top().material->isProcedural() && materials.top().material->isReady()) {
+        return Pipeline::PROCEDURAL;
+    }
+
+    graphics::MaterialKey drawMaterialKey = materials.getMaterialKey();
+    if (drawMaterialKey.isEmissive() || drawMaterialKey.isUnlit() || drawMaterialKey.isMetallic() || drawMaterialKey.isScattering()) {
+        return Pipeline::MATERIAL;
+    }
+
+    // If the material is using any map, we need to use a material ShapeKey
+    for (int i = 0; i < graphics::Material::MapChannel::NUM_MAP_CHANNELS; i++) {
+        if (drawMaterialKey.isMapChannel(graphics::Material::MapChannel(i))) {
+            return Pipeline::MATERIAL;
+        }
+    }
+    return Pipeline::SIMPLE;
+}
+
+bool EntityRenderer::needsRenderUpdateFromMaterials() const {
+    MaterialMap::const_iterator materials;
+    {
+        std::lock_guard<std::mutex> lock(_materialsLock);
+        materials = _materials.find("0");
+
+        if (materials == _materials.cend()) {
+            return false;
+        }
+    }
+
+    if (materials->second.shouldUpdate()) {
+        return true;
+    }
+
+    if (materials->second.top().material && materials->second.top().material->isProcedural() && materials->second.top().material->isReady()) {
+        auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(materials->second.top().material);
+        if (procedural->isFading()) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void EntityRenderer::updateMaterials(bool baseMaterialChanged) {
+    MaterialMap::iterator materials;
+    {
+        std::lock_guard<std::mutex> lock(_materialsLock);
+        materials = _materials.find("0");
+
+        if (materials == _materials.end()) {
+            return;
+        }
+    }
+
+    if (baseMaterialChanged) {
+        materials->second.setNeedsUpdate(true);
+    }
+
+    bool requestUpdate = false;
+    if (materials->second.top().material && materials->second.top().material->isProcedural() && materials->second.top().material->isReady()) {
+        auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(materials->second.top().material);
+        if (procedural->isFading()) {
+            procedural->setIsFading(Interpolate::calculateFadeRatio(procedural->getFadeStartTime()) < 1.0f);
+            requestUpdate = true;
+        }
+    }
+
+    if (materials->second.shouldUpdate()) {
+        RenderPipelines::updateMultiMaterial(materials->second);
+        requestUpdate = true;
+    }
+
+    if (requestUpdate) {
+        emit requestRenderUpdate();
+    }
+}
+
+bool EntityRenderer::materialsTransparent() const {
+    MaterialMap::const_iterator materials;
+    {
+        std::lock_guard<std::mutex> lock(_materialsLock);
+        materials = _materials.find("0");
+
+        if (materials == _materials.cend()) {
+            return false;
+        }
+    }
+
+    if (materials->second.top().material) {
+        if (materials->second.top().material->isProcedural() && materials->second.top().material->isReady()) {
+            auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(materials->second.top().material);
+            if (procedural->isFading()) {
+                return true;
+            }
+        }
+
+        if (materials->second.getMaterialKey().isTranslucent()) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+Item::Bound EntityRenderer::getMaterialBound(RenderArgs* args) {
+    MaterialMap::iterator materials;
+    {
+        std::lock_guard<std::mutex> lock(_materialsLock);
+        materials = _materials.find("0");
+
+        if (materials == _materials.end()) {
+            return EntityRenderer::getBound(args);
+        }
+    }
+
+    if (materials->second.top().material && materials->second.top().material->isProcedural() && materials->second.top().material->isReady()) {
+        auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(materials->second.top().material);
+        if (procedural->hasVertexShader() && procedural->hasBoundOperator()) {
+            return procedural->getBound(args);
+        }
+    }
+
+    return EntityRenderer::getBound(args);
+}
+
+EntityRenderer::MaterialMap::iterator EntityRenderer::getAndUpdateMaterials() {
+    std::lock_guard<std::mutex> lock(_materialsLock);
+    auto materials = _materials.find("0");
+    if (materials != _materials.end() && materials->second.shouldUpdate()) {
+        RenderPipelines::updateMultiMaterial(materials->second);
+    }
+
+    return materials;
+}
+
+void EntityRenderer::updateShapeKeyBuilderFromMaterials(ShapeKey::Builder& builder, MaterialMap::iterator materials) const {
+    {
+        std::lock_guard<std::mutex> lock(_materialsLock);
+        if (materials == _materials.end()) {
+            return;
+        }
+    }
+
+    builder.withCullFaceMode(materials->second.getCullFaceMode());
+    auto pipelineType = getPipelineType(materials->second);
+    if (pipelineType == Pipeline::MATERIAL) {
+        builder.withMaterial();
+
+        graphics::MaterialKey drawMaterialKey = materials->second.getMaterialKey();
+        if (drawMaterialKey.isNormalMap()) {
+            builder.withTangents();
+        }
+        if (drawMaterialKey.isLightMap()) {
+            builder.withLightMap();
+        }
+        if (drawMaterialKey.isUnlit()) {
+            builder.withUnlit();
+        }
+    } else if (pipelineType == Pipeline::PROCEDURAL) {
+        builder.withOwnPipeline();
+    }
 }
 
 glm::vec4 EntityRenderer::calculatePulseColor(const glm::vec4& color, const PulsePropertyGroup& pulseProperties, quint64 start) {
