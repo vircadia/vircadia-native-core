@@ -470,7 +470,10 @@ void ScriptEngine::waitTillDoneRunning(bool shutdown) {
         // We should never be waiting (blocking) on our own thread
         assert(workerThread != QThread::currentThread());
 
-#ifdef Q_OS_MAC
+#if 0
+        // 26 Feb 2021 - Disabled this OSX-specific code because it causes OSX to crash on shutdown; without this code, OSX 
+        // doesn't crash on shutdown. Qt 5.12.3 and Qt 5.15.2.
+        //
         // On mac, don't call QCoreApplication::processEvents() here. This is to prevent
         // [NSApplication terminate:] from prematurely destroying the static destructors
         // while we are waiting for the scripts to shutdown. We will pump the message
