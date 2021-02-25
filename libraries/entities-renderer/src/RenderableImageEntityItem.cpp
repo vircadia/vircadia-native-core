@@ -11,11 +11,15 @@
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 
+#include "RenderPipelines.h"
+
 using namespace render;
 using namespace render::entities;
 
 ImageEntityRenderer::ImageEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {
     _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
+    _material->setCullFaceMode(graphics::MaterialKey::CullFaceMode::CULL_NONE);
+    addMaterial(graphics::MaterialLayer(_material, 0), "0");
 }
 
 ImageEntityRenderer::~ImageEntityRenderer() {
@@ -51,20 +55,38 @@ void ImageEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
         _textureIsLoaded = false;
     }
 
-    _emissive = entity->getEmissive();
     _keepAspectRatio = entity->getKeepAspectRatio();
     _subImage = entity->getSubImage();
-
-    _color = entity->getColor();
-    _alpha = entity->getAlpha();
     _pulseProperties = entity->getPulseProperties();
+
+    bool materialChanged = false;
+    glm::vec3 color = toGlm(entity->getColor());
+    if (_color != color) {
+        _color = color;
+        _material->setAlbedo(color);
+        materialChanged = true;
+    }
+
+    float alpha = entity->getAlpha();
+    if (_alpha != alpha) {
+        _alpha = alpha;
+        _material->setOpacity(alpha);
+        materialChanged = true;
+    }
+
+    auto emissive = entity->getEmissive();
+    if (_emissive != emissive) {
+        _emissive = emissive;
+        _material->setUnlit(_emissive);
+        materialChanged = true;
+    }
+
+    updateMaterials(materialChanged);
 
     if (!_textureIsLoaded) {
         emit requestRenderUpdate();
     }
     _textureIsLoaded = _texture && (_texture->isLoaded() || _texture->isFailed());
-
-    updateMaterials();
 }
 
 bool ImageEntityRenderer::isTransparent() const {
@@ -79,41 +101,53 @@ Item::Bound ImageEntityRenderer::getBound(RenderArgs* args) {
 
 ShapeKey ImageEntityRenderer::getShapeKey() {
     auto builder = render::ShapeKey::Builder().withoutCullFace().withDepthBias();
+
+    auto mat = getAndUpdateMaterials();
+
     if (isTransparent()) {
         builder.withTranslucent();
-    }
-
-    if (_emissive) {
-        builder.withUnlit();
     }
 
     if (_primitiveMode == PrimitiveMode::LINES) {
         builder.withWireframe();
     }
 
+    updateShapeKeyBuilderFromMaterials(builder, mat);
+
     return builder.build();
 }
 
 void ImageEntityRenderer::doRender(RenderArgs* args) {
-    glm::vec4 color = glm::vec4(toGlm(_color), _alpha);
-    color = EntityRenderer::calculatePulseColor(color, _pulseProperties, _created);
-    Transform transform;
-    withReadLock([&] {
-        transform = _renderTransform;
-    });
+    PerformanceTimer perfTimer("RenderableImageEntityItem::render");
+    Q_ASSERT(args->_batch);
 
-    if (!_visible || !_texture || !_texture->isLoaded() || color.a == 0.0f) {
+    graphics::MultiMaterial materials;
+    {
+        std::lock_guard<std::mutex> lock(_materialsLock);
+        materials = _materials["0"];
+    }
+
+    auto& schema = materials.getSchemaBuffer().get<graphics::MultiMaterial::Schema>();
+    glm::vec4 color = glm::vec4(ColorUtils::tosRGBVec3(schema._albedo), schema._opacity);
+    color = EntityRenderer::calculatePulseColor(color, _pulseProperties, _created);
+
+    if (!_texture || !_texture->isLoaded() || color.a == 0.0f) {
         return;
     }
 
-    Q_ASSERT(args->_batch);
+    Transform transform;
+    bool transparent;
+    withReadLock([&] {
+        transform = _renderTransform;
+        transparent = isTransparent();
+    });
+
     gpu::Batch* batch = args->_batch;
 
     transform.setRotation(BillboardModeHelpers::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
         args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
 
     batch->setModelTransform(transform);
-    batch->setResourceTexture(0, _texture->getGPUTexture());
 
     float imageWidth = _texture->getWidth();
     float imageHeight = _texture->getHeight();
@@ -143,6 +177,19 @@ void ImageEntityRenderer::doRender(RenderArgs* args) {
 
     glm::vec2 texCoordBottomLeft((fromImage.x() + 0.5f) / imageWidth, (fromImage.y() + fromImage.height() - 0.5f) / imageHeight);
     glm::vec2 texCoordTopRight((fromImage.x() + fromImage.width() - 0.5f) / imageWidth, (fromImage.y() + 0.5f) / imageHeight);
+
+    Pipeline pipelineType = getPipelineType(materials);
+    if (pipelineType == Pipeline::PROCEDURAL) {
+        auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(materials.top().material);
+        transparent |= procedural->isFading();
+        procedural->prepare(*batch, transform.getTranslation(), transform.getScale(), transform.getRotation(), _created, ProceduralProgramKey(transparent));
+    } else if (pipelineType == Pipeline::SIMPLE) {
+        batch->setResourceTexture(0, _texture->getGPUTexture());
+    } else {
+        if (RenderPipelines::bindMaterials(materials, *batch, args->_renderMode, args->_enableTexturing)) {
+            args->_details._materialSwitches++;
+        }
+    }
 
     DependencyManager::get<GeometryCache>()->renderQuad(
         *batch, glm::vec2(-x, -y), glm::vec2(x, y), texCoordBottomLeft, texCoordTopRight,

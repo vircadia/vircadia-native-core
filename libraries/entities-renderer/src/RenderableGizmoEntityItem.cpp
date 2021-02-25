@@ -231,7 +231,7 @@ Item::Bound GizmoEntityRenderer::getBound(RenderArgs* args) {
 }
 
 ShapeKey GizmoEntityRenderer::getShapeKey() {
-    auto builder = render::ShapeKey::Builder().withoutCullFace();
+    auto builder = render::ShapeKey::Builder().withoutCullFace().withDepthBias();
 
     auto mat = getAndUpdateMaterials();
 
@@ -240,7 +240,7 @@ ShapeKey GizmoEntityRenderer::getShapeKey() {
     }
 
     if (_primitiveMode == PrimitiveMode::LINES) {
-        builder.withUnlit().withDepthBias().withWireframe();
+        builder.withUnlit().withWireframe();
     }
 
     updateShapeKeyBuilderFromMaterials(builder, mat);

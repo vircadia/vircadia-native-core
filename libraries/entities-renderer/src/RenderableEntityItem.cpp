@@ -496,7 +496,7 @@ EntityRenderer::Pipeline EntityRenderer::getPipelineType(const graphics::MultiMa
     }
 
     graphics::MaterialKey drawMaterialKey = materials.getMaterialKey();
-    if (drawMaterialKey.isEmissive() || drawMaterialKey.isUnlit() || drawMaterialKey.isMetallic() || drawMaterialKey.isScattering()) {
+    if (drawMaterialKey.isEmissive() || drawMaterialKey.isMetallic() || drawMaterialKey.isScattering()) {
         return Pipeline::MATERIAL;
     }
 
@@ -635,19 +635,21 @@ void EntityRenderer::updateShapeKeyBuilderFromMaterials(ShapeKey::Builder& build
     }
 
     builder.withCullFaceMode(materials->second.getCullFaceMode());
+
+    graphics::MaterialKey drawMaterialKey = materials->second.getMaterialKey();
+    if (drawMaterialKey.isUnlit()) {
+        builder.withUnlit();
+    }
+
     auto pipelineType = getPipelineType(materials->second);
     if (pipelineType == Pipeline::MATERIAL) {
         builder.withMaterial();
 
-        graphics::MaterialKey drawMaterialKey = materials->second.getMaterialKey();
         if (drawMaterialKey.isNormalMap()) {
             builder.withTangents();
         }
         if (drawMaterialKey.isLightMap()) {
             builder.withLightMap();
-        }
-        if (drawMaterialKey.isUnlit()) {
-            builder.withUnlit();
         }
     } else if (pipelineType == Pipeline::PROCEDURAL) {
         builder.withOwnPipeline();

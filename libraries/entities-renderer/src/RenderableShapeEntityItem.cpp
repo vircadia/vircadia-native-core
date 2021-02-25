@@ -108,15 +108,6 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableShapeEntityItem::render");
     Q_ASSERT(args->_batch);
 
-    gpu::Batch& batch = *args->_batch;
-
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-    GeometryCache::Shape geometryShape = geometryCache->getShapeForEntityShape(_shape);
-    Transform transform;
-    withReadLock([&] {
-        transform = _renderTransform;
-    });
-
     graphics::MultiMaterial materials;
     {
         std::lock_guard<std::mutex> lock(_materialsLock);
@@ -130,6 +121,15 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
     if (outColor.a == 0.0f) {
         return;
     }
+
+    gpu::Batch& batch = *args->_batch;
+
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    GeometryCache::Shape geometryShape = geometryCache->getShapeForEntityShape(_shape);
+    Transform transform;
+    withReadLock([&] {
+        transform = _renderTransform;
+    });
 
     bool wireframe = render::ShapeKey(args->_globalShapeKey).isWireframe() || _primitiveMode == PrimitiveMode::LINES;
 

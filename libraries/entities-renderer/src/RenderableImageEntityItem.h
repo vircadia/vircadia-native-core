@@ -13,6 +13,8 @@
 
 #include <ImageEntityItem.h>
 
+#include <procedural/Procedural.h>
+
 namespace render { namespace entities {
 
 class ImageEntityRenderer : public TypedEntityRenderer<ImageEntityItem> {
@@ -42,8 +44,9 @@ private:
     bool _keepAspectRatio;
     QRect _subImage;
 
-    glm::u8vec3 _color;
-    float _alpha;
+    std::shared_ptr<graphics::ProceduralMaterial> _material { std::make_shared<graphics::ProceduralMaterial>() };
+    glm::vec3 _color { NAN };
+    float _alpha { NAN };
     PulsePropertyGroup _pulseProperties;
 
     int _geometryId { 0 };
