@@ -4,7 +4,7 @@
 //  onEscape.js
 //
 //  Created by Kalila L. on Feb 3 2021.
-//  Copyright 2020 Vircadia contributors.
+//  Copyright 2021 Vircadia contributors.
 //
 //  This script manages actions when the user triggers an "escape" key or action.
 //

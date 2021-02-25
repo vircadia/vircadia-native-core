@@ -317,7 +317,7 @@ var handleMessage = function(channel, message, sender) {
     if (channel === CHANNEL_AWAY_ENABLE && sender === MyAvatar.sessionUUID) {
         print("away.js | Got message on Hifi-Away-Enable: ", message);
         if (message === 'enable') {
-            setEnabled(message === 'enable');
+            setEnabled(true);
         } else if (message === 'toggle') {
             toggleAway();
         }
