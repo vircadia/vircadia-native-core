@@ -54,17 +54,6 @@ bool TextEntityRenderer::isTextTransparent() const {
     });
 }
 
-Item::Bound TextEntityRenderer::getBound() {
-    auto bound = Parent::getBound();
-    if (_billboardMode != BillboardMode::NONE) {
-        glm::vec3 dimensions = bound.getScale();
-        float max = glm::max(dimensions.x, glm::max(dimensions.y, dimensions.z));
-        const float SQRT_2 = 1.41421356237f;
-        bound.setScaleStayCentered(glm::vec3(SQRT_2 * max));
-    }
-    return bound;
-}
-
 ItemKey TextEntityRenderer::getKey() {
     return ItemKey::Builder(Parent::getKey()).withMetaCullGroup();
 }
@@ -111,7 +100,6 @@ void TextEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointe
     _textAlpha = entity->getTextAlpha();
     _backgroundColor = toGlm(entity->getBackgroundColor());
     _backgroundAlpha = entity->getBackgroundAlpha();
-    _billboardMode = entity->getBillboardMode();
     _leftMargin = entity->getLeftMargin();
     _rightMargin = entity->getRightMargin();
     _topMargin = entity->getTopMargin();
@@ -121,6 +109,7 @@ void TextEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointe
     _effect = entity->getTextEffect();
     _effectColor = toGlm(entity->getTextEffectColor());
     _effectThickness = entity->getTextEffectThickness();
+    _alignment = entity->getAlignment();
     updateTextRenderItem();
 }
 
@@ -130,13 +119,9 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
     gpu::Batch& batch = *args->_batch;
 
     glm::vec4 backgroundColor;
-    Transform modelTransform;
-    PrimitiveMode primitiveMode;
-    RenderLayer renderLayer;
+    Transform transform;
     withReadLock([&] {
-        modelTransform = _renderTransform;
-        primitiveMode = _primitiveMode;
-        renderLayer = _renderLayer;
+        transform = _renderTransform;
 
         float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         backgroundColor = glm::vec4(_backgroundColor, fadeRatio * _backgroundAlpha);
@@ -147,14 +132,15 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
         return;
     }
 
-    modelTransform.setRotation(EntityItem::getBillboardRotation(modelTransform.getTranslation(), modelTransform.getRotation(), _billboardMode, args->getViewFrustum().getPosition()));
-    batch.setModelTransform(modelTransform);
+    transform.setRotation(BillboardModeHelpers::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
+        args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
+    batch.setModelTransform(transform);
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
     // FIXME: we want to use instanced rendering here, but if textAlpha < 1 and backgroundAlpha < 1, the transparency sorting will be wrong
     //render::ShapePipelinePointer pipeline = geometryCache->getShapePipelinePointer(backgroundColor.a < 1.0f, _unlit,
-    //    renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD);
-    //if (render::ShapeKey(args->_globalShapeKey).isWireframe() || primitiveMode == PrimitiveMode::LINES) {
+    //    _renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD);
+    //if (render::ShapeKey(args->_globalShapeKey).isWireframe() || _primitiveMode == PrimitiveMode::LINES) {
     //    geometryCache->renderWireShapeInstance(args, batch, GeometryCache::Quad, backgroundColor, pipeline);
     //} else {
     //    geometryCache->renderSolidShapeInstance(args, batch, GeometryCache::Quad, backgroundColor, pipeline);
@@ -242,12 +228,12 @@ ItemKey entities::TextPayload::getKey() const {
     return ItemKey::Builder::opaqueShape();
 }
 
-Item::Bound entities::TextPayload::getBound() const {
+Item::Bound entities::TextPayload::getBound(RenderArgs* args) const {
     auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>();
     if (entityTreeRenderer) {
         auto renderable = entityTreeRenderer->renderableForEntityId(_entityID);
         if (renderable) {
-            return std::static_pointer_cast<TextEntityRenderer>(renderable)->getBound();
+            return std::static_pointer_cast<TextEntityRenderer>(renderable)->getBound(args);
         }
     }
     return Item::Bound();
@@ -307,22 +293,19 @@ void entities::TextPayload::render(RenderArgs* args) {
     }
     auto textRenderable = std::static_pointer_cast<TextEntityRenderer>(renderable);
 
-    Transform modelTransform;
+    Transform transform;
     glm::vec3 dimensions;
-    BillboardMode billboardMode;
 
     glm::vec4 textColor;
-    bool forward;
     textRenderable->withReadLock([&] {
-        modelTransform = textRenderable->_renderTransform;
+        transform = textRenderable->_renderTransform;
         dimensions = textRenderable->_dimensions;
-        billboardMode = textRenderable->_billboardMode;
 
         float fadeRatio = textRenderable->_isFading ? Interpolate::calculateFadeRatio(textRenderable->_fadeStartTime) : 1.0f;
         textColor = glm::vec4(textRenderable->_textColor, fadeRatio * textRenderable->_textAlpha);
-
-        forward = textRenderable->_renderLayer != RenderLayer::WORLD || args->_renderMethod == render::Args::FORWARD;
     });
+
+    bool forward = textRenderable->_renderLayer != RenderLayer::WORLD || args->_renderMethod == render::Args::FORWARD;
 
     textColor = EntityRenderer::calculatePulseColor(textColor, textRenderable->_pulseProperties, textRenderable->_created);
     glm::vec3 effectColor = EntityRenderer::calculatePulseColor(textRenderable->_effectColor, textRenderable->_pulseProperties, textRenderable->_created);
@@ -331,17 +314,18 @@ void entities::TextPayload::render(RenderArgs* args) {
         return;
     }
 
-    modelTransform.setRotation(EntityItem::getBillboardRotation(modelTransform.getTranslation(), modelTransform.getRotation(), billboardMode, args->getViewFrustum().getPosition()));
+    transform.setRotation(BillboardModeHelpers::getBillboardRotation(transform.getTranslation(), transform.getRotation(), textRenderable->_billboardMode,
+        args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
 
     float scale = textRenderable->_lineHeight / textRenderer->getFontSize();
-    modelTransform.postTranslate(glm::vec3(-0.5, 0.5, 1.0f + EPSILON / dimensions.z));
-    modelTransform.setScale(scale);
-    batch.setModelTransform(modelTransform);
+    transform.postTranslate(glm::vec3(-0.5, 0.5, 1.0f + EPSILON / dimensions.z));
+    transform.setScale(scale);
+    batch.setModelTransform(transform);
 
     glm::vec2 bounds = glm::vec2(dimensions.x - (textRenderable->_leftMargin + textRenderable->_rightMargin), dimensions.y - (textRenderable->_topMargin + textRenderable->_bottomMargin));
     textRenderer->draw(batch, textRenderable->_leftMargin / scale, -textRenderable->_topMargin / scale, bounds / scale, scale,
                        textRenderable->_text, textRenderable->_font, textColor, effectColor, textRenderable->_effectThickness, textRenderable->_effect,
-                       textRenderable->_unlit, forward);
+                       textRenderable->_alignment, textRenderable->_unlit, forward);
 }
 
 namespace render {
@@ -352,9 +336,9 @@ template <> const ItemKey payloadGetKey(const TextPayload::Pointer& payload) {
     return ItemKey::Builder::opaqueShape();
 }
 
-template <> const Item::Bound payloadGetBound(const TextPayload::Pointer& payload) {
+template <> const Item::Bound payloadGetBound(const TextPayload::Pointer& payload, RenderArgs* args) {
     if (payload) {
-        return payload->getBound();
+        return payload->getBound(args);
     }
     return Item::Bound();
 }

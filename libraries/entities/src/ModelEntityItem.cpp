@@ -73,6 +73,7 @@ EntityItemProperties ModelEntityItem::getProperties(const EntityPropertyFlags& d
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(relayParentJoints, getRelayParentJoints);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(groupCulled, getGroupCulled);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(blendshapeCoefficients, getBlendshapeCoefficients);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(useOriginalPivot, getUseOriginalPivot);
     withReadLock([&] {
         _animationProperties.getProperties(properties);
     });
@@ -96,6 +97,7 @@ bool ModelEntityItem::setSubClassProperties(const EntityItemProperties& properti
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(relayParentJoints, setRelayParentJoints);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(groupCulled, setGroupCulled);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(blendshapeCoefficients, setBlendshapeCoefficients);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(useOriginalPivot, setUseOriginalPivot);
 
     withWriteLock([&] {
         AnimationPropertyGroup animationProperties = _animationProperties;
@@ -130,6 +132,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     READ_ENTITY_PROPERTY(PROP_RELAY_PARENT_JOINTS, bool, setRelayParentJoints);
     READ_ENTITY_PROPERTY(PROP_GROUP_CULLED, bool, setGroupCulled);
     READ_ENTITY_PROPERTY(PROP_BLENDSHAPE_COEFFICIENTS, QString, setBlendshapeCoefficients);
+    READ_ENTITY_PROPERTY(PROP_USE_ORIGINAL_PIVOT, bool, setUseOriginalPivot);
 
     // grab a local copy of _animationProperties to avoid multiple locks
     int bytesFromAnimation;
@@ -169,6 +172,7 @@ EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& 
     requestedProperties += PROP_RELAY_PARENT_JOINTS;
     requestedProperties += PROP_GROUP_CULLED;
     requestedProperties += PROP_BLENDSHAPE_COEFFICIENTS;
+    requestedProperties += PROP_USE_ORIGINAL_PIVOT;
     requestedProperties += _animationProperties.getEntityProperties(params);
 
     return requestedProperties;
@@ -198,6 +202,7 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_RELAY_PARENT_JOINTS, getRelayParentJoints());
     APPEND_ENTITY_PROPERTY(PROP_GROUP_CULLED, getGroupCulled());
     APPEND_ENTITY_PROPERTY(PROP_BLENDSHAPE_COEFFICIENTS, getBlendshapeCoefficients());
+    APPEND_ENTITY_PROPERTY(PROP_USE_ORIGINAL_PIVOT, getUseOriginalPivot());
 
     withReadLock([&] {
         _animationProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
@@ -251,6 +256,7 @@ void ModelEntityItem::debugDump() const {
     qCDebug(entities) << "    model URL:" << getModelURL();
     qCDebug(entities) << "    compound shape URL:" << getCompoundShapeURL();
     qCDebug(entities) << "    blendshapeCoefficients:" << getBlendshapeCoefficients();
+    qCDebug(entities) << "    useOrigialPivot:" << getUseOriginalPivot();
 }
 
 void ModelEntityItem::setShapeType(ShapeType type) {
@@ -324,6 +330,19 @@ const Transform ModelEntityItem::getTransform(bool& success, int depth) const {
 
     return worldTransform;
 }
+
+const Transform ModelEntityItem::getTransformWithOnlyLocalRotation(bool& success, int depth) const {
+    const Transform parentTransform = getParentTransform(success, depth);
+    Transform localTransform = getLocalTransform();
+    localTransform.postScale(getModelScale());
+
+    Transform worldTransform;
+    Transform::mult(worldTransform, parentTransform, localTransform);
+    worldTransform.setRotation(localTransform.getRotation());
+
+    return worldTransform;
+}
+
 void ModelEntityItem::setCompoundShapeURL(const QString& url) {
     withWriteLock([&] {
         if (_compoundShapeURL.get() != url) {
@@ -711,5 +730,27 @@ QVector<float> ModelEntityItem::getBlendshapeCoefficientVector() {
     return resultWithReadLock<QVector<float>>([&] {
         _blendshapesChanged = false; // ok to change this within read lock here
         return _blendshapeCoefficientsVector;
+    });
+}
+
+void ModelEntityItem::setUseOriginalPivot(bool value) {
+    bool changed = false;
+    withWriteLock([&] {
+        if (_useOriginalPivot != value) {
+            _needsRenderUpdate = true;
+            _useOriginalPivot = value;
+            changed = true;
+        }
+    });
+
+    if (changed) {
+        markDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
+        locationChanged();
+    }
+}
+
+bool ModelEntityItem::getUseOriginalPivot() const {
+    return resultWithReadLock<bool>([&] {
+        return _useOriginalPivot;
     });
 }

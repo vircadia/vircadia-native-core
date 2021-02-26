@@ -38,9 +38,8 @@
     "textEffectThickness": {
         "tooltip": "The magnitude of the text effect."
     },
-    "textBillboardMode": {
-        "tooltip": "If enabled, determines how the entity will face the camera.",
-        "jsPropertyName": "billboardMode"
+    "textAlignment": {
+        "tooltip": "How the text is aligned within its left and right bounds."
     },
     "topMargin": {
         "tooltip": "The top margin, in meters."
@@ -223,10 +222,6 @@
     "subImage": {
         "tooltip": "The area of the image that is displayed."
     },
-    "imageBillboardMode": {
-        "tooltip": "If enabled, determines how the entity will face the camera.",
-        "jsPropertyName": "billboardMode"
-    },
     "keepAspectRatio": {
         "tooltip": "If enabled, the image will maintain its original aspect ratio."
     },
@@ -235,10 +230,6 @@
     },
     "dpi": {
         "tooltip": "The resolution to display the page at, in pixels per inch. Use this to resize your web source in the frame."
-    },
-    "webBillboardMode": {
-        "tooltip": "If enabled, determines how the entity will face the camera.",
-        "jsPropertyName": "billboardMode"
     },
     "inputMode": {
         "tooltip": "The user input mode to use."
@@ -595,11 +586,17 @@
     "primitiveMode": {
         "tooltip": "The mode in which to draw an entity, either \"Solid\" or \"Wireframe\"."
     },
+    "billboardMode": {
+        "tooltip": "Determines if and how the entity will face the camera.",
+    },
     "renderWithZones": {
         "tooltip": "If set, this entity will only render when your avatar is inside of a zone in this list."
     },
     "groupCulled": {
         "tooltip": "If false, individual pieces of the entity may be culled by the render engine. If true, either the entire entity will be culled, or it won't at all."
+    },
+    "useOriginalPivot": {
+        "tooltip": "If false, the model will be centered based on its content, ignoring any offset in the model itself. If true, the model will respect its original offset."
     },
     "webColor": {
         "tooltip": "The tint of the web entity."
@@ -615,6 +612,9 @@
     },
     "scriptURL": {
         "tooltip": "The URL of a script to inject into the web page."
+    },
+    "userAgent": {
+        "tooltip": "The user agent that the web entity will use when visiting web pages."
     },
     "alignToGrid": {
         "tooltip": "Used to align entities to the grid, or floor of the environment.",

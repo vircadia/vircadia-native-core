@@ -415,7 +415,7 @@ gpu::PipelinePointer ParabolaPointer::RenderState::ParabolaRenderItem::getParabo
 
         for (auto& key : keys) {
             gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-            state->setDepthTest(true, true, gpu::LESS_EQUAL);
+            state->setDepthTest(true, !std::get<0>(key), gpu::LESS_EQUAL);
             if (std::get<0>(key)) {
                 PrepareStencil::testMask(*state);
             } else {
@@ -462,9 +462,9 @@ namespace render {
     template <> const ItemKey payloadGetKey(const ParabolaPointer::RenderState::ParabolaRenderItem::Pointer& payload) {
         return payload->getKey();
     }
-    template <> const Item::Bound payloadGetBound(const ParabolaPointer::RenderState::ParabolaRenderItem::Pointer& payload) {
+    template <> const Item::Bound payloadGetBound(const ParabolaPointer::RenderState::ParabolaRenderItem::Pointer& payload, RenderArgs* args) {
         if (payload) {
-            return payload->getBound();
+            return payload->getBound(args);
         }
         return Item::Bound();
     }

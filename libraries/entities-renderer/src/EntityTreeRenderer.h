@@ -136,8 +136,8 @@ public:
     static bool addMaterialToAvatar(const QUuid& avatarID, graphics::MaterialLayer material, const std::string& parentMaterialName);
     static bool removeMaterialFromAvatar(const QUuid& avatarID, graphics::MaterialPointer material, const std::string& parentMaterialName);
 
-    int getPrevNumEntityUpdates() const { return _prevNumEntityUpdates; }
-    int getPrevTotalNeededEntityUpdates() const { return _prevTotalNeededEntityUpdates; }
+    size_t getPrevNumEntityUpdates() const { return _prevNumEntityUpdates; }
+    size_t getPrevTotalNeededEntityUpdates() const { return _prevTotalNeededEntityUpdates; }
 
 signals:
     void enterEntity(const EntityItemID& entityItemID);
@@ -253,8 +253,8 @@ private:
 
     ReadWriteLockable _changedEntitiesGuard;
     std::unordered_set<EntityItemID> _changedEntities;
-    int _prevNumEntityUpdates { 0 };
-    int _prevTotalNeededEntityUpdates { 0 };
+    size_t _prevNumEntityUpdates { 0 };
+    size_t _prevTotalNeededEntityUpdates { 0 };
 
     std::unordered_set<EntityRendererPointer> _renderablesToUpdate;
     std::unordered_map<EntityItemID, EntityRendererPointer> _entitiesInScene;

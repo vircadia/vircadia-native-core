@@ -15,7 +15,7 @@ const BYTES_PER_MEGABYTE = 1024 * 1024;
 const COLLAPSE_EXTRA_INFO = "E";
 const EXPAND_EXTRA_INFO = "D";
 const FILTER_IN_VIEW_ATTRIBUTE = "pressed";
-const WINDOW_NONVARIABLE_HEIGHT = 227;
+const WINDOW_NONVARIABLE_HEIGHT = 180;
 const EMPTY_ENTITY_ID = "0";
 const MAX_LENGTH_RADIUS = 9;
 const MINIMUM_COLUMN_WIDTH = 24;
@@ -155,7 +155,15 @@ const COLUMNS = {
         propertyID: "lastEdited",
         initialWidth: 0.38,
         defaultSortOrder: DESCENDING_SORT,
-    },    
+    },
+    urlWithPath: {
+        columnHeader: "URL",
+        dropdownLabel: "URL",
+        propertyID: "urlWithPath",
+        initialWidth: 0.54,
+        initiallyShown: false,
+        defaultSortOrder: ASCENDING_SORT,
+    },
 };
 
 const FILTER_TYPES = [
@@ -226,9 +234,10 @@ let elEntityTable,
     elToggleVisible,
     elActionsMenu,
     elSelectionMenu,
-    elToolsMenu,    
+    elTransformMenu,
+    elToolsMenu,
     elMenuBackgroundOverlay,
-    elHmdMultiSelect, 
+    elHmdMultiSelect,
     elHmdCopy,
     elHmdCut,
     elHmdPaste,
@@ -238,6 +247,10 @@ let elEntityTable,
     elParent,
     elUnparent,    
     elDelete,
+    elRotateAsTheNextClickedSurface,
+    elQuickRotate90x,
+    elQuickRotate90y,
+    elQuickRotate90z,
     elMoveEntitySelectionToAvatar,
     elSelectAll,
     elSelectInverse,
@@ -309,6 +322,7 @@ function loaded() {
         elHmdMultiSelect = document.getElementById("hmdmultiselect");
         elActionsMenu = document.getElementById("actions");
         elSelectionMenu = document.getElementById("selection");
+        elTransformMenu = document.getElementById("transform");
         elToolsMenu = document.getElementById("tools");
         elMenuBackgroundOverlay = document.getElementById("menuBackgroundOverlay");
         elHmdCopy = document.getElementById("hmdcopy");
@@ -320,6 +334,10 @@ function loaded() {
         elParent = document.getElementById("parent");
         elUnparent = document.getElementById("unparent");
         elDelete = document.getElementById("delete");
+        elRotateAsTheNextClickedSurface = document.getElementById("rotateAsTheNextClickedSurface");
+        elQuickRotate90x = document.getElementById("quickRotate90x");
+        elQuickRotate90y = document.getElementById("quickRotate90y");
+        elQuickRotate90z = document.getElementById("quickRotate90z");
         elMoveEntitySelectionToAvatar = document.getElementById("moveEntitySelectionToAvatar"); 
         elSelectAll = document.getElementById("selectall");
         elSelectInverse = document.getElementById("selectinverse");
@@ -387,6 +405,10 @@ function loaded() {
             document.getElementById("menuBackgroundOverlay").style.display = "block";
             document.getElementById("selection-menu").style.display = "block";
         };
+        elTransformMenu.onclick = function() {
+            document.getElementById("menuBackgroundOverlay").style.display = "block";
+            document.getElementById("transform-menu").style.display = "block";
+        };        
         elToolsMenu.onclick = function() {
             document.getElementById("menuBackgroundOverlay").style.display = "block";
             document.getElementById("tools-menu").style.display = "block";
@@ -428,6 +450,22 @@ function loaded() {
         };         
         elDelete.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: "delete" }));
+            closeAllEntityListMenu();
+        };
+        elRotateAsTheNextClickedSurface.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "rotateAsTheNextClickedSurface" }));
+            closeAllEntityListMenu();
+        };
+        elQuickRotate90x.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "quickRotate90x" }));
+            closeAllEntityListMenu();
+        };
+        elQuickRotate90y.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "quickRotate90y" }));
+            closeAllEntityListMenu();
+        };
+        elQuickRotate90z.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "quickRotate90z" }));
             closeAllEntityListMenu();
         };
         elMoveEntitySelectionToAvatar.onclick = function() {
@@ -895,7 +933,7 @@ function loaded() {
                 entityIds: selection,
             }));
         }
-        
+
         function updateEntityData(entityData) {
             entities = [];
             entitiesByID = {};
@@ -905,13 +943,14 @@ function loaded() {
                 entityData.forEach(function(entity) {
                     let type = entity.type;
                     let filename = getFilename(entity.url);
-            
+
                     let entityData = {
                         id: entity.id,
                         name: entity.name,
                         type: type,
                         url: entity.certificateID === "" ? filename : "<i>" + CERTIFIED_PLACEHOLDER + "</i>",
                         fullUrl: entity.certificateID === "" ? filename : CERTIFIED_PLACEHOLDER,
+                        urlWithPath: entity.certificateID === "" ? entity.url : "<i>" + CERTIFIED_PLACEHOLDER + "</i>",
                         locked: entity.locked,
                         visible: entity.visible,
                         certificateID: entity.certificateID,
@@ -951,11 +990,13 @@ function loaded() {
                         let searchFilter = searchTerm === '' || (e.name.toLowerCase().indexOf(searchTerm) > -1 ||
                                                                  e.type.toLowerCase().indexOf(searchTerm) > -1 ||
                                                                  e.fullUrl.toLowerCase().indexOf(searchTerm) > -1 ||
+                                                                 (e.urlWithPath.toLowerCase().indexOf(searchTerm) > -1 && 
+                                                                 columnsByID["urlWithPath"].elTh.style.visibility === "visible") ||
                                                                  e.id.toLowerCase().indexOf(searchTerm) > -1);
                         return typeFilter && searchFilter;
                     });
                 });
-                
+
                 PROFILE("sort", function() {
                     let isAscendingSort = currentSortOrder === ASCENDING_SORT;
                     let isDefaultSort = currentSortOrder === COLUMNS[currentSortColumnID].defaultSortOrder;
@@ -1826,6 +1867,7 @@ function loaded() {
         document.getElementById("menuBackgroundOverlay").style.display = "none";
         document.getElementById("selection-menu").style.display = "none";
         document.getElementById("actions-menu").style.display = "none";
+        document.getElementById("transform-menu").style.display = "none";
         document.getElementById("tools-menu").style.display = "none";
     }
 

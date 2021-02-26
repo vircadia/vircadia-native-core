@@ -139,7 +139,7 @@ void IDsToBounds::run(const RenderContextPointer& renderContext, const ItemIDs& 
         for (auto id : inItems) {
             auto& item = scene->getItem(id);
             if (item.exist()) {
-                outItems.emplace_back(ItemBound{ id, item.getBound() });
+                outItems.emplace_back(ItemBound{ id, item.getBound(renderContext->args) });
             }
         }
     } else {
