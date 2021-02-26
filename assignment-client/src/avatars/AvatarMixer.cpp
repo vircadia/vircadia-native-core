@@ -1124,11 +1124,15 @@ void AvatarMixer::handleOctreePacket(QSharedPointer<ReceivedMessage> message, Sh
     }
 
     case PacketType::EntityData:
-        _entityViewer.processDatagram(*message, senderNode);
+        if (senderNode->getCanRezAvatarEntities()) {
+            _entityViewer.processDatagram(*message, senderNode);
+        }
         break;
 
     case PacketType::EntityErase:
-        _entityViewer.processEraseMessage(*message, senderNode);
+        if (senderNode->getCanRezAvatarEntities()) {
+            _entityViewer.processEraseMessage(*message, senderNode);
+        }
         break;
 
     default:

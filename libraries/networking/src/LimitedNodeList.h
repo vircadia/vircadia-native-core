@@ -133,6 +133,7 @@ public:
     bool getThisNodeCanKick() const { return _permissions.can(NodePermissions::Permission::canKick); }
     bool getThisNodeCanReplaceContent() const { return _permissions.can(NodePermissions::Permission::canReplaceDomainContent); }
     bool getThisNodeCanGetAndSetPrivateUserData() const { return _permissions.can(NodePermissions::Permission::canGetAndSetPrivateUserData); }
+    bool getThisNodeCanRezAvatarEntities() const { return _permissions.can(NodePermissions::Permission::canRezAvatarEntities); }
 
     quint16 getSocketLocalPort() const { return _nodeSocket.localPort(); }
     Q_INVOKABLE void setSocketLocalPort(quint16 socketLocalPort);
@@ -390,6 +391,7 @@ signals:
     void canKickChanged(bool canKick);
     void canReplaceContentChanged(bool canReplaceContent);
     void canGetAndSetPrivateUserDataChanged(bool canGetAndSetPrivateUserData);
+    void canRezAvatarEntitiesChanged(bool canRezAvatarEntities);
 
 protected slots:
     void connectedForLocalSocketTest();

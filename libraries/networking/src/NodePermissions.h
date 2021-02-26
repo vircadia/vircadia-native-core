@@ -80,7 +80,8 @@ public:
         canReplaceDomainContent = 128,
         canRezPermanentCertifiedEntities = 256,
         canRezTemporaryCertifiedEntities = 512,
-        canGetAndSetPrivateUserData = 1024
+        canGetAndSetPrivateUserData = 1024,
+        canRezAvatarEntities = 2048
     };
     Q_DECLARE_FLAGS(Permissions, Permission)
     Permissions permissions;

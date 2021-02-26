@@ -289,6 +289,14 @@ public slots:
      *     <code>privateUserData</code> property of entities, otherwise <code>false</code>.
      */
     Q_INVOKABLE bool canGetAndSetPrivateUserData();
+    
+    /**jsdoc
+     * Checks whether or not the script can rez avatar entities.
+     * @function Entities.canRezAvatarEntities
+     * @returns {boolean} <code>true</code> if the domain server will allow the script to rez avatar entities,
+     *     otherwise <code>false</code>.
+     */
+    Q_INVOKABLE bool canRezAvatarEntities();
 
     /**jsdoc
      * <p>How an entity is hosted and sent to others for display.</p>
@@ -2255,11 +2263,20 @@ signals:
     /**jsdoc
      * Triggered when your ability to get and set private user data changes.
      * @function Entities.canGetAndSetPrivateUserDataChanged
-     * @param {boolean} canGetAndSetPrivateUserData - <code>true</code> if the script change the <code>privateUserData</code> 
+     * @param {boolean} canGetAndSetPrivateUserData - <code>true</code> if the script can change the <code>privateUserData</code> 
      *     property of an entity, <code>false</code> if it can't.
      * @returns {Signal}
      */
     void canGetAndSetPrivateUserDataChanged(bool canGetAndSetPrivateUserData);
+    
+    /**jsdoc
+     * Triggered when your ability to use avatar entities is changed.
+     * @function Entities.canRezAvatarEntitiesChanged
+     * @param {boolean} canRezAvatarEntities - <code>true</code> if the script can change edit avatar entities,
+     *     <code>false</code> if it can't.
+     * @returns {Signal}
+     */
+    void canRezAvatarEntitiesChanged(bool canRezAvatarEntities);
 
 
     /**jsdoc

@@ -363,6 +363,9 @@ void DomainServerSettingsManager::setupConfigMap(const QString& userConfigFilena
             foreach (auto permissionsSet, permissionsSets) {
                 for (auto entry : permissionsSet) {
                     const auto& userKey = entry.first;
+
+                    permissionsSet[userKey]->set(NodePermissions::Permission::canRezAvatarEntities);
+
                     if (onlyEditorsAreRezzers) {
                         if (permissionsSet[userKey]->can(NodePermissions::Permission::canAdjustLocks)) {
                             permissionsSet[userKey]->set(NodePermissions::Permission::canRezPermanentEntities);

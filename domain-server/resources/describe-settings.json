@@ -364,6 +364,13 @@
               "default": false
             },
             {
+              "name": "id_can_rez_avatar_entities",
+              "label": "Rez Attachments",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
               "name": "id_can_adjust_locks",
               "label": "Lock / Unlock",
               "type": "checkbox",
@@ -449,6 +456,7 @@
             },
             {
                 "id_can_adjust_locks": true,
+                "id_can_rez_avatar_entities": true,
                 "id_can_connect": true,
                 "id_can_connect_past_max_capacity": true,
                 "id_can_kick": true,
@@ -521,6 +529,13 @@
             {
               "name": "id_can_connect",
               "label": "Connect",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez_avatar_entities",
+              "label": "Rez Attachments",
               "type": "checkbox",
               "editable": true,
               "default": false
@@ -652,6 +667,13 @@
               "default": false
             },
             {
+              "name": "id_can_rez_avatar_entities",
+              "label": "Rez Attachments",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
               "name": "id_can_adjust_locks",
               "label": "Lock / Unlock",
               "type": "checkbox",
@@ -746,6 +768,13 @@
             {
               "name": "id_can_connect",
               "label": "Connect",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez_avatar_entities",
+              "label": "Rez Attachments",
               "type": "checkbox",
               "editable": true,
               "default": false
@@ -850,6 +879,13 @@
               "default": false
             },
             {
+              "name": "id_can_rez_avatar_entities",
+              "label": "Rez Attachments",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
               "name": "id_can_adjust_locks",
               "label": "Lock / Unlock",
               "type": "checkbox",
@@ -949,6 +985,13 @@
               "default": false
             },
             {
+              "name": "id_can_rez_avatar_entities",
+              "label": "Rez Attachments",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
               "name": "id_can_adjust_locks",
               "label": "Lock / Unlock",
               "type": "checkbox",
@@ -1043,6 +1086,13 @@
             {
               "name": "id_can_connect",
               "label": "Connect",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez_avatar_entities",
+              "label": "Rez Attachments",
               "type": "checkbox",
               "editable": true,
               "default": false

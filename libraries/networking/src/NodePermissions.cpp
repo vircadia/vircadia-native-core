@@ -68,6 +68,7 @@ NodePermissions::NodePermissions(QMap<QString, QVariant> perms) {
     permissions |= perms["id_can_kick"].toBool() ? Permission::canKick : Permission::none;
     permissions |= perms["id_can_replace_content"].toBool() ? Permission::canReplaceDomainContent : Permission::none;
     permissions |= perms["id_can_get_and_set_private_user_data"].toBool() ? Permission::canGetAndSetPrivateUserData : Permission::none;
+    permissions |= perms["id_can_rez_attachments"].toBool() ? Permission::canRezAvatarEntities : Permission::none;
 }
 
 QVariant NodePermissions::toVariant(QHash<QUuid, GroupRank> groupRanks) {
@@ -96,6 +97,7 @@ QVariant NodePermissions::toVariant(QHash<QUuid, GroupRank> groupRanks) {
     values["id_can_kick"] = can(Permission::canKick);
     values["id_can_replace_content"] = can(Permission::canReplaceDomainContent);
     values["id_can_get_and_set_private_user_data"] = can(Permission::canGetAndSetPrivateUserData);
+    values["id_can_rez_avatar_entities"] = can(Permission::canRezAvatarEntities);
     return QVariant(values);
 }
 
