@@ -794,8 +794,6 @@ void Resource::handleReplyFinished() {
         { "size_mb", _bytesTotal / 1000000.0 }
     });
 
-    setSize(_bytesTotal);
-
     // Make sure we keep the Resource alive here
     auto self = _self.lock();
     ResourceCache::requestCompleted(_self);
@@ -809,6 +807,14 @@ void Resource::handleReplyFinished() {
         }
 
         auto data = _request->getData();
+        if (_request->getUrl().scheme() == "qrc") {
+            // For resources under qrc://, there's no actual download being done, so
+            // handleDownloadProgress never gets called. We get the full length here
+            // at the end.
+            _bytesTotal = data.length();
+        }
+
+        setSize(_bytesTotal);
         emit loaded(data);
         downloadFinished(data);
     } else {
