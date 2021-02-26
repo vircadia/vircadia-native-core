@@ -101,19 +101,7 @@ Item::Bound ImageEntityRenderer::getBound(RenderArgs* args) {
 
 ShapeKey ImageEntityRenderer::getShapeKey() {
     auto builder = render::ShapeKey::Builder().withoutCullFace().withDepthBias();
-
-    auto mat = getAndUpdateMaterials();
-
-    if (isTransparent()) {
-        builder.withTranslucent();
-    }
-
-    if (_primitiveMode == PrimitiveMode::LINES) {
-        builder.withWireframe();
-    }
-
-    updateShapeKeyBuilderFromMaterials(builder, mat);
-
+    updateShapeKeyBuilderFromMaterials(builder);
     return builder.build();
 }
 

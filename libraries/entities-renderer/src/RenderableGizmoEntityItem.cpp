@@ -232,19 +232,7 @@ Item::Bound GizmoEntityRenderer::getBound(RenderArgs* args) {
 
 ShapeKey GizmoEntityRenderer::getShapeKey() {
     auto builder = render::ShapeKey::Builder().withoutCullFace().withDepthBias();
-
-    auto mat = getAndUpdateMaterials();
-
-    if (isTransparent()) {
-        builder.withTranslucent();
-    }
-
-    if (_primitiveMode == PrimitiveMode::LINES) {
-        builder.withUnlit().withWireframe();
-    }
-
-    updateShapeKeyBuilderFromMaterials(builder, mat);
-
+    updateShapeKeyBuilderFromMaterials(builder);
     return builder.build();
 }
 
@@ -287,7 +275,7 @@ void GizmoEntityRenderer::doRender(RenderArgs* args) {
             auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(materials.top().material);
             transparent |= procedural->isFading();
             procedural->prepare(batch, transform.getTranslation(), transform.getScale(), transform.getRotation(), _created, ProceduralProgramKey(transparent));
-        } else {
+        } else if (pipelineType == Pipeline::MATERIAL) {
             if (RenderPipelines::bindMaterials(materials, batch, args->_renderMode, args->_enableTexturing)) {
                 args->_details._materialSwitches++;
             }

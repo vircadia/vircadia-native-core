@@ -14,6 +14,8 @@
 
 #include "RenderableEntityItem.h"
 
+#include <procedural/Procedural.h>
+
 class TextEntityItem;
 class TextRenderer3D;
 
@@ -33,6 +35,7 @@ public:
 protected:
     bool isTransparent() const override;
     bool isTextTransparent() const;
+    Item::Bound getBound(RenderArgs* args) override;
     ShapeKey getShapeKey() override;
     ItemKey getKey() override;
     virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) const override;
@@ -41,6 +44,7 @@ protected:
     void onRemoveFromSceneTyped(const TypedEntityPointer& entity) override;
 
 private:
+    virtual bool needsRenderUpdate() const;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
     virtual void doRender(RenderArgs* args) override;
@@ -53,9 +57,11 @@ private:
     float _lineHeight;
     glm::vec3 _textColor;
     float _textAlpha;
-    glm::vec3 _backgroundColor;
-    float _backgroundAlpha;
     bool _unlit;
+
+    std::shared_ptr<graphics::ProceduralMaterial> _material { std::make_shared<graphics::ProceduralMaterial>() };
+    glm::vec3 _backgroundColor { NAN };
+    float _backgroundAlpha { NAN };
 
     float _leftMargin;
     float _rightMargin;

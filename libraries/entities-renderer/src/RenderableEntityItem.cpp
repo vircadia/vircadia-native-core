@@ -616,22 +616,26 @@ Item::Bound EntityRenderer::getMaterialBound(RenderArgs* args) {
     return EntityRenderer::getBound(args);
 }
 
-EntityRenderer::MaterialMap::iterator EntityRenderer::getAndUpdateMaterials() {
-    std::lock_guard<std::mutex> lock(_materialsLock);
-    auto materials = _materials.find("0");
-    if (materials != _materials.end() && materials->second.shouldUpdate()) {
-        RenderPipelines::updateMultiMaterial(materials->second);
-    }
-
-    return materials;
-}
-
-void EntityRenderer::updateShapeKeyBuilderFromMaterials(ShapeKey::Builder& builder, MaterialMap::iterator materials) const {
+void EntityRenderer::updateShapeKeyBuilderFromMaterials(ShapeKey::Builder& builder) {
+    MaterialMap::iterator materials;
     {
         std::lock_guard<std::mutex> lock(_materialsLock);
-        if (materials == _materials.end()) {
+        materials = _materials.find("0");
+        if (materials != _materials.end()) {
+            if (materials->second.shouldUpdate()) {
+                RenderPipelines::updateMultiMaterial(materials->second);
+            }
+        } else {
             return;
         }
+    }
+
+    if (isTransparent()) {
+        builder.withTranslucent();
+    }
+
+    if (_primitiveMode == PrimitiveMode::LINES) {
+        builder.withWireframe();
     }
 
     builder.withCullFaceMode(materials->second.getCullFaceMode());

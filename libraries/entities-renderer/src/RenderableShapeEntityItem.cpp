@@ -88,19 +88,7 @@ Item::Bound ShapeEntityRenderer::getBound(RenderArgs* args) {
 
 ShapeKey ShapeEntityRenderer::getShapeKey() {
     ShapeKey::Builder builder;
-
-    auto mat = getAndUpdateMaterials();
-
-    if (isTransparent()) {
-        builder.withTranslucent();
-    }
-
-    if (_primitiveMode == PrimitiveMode::LINES) {
-        builder.withWireframe();
-    }
-
-    updateShapeKeyBuilderFromMaterials(builder, mat);
-
+    updateShapeKeyBuilderFromMaterials(builder);
     return builder.build();
 }
 
@@ -157,7 +145,7 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         outColor.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         bool forward = _renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD;
         if (outColor.a >= 1.0f) {
-            render::ShapePipelinePointer pipeline = geometryCache->getShapePipelinePointer(false, wireframe,
+            render::ShapePipelinePointer pipeline = geometryCache->getShapePipelinePointer(false, wireframe || materials.top().material->isUnlit(),
                 forward, materials.top().material->getCullFaceMode());
             if (wireframe) {
                 geometryCache->renderWireShapeInstance(args, batch, geometryShape, outColor, pipeline);

@@ -131,8 +131,7 @@ protected:
     void updateMaterials(bool baseMaterialChanged = false);
     bool materialsTransparent() const;
     Item::Bound getMaterialBound(RenderArgs* args);
-    MaterialMap::iterator getAndUpdateMaterials();
-    void updateShapeKeyBuilderFromMaterials(ShapeKey::Builder& builder, MaterialMap::iterator materials) const;
+    void updateShapeKeyBuilderFromMaterials(ShapeKey::Builder& builder);
 
     Item::Bound _bound;
     SharedSoundPointer _collisionSound;
