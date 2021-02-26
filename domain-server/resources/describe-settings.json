@@ -295,10 +295,10 @@
         },
         {
           "name": "approved_safe_urls",
-          "label": "Approved Script and QML URLs",
+          "label": "Approved Script and QML URLs (Not Enabled)",
           "help": "These URLs will be sent to the Interface as safe URLs to allow through the whitelist if the Interface has this security option enabled.",
-          "placeholder": "0",
-          "default": "1",
+          "placeholder": "",
+          "default": "",
           "advanced": false
         },
         {
