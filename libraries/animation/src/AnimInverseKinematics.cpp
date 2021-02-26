@@ -67,7 +67,7 @@ AnimInverseKinematics::IKTargetVar::IKTargetVar(const QString& jointNameIn, cons
     poleVectorVar(poleVectorVarIn),
     weight(weightIn),
     numFlexCoefficients(flexCoefficientsIn.size()),
-    jointIndex(NO_PARENT_INDEX)
+    jointIndex(INVALID_JOINT_INDEX)
 {
     numFlexCoefficients = std::min(numFlexCoefficients, (size_t)MAX_FLEX_COEFFICIENTS);
     for (size_t i = 0; i < numFlexCoefficients; i++) {
@@ -173,14 +173,14 @@ bool debounceJointWarnings() {
 
 void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses) {
 
-    _hipsTargetIndex = NO_PARENT_INDEX;
+    _hipsTargetIndex = INVALID_JOINT_INDEX;
 
     targets.reserve(_targetVarVec.size());
 
     for (auto& targetVar : _targetVarVec) {
 
         // update targetVar jointIndex cache
-        if (targetVar.jointIndex == NO_PARENT_INDEX) {
+        if (targetVar.jointIndex == INVALID_JOINT_INDEX) {
             int jointIndex = _skeleton->nameToJointIndex(targetVar.jointName);
             if (jointIndex >= 0) {
                 // this targetVar has a valid joint --> cache the indices
@@ -191,7 +191,7 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
         }
 
         IKTarget target;
-        if (targetVar.jointIndex != NO_PARENT_INDEX) {
+        if (targetVar.jointIndex != INVALID_JOINT_INDEX) {
             target.setType(animVars.lookup(targetVar.typeVar, (int)IKTarget::Type::RotationAndPosition));
             target.setIndex(targetVar.jointIndex);
             if (target.getType() != IKTarget::Type::Unknown) {
@@ -330,7 +330,7 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
         // update the absolutePoses
         for (int i = 0; i < (int)_relativePoses.size(); ++i) {
             auto parentIndex = _skeleton->getParentIndex((int)i);
-            if (parentIndex != NO_PARENT_INDEX) {
+            if (parentIndex != INVALID_JOINT_INDEX) {
                 absolutePoses[i] = absolutePoses[parentIndex] * _relativePoses[i];
             }
         }
@@ -352,12 +352,12 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
     // finally set the relative rotation of each tip to agree with absolute target rotation
     for (auto& target: targets) {
         int tipIndex = target.getIndex();
-        int parentIndex = (tipIndex >= 0) ? _skeleton->getParentIndex(tipIndex) : NO_PARENT_INDEX;
+        int parentIndex = (tipIndex >= 0) ? _skeleton->getParentIndex(tipIndex) : INVALID_JOINT_INDEX;
         int chainIndex = targetToChainMap[tipIndex];
         bool needsInterpolation = _prevJointChainInfoVec[chainIndex].timer > 0.0f;
         float alpha = needsInterpolation ? getInterpolationAlpha(_prevJointChainInfoVec[chainIndex].timer) : 0.0f;
         // update rotationOnly targets that don't lie on the ik chain of other ik targets.
-        if (parentIndex != NO_PARENT_INDEX && !_rotationAccumulators[tipIndex].isDirty() && 
+        if (parentIndex != INVALID_JOINT_INDEX && !_rotationAccumulators[tipIndex].isDirty() && 
             (target.getType() == IKTarget::Type::RotationOnly || target.getType() == IKTarget::Type::Unknown)) {
             if (target.getType() == IKTarget::Type::RotationOnly) {
                 const glm::quat& targetRotation = target.getRotation();
@@ -435,11 +435,11 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
 
     int tipIndex = target.getIndex();
     int pivotIndex = _skeleton->getParentIndex(tipIndex);
-    if (pivotIndex == NO_PARENT_INDEX || pivotIndex == _hipsIndex) {
+    if (pivotIndex == INVALID_JOINT_INDEX || pivotIndex == _hipsIndex) {
         return;
     }
     int pivotsParentIndex = _skeleton->getParentIndex(pivotIndex);
-    if (pivotsParentIndex == NO_PARENT_INDEX) {
+    if (pivotsParentIndex == INVALID_JOINT_INDEX) {
         // TODO?: handle case where tip's parent is root?
         return;
     }
@@ -486,7 +486,7 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
     chainDepth++;
 
     // descend toward root, pivoting each joint to get tip closer to target position
-    while (pivotIndex != _hipsIndex && pivotsParentIndex != NO_PARENT_INDEX) {
+    while (pivotIndex != _hipsIndex && pivotsParentIndex != INVALID_JOINT_INDEX) {
 
         assert(chainDepth < jointChainInfoOut.jointInfoVec.size());
 
@@ -580,12 +580,12 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
     if (target.getPoleVectorEnabled()) {
         int topJointIndex = target.getIndex();
         int midJointIndex = _skeleton->getParentIndex(topJointIndex);
-        if (midJointIndex != NO_PARENT_INDEX) {
+        if (midJointIndex != INVALID_JOINT_INDEX) {
             int baseJointIndex = _skeleton->getParentIndex(midJointIndex);
-            if (baseJointIndex != NO_PARENT_INDEX) {
+            if (baseJointIndex != INVALID_JOINT_INDEX) {
                 int baseParentJointIndex = _skeleton->getParentIndex(baseJointIndex);
                 AnimPose topPose, midPose, basePose;
-                int topChainIndex = NO_PARENT_INDEX, baseChainIndex = NO_PARENT_INDEX;
+                int topChainIndex = INVALID_JOINT_INDEX, baseChainIndex = INVALID_JOINT_INDEX;
                 const size_t MAX_CHAIN_DEPTH = 30;
                 AnimPose postAbsPoses[MAX_CHAIN_DEPTH];
                 AnimPose accum = absolutePoses[_hipsIndex];
@@ -757,7 +757,7 @@ void AnimInverseKinematics::computeAndCacheSplineJointInfosForIKTarget(const Ani
 
     int index = target.getIndex();
     int endIndex = _skeleton->getParentIndex(_hipsIndex);
-    while (index != endIndex && index != NO_PARENT_INDEX) {
+    while (index != endIndex && index != INVALID_JOINT_INDEX) {
         AnimPose defaultPose = _skeleton->getAbsoluteDefaultPose(index);
 
         float ratio = glm::dot(defaultPose.trans() - basePose.trans(), baseToTipNormal) / baseToTipLength;
@@ -1461,7 +1461,7 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
 
     // invalidate all targetVars
     for (auto& targetVar: _targetVarVec) {
-        targetVar.jointIndex = NO_PARENT_INDEX;
+        targetVar.jointIndex = INVALID_JOINT_INDEX;
     }
 
     for (auto& accumulator: _rotationAccumulators) {
@@ -1481,18 +1481,18 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
         if (_hipsIndex >= 0) {
             _hipsParentIndex = _skeleton->getParentIndex(_hipsIndex);
         } else {
-            _hipsParentIndex = NO_PARENT_INDEX;
+            _hipsParentIndex = INVALID_JOINT_INDEX;
         }
 
         _leftHandIndex = _skeleton->nameToJointIndex("LeftHand");
         _rightHandIndex = _skeleton->nameToJointIndex("RightHand");
     } else {
         clearConstraints();
-        _headIndex = NO_PARENT_INDEX;
-        _hipsIndex = NO_PARENT_INDEX;
-        _hipsParentIndex = NO_PARENT_INDEX;
-        _leftHandIndex = NO_PARENT_INDEX;
-        _rightHandIndex = NO_PARENT_INDEX;
+        _headIndex = INVALID_JOINT_INDEX;
+        _hipsIndex = INVALID_JOINT_INDEX;
+        _hipsParentIndex = INVALID_JOINT_INDEX;
+        _leftHandIndex = INVALID_JOINT_INDEX;
+        _rightHandIndex = INVALID_JOINT_INDEX;
     }
 }
 
@@ -1532,7 +1532,7 @@ void AnimInverseKinematics::debugDrawRelativePoses(const AnimContext& context) c
 
         // draw line to parent
         int parentIndex = _skeleton->getParentIndex(i);
-        if (parentIndex != NO_PARENT_INDEX) {
+        if (parentIndex != INVALID_JOINT_INDEX) {
             glm::vec3 parentPos = transformPoint(geomToWorldMatrix, poses[parentIndex].trans());
             DebugDraw::getInstance().drawRay(pos, parentPos, GRAY);
         }
@@ -1581,7 +1581,7 @@ void AnimInverseKinematics::debugDrawIKChain(const JointChainInfo& jointChainInf
             DebugDraw::getInstance().drawRay(pos, pos + AXIS_LENGTH * zAxis, BLUE);
 
             // draw line to parent
-            if (parentIndex != NO_PARENT_INDEX) {
+            if (parentIndex != INVALID_JOINT_INDEX) {
                 glm::vec3 parentPos = transformPoint(geomToWorldMatrix, poses[parentIndex].trans());
                 glm::vec4 color = GRAY;
 
@@ -1630,13 +1630,13 @@ void AnimInverseKinematics::debugDrawConstraints(const AnimContext& context) con
 
             // draw line to parent
             int parentIndex = _skeleton->getParentIndex(i);
-            if (parentIndex != NO_PARENT_INDEX) {
+            if (parentIndex != INVALID_JOINT_INDEX) {
                 glm::vec3 parentPos = transformPoint(geomToWorldMatrix, poses[parentIndex].trans());
                 DebugDraw::getInstance().drawRay(pos, parentPos, GRAY);
             }
 
             glm::quat parentAbsRot;
-            if (parentIndex != NO_PARENT_INDEX) {
+            if (parentIndex != INVALID_JOINT_INDEX) {
                 parentAbsRot = poses[parentIndex].rot();
             }
 
@@ -1734,7 +1734,7 @@ void AnimInverseKinematics::preconditionRelativePosesToAvoidLimbLock(const AnimC
     const float MIN_AXIS_LENGTH = 1.0e-4f;
 
     for (auto& target : targets) {
-        if (target.getIndex() != NO_PARENT_INDEX && target.getType() == IKTarget::Type::RotationAndPosition) {
+        if (target.getIndex() != INVALID_JOINT_INDEX && target.getType() == IKTarget::Type::RotationAndPosition) {
             for (int i = 0; i < NUM_LIMBS; i++) {
                 if (limbs[i].first == target.getIndex()) {
                     int tipIndex = limbs[i].first;

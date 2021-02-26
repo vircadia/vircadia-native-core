@@ -31,7 +31,7 @@ public:
     int getNumJoints() const;
     int getChainDepth(int jointIndex) const;
     
-    static const int NO_PARENT_INDEX { -1 };
+    static const int INVALID_JOINT_INDEX { -1 };
 
     // the default poses are the orientations of the joints on frame 0.
     const AnimPose& getRelativeDefaultPose(int jointIndex) const;
