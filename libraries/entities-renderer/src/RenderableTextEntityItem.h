@@ -71,6 +71,7 @@ private:
     glm::vec3 _dimensions;
 
     QString _font { "" };
+    TextAlignment _alignment { TextAlignment::LEFT };
     TextEffect _effect { TextEffect::NO_EFFECT };
     glm::vec3 _effectColor { 0 };
     float _effectThickness { 0.0f };

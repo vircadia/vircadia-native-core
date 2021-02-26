@@ -277,9 +277,10 @@ bool ShapeEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const
                                                   float& distance, BoxFace& face, glm::vec3& surfaceNormal,
                                                   QVariantMap& extraInfo, bool precisionPicking) const {
     glm::vec3 dimensions = getScaledDimensions();
-    glm::quat rotation = getWorldOrientation();
+    BillboardMode billboardMode = getBillboardMode();
+    glm::quat rotation = billboardMode == BillboardMode::NONE ? getWorldOrientation() : getLocalOrientation();
     glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
-    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, getBillboardMode(), viewFrustumPos);
+    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, billboardMode, viewFrustumPos);
 
     // determine the ray in the frame of the entity transformed from a unit sphere
     glm::mat4 entityToWorldMatrix = glm::translate(position) * glm::mat4_cast(rotation) * glm::scale(dimensions);
@@ -309,9 +310,10 @@ bool ShapeEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, 
                                                        BoxFace& face, glm::vec3& surfaceNormal,
                                                        QVariantMap& extraInfo, bool precisionPicking) const {
     glm::vec3 dimensions = getScaledDimensions();
-    glm::quat rotation = getWorldOrientation();
+    BillboardMode billboardMode = getBillboardMode();
+    glm::quat rotation = billboardMode == BillboardMode::NONE ? getWorldOrientation() : getLocalOrientation();
     glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
-    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, getBillboardMode(), viewFrustumPos);
+    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, billboardMode, viewFrustumPos);
 
     // determine the parabola in the frame of the entity transformed from a unit sphere
     glm::mat4 entityToWorldMatrix = glm::translate(position) * glm::mat4_cast(rotation) * glm::scale(dimensions);

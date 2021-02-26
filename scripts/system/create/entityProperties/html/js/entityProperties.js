@@ -240,6 +240,17 @@ const GROUPS = [
                 propertyID: "textEffectThickness",
             },
             {
+                label: "Alignment",
+                type: "dropdown",
+                options: {
+                    left: "Left",
+                    center: "Center",
+                    right: "Right"
+                },
+                propertyID: "textAlignment",
+                propertyName: "alignment", // actual entity property name
+            },
+            {
                 label: "Top Margin",
                 type: "number-draggable",
                 step: 0.01,

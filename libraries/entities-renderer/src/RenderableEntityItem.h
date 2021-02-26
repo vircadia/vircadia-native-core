@@ -107,7 +107,7 @@ protected:
     virtual void doRender(RenderArgs* args) = 0;
 
     virtual bool isFading() const { return _isFading; }
-    virtual void updateModelTransformAndBound();
+    virtual void updateModelTransformAndBound(const EntityItemPointer& entity);
     virtual bool isTransparent() const { return _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f : false; }
     inline bool isValidRenderItem() const { return _renderItemID != Item::INVALID_ITEM_ID; }
 
@@ -115,15 +115,13 @@ protected:
     virtual void setRenderLayer(RenderLayer value) { _renderLayer = value; }
     virtual void setCullWithParent(bool value) { _cullWithParent = value; }
 
-signals:
-    void requestRenderUpdate();
-
-protected:
     template<typename T>
     std::shared_ptr<T> asTypedEntity() { return std::static_pointer_cast<T>(_entity); }
 
     static void makeStatusGetters(const EntityItemPointer& entity, Item::Status::Getters& statusGetters);
     const Transform& getModelTransform() const;
+
+    Transform getTransformToCenterWithMaybeOnlyLocalRotation(const EntityItemPointer& entity, bool& success) const;
 
     // Shared methods for entities that support materials
     using MaterialMap = std::unordered_map<std::string, graphics::MultiMaterial>;
@@ -168,6 +166,9 @@ protected:
     const EntityItemPointer _entity;
 
     QUuid _entityID;
+
+signals:
+    void requestRenderUpdate();
 };
 
 template <typename T>

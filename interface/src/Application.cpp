@@ -254,6 +254,7 @@
 
 #include "AboutUtil.h"
 #include "ExternalResource.h"
+#include <ThreadHelpers.h>
 
 #if defined(Q_OS_WIN)
 #include <VersionHelpers.h>
@@ -1168,6 +1169,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     if (!DISABLE_WATCHDOG) {
         auto deadlockWatchdogThread = new DeadlockWatchdogThread();
         deadlockWatchdogThread->setMainThreadID(QThread::currentThreadId());
+        connect(deadlockWatchdogThread, &QThread::started, [] { setThreadName("DeadlockWatchdogThread"); });
         deadlockWatchdogThread->start();
 
         // Pause the deadlock watchdog when we sleep, or it might
@@ -5206,6 +5208,7 @@ void getCpuUsage(vec3& systemAndUser) {
 void setupCpuMonitorThread() {
     initCpuUsage();
     auto cpuMonitorThread = QThread::currentThread();
+    setThreadName("CPU Monitor Thread");
 
     QTimer* timer = new QTimer();
     timer->setInterval(50);

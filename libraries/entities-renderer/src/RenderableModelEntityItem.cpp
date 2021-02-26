@@ -115,11 +115,12 @@ bool RenderableModelEntityItem::needsUpdateModelBounds() const {
     }
 
     bool success;
-    auto transform = getTransform(success);
+    auto transform = getBillboardMode() == BillboardMode::NONE ? getTransform(success) : getTransformWithOnlyLocalRotation(success);
     if (success) {
         if (model->getTranslation() != transform.getTranslation()) {
             return true;
         }
+
         if (model->getRotation() != transform.getRotation()) {
             return true;
         }
@@ -171,7 +172,7 @@ void RenderableModelEntityItem::updateModelBounds() {
     }
 
     bool success;
-    auto transform = getTransform(success);
+    auto transform = getBillboardMode() == BillboardMode::NONE ? getTransform(success) : getTransformWithOnlyLocalRotation(success);
     if (success && (model->getTranslation() != transform.getTranslation() ||
             model->getRotation() != transform.getRotation())) {
         model->setTransformNoUpdateRenderItems(transform);

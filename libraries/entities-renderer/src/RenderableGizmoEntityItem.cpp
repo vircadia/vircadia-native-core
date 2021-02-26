@@ -264,8 +264,6 @@ void GizmoEntityRenderer::doRender(RenderArgs* args) {
         bool wireframe = render::ShapeKey(args->_globalShapeKey).isWireframe() || _primitiveMode == PrimitiveMode::LINES;
         bool forward = _renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD;
 
-        //geometryCache->bindSimpleProgram(batch, false, transparent, wireframe, true, true, forward, materials.getCullFaceMode());
-
         transform.setRotation(BillboardModeHelpers::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
             args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition(), true));
         batch.setModelTransform(transform);

@@ -372,6 +372,11 @@ bool EntityRenderer::needsRenderUpdate() const {
     return needsRenderUpdateFromEntity(_entity);
 }
 
+Transform EntityRenderer::getTransformToCenterWithMaybeOnlyLocalRotation(const EntityItemPointer& entity, bool& success) const {
+    return entity->getBillboardMode() == BillboardMode::NONE ? entity->getTransformToCenter(success) :
+        entity->getTransformToCenterWithOnlyLocalRotation(success);
+}
+
 // Returns true if the item in question needs to have updateInScene called because of changes in the entity
 bool EntityRenderer::needsRenderUpdateFromEntity(const EntityItemPointer& entity) const {
     if (entity->needsRenderUpdate()) {
@@ -383,12 +388,12 @@ bool EntityRenderer::needsRenderUpdateFromEntity(const EntityItemPointer& entity
     }
 
     bool success = false;
-    auto bound = _entity->getAABox(success);
+    auto bound = entity->getAABox(success);
     if (success && _bound != bound) {
         return true;
     }
 
-    auto newModelTransform = _entity->getTransformToCenter(success);
+    auto newModelTransform = getTransformToCenterWithMaybeOnlyLocalRotation(entity, success);
     // FIXME can we use a stale model transform here?
     if (success && newModelTransform != _modelTransform) {
         return true;
@@ -405,15 +410,15 @@ bool EntityRenderer::needsRenderUpdateFromEntity(const EntityItemPointer& entity
     return false;
 }
 
-void EntityRenderer::updateModelTransformAndBound() {
+void EntityRenderer::updateModelTransformAndBound(const EntityItemPointer& entity) {
     bool success = false;
-    auto newModelTransform = _entity->getTransformToCenter(success);
+    auto newModelTransform = getTransformToCenterWithMaybeOnlyLocalRotation(entity, success);
     if (success) {
         _modelTransform = newModelTransform;
     }
 
     success = false;
-    auto bound = _entity->getAABox(success);
+    auto bound = entity->getAABox(success);
     if (success) {
         _bound = bound;
     }
@@ -433,7 +438,7 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
 
         _prevIsTransparent = transparent;
 
-        updateModelTransformAndBound();
+        updateModelTransformAndBound(entity);
 
         _moving = entity->isMovingRelativeToParent();
         _visible = entity->getVisible();
