@@ -756,7 +756,7 @@ void AnimInverseKinematics::computeAndCacheSplineJointInfosForIKTarget(const Ani
 
     int index = target.getIndex();
     int endIndex = _skeleton->getParentIndex(_hipsIndex);
-    while (index != endIndex) {
+    while (index != endIndex && index > -1) {
         AnimPose defaultPose = _skeleton->getAbsoluteDefaultPose(index);
 
         float ratio = glm::dot(defaultPose.trans() - basePose.trans(), baseToTipNormal) / baseToTipLength;
