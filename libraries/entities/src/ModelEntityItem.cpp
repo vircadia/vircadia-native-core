@@ -330,6 +330,19 @@ const Transform ModelEntityItem::getTransform(bool& success, int depth) const {
 
     return worldTransform;
 }
+
+const Transform ModelEntityItem::getTransformWithOnlyLocalRotation(bool& success, int depth) const {
+    const Transform parentTransform = getParentTransform(success, depth);
+    Transform localTransform = getLocalTransform();
+    localTransform.postScale(getModelScale());
+
+    Transform worldTransform;
+    Transform::mult(worldTransform, parentTransform, localTransform);
+    worldTransform.setRotation(localTransform.getRotation());
+
+    return worldTransform;
+}
+
 void ModelEntityItem::setCompoundShapeURL(const QString& url) {
     withWriteLock([&] {
         if (_compoundShapeURL.get() != url) {
