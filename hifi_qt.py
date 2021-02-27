@@ -59,7 +59,7 @@ endif()
 
             self.path = os.getenv('VIRCADIA_QT_PATH')
             self.fullPath = self.path
-            self.cmakePath = os.path.join(self.fullPath, 'lib/cmake')
+            self.cmakePath = os.path.join(self.fullPath, 'lib', 'cmake')
 
             qt_found = True
             print("Using Qt from " + self.fullPath)
@@ -77,7 +77,7 @@ endif()
 
             self.path = os.path.expanduser("~/vircadia-files/qt")
             self.fullPath = os.path.join(self.path, 'qt5-install')
-            self.cmakePath = os.path.join(self.fullPath, 'lib/cmake')
+            self.cmakePath = os.path.join(self.fullPath, 'lib', 'cmake')
 
             if (not os.path.isdir(self.path)):
                 os.makedirs(self.path)
