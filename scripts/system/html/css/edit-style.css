@@ -1987,12 +1987,12 @@ button.menu-button {
 }
 
 button.menu-button:hover {
-    background-color: #00B4EF;
+    background-color: #919191;
     border: none;
 }
 
 button.menu-button:active {
-    background-color: #00B4EF;
+    background-color: #919191;
     border: none;    
 }
 
