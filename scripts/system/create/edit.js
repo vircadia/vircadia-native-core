@@ -35,7 +35,8 @@ Script.include([
     "../libraries/gridTool.js",
     "entityList/entityList.js",
     "entitySelectionTool/entitySelectionTool.js",
-    "audioFeedback/audioFeedback.js"
+    "audioFeedback/audioFeedback.js",
+    "modules/brokenUrlReport.js"    
 ]);
 
 var CreateWindow = Script.require('./modules/createWindow.js');
