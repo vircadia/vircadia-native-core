@@ -1489,6 +1489,24 @@
       ]
     },
     {
+      "name": "messages_mixer",
+      "label": "Messages Mixer",
+      "assignment-types": [
+        4
+      ],
+      "settings": [
+        {
+          "name": "max_node_messages_per_second",
+          "type": "int",
+          "label": "Per-Node Send Messages",
+          "help": "Desired maximum send messages (in messages per second) per node",
+          "placeholder": 1000,
+          "default": 1000,
+          "advanced": true
+        }
+      ]
+    },
+    {
       "name": "entity_server_settings",
       "label": "Entities",
       "assignment-types": [

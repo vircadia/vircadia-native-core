@@ -32,9 +32,21 @@ private slots:
     void handleMessages(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleMessagesSubscribe(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleMessagesUnsubscribe(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+    void parseDomainServerSettings(const QJsonObject& domainSettings);
+    void domainSettingsRequestComplete();
+
+    void startMaxMessagesProcessor();
+    void stopMaxMessagesProcessor();
+    void processMaxMessagesContainer();
 
 private:
-    QHash<QString,QSet<QUuid>> _channelSubscribers;
+    QHash<QString, QSet<QUuid>> _channelSubscribers;
+    QHash<QUuid, int> _allSubscribers;
+
+    const int DEFAULT_NODE_MESSAGES_PER_SECOND = 1000;
+    int _maxMessagesPerSecond{ 0 };
+
+    QTimer* maxMessagesPerSecondTimer;
 };
 
 #endif // hifi_MessagesMixer_h

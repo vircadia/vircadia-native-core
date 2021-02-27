@@ -47,6 +47,13 @@ void MessagesMixer::handleMessages(QSharedPointer<ReceivedMessage> receivedMessa
     MessagesClient::decodeMessagesPacket(receivedMessage, channel, isText, message, data, senderID);
 
     auto nodeList = DependencyManager::get<NodeList>();
+    if (_allSubscribers.value(senderNode->getUUID()) >= _maxMessagesPerSecond) {
+        // We will reject all messages that go over this limit for that second. 
+        // FIXME: We will add logging options to offer analytics on this later.
+        return;
+    }
+
+    _allSubscribers[senderNode->getUUID()] = _allSubscribers.value(senderNode->getUUID()) + 1;
 
     nodeList->eachMatchingNode(
         [&](const SharedNodePointer& node)->bool {
@@ -62,12 +69,18 @@ void MessagesMixer::handleMessages(QSharedPointer<ReceivedMessage> receivedMessa
 void MessagesMixer::handleMessagesSubscribe(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     QString channel = QString::fromUtf8(message->getMessage());
     _channelSubscribers[channel] << senderNode->getUUID();
+
+    _allSubscribers[senderNode->getUUID()] << 0;
 }
 
 void MessagesMixer::handleMessagesUnsubscribe(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     QString channel = QString::fromUtf8(message->getMessage());
     if (_channelSubscribers.contains(channel)) {
         _channelSubscribers[channel].remove(senderNode->getUUID());
+    }
+
+    if (_allSubscribers.contains(senderNode->getUUID())) {
+        _allSubscribers.remove(senderNode->getUUID());
     }
 }
 
@@ -88,7 +101,49 @@ void MessagesMixer::sendStatsPacket() {
 }
 
 void MessagesMixer::run() {
+    // wait until we have the domain-server settings, otherwise we bail
+    DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
+    connect(&domainHandler, &DomainHandler::settingsReceived, this, &MessagesMixer::domainSettingsRequestComplete);
+
     ThreadedAssignment::commonInit(MESSAGES_MIXER_LOGGING_NAME, NodeType::MessagesMixer);
+
+    startMaxMessagesProcessor();
+}
+
+void MessagesMixer::domainSettingsRequestComplete() {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::EntityScriptServer });
+
+    DomainHandler& domainHandler = nodeList->getDomainHandler();
+
+    // parse the settings to pull out the values we need
+    parseDomainServerSettings(nodeList->getDomainHandler().getSettingsObject());
+}
+
+void MessagesMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
+    const QString MESSAGES_MIXER_SETTINGS_KEY = "messages_mixer";
+    QJsonObject messagesMixerGroupObject = domainSettings[MESSAGES_MIXER_SETTINGS_KEY].toObject();
+
+    const QString NODE_MESSAGES_PER_SECOND_KEY = "max_node_messages_per_second";
+    QJsonValue maxMessagesPerSecondValue = messagesMixerGroupObject.value(NODE_MESSAGES_PER_SECOND_KEY);
+    if (!maxMessagesPerSecondValue.isUndefined()) {
+        _maxMessagesPerSecond = maxMessagesPerSecondValue.toInt();
+    } else {
+        _maxMessagesPerSecond = DEFAULT_NODE_MESSAGES_PER_SECOND;
+    }
+}
+
+void MessagesMixer::processMaxMessagesContainer() {
+    _allSubscribers.clear();
+}
+
+void MessagesMixer::startMaxMessagesProcessor() {
+    maxMessagesPerSecondTimer = new QTimer();
+    connect(maxMessagesPerSecondTimer, &QTimer::timeout, this, &MessagesMixer::processMaxMessagesContainer);
+    maxMessagesPerSecondTimer->start(1000); // Clear the container every second.
+}
+
+void MessagesMixer::stopMaxMessagesProcessor() {
+    delete maxMessagesPerSecondTimer;
+    maxMessagesPerSecondTimer = NULL;
 }
