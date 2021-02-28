@@ -178,9 +178,14 @@ Rectangle {
                     Layout.alignment: Qt.AlignVCenter
                 }
             }
+        }
+
+        RowLayout {
+            id: avatarScaleButtonsRow
+            anchors.top: avatarScaleRow.bottom
 
             ShadowRectangle {
-                width: 37
+                width: 31
                 height: 28
                 AvatarAppStyle {
                     id: style
@@ -203,7 +208,43 @@ Rectangle {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: {
-                        scaleSlider.value = 10
+                        scaleSlider.notify = false;
+                        scaleSlider.value = 10;
+                        scaleSlider.notify = true;
+                        root.scaleChanged(1.0);
+                    }
+                }
+            }
+
+            ShadowRectangle {
+                width: 107
+                height: 28
+                AvatarAppStyle {
+                    id: style2
+                }
+
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: style2.colors.blueHighlight }
+                    GradientStop { position: 1.0; color: style2.colors.blueAccent }
+                }
+
+                radius: 3
+
+                RalewaySemiBold {
+                    color: 'white'
+                    anchors.centerIn: parent
+                    text: "Real Height"
+                    size: 18
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        scaleValue = MyAvatar.getAutoAvatarScale();
+                        scaleSlider.notify = false;
+                        scaleSlider.value = Math.round(scaleValue * 10);
+                        scaleSlider.notify = true;
+                        root.scaleChanged(scaleValue);
                     }
                 }
             }
