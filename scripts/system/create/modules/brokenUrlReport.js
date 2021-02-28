@@ -60,13 +60,14 @@ function brokenUrlReportGenerateFormatedReport(brokenUrlReportInvalideUrlList) {
     brokenUrlReportContent = brokenUrlReportContent + "        <table>\n";
     brokenUrlReportContent = brokenUrlReportContent + "            <tr>\n";
     brokenUrlReportContent = brokenUrlReportContent + "                <td class='superheader'>&nbsp;</td>\n";
-    brokenUrlReportContent = brokenUrlReportContent + "                <td class='superheader' colspan='2'>Entity</td>\n";
+    brokenUrlReportContent = brokenUrlReportContent + "                <td class='superheader' colspan='3'>Entity</td>\n";
     brokenUrlReportContent = brokenUrlReportContent + "                <td class='superheader' colspan='3'>Broken Url</td>\n";
     brokenUrlReportContent = brokenUrlReportContent + "            </tr>\n";
     brokenUrlReportContent = brokenUrlReportContent + "            <tr>\n";
     brokenUrlReportContent = brokenUrlReportContent + "                <td class='header'>No</td>\n";
     brokenUrlReportContent = brokenUrlReportContent + "                <td class='header'>Type</td>\n";
     brokenUrlReportContent = brokenUrlReportContent + "                <td class='header'>Name &amp; ID</td>\n";
+    brokenUrlReportContent = brokenUrlReportContent + "                <td class='header'>&nbsp;</td>\n";    
     brokenUrlReportContent = brokenUrlReportContent + "                <td class='header'>Property</td>\n";
     brokenUrlReportContent = brokenUrlReportContent + "                <td class='header'>Status</td>\n";
     brokenUrlReportContent = brokenUrlReportContent + "                <td class='header'>Current URL</td>\n";
@@ -76,8 +77,9 @@ function brokenUrlReportGenerateFormatedReport(brokenUrlReportInvalideUrlList) {
         brokenUrlReportContent = brokenUrlReportContent + "                <td style='color: #999999; width: 5%;'>" + (i + 1) + "</td>\n";
         brokenUrlReportContent = brokenUrlReportContent + "                <td style='width: 10%;'>" + brokenUrlReportInvalideUrlList[i].type + "</td>\n";
         brokenUrlReportContent = brokenUrlReportContent + "                <td style='width: 40%;'>" + brokenUrlReportInvalideUrlList[i].name + "<br><font color='#999999'>" + brokenUrlReportInvalideUrlList[i].id + "</font></td>\n";
+        brokenUrlReportContent = brokenUrlReportContent + "                <td style='width: 2%;'><a href='' onclick='selectEntity(" + '"' + brokenUrlReportInvalideUrlList[i].id + '"' + "); return false;'>&#9998;</a></td>\n";        
         brokenUrlReportContent = brokenUrlReportContent + "                <td style='color: " + brokenUrlReportGetUrlTypeColor(brokenUrlReportInvalideUrlList[i].urlType) + "; width: 10%;'>" + brokenUrlReportInvalideUrlList[i].urlType + "</td>\n";
-        brokenUrlReportContent = brokenUrlReportContent + "                <td style='background-color: #FF0000; color: #FFFFFF; width: 10%;'>" + brokenUrlReportInvalideUrlList[i].validity + "</td>\n";
+        brokenUrlReportContent = brokenUrlReportContent + "                <td style='background-color: #FF0000; color: #FFFFFF; width: 8%;'>" + brokenUrlReportInvalideUrlList[i].validity + "</td>\n";
         brokenUrlReportContent = brokenUrlReportContent + "                <td style='word-wrap: break-word; width:200px;'>" + brokenUrlReportInvalideUrlList[i].url + "</td>\n";
         brokenUrlReportContent = brokenUrlReportContent + "            </tr>\n";
     }
@@ -356,14 +358,29 @@ function brokenUrlReport(entityIds) {
                     return; 
                 }
             }
+            if (brokenUrlReportOverlayWebWindow !== undefined) {
+                brokenUrlReportOverlayWebWindow.close();
+            }
             brokenUrlReportOverlayWebWindow = new OverlayWebWindow({
                 title: "Broken Url Report",
                 source: Script.resolvePath("brokenUrlReport.html"),
                 width: 1000,
                 height: 600
-            });                
+            });            
             brokenUrlReportContent = "";
             brokenUrlReportRequestUrlValidityCheck(brokenUrlReportProcessedUrlNo);
         }
     }
+    
+    brokenUrlReportOverlayWebWindow.webEventReceived.connect(function (message) {
+        try {
+            var data = JSON.parse(message);
+        } catch(e) {
+            print("brokenUrlReport.js: Error parsing JSON");
+            return;
+        }
+        if (data.action === "select") {
+            selectionManager.setSelections([data.entityID], this);
+        }
+    });
 }
