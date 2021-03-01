@@ -119,7 +119,7 @@ function bootstrapEntityMenu() {
 
 ///////////////// END ENTITY MENU OVERLAY
 
-///////////////// NYX MESSAGE HANDLING
+///////////////// BEGIN NYX MESSAGE HANDLING
 
 function sendToWeb(command, data) {
     var dataToSend = {
@@ -210,6 +210,10 @@ function onMessageReceived(channel, message, senderID, localOnly) {
     }
 }
 
+///////////////// END NYX MESSAGE HANDLING
+
+///////////////// BEGIN TRIGGER EVENT HANDLING
+
 function processMouseEvent (event) {
     if (!nyxSettings.entityMenu.selectedMouseTriggers) {
         return false;
@@ -237,16 +241,18 @@ function onMousePressOnEntity (pressedEntityID, event) {
         NyxSit.capturePickPosition();
     }
 
+    // Default if settings are not configured.
     if (!nyxSettings || !nyxSettings.entityMenu.useMouseTriggers || nyxSettings.entityMenu.selectedMouseTriggers.length === 0) {
         if (event.isPrimaryHeld && event.isSecondaryHeld && !isInEditMode()) {
             toggleEntityMenu(pressedEntityID);
         }
+    // If settings are configured, process the event accordingly.
     } else if (processMouseEvent(event) === true) {
         toggleEntityMenu(pressedEntityID);
     }
 }
 
-///////////////// END NYX MESSAGE HANDLING
+///////////////// END TRIGGER EVENT HANDLING
 
 ///////////////// BEGIN NYX MENU HANDLING
 

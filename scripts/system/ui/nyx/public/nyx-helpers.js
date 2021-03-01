@@ -71,7 +71,7 @@ function onMessageReceived(channel, message, senderID, localOnly) {
 
 module.exports = {
     registerWithEntityMenu: registerWithEntityMenu,
-    entityMenuTriggered: {
+    entityMenuActionTriggered: {
         connect: connectEntityMenu,
         disconnect: disconnectEntityMenu
     },

@@ -39,17 +39,17 @@
                 name: 'Unequip'
             }
         ]);
-        NyxAlpha1.entityMenuTriggered.connect(gunID, onEntityMenuTriggered);
+        NyxAlpha1.entityMenuActionTriggered.connect(gunID, onEntityMenuActionTriggered);
     }
 
-    function onEntityMenuTriggered(triggeredEntityID, command, data) {
+    function onEntityMenuActionTriggered(triggeredEntityID, command, data) {
         if (data.name === 'Equip' && triggeredEntityID === _entityID) {
             equipGun();
         }
         
         if (data.name === 'Unequip' && triggeredEntityID === gunID) {
             Entities.deleteEntity(gunID);
-            NyxAlpha1.entityMenuTriggered.disconnect(gunID, onEntityMenuTriggered);
+            NyxAlpha1.entityMenuActionTriggered.disconnect(gunID, onEntityMenuActionTriggered);
         }
         
         if (data.name === 'Color Picker' && triggeredEntityID === _entityID) {
@@ -101,11 +101,11 @@
             }
         ]);
 
-        NyxAlpha1.entityMenuTriggered.connect(_entityID, onEntityMenuTriggered);
+        NyxAlpha1.entityMenuActionTriggered.connect(_entityID, onEntityMenuActionTriggered);
     };
 
     this.unload = function () {
-        NyxAlpha1.entityMenuTriggered.disconnect(_entityID, onEntityMenuTriggered);
+        NyxAlpha1.entityMenuActionTriggered.disconnect(_entityID, onEntityMenuActionTriggered);
     };
 
 });

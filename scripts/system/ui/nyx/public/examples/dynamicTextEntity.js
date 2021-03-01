@@ -3,7 +3,7 @@
 
     var _entityID;
     
-    function onEntityMenuTriggered(triggeredEntityID, command, data) {
+    function onEntityMenuActionTriggered(triggeredEntityID, command, data) {
         if (data.name === 'TESTFIELD' && triggeredEntityID === _entityID) {
             Entities.editEntity(_entityID, { 
                 text: data.value
@@ -24,11 +24,11 @@
                 initialValue: initialProps.text
             }
         ]);
-        NyxAlpha1.entityMenuTriggered.connect(_entityID, onEntityMenuTriggered);
+        NyxAlpha1.entityMenuActionTriggered.connect(_entityID, onEntityMenuActionTriggered);
     };
 
     this.unload = function () {
-        NyxAlpha1.entityMenuTriggered.connect(_entityID, onEntityMenuTriggered);
+        NyxAlpha1.entityMenuActionTriggered.connect(_entityID, onEntityMenuActionTriggered);
     };
 
 });
