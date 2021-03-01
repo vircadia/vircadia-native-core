@@ -269,7 +269,13 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
                         // the avatar mixer uses the negative value of the sent version
                         instanceVersionRef = -packetTraitVersion;
                     } else {
-                        _avatar->processTraitInstance(traitType, instanceID, message.read(traitSize));
+                        // Don't accept avatar entity data for distribution unless sender has rez permissions on the domain.
+                        if (sendingNode.getCanRezAvatarEntities()) {
+                            _avatar->processTraitInstance(traitType, instanceID, message.read(traitSize));
+                        } else {
+                            message.read(traitSize);
+                        }
+                        
                         instanceVersionRef = packetTraitVersion;
                     }
 
