@@ -65,16 +65,16 @@ sudo apt upgrade
 sudo apt build-dep qt5-default
 ```
 
-1.  git >= 1.6
-1.  python 2.7.x
-1.  gperf
-1.  bison and flex
-1.  pkg-config (needed for qtwebengine)
-1.  OpenGL
-1.  make
-1.  g++
-1.  dbus-1 (needed for qtwebengine)
-1.  nss (needed for qtwebengine)
+2.  git >= 1.6
+3.  python 2.7.x
+4.  gperf
+5.  bison and flex
+6.  pkg-config (needed for qtwebengine)
+7.  OpenGL
+8.  make
+9.  g++
+10.  dbus-1 (needed for qtwebengine)
+11.  nss (needed for qtwebengine)
 
 On Ubuntu based systems you can install all these dependencies with:
 ```bash
@@ -201,20 +201,10 @@ Zip up this directory and upload it to Backtrace or other crash log handlng tool
 
 
 ### Linux
-**TODO: Update this section for Qt 5.15.2**
-
 #### Preparing source files
 ```bash
 git clone --recursive git://code.qt.io/qt/qt5.git -b 5.15.2 --single-branch
 ```
-
-As of qt version 5.15.0, no patches are needed anymore.
-~~* Copy the **patches** folder to qt5~~
-~~* Apply patches to Qt~~
-~~`cd qt5`~~
-~~`git apply --ignore-space-change --ignore-whitespace patches/aec.patch`~~
-~~`git apply --ignore-space-change --ignore-whitespace patches/qtscript-crash-fix.patch`~~
-~~`cd ..`~~
 
 #### Configuring
 ```bash
@@ -237,7 +227,7 @@ aarch64:
 You can accelerate the build process by installing some of the optional system dependencies.
 
 #### Make
-Replace `4` with the number of threads you want to use. Keep in mind that the QT build process uses a lot of memory. It is recommended to have at least 1,2 GiB per thread.
+Replace `4` with the number of threads you want to use. Keep in mind that the Qt build process uses a lot of memory. It is recommended to have at least 1.2 GiB per thread.
 ```bash
 NINJAFLAGS='-j4' make -j4
 ```
@@ -276,14 +266,14 @@ If one of the make commands fails, running it a second time sometimes clears the
 cd ../qt5-install
 find . -name \*.prl -exec sed -i -e '/^QMAKE_PRL_BUILD_DIR/d' {} \;
 ```
-1.   Copy *qt.conf* to *qt5-install\bin*
+2.   Copy *qt.conf* to *qt5-install\bin*
 
 #### Uploading
 1.  Tar and xz qt5-install to create the package. Replace `ubuntu-18.04` with the relevant system and `amd64` with the relevant architecture.
 ```bash
 tar -Jcvf qt5-install-5.15.2-ubuntu-18.04-amd64.tar.xz qt5-install
 ```
-1.  Upload qt5-install-5.15.2-ubuntu-18.04-amd64.tar.xz to https://athena-public.s3.amazonaws.com/dependencies/vcpkg/
+2.  Upload qt5-install-5.15.2-ubuntu-18.04-amd64.tar.xz to https://athena-public.s3.amazonaws.com/dependencies/vcpkg/
 
 
 
