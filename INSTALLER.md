@@ -102,7 +102,7 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
 
 #### Server
 
-##### Ubuntu | .deb
+##### Ubuntu 18.04 | .deb
 
 1. Ensure you are using an Ubuntu 18.04 system.
 2. Get and bootstrap Vircadia Builder.
@@ -111,11 +111,11 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
     cd vircadia-builder
     chmod +x vircadia-builder
     ```
-3. Set up Vircadia Builder to compile the server. See [here](BUILD.md#possible-environment-variables) for possible environment variables and settings.
+3. Run Vircadia Builder to build the server. See [here](BUILD.md#possible-environment-variables) for possible environment variables and settings.
     ```
     ./vircadia-builder --build server
     ```
-4. Build the server.
+4. If Vircadia Builder needed to install dependencies and asks you to run it again then do so.
     ```
     ./vircadia-builder --build server
     ```
@@ -145,11 +145,11 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
     sudo ./install_amazon_linux_deps.sh
     chmod +x vircadia-builder
     ```
-4. Set up Vircadia Builder to compile the server. See [here](BUILD.md#possible-environment-variables) for possible environment variables and settings.
+4. Run Vircadia Builder to build the server. See [here](BUILD.md#possible-environment-variables) for possible environment variables and settings.
     ```
     ./vircadia-builder --build server
     ```
-5. Build the server.
+5. If Vircadia Builder needed to install dependencies and asks you to run it again then do so.
     ```
     ./vircadia-builder --build server
     ```
