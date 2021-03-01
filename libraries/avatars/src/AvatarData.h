@@ -1186,6 +1186,8 @@ public:
      * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE virtual void clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree = true);
+    
+    void clearAvatarEntities();
 
     /**jsdoc
      * Enables blend shapes set using {@link Avatar.setBlendshape} or {@link MyAvatar.setBlendshape} to be transmitted to other 

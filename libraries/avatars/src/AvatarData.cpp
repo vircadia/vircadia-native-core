@@ -3046,6 +3046,14 @@ void AvatarData::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFr
     }
 }
 
+void AvatarData::clearAvatarEntities() {
+    _avatarEntitiesLock.withReadLock([this] {
+        foreach(auto entityID, _packedAvatarEntityData.keys()) {
+            clearAvatarEntity(entityID);
+        }
+    });
+}
+
 AvatarEntityMap AvatarData::getAvatarEntityData() const {
     // overridden where needed
     // NOTE: the return value is expected to be a map of unfortunately-formatted-binary-blobs

@@ -433,6 +433,13 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         }
 
         if (sendAvatar) {
+            if (!sourceAvatarNode->getCanRezAvatarEntities()) {
+                auto sourceAvatarNodeData = reinterpret_cast<AvatarMixerClientData*>(sourceAvatarNode->getLinkedData());
+                sourceAvatarNodeData->getAvatar().clearAvatarEntities();
+            }
+        }
+
+        if (sendAvatar) {
             AvatarDataSequenceNumber lastSeqToReceiver = destinationNodeData->getLastBroadcastSequenceNumber(sourceAvatarNode->getLocalID());
             AvatarDataSequenceNumber lastSeqFromSender = sourceAvatarNodeData->getLastReceivedSequenceNumber();
 
