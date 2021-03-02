@@ -1,6 +1,6 @@
 # Creating an Installer
 
-*Last Updated on February 21, 2021*
+*Last Updated on March 1, 2021*
 
 Follow the [build guide](BUILD.md) to figure out how to build Vircadia for your platform.
 
