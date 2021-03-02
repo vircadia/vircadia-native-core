@@ -30,7 +30,11 @@ function brokenUrlReportRequestUrlValidityCheck(no) {
 
 function brokenUrlReportGetResponseStatus() {
     if (brokenUrlReportHttpRequest.status === 0 || brokenUrlReportHttpRequest.status > 299) {
-        brokenUrlReportUrlList[brokenUrlReportProcessedUrlNo].validity = brokenUrlReportHttpRequest.status;
+        if (brokenUrlReportHttpRequest.status === 0) {
+            brokenUrlReportUrlList[brokenUrlReportProcessedUrlNo].validity = "0 - URL not well-formed";
+        } else {
+            brokenUrlReportUrlList[brokenUrlReportProcessedUrlNo].validity = brokenUrlReportHttpRequest.status + " - " + brokenUrlReportHttpRequest.statusText;
+        }
         brokenUrlReportInvalideUrlList.push(brokenUrlReportUrlList[brokenUrlReportProcessedUrlNo]);
     }
     brokenUrlReportHttpRequest.requestComplete.disconnect(brokenUrlReportGetResponseStatus);
