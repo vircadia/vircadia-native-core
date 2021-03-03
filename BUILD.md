@@ -73,11 +73,14 @@ Where `/path/to/directory` is the path to a directory where you wish the build f
     // The identifying tag of the release.
     CMAKE_BACKTRACE_TOKEN
     
-    // The release version. (e.g. 2021.4.2-Osiris)
+    // The release version, e.g., 2021.3.2.
     RELEASE_NUMBER
-    // Typically, this is the build commit short hash. (e.g. f1576ab)
+    // The release name, e.g., Eos.
+    RELEASE_NAME
+    // The build commit, e.g., use a Git hash for the most recent commit in the branch - fd6973b.
+    
     BUILD_NUMBER
-
+    
     // The type of release.
     RELEASE_TYPE=PRODUCTION|PR|DEV
     

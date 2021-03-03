@@ -13,12 +13,15 @@
 //
 
 (function() { // BEGIN LOCAL_SCOPE
+    // Check to see if we should run this script or bail...
     var SETTING_TO_CHECK = 'firstRun';
     var DEFAULT_DISPLAY_NAME = '';
 
     if (!Settings.getValue(SETTING_TO_CHECK, false)) {
         return;
     }
+    
+    // If this is our first run, then proceed...
     
     if (MyAvatar.displayName === '') {
         var selectedDisplayName = Window.prompt('Enter a display name.', MyAvatar.displayName);
