@@ -66,7 +66,7 @@ macro(SET_PACKAGING_PARAMETERS)
     set(BUILD_VERSION "PR${RELEASE_NUMBER}")
     set(BUILD_ORGANIZATION "Vircadia - PR${RELEASE_NUMBER}")
     set(INTERFACE_BUNDLE_NAME "interface-C")
-    set(INTERFACE_ICON_PREFIX "interface-beta-D")
+    set(INTERFACE_ICON_PREFIX "interface-beta")
 
     # add definition for this release type
     add_definitions(-DPR_BUILD)
@@ -75,7 +75,7 @@ macro(SET_PACKAGING_PARAMETERS)
     set(BUILD_VERSION "dev")
     set(BUILD_ORGANIZATION "Vircadia - ${BUILD_VERSION}")
     set(INTERFACE_BUNDLE_NAME "interface-E")
-    set(INTERFACE_ICON_PREFIX "interface-beta-F")
+    set(INTERFACE_ICON_PREFIX "interface-beta")
 
     # add definition for this release type
     add_definitions(-DDEV_BUILD)
