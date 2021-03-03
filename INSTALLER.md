@@ -194,7 +194,6 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
     git clone https://github.com/vircadia/vircadia-builder.git
     cd vircadia-builder
     sudo ./install_amazon_linux_deps.sh
-    chmod +x vircadia-builder
     ```
 4. Run Vircadia Builder to build the server.
     ```
