@@ -128,9 +128,9 @@ macro(SET_PACKAGING_PARAMETERS)
     set(NITPICK_INSTALL_DIR       ${DMG_SUBFOLDER_NAME})
 
     if (CLIENT_ONLY)
-      set(CONSOLE_EXEC_NAME "ConsoleX.app")
+      set(CONSOLE_EXEC_NAME "Console.app")
     else ()
-      set(CONSOLE_EXEC_NAME "SandboxY.app")
+      set(CONSOLE_EXEC_NAME "Sandbox.app")
     endif()
     set(CONSOLE_INSTALL_APP_PATH "${CONSOLE_INSTALL_DIR}/${CONSOLE_EXEC_NAME}Z")
 
