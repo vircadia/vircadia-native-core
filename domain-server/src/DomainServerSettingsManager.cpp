@@ -363,9 +363,6 @@ void DomainServerSettingsManager::setupConfigMap(const QString& userConfigFilena
             foreach (auto permissionsSet, permissionsSets) {
                 for (auto entry : permissionsSet) {
                     const auto& userKey = entry.first;
-
-                    permissionsSet[userKey]->set(NodePermissions::Permission::canRezAvatarEntities);
-
                     if (onlyEditorsAreRezzers) {
                         if (permissionsSet[userKey]->can(NodePermissions::Permission::canAdjustLocks)) {
                             permissionsSet[userKey]->set(NodePermissions::Permission::canRezPermanentEntities);
@@ -530,6 +527,28 @@ void DomainServerSettingsManager::setupConfigMap(const QString& userConfigFilena
             *newAdminRoles = adminRoles;
         }
 
+        if (oldVersion < 2.5) {
+            // Default values for new canRezAvatarEntities permission.
+            unpackPermissions();
+            std::list<std::unordered_map<NodePermissionsKey, NodePermissionsPointer>> permissionsSets{
+                _standardAgentPermissions.get(),
+                _agentPermissions.get(),
+                _ipPermissions.get(),
+                _macPermissions.get(),
+                _machineFingerprintPermissions.get(),
+                _groupPermissions.get(),
+                _groupForbiddens.get()
+            };
+            foreach (auto permissionsSet, permissionsSets) {
+                for (auto entry : permissionsSet) {
+                    const auto& userKey = entry.first;
+                    if (permissionsSet[userKey]->can(NodePermissions::Permission::canConnectToDomain)) {
+                        permissionsSet[userKey]->set(NodePermissions::Permission::canRezAvatarEntities);
+                    }
+                }
+            }
+            packPermissions();
+        }
 
         // write the current description version to our settings
         *versionVariant = _descriptionVersion;
