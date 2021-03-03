@@ -10,6 +10,7 @@
 
 #include <DependencyManager.h>
 #include <GeometryCache.h>
+#include <graphics/ShaderConstants.h>
 
 #include "RenderPipelines.h"
 
@@ -100,7 +101,7 @@ Item::Bound ImageEntityRenderer::getBound(RenderArgs* args) {
 }
 
 ShapeKey ImageEntityRenderer::getShapeKey() {
-    auto builder = render::ShapeKey::Builder().withoutCullFace().withDepthBias();
+    auto builder = render::ShapeKey::Builder().withDepthBias();
     updateShapeKeyBuilderFromMaterials(builder);
     return builder.build();
 }
@@ -134,7 +135,6 @@ void ImageEntityRenderer::doRender(RenderArgs* args) {
 
     transform.setRotation(BillboardModeHelpers::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
         args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
-
     batch->setModelTransform(transform);
 
     float imageWidth = _texture->getWidth();
@@ -184,5 +184,8 @@ void ImageEntityRenderer::doRender(RenderArgs* args) {
         color, _geometryId
     );
 
-    batch->setResourceTexture(0, nullptr);
+    if (pipelineType == Pipeline::SIMPLE) {
+        // we have to reset this to white for other simple shapes
+        batch->setResourceTexture(graphics::slot::texture::Texture::MaterialAlbedo, DependencyManager::get<TextureCache>()->getWhiteTexture());
+    }
 }

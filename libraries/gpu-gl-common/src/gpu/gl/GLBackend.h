@@ -348,36 +348,37 @@ protected:
     virtual void updateInput() = 0;
 
     struct InputStageState {
-        bool _invalidFormat{ true };
-        bool _lastUpdateStereoState{ false };
-        bool _hadColorAttribute{ true };
-        FormatReference _format{ GPU_REFERENCE_INIT_VALUE };
+        bool _invalidFormat { true };
+        bool _lastUpdateStereoState { false };
+        bool _hasColorAttribute { false };
+        bool _hadColorAttribute { false };
+        FormatReference _format { GPU_REFERENCE_INIT_VALUE };
         std::string _formatKey;
 
         typedef std::bitset<MAX_NUM_ATTRIBUTES> ActivationCache;
-        ActivationCache _attributeActivation{ 0 };
+        ActivationCache _attributeActivation { 0 };
 
         typedef std::bitset<MAX_NUM_INPUT_BUFFERS> BuffersState;
 
-        BuffersState _invalidBuffers{ 0 };
-        BuffersState _attribBindingBuffers{ 0 };
+        BuffersState _invalidBuffers { 0 };
+        BuffersState _attribBindingBuffers { 0 };
 
-        std::array<BufferReference, MAX_NUM_INPUT_BUFFERS> _buffers{};
-        std::array<Offset, MAX_NUM_INPUT_BUFFERS> _bufferOffsets{};
-        std::array<Offset, MAX_NUM_INPUT_BUFFERS> _bufferStrides{};
-        std::array<GLuint, MAX_NUM_INPUT_BUFFERS> _bufferVBOs{};
+        std::array<BufferReference, MAX_NUM_INPUT_BUFFERS> _buffers;
+        std::array<Offset, MAX_NUM_INPUT_BUFFERS> _bufferOffsets;
+        std::array<Offset, MAX_NUM_INPUT_BUFFERS> _bufferStrides;
+        std::array<GLuint, MAX_NUM_INPUT_BUFFERS> _bufferVBOs;
 
-        glm::vec4 _colorAttribute{ 0.0f };
+        glm::vec4 _colorAttribute { 1.0f };
 
-        BufferReference _indexBuffer{};
-        Offset _indexBufferOffset{ 0 };
-        Type _indexBufferType{ UINT32 };
+        BufferReference _indexBuffer;
+        Offset _indexBufferOffset { 0 };
+        Type _indexBufferType { UINT32 };
 
-        BufferReference _indirectBuffer{};
-        Offset _indirectBufferOffset{ 0 };
-        Offset _indirectBufferStride{ 0 };
+        BufferReference _indirectBuffer;
+        Offset _indirectBufferOffset { 0 };
+        Offset _indirectBufferStride { 0 };
 
-        GLuint _defaultVAO{ 0 };
+        GLuint _defaultVAO { 0 };
     } _input;
 
     virtual void initTransform() = 0;

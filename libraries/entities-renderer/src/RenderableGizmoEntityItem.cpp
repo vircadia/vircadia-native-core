@@ -231,7 +231,7 @@ Item::Bound GizmoEntityRenderer::getBound(RenderArgs* args) {
 }
 
 ShapeKey GizmoEntityRenderer::getShapeKey() {
-    auto builder = render::ShapeKey::Builder().withoutCullFace().withDepthBias();
+    auto builder = render::ShapeKey::Builder().withDepthBias();
     updateShapeKeyBuilderFromMaterials(builder);
     return builder.build();
 }
