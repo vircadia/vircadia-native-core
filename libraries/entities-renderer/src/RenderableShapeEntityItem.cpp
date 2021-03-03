@@ -55,6 +55,7 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     void* key = (void*)this;
     AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity] {
         withWriteLock([&] {
+            _shape = entity->getShape();
             _position = entity->getWorldPosition();
             _dimensions = entity->getUnscaledDimensions(); // get unscaled to avoid scaling twice
             _orientation = entity->getWorldOrientation();
@@ -69,7 +70,6 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 }
 
 void ShapeEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
-    _shape = entity->getShape();
     _pulseProperties = entity->getPulseProperties();
 
     bool materialChanged = false;
@@ -200,16 +200,16 @@ ShapeKey ShapeEntityRenderer::getShapeKey() {
     return builder.build();
 }
 
-Item::Bound ShapeEntityRenderer::getBound() {
+Item::Bound ShapeEntityRenderer::getBound(RenderArgs* args) {
     auto mat = _materials.find("0");
     if (mat != _materials.end() && mat->second.top().material && mat->second.top().material->isProcedural() &&
         mat->second.top().material->isReady()) {
         auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(mat->second.top().material);
         if (procedural->hasVertexShader() && procedural->hasBoundOperator()) {
-           return procedural->getBound();
+           return procedural->getBound(args);
         }
     }
-    return Parent::getBound();
+    return Parent::getBound(args);
 }
 
 void ShapeEntityRenderer::doRender(RenderArgs* args) {
@@ -221,14 +221,11 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
     graphics::MultiMaterial materials;
     auto geometryCache = DependencyManager::get<GeometryCache>();
     GeometryCache::Shape geometryShape = geometryCache->getShapeForEntityShape(_shape);
-    PrimitiveMode primitiveMode;
-    RenderLayer renderLayer;
     glm::vec4 outColor;
     Pipeline pipelineType;
+    Transform transform;
     withReadLock([&] {
-        primitiveMode = _primitiveMode;
-        renderLayer = _renderLayer;
-        batch.setModelTransform(_renderTransform); // use a transform with scale, rotation, registration point and translation
+        transform = _renderTransform;
         materials = _materials["0"];
         pipelineType = getPipelineType(materials);
         auto& schema = materials.getSchemaBuffer().get<graphics::MultiMaterial::Schema>();
@@ -241,6 +238,11 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         return;
     }
 
+    transform.setRotation(BillboardModeHelpers::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
+        args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition(),
+        _shape < entity::Shape::Cube || _shape > entity::Shape::Icosahedron));
+    batch.setModelTransform(transform);
+
     if (pipelineType == Pipeline::PROCEDURAL) {
         auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(materials.top().material);
         outColor = procedural->getColor(outColor);
@@ -249,7 +251,7 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
             procedural->prepare(batch, _position, _dimensions, _orientation, _created, ProceduralProgramKey(outColor.a < 1.0f));
         });
 
-        if (render::ShapeKey(args->_globalShapeKey).isWireframe() || primitiveMode == PrimitiveMode::LINES) {
+        if (render::ShapeKey(args->_globalShapeKey).isWireframe() || _primitiveMode == PrimitiveMode::LINES) {
             geometryCache->renderWireShape(batch, geometryShape, outColor);
         } else {
             geometryCache->renderShape(batch, geometryShape, outColor);
@@ -258,8 +260,8 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
         outColor.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         render::ShapePipelinePointer pipeline = geometryCache->getShapePipelinePointer(outColor.a < 1.0f, false,
-            renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD, materials.top().material->getCullFaceMode());
-        if (render::ShapeKey(args->_globalShapeKey).isWireframe() || primitiveMode == PrimitiveMode::LINES) {
+            _renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD, materials.top().material->getCullFaceMode());
+        if (render::ShapeKey(args->_globalShapeKey).isWireframe() || _primitiveMode == PrimitiveMode::LINES) {
             geometryCache->renderWireShapeInstance(args, batch, geometryShape, outColor, pipeline);
         } else {
             geometryCache->renderSolidShapeInstance(args, batch, geometryShape, outColor, pipeline);

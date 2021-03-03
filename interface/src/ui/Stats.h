@@ -248,9 +248,9 @@ private: \
  *     <em>Read-only.</em>
  * @property {string} lodStatus - Description of the current LOD.
  *     <em>Read-only.</em>
- * @property {string} numEntityUpdates - The number of entity updates that happened last frame.
+ * @property {number} numEntityUpdates - The number of entity updates that happened last frame.
  *     <em>Read-only.</em>
- * @property {string} numNeededEntityUpdates - The total number of entity updates scheduled for last frame.
+ * @property {number} numNeededEntityUpdates - The total number of entity updates scheduled for last frame.
  *     <em>Read-only.</em>
  * @property {string} timingStats - Details of the average time (ms) spent in and number of calls made to different parts of 
  *     the code. Provided only if <code>timingExpanded</code> is <code>true</code>. Only the top 10 items are provided if 
@@ -547,8 +547,8 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, lodAngle, 0)
     STATS_PROPERTY(int, lodTargetFramerate, 0)
     STATS_PROPERTY(QString, lodStatus, QString())
-    STATS_PROPERTY(int, numEntityUpdates, 0)
-    STATS_PROPERTY(int, numNeededEntityUpdates, 0)
+    STATS_PROPERTY(quint64, numEntityUpdates, 0)
+    STATS_PROPERTY(quint64, numNeededEntityUpdates, 0)
     STATS_PROPERTY(QString, timingStats, QString())
     STATS_PROPERTY(QString, gameUpdateStats, QString())
     STATS_PROPERTY(int, serverElements, 0)
