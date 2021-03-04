@@ -180,7 +180,11 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
     }
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    geometryCache->renderQuad(batch, glm::vec2(-0.5), glm::vec2(0.5), backgroundColor, _geometryID);
+    if (pipelineType == Pipeline::SIMPLE) {
+        geometryCache->renderQuad(batch, glm::vec2(-0.5f), glm::vec2(0.5f), backgroundColor, _geometryID);
+    } else {
+        geometryCache->renderQuad(batch, glm::vec2(-0.5f), glm::vec2(0.5f), glm::vec2(0.0f), glm::vec2(1.0f), backgroundColor, _geometryID);
+    }
 
     const int TRIANGLES_PER_QUAD = 2;
     args->_details._trianglesRendered += TRIANGLES_PER_QUAD;
