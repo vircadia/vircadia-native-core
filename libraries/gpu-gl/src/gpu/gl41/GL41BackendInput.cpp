@@ -133,7 +133,7 @@ void GL41Backend::updateInput() {
             }
 
             if (!hasColorAttribute && _input._hadColorAttribute) {
-                // The last stage had a color attribute but this one doens't, so reset the color to pure white.
+                // The previous input stage had a color attribute but this one doesn't, so reset the color to pure white.
                 _input._colorAttribute = glm::vec4(1.0f);
                 glVertexAttrib4fv(Stream::COLOR, &_input._colorAttribute.r);
             }
