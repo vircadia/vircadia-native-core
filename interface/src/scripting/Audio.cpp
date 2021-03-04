@@ -25,7 +25,7 @@ QString Audio::DESKTOP { "Desktop" };
 QString Audio::HMD { "VR" };
 
 Setting::Handle<bool> enableNoiseReductionSetting { QStringList { Audio::AUDIO, "NoiseReduction" }, true };
-Setting::Handle<bool> enableNoiseReductionAutomaticSetting { QStringList { Audio::AUDIO, "NoiseReductionAutomatic" }, false };
+Setting::Handle<bool> enableNoiseReductionAutomaticSetting { QStringList { Audio::AUDIO, "NoiseReductionAutomatic" }, true };
 Setting::Handle<float> setNoiseReductionThresholdSetting { QStringList { Audio::AUDIO, "NoiseReductionThreshold" }, 0.1f };
 Setting::Handle<bool> enableWarnWhenMutedSetting { QStringList { Audio::AUDIO, "WarnWhenMuted" }, true };
 Setting::Handle<bool> enableAcousticEchoCancellationSetting { QStringList { Audio::AUDIO, "AcousticEchoCancellation" }, true };
