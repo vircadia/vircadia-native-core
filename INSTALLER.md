@@ -104,10 +104,10 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
 
 ##### Ubuntu 18.04 | .deb
 
-1. Ensure you are using an Ubuntu 18.04 system, here are the recommended specs:
+1. Ensure you are using an Ubuntu 18.04 system.
     ```
-    AWS EC2 Instance Type: C5a.4xlarge
-    CPU Cores: 16
+    Minimum CPU Cores: 4
+    Recommended CPU Cores: 16
     Minimum Disk Space: 40GB
     ```
 3. Get and bootstrap Vircadia Builder.
@@ -176,10 +176,10 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
 
 ##### Amazon Linux 2 | .rpm
 
-1. Ensure you are using an Amazon Linux 2 system, here are the recommended specs:
+1. Ensure you are using an Amazon Linux 2 system. You will need many CPU cores to complete this process within a reasonable time. As an alternative to AWS EC2, you may use a [virtual machine](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/amazon-linux-2-virtual-machine.html). Here are the recommended specs:
     ```
     AWS EC2 Instance Type: C5a.4xlarge
-    CPU Cores: 16
+    Recommended CPU Cores: 16
     Minimum Disk Space: 40GB
     ```
 2. Update the system and install dependencies.
