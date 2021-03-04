@@ -218,9 +218,8 @@ EntityItemID EntityTreeElement::evalDetailedRayIntersection(const glm::vec3& ori
         // extents is the entity relative, scaled, centered extents of the entity
         glm::vec3 position = entity->getWorldPosition();
         glm::mat4 translation = glm::translate(position);
-        BillboardMode billboardMode = entity->getBillboardMode();
-        glm::quat orientation = billboardMode == BillboardMode::NONE ? entity->getWorldOrientation() : entity->getLocalOrientation();
-        glm::mat4 rotation = glm::mat4_cast(BillboardModeHelpers::getBillboardRotation(position, orientation, billboardMode,
+        glm::quat orientation = entity->getWorldOrientation();
+        glm::mat4 rotation = glm::mat4_cast(BillboardModeHelpers::getBillboardRotation(position, orientation, entity->getBillboardMode(),
             viewFrustumPos, entity->getRotateForPicking()));
         glm::mat4 entityToWorldMatrix = translation * rotation;
         glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
@@ -369,9 +368,8 @@ EntityItemID EntityTreeElement::evalDetailedParabolaIntersection(const glm::vec3
         // extents is the entity relative, scaled, centered extents of the entity
         glm::vec3 position = entity->getWorldPosition();
         glm::mat4 translation = glm::translate(position);
-        BillboardMode billboardMode = entity->getBillboardMode();
-        glm::quat orientation = billboardMode == BillboardMode::NONE ? entity->getWorldOrientation() : entity->getLocalOrientation();
-        glm::mat4 rotation = glm::mat4_cast(BillboardModeHelpers::getBillboardRotation(position, orientation, billboardMode,
+        glm::quat orientation = entity->getWorldOrientation();
+        glm::mat4 rotation = glm::mat4_cast(BillboardModeHelpers::getBillboardRotation(position, orientation, entity->getBillboardMode(),
             viewFrustumPos, entity->getRotateForPicking()));
         glm::mat4 entityToWorldMatrix = translation * rotation;
         glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);

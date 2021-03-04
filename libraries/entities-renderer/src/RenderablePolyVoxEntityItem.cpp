@@ -1785,9 +1785,8 @@ void PolyVoxEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& s
 
 void PolyVoxEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     _lastVoxelToLocalMatrix = entity->voxelToLocalMatrix();
-    bool success;
-    _position = entity->getCenterPosition(success);
-    _orientation = entity->getBillboardMode() == BillboardMode::NONE ? entity->getWorldOrientation() : entity->getLocalOrientation();
+    _position = entity->getWorldPosition();
+    _orientation = entity->getWorldOrientation();
     _lastVoxelVolumeSize = entity->getVoxelVolumeSize();
     _params->setSubData(0, vec4(_lastVoxelVolumeSize, 0.0));
     graphics::MeshPointer newMesh;

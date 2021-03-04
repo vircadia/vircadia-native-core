@@ -114,8 +114,7 @@ Transform Model::getTransform() const {
         return transform;
     } else if (_spatiallyNestableOverride) {
         bool success;
-        Transform transform = _billboardMode == BillboardMode::NONE ? _spatiallyNestableOverride->getTransform(success) :
-            _spatiallyNestableOverride->getTransformWithOnlyLocalRotation(success);
+        Transform transform = _spatiallyNestableOverride->getTransform(success);
         if (success) {
             transform.setScale(getScale());
             return transform;

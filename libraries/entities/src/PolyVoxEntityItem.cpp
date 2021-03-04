@@ -378,15 +378,14 @@ glm::mat4 PolyVoxEntityItem::localToVoxelMatrix() const {
 }
 
 glm::mat4 PolyVoxEntityItem::voxelToWorldMatrix(bool includeBillboard) const {
+    glm::quat orientation = getWorldOrientation();
     glm::vec3 position = getWorldPosition();
     glm::mat4 translation = glm::translate(position);
     glm::mat4 rotation;
     if (includeBillboard) {
-        BillboardMode billboardMode = getBillboardMode();
-        glm::quat orientation = billboardMode == BillboardMode::NONE ? getWorldOrientation() : getLocalOrientation();
-        rotation = glm::mat4_cast(BillboardModeHelpers::getBillboardRotation(position, orientation, billboardMode, BillboardModeHelpers::getPrimaryViewFrustumPosition()));
+        rotation = glm::mat4_cast(BillboardModeHelpers::getBillboardRotation(position, orientation, getBillboardMode(), BillboardModeHelpers::getPrimaryViewFrustumPosition()));
     } else {
-        rotation = glm::mat4_cast(getWorldOrientation());
+        rotation = glm::mat4_cast(orientation);
     }
     return translation * rotation * voxelToLocalMatrix();
 }

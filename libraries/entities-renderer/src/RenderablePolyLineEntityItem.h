@@ -25,7 +25,7 @@ class PolyLineEntityRenderer : public TypedEntityRenderer<PolyLineEntityItem> {
 public:
     PolyLineEntityRenderer(const EntityItemPointer& entity);
 
-    void updateModelTransformAndBound(const EntityItemPointer& entity) override;
+    void updateModelTransformAndBound() override;
 
     virtual bool isTransparent() const override;
 

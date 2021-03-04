@@ -108,11 +108,10 @@ bool GizmoEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const
                                                   QVariantMap& extraInfo, bool precisionPicking) const {
     glm::vec3 dimensions = getScaledDimensions();
     glm::vec2 xyDimensions(dimensions.x, dimensions.z);
-    BillboardMode billboardMode = getBillboardMode();
-    glm::quat rotation = billboardMode == BillboardMode::NONE ? getWorldOrientation() : getLocalOrientation();
+    glm::quat rotation = getWorldOrientation();
     rotation *= glm::angleAxis(-(float)M_PI_2, Vectors::RIGHT);
     glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
-    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, billboardMode, viewFrustumPos);
+    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, getBillboardMode(), viewFrustumPos);
 
     if (findRayRectangleIntersection(origin, direction, rotation, position, xyDimensions, distance)) {
         glm::vec3 hitPosition = origin + (distance * direction);
@@ -144,11 +143,10 @@ bool GizmoEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, 
     //// Scale the dimensions by the diameter
     glm::vec3 dimensions = getScaledDimensions();
     glm::vec2 xyDimensions(dimensions.x, dimensions.z);
-    BillboardMode billboardMode = getBillboardMode();
-    glm::quat rotation = billboardMode == BillboardMode::NONE ? getWorldOrientation() : getLocalOrientation();
+    glm::quat rotation = getWorldOrientation();
     rotation *= glm::angleAxis(-(float)M_PI_2, Vectors::RIGHT);
     glm::vec3 position = getWorldPosition();
-    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, billboardMode, viewFrustumPos);
+    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, getBillboardMode(), viewFrustumPos);
 
     glm::quat inverseRot = glm::inverse(rotation);
     glm::vec3 localOrigin = inverseRot * (origin - position);

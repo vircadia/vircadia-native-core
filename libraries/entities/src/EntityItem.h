@@ -190,7 +190,6 @@ public:
     void setCenterPosition(const glm::vec3& position);
 
     const Transform getTransformToCenter(bool& success) const;
-    const Transform getTransformToCenterWithOnlyLocalRotation(bool& success) const;
 
     void requiresRecalcBoxes();
 
