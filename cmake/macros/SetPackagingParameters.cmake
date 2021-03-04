@@ -88,7 +88,11 @@ macro(SET_PACKAGING_PARAMETERS)
     set(NITPICK_BUNDLE_NAME "nitpick")
   endif ()
   # #######: Should fix up the PR build's nitpick icon.
-  set(NITPICK_ICON_PREFIX "interface-beta")
+  if (RELEASE_TYPE STREQUAL "PRODUCTION")
+    set(NITPICK_ICON_PREFIX "nitpick")
+  else ()
+    set(NITPICK_ICON_PREFIX "nitpick-beta")
+  endif ()
 
   string(TIMESTAMP BUILD_TIME "%d/%m/%Y")
 
