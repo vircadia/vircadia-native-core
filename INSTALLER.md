@@ -104,9 +104,8 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
 
 ##### Ubuntu 18.04 | .deb
 
-1. Ensure you are using an Ubuntu 18.04 system.
+1. Ensure you are using an Ubuntu 18.04 system. There is no required minimum to the amount of CPU cores needed, however it's recommended that you use as many as you have available in order to have an efficient experience.
     ```
-    Minimum CPU Cores: 4
     Recommended CPU Cores: 16
     Minimum Disk Space: 40GB
     ```
