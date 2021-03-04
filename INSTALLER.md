@@ -233,11 +233,11 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
     ```
     Installation dir: /root/Vircadia
     ```
-13. This value is the number of CPU cores that the Vircadia Builder will use to compile the Vircadia server. By default it will use all cores available on your build server. You should leave this as the default value it gives you for your build server.
+13. This value is the number of CPU cores that the Vircadia Builder will use to compile the Vircadia server. By default it will use all cores available on your build server given you have enough memory. You should leave this as the default value it gives you for your build server.
     ```
     CPU cores to use for Vircadia: 16
     ```
-14. This value is the number of CPU cores that the Vircadia Builder will use to compile Qt5 (a required component for Vircadia). By default it will use all cores available on your build server. You should leave this as the default value it gives you for your build server.
+14. This value is the number of CPU cores that the Vircadia Builder will use to compile Qt5 (a required component for Vircadia). By default it will use all cores available on your build server given you have enough memory. You should leave this as the default value it gives you for your build server.
     ```
     CPU cores to use for Qt5: 16
     ```
