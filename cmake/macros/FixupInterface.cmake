@@ -13,7 +13,8 @@ macro(fixup_interface)
     if (APPLE)
         string(REPLACE " " "\\ " ESCAPED_BUNDLE_NAME ${INTERFACE_BUNDLE_NAME})
         string(REPLACE " " "\\ " ESCAPED_INSTALL_PATH ${INTERFACE_INSTALL_DIR})
-        set(_INTERFACE_INSTALL_PATH "${ESCAPED_INSTALL_PATH}/${ESCAPED_BUNDLE_NAME}.app")
+        # #######: Should put Interface into Vircadia.app DMG folder for DEV builds.
+        set(_INTERFACE_INSTALL_PATH "${ESCAPED_INSTALL_PATH}/Vircadia.app")
 
         find_program(MACDEPLOYQT_COMMAND macdeployqt PATHS "${QT_DIR}/bin" NO_DEFAULT_PATH)
 
@@ -33,8 +34,9 @@ macro(fixup_interface)
                 COMPONENT ${CLIENT_COMPONENT}
             )
         else ()
+            # #######: Should put Interface into Vircadia.app DMG folder for release builds.
             add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-                COMMAND ${MACDEPLOYQT_COMMAND} "$<TARGET_FILE_DIR:${TARGET_NAME}>/../.." -verbose=2 -qmldir=${CMAKE_SOURCE_DIR}/interface/resources/qml/
+                COMMAND ${MACDEPLOYQT_COMMAND} "$<TARGET_FILE_DIR:Vircadia>/../.." -verbose=2 -qmldir=${CMAKE_SOURCE_DIR}/interface/resources/qml/
             )
         endif()
     endif ()
