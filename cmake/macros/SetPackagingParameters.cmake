@@ -140,11 +140,13 @@ macro(SET_PACKAGING_PARAMETERS)
 
     # #######: Should fix up console / server names.
     if (CLIENT_ONLY)
-      set(CONSOLE_EXEC_NAME "Vircadia Console.app")
+      set(CONSOLE_EXEC_NAME "Console.app")
+      set(CONSOLE_INSTALL_NAME "Vircadia Console.app")
     else ()
-      set(CONSOLE_EXEC_NAME "Vircadia Sandbox.app")
+      set(CONSOLE_EXEC_NAME "Sandbox.app")
+      set(CONSOLE_INSTALL_NAME "Vircadia Sandbox.app")
     endif()
-    set(CONSOLE_INSTALL_APP_PATH "${CONSOLE_INSTALL_DIR}/${CONSOLE_EXEC_NAME}")
+    set(CONSOLE_INSTALL_APP_PATH "${CONSOLE_INSTALL_DIR}/${CONSOLE_INSTALL_NAME}")
 
     set(SCREENSHARE_EXEC_NAME "hifi-screenshare.app")
     set(SCREENSHARE_INSTALL_APP_PATH "${SCREENSHARE_INSTALL_DIR}/${SCREENSHARE_EXEC_NAME}")
