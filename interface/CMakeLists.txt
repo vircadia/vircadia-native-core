@@ -1,4 +1,9 @@
-set(TARGET_NAME interface)
+if (APPLE)
+  # #######: Should put Interface in Vircadia.app
+  set(TARGET_NAME Vircadia)
+else ()
+  set(TARGET_NAME interface)
+endif()
 project(${TARGET_NAME})
 
 file(GLOB_RECURSE QML_SRC resources/qml/*.qml resources/qml/*.js)
