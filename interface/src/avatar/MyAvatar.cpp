@@ -1392,6 +1392,12 @@ float loadSetting(Settings& settings, const QString& name, float defaultValue) {
     return value;
 }
 
+void MyAvatar::setToggleHips(bool followHead) {
+    Q_UNUSED(followHead);
+    qCDebug(interfaceapp) << "MyAvatar.setToggleHips is deprecated; it no longer does anything; it will soon be removed from the API; "
+                             "please update your script";
+}
+
 void MyAvatar::setEnableDebugDrawBaseOfSupport(bool isEnabled) {
     _enableDebugDrawBaseOfSupport = isEnabled;
 }
