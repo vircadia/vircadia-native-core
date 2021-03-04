@@ -50,6 +50,11 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
      * @property {boolean} noiseReduction - <code>true</code> if noise reduction is enabled, otherwise <code>false</code>. When
      *     enabled, the input audio signal is blocked (fully attenuated) when it falls below an adaptive threshold set just
      *     above the noise floor.
+     * @property {boolean} noiseReductionAutomatic - <code>true</code> if audio input noise reduction automatic mode is enabled, 
+     *     <code>false</code> if in manual mode. Manual mode allows you to use <code>Audio.noiseReductionThreshold</code>
+     *     to set a manual sensitivity for the noise gate.
+     * @property {number} noiseReductionThreshold - Sets the noise gate threshold before your mic audio is transmitted. 
+     *     (Applies only if <code>Audio.noiseReductionAutomatic</code> is <code>false</code>.)
      * @property {number} inputVolume - Adjusts the volume of the input audio, range <code>0.0</code> &ndash; <code>1.0</code>. 
      *     If set to a value, the resulting value depends on the input device: for example, the volume can't be changed on some 
      *     devices, and others might only support values of <code>0.0</code> and <code>1.0</code>.
@@ -92,6 +97,8 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
 
     Q_PROPERTY(bool muted READ isMuted WRITE setMuted NOTIFY mutedChanged)
     Q_PROPERTY(bool noiseReduction READ noiseReductionEnabled WRITE enableNoiseReduction NOTIFY noiseReductionChanged)
+    Q_PROPERTY(bool noiseReductionAutomatic READ noiseReductionAutomatic WRITE enableNoiseReductionAutomatic NOTIFY noiseReductionAutomaticChanged)
+    Q_PROPERTY(float noiseReductionThreshold READ getNoiseReductionThreshold WRITE setNoiseReductionThreshold NOTIFY noiseReductionThresholdChanged)
     Q_PROPERTY(bool warnWhenMuted READ warnWhenMutedEnabled WRITE enableWarnWhenMuted NOTIFY warnWhenMutedChanged)
     Q_PROPERTY(bool acousticEchoCancellation
                READ acousticEchoCancellationEnabled WRITE enableAcousticEchoCancellation NOTIFY acousticEchoCancellationChanged)
@@ -124,6 +131,7 @@ public:
 
     bool isMuted() const;
     bool noiseReductionEnabled() const;
+    bool noiseReductionAutomatic() const;
     bool warnWhenMutedEnabled() const;
     bool acousticEchoCancellationEnabled() const;
     float getInputVolume() const;
@@ -270,6 +278,20 @@ public:
      * @returns {number} The injector gain (dB) in the client.
     */
     Q_INVOKABLE float getSystemInjectorGain();
+    
+    /**jsdoc
+     * Sets the noise gate threshold before your mic audio is transmitted. (Applies only if <code>Audio.noiseReductionAutomatic</code> is <code>false</code>.)
+     * @function Audio.setNoiseReductionThreshold
+     * @param {number} threshold - The level that your input must surpass to be transmitted. <code>0.0</code> (open the gate completely) &ndash; <code>1.0</code>
+     */
+    Q_INVOKABLE void setNoiseReductionThreshold(float threshold);
+
+    /**jsdoc
+     * Gets the noise reduction threshold.
+     * @function Audio.getNoiseReductionThreshold
+     * @returns {number} The noise reduction threshold. <code>0.0</code> &ndash; <code>1.0</code>
+    */
+    Q_INVOKABLE float getNoiseReductionThreshold();
 
     /**jsdoc
      * Starts making an audio recording of the audio being played in-world (i.e., not local-only audio) to a file in WAV format.
@@ -398,6 +420,23 @@ signals:
      * @returns {Signal}
      */
     void noiseReductionChanged(bool isEnabled);
+    
+    /**jsdoc
+     * Triggered when the audio input noise reduction mode is changed.
+     * @function Audio.noiseReductionAutomaticChanged
+     * @param {boolean} isEnabled - <code>true</code> if audio input noise reduction automatic mode is enabled, <code>false</code> if in manual mode.
+     * @returns {Signal}
+     */
+    void noiseReductionAutomaticChanged(bool isEnabled);
+    
+    /**jsdoc
+     * Triggered when the audio input noise reduction threshold is changed.
+     * @function Audio.noiseReductionThresholdChanged
+     * @param {number} threshold - The threshold for the audio input noise reduction, range <code>0.0</code> (open the gate completely) &ndash; <code>1.0</code>
+     *     (close the gate completely).
+     * @returns {Signal}
+     */
+    void noiseReductionThresholdChanged(float threshold);
 
     /**jsdoc
      * Triggered when "warn when muted" is enabled or disabled.
@@ -512,6 +551,7 @@ public slots:
 private slots:
     void setMuted(bool muted);
     void enableNoiseReduction(bool enable);
+    void enableNoiseReductionAutomatic(bool enable);
     void enableWarnWhenMuted(bool enable);
     void enableAcousticEchoCancellation(bool enable);
     void setInputVolume(float volume);
@@ -533,8 +573,10 @@ private:
     float _localInjectorGain { 0.0f };      // in dB
     float _systemInjectorGain { 0.0f };     // in dB
     float _pttOutputGainDesktop { 0.0f };   // in dB
+    float _noiseReductionThreshold { 0.1f }; // Match default value of AudioClient::_noiseReductionThreshold.
     bool _isClipping { false };
     bool _enableNoiseReduction { true };  // Match default value of AudioClient::_isNoiseGateEnabled.
+    bool _noiseReductionAutomatic { true }; // Match default value of AudioClient::_noiseReductionAutomatic.
     bool _enableWarnWhenMuted { true };
     bool _enableAcousticEchoCancellation { true }; // AudioClient::_isAECEnabled
     bool _contextIsHMD { false };
