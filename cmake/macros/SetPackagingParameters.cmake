@@ -132,12 +132,14 @@ macro(SET_PACKAGING_PARAMETERS)
 
     set(DMG_SUBFOLDER_ICON "${HF_CMAKE_DIR}/installer/install-folder.rsrc")
 
-    # #######: Change lines related to the following to move up a directory.
-    set(CONSOLE_INSTALL_DIR       ${DMG_SUBFOLDER_NAME})
-    set(INTERFACE_INSTALL_DIR     ${DMG_SUBFOLDER_NAME})
-    set(SCREENSHARE_INSTALL_DIR   ${DMG_SUBFOLDER_NAME})
-    # #######: Try installing Nitpick up a directory.
+    # #######: Install items up a directory.
+    #set(CONSOLE_INSTALL_DIR       ${DMG_SUBFOLDER_NAME})
+    #set(INTERFACE_INSTALL_DIR     ${DMG_SUBFOLDER_NAME})
+    #set(SCREENSHARE_INSTALL_DIR   ${DMG_SUBFOLDER_NAME})
     #set(NITPICK_INSTALL_DIR       ${DMG_SUBFOLDER_NAME})
+    set(CONSOLE_INSTALL_DIR       ".")
+    set(INTERFACE_INSTALL_DIR     ".")
+    set(SCREENSHARE_INSTALL_DIR   ".")
     set(NITPICK_INSTALL_DIR       ".")
 
     if (CLIENT_ONLY)
