@@ -109,6 +109,7 @@ void TextEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointe
     _effect = entity->getTextEffect();
     _effectColor = toGlm(entity->getTextEffectColor());
     _effectThickness = entity->getTextEffectThickness();
+    _alignment = entity->getAlignment();
     updateTextRenderItem();
 }
 
@@ -292,12 +293,12 @@ void entities::TextPayload::render(RenderArgs* args) {
     }
     auto textRenderable = std::static_pointer_cast<TextEntityRenderer>(renderable);
 
-    Transform modelTransform;
+    Transform transform;
     glm::vec3 dimensions;
 
     glm::vec4 textColor;
     textRenderable->withReadLock([&] {
-        modelTransform = textRenderable->_renderTransform;
+        transform = textRenderable->_renderTransform;
         dimensions = textRenderable->_dimensions;
 
         float fadeRatio = textRenderable->_isFading ? Interpolate::calculateFadeRatio(textRenderable->_fadeStartTime) : 1.0f;
@@ -313,18 +314,18 @@ void entities::TextPayload::render(RenderArgs* args) {
         return;
     }
 
-    modelTransform.setRotation(BillboardModeHelpers::getBillboardRotation(modelTransform.getTranslation(), modelTransform.getRotation(), textRenderable->_billboardMode,
+    transform.setRotation(BillboardModeHelpers::getBillboardRotation(transform.getTranslation(), transform.getRotation(), textRenderable->_billboardMode,
         args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
 
     float scale = textRenderable->_lineHeight / textRenderer->getFontSize();
-    modelTransform.postTranslate(glm::vec3(-0.5, 0.5, 1.0f + EPSILON / dimensions.z));
-    modelTransform.setScale(scale);
-    batch.setModelTransform(modelTransform);
+    transform.postTranslate(glm::vec3(-0.5, 0.5, 1.0f + EPSILON / dimensions.z));
+    transform.setScale(scale);
+    batch.setModelTransform(transform);
 
     glm::vec2 bounds = glm::vec2(dimensions.x - (textRenderable->_leftMargin + textRenderable->_rightMargin), dimensions.y - (textRenderable->_topMargin + textRenderable->_bottomMargin));
     textRenderer->draw(batch, textRenderable->_leftMargin / scale, -textRenderable->_topMargin / scale, bounds / scale, scale,
                        textRenderable->_text, textRenderable->_font, textColor, effectColor, textRenderable->_effectThickness, textRenderable->_effect,
-                       textRenderable->_unlit, forward);
+                       textRenderable->_alignment, textRenderable->_unlit, forward);
 }
 
 namespace render {

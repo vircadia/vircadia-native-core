@@ -286,6 +286,7 @@ enum class EntityVersion : PacketVersion {
     UseOriginalPivot,
     UserAgent,
     AllBillboardMode,
+    TextAlignment,
 
     // Add new versions above here
     NUM_PACKET_TYPE,

@@ -155,7 +155,15 @@ const COLUMNS = {
         propertyID: "lastEdited",
         initialWidth: 0.38,
         defaultSortOrder: DESCENDING_SORT,
-    },    
+    },
+    urlWithPath: {
+        columnHeader: "URL",
+        dropdownLabel: "URL",
+        propertyID: "urlWithPath",
+        initialWidth: 0.54,
+        initiallyShown: false,
+        defaultSortOrder: ASCENDING_SORT,
+    },
 };
 
 const FILTER_TYPES = [
@@ -226,9 +234,10 @@ let elEntityTable,
     elToggleVisible,
     elActionsMenu,
     elSelectionMenu,
-    elToolsMenu,    
+    elTransformMenu,
+    elToolsMenu,
     elMenuBackgroundOverlay,
-    elHmdMultiSelect, 
+    elHmdMultiSelect,
     elHmdCopy,
     elHmdCut,
     elHmdPaste,
@@ -313,6 +322,7 @@ function loaded() {
         elHmdMultiSelect = document.getElementById("hmdmultiselect");
         elActionsMenu = document.getElementById("actions");
         elSelectionMenu = document.getElementById("selection");
+        elTransformMenu = document.getElementById("transform");
         elToolsMenu = document.getElementById("tools");
         elMenuBackgroundOverlay = document.getElementById("menuBackgroundOverlay");
         elHmdCopy = document.getElementById("hmdcopy");
@@ -395,6 +405,10 @@ function loaded() {
             document.getElementById("menuBackgroundOverlay").style.display = "block";
             document.getElementById("selection-menu").style.display = "block";
         };
+        elTransformMenu.onclick = function() {
+            document.getElementById("menuBackgroundOverlay").style.display = "block";
+            document.getElementById("transform-menu").style.display = "block";
+        };        
         elToolsMenu.onclick = function() {
             document.getElementById("menuBackgroundOverlay").style.display = "block";
             document.getElementById("tools-menu").style.display = "block";
@@ -919,7 +933,7 @@ function loaded() {
                 entityIds: selection,
             }));
         }
-        
+
         function updateEntityData(entityData) {
             entities = [];
             entitiesByID = {};
@@ -929,13 +943,14 @@ function loaded() {
                 entityData.forEach(function(entity) {
                     let type = entity.type;
                     let filename = getFilename(entity.url);
-            
+
                     let entityData = {
                         id: entity.id,
                         name: entity.name,
                         type: type,
                         url: entity.certificateID === "" ? filename : "<i>" + CERTIFIED_PLACEHOLDER + "</i>",
                         fullUrl: entity.certificateID === "" ? filename : CERTIFIED_PLACEHOLDER,
+                        urlWithPath: entity.certificateID === "" ? entity.url : "<i>" + CERTIFIED_PLACEHOLDER + "</i>",
                         locked: entity.locked,
                         visible: entity.visible,
                         certificateID: entity.certificateID,
@@ -975,11 +990,13 @@ function loaded() {
                         let searchFilter = searchTerm === '' || (e.name.toLowerCase().indexOf(searchTerm) > -1 ||
                                                                  e.type.toLowerCase().indexOf(searchTerm) > -1 ||
                                                                  e.fullUrl.toLowerCase().indexOf(searchTerm) > -1 ||
+                                                                 (e.urlWithPath.toLowerCase().indexOf(searchTerm) > -1 && 
+                                                                 columnsByID["urlWithPath"].elTh.style.visibility === "visible") ||
                                                                  e.id.toLowerCase().indexOf(searchTerm) > -1);
                         return typeFilter && searchFilter;
                     });
                 });
-                
+
                 PROFILE("sort", function() {
                     let isAscendingSort = currentSortOrder === ASCENDING_SORT;
                     let isDefaultSort = currentSortOrder === COLUMNS[currentSortColumnID].defaultSortOrder;
@@ -1850,6 +1867,7 @@ function loaded() {
         document.getElementById("menuBackgroundOverlay").style.display = "none";
         document.getElementById("selection-menu").style.display = "none";
         document.getElementById("actions-menu").style.display = "none";
+        document.getElementById("transform-menu").style.display = "none";
         document.getElementById("tools-menu").style.display = "none";
     }
 

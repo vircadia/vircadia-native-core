@@ -41,13 +41,13 @@ PolyLineEntityRenderer::PolyLineEntityRenderer(const EntityItemPointer& entity) 
     }
 }
 
-void PolyLineEntityRenderer::updateModelTransformAndBound() {
+void PolyLineEntityRenderer::updateModelTransformAndBound(const EntityItemPointer& entity) {
     bool success = false;
-    auto newModelTransform = _entity->getTransformToCenter(success);
+    auto newModelTransform = getTransformToCenterWithMaybeOnlyLocalRotation(entity, success);
     if (success) {
         _modelTransform = newModelTransform;
 
-        auto lineEntity = std::static_pointer_cast<PolyLineEntityItem>(_entity);
+        auto lineEntity = std::static_pointer_cast<PolyLineEntityItem>(entity);
         AABox bound;
         lineEntity->computeTightLocalBoundingBox(bound);
         bound.transform(newModelTransform);

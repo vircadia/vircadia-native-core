@@ -56,15 +56,12 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity] {
         withWriteLock([&] {
             _shape = entity->getShape();
-            _position = entity->getWorldPosition();
-            _dimensions = entity->getUnscaledDimensions(); // get unscaled to avoid scaling twice
-            _orientation = entity->getWorldOrientation();
             _renderTransform = getModelTransform(); // contains parent scale, if this entity scales with its parent
             if (_shape == entity::Sphere) {
                 _renderTransform.postScale(SPHERE_ENTITY_SCALE);
             }
 
-            _renderTransform.postScale(_dimensions);
+            _renderTransform.postScale(entity->getUnscaledDimensions());
         });
     });
 }
@@ -248,7 +245,7 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         outColor = procedural->getColor(outColor);
         outColor.a *= procedural->isFading() ? Interpolate::calculateFadeRatio(procedural->getFadeStartTime()) : 1.0f;
         withReadLock([&] {
-            procedural->prepare(batch, _position, _dimensions, _orientation, _created, ProceduralProgramKey(outColor.a < 1.0f));
+            procedural->prepare(batch, transform.getTranslation(), transform.getScale(), transform.getRotation(), _created, ProceduralProgramKey(outColor.a < 1.0f));
         });
 
         if (render::ShapeKey(args->_globalShapeKey).isWireframe() || _primitiveMode == PrimitiveMode::LINES) {

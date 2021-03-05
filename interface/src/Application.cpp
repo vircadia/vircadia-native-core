@@ -2989,6 +2989,8 @@ Application::~Application() {
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
 
 #ifdef Q_OS_MAC
+    // 26 Feb 2021 - Tried re-enabling this call but OSX still crashes on exit.
+    //
     // 10/16/2019 - Disabling this call. This causes known crashes (A), and it is not
     // fully understood whether it might cause other unknown crashes (B).
     //
