@@ -38,7 +38,12 @@ macro(fixup_interface)
             )
         endif()
 
-        # #######: Try renaming Sandbox.app to VircadiaSandbox.app
-        file(RENAME "${ESCAPED_INSTALL_PATH}/Sandbox.app" "${ESCAPED_INSTALL_PATH}/VircadiaSandbox.app")
+        # #######: Try renaming interface.app to Vircadia.app.
+        add_custom_command(TARGET ${TARGE_NAME} 
+                           POST_BUILD
+                           COMMAND ${CMAKE_COMMAND} -E rename
+                               "${_INTERFACE_INSTALL_PATH}"
+                               "Vircadia.app"
+                           COMMENT "Renaming 'interface.app' to 'Vircadia.app'")
     endif ()
 endmacro()
