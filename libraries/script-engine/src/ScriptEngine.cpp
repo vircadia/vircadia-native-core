@@ -316,7 +316,7 @@ bool ScriptEngine::isDebugMode() const {
 }
 
 ScriptEngine::~ScriptEngine() {
-    waitTillDoneRunning();
+    qDebug() << "boop2 " << _fileNameString;
 }
 
 void ScriptEngine::disconnectNonEssentialSignals() {
@@ -1478,6 +1478,7 @@ void ScriptEngine::stopAllTimersForEntityScript(const EntityItemID& entityID) {
 }
 
 void ScriptEngine::stop(bool marshal) {
+    qDebug() << "boop " << _fileNameString;
     _isStopping = true; // this can be done on any thread
 
     if (marshal) {
