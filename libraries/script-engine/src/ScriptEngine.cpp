@@ -1304,6 +1304,7 @@ void ScriptEngine::run() {
 
     // TODO: Integrate this with signals/slots instead of reimplementing throttling for ScriptEngine
     while (!_isFinished) {
+        qDebug() << "boop3 " << _fileNameString;
         auto beforeSleep = clock::now();
 
         // Throttle to SCRIPT_FPS
@@ -1444,6 +1445,7 @@ void ScriptEngine::run() {
     _isRunning = false;
     emit runningStateChanged();
     emit doneRunning();
+    qDebug() << "boop4 " << _fileNameString;
 }
 
 // NOTE: This is private because it must be called on the same thread that created the timers, which is why
