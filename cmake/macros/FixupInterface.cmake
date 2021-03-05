@@ -37,5 +37,8 @@ macro(fixup_interface)
                 COMMAND ${MACDEPLOYQT_COMMAND} "$<TARGET_FILE_DIR:${TARGET_NAME}>/../.." -verbose=2 -qmldir=${CMAKE_SOURCE_DIR}/interface/resources/qml/
             )
         endif()
+
+        # #######: Try renaming Sandbox.app to VircadiaSandbox.app
+        file(RENAME "${ESCAPED_INSTALL_PATH}/Sandbox.app" "${ESCAPED_INSTALL_PATH}/VircadiaSandbox.app")
     endif ()
 endmacro()
