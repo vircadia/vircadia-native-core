@@ -64,5 +64,11 @@ macro(PACKAGE_LIBRARIES_FOR_DEPLOYMENT)
       COMMAND  ${CMAKE_COMMAND} -E remove_directory "${QTAUDIO_PATH}"
     )
 
+    # #######
+    add_custom_command(TARGET ${TARGET_NAME}
+                       POST_BUILD
+                       COMMAND ${CMAKE_COMMAND} -E echo "####### PackageLibrariesForDeployment: Rename things here? - Command"
+                       COMMENT "####### PackageLibrariesForDeployment: Rename things here? - Comment")
+
   endif ()
 endmacro()

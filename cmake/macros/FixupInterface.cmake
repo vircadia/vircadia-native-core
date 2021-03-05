@@ -38,5 +38,11 @@ macro(fixup_interface)
             )
         endif()
 
+        # #######
+        add_custom_command(TARGET ${TARGET_NAME}
+                           POST_BUILD
+                           COMMAND ${CMAKE_COMMAND} -E echo "####### FixupInterface: Rename things here? - Command"
+                           COMMENT "####### FixupInterface: Rename things here? - Comment")
+
     endif ()
 endmacro()
