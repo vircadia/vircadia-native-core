@@ -38,12 +38,5 @@ macro(fixup_interface)
             )
         endif()
 
-        # #######: Try renaming interface.app to Vircadia.app.
-        add_custom_command(TARGET ${TARGET_NAME}
-                           POST_BUILD
-                           COMMAND ${CMAKE_COMMAND} -E rename
-                               "${_INTERFACE_INSTALL_PATH}"
-                               "Vircadia.app"
-                           COMMENT "Renaming 'interface.app' to 'Vircadia.app'")
     endif ()
 endmacro()
