@@ -136,7 +136,9 @@ macro(SET_PACKAGING_PARAMETERS)
     set(CONSOLE_INSTALL_DIR       ${DMG_SUBFOLDER_NAME})
     set(INTERFACE_INSTALL_DIR     ${DMG_SUBFOLDER_NAME})
     set(SCREENSHARE_INSTALL_DIR   ${DMG_SUBFOLDER_NAME})
-    set(NITPICK_INSTALL_DIR       ${DMG_SUBFOLDER_NAME})
+    # #######: Try installing Nitpick up a directory.
+    #set(NITPICK_INSTALL_DIR       ${DMG_SUBFOLDER_NAME})
+    set(NITPICK_INSTALL_DIR       ".")
 
     if (CLIENT_ONLY)
       set(CONSOLE_EXEC_NAME "Console.app")
