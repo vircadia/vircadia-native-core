@@ -94,6 +94,12 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     // send a ping punch immediately
     connect(&_domainHandler, &DomainHandler::icePeerSocketsReceived, this, &NodeList::pingPunchForDomainServer);
 
+    // FIXME: Can remove this temporary work-around in version 2021.2.0. (New protocol version implies a domain server upgrade.)
+    // Adjust our canRezAvatarEntities permissions on older domains that do not have this setting.
+    // DomainServerList and DomainSettings packets can come in either order so need to adjust with both occurrences.
+    auto nodeList = DependencyManager::get<NodeList>();
+    connect(&_domainHandler, &DomainHandler::settingsReceived, this, &NodeList::adjustCanRezAvatarEntitiesPerSettings);
+
     auto accountManager = DependencyManager::get<AccountManager>();
 
     // assume that we may need to send a new DS check in anytime a new keypair is generated
@@ -820,6 +826,11 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
         DependencyManager::get<AddressManager>()->lookupShareableNameForDomainID(domainUUID);
     }
 
+    // FIXME: Can remove this temporary work-around in version 2021.2.0. (New protocol version implies a domain server upgrade.)
+    // Adjust our canRezAvatarEntities permissions on older domains that do not have this setting.
+    // DomainServerList and DomainSettings packets can come in either order so need to adjust with both occurrences.
+    adjustCanRezAvatarEntitiesPermissions(_domainHandler.getSettingsObject(), newPermissions, false);
+
     setPermissions(newPermissions);
     setAuthenticatePackets(isAuthenticated);
 
@@ -1367,4 +1378,35 @@ void NodeList::setRequestsDomainListData(bool isRequesting) {
 
 void NodeList::startThread() {
     moveToNewNamedThread(this, "NodeList Thread", QThread::TimeCriticalPriority);
+}
+
+
+// FIXME: Can remove this work-around in version 2021.2.0. (New protocol version implies a domain server upgrade.)
+void NodeList::adjustCanRezAvatarEntitiesPermissions(const QJsonObject& domainSettingsObject,
+        NodePermissions& permissions, bool notify) {
+
+    if (domainSettingsObject.isEmpty()) {
+        // We don't have the information necessary to adjust permissions, yet.
+        return;
+    }
+
+    const double CANREZAVATARENTITIES_INTRODUCED_VERSION = 2.5;
+    auto version = domainSettingsObject.value("version");
+    if (version.isUndefined() || version.isDouble() && version.toDouble() < CANREZAVATARENTITIES_INTRODUCED_VERSION) {
+        // On domains without the canRezAvatarEntities permission available, set it to the same as canConnectToDomain.
+        if (permissions.can(NodePermissions::Permission::canConnectToDomain)) {
+            if (!permissions.can(NodePermissions::Permission::canRezAvatarEntities)) {
+                permissions.set(NodePermissions::Permission::canRezAvatarEntities);
+                if (notify) {
+                    emit canRezAvatarEntitiesChanged(permissions.can(NodePermissions::Permission::canRezAvatarEntities));
+                }
+            }
+        }
+    }
+
+}
+
+// FIXME: Can remove this work-around in version 2021.2.0. (New protocol version implies a domain server upgrade.)
+void NodeList::adjustCanRezAvatarEntitiesPerSettings(const QJsonObject& domainSettingsObject) {
+    adjustCanRezAvatarEntitiesPermissions(domainSettingsObject, _permissions, true);
 }

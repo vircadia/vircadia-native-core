@@ -1470,6 +1470,8 @@ QJsonObject DomainServerSettingsManager::settingsResponseObjectForType(const QSt
                                                                        SettingsBackupFlag settingsBackupFlag) {
     QJsonObject responseObject;
 
+    responseObject["version"] = _descriptionVersion;  // Domain settings version number.
+
     if (!typeValue.isEmpty() || authentication == Authenticated) {
         // convert the string type value to a QJsonValue
         QJsonValue queryType = typeValue.isEmpty() ? QJsonValue() : QJsonValue(typeValue.toInt());
