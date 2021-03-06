@@ -1,5 +1,14 @@
 set(TARGET_NAME packaged-server-console)
 
+# ####### Try skipping Sandbox / Console on OSX.
+if (APPLE)
+  message(STATUS "CLIENT_ONLY = ${CLIENT_ONLY}")
+  #if (CLIENT_ONLY)
+    message(STATUS "####### APPLE CLIENT_ONLY - Skip building Sandbox / Console")
+    return()
+  #endif ()
+endif ()
+
 if (PRODUCTION_BUILD)
   set(PRODUCTION_OPTION "--production")
 endif()
