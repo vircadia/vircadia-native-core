@@ -44,16 +44,6 @@ elseif (UNIX)
   set(PACKAGED_CONSOLE_FOLDER "server-console-linux-x64")
 endif ()
 
-# ####### Try skipping Sandbox / Console on OSX.
-# ####### Have to build but don't necessarily have to install?
-if (APPLE)
-  message(STATUS "CLIENT_ONLY = ${CLIENT_ONLY}")
-  #if (CLIENT_ONLY)
-    message(STATUS "####### APPLE CLIENT_ONLY - Skip building Sandbox / Console")
-    return()
-  #endif ()
-endif ()
-
 # install the packaged Server Console in our install directory
 if (APPLE)
   install(
