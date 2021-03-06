@@ -42,15 +42,17 @@ Vircadia uses CMake to generate build files and project files for your platform.
 
 #### Qt
 
-CMake will download Qt 5.12.3 using vcpkg.  
+CMake will download Qt 5.12.3 using vcpkg.
 
-To override this (i.e. use an installed Qt configuration - you will need to set a QT_CMAKE_PREFIX_PATH environment variable pointing to your Qt **lib/cmake** folder.  
+To override this (i.e. use an installed Qt configuration - you will need to set a QT_CMAKE_PREFIX_PATH environment variable pointing to your Qt **lib/cmake** folder.
 This can either be entered directly into your shell session before you build or in your shell profile (e.g.: ~/.bash_profile, ~/.bashrc, ~/.zshrc - this depends on your shell and environment).  The path it needs to be set to will depend on where and how Qt5 was installed. e.g.
 
-    export QT_CMAKE_PREFIX_PATH=/usr/local/Qt5.12.3/gcc_64/lib/cmake
-    export QT_CMAKE_PREFIX_PATH=/usr/local/qt/5.12.3/clang_64/lib/cmake/
-    export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.12.3/lib/cmake
-    export QT_CMAKE_PREFIX_PATH=/usr/local/opt/qt5/lib/cmake
+```bash
+export QT_CMAKE_PREFIX_PATH=/usr/local/Qt5.12.3/gcc_64/lib/cmake
+export QT_CMAKE_PREFIX_PATH=/usr/local/qt/5.12.3/clang_64/lib/cmake/
+export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.12.3/lib/cmake
+export QT_CMAKE_PREFIX_PATH=/usr/local/opt/qt5/lib/cmake
+```
 
 #### VCPKG
 
@@ -60,7 +62,9 @@ You do not need to install vcpkg.
 Building the dependencies can be lengthy and the resulting files will be stored in your OS temp directory.
 However, those files can potentially get cleaned up by the OS, so in order to avoid this and having to redo the lengthy build step, you can set the following environment variable:
 
-    export HIFI_VCPKG_BASE=/path/to/directory
+```bash
+export HIFI_VCPKG_BASE=/path/to/directory
+```
 
 Where `/path/to/directory` is the path to a directory where you wish the build files to get stored.
 
@@ -68,45 +72,49 @@ Where `/path/to/directory` is the path to a directory where you wish the build f
 
 ##### Possible Environment Variables
 
-    // The URL to post the dump to.
-    CMAKE_BACKTRACE_URL
-    // The identifying tag of the release.
-    CMAKE_BACKTRACE_TOKEN
-    
-    // The release version, e.g., 2021.3.2.
-    RELEASE_NUMBER
-    // The release name, e.g., Eos.
-    RELEASE_NAME
-    // The build commit, e.g., use a Git hash for the most recent commit in the branch - fd6973b.
-    
-    BUILD_NUMBER
-    
-    // The type of release.
-    RELEASE_TYPE=PRODUCTION|PR|DEV
-    
-    // The Interface will have a custom default home and startup location.
-    INITIAL_STARTUP_LOCATION=Location/IP/URL
-    
-    // Code-signing environment variables must be set during runtime of CMake AND globally when the signing takes place.
-    HF_PFX_FILE=Path to certificate
-    HF_PFX_PASSPHRASE=Passphrase for certificate
-    
-    // Determine the build type
-    PRODUCTION_BUILD=0|1
-    PR_BUILD=0|1
-    STABLE_BUILD=0|1
-    
-    // Determine if to utilize testing or stable Metaverse URLs
-    USE_STABLE_GLOBAL_SERVICES=1
-    BUILD_GLOBAL_SERVICES=STABLE
-    
+```text
+// The URL to post the dump to.
+CMAKE_BACKTRACE_URL
+// The identifying tag of the release.
+CMAKE_BACKTRACE_TOKEN
+
+// The release version, e.g., 2021.3.2.
+RELEASE_NUMBER
+// The release name, e.g., Eos.
+RELEASE_NAME
+// The build commit, e.g., use a Git hash for the most recent commit in the branch - fd6973b.
+
+BUILD_NUMBER
+
+// The type of release.
+RELEASE_TYPE=PRODUCTION|PR|DEV
+
+// The Interface will have a custom default home and startup location.
+INITIAL_STARTUP_LOCATION=Location/IP/URL
+
+// Code-signing environment variables must be set during runtime of CMake AND globally when the signing takes place.
+HF_PFX_FILE=Path to certificate
+HF_PFX_PASSPHRASE=Passphrase for certificate
+
+// Determine the build type
+PRODUCTION_BUILD=0|1
+PR_BUILD=0|1
+STABLE_BUILD=0|1
+
+// Determine if to utilize testing or stable Metaverse URLs
+USE_STABLE_GLOBAL_SERVICES=1
+BUILD_GLOBAL_SERVICES=STABLE
+```
+
 ##### Generate Files
 
 Create a build directory in the root of your checkout and then run the CMake build from there. This will keep the rest of the directory clean.
 
-    mkdir build
-    cd build
-    cmake ..
+```bash
+mkdir build
+cd build
+cmake ..
+```
 
 If CMake gives you the same error message repeatedly after the build fails, try removing `CMakeCache.txt`.
 
@@ -128,7 +136,9 @@ Any variables that need to be set for CMake to find dependencies can be set as E
 
 For example, to pass the QT_CMAKE_PREFIX_PATH variable (if not using the vcpkg'ed version) during build file generation:
 
-    cmake .. -DQT_CMAKE_PREFIX_PATH=/usr/local/qt/5.12.3/lib/cmake
+```bash
+cmake .. -DQT_CMAKE_PREFIX_PATH=/usr/local/qt/5.12.3/lib/cmake
+```
 
 #### Finding Dependencies
 
