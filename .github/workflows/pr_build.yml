@@ -79,6 +79,10 @@ jobs:
           mkdir $HIFI_ANDROID_PRECOMPILED
           echo "INSTALLER_EXT=apk" >> $GITHUB_ENV
         fi
+        # Client only builds
+        if [ "${{ matrix.build_type }}" == "client" ]; then
+          echo "CMAKE_CLIENT_ONLY=-DCLIENT_ONLY=1"
+        fi
     # Configuration is broken into two steps because you can't set an env var and also reference it in the same step
     - name: Configure Build Environment 2
       shell: bash
@@ -119,12 +123,12 @@ jobs:
     - name: Configure CMake
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DVCPKG_BUILD_TYPE=release $CMAKE_EXTRA
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DVCPKG_BUILD_TYPE=release $CMAKE_EXTRA $CMAKE_CLIENT_ONLY
     - name: Build Application
       if: matrix.build_type == 'full' || matrix.build_type == 'client'
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME $CMAKE_BUILD_EXTRA
+      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME $CMAKE_BUILD_EXTRA $CMAKE_CLIENT_ONLY
     - name: Build Domain Server
       if: matrix.build_type == 'full'
       working-directory: ${{runner.workspace}}/build
@@ -167,7 +171,7 @@ jobs:
             }
           done
         }
-        retry cmake --build . --config $BUILD_TYPE --target package $CMAKE_BUILD_EXTRA
+        retry cmake --build . --config $BUILD_TYPE --target package $CMAKE_BUILD_EXTRA $CMAKE_CLIENT_ONLY
     - name: Build for Android + Quest
       if: matrix.build_type == 'android'
       shell: bash
