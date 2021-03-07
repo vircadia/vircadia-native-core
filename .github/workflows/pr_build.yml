@@ -128,7 +128,7 @@ jobs:
       if: matrix.build_type == 'full' || matrix.build_type == 'client'
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME $CMAKE_BUILD_EXTRA $CMAKE_CLIENT_ONLY
+      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME $CMAKE_BUILD_EXTRA
     - name: Build Domain Server
       if: matrix.build_type == 'full'
       working-directory: ${{runner.workspace}}/build
@@ -171,7 +171,7 @@ jobs:
             }
           done
         }
-        retry cmake --build . --config $BUILD_TYPE --target package $CMAKE_BUILD_EXTRA $CMAKE_CLIENT_ONLY
+        retry cmake --build . --config $BUILD_TYPE --target package $CMAKE_BUILD_EXTRA
     - name: Build for Android + Quest
       if: matrix.build_type == 'android'
       shell: bash
