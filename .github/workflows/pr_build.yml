@@ -35,7 +35,7 @@ jobs:
             - os: windows-latest
               build_type: full
             - os: macOS-latest
-              build_type: full
+              build_type: client
             - os: ubuntu-18.04
               build_type: full
               apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
