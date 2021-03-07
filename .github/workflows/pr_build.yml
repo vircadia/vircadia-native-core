@@ -81,7 +81,7 @@ jobs:
         fi
         # Client only builds
         if [ "${{ matrix.build_type }}" == "client" ]; then
-          echo "CMAKE_CLIENT_ONLY=-DCLIENT_ONLY=1"
+          echo "CMAKE_CLIENT_ONLY=-DCLIENT_ONLY=1" >> $GITHUB_ENV
         fi
     # Configuration is broken into two steps because you can't set an env var and also reference it in the same step
     - name: Configure Build Environment 2
