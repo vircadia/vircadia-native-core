@@ -69,7 +69,7 @@ macro(PACKAGE_LIBRARIES_FOR_DEPLOYMENT)
   # #######
   add_custom_command(TARGET ${TARGET_NAME}
                      POST_BUILD
-                     COMMAND ${CMAKE_COMMAND} -E echo "####### PackageLibrariesForDeployment: Rename things here? - Command"
-                     COMMENT "####### PackageLibrariesForDeployment: Rename things here? - Comment")
+                     COMMAND ${CMAKE_COMMAND} -E echo "####### PackageLibrariesForDeployment: Rename things here?"
+                     COMMENT "####### ${TARGET_NAME} : ${CMAKE_CURRENT_BINARY_DIR} : $<TARGET_FILE_DIR:${TARGET_NAME}>")
 
 endmacro()
