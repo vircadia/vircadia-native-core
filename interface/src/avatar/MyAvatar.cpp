@@ -1610,6 +1610,8 @@ void MyAvatar::handleChangedAvatarEntityData() {
         return;
     }
 
+    bool canRezAvatarEntites = DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities();
+
     // We collect changes to AvatarEntities and then handle them all in one spot per frame: handleChangedAvatarEntityData().
     // Basically this is a "transaction pattern" with an extra complication: these changes can come from two
     // "directions" and the "authoritative source" of each direction is different, so we maintain two distinct sets
@@ -1696,12 +1698,15 @@ void MyAvatar::handleChangedAvatarEntityData() {
             continue;
         }
         sanitizeAvatarEntityProperties(properties);
-        entityTree->withWriteLock([&] {
-            EntityItemPointer entity = entityTree->addEntity(id, properties);
-            if (entity) {
-                packetSender->queueEditAvatarEntityMessage(entityTree, id);
-            }
-        });
+        if (canRezAvatarEntites) {
+            entityTree->withWriteLock([&] {
+                EntityItemPointer entity = entityTree->addEntity(id, properties);
+                if (entity) {
+                    packetSender->queueEditAvatarEntityMessage(entityTree, id);
+                }
+            });
+        }
+        
     }
 
     // CHANGE real entities
@@ -1719,7 +1724,7 @@ void MyAvatar::handleChangedAvatarEntityData() {
                 skip = true;
             }
         });
-        if (!skip) {
+        if (!skip && canRezAvatarEntites) {
             sanitizeAvatarEntityProperties(properties);
             entityTree->withWriteLock([&] {
                 if (entityTree->updateEntity(id, properties)) {
@@ -4092,7 +4097,8 @@ float MyAvatar::getGravity() {
 void MyAvatar::setSessionUUID(const QUuid& sessionUUID) {
     QUuid oldSessionID = getSessionUUID();
     Avatar::setSessionUUID(sessionUUID);
-    bool sendPackets = !DependencyManager::get<NodeList>()->getSessionUUID().isNull();
+    bool sendPackets = !DependencyManager::get<NodeList>()->getSessionUUID().isNull()
+        && DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities();
     if (!sendPackets) {
         return;
     }

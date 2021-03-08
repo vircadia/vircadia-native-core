@@ -270,6 +270,7 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
                         instanceVersionRef = -packetTraitVersion;
                     } else {
                         // Don't accept avatar entity data for distribution unless sender has rez permissions on the domain.
+                        // The sender shouldn't be sending avatar entity data, however this provides a back-up.
                         if (sendingNode.getCanRezAvatarEntities()) {
                             _avatar->processTraitInstance(traitType, instanceID, message.read(traitSize));
                         } else {
