@@ -1346,7 +1346,7 @@ Section "-Core installation"
   ${EndIf}
 
   ${If} @SERVER_COMPONENT_CONDITIONAL@
-  ${AndIf} $Express == "0"
+  ${AndIf} $Express != "1"
     ; handling for server console shortcut
     Delete "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk"
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@SANDBOX_HF_SHORTCUT_NAME@.lnk" \
