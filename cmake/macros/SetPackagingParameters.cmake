@@ -130,7 +130,7 @@ macro(SET_PACKAGING_PARAMETERS)
     if (CLIENT_ONLY)
       set(CONSOLE_EXEC_NAME "Console.app")
     else ()
-      set(CONSOLE_EXEC_NAME "Server.app")
+      set(CONSOLE_EXEC_NAME "Sandbox.app")
     endif()
     set(CONSOLE_INSTALL_APP_PATH "${CONSOLE_INSTALL_DIR}/${CONSOLE_EXEC_NAME}")
 
