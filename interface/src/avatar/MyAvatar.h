@@ -2656,6 +2656,7 @@ private slots:
 
 protected:
     void handleChangedAvatarEntityData();
+    void handleCanRezAvatarEntitiesChanged(bool canRezAvatarEntities);
     virtual void beParentOfChild(SpatiallyNestablePointer newChild) const override;
     virtual void forgetChild(SpatiallyNestablePointer newChild) const override;
     virtual void recalculateChildCauterization() const override;
@@ -2710,6 +2711,7 @@ private:
     void attachmentDataToEntityProperties(const AttachmentData& data, EntityItemProperties& properties);
     AttachmentData entityPropertiesToAttachmentData(const EntityItemProperties& properties) const;
     bool findAvatarEntity(const QString& modelURL, const QString& jointName, QUuid& entityID);
+    void addAvatarEntitiesToTree();
 
     bool cameraInsideHead(const glm::vec3& cameraPosition) const;
 

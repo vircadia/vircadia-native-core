@@ -278,6 +278,9 @@ MyAvatar::MyAvatar(QThread* thread) :
     // when we leave a domain we lift whatever restrictions that domain may have placed on our scale
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &MyAvatar::leaveDomain);
 
+    auto nodeList = DependencyManager::get<NodeList>();
+    connect(nodeList.data(), &NodeList::canRezAvatarEntitiesChanged, this, &MyAvatar::handleCanRezAvatarEntitiesChanged);
+
     _bodySensorMatrix = deriveBodyFromHMDSensor();
 
     using namespace recording;
@@ -1533,6 +1536,11 @@ void MyAvatar::storeAvatarEntityDataPayload(const QUuid& entityID, const QByteAr
 
 void MyAvatar::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree) {
     // NOTE: the requiresRemovalFromTree argument is unused
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        // Don't delete potentially non-rezzed avatar entities, otherwise they're removed from settings.
+        return;
+    }
+
     AvatarData::clearAvatarEntity(entityID);
     _avatarEntitiesLock.withWriteLock([&] {
         _cachedAvatarEntityBlobsToDelete.push_back(entityID);
@@ -1562,6 +1570,25 @@ void MyAvatar::sanitizeAvatarEntityProperties(EntityItemProperties& properties) 
     // back to the default), and the entity flew off somewhere.  Marking all changed definitely fixes this,
     // and seems safe (per Seth).
     properties.markAllChanged();
+}
+
+void MyAvatar::addAvatarEntitiesToTree() {
+    AvatarEntityMap::const_iterator constItr = _cachedAvatarEntityBlobs.begin();
+    while (constItr != _cachedAvatarEntityBlobs.end()) {
+        QUuid id = constItr.key();
+        _entitiesToAdd.push_back(id);  // worked once: hat shown. then unshown when permissions removed but then entity was deleted somewhere along the line!
+        ++constItr;
+    }
+}
+
+void MyAvatar::handleCanRezAvatarEntitiesChanged(bool canRezAvatarEntities) {
+    if (canRezAvatarEntities) {
+        // Start displaying avatar entities.
+        addAvatarEntitiesToTree();
+    } else {
+        // Stop displaying avatar entities.
+        removeAvatarEntitiesFromTree();
+    }
 }
 
 void MyAvatar::handleChangedAvatarEntityData() {

@@ -1385,10 +1385,6 @@ void NodeList::startThread() {
 void NodeList::adjustCanRezAvatarEntitiesPermissions(const QJsonObject& domainSettingsObject,
         NodePermissions& permissions, bool notify) {
 
-    if (domainSettingsObject.isEmpty()) {
-        // We don't have the information necessary to adjust permissions, yet.
-        return;
-    }
 
     const double CANREZAVATARENTITIES_INTRODUCED_VERSION = 2.5;
     auto version = domainSettingsObject.value("version");
