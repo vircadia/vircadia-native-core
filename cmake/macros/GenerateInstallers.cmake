@@ -116,6 +116,11 @@ macro(GENERATE_INSTALLERS)
 
     endif ()
 
+    # #######
+    if (CLIENT_ONLY OR SERVER_ONLY)
+      set(CPACK_MONOLITHIC_INSTALL 1)
+    endif ()
+
   endif ()
 
   # configure a cpack properties file for custom variables in template
