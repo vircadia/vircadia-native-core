@@ -1911,6 +1911,12 @@ void MyAvatar::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
     // avatarEntityData is expected to be a map of QByteArrays that represent EntityItemProperties objects from JavaScript,
     // aka: unfortunately-formatted-binary-blobs because we store them in non-human-readable format in Settings.
     //
+
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(interfaceapp) << "Ignoring setAvatarEntityData() because don't have canRezAvatarEntities permission on domain";
+        return;
+    }
+
     if (avatarEntityData.size() > MAX_NUM_AVATAR_ENTITIES) {
         // the data is suspect
         qCDebug(interfaceapp) << "discard suspect AvatarEntityData with size =" << avatarEntityData.size();
@@ -1971,6 +1977,12 @@ void MyAvatar::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
 
 void MyAvatar::updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) {
     // NOTE: this is an invokable Script call
+
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(interfaceapp) << "Ignoring updateAvatarEntity() because don't have canRezAvatarEntities permission on domain";
+        return;
+    }
+
     bool changed = false;
     _avatarEntitiesLock.withWriteLock([&] {
         auto data = QJsonDocument::fromBinaryData(entityData);
@@ -2929,6 +2941,11 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName,
         );
         return;
     }
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(interfaceapp) << "Ignoring attach() because don't have canRezAvatarEntities permission on domain";
+        return;
+    }
+
     AttachmentData data;
     data.modelURL = modelURL;
     data.jointName = jointName;
@@ -2978,6 +2995,11 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
             Q_ARG(const QVector<AttachmentData>&, attachmentData));
         return;
     }
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(interfaceapp) << "Ignoring setAttachmentData() because don't have canRezAvatarEntities permission on domain";
+        return;
+    }
+
     std::vector<EntityItemProperties> newEntitiesProperties;
     for (auto& data : attachmentData) {
         QUuid entityID;
@@ -3026,6 +3048,12 @@ void MyAvatar::setAttachmentsVariant(const QVariantList& variant) {
             Q_ARG(const QVariantList&, variant));
         return;
     }
+
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(interfaceapp) << "Ignoring setAttachmentsVariant() because don't have canRezAvatarEntities permission on domain";
+        return;
+    }
+
     QVector<AttachmentData> newAttachments;
     newAttachments.reserve(variant.size());
     for (const auto& attachmentVar : variant) {
