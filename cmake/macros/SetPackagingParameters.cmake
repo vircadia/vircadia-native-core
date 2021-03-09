@@ -82,7 +82,11 @@ macro(SET_PACKAGING_PARAMETERS)
   endif ()
 
   set(NITPICK_BUNDLE_NAME "nitpick")
-  set(NITPICK_ICON_PREFIX "nitpick")
+  if (RELEASE_TYPE STREQUAL "PRODUCTION")
+    set(NITPICK_ICON_PREFIX "nitpick")
+  else ()
+    set(NITPICK_ICON_PREFIX "nitpick-beta")
+  endif ()
 
   string(TIMESTAMP BUILD_TIME "%d/%m/%Y")
 
