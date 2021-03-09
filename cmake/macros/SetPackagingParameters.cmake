@@ -122,10 +122,10 @@ macro(SET_PACKAGING_PARAMETERS)
 
     set(DMG_SUBFOLDER_ICON "${HF_CMAKE_DIR}/installer/install-folder.rsrc")
 
-    set(CONSOLE_INSTALL_DIR       ${DMG_SUBFOLDER_NAME})
-    set(INTERFACE_INSTALL_DIR     ${DMG_SUBFOLDER_NAME})
-    set(SCREENSHARE_INSTALL_DIR   ${DMG_SUBFOLDER_NAME})
-    set(NITPICK_INSTALL_DIR       ${DMG_SUBFOLDER_NAME})
+    set(CONSOLE_INSTALL_DIR       ".")
+    set(INTERFACE_INSTALL_DIR     ".")
+    set(SCREENSHARE_INSTALL_DIR   ".")
+    set(NITPICK_INSTALL_DIR       ".")
 
     if (CLIENT_ONLY)
       set(CONSOLE_EXEC_NAME "Console.app")
