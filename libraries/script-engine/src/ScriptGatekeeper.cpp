@@ -29,7 +29,6 @@ void ScriptGatekeeper::initialize() {
 
     if (settingsSafeValues.isEmpty() && !preloadedVal.isEmpty() && isFirstRun.get()) {
         // We assume that the whitelist should be enabled if a preloaded whitelist is attached, so we activate it if it's not already active.
-        qDebug() << "hi" << !whitelistEnabled.get() << whitelistEnabled.get();
         if (!whitelistEnabled.get()) {
             whitelistEnabled.set(true);
         }
