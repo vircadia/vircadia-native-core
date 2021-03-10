@@ -23,7 +23,7 @@ public:
     QString SCRIPT_WHITELIST_ENTRIES_KEY{ "private/settingsSafeURLS" };
 
 private:
-    bool _initialized{ false };
+    bool _initialized { false };
 };
 
 #endif // vircadia_ScriptGatekeeper_h

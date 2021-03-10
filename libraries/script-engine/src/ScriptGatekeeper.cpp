@@ -15,14 +15,14 @@
 #include "SettingHandle.h"
 
 void ScriptGatekeeper::initialize() {
-    if (_initialized == true) {
+    if (_initialized) {
         return;
     }
 
     QVariant rawCurrentWhitelistValues = Setting::Handle<QVariant>(SCRIPT_WHITELIST_ENTRIES_KEY).get();
     QString settingsSafeValues = rawCurrentWhitelistValues.toString();
 
-    Setting::Handle<bool> whitelistEnabled{ SCRIPT_WHITELIST_ENABLED_KEY, false };
+    Setting::Handle<bool> whitelistEnabled { SCRIPT_WHITELIST_ENABLED_KEY, false };
     Setting::Handle<bool> isFirstRun { Settings::firstRun, true };
 
     QString preloadedVal = BuildInfo::PRELOADED_SCRIPT_WHITELIST;
