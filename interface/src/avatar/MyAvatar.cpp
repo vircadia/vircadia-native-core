@@ -1536,12 +1536,14 @@ void MyAvatar::storeAvatarEntityDataPayload(const QUuid& entityID, const QByteAr
 
 void MyAvatar::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree) {
     // NOTE: the requiresRemovalFromTree argument is unused
+
+    AvatarData::clearAvatarEntity(entityID);
+
     if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
-        // Don't delete potentially non-rezzed avatar entities, otherwise they're removed from settings.
+        // Don't delete potentially non-rezzed avatar entities from cache, otherwise they're removed from settings.
         return;
     }
 
-    AvatarData::clearAvatarEntity(entityID);
     _avatarEntitiesLock.withWriteLock([&] {
         _cachedAvatarEntityBlobsToDelete.push_back(entityID);
     });
