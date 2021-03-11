@@ -86,7 +86,7 @@ public:
     void setInjectorGain(float gain);
     float getInjectorGain();
 
-    void kickNodeBySessionID(const QUuid& nodeID);
+    void kickNodeBySessionID(const QUuid& nodeID, bool banByUsername = true, bool banByFingerprint = true, bool banByIP = false);
     void muteNodeBySessionID(const QUuid& nodeID);
     void requestUsernameFromSessionID(const QUuid& nodeID);
     bool getRequestsDomainListData() { return _requestsDomainListData; }

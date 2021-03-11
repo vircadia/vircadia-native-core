@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2016-07-11.
 //  Copyright 2016 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -41,7 +42,7 @@ class UsersScriptingInterface : public QObject, public Dependency {
 
 public:
     UsersScriptingInterface();
-    void setKickConfirmationOperator(std::function<void(const QUuid& nodeID)> kickConfirmationOperator) {
+    void setKickConfirmationOperator(std::function<void(const QUuid& nodeID, bool banByUsername, bool banByFingerprint, bool banByIP)> kickConfirmationOperator) {
         _kickConfirmationOperator = kickConfirmationOperator;
     }
 
@@ -112,12 +113,15 @@ public slots:
 
     /**jsdoc
      * Kicks and bans a user. This removes them from the server and prevents them from returning. The ban is by user name if 
-     * available, or machine fingerprint otherwise.
+     * available and by machine fingerprint.
      * <p>This function only works if you're an administrator of the domain you're in.</p>
      * @function Users.kick
      * @param {Uuid} sessionID - The session ID of the user to kick and ban.
+     * @param {boolean} [banByUsername=true] - Should ban the user's username.
+     * @param {boolean} [banByFingerprint=true] - Should ban the user's machine fingerprint.
+     * @param {boolean} [banByIP=false] - Should ban the user's IP address.
      */
-    void kick(const QUuid& nodeID);
+    void kick(const QUuid& nodeID, bool banByUsername = true, bool banByFingerprint = true, bool banByIP = false);
 
     /**jsdoc
      * Mutes a user's microphone for everyone. The mute is not permanent: the user can unmute themselves. 
@@ -237,7 +241,7 @@ private:
     bool getRequestsDomainListData();
     void setRequestsDomainListData(bool requests);
 
-    std::function<void(const QUuid& nodeID)> _kickConfirmationOperator;
+    std::function<void(const QUuid& nodeID, bool banByUsername, bool banByFingerprint, bool banByIP)> _kickConfirmationOperator;
 
     ReadWriteLockable _kickResponseLock;
     bool _waitingForKickResponse { false };

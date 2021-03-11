@@ -608,7 +608,7 @@ private:
     void toggleTabletUI(bool shouldOpen = false) const;
     bool shouldCaptureMouse() const;
 
-    void userKickConfirmation(const QUuid& nodeID);
+    void userKickConfirmation(const QUuid& nodeID, bool banByUsername, bool banByFingerprint, bool banByIP);
 
     MainWindow* _window;
     QElapsedTimer& _sessionRunTimer;
