@@ -4015,7 +4015,7 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     // If this is a first run we short-circuit the address passed in
     if (_firstRun.get()) {
-        if (!BuildInfo::INITIAL_STARTUP_LOCATION.isEmpty()) {
+        if (!BuildInfo::PRELOADED_STARTUP_LOCATION.isEmpty()) {
             DependencyManager::get<LocationBookmarks>()->setHomeLocationToAddress(NetworkingConstants::DEFAULT_VIRCADIA_ADDRESS);
             Menu::getInstance()->triggerOption(MenuOption::HomeLocation);
         }
