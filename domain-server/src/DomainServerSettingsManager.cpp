@@ -925,7 +925,7 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
                 // kick logged in users via username AND machine fingerprint (or IP as fallback)
                 // then we remove connect permissions for the machine fingerprint (or IP as fallback)
                 const QString MULTI_KICK_SETTINGS_KEYPATH = "security.multi_kick_logged_in";
-                qDebug() << "verifiedUsername.isEmpty()" << verifiedUsername.isEmpty();
+
                 if (banByFingerprint || verifiedUsername.isEmpty() || valueOrDefaultValueForKeyPath(MULTI_KICK_SETTINGS_KEYPATH).toBool()) {
                     // remove connect permissions for the machine fingerprint
                     DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(matchingNode->getLinkedData());
