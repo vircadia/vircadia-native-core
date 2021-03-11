@@ -3047,11 +3047,13 @@ void AvatarData::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFr
 }
 
 void AvatarData::clearAvatarEntities() {
-    _avatarEntitiesLock.withReadLock([this] {
-        foreach(auto entityID, _packedAvatarEntityData.keys()) {
-            clearAvatarEntity(entityID);
-        }
+    QList<QUuid> avatarEntityIDs;
+    _avatarEntitiesLock.withReadLock([&] {
+        avatarEntityIDs = _packedAvatarEntityData.keys();
     });
+    for (const auto& entityID : avatarEntityIDs) {
+        clearAvatarEntity(entityID);
+    }
 }
 
 AvatarEntityMap AvatarData::getAvatarEntityData() const {
