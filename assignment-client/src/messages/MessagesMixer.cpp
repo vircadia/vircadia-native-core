@@ -73,8 +73,6 @@ void MessagesMixer::handleMessagesSubscribe(QSharedPointer<ReceivedMessage> mess
     QString channel = QString::fromUtf8(message->getMessage());
 
     _channelSubscribers[channel] << senderUUID;
-
-    _allSubscribers[senderUUID] = 0;
 }
 
 void MessagesMixer::handleMessagesUnsubscribe(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
@@ -83,18 +81,6 @@ void MessagesMixer::handleMessagesUnsubscribe(QSharedPointer<ReceivedMessage> me
 
     if (_channelSubscribers.contains(channel)) {
         _channelSubscribers[channel].remove(senderUUID);
-    }
-
-    bool isSenderSubscribed = false;
-    QList<QSet<QUuid>> allChannels = _channelSubscribers.values();
-    foreach (const QSet<QUuid> channel, allChannels) { 
-        if (channel.contains(senderUUID)) {
-            isSenderSubscribed = true;
-        }
-    }
-
-    if (!isSenderSubscribed && _allSubscribers.contains(senderUUID)) {
-        _allSubscribers.remove(senderUUID);
     }
 }
 
