@@ -1189,6 +1189,8 @@ public:
     
     void clearAvatarEntities();
 
+    QList<QUuid> getAvatarEntityIDs() const;
+
     /**jsdoc
      * Enables blend shapes set using {@link Avatar.setBlendshape} or {@link MyAvatar.setBlendshape} to be transmitted to other 
      * users so that they can see the animation of your avatar's face.

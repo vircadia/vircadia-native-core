@@ -297,6 +297,27 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
     }
 }
 
+void AvatarMixerClientData::emulateDeleteEntitiesTraitsMessage(QList<QUuid>& avatarEntityIDs) {
+    // Emulates processSetTraitsMessage() actions on behalf of an avatar whose canRezAvatarEntities permission has been removed.
+    // The source avatar should be removing its avatar entities. However, this provides a back-up.
+
+    for (const auto& entityID : avatarEntityIDs) {
+        auto traitType = AvatarTraits::AvatarEntity;
+        auto& instanceVersionRef = _lastReceivedTraitVersions.getInstanceValueRef(traitType, entityID);
+
+        _avatar->processDeletedTraitInstance(traitType, entityID);
+        // Mixer doesn't need deleted IDs.
+        _avatar->getAndClearRecentlyRemovedIDs();
+
+        // to track a deleted instance but keep version information
+        // the avatar mixer uses the negative value of the sent version
+        // Because there is no originating message from an avatar we enlarge the magnitude by 1.
+        instanceVersionRef = -instanceVersionRef - 1;
+    }
+
+    _lastReceivedTraitsChange = std::chrono::steady_clock::now();
+}
+
 void AvatarMixerClientData::processBulkAvatarTraitsAckMessage(ReceivedMessage& message) {
     // Avatar Traits flow control marks each outgoing avatar traits packet with a
     // sequence number. The mixer caches the traits sent in the traits packet.

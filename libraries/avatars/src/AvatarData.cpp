@@ -3056,6 +3056,14 @@ void AvatarData::clearAvatarEntities() {
     }
 }
 
+QList<QUuid> AvatarData::getAvatarEntityIDs() const {
+    QList<QUuid> avatarEntityIDs;
+    _avatarEntitiesLock.withReadLock([&] {
+        avatarEntityIDs = _packedAvatarEntityData.keys();
+    });
+    return avatarEntityIDs;
+}
+
 AvatarEntityMap AvatarData::getAvatarEntityData() const {
     // overridden where needed
     // NOTE: the return value is expected to be a map of unfortunately-formatted-binary-blobs
