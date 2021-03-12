@@ -1498,8 +1498,8 @@
         {
           "name": "max_node_messages_per_second",
           "type": "int",
-          "label": "Per-Node Send Messages",
-          "help": "Desired maximum send messages (in messages per second) per node",
+          "label": "Maximum Message Rate",
+          "help": "Maximum message send rate (messages per second) per node",
           "placeholder": 1000,
           "default": 1000,
           "advanced": true
