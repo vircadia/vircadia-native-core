@@ -138,10 +138,17 @@ def main():
 
         if qtInstallPath is not None:
             # qtInstallPath is None when we're doing a system Qt build
+            print("cmake path: " + qtInstallPath)
+            
             with hifi_singleton.Singleton(qt.lockFile) as lock:
                 with timer('Qt'):
                     qt.installQt()
                     qt.writeConfig()
+        else:
+            if (os.environ["VIRCADIA_USE_SYSTEM_QT"]):
+                print("System Qt selected")
+            else:
+                raise Exception("Internal error: System Qt not selected, but hifi_qt.py failed to return a cmake path")
 
     pm = hifi_vcpkg.VcpkgRepo(args)
     if qtInstallPath is not None:

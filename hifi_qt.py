@@ -89,9 +89,12 @@ endif()
         if not system_qt:
             if qt_found:
                 # Sanity check, ensure we have a good cmake directory
-                if not os.path.isdir(os.path.join(self.cmakePath, "Qt5")):
-                    raise Exception("Failed to find Qt5 directory under " + self.cmakePath)
-
+                qt5_dir = os.path.join(self.cmakePath, "Qt5")
+                if not os.path.isdir(qt5_dir):
+                    raise Exception("Failed to find Qt5 directory under " + self.cmakePath + ". There should be a " + qt5_dir)
+                else:
+                    print("Qt5 check passed, found " + qt5_dir)
+                    
             # I'm not sure why this is needed. It's used by hifi_singleton.
             # Perhaps it stops multiple build processes from interferring?
             lockDir, lockName = os.path.split(self.path)
