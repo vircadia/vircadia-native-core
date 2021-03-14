@@ -63,6 +63,7 @@ public:
     virtual void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
     virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
     static Pipeline getPipelineType(const graphics::MultiMaterial& materials);
+    virtual gpu::TexturePointer getTexture() { return nullptr; }
 
     virtual scriptable::ScriptableModelBase getScriptableModel() override { return scriptable::ScriptableModelBase(); }
 

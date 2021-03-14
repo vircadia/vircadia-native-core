@@ -2155,6 +2155,19 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return QSizeF(0.0f, 0.0f);
     });
 
+    Texture::setUnboundTextureForUUIDOperator([this](const QUuid& entityID) -> gpu::TexturePointer {
+        if (_aboutToQuit) {
+            return nullptr;
+        }
+
+        auto renderable = getEntities()->renderableForEntityId(entityID);
+        if (renderable) {
+            return renderable->getTexture();
+        }
+
+        return nullptr;
+    });
+
     connect(this, &Application::aboutToQuit, [this]() {
         setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
     });

@@ -887,16 +887,29 @@ void SphericalHarmonics::evalFromTexture(const Texture& texture, gpu::BackendTar
 
 
 // TextureSource
+const gpu::TexturePointer TextureSource::getGPUTexture() const {
+    if (_gpuTextureOperator) {
+        return _gpuTextureOperator();
+    }
+    return _gpuTexture;
+}
+
 void TextureSource::resetTexture(gpu::TexturePointer texture) {
     _gpuTexture = texture;
+    _gpuTextureOperator = nullptr;
+}
+
+void TextureSource::resetTextureOperator(std::function<gpu::TexturePointer()> textureOperator) {
+    _gpuTexture = nullptr;
+    _gpuTextureOperator = textureOperator;
 }
 
 bool TextureSource::isDefined() const {
-    if (_gpuTexture) {
-        return _gpuTexture->isDefined();
-    } else {
-        return false;
+    if (_gpuTextureOperator) {
+        auto gpuTexture = _gpuTextureOperator();
+        return gpuTexture && gpuTexture->isDefined();
     }
+    return _gpuTexture && _gpuTexture->isDefined();
 }
 
 bool Texture::setMinMip(uint16 newMinMip) {
@@ -930,6 +943,7 @@ void Texture::setExternalTexture(uint32 externalId, void* externalFence) {
     Lock lock(_externalMutex);
     assert(_externalRecycler);
     _externalUpdates.push_back({ externalId, externalFence });
+    _defined = true;
 }
 
 Texture::ExternalUpdates Texture::getUpdates() const {

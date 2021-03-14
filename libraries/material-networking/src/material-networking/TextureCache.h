@@ -39,6 +39,12 @@ class Texture {
 public:
     gpu::TexturePointer getGPUTexture() const { return _textureSource->getGPUTexture(); }
     gpu::TextureSourcePointer _textureSource;
+
+    static std::function<gpu::TexturePointer()> getTextureForUUIDOperator(const QUuid& uuid);
+    static void setUnboundTextureForUUIDOperator(std::function<gpu::TexturePointer(const QUuid&)> textureForUUIDOperator) { _unboundTextureForUUIDOperator = textureForUUIDOperator; }
+
+private:
+    static std::function<gpu::TexturePointer(const QUuid&)> _unboundTextureForUUIDOperator;
 };
 
 /// A texture loaded from the network.
@@ -86,6 +92,7 @@ protected:
     Q_INVOKABLE void loadTextureContent(const QByteArray& content);
 
     Q_INVOKABLE void setImage(gpu::TexturePointer texture, int originalWidth, int originalHeight);
+    void setImageOperator(std::function<gpu::TexturePointer()> textureOperator);
 
     Q_INVOKABLE void startRequestForNextMipLevel();
 
@@ -191,6 +198,8 @@ public:
     const gpu::FramebufferPointer& getSpectatorCameraFramebuffer();
     const gpu::FramebufferPointer& getSpectatorCameraFramebuffer(int width, int height);
     void updateSpectatorCameraNetworkTexture();
+
+    NetworkTexturePointer getTextureByUUID(const QString& uuid);
 
     static const int DEFAULT_SPECTATOR_CAM_WIDTH { 2048 };
     static const int DEFAULT_SPECTATOR_CAM_HEIGHT { 1024 };
