@@ -388,7 +388,13 @@ void DomainHandler::setCanConnectWithoutAvatarEntities(bool canConnect) {
 
 bool DomainHandler::canConnectWithoutAvatarEntities() {
     if (!_canConnectWithoutAvatarEntities && !_haveAskedConnectWithoutAvatarEntities) {
-        emit confirmConnectWithoutAvatarEntities();
+        if (_isConnected) {
+            // Already connected so don't ask. (Permission removed from user while in the domain.)
+            setCanConnectWithoutAvatarEntities(true);
+        } else {
+            // Ask whether to connect to the domain.
+            emit confirmConnectWithoutAvatarEntities();
+        }
     }
     return _canConnectWithoutAvatarEntities;
 }
