@@ -53,7 +53,7 @@ void MessagesMixer::handleMessages(QSharedPointer<ReceivedMessage> receivedMessa
     auto itr = _allSubscribers.find(senderUUID);
     if (itr == _allSubscribers.end()) {
         _allSubscribers[senderUUID] = 1;
-    } else if (*itr >= _maxMessagesPerSecond) {  // this syntax might be wrong I forget
+    } else if (*itr >= _maxMessagesPerSecond) {
         return;
     } else {
         *itr += 1;
