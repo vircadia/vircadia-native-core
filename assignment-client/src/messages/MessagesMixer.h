@@ -46,7 +46,7 @@ private:
     const int DEFAULT_NODE_MESSAGES_PER_SECOND = 1000;
     int _maxMessagesPerSecond { 0 };
 
-    QTimer* _maxMessagesTimer;
+    QTimer* _maxMessagesTimer { nullptr };
 };
 
 #endif // hifi_MessagesMixer_h

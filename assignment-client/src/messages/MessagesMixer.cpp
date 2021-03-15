@@ -132,6 +132,10 @@ void MessagesMixer::processMaxMessagesContainer() {
 }
 
 void MessagesMixer::startMaxMessagesProcessor() {
+    if (_maxMessagesTimer) {
+        stopMaxMessagesProcessor();
+    }
+
     _maxMessagesTimer = new QTimer();
     connect(_maxMessagesTimer, &QTimer::timeout, this, &MessagesMixer::processMaxMessagesContainer);
     _maxMessagesTimer->start(MESSAGES_MIXER_RATE_LIMITER_INTERVAL); // Clear the container every second.
