@@ -732,6 +732,11 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     // pull the permissions/right/privileges for this node out of the stream
     NodePermissions newPermissions;
     packetStream >> newPermissions;
+    // FIXME: Can remove this temporary work-around in version 2021.2.0. (New protocol version implies a domain server upgrade.)
+    // Adjust our canRezAvatarEntities permissions on older domains that do not have this setting.
+    // DomainServerList and DomainSettings packets can come in either order so need to adjust with both occurrences.
+    bool adjustedPermissions = adjustCanRezAvatarEntitiesPermissions(_domainHandler.getSettingsObject(), newPermissions, false);
+
     // Is packet authentication enabled?
     bool isAuthenticated;
     packetStream >> isAuthenticated;
@@ -787,7 +792,7 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveDSList);
 
     if (_domainHandler.isConnected() && _domainHandler.getUUID() != domainUUID) {
-        // Recieved packet from different domain.
+        // Received packet from different domain.
         qWarning() << "IGNORING DomainList packet from" << domainUUID << "while connected to" 
                    << _domainHandler.getUUID() << ": sent " << pingLagTime << " msec ago.";
         qWarning(networking) << "DomainList request lag (interface->ds): " << domainServerRequestLag << "msec";
@@ -815,6 +820,23 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     setSessionLocalID(newLocalID);
     setSessionUUID(newUUID);
 
+    // FIXME: Remove this call to requestDomainSettings() and reinstate the one in DomainHandler::setIsConnected(), in version 
+    // 2021.2.0. (New protocol version implies a domain server upgrade.)
+    if (!_domainHandler.isConnected() 
+            && _domainHandler.getScheme() == URL_SCHEME_HIFI && !_domainHandler.getHostname().isEmpty()) {
+        // We're about to connect but we need the domain settings (in particular, the node permissions) in order to adjust the
+        // canRezAvatarEntities permission above before using the permissions in determining whether or not to connect without
+        // avatar entities rezzing below.
+        _domainHandler.requestDomainSettings();
+    }
+
+    // Don't continue login to the domain if have avatar entities and don't have permissions to rez them, unless user has OKed 
+    // continuing login.
+    if (!newPermissions.can(NodePermissions::Permission::canRezAvatarEntities)
+        && (!adjustedPermissions || !_domainHandler.canConnectWithoutAvatarEntities())) {
+        return;
+    }
+
     // if this was the first domain-server list from this domain, we've now connected
     if (!_domainHandler.isConnected()) {
         _domainHandler.setLocalID(domainLocalID);
@@ -825,11 +847,6 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
         // give the address manager a chance to lookup a default one now
         DependencyManager::get<AddressManager>()->lookupShareableNameForDomainID(domainUUID);
     }
-
-    // FIXME: Can remove this temporary work-around in version 2021.2.0. (New protocol version implies a domain server upgrade.)
-    // Adjust our canRezAvatarEntities permissions on older domains that do not have this setting.
-    // DomainServerList and DomainSettings packets can come in either order so need to adjust with both occurrences.
-    adjustCanRezAvatarEntitiesPermissions(_domainHandler.getSettingsObject(), newPermissions, false);
 
     setPermissions(newPermissions);
     setAuthenticatePackets(isAuthenticated);
@@ -1382,12 +1399,12 @@ void NodeList::startThread() {
 
 
 // FIXME: Can remove this work-around in version 2021.2.0. (New protocol version implies a domain server upgrade.)
-void NodeList::adjustCanRezAvatarEntitiesPermissions(const QJsonObject& domainSettingsObject,
+bool NodeList::adjustCanRezAvatarEntitiesPermissions(const QJsonObject& domainSettingsObject,
         NodePermissions& permissions, bool notify) {
 
     if (domainSettingsObject.isEmpty()) {
         // Don't have enough information to adjust yet.
-        return;
+        return false;  // Failed to adjust.
     }
 
     const double CANREZAVATARENTITIES_INTRODUCED_VERSION = 2.5;
@@ -1404,6 +1421,7 @@ void NodeList::adjustCanRezAvatarEntitiesPermissions(const QJsonObject& domainSe
         }
     }
 
+    return true;  // Successfully adjusted.
 }
 
 // FIXME: Can remove this work-around in version 2021.2.0. (New protocol version implies a domain server upgrade.)

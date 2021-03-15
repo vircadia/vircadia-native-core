@@ -1454,6 +1454,7 @@ public:
 
     void removeWornAvatarEntity(const EntityItemID& entityID);
     void clearWornAvatarEntities();
+    bool hasAvatarEntities();
 
     /**jsdoc
      * Checks whether your avatar is flying.

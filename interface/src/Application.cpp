@@ -1306,6 +1306,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _entityServerConnectionTimer.setSingleShot(true);
     connect(&_entityServerConnectionTimer, &QTimer::timeout, this, &Application::setFailedToConnectToEntityServer);
 
+    connect(&domainHandler, &DomainHandler::confirmConnectWithoutAvatarEntities,
+        this, &Application::confirmConnectWithoutAvatarEntities);
+
     connect(&domainHandler, &DomainHandler::connectedToDomain, this, [this]() {
         if (!isServerlessMode()) {
             _entityServerConnectionTimer.setInterval(ENTITY_SERVER_ADDED_TIMEOUT);
@@ -9170,6 +9173,32 @@ void Application::setShowBulletConstraints(bool value) {
 
 void Application::setShowBulletConstraintLimits(bool value) {
     _physicsEngine->setShowBulletConstraintLimits(value);
+}
+
+void Application::confirmConnectWithoutAvatarEntities() {
+
+    if (_confirmConnectWithoutAvatarEntitiesDialog) {
+        // Dialog is already displayed.
+        return;
+    }
+
+    if (!getMyAvatar()->hasAvatarEntities()) {
+        // No avatar entities so continue with login.
+        DependencyManager::get<NodeList>()->getDomainHandler().setCanConnectWithoutAvatarEntities(true);
+        return;
+    }
+
+    QString continueMessage = "Your wearables will not display on this domain. Continue?";
+    _confirmConnectWithoutAvatarEntitiesDialog = OffscreenUi::asyncQuestion("Continue Without Wearables", continueMessage,
+        QMessageBox::Yes | QMessageBox::No);
+    if (_confirmConnectWithoutAvatarEntitiesDialog->getDialogItem()) {
+        QObject::connect(_confirmConnectWithoutAvatarEntitiesDialog, &ModalDialogListener::response, this, [=](QVariant answer) {
+            QObject::disconnect(_confirmConnectWithoutAvatarEntitiesDialog, &ModalDialogListener::response, this, nullptr);
+            _confirmConnectWithoutAvatarEntitiesDialog = nullptr;
+            bool shouldConnect = (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes);
+            DependencyManager::get<NodeList>()->getDomainHandler().setCanConnectWithoutAvatarEntities(shouldConnect);
+        });
+    }
 }
 
 void Application::createLoginDialog() {

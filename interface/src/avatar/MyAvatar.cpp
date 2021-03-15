@@ -1583,6 +1583,10 @@ void MyAvatar::addAvatarEntitiesToTree() {
     }
 }
 
+bool MyAvatar::hasAvatarEntities() {
+    return _cachedAvatarEntityBlobs.count() > 0;
+}
+
 void MyAvatar::handleCanRezAvatarEntitiesChanged(bool canRezAvatarEntities) {
     if (canRezAvatarEntities) {
         // Start displaying avatar entities.

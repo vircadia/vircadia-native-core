@@ -124,7 +124,7 @@ public slots:
     void processUsernameFromIDReply(QSharedPointer<ReceivedMessage> message);
 
     // FIXME: Can remove these work-arounds in version 2021.2.0. (New protocol version implies a domain server upgrade.)
-    void adjustCanRezAvatarEntitiesPermissions(const QJsonObject& domainSettingsObject, NodePermissions& permissions,
+    bool adjustCanRezAvatarEntitiesPermissions(const QJsonObject& domainSettingsObject, NodePermissions& permissions,
         bool notify);
     void adjustCanRezAvatarEntitiesPerSettings(const QJsonObject& domainSettingsObject);
 
