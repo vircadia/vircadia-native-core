@@ -1940,6 +1940,8 @@ public:
 
     void avatarEntityDataToJson(QJsonObject& root) const override;
 
+    void storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& payload) override;
+
     /**jsdoc
      * @comment Uses the base class's JSDoc.
      */
@@ -2278,12 +2280,6 @@ public slots:
      */
     bool getEnableMeshVisible() const override;
 
-    /**jsdoc
-     * @function MyAvatar.storeAvatarEntityDataPayload
-     * @deprecated This function is deprecated and will be removed.
-     */
-    void storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& payload) override;
-    
     /**jsdoc
      * @comment Uses the base class's JSDoc.
      */
