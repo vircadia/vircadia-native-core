@@ -103,8 +103,9 @@ void MessagesMixer::sendStatsPacket() {
 }
 
 void MessagesMixer::run() {
-    // wait until we have the domain-server settings, otherwise we bail
-    DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::EntityScriptServer });
+    DomainHandler& domainHandler = nodeList->getDomainHandler();
     connect(&domainHandler, &DomainHandler::settingsReceived, this, &MessagesMixer::domainSettingsRequestComplete);
 
     ThreadedAssignment::commonInit(MESSAGES_MIXER_LOGGING_NAME, NodeType::MessagesMixer);
@@ -114,7 +115,6 @@ void MessagesMixer::run() {
 
 void MessagesMixer::domainSettingsRequestComplete() {
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::EntityScriptServer });
 
     // parse the settings to pull out the values we need
     parseDomainServerSettings(nodeList->getDomainHandler().getSettingsObject());
