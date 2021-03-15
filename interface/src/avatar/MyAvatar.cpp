@@ -1537,6 +1537,11 @@ void MyAvatar::storeAvatarEntityDataPayload(const QUuid& entityID, const QByteAr
 void MyAvatar::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree) {
     // NOTE: the requiresRemovalFromTree argument is unused
 
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(interfaceapp) << "Ignoring clearAvatarEntity() because don't have canRezAvatarEntities permission on domain";
+        return;
+    }
+
     AvatarData::clearAvatarEntity(entityID);
 
     if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
@@ -1869,6 +1874,11 @@ AvatarEntityMap MyAvatar::getAvatarEntityData() const {
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (!entityTree) {
+        return data;
+    }
+
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(interfaceapp) << "Ignoring getAvatarEntityData() because don't have canRezAvatarEntities permission on domain";
         return data;
     }
 
@@ -2615,6 +2625,13 @@ QVariantList MyAvatar::getAvatarEntitiesVariant() {
     QVariantList avatarEntitiesData;
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+
+    if (entityTree && !DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(interfaceapp)
+            << "Ignoring getAvatarEntitiesVariant() because don't have canRezAvatarEntities permission on domain";
+        return avatarEntitiesData;
+    }
+
     if (entityTree) {
         QList<QUuid> avatarEntityIDs;
         _avatarEntitiesLock.withReadLock([&] {
@@ -2973,6 +2990,11 @@ void MyAvatar::detachOne(const QString& modelURL, const QString& jointName) {
         );
         return;
     }
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(interfaceapp) << "Ignoring detachOne() because don't have canRezAvatarEntities permission on domain";
+        return;
+    }
+
     QUuid entityID;
     if (findAvatarEntity(modelURL, jointName, entityID)) {
         DependencyManager::get<EntityScriptingInterface>()->deleteEntity(entityID);
@@ -2988,6 +3010,11 @@ void MyAvatar::detachAll(const QString& modelURL, const QString& jointName) {
         );
         return;
     }
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(interfaceapp) << "Ignoring detachAll() because don't have canRezAvatarEntities permission on domain";
+        return;
+    }
+
     QUuid entityID;
     while (findAvatarEntity(modelURL, jointName, entityID)) {
         DependencyManager::get<EntityScriptingInterface>()->deleteEntity(entityID);
@@ -3028,6 +3055,12 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
 
 QVector<AttachmentData> MyAvatar::getAttachmentData() const {    
     QVector<AttachmentData> attachmentData;
+
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(interfaceapp) << "Ignoring getAttachmentData() because don't have canRezAvatarEntities permission on domain";
+        return attachmentData;
+    }
+
     QList<QUuid> avatarEntityIDs;
     _avatarEntitiesLock.withReadLock([&] {
         avatarEntityIDs = _packedAvatarEntityData.keys();
@@ -3042,6 +3075,13 @@ QVector<AttachmentData> MyAvatar::getAttachmentData() const {
 
 QVariantList MyAvatar::getAttachmentsVariant() const {
     QVariantList result;
+
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(interfaceapp)
+            << "Ignoring getAttachmentsVariant() because don't have canRezAvatarEntities permission on domain";
+        return result;
+    }
+
     for (const auto& attachment : getAttachmentData()) {
         result.append(attachment.toVariant());
     }
@@ -3056,7 +3096,8 @@ void MyAvatar::setAttachmentsVariant(const QVariantList& variant) {
     }
 
     if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
-        qCDebug(interfaceapp) << "Ignoring setAttachmentsVariant() because don't have canRezAvatarEntities permission on domain";
+        qCDebug(interfaceapp)
+            << "Ignoring setAttachmentsVariant() because don't have canRezAvatarEntities permission on domain";
         return;
     }
 

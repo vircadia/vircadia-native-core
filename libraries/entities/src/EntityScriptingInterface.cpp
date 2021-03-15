@@ -492,7 +492,7 @@ QUuid EntityScriptingInterface::addEntityInternal(const EntityItemProperties& pr
     if (entityHostType == entity::HostType::AVATAR && !nodeList->getThisNodeCanRezAvatarEntities()) {
         qCDebug(entities) << "Ignoring addEntity() because don't have canRezAvatarEntities permission on domain";
         // Only need to intercept methods that may add an avatar entity because avatar entities are removed from the tree when
-        // user doesn't have canRezAvatarEntities permission.
+        // the user doesn't have canRezAvatarEntities permission.
         return QUuid();
     }
 
