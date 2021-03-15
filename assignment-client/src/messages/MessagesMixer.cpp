@@ -49,13 +49,15 @@ void MessagesMixer::handleMessages(QSharedPointer<ReceivedMessage> receivedMessa
     MessagesClient::decodeMessagesPacket(receivedMessage, channel, isText, message, data, senderID);
 
     auto nodeList = DependencyManager::get<NodeList>();
-    if (_allSubscribers.value(senderUUID) >= _maxMessagesPerSecond) {
-        // We will reject all messages that go over this limit for that second. 
-        // FIXME: We will add logging options to offer analytics on this later.
-        return;
-    }
 
-    _allSubscribers[senderUUID] += 1;
+    auto itr = _allSubscribers.find(senderUUID);
+    if (itr == _allSubscribers.end()) {
+        _allSubscribers[senderUUID] = 1;
+    } else if (*itr >= _maxMessagesPerSecond) {  // this syntax might be wrong I forget
+        return;
+    } else {
+        *itr += 1;
+    }
 
     nodeList->eachMatchingNode(
         [&](const SharedNodePointer& node)->bool {
