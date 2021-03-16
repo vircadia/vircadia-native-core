@@ -297,7 +297,7 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
     }
 }
 
-void AvatarMixerClientData::emulateDeleteEntitiesTraitsMessage(QList<QUuid>& avatarEntityIDs) {
+void AvatarMixerClientData::emulateDeleteEntitiesTraitsMessage(const QList<QUuid>& avatarEntityIDs) {
     // Emulates processSetTraitsMessage() actions on behalf of an avatar whose canRezAvatarEntities permission has been removed.
     // The source avatar should be removing its avatar entities. However, this provides a back-up.
 

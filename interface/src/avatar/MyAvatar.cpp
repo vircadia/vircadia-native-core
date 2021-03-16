@@ -1588,7 +1588,7 @@ void MyAvatar::addAvatarEntitiesToTree() {
     }
 }
 
-bool MyAvatar::hasAvatarEntities() {
+bool MyAvatar::hasAvatarEntities() const {
     return _cachedAvatarEntityBlobs.count() > 0;
 }
 

@@ -833,7 +833,7 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     // Don't continue login to the domain if have avatar entities and don't have permissions to rez them, unless user has OKed 
     // continuing login.
     if (!newPermissions.can(NodePermissions::Permission::canRezAvatarEntities)
-        && (!adjustedPermissions || !_domainHandler.canConnectWithoutAvatarEntities())) {
+            && (!adjustedPermissions || !_domainHandler.canConnectWithoutAvatarEntities())) {
         return;
     }
 
