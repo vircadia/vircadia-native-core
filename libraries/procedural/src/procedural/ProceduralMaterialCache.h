@@ -33,8 +33,8 @@ public:
     void setScatteringMap(const QUrl& url);
     void setLightMap(const QUrl& url);
 
-    bool isMissingTexture();
-    bool checkResetOpacityMap();
+    virtual bool isMissingTexture();
+    virtual bool checkResetOpacityMap();
 
     class Texture {
     public:
@@ -100,7 +100,7 @@ public:
     ParsedMaterials parsedMaterials;
 
     static ParsedMaterials parseJSONMaterials(const QJsonDocument& materialJSON, const QUrl& baseUrl);
-    static std::pair<std::string, std::shared_ptr<NetworkMaterial>> parseJSONMaterial(const QJsonObject& materialJSON, const QUrl& baseUrl);
+    static std::pair<std::string, std::shared_ptr<NetworkMaterial>> parseJSONMaterial(const QJsonValue& materialJSONValue, const QUrl& baseUrl);
 
 private:
     static bool parseJSONColor(const QJsonValue& array, glm::vec3& color, bool& isSRGB);

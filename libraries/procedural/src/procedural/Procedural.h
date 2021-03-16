@@ -212,26 +212,26 @@ public:
     ProceduralMaterial() : NetworkMaterial() { initializeProcedural(); }
     ProceduralMaterial(const NetworkMaterial& material) : NetworkMaterial(material) { initializeProcedural(); }
 
-    bool isProcedural() const override { return true; }
-    bool isEnabled() const override { return _procedural.isEnabled(); }
-    bool isReady() const override { return _procedural.isReady(); }
-    QString getProceduralString() const override { return _proceduralString; }
+    virtual bool isProcedural() const override { return true; }
+    virtual bool isEnabled() const override { return _procedural.isEnabled(); }
+    virtual bool isReady() const override { return _procedural.isReady(); }
+    virtual QString getProceduralString() const override { return _proceduralString; }
 
     void setProceduralData(const QString& data) {
         _proceduralString = data;
         _procedural.setProceduralData(ProceduralData::parse(data));
     }
-    glm::vec4 getColor(const glm::vec4& color) const { return _procedural.getColor(color); }
-    bool isFading() const { return _procedural.isFading(); }
+    virtual glm::vec4 getColor(const glm::vec4& color) const { return _procedural.getColor(color); }
+    virtual bool isFading() const { return _procedural.isFading(); }
     void setIsFading(bool isFading) { _procedural.setIsFading(isFading); }
-    uint64_t getFadeStartTime() const { return _procedural.getFadeStartTime(); }
-    bool hasVertexShader() const { return _procedural.hasVertexShader(); }
-    void prepare(gpu::Batch& batch, const glm::vec3& position, const glm::vec3& size, const glm::quat& orientation,
+    virtual uint64_t getFadeStartTime() const { return _procedural.getFadeStartTime(); }
+    virtual bool hasVertexShader() const { return _procedural.hasVertexShader(); }
+    virtual void prepare(gpu::Batch& batch, const glm::vec3& position, const glm::vec3& size, const glm::quat& orientation,
                  const uint64_t& created, const ProceduralProgramKey key = ProceduralProgramKey()) {
         _procedural.prepare(batch, position, size, orientation, created, key);
     }
 
-    void initializeProcedural();
+    virtual void initializeProcedural();
 
     void setBoundOperator(const std::function<AABox(RenderArgs*)>& boundOperator) { _procedural.setBoundOperator(boundOperator); }
     bool hasBoundOperator() const { return _procedural.hasBoundOperator(); }

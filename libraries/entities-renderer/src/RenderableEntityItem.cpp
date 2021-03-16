@@ -495,6 +495,15 @@ void EntityRenderer::removeMaterial(graphics::MaterialPointer material, const st
     emit requestRenderUpdate();
 }
 
+graphics::MaterialPointer EntityRenderer::getTopMaterial() {
+    std::lock_guard<std::mutex> lock(_materialsLock);
+    auto materials = _materials.find("0");
+    if (materials != _materials.end()) {
+        return materials->second.top().material;
+    }
+    return nullptr;
+}
+
 EntityRenderer::Pipeline EntityRenderer::getPipelineType(const graphics::MultiMaterial& materials) {
     if (materials.top().material && materials.top().material->isProcedural() && materials.top().material->isReady()) {
         return Pipeline::PROCEDURAL;

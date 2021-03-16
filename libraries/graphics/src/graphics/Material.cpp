@@ -282,3 +282,19 @@ void MultiMaterial::calculateMaterialInfo() const {
         _hasCalculatedTextureInfo = allTextures;
     }
 }
+
+void MultiMaterial::resetReferenceTexturesAndMaterials() {
+    _referenceTextures.clear();
+}
+
+void MultiMaterial::addReferenceTexture(const std::function<gpu::TexturePointer()>& textureOperator) {
+    _referenceTextures.emplace_back(textureOperator, textureOperator());
+}
+
+bool MultiMaterial::anyReferenceMaterialsOrTexturesChanged() const {
+    for (auto textureOperatorPair : _referenceTextures) {
+        if (textureOperatorPair.first() != textureOperatorPair.second) {
+            return true;
+        }
+    }
+}

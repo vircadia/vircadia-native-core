@@ -676,9 +676,10 @@ public:
         _element(element)
     {};
 
-    TextureView(const TexturePointer& texture, uint16 subresource) :
+    TextureView(const TexturePointer& texture, uint16 subresource, std::function<gpu::TexturePointer()> textureOperator = nullptr) :
         _texture(texture),
-        _subresource(subresource)
+        _subresource(subresource),
+        _textureOperator(textureOperator)
     {};
 
     ~TextureView() {}
@@ -689,6 +690,12 @@ public:
     bool operator !() const { return (!_texture); }
 
     bool isValid() const { return bool(_texture); }
+
+    bool isReference() const { return (bool)_textureOperator; }
+    std::function<gpu::TexturePointer()> getTextureOperator() const { return _textureOperator; }
+
+private:
+    std::function<gpu::TexturePointer()> _textureOperator { nullptr };
 };
 typedef std::vector<TextureView> TextureViews;
 
@@ -708,6 +715,7 @@ public:
     void resetTextureOperator(std::function<gpu::TexturePointer()> textureOperator);
 
     bool isDefined() const;
+    std::function<gpu::TexturePointer()> TextureSource::getTextureOperator() const { return _gpuTextureOperator; }
 
 protected:
     gpu::TexturePointer _gpuTexture;

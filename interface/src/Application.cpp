@@ -164,6 +164,7 @@
 #include <RenderableWebEntityItem.h>
 #include <StencilMaskPass.h>
 #include <procedural/ProceduralMaterialCache.h>
+#include <procedural/ReferenceMaterial.h>
 #include "recording/ClipCache.h"
 
 #include "AudioClient.h"
@@ -2163,6 +2164,19 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         auto renderable = getEntities()->renderableForEntityId(entityID);
         if (renderable) {
             return renderable->getTexture();
+        }
+
+        return nullptr;
+    });
+
+    ReferenceMaterial::setMaterialForUUIDOperator([this](const QUuid& entityID) -> graphics::MaterialPointer {
+        if (_aboutToQuit) {
+            return nullptr;
+        }
+
+        auto renderable = getEntities()->renderableForEntityId(entityID);
+        if (renderable) {
+            return renderable->getTopMaterial();
         }
 
         return nullptr;
