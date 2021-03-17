@@ -11,7 +11,7 @@ env:
   GIT_COMMIT: ${{ github.sha }}
   # VCPKG did not build well on OSX disabling HIFI_VCPKG_BOOTSTRAP, which invokes a download to a working version of vcpkg
   # HIFI_VCPKG_BOOTSTRAP: true
-  RELEASE_TYPE: PR
+  # RELEASE_TYPE: PR
   RELEASE_NUMBER: ${{ github.event.number }}
   VERSION_CODE: ${{ github.event.number }}
   # Sentry Crash Reporting
@@ -28,6 +28,8 @@ env:
   # ####### Emulate OSX client-only production build
   STABLE_BUILD: 1
   PRODUCTION_BUILD: 1
+  RELEASE_TYPE: PRODUCTION
+  RELEASE_BUILD: PRODUCTION
 
 
 jobs:
