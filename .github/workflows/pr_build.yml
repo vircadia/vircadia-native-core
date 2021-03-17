@@ -25,6 +25,9 @@ env:
   # WIN32 specific variables
   PreferredToolArchitecture: X64
 
+  # ####### Emulate OSX client-only production build
+  STABLE_BUILD: 1
+
 
 jobs:
   build:
@@ -35,7 +38,9 @@ jobs:
             - os: windows-latest
               build_type: full
             - os: macOS-latest
-              build_type: full
+              # build_type: full
+              # ####### Emulate OSX client-only production build
+              build_type: client
             - os: ubuntu-18.04
               build_type: full
               apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
@@ -64,7 +69,9 @@ jobs:
         if [ "${{ matrix.os }}" = "macOS-latest" ]; then
           echo "PYTHON_EXEC=python3" >> $GITHUB_ENV
           echo "INSTALLER_EXT=dmg" >> $GITHUB_ENV
-          echo "CMAKE_EXTRA=-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode" >> $GITHUB_ENV
+          # echo "CMAKE_EXTRA=-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode" >> $GITHUB_ENV
+          # ####### Emulate OSX client-only production build
+          echo "CMAKE_EXTRA=-DCLIENT_ONLY=1 -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode" >> $GITHUB_ENV
         fi
         # Windows build variables
         if [ "${{ matrix.os }}" = "windows-latest" ]; then
