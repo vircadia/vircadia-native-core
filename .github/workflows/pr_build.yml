@@ -27,6 +27,7 @@ env:
 
   # ####### Emulate OSX client-only production build
   STABLE_BUILD: 1
+  PRODUCTION_BUILD: 1
 
 
 jobs:
