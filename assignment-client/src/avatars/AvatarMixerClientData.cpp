@@ -269,7 +269,14 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
                         // the avatar mixer uses the negative value of the sent version
                         instanceVersionRef = -packetTraitVersion;
                     } else {
-                        _avatar->processTraitInstance(traitType, instanceID, message.read(traitSize));
+                        // Don't accept avatar entity data for distribution unless sender has rez permissions on the domain.
+                        // The sender shouldn't be sending avatar entity data, however this provides a back-up.
+                        if (sendingNode.getCanRezAvatarEntities()) {
+                            _avatar->processTraitInstance(traitType, instanceID, message.read(traitSize));
+                        } else {
+                            message.read(traitSize);
+                        }
+                        
                         instanceVersionRef = packetTraitVersion;
                     }
 
@@ -288,6 +295,27 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
     if (anyTraitsChanged) {
         _lastReceivedTraitsChange = std::chrono::steady_clock::now();
     }
+}
+
+void AvatarMixerClientData::emulateDeleteEntitiesTraitsMessage(const QList<QUuid>& avatarEntityIDs) {
+    // Emulates processSetTraitsMessage() actions on behalf of an avatar whose canRezAvatarEntities permission has been removed.
+    // The source avatar should be removing its avatar entities. However, this provides a back-up.
+
+    for (const auto& entityID : avatarEntityIDs) {
+        auto traitType = AvatarTraits::AvatarEntity;
+        auto& instanceVersionRef = _lastReceivedTraitVersions.getInstanceValueRef(traitType, entityID);
+
+        _avatar->processDeletedTraitInstance(traitType, entityID);
+        // Mixer doesn't need deleted IDs.
+        _avatar->getAndClearRecentlyRemovedIDs();
+
+        // to track a deleted instance but keep version information
+        // the avatar mixer uses the negative value of the sent version
+        // Because there is no originating message from an avatar we enlarge the magnitude by 1.
+        instanceVersionRef = -instanceVersionRef - 1;
+    }
+
+    _lastReceivedTraitsChange = std::chrono::steady_clock::now();
 }
 
 void AvatarMixerClientData::processBulkAvatarTraitsAckMessage(ReceivedMessage& message) {

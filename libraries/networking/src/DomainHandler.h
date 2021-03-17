@@ -98,6 +98,7 @@ public:
     Node::LocalID getLocalID() const { return _localID; }
     void setLocalID(Node::LocalID localID) { _localID = localID; }
 
+    QString getScheme() const { return _domainURL.scheme(); }
     QString getHostname() const { return _domainURL.host(); }
 
     QUrl getErrorDomainURL(){ return _errorDomainURL; }
@@ -132,6 +133,9 @@ public:
 
     bool isConnected() const { return _isConnected; }
     void setIsConnected(bool isConnected);
+
+    void setCanConnectWithoutAvatarEntities(bool canConnect);
+    bool canConnectWithoutAvatarEntities();
 
     bool isServerless() const { return _domainURL.scheme() != URL_SCHEME_HIFI; }
     bool getInterstitialModeEnabled() const;
@@ -252,6 +256,7 @@ signals:
     void completedSocketDiscovery();
 
     void resetting();
+    void confirmConnectWithoutAvatarEntities();
     void connectedToDomain(QUrl domainURL);
     void disconnectedFromDomain();
 
@@ -287,6 +292,8 @@ private:
     HifiSockAddr _iceServerSockAddr;
     NetworkPeer _icePeer;
     bool _isConnected { false };
+    bool _haveAskedConnectWithoutAvatarEntities { false };
+    bool _canConnectWithoutAvatarEntities { false };
     bool _isInErrorState { false };
     QJsonObject _settingsObject;
     QString _pendingPath;

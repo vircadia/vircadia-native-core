@@ -1454,6 +1454,7 @@ public:
 
     void removeWornAvatarEntity(const EntityItemID& entityID);
     void clearWornAvatarEntities();
+    bool hasAvatarEntities() const;
 
     /**jsdoc
      * Checks whether your avatar is flying.
@@ -1939,6 +1940,8 @@ public:
 
     void avatarEntityDataToJson(QJsonObject& root) const override;
 
+    void storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& payload) override;
+
     /**jsdoc
      * @comment Uses the base class's JSDoc.
      */
@@ -2277,12 +2280,6 @@ public slots:
      */
     bool getEnableMeshVisible() const override;
 
-    /**jsdoc
-     * @function MyAvatar.storeAvatarEntityDataPayload
-     * @deprecated This function is deprecated and will be removed.
-     */
-    void storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& payload) override;
-    
     /**jsdoc
      * @comment Uses the base class's JSDoc.
      */
@@ -2656,6 +2653,7 @@ private slots:
 
 protected:
     void handleChangedAvatarEntityData();
+    void handleCanRezAvatarEntitiesChanged(bool canRezAvatarEntities);
     virtual void beParentOfChild(SpatiallyNestablePointer newChild) const override;
     virtual void forgetChild(SpatiallyNestablePointer newChild) const override;
     virtual void recalculateChildCauterization() const override;
@@ -2710,6 +2708,7 @@ private:
     void attachmentDataToEntityProperties(const AttachmentData& data, EntityItemProperties& properties);
     AttachmentData entityPropertiesToAttachmentData(const EntityItemProperties& properties) const;
     bool findAvatarEntity(const QString& modelURL, const QString& jointName, QUuid& entityID);
+    void addAvatarEntitiesToTree();
 
     bool cameraInsideHead(const glm::vec3& cameraPosition) const;
 
