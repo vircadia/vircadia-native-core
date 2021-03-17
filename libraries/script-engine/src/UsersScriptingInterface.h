@@ -17,6 +17,7 @@
 
 #include <DependencyManager.h>
 #include <shared/ReadWriteLockable.h>
+#include <ModerationFlags.h>
 
 /**jsdoc
  * The <code>Users</code> API provides features to regulate your interaction with other users.
@@ -40,9 +41,14 @@ class UsersScriptingInterface : public QObject, public Dependency {
     Q_PROPERTY(bool canKick READ getCanKick)
     Q_PROPERTY(bool requestsDomainListData READ getRequestsDomainListData WRITE setRequestsDomainListData)
 
+    Q_PROPERTY(unsigned int NO_BAN READ ModerationFlags::BanFlags::NO_BAN CONSTANT)
+    Q_PROPERTY(unsigned int BAN_BY_USERNAME READ ModerationFlags::BanFlags::BAN_BY_USERNAME CONSTANT)
+    Q_PROPERTY(unsigned int BAN_BY_FINGERPRINT READ ModerationFlags::BanFlags::BAN_BY_FINGERPRINT CONSTANT)
+    Q_PROPERTY(unsigned int BAN_BY_IP READ ModerationFlags::BanFlags::BAN_BY_IP CONSTANT)
+
 public:
     UsersScriptingInterface();
-    void setKickConfirmationOperator(std::function<void(const QUuid& nodeID, bool banByUsername, bool banByFingerprint, bool banByIP)> kickConfirmationOperator) {
+    void setKickConfirmationOperator(std::function<void(const QUuid& nodeID, int banFlags)> kickConfirmationOperator) {
         _kickConfirmationOperator = kickConfirmationOperator;
     }
 
@@ -113,7 +119,7 @@ public slots:
 
     /**jsdoc
      * Kicks and bans a user. This removes them from the server and prevents them from returning. The ban is by user name if 
-     * available and by machine fingerprint.
+     * available and by machine fingerprint. The ban functionality can be controlled with flags.
      * <p>This function only works if you're an administrator of the domain you're in.</p>
      * @function Users.kick
      * @param {Uuid} sessionID - The session ID of the user to kick and ban.
@@ -121,7 +127,7 @@ public slots:
      * @param {boolean} [banByFingerprint=true] - Should ban the user's machine fingerprint.
      * @param {boolean} [banByIP=false] - Should ban the user's IP address.
      */
-    void kick(const QUuid& nodeID, bool banByUsername = true, bool banByFingerprint = true, bool banByIP = false);
+    void kick(const QUuid& nodeID, int banFlags = 0);
 
     /**jsdoc
      * Mutes a user's microphone for everyone. The mute is not permanent: the user can unmute themselves. 
@@ -241,7 +247,7 @@ private:
     bool getRequestsDomainListData();
     void setRequestsDomainListData(bool requests);
 
-    std::function<void(const QUuid& nodeID, bool banByUsername, bool banByFingerprint, bool banByIP)> _kickConfirmationOperator;
+    std::function<void(const QUuid& nodeID, int banFlags)> _kickConfirmationOperator;
 
     ReadWriteLockable _kickResponseLock;
     bool _waitingForKickResponse { false };

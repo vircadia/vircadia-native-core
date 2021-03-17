@@ -52,15 +52,14 @@ float UsersScriptingInterface::getAvatarGain(const QUuid& nodeID) {
     return DependencyManager::get<NodeList>()->getAvatarGain(nodeID);
 }
 
-void UsersScriptingInterface::kick(const QUuid& nodeID, bool banByUsername, bool banByFingerprint, bool banByIP) {
-
+void UsersScriptingInterface::kick(const QUuid& nodeID, int banFlags) {
     if (_kickConfirmationOperator) {
         bool waitingForKickResponse = _kickResponseLock.resultWithReadLock<bool>([&] { return _waitingForKickResponse; });
         if (getCanKick() && !waitingForKickResponse) {
-            _kickConfirmationOperator(nodeID, banByUsername, banByFingerprint, banByIP);
+            _kickConfirmationOperator(nodeID, banFlags);
         }
     } else {
-        DependencyManager::get<NodeList>()->kickNodeBySessionID(nodeID, banByUsername, banByFingerprint, banByIP);
+        DependencyManager::get<NodeList>()->kickNodeBySessionID(nodeID, banFlags);
     }
 }
 

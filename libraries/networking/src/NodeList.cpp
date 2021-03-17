@@ -42,6 +42,7 @@
 #include "udt/PacketHeaders.h"
 #include "SharedUtil.h"
 #include <Trace.h>
+#include <ModerationFlags.h>
 
 using namespace std::chrono;
 
@@ -1263,21 +1264,30 @@ float NodeList::getInjectorGain() {
     return _injectorGain;
 }
 
-void NodeList::kickNodeBySessionID(const QUuid& nodeID, bool banByUsername, bool banByFingerprint, bool banByIP) {
+void NodeList::kickNodeBySessionID(const QUuid& nodeID, int banFlags) {
     // send a request to domain-server to kick the node with the given session ID
     // the domain-server will handle the persistence of the kick (via username or IP)
 
     if (!nodeID.isNull() && getSessionUUID() != nodeID ) {
         if (getThisNodeCanKick()) {
             // setup the packet
-            auto kickPacket = NLPacket::create(PacketType::NodeKickRequest, NUM_BYTES_RFC4122_UUID + (sizeof(bool) * 3), true);
+            auto kickPacket = NLPacket::create(PacketType::NodeKickRequest, NUM_BYTES_RFC4122_UUID + sizeof(int), true);
+
+            //int banParameters {};
+            //if (banByUsername) {
+            //    banParameters |= ModerationFlags::BanFlags::BAN_BY_USERNAME;
+            //}
+            //if (banByFingerprint) {
+            //    banParameters |= ModerationFlags::BanFlags::BAN_BY_FINGERPRINT;
+            //}
+            //if (banByIP) {
+            //    banParameters |= ModerationFlags::BanFlags::BAN_BY_IP;
+            //}
 
             // write the node ID to the packet
             kickPacket->write(nodeID.toRfc4122());
             // write the ban parameters to the packet
-            kickPacket->writePrimitive(banByUsername);
-            kickPacket->writePrimitive(banByFingerprint);
-            kickPacket->writePrimitive(banByIP);
+            kickPacket->writePrimitive(banFlags);
 
             qCDebug(networking) << "Sending packet to kick node" << uuidStringWithoutCurlyBraces(nodeID);
 

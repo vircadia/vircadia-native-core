@@ -37,6 +37,7 @@
 #include <SettingHandle.h>
 #include <SettingHelpers.h>
 #include <FingerprintUtils.h>
+#include <ModerationFlags.h>
 
 #include "DomainServerNodeData.h"
 
@@ -864,15 +865,17 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
         QUuid nodeUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
         bool hasOptionalBanParameters = false;
-        bool banByUsername = false;
-        bool banByFingerprint = false;
-        bool banByIP = false;
+        int banParameters;
+        bool banByUsername;
+        bool banByFingerprint;
+        bool banByIP;
         // pull optional ban parameters from the packet
         if (message.data()->getSize() > NUM_BYTES_RFC4122_UUID) {
             hasOptionalBanParameters = true;
-            message->readPrimitive(&banByUsername);
-            message->readPrimitive(&banByFingerprint);
-            message->readPrimitive(&banByIP);
+            message->readPrimitive(&banParameters);
+            banByUsername = banParameters & ModerationFlags::BanFlags::BAN_BY_USERNAME;
+            banByFingerprint = banParameters & ModerationFlags::BanFlags::BAN_BY_FINGERPRINT;
+            banByIP = banParameters & ModerationFlags::BanFlags::BAN_BY_IP;
         }
 
         if (!nodeUUID.isNull() && nodeUUID != sendingNode->getUUID()) {
@@ -894,28 +897,16 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
                     // if we have a verified user name for this user, we first apply the kick to the username
 
                     // if we have optional ban parameters, we should ban the username based on the parameter
-                    if (hasOptionalBanParameters) {
-                        if (banByUsername) {
-                            // check if there were already permissions
-                            bool hadPermissions = havePermissionsForName(verifiedUsername);
-        
-                            // grab or create permissions for the given username
-                            auto userPermissions = _agentPermissions[matchingNode->getPermissions().getKey()];
-                            
-                            newPermissions = !hadPermissions || userPermissions->can(NodePermissions::Permission::canConnectToDomain);
-        
-                            // ensure that the connect permission is clear
-                            userPermissions->clear(NodePermissions::Permission::canConnectToDomain);
-                        }
-                    } else {
+                    if (!hasOptionalBanParameters || banByUsername) {
                         // check if there were already permissions
                         bool hadPermissions = havePermissionsForName(verifiedUsername);
-    
+
                         // grab or create permissions for the given username
                         auto userPermissions = _agentPermissions[matchingNode->getPermissions().getKey()];
-                        
-                        newPermissions = !hadPermissions || userPermissions->can(NodePermissions::Permission::canConnectToDomain);
-    
+
+                        newPermissions =
+                            !hadPermissions || userPermissions->can(NodePermissions::Permission::canConnectToDomain);
+
                         // ensure that the connect permission is clear
                         userPermissions->clear(NodePermissions::Permission::canConnectToDomain);
                     }
