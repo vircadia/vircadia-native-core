@@ -57,6 +57,7 @@ NodePermissions::NodePermissions(QMap<QString, QVariant> perms) {
 
     permissions = NodePermissions::Permissions();
     permissions |= perms["id_can_connect"].toBool() ? Permission::canConnectToDomain : Permission::none;
+    permissions |= perms["id_can_rez_avatar_entities"].toBool() ? Permission::canRezAvatarEntities : Permission::none;
     permissions |= perms["id_can_adjust_locks"].toBool() ? Permission::canAdjustLocks : Permission::none;
     permissions |= perms["id_can_rez"].toBool() ? Permission::canRezPermanentEntities : Permission::none;
     permissions |= perms["id_can_rez_tmp"].toBool() ? Permission::canRezTemporaryEntities : Permission::none;
@@ -67,8 +68,8 @@ NodePermissions::NodePermissions(QMap<QString, QVariant> perms) {
         Permission::canConnectPastMaxCapacity : Permission::none;
     permissions |= perms["id_can_kick"].toBool() ? Permission::canKick : Permission::none;
     permissions |= perms["id_can_replace_content"].toBool() ? Permission::canReplaceDomainContent : Permission::none;
-    permissions |= perms["id_can_get_and_set_private_user_data"].toBool() ? Permission::canGetAndSetPrivateUserData : Permission::none;
-    permissions |= perms["id_can_rez_avatar_entities"].toBool() ? Permission::canRezAvatarEntities : Permission::none;
+    permissions |= perms["id_can_get_and_set_private_user_data"].toBool() ? 
+        Permission::canGetAndSetPrivateUserData : Permission::none;
 }
 
 QVariant NodePermissions::toVariant(QHash<QUuid, GroupRank> groupRanks) {
@@ -87,6 +88,7 @@ QVariant NodePermissions::toVariant(QHash<QUuid, GroupRank> groupRanks) {
         }
     }
     values["id_can_connect"] = can(Permission::canConnectToDomain);
+    values["id_can_rez_avatar_entities"] = can(Permission::canRezAvatarEntities);
     values["id_can_adjust_locks"] = can(Permission::canAdjustLocks);
     values["id_can_rez"] = can(Permission::canRezPermanentEntities);
     values["id_can_rez_tmp"] = can(Permission::canRezTemporaryEntities);
@@ -97,7 +99,6 @@ QVariant NodePermissions::toVariant(QHash<QUuid, GroupRank> groupRanks) {
     values["id_can_kick"] = can(Permission::canKick);
     values["id_can_replace_content"] = can(Permission::canReplaceDomainContent);
     values["id_can_get_and_set_private_user_data"] = can(Permission::canGetAndSetPrivateUserData);
-    values["id_can_rez_avatar_entities"] = can(Permission::canRezAvatarEntities);
     return QVariant(values);
 }
 
