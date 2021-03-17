@@ -271,10 +271,9 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
                     } else {
                         // Don't accept avatar entity data for distribution unless sender has rez permissions on the domain.
                         // The sender shouldn't be sending avatar entity data, however this provides a back-up.
+                        auto trait = message.read(traitSize);
                         if (sendingNode.getCanRezAvatarEntities()) {
-                            _avatar->processTraitInstance(traitType, instanceID, message.read(traitSize));
-                        } else {
-                            message.read(traitSize);
+                            _avatar->processTraitInstance(traitType, instanceID, trait);
                         }
                         
                         instanceVersionRef = packetTraitVersion;
@@ -301,8 +300,8 @@ void AvatarMixerClientData::emulateDeleteEntitiesTraitsMessage(const QList<QUuid
     // Emulates processSetTraitsMessage() actions on behalf of an avatar whose canRezAvatarEntities permission has been removed.
     // The source avatar should be removing its avatar entities. However, this provides a back-up.
 
+    auto traitType = AvatarTraits::AvatarEntity;
     for (const auto& entityID : avatarEntityIDs) {
-        auto traitType = AvatarTraits::AvatarEntity;
         auto& instanceVersionRef = _lastReceivedTraitVersions.getInstanceValueRef(traitType, entityID);
 
         _avatar->processDeletedTraitInstance(traitType, entityID);
