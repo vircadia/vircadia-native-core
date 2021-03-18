@@ -324,6 +324,7 @@ endif()
 
 if (BUILD_CLIENT OR BUILD_SERVER)
   add_subdirectory(plugins)
+  # ####### AHAH?! ... only add the next line if (NOT APPLE) ?
   add_subdirectory(server-console)
 endif()
 
