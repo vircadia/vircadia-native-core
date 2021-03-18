@@ -26,7 +26,7 @@ macro(SET_PACKAGING_PARAMETERS)
 
   if (RELEASE_TYPE STREQUAL "PRODUCTION")
     set(PRODUCTION_BUILD 1)
-    set(BUILD_VERSION ${RELEASE_NUMBER})
+    set(BUILD_VERSION "PR${RELEASE_NUMBER}")
 
     # add definition for this release type
     add_definitions(-DPRODUCTION_BUILD)
