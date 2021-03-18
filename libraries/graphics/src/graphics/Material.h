@@ -430,6 +430,8 @@ public:
     virtual bool isReady() const { return true; }
     virtual QString getProceduralString() const { return QString(); }
 
+    virtual bool isReference() const { return false; }
+
     static const std::string HIFI_PBR;
     static const std::string HIFI_SHADER_SIMPLE;
 
@@ -555,6 +557,7 @@ public:
 
     void resetReferenceTexturesAndMaterials();
     void addReferenceTexture(const std::function<gpu::TexturePointer()>& textureOperator);
+    void addReferenceMaterial(const std::function<graphics::MaterialPointer()>& materialOperator);
 
 private:
     gpu::BufferView _schemaBuffer;
@@ -572,6 +575,7 @@ private:
     bool anyReferenceMaterialsOrTexturesChanged() const;
 
     std::vector<std::pair<std::function<gpu::TexturePointer()>, gpu::TexturePointer>> _referenceTextures;
+    std::vector<std::pair<std::function<graphics::MaterialPointer()>, graphics::MaterialPointer>> _referenceMaterials;
 };
 
 };

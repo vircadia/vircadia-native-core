@@ -19,6 +19,7 @@
 #include <render/DrawTask.h>
 #include <shaders/Shaders.h>
 #include <graphics/ShaderConstants.h>
+#include <procedural/ReferenceMaterial.h>
 
 #include "render-utils/ShaderConstants.h"
 #include "StencilMaskPass.h"
@@ -408,6 +409,10 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
             break;
         }
         materials.pop();
+
+        if (material->isReference()) {
+            multiMaterial.addReferenceMaterial(std::static_pointer_cast<ReferenceMaterial>(material)->getReferenceOperator());
+        }
 
         bool defaultFallthrough = material->getDefaultFallthrough();
         const auto& materialKey = material->getKey();

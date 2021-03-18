@@ -15,7 +15,7 @@ public:
     using Parent = graphics::ProceduralMaterial;
 
     ReferenceMaterial() {}
-    ReferenceMaterial(QUuid uuid) : graphics::ProceduralMaterial(), _uuid(uuid) {}
+    ReferenceMaterial(QUuid uuid);
 
     // Material
     const graphics::MaterialKey& getKey() const override;
@@ -54,11 +54,14 @@ public:
                  const uint64_t& created, const ProceduralProgramKey key = ProceduralProgramKey()) override;
     void initializeProcedural() override;
 
-    static void setMaterialForUUIDOperator(std::function<graphics::MaterialPointer(QUuid)> materialForUUIDOperator) { _materialForUUIDOperator = materialForUUIDOperator; }
+    bool isReference() const override { return true; }
+    std::function<graphics::MaterialPointer()> getReferenceOperator() const { return _materialForUUIDOperator; }
+
+    static void setMaterialForUUIDOperator(std::function<graphics::MaterialPointer(QUuid)> materialForUUIDOperator) { _unboundMaterialForUUIDOperator = materialForUUIDOperator; }
 
 private:
-    static std::function<graphics::MaterialPointer(QUuid)> _materialForUUIDOperator;
-    QUuid _uuid;
+    static std::function<graphics::MaterialPointer(QUuid)> _unboundMaterialForUUIDOperator;
+    std::function<graphics::MaterialPointer()> _materialForUUIDOperator;
 
     graphics::MaterialPointer getMaterial() const;
     std::shared_ptr<NetworkMaterial> getNetworkMaterial() const;

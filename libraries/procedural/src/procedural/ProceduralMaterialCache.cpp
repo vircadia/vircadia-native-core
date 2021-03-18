@@ -111,6 +111,17 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
     return toReturn;
 }
 
+NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseMaterialForUUID(const QJsonValue& entityIDJSON) {
+    ParsedMaterials toReturn;
+    if (!entityIDJSON.isNull() && entityIDJSON.isString()) {
+        auto parsedMaterial = parseJSONMaterial(entityIDJSON);
+        toReturn.networkMaterials[parsedMaterial.first] = parsedMaterial.second;
+        toReturn.names.push_back(parsedMaterial.first);
+    }
+
+    return toReturn;
+}
+
 /**jsdoc
  * A material used in a {@link Entities.MaterialResource|MaterialResource}.
  * @typedef {object} Entities.Material

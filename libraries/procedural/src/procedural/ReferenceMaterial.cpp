@@ -8,7 +8,14 @@
 
 #include "ReferenceMaterial.h"
 
-std::function<graphics::MaterialPointer(QUuid)> ReferenceMaterial::_materialForUUIDOperator = nullptr;
+std::function<graphics::MaterialPointer(QUuid)> ReferenceMaterial::_unboundMaterialForUUIDOperator = nullptr;
+
+ReferenceMaterial::ReferenceMaterial(QUuid uuid) :
+    graphics::ProceduralMaterial() {
+    if (_unboundMaterialForUUIDOperator) {
+        _materialForUUIDOperator = std::bind(_unboundMaterialForUUIDOperator, uuid);
+    }
+}
 
 // Material
 const graphics::MaterialKey& ReferenceMaterial::getKey() const {
@@ -153,14 +160,14 @@ void ReferenceMaterial::initializeProcedural() {
 
 graphics::MaterialPointer ReferenceMaterial::getMaterial() const {
     if (_materialForUUIDOperator) {
-        return _materialForUUIDOperator(_uuid);
+        return _materialForUUIDOperator();
     }
     return nullptr;
 }
 
 std::shared_ptr<NetworkMaterial> ReferenceMaterial::getNetworkMaterial() const {
     if (_materialForUUIDOperator) {
-        auto material = _materialForUUIDOperator(_uuid);
+        auto material = _materialForUUIDOperator();
         if (material && material->isProcedural()) {
             return std::static_pointer_cast<NetworkMaterial>(material);
         }
@@ -170,7 +177,7 @@ std::shared_ptr<NetworkMaterial> ReferenceMaterial::getNetworkMaterial() const {
 
 graphics::ProceduralMaterialPointer ReferenceMaterial::getProceduralMaterial() const {
     if (_materialForUUIDOperator) {
-        auto material = _materialForUUIDOperator(_uuid);
+        auto material = _materialForUUIDOperator();
         if (material && material->isProcedural()) {
             return std::static_pointer_cast<graphics::ProceduralMaterial>(material);
         }
