@@ -50,6 +50,7 @@
 #include <shared/ConicalViewFrustum.h>
 #include <shared/FileLogger.h>
 #include <RunningMarker.h>
+#include <ModerationFlags.h>
 
 #include "avatar/MyAvatar.h"
 #include "FancyCamera.h"
@@ -608,7 +609,7 @@ private:
     void toggleTabletUI(bool shouldOpen = false) const;
     bool shouldCaptureMouse() const;
 
-    void userKickConfirmation(const QUuid& nodeID, int banFlags);
+    void userKickConfirmation(const QUuid& nodeID, int banFlags = ModerationFlags::getDefaultBanFlags());
 
     MainWindow* _window;
     QElapsedTimer& _sessionRunTimer;

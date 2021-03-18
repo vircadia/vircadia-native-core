@@ -41,10 +41,10 @@ class UsersScriptingInterface : public QObject, public Dependency {
     Q_PROPERTY(bool canKick READ getCanKick)
     Q_PROPERTY(bool requestsDomainListData READ getRequestsDomainListData WRITE setRequestsDomainListData)
 
-    Q_PROPERTY(unsigned int NO_BAN READ ModerationFlags::BanFlags::NO_BAN CONSTANT)
-    Q_PROPERTY(unsigned int BAN_BY_USERNAME READ ModerationFlags::BanFlags::BAN_BY_USERNAME CONSTANT)
-    Q_PROPERTY(unsigned int BAN_BY_FINGERPRINT READ ModerationFlags::BanFlags::BAN_BY_FINGERPRINT CONSTANT)
-    Q_PROPERTY(unsigned int BAN_BY_IP READ ModerationFlags::BanFlags::BAN_BY_IP CONSTANT)
+    Q_PROPERTY(unsigned int NO_BAN READ getNoBan CONSTANT)
+    Q_PROPERTY(unsigned int BAN_BY_USERNAME READ getBanByUsername CONSTANT)
+    Q_PROPERTY(unsigned int BAN_BY_FINGERPRINT READ getBanByFingerprint CONSTANT)
+    Q_PROPERTY(unsigned int BAN_BY_IP READ getBanByIP CONSTANT)
 
 public:
     UsersScriptingInterface();
@@ -123,11 +123,9 @@ public slots:
      * <p>This function only works if you're an administrator of the domain you're in.</p>
      * @function Users.kick
      * @param {Uuid} sessionID - The session ID of the user to kick and ban.
-     * @param {boolean} [banByUsername=true] - Should ban the user's username.
-     * @param {boolean} [banByFingerprint=true] - Should ban the user's machine fingerprint.
-     * @param {boolean} [banByIP=false] - Should ban the user's IP address.
+     * @param {number} - Preferred ban flags. <i>Bans a user by username (if available) and machine fingerprint by default.</i>
      */
-    void kick(const QUuid& nodeID, int banFlags = 0);
+    void kick(const QUuid& nodeID, int banFlags = ModerationFlags::getDefaultBanFlags());
 
     /**jsdoc
      * Mutes a user's microphone for everyone. The mute is not permanent: the user can unmute themselves. 
@@ -246,6 +244,11 @@ signals:
 private:
     bool getRequestsDomainListData();
     void setRequestsDomainListData(bool requests);
+
+    static constexpr unsigned int getNoBan() { return ModerationFlags::BanFlags::NO_BAN; };
+    static constexpr unsigned int getBanByUsername() { return ModerationFlags::BanFlags::BAN_BY_USERNAME; };
+    static constexpr unsigned int getBanByFingerprint() { return ModerationFlags::BanFlags::BAN_BY_FINGERPRINT; };
+    static constexpr unsigned int getBanByIP() { return ModerationFlags::BanFlags::BAN_BY_IP; };
 
     std::function<void(const QUuid& nodeID, int banFlags)> _kickConfirmationOperator;
 

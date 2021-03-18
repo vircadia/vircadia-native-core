@@ -22,7 +22,7 @@ public:
         BAN_BY_IP = 4
     };
     
-    int test(int lol) { return lol; };
+    static constexpr unsigned int getDefaultBanFlags() { return (BanFlags::BAN_BY_USERNAME | BanFlags::BAN_BY_FINGERPRINT); };
 };
 
 #endif // vircadia_ModerationFlags_h
