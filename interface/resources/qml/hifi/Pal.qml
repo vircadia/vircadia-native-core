@@ -506,6 +506,7 @@ Rectangle {
                 id: itemCell;
                 property bool isCheckBox: styleData.role === "personalMute" || styleData.role === "ignore";
                 property bool isButton: styleData.role === "mute" || styleData.role === "kick";
+                property bool isBan: styleData.role === "kick";
                 property bool isAvgAudio: styleData.role === "avgAudioLevel";
                 opacity: !isButton ? (model && model.isPresent ? 1.0 : 0.4) : 1.0; // Admin actions shouldn't turn gray
 
@@ -605,7 +606,9 @@ Rectangle {
                     color: 2; // Red
                     visible: isButton;
                     enabled: !nameCard.isReplicated;
-                    anchors.centerIn: parent;
+                    anchors.verticalCenter: itemCell.verticalCenter;
+                    anchors.left: parent.left;
+                    anchors.leftMargin: styleData.role === "kick" ? 4 : 18;
                     width: 32;
                     height: 32;
                     onClicked: {
@@ -620,7 +623,39 @@ Rectangle {
                     HiFiGlyphs {
                         text: (styleData.role === "kick") ? hifi.glyphs.error : hifi.glyphs.muted;
                         // Size
-                        size: parent.height*1.3;
+                        size: parent.height * 1.3;
+                        // Anchors
+                        anchors.fill: parent;
+                        // Style
+                        horizontalAlignment: Text.AlignHCenter;
+                        color: enabled ? hifi.buttons.textColor[actionButton.color]
+                            : hifi.buttons.disabledTextColor[actionButton.colorScheme];
+                    }
+                }
+                
+                HifiControlsUit.Button {
+                    id: hardBanButton;
+                    color: 2; // Red
+                    visible: isBan;
+                    enabled: !nameCard.isReplicated;
+                    anchors.verticalCenter: itemCell.verticalCenter;
+                    anchors.left: parent.left;
+                    anchors.leftMargin: actionButton.width + 14;
+                    width: 32;
+                    height: 32;
+                    onClicked: {
+                        Users[styleData.role](model.sessionId, 7); // Ban params add up to 7 from Users.BAN_BY_USERNAME | Users.BAN_BY_FINGERPRINT | Users.BAN_BY_IP
+                        UserActivityLogger["palAction"](styleData.role, model.sessionId);
+                        if (styleData.role === "kick") {
+                            nearbyUserModelData.splice(model.userIndex, 1);
+                            nearbyUserModel.remove(model.userIndex); // after changing nearbyUserModelData, b/c ListModel can frob the data
+                        }
+                    }
+                    // muted/error glyphs
+                    HiFiGlyphs {
+                        text: hifi.glyphs.alert;
+                        // Size
+                        size: parent.height * 1.3;
                         // Anchors
                         anchors.fill: parent;
                         // Style
