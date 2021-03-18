@@ -1273,17 +1273,6 @@ void NodeList::kickNodeBySessionID(const QUuid& nodeID, int banFlags) {
             // setup the packet
             auto kickPacket = NLPacket::create(PacketType::NodeKickRequest, NUM_BYTES_RFC4122_UUID + sizeof(int), true);
 
-            //int banParameters {};
-            //if (banByUsername) {
-            //    banParameters |= ModerationFlags::BanFlags::BAN_BY_USERNAME;
-            //}
-            //if (banByFingerprint) {
-            //    banParameters |= ModerationFlags::BanFlags::BAN_BY_FINGERPRINT;
-            //}
-            //if (banByIP) {
-            //    banParameters |= ModerationFlags::BanFlags::BAN_BY_IP;
-            //}
-
             // write the node ID to the packet
             kickPacket->write(nodeID.toRfc4122());
             // write the ban parameters to the packet
