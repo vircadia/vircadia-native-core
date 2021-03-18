@@ -76,7 +76,8 @@ bool NetworkMaterialResource::parseJSONColor(const QJsonValue& array, glm::vec3&
  * A material or set of materials used by a {@link Entities.EntityType|Material entity}.
  * @typedef {object} Entities.MaterialResource
  * @property {number} materialVersion=1 - The version of the material. <em>Currently not used.</em>
- * @property {Entities.Material|Entities.Material[]} materials - The details of the material or materials.
+ * @property {Entities.Material|Entities.Material[]|string} materials - The details of the material or materials, or the ID of another
+ *     material entity.
  */
 NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMaterials(const QJsonDocument& materialJSON, const QUrl& baseUrl) {
     ParsedMaterials toReturn;

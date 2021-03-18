@@ -951,10 +951,11 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *
  * @typedef {object} Entities.EntityProperties-Material
  * @property {Vec3} dimensions=0.1,0.1,0.1 - Used when <code>materialMappingMode == "projected"</code>.
- * @property {string} materialURL="" - URL to a {@link Entities.MaterialResource|MaterialResource}. If you append
- *     <code>"#name"</code> to the URL, the  material with that name in the {@link Entities.MaterialResource|MaterialResource}
- *     will be applied to the entity. Alternatively, set the property value to <code>"materialData"</code> to use the
- *     <code>materialData</code> property for the {@link Entities.MaterialResource|MaterialResource} values.
+ * @property {string} materialURL="" - URL to a {@link Entities.MaterialResource|MaterialResource}. Alternatively, set the
+ *     property value to <code>"materialData"</code> to use the <code>materialData</code> property for the
+ *     {@link Entities.MaterialResource|MaterialResource} values. If you append <code>"#name"</code> to the URL, the material
+ *     with that name will be applied to the entity. You can also use the ID of another material entity as the URL, in which
+ *     case this material will act as a copy of that material, with its own unique material transform, priority, etc.
  * @property {string} materialData="" - Used to store {@link Entities.MaterialResource|MaterialResource} data as a JSON string.
  *     You can use <code>JSON.parse()</code> to parse the string into a JavaScript object which you can manipulate the
  *     properties of, and use <code>JSON.stringify()</code> to convert the object into a string to put in the property.
