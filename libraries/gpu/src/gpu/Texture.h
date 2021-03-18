@@ -715,7 +715,7 @@ public:
     void resetTextureOperator(std::function<gpu::TexturePointer()> textureOperator);
 
     bool isDefined() const;
-    std::function<gpu::TexturePointer()> TextureSource::getTextureOperator() const { return _gpuTextureOperator; }
+    std::function<gpu::TexturePointer()> getTextureOperator() const { return _gpuTextureOperator; }
 
 protected:
     gpu::TexturePointer _gpuTexture;

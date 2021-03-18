@@ -122,7 +122,7 @@ bool ReferenceMaterial::isReady() const {
 
 QString ReferenceMaterial::getProceduralString() const {
     auto material = getMaterial();
-    return material ? material->getProceduralString() : false;
+    return material ? material->getProceduralString() : QString();
 }
 
 glm::vec4 ReferenceMaterial::getColor(const glm::vec4& color) const {
