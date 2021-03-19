@@ -101,11 +101,11 @@ jobs:
         echo "${{ steps.buildenv1.outputs.symbols_archive }}"
         echo "GIT_COMMIT_SHORT=${{ steps.buildenv1.outputs.github_sha_short }}" >> $GITHUB_ENV
         if [[ "${{ matrix.build_type }}" != "android" ]]; then
-          echo "ARTIFACT_PATTERN=Vircadia-PR${{ github.event.number }}-*.$INSTALLER_EXT" >> $GITHUB_ENV
-          # Build type variables
           if [ "${{ matrix.build_type }}" = "full" ]; then
+            echo "ARTIFACT_PATTERN=Vircadia-PR${{ github.event.number }}-*.$INSTALLER_EXT" >> $GITHUB_ENV
             echo "INSTALLER=Vircadia-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT" >> $GITHUB_ENV
           else
+            echo "ARTIFACT_PATTERN=Vircadia-Interface-PR${{ github.event.number }}-*.$INSTALLER_EXT" >> $GITHUB_ENV
             echo "INSTALLER=Vircadia-Interface-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT" >> $GITHUB_ENV
           fi
         else
