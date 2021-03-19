@@ -21,6 +21,8 @@ Q_DECLARE_LOGGING_CATEGORY(entities_audit);
 class EntitiesAuditLogging : public QObject {
     Q_OBJECT
 public:
+    virtual ~EntitiesAuditLogging();
+
     bool isProcessorRunning();
     void startAuditLogProcessor();
     void stopAuditLogProcessor();
@@ -33,7 +35,7 @@ private:
 
     QJsonObject auditLogAddBuffer;
     QJsonObject auditLogEditBuffer;
-    QTimer* auditLogProcessorTimer;
+    QTimer* _auditLogProcessorTimer;
     float _auditEditLoggingInterval;
 };
 

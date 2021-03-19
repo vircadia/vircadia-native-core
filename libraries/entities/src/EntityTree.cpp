@@ -67,7 +67,7 @@ EntityTree::~EntityTree() {
     // TODO: EntityTreeElement::_tree should be raw back pointer.
     // AND: EntityItem::_element should be a raw back pointer.
     //eraseAllOctreeElements(false); // KEEP THIS
-    entitiesAuditLogProcessor.stopAuditLogProcessor();
+    qCDebug(entities) << "Killing entityTree...";
 }
 
 void EntityTree::setEntityScriptSourceWhitelist(const QString& entityScriptSourceWhitelist) { 
