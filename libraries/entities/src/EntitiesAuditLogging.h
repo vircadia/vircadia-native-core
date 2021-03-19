@@ -35,7 +35,7 @@ private:
 
     QJsonObject auditLogAddBuffer;
     QJsonObject auditLogEditBuffer;
-    QTimer* _auditLogProcessorTimer;
+    QTimer* _auditLogProcessorTimer { nullptr };
     float _auditEditLoggingInterval;
 };
 

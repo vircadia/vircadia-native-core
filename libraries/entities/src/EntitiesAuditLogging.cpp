@@ -50,7 +50,7 @@ void EntitiesAuditLogging::stopAuditLogProcessor() {
 }
 
 bool EntitiesAuditLogging::isProcessorRunning() {
-    if (_auditLogProcessorTimer != NULL && _auditLogProcessorTimer && _auditLogProcessorTimer->isActive()) {
+    if (_auditLogProcessorTimer && _auditLogProcessorTimer != NULL && _auditLogProcessorTimer->isActive()) {
         return true;
     } else {
         return false;
