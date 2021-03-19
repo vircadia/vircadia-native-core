@@ -48,7 +48,7 @@ class UsersScriptingInterface : public QObject, public Dependency {
 
 public:
     UsersScriptingInterface();
-    void setKickConfirmationOperator(std::function<void(const QUuid& nodeID, int banFlags)> kickConfirmationOperator) {
+    void setKickConfirmationOperator(std::function<void(const QUuid& nodeID, unsigned int banFlags)> kickConfirmationOperator) {
         _kickConfirmationOperator = kickConfirmationOperator;
     }
 
@@ -125,7 +125,7 @@ public slots:
      * @param {Uuid} sessionID - The session ID of the user to kick and ban.
      * @param {number} - Preferred ban flags. <i>Bans a user by username (if available) and machine fingerprint by default.</i>
      */
-    void kick(const QUuid& nodeID, int banFlags = ModerationFlags::getDefaultBanFlags());
+    void kick(const QUuid& nodeID, unsigned int banFlags = ModerationFlags::getDefaultBanFlags());
 
     /**jsdoc
      * Mutes a user's microphone for everyone. The mute is not permanent: the user can unmute themselves. 
@@ -250,7 +250,7 @@ private:
     static constexpr unsigned int getBanByFingerprint() { return ModerationFlags::BanFlags::BAN_BY_FINGERPRINT; };
     static constexpr unsigned int getBanByIP() { return ModerationFlags::BanFlags::BAN_BY_IP; };
 
-    std::function<void(const QUuid& nodeID, int banFlags)> _kickConfirmationOperator;
+    std::function<void(const QUuid& nodeID, unsigned int banFlags)> _kickConfirmationOperator;
 
     ReadWriteLockable _kickResponseLock;
     bool _waitingForKickResponse { false };

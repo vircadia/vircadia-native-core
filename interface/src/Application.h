@@ -609,7 +609,7 @@ private:
     void toggleTabletUI(bool shouldOpen = false) const;
     bool shouldCaptureMouse() const;
 
-    void userKickConfirmation(const QUuid& nodeID, int banFlags = ModerationFlags::getDefaultBanFlags());
+    void userKickConfirmation(const QUuid& nodeID, unsigned int banFlags = ModerationFlags::getDefaultBanFlags());
 
     MainWindow* _window;
     QElapsedTimer& _sessionRunTimer;

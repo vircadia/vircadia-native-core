@@ -1264,7 +1264,7 @@ float NodeList::getInjectorGain() {
     return _injectorGain;
 }
 
-void NodeList::kickNodeBySessionID(const QUuid& nodeID, int banFlags) {
+void NodeList::kickNodeBySessionID(const QUuid& nodeID, unsigned int banFlags) {
     // send a request to domain-server to kick the node with the given session ID
     // the domain-server will handle the persistence of the kick (via username or IP)
 

@@ -52,7 +52,7 @@ float UsersScriptingInterface::getAvatarGain(const QUuid& nodeID) {
     return DependencyManager::get<NodeList>()->getAvatarGain(nodeID);
 }
 
-void UsersScriptingInterface::kick(const QUuid& nodeID, int banFlags) {
+void UsersScriptingInterface::kick(const QUuid& nodeID, unsigned int banFlags) {
     if (_kickConfirmationOperator) {
         bool waitingForKickResponse = _kickResponseLock.resultWithReadLock<bool>([&] { return _waitingForKickResponse; });
         if (getCanKick() && !waitingForKickResponse) {

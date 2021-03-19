@@ -870,7 +870,7 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
         bool banByFingerprint;
         bool banByIP;
         // pull optional ban parameters from the packet
-        if (message.data()->getSize() > NUM_BYTES_RFC4122_UUID) {
+        if (message.data()->getSize() == (NUM_BYTES_RFC4122_UUID + sizeof(int))) {
             hasOptionalBanParameters = true;
             message->readPrimitive(&banParameters);
             banByUsername = banParameters & ModerationFlags::BanFlags::BAN_BY_USERNAME;
