@@ -64,7 +64,7 @@ jobs:
           if [ "${{ matrix.build_type }}" = "full" ]; then
             echo "CMAKE_EXTRA=-DBUILD_TOOLS:BOOLEAN=FALSE -DHIFI_PYTHON_EXEC:FILEPATH=$(which python3)" >> $GITHUB_ENV
           else
-            echo "CMAKE_EXTRA=-DCLIENT-ONLY=1 -DBUILD_TOOLS:BOOLEAN=FALSE -DHIFI_PYTHON_EXEC:FILEPATH=$(which python3)" >> $GITHUB_ENV
+            echo "CMAKE_EXTRA=-DCLIENT_ONLY=1 -DBUILD_TOOLS:BOOLEAN=FALSE -DHIFI_PYTHON_EXEC:FILEPATH=$(which python3)" >> $GITHUB_ENV
           fi
         fi
         # Mac build variables
@@ -74,7 +74,7 @@ jobs:
           if [ "${{ matrix.build_type }}" = "full" ]; then
             echo "CMAKE_EXTRA=-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode" >> $GITHUB_ENV
           else
-            echo "CMAKE_EXTRA=-DCLIENT-ONLY=1 -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode" >> $GITHUB_ENV
+            echo "CMAKE_EXTRA=-DCLIENT_ONLY=1 -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode" >> $GITHUB_ENV
           fi
         fi
         # Windows build variables
@@ -84,7 +84,7 @@ jobs:
           if [ "${{ matrix.build_type }}" = "full" ]; then
             echo "CMAKE_EXTRA=-A x64" >> $GITHUB_ENV
           else
-            echo "CMAKE_EXTRA=-A x64 -DCLIENT-ONLY=1" >> $GITHUB_ENV
+            echo "CMAKE_EXTRA=-A x64 -DCLIENT_ONLY=1" >> $GITHUB_ENV
           fi
         fi
         # Android + Quest build variables
