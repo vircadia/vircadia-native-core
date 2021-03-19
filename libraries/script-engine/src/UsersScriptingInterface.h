@@ -33,6 +33,10 @@
  *     <code>false</code>. <em>Read-only.</em>
  * @property {boolean} requestsDomainListData - <code>true</code> if the client requests extra data from the mixers (such as 
  *     positional data of an avatar they've ignored). <em>Read-only.</em>
+ * @property {BanFlags} NO_BAN - Do not ban person. <em>Read-only.</em>
+ * @property {BanFlags} BAN_BY_USERNAME - Ban person by username. <em>Read-only.</em>
+ * @property {BanFlags} BAN_BY_FINGERPRINT - Ban person by fingerprint. <em>Read-only.</em>
+ * @property {BanFlags} BAN_BY_IP - Ban person by IP address. <em>Read-only.</em>
  */
 class UsersScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
@@ -118,8 +122,8 @@ public slots:
     float getAvatarGain(const QUuid& nodeID);
 
     /**jsdoc
-     * Kicks and bans a user. This removes them from the server and prevents them from returning. The ban is by user name if 
-     * available and by machine fingerprint. The ban functionality can be controlled with flags.
+     * Kicks and bans a user. This removes them from the server and prevents them from returning. The ban is by user name (if 
+     * available) and by machine fingerprint. The ban functionality can be controlled with flags.
      * <p>This function only works if you're an administrator of the domain you're in.</p>
      * @function Users.kick
      * @param {Uuid} sessionID - The session ID of the user to kick and ban.

@@ -14,6 +14,23 @@
 
 class ModerationFlags {
 public:
+    
+    /**jsdoc
+     * <p>A set of flags for moderation ban actions. The value is constructed by using the <code>|</code> (bitwise OR) operator on the 
+     * individual flag values.</p>
+     * <table>
+     *   <thead>
+     *     <tr><th>Flag Name</th><th>Value</th><th>Description</th></tr>
+     *   </thead>
+     *   <tbody>
+     *     <tr><td>NO_BAN</td><td><code>0</code></td><td>Don't ban user when kicking. <em>This does not currently have an effect.</em></td></tr>
+     *     <tr><td>BAN_BY_USERNAME</td><td><code>1</code></td><td>Ban the person by their username.</td></tr>
+     *     <tr><td>BAN_BY_FINGERPRINT</td><td><code>2</code></td><td>Ban the person by their machine fingerprint.</td></tr>
+     *     <tr><td>BAN_BY_IP</td><td><code>4</code></td><td>Ban the person by their IP address.</td></tr>
+     *   </tbody>
+     * </table>
+     * @typedef {number} BanFlags
+     */
     enum BanFlags
     {
         NO_BAN = 0,
