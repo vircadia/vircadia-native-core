@@ -15,7 +15,6 @@
 #include "EntityItem.h"
 
 #include "PulsePropertyGroup.h"
-#include "TextEffect.h"
 
 class TextEntityItem : public EntityItem {
 public:
@@ -48,17 +47,6 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
-    glm::vec3 getRaycastDimensions() const override;
-    virtual bool supportsDetailedIntersection() const override { return true; }
-    virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         OctreeElementPointer& element, float& distance,
-                         BoxFace& face, glm::vec3& surfaceNormal,
-                         QVariantMap& extraInfo, bool precisionPicking) const override;
-    virtual bool findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
-                         const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
-                         BoxFace& face, glm::vec3& surfaceNormal,
-                         QVariantMap& extraInfo, bool precisionPicking) const override;
-
     static const QString DEFAULT_TEXT;
     void setText(const QString& value);
     QString getText() const;
@@ -81,9 +69,6 @@ public:
 
     float getBackgroundAlpha() const;
     void setBackgroundAlpha(float value);
-
-    BillboardMode getBillboardMode() const;
-    void setBillboardMode(BillboardMode value);
 
     static const float DEFAULT_MARGIN;
     float getLeftMargin() const;
@@ -114,11 +99,12 @@ public:
     float getTextEffectThickness() const;
     void setTextEffectThickness(float value);
 
+    TextAlignment getAlignment() const;
+    void setAlignment(TextAlignment value);
+
     PulsePropertyGroup getPulseProperties() const;
 
 private:
-    BillboardMode _billboardMode;
-
     QString _text;
     float _lineHeight;
     glm::u8vec3 _textColor;
@@ -133,6 +119,7 @@ private:
     bool _unlit;
 
     QString _font;
+    TextAlignment _alignment;
     TextEffect _effect;
     glm::u8vec3 _effectColor;
     float _effectThickness;

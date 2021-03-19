@@ -31,6 +31,7 @@
 #include "Socket.h"
 #include <Trace.h>
 #include <Profile.h>
+#include <ThreadHelpers.h>
 
 #include "../NetworkLogging.h"
 
@@ -67,24 +68,26 @@ const microseconds SendQueue::MINIMUM_ESTIMATED_TIMEOUT = milliseconds(10);
 std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destination, SequenceNumber currentSequenceNumber,
                                              MessageNumber currentMessageNumber, bool hasReceivedHandshakeACK) {
     Q_ASSERT_X(socket, "SendQueue::create", "Must be called with a valid Socket*");
-    
+
     auto queue = std::unique_ptr<SendQueue>(new SendQueue(socket, destination, currentSequenceNumber,
                                                           currentMessageNumber, hasReceivedHandshakeACK));
 
     // Setup queue private thread
-    QThread* thread = new QThread;
-    thread->setObjectName("Networking: SendQueue " + destination.objectName()); // Name thread for easier debug
-    
+    QThread* thread = new QThread();
+    QString name = "Networking: SendQueue " + destination.objectName();
+    thread->setObjectName(name); // Name thread for easier debug
+
+    connect(thread, &QThread::started, [name] { setThreadName(name.toStdString()); });
     connect(thread, &QThread::started, queue.get(), &SendQueue::run);
-    
+
     connect(queue.get(), &QObject::destroyed, thread, &QThread::quit); // Thread auto cleanup
     connect(thread, &QThread::finished, thread, &QThread::deleteLater); // Thread auto cleanup
-    
+
     // Move queue to private thread and start it
     queue->moveToThread(thread);
-    
+
     thread->start();
-    
+
     return queue;
 }
     

@@ -64,7 +64,7 @@ public:
     static glm::vec3 calculatePulseColor(const glm::vec3& color, const PulsePropertyGroup& pulseProperties, quint64 start);
 
     virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) const override;
-    virtual Item::Bound getBound() override;
+    virtual Item::Bound getBound(RenderArgs* args) override;
     bool passesZoneOcclusionTest(const std::unordered_set<QUuid>& containingZones) const override;
 
 protected:
@@ -95,14 +95,13 @@ protected:
     // Will be called by the lambda posted to the scene in updateInScene.  
     // This function will execute on the rendering thread, so you cannot use network caches to fetch
     // data in this method if using multi-threaded rendering
-    
-    virtual void doRenderUpdateAsynchronous(const EntityItemPointer& entity) { }
+    virtual void doRenderUpdateAsynchronous(const EntityItemPointer& entity);
 
     // Called by the `render` method after `needsRenderUpdate`
     virtual void doRender(RenderArgs* args) = 0;
 
     virtual bool isFading() const { return _isFading; }
-    virtual void updateModelTransformAndBound();
+    virtual void updateModelTransformAndBound(const EntityItemPointer& entity);
     virtual bool isTransparent() const { return _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f : false; }
     inline bool isValidRenderItem() const { return _renderItemID != Item::INVALID_ITEM_ID; }
 
@@ -110,15 +109,13 @@ protected:
     virtual void setRenderLayer(RenderLayer value) { _renderLayer = value; }
     virtual void setCullWithParent(bool value) { _cullWithParent = value; }
 
-signals:
-    void requestRenderUpdate();
-
-protected:
     template<typename T>
     std::shared_ptr<T> asTypedEntity() { return std::static_pointer_cast<T>(_entity); }
 
     static void makeStatusGetters(const EntityItemPointer& entity, Item::Status::Getters& statusGetters);
     const Transform& getModelTransform() const;
+
+    Transform getTransformToCenterWithMaybeOnlyLocalRotation(const EntityItemPointer& entity, bool& success) const;
 
     Item::Bound _bound;
     SharedSoundPointer _collisionSound;
@@ -135,6 +132,7 @@ protected:
     RenderLayer _renderLayer { RenderLayer::WORLD };
     PrimitiveMode _primitiveMode { PrimitiveMode::SOLID };
     QVector<QUuid> _renderWithZones;
+    BillboardMode _billboardMode;
     bool _cauterized { false };
     bool _moving { false };
     Transform _renderTransform;
@@ -154,6 +152,9 @@ protected:
     const EntityItemPointer _entity;
 
     QUuid _entityID;
+
+signals:
+    void requestRenderUpdate();
 };
 
 template <typename T>

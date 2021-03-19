@@ -49,6 +49,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <ui-plugins/PluginContainer.h>
 #include <plugins/DisplayPlugin.h>
+#include <ThreadHelpers.h>
 
 #include <controllers/UserInputMapper.h>
 #include <plugins/InputConfiguration.h>
@@ -403,6 +404,7 @@ bool ViveControllerManager::activate() {
 
         if (_viveProEye) {
             _viveProEyeReadThread = std::make_shared<ViveProEyeReadThread>();
+            connect(_viveProEyeReadThread.get(), &QThread::started, [] { setThreadName("ViveProEyeReadThread"); });
             _viveProEyeReadThread->start(QThread::HighPriority);
         }
     }

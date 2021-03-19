@@ -65,7 +65,6 @@ struct QuadBuilder {
         vertices[3] = TextureVertex(min + size,
                                     texMin + glm::vec2(texSize.x, 0.0f), bounds);
     }
-
 };
 
 Font::Pointer Font::load(QIODevice& fontFile) {
@@ -303,7 +302,18 @@ void Font::setupGPU() {
     }
 }
 
-void Font::buildVertices(Font::DrawInfo& drawInfo, const QString& str, const glm::vec2& origin, const glm::vec2& bounds, float scale, bool enlargeForShadows) {
+inline QuadBuilder adjustedQuadBuilderForAlignmentMode(const Glyph& glyph, glm::vec2 advance, float scale, float enlargeForShadows,
+                                                TextAlignment alignment, float rightSpacing) {
+    if (alignment == TextAlignment::RIGHT) {
+        advance.x += rightSpacing;
+    } else if (alignment == TextAlignment::CENTER) {
+        advance.x += 0.5f * rightSpacing;
+    }
+    return QuadBuilder(glyph, advance, scale, enlargeForShadows);
+}
+
+void Font::buildVertices(Font::DrawInfo& drawInfo, const QString& str, const glm::vec2& origin, const glm::vec2& bounds, float scale, bool enlargeForShadows,
+                         TextAlignment alignment) {
     drawInfo.verticesBuffer = std::make_shared<gpu::Buffer>();
     drawInfo.indicesBuffer = std::make_shared<gpu::Buffer>();
     drawInfo.indexCount = 0;
@@ -314,15 +324,17 @@ void Font::buildVertices(Font::DrawInfo& drawInfo, const QString& str, const glm
     drawInfo.origin = origin;
 
     float enlargedBoundsX = bounds.x - 0.5f * DOUBLE_MAX_OFFSET_PIXELS * float(enlargeForShadows);
+    float rightEdge = origin.x + enlargedBoundsX;
 
     // Top left of text
     glm::vec2 advance = origin;
+    std::vector<std::pair<Glyph, vec2>> glyphsAndCorners;
     foreach(const QString& token, tokenizeForWrapping(str)) {
         bool isNewLine = (token == QString('\n'));
         bool forceNewLine = false;
 
         // Handle wrapping
-        if (!isNewLine && (bounds.x != -1) && (advance.x + computeExtent(token).x > origin.x + enlargedBoundsX)) {
+        if (!isNewLine && (bounds.x != -1) && (advance.x + computeExtent(token).x > rightEdge)) {
             // We are out of the x bound, force new line
             forceNewLine = true;
         }
@@ -347,38 +359,8 @@ void Font::buildVertices(Font::DrawInfo& drawInfo, const QString& str, const glm
         if (!isNewLine) {
             for (auto c : token) {
                 auto glyph = _glyphs[c];
-                quint16 verticesOffset = numVertices;
 
-                QuadBuilder qd(glyph, advance - glm::vec2(0.0f, _ascent), scale, enlargeForShadows);
-                drawInfo.verticesBuffer->append(qd);
-                numVertices += VERTICES_PER_QUAD;
-
-                // Sam's recommended triangle slices
-                // Triangle tri1 = { v0, v1, v3 };
-                // Triangle tri2 = { v1, v2, v3 };
-                // NOTE: Random guy on the internet's recommended triangle slices
-                // Triangle tri1 = { v0, v1, v2 };
-                // Triangle tri2 = { v2, v3, v0 };
-
-                // The problem here being that the 4 vertices are { ll, lr, ul, ur }, a Z pattern
-                // Additionally, you want to ensure that the shared side vertices are used sequentially
-                // to improve cache locality
-                //
-                //  2 -- 3
-                //  |    |
-                //  |    |
-                //  0 -- 1
-                //
-                //  { 0, 1, 2 } -> { 2, 1, 3 }
-                quint16 indices[NUMBER_OF_INDICES_PER_QUAD];
-                indices[0] = verticesOffset + 0;
-                indices[1] = verticesOffset + 1;
-                indices[2] = verticesOffset + 2;
-                indices[3] = verticesOffset + 2;
-                indices[4] = verticesOffset + 1;
-                indices[5] = verticesOffset + 3;
-                drawInfo.indicesBuffer->append(sizeof(indices), (const gpu::Byte*)indices);
-                drawInfo.indexCount += NUMBER_OF_INDICES_PER_QUAD;
+                glyphsAndCorners.emplace_back(glyph, advance - glm::vec2(0.0f, _ascent));
 
                 // Advance by glyph size
                 advance.x += glyph.d;
@@ -388,10 +370,71 @@ void Font::buildVertices(Font::DrawInfo& drawInfo, const QString& str, const glm
             advance.x += _spaceWidth;
         }
     }
+
+    std::vector<QuadBuilder> quadBuilders;
+    quadBuilders.reserve(glyphsAndCorners.size());
+    {
+        int i = glyphsAndCorners.size() - 1;
+        while (i >= 0) {
+            auto nextGlyphAndCorner = glyphsAndCorners[i];
+            float rightSpacing = rightEdge - (nextGlyphAndCorner.second.x + nextGlyphAndCorner.first.d);
+            quadBuilders.push_back(adjustedQuadBuilderForAlignmentMode(nextGlyphAndCorner.first, nextGlyphAndCorner.second, scale, enlargeForShadows,
+                                                                       alignment, rightSpacing));
+            i--;
+            while (i >= 0) {
+                auto prevGlyphAndCorner = glyphsAndCorners[i];
+                // We're to the right of the last character we checked, which means we're on a previous line, so we need to
+                // recalculate the spacing, so we exit this loop
+                if (prevGlyphAndCorner.second.x >= nextGlyphAndCorner.second.x) {
+                    break;
+                }
+
+                quadBuilders.push_back(adjustedQuadBuilderForAlignmentMode(prevGlyphAndCorner.first, prevGlyphAndCorner.second, scale, enlargeForShadows,
+                                                                           alignment, rightSpacing));
+
+                nextGlyphAndCorner = prevGlyphAndCorner;
+                i--;
+            }
+        }
+    }
+
+    // The quadBuilders is backwards now because we looped over the glyphs backwards to adjust their alignment
+    for (int i = quadBuilders.size() - 1; i >= 0; i--) {
+        quint16 verticesOffset = numVertices;
+        drawInfo.verticesBuffer->append(quadBuilders[i]);
+        numVertices += VERTICES_PER_QUAD;
+
+        // Sam's recommended triangle slices
+        // Triangle tri1 = { v0, v1, v3 };
+        // Triangle tri2 = { v1, v2, v3 };
+        // NOTE: Random guy on the internet's recommended triangle slices
+        // Triangle tri1 = { v0, v1, v2 };
+        // Triangle tri2 = { v2, v3, v0 };
+
+        // The problem here being that the 4 vertices are { ll, lr, ul, ur }, a Z pattern
+        // Additionally, you want to ensure that the shared side vertices are used sequentially
+        // to improve cache locality
+        //
+        //  2 -- 3
+        //  |    |
+        //  |    |
+        //  0 -- 1
+        //
+        //  { 0, 1, 2 } -> { 2, 1, 3 }
+        quint16 indices[NUMBER_OF_INDICES_PER_QUAD];
+        indices[0] = verticesOffset + 0;
+        indices[1] = verticesOffset + 1;
+        indices[2] = verticesOffset + 2;
+        indices[3] = verticesOffset + 2;
+        indices[4] = verticesOffset + 1;
+        indices[5] = verticesOffset + 3;
+        drawInfo.indicesBuffer->append(sizeof(indices), (const gpu::Byte*)indices);
+        drawInfo.indexCount += NUMBER_OF_INDICES_PER_QUAD;
+    }
 }
 
 void Font::drawString(gpu::Batch& batch, Font::DrawInfo& drawInfo, const QString& str, const glm::vec4& color,
-                      const glm::vec3& effectColor, float effectThickness, TextEffect effect,
+                      const glm::vec3& effectColor, float effectThickness, TextEffect effect, TextAlignment alignment,
                       const glm::vec2& origin, const glm::vec2& bounds, float scale, bool unlit, bool forward) {
     if (!_loaded || str == "") {
         return;
@@ -401,11 +444,12 @@ void Font::drawString(gpu::Batch& batch, Font::DrawInfo& drawInfo, const QString
     const int SHADOW_EFFECT = (int)TextEffect::SHADOW_EFFECT;
 
     // If we're switching to or from shadow effect mode, we need to rebuild the vertices
-    if (str != drawInfo.string || bounds != drawInfo.bounds || origin != drawInfo.origin ||
+    if (str != drawInfo.string || bounds != drawInfo.bounds || origin != drawInfo.origin || alignment != _alignment ||
             (drawInfo.params.effect != textEffect && (textEffect == SHADOW_EFFECT || drawInfo.params.effect == SHADOW_EFFECT)) ||
             (textEffect == SHADOW_EFFECT && scale != _scale)) {
         _scale = scale;
-        buildVertices(drawInfo, str, origin, bounds, scale, textEffect == SHADOW_EFFECT);
+        _alignment = alignment;
+        buildVertices(drawInfo, str, origin, bounds, scale, textEffect == SHADOW_EFFECT, alignment);
     }
 
     setupGPU();

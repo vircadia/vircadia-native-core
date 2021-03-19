@@ -21,6 +21,7 @@
 #include "SettingManager.h"
 #include "SharedLogging.h"
 #include "SharedUtil.h"
+#include "ThreadHelpers.h"
 
 namespace Setting {
     // This should only run as a post-routine in the QCoreApplication destructor
@@ -53,7 +54,10 @@ namespace Setting {
         thread->setObjectName("Settings Thread");
 
         // Setup setting periodical save timer
-        QObject::connect(thread, &QThread::started, globalManager.data(), &Manager::startTimer);
+        QObject::connect(thread, &QThread::started, globalManager.data(), [globalManager] {
+            setThreadName("Settings Save Thread");
+            globalManager->startTimer();
+        });
         QObject::connect(thread, &QThread::finished, globalManager.data(), &Manager::stopTimer);
 
         // Setup manager threading affinity

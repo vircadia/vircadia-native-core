@@ -137,8 +137,15 @@ EntityRenderer::~EntityRenderer() {}
 // Smart payload proxy members, implementing the payload interface
 //
 
-Item::Bound EntityRenderer::getBound() {
-    return _bound;
+Item::Bound EntityRenderer::getBound(RenderArgs* args) {
+    auto bound = _bound;
+    if (_billboardMode != BillboardMode::NONE) {
+        glm::vec3 dimensions = bound.getScale();
+        float max = glm::max(dimensions.x, glm::max(dimensions.y, dimensions.z));
+        const float SQRT_2 = 1.41421356237f;
+        bound.setScaleStayCentered(glm::vec3(SQRT_2 * max));
+    }
+    return bound;
 }
 
 ShapeKey EntityRenderer::getShapeKey() {
@@ -198,12 +205,9 @@ uint32_t EntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) const {
 }
 
 bool EntityRenderer::passesZoneOcclusionTest(const std::unordered_set<QUuid>& containingZones) const {
-    auto renderWithZones = resultWithReadLock<QVector<QUuid>>([&] {
-        return _renderWithZones;
-    });
-    if (!renderWithZones.isEmpty()) {
+    if (!_renderWithZones.isEmpty()) {
         if (!containingZones.empty()) {
-            for (auto renderWithZone : renderWithZones) {
+            for (auto renderWithZone : _renderWithZones) {
                 if (containingZones.find(renderWithZone) != containingZones.end()) {
                     return true;
                 }
@@ -364,6 +368,11 @@ bool EntityRenderer::needsRenderUpdate() const {
     return needsRenderUpdateFromEntity(_entity);
 }
 
+Transform EntityRenderer::getTransformToCenterWithMaybeOnlyLocalRotation(const EntityItemPointer& entity, bool& success) const {
+    return entity->getBillboardMode() == BillboardMode::NONE ? entity->getTransformToCenter(success) :
+        entity->getTransformToCenterWithOnlyLocalRotation(success);
+}
+
 // Returns true if the item in question needs to have updateInScene called because of changes in the entity
 bool EntityRenderer::needsRenderUpdateFromEntity(const EntityItemPointer& entity) const {
     if (entity->needsRenderUpdate()) {
@@ -375,12 +384,12 @@ bool EntityRenderer::needsRenderUpdateFromEntity(const EntityItemPointer& entity
     }
 
     bool success = false;
-    auto bound = _entity->getAABox(success);
+    auto bound = entity->getAABox(success);
     if (success && _bound != bound) {
         return true;
     }
 
-    auto newModelTransform = _entity->getTransformToCenter(success);
+    auto newModelTransform = getTransformToCenterWithMaybeOnlyLocalRotation(entity, success);
     // FIXME can we use a stale model transform here?
     if (success && newModelTransform != _modelTransform) {
         return true;
@@ -397,15 +406,15 @@ bool EntityRenderer::needsRenderUpdateFromEntity(const EntityItemPointer& entity
     return false;
 }
 
-void EntityRenderer::updateModelTransformAndBound() {
+void EntityRenderer::updateModelTransformAndBound(const EntityItemPointer& entity) {
     bool success = false;
-    auto newModelTransform = _entity->getTransformToCenter(success);
+    auto newModelTransform = getTransformToCenterWithMaybeOnlyLocalRotation(entity, success);
     if (success) {
         _modelTransform = newModelTransform;
     }
 
     success = false;
-    auto bound = _entity->getAABox(success);
+    auto bound = entity->getAABox(success);
     if (success) {
         _bound = bound;
     }
@@ -425,22 +434,26 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
 
         _prevIsTransparent = transparent;
 
-        updateModelTransformAndBound();
+        updateModelTransformAndBound(entity);
 
         _moving = entity->isMovingRelativeToParent();
         _visible = entity->getVisible();
-        setIsVisibleInSecondaryCamera(entity->isVisibleInSecondaryCamera());
-        setRenderLayer(entity->getRenderLayer());
-        _primitiveMode = entity->getPrimitiveMode();
-        _canCastShadow = entity->getCanCastShadow();
-        setCullWithParent(entity->getCullWithParent());
-        _cauterized = entity->getCauterized();
-        if (entity->needsZoneOcclusionUpdate()) {
-            entity->resetNeedsZoneOcclusionUpdate();
-            _renderWithZones = entity->getRenderWithZones();
-        }
         entity->setNeedsRenderUpdate(false);
     });
+}
+
+void EntityRenderer::doRenderUpdateAsynchronous(const EntityItemPointer& entity) {
+    setIsVisibleInSecondaryCamera(entity->isVisibleInSecondaryCamera());
+    setRenderLayer(entity->getRenderLayer());
+    _billboardMode = entity->getBillboardMode();
+    _primitiveMode = entity->getPrimitiveMode();
+    _canCastShadow = entity->getCanCastShadow();
+    setCullWithParent(entity->getCullWithParent());
+    _cauterized = entity->getCauterized();
+    if (entity->needsZoneOcclusionUpdate()) {
+        entity->resetNeedsZoneOcclusionUpdate();
+        _renderWithZones = entity->getRenderWithZones();
+    }
 }
 
 void EntityRenderer::onAddToScene(const EntityItemPointer& entity) {

@@ -17,6 +17,7 @@
 
 #include "text/Font.h"
 #include "TextEffect.h"
+#include "TextAlignment.h"
 #include "FontFamilies.h"
 
 class TextRenderer3D {
@@ -30,7 +31,7 @@ public:
               const QString& str, const glm::vec4& color, bool unlit, bool forward);
     void draw(gpu::Batch& batch, float x, float y, const glm::vec2& bounds, float scale,
               const QString& str, const QString& font, const glm::vec4& color, const glm::vec3& effectColor,
-              float effectThickness, TextEffect effect, bool unlit, bool forward);
+              float effectThickness, TextEffect effect, TextAlignment alignment, bool unlit, bool forward);
 
 private:
     TextRenderer3D(const char* family);

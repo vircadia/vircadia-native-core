@@ -60,6 +60,7 @@
 #include <Gzip.h>
 
 #include <OctreeDataUtils.h>
+#include <ThreadHelpers.h>
 
 using namespace std::chrono;
 
@@ -830,9 +831,11 @@ void DomainServer::setupNodeListAndAssignments() {
     // set a custom packetVersionMatch as the verify packet operator for the udt::Socket
     nodeList->setPacketFilterOperator(&DomainServer::isPacketVerified);
 
-    _assetClientThread.setObjectName("AssetClient Thread");
+    QString name = "AssetClient Thread";
+    _assetClientThread.setObjectName(name);
     auto assetClient = DependencyManager::set<AssetClient>();
     assetClient->moveToThread(&_assetClientThread);
+    connect(&_assetClientThread, &QThread::started, [name] { setThreadName(name.toStdString()); });
     _assetClientThread.start();
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();

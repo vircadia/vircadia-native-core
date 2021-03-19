@@ -1,6 +1,6 @@
 # Creating an Installer
 
-*Last Updated on August 24, 2020*
+*Last Updated on March 4, 2021*
 
 Follow the [build guide](BUILD.md) to figure out how to build Vircadia for your platform.
 
@@ -9,13 +9,13 @@ During generation, CMake should produce an `install` target and a `package` targ
 The `install` target will copy the Vircadia targets and their dependencies to your `CMAKE_INSTALL_PREFIX`.  
 This variable is set by the `project(hifi)` command in `CMakeLists.txt` to `C:/Program Files/hifi` and stored in `build/CMakeCache.txt`
 
-### Packaging
+## Packaging
 
 To produce an installer, run the `package` target. However you will want to follow the steps specific to your platform below.
 
-#### Windows
+### Windows
 
-##### Prerequisites
+#### Prerequisites
 
 To produce an executable installer on Windows, the following are required:
 
@@ -63,11 +63,11 @@ To produce an executable installer on Windows, the following are required:
 1. [Node.JS and NPM](<https://nodejs.org/en/download/>)
     1.  Install version 10.15.0 LTS (or greater)
     
-##### Code Signing (optional)
+#### Code Signing (optional)
 
 For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PASSPHRASE` environment variables to be present during CMake runtime and globally as we proceed to package the installer.
 
-##### Creating the Installer
+#### Creating the Installer
     
 1.  Perform a clean cmake from a new terminal.
 1.  Open the `vircadia.sln` solution with elevated (administrator) permissions on Visual Studio and select the **Release** configuration.
@@ -79,7 +79,14 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
 1.  Build CMakeTargets->PACKAGE   
     The installer is now available in `build\_CPack_Packages\win64\NSIS`
 
-#### OS X
+#### FAQ
+
+1. **Problem:** Failure to open a file. ```File: failed opening file "\FOLDERSHARE\XYZSRelease\...\Credits.rtf" Error in script "C:\TFS\XYZProject\Releases\NullsoftInstaller\XYZWin7Installer.nsi" on line 77 -- aborting creation process```
+    1. **Cause:** The complete path (current directory + relative path) has to be < 260 characters to any of the relevant files.
+    1. **Solution:** Move your build and packaging folder as high up in the drive as possible to prevent an overage.
+
+### OS X
+
 1.   [npm](<https://www.npmjs.com/get-npm>)
       Install version 12.16.3 LTS
    
@@ -91,8 +98,156 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
 1.  Perform a Release build of `package`
       Installer is now available in `build/_CPack_Packages/Darwin/DragNDrop
       
-### FAQ
+### Linux
 
-1. **Problem:** Failure to open a file. ```File: failed opening file "\FOLDERSHARE\XYZSRelease\...\Credits.rtf" Error in script "C:\TFS\XYZProject\Releases\NullsoftInstaller\XYZWin7Installer.nsi" on line 77 -- aborting creation process```
-    1. **Cause:** The complete path (current directory + relative path) has to be < 260 characters to any of the relevant files.
-    1. **Solution:** Move your build and packaging folder as high up in the drive as possible to prevent an overage.
+#### Server
+
+##### Ubuntu 18.04 | .deb
+
+1. Ensure you are using an Ubuntu 18.04 system. There is no required minimum to the amount of CPU cores needed, however it's recommended that you use as many as you have available in order to have an efficient experience.
+    ```
+    Recommended CPU Cores: 16
+    Minimum Disk Space: 40GB
+    ```
+3. Get and bootstrap Vircadia Builder.
+    ```
+    git clone https://github.com/vircadia/vircadia-builder.git
+    cd vircadia-builder
+    ```
+3. Run Vircadia Builder.
+    ```
+    ./vircadia-builder --build server
+    ```
+4. If Vircadia Builder needed to install dependencies and asks you to run it again then do so. Otherwise, skip to the next step.
+    ```
+    ./vircadia-builder --build server
+    ```
+5. Vircadia Builder will ask you to configure it to build the server. The values will be prefilled with defaults, the following steps will explain what they are and what you might want to put. *Advanced users: See [here](BUILD.md#possible-environment-variables) for possible environment variables and settings.*
+6. This value is the Git repository of Vircadia. You can set this URL to your fork of the Vircadia repository if you need to.
+    ```
+    Git repository: https://github.com/vircadia/vircadia/
+    # OR, for example
+    Git repository: https://github.com/digisomni/vircadia/
+    ```
+7. This value is the tag on the repository. If you would like to use a specific version of Vircadia, typically tags will be named like this: "v2021.1.0-rc"
+    ```
+    Git tag: master
+    # OR, for example
+    Git tag: v2021.1.0-rc
+    ```
+8. This value is the release type. For example, the options are `production`, `pr`, or `dev`. If you are making a build for yourself and others to use then use `production`.
+    ```
+    Release type: DEV
+    # OR, for example we recommend you use
+    Release type: PRODUCTION
+    ```
+9. This value is the release version. Release numbers should be in a format of `YEAR-MAJORVERSION-MINORVERSION` which might look like this: `2021.1.0`.
+    ```
+    Release number: 2021.1.0
+    ```
+10. This value is the build number. We typically use the hash of the most recent commit on that Git tag which might look like this: `fd6973b`.
+    ```
+    Build number: fd6973b
+    ```
+11. This value is the directory that Vircadia will get installed to. You should leave this as the default value unless you are an advanced user.
+    ```
+    Installation dir: /home/ubuntu/Vircadia
+    ```
+12. This value is the number of CPU cores that the Vircadia Builder will use to compile the Vircadia server. By default it will use all cores available on your build server. You should leave this as the default value it gives you for your build server.
+    ```
+    CPU cores to use for Vircadia: 16
+    ```
+13. This value is the number of CPU cores that the Vircadia Builder will use to compile Qt5 (a required component for Vircadia). By default it will use all cores available on your build server. You should leave this as the default value it gives you for your build server.
+    ```
+    CPU cores to use for Qt5: 16
+    ```
+14. It will ask you if you would like to proceed with the specified values. If you're happy with the configuration, type `yes`, otherwise enter `no` and press enter to start over. You can press `Ctrl` + `C` simultaneously on your keyboard to exit.
+15. Vircadia Builder will now run, it may take a while. See this [table](https://github.com/vircadia/vircadia-builder#how-long-does-it-take) for estimated times.
+16. Navigate to the `pkg-scripts` directory.
+    ```
+    cd ../Vircadia/source/pkg-scripts/
+    ```
+17. Generate the .rpm package. Set `RPMVERSION` to the same version you entered for the `Release number` on Vircadia Builder. *Advanced users: the version cannot begin with a letter and cannot include underscores or dashes in it.*
+    ```
+    DEBVERSION="2021.1.0" DEBEMAIL="your-email@somewhere.com" DEBFULLNAME="Your Full Name" ./make-deb-server
+    ```
+18. If successful, the generated .deb package will be in the `pkg-scripts` folder.
+
+##### Amazon Linux 2 | .rpm
+
+1. Ensure you are using an Amazon Linux 2 system. You will need many CPU cores to complete this process within a reasonable time. As an alternative to AWS EC2, you may use a [virtual machine](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/amazon-linux-2-virtual-machine.html). Here are the recommended specs:
+    ```
+    AWS EC2 Instance Type: C5a.4xlarge
+    Recommended CPU Cores: 16
+    Minimum Disk Space: 40GB
+    ```
+2. Update the system and install dependencies.
+    ```
+    sudo yum update -y
+    sudo yum install git -y
+    sudo yum install rpm-build
+    ```
+3. Get and bootstrap Vircadia Builder.
+    ```
+    git clone https://github.com/vircadia/vircadia-builder.git
+    cd vircadia-builder
+    sudo ./install_amazon_linux_deps.sh
+    ```
+4. Run Vircadia Builder.
+    ```
+    ./vircadia-builder --build server
+    ```
+5. If Vircadia Builder needed to install dependencies and asks you to run it again then do so. Otherwise, skip to the next step.
+    ```
+    ./vircadia-builder --build server
+    ```
+6. Vircadia Builder will ask you to configure it to build the server. The values will be prefilled with defaults, the following steps will explain what they are and what you might want to put. *Advanced users: See [here](BUILD.md#possible-environment-variables) for possible environment variables and settings.*
+7. This value is the Git repository of Vircadia. You can set this URL to your fork of the Vircadia repository if you need to.
+    ```
+    Git repository: https://github.com/vircadia/vircadia/
+    # OR, for example
+    Git repository: https://github.com/digisomni/vircadia/
+    ```
+8. This value is the tag on the repository. If you would like to use a specific version of Vircadia, typically tags will be named like this: "v2021.1.0-rc".
+    ```
+    Git tag: master
+    # OR, for example
+    Git tag: v2021.1.0-rc
+    ```
+9. This value is the release type. For example, the options are `production`, `pr`, or `dev`. If you are making a build for yourself and others to use then use `production`.
+    ```
+    Release type: DEV
+    # OR, for example we recommend you use
+    Release type: PRODUCTION
+    ```
+10. This value is the release version. Release numbers typically should be in a format of `YEAR-MAJORVERSION-MINORVERSION` which might look like this: `2021.1.0`.
+    ```
+    Release number: 2021.1.0
+    ```
+11. This value is the build number. We typically use the hash of the most recent commit on that Git tag which might look like this: `fd6973b`.
+    ```
+    Build number: fd6973b
+    ```
+12. This value is the directory that Vircadia will get installed to. You should leave this as the default value unless you are an advanced user.
+    ```
+    Installation dir: /root/Vircadia
+    ```
+13. This value is the number of CPU cores that the Vircadia Builder will use to compile the Vircadia server. By default it will use all cores available on your build server given you have enough memory. You should leave this as the default value it gives you for your build server.
+    ```
+    CPU cores to use for Vircadia: 16
+    ```
+14. This value is the number of CPU cores that the Vircadia Builder will use to compile Qt5 (a required component for Vircadia). By default it will use all cores available on your build server given you have enough memory. You should leave this as the default value it gives you for your build server.
+    ```
+    CPU cores to use for Qt5: 16
+    ```
+15. It will ask you if you would like to proceed with the specified values. If you're happy with the configuration, type `yes`, otherwise enter `no` and press enter to start over. You can press `Ctrl` + `C` simultaneously on your keyboard to exit.
+16. Vircadia Builder will now run, it may take a while. See this [table](https://github.com/vircadia/vircadia-builder#how-long-does-it-take) for estimated times.
+17. Navigate to the `pkg-scripts` directory.
+    ```
+    cd ../Vircadia/source/pkg-scripts/
+    ```
+18. Generate the .rpm package. Set `RPMVERSION` to the same version you entered for the `Release number` on Vircadia Builder. *Advanced users: the version cannot begin with a letter and cannot include underscores or dashes in it.*
+    ```
+    RPMVERSION="2021.1.0" ./make-rpm-server
+    ```
+19. If successful, the generated .rpm package will be in the `pkg-scripts` folder of the Vircadia source files.

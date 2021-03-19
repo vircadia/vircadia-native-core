@@ -23,7 +23,6 @@ public:
     ~ImageEntityRenderer();
 
 protected:
-    Item::Bound getBound() override;
     ShapeKey getShapeKey() override;
 
     bool isTransparent() const override;
@@ -44,7 +43,6 @@ private:
     glm::u8vec3 _color;
     float _alpha;
     PulsePropertyGroup _pulseProperties;
-    BillboardMode _billboardMode;
 
     int _geometryId { 0 };
 };

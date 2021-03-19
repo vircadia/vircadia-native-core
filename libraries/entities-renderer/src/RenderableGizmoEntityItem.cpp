@@ -195,8 +195,8 @@ void GizmoEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
     }
 }
 
-Item::Bound GizmoEntityRenderer::getBound() {
-    auto bound = Parent::getBound();
+Item::Bound GizmoEntityRenderer::getBound(RenderArgs* args) {
+    auto bound = Parent::getBound(args);
     if (_ringProperties.getHasTickMarks()) {
         glm::vec3 scale = bound.getScale();
         for (int i = 0; i < 3; i += 2) {
@@ -242,18 +242,20 @@ void GizmoEntityRenderer::doRender(RenderArgs* args) {
         bool hasTickMarks = _ringProperties.getHasTickMarks();
         glm::vec4 tickProperties = glm::vec4(_ringProperties.getMajorTickMarksAngle(), _ringProperties.getMajorTickMarksLength(),
                                              _ringProperties.getMinorTickMarksAngle(), _ringProperties.getMinorTickMarksLength());
-        bool forward;
-        bool wireframe;
+
         bool transparent;
         withReadLock([&] {
             transform = _renderTransform;
             transparent = isTransparent();
-            wireframe = render::ShapeKey(args->_globalShapeKey).isWireframe() || _primitiveMode == PrimitiveMode::LINES;
-            forward = _renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD;
         });
+
+        bool wireframe = render::ShapeKey(args->_globalShapeKey).isWireframe() || _primitiveMode == PrimitiveMode::LINES;
+        bool forward = _renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD;
 
         geometryCache->bindSimpleProgram(batch, false, transparent, wireframe, true, true, forward, graphics::MaterialKey::CULL_NONE);
 
+        transform.setRotation(BillboardModeHelpers::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
+            args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition(), true));
         batch.setModelTransform(transform);
 
         // Background circle

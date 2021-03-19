@@ -71,6 +71,7 @@ public:
     virtual void setScaledDimensions(const glm::vec3& value) override;
 
     virtual const Transform getTransform(bool& success, int depth = 0) const override;
+    virtual const Transform getTransformWithOnlyLocalRotation(bool& success, int depth = 0) const override;
     virtual const Transform getTransform() const override;
 
     static const QString DEFAULT_COMPOUND_SHAPE_URL;
@@ -119,6 +120,9 @@ public:
     bool blendshapesChanged() const { return _blendshapesChanged; }
     QVector<float> getBlendshapeCoefficientVector();
 
+    bool getUseOriginalPivot() const;
+    void setUseOriginalPivot(bool useOriginalPivot);
+
 private:
     void setAnimationSettings(const QString& value); // only called for old bitstream format
     bool applyNewAnimationProperties(AnimationPropertyGroup newProperties);
@@ -152,6 +156,7 @@ protected:
     bool _relayParentJoints;
     bool _groupCulled { false };
     QVariantMap _blendshapeCoefficientsMap;
+    bool _useOriginalPivot { false };
 
     ThreadSafeValueCache<QString> _compoundShapeURL;
 

@@ -595,7 +595,7 @@ void TabletProxy::gotoMenuScreen(const QString& submenu) {
 }
 
 void TabletProxy::loadQMLOnTopImpl(const QVariant& path, bool localSafeContext) {
-     if (QThread::currentThread() != thread()) {
+    if (QThread::currentThread() != thread()) {
         qCWarning(uiLogging) << __FUNCTION__ << "may not be called directly by scripts";
         return;
     }

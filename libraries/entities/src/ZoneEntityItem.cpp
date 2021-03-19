@@ -270,7 +270,6 @@ void ZoneEntityItem::debugDump() const {
 }
 
 void ZoneEntityItem::setShapeType(ShapeType type) {
-    ShapeType oldShapeType = _shapeType;
     switch(type) {
         case SHAPE_TYPE_NONE:
         case SHAPE_TYPE_CAPSULE_X:
@@ -288,7 +287,12 @@ void ZoneEntityItem::setShapeType(ShapeType type) {
         default:
             break;
     }
-    _shapeType = type;
+
+    ShapeType oldShapeType;
+    withWriteLock([&] {
+        oldShapeType = _shapeType;
+        _shapeType = type;
+    });
 
     if (type == SHAPE_TYPE_COMPOUND) {
         if (type != oldShapeType) {
@@ -300,16 +304,21 @@ void ZoneEntityItem::setShapeType(ShapeType type) {
 }
 
 ShapeType ZoneEntityItem::getShapeType() const {
-    return _shapeType;
+    return resultWithReadLock<ShapeType>([&] {
+        return _shapeType;
+    });
 }
 
 void ZoneEntityItem::setCompoundShapeURL(const QString& url) {
-    QString oldCompoundShapeURL = _compoundShapeURL;
+    QString oldCompoundShapeURL;
+    ShapeType shapeType;
     withWriteLock([&] {
+        oldCompoundShapeURL = _compoundShapeURL;
         _compoundShapeURL = url;
+        shapeType = _shapeType;
     });
     if (oldCompoundShapeURL != url) {
-        if (_shapeType == SHAPE_TYPE_COMPOUND) {
+        if (shapeType == SHAPE_TYPE_COMPOUND) {
             fetchCollisionGeometryResource();
         } else {
             _shapeResource.reset();
@@ -318,22 +327,22 @@ void ZoneEntityItem::setCompoundShapeURL(const QString& url) {
 }
 
 bool ZoneEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         OctreeElementPointer& element, float& distance,
+                         const glm::vec3& viewFrustumPos, OctreeElementPointer& element, float& distance,
                          BoxFace& face, glm::vec3& surfaceNormal,
                          QVariantMap& extraInfo, bool precisionPicking) const {
     return _zonesArePickable;
 }
 
 bool ZoneEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
-                         const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
-                         BoxFace& face, glm::vec3& surfaceNormal,
+                         const glm::vec3& acceleration, const glm::vec3& viewFrustumPos, OctreeElementPointer& element,
+                         float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal,
                          QVariantMap& extraInfo, bool precisionPicking) const {
     return _zonesArePickable;
 }
 
 bool ZoneEntityItem::contains(const glm::vec3& point) const {
     GeometryResource::Pointer resource = _shapeResource;
-    if (_shapeType == SHAPE_TYPE_COMPOUND && resource) {
+    if (getShapeType() == SHAPE_TYPE_COMPOUND && resource) {
         if (resource->isLoaded()) {
             const HFMModel& hfmModel = resource->getHFMModel();
 

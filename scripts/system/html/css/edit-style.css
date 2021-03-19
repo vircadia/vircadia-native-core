@@ -1364,10 +1364,46 @@ div#grid-section, body#entity-list-body {
 }
 #entity-list-menubar {
     margin: 0px -8px 6px -8px;
-    padding: 0px 8px 0px 8px;
+    padding: 0px 9px 0px 9px;
     border: none;
     background-color: #000;
-    background: linear-gradient(#343434 20%, #000 100%);
+    background: linear-gradient(#343434 30%, #000 100%);
+}
+input[type=button].entity-list-menutitle {
+    font-family: FiraSans-SemiBold;
+    font-size: 15px;
+    text-transform: none;
+    vertical-align: top;
+    height: 28px;
+    min-width: 30px;
+    padding: 0px 8px;
+    margin-right: 6px;
+    border-radius: 5px;
+    border: none;
+    color: #fff;
+    background-color: #000;
+    background: linear-gradient(#343434 30%, #000 100%);
+    cursor: pointer;
+}
+input[type=button].entity-list-menutitle:enabled:hover {
+    background: linear-gradient(#000, #000);
+    border: none;
+}
+input[type=button].entity-list-menutitle:active {
+    background: linear-gradient(#343434, #343434);
+}
+input[type=button].entity-list-menutitle:disabled {
+    color: #252525;
+    background: linear-gradient(#575757 30%, #252525 100%);
+}
+input[type=button].entity-list-menutitle[pressed=pressed] {
+    color: #00b4ef;
+}
+input[type=button].entity-list-menutitle:focus {
+  outline: none;
+  color: #000000;
+  background: linear-gradient(#c0c0c0, #c0c0c0);
+  border-radius: 5px 5px 0px 0px;
 }
 .icon-input-radius input {
     position: relative;

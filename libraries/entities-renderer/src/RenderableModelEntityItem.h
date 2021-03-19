@@ -42,7 +42,7 @@ protected:
     void setModel(const ModelPointer& model);
     ModelPointer getModel() const;
 
-    bool _needsInitialSimulation{ true };
+    bool _needsInitialSimulation { true };
 private:
     ModelPointer _model;
 };
@@ -63,14 +63,15 @@ public:
     virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
     void updateModelBounds();
 
+    glm::vec3 getPivot() const override;
     virtual bool supportsDetailedIntersection() const override;
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                        OctreeElementPointer& element, float& distance,
+                        const glm::vec3& viewFrustumPos, OctreeElementPointer& element, float& distance,
                         BoxFace& face, glm::vec3& surfaceNormal,
                         QVariantMap& extraInfo, bool precisionPicking) const override;
     virtual bool findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
-                        const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
-                        BoxFace& face, glm::vec3& surfaceNormal,
+                        const glm::vec3& acceleration, const glm::vec3& viewFrustumPos, OctreeElementPointer& element,
+                        float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal,
                         QVariantMap& extraInfo, bool precisionPicking) const override;
 
     virtual void setShapeType(ShapeType type) override;

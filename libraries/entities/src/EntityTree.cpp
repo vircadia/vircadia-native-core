@@ -801,6 +801,7 @@ public:
     glm::vec3 origin;
     glm::vec3 direction;
     glm::vec3 invDirection;
+    glm::vec3 viewFrustumPos;
     const QVector<EntityItemID>& entityIdsToInclude;
     const QVector<EntityItemID>& entityIdsToDiscard;
     PickFilter searchFilter;
@@ -818,7 +819,7 @@ bool evalRayIntersectionOp(const OctreeElementPointer& element, void* extraData)
     RayArgs* args = static_cast<RayArgs*>(extraData);
     bool keepSearching = true;
     EntityTreeElementPointer entityTreeElementPointer = std::static_pointer_cast<EntityTreeElement>(element);
-    EntityItemID entityID = entityTreeElementPointer->evalRayIntersection(args->origin, args->direction,
+    EntityItemID entityID = entityTreeElementPointer->evalRayIntersection(args->origin, args->direction, args->viewFrustumPos,
         args->element, args->distance, args->face, args->surfaceNormal, args->entityIdsToInclude,
         args->entityIdsToDiscard, args->searchFilter, args->extraInfo);
     if (!entityID.isNull()) {
@@ -840,7 +841,8 @@ float evalRayIntersectionSortingOp(const OctreeElementPointer& element, void* ex
         float boundDistance = FLT_MAX;
         BoxFace face;
         glm::vec3 surfaceNormal;
-        if (entityTreeElementPointer->getAACube().findRayIntersection(args->origin, args->direction, args->invDirection, boundDistance, face, surfaceNormal)) {
+        if (entityTreeElementPointer->getAACube().findRayIntersection(args->origin, args->direction, args->invDirection,
+            boundDistance, face, surfaceNormal)) {
             // Don't add this cell if it's already farther than our best distance so far
             if (boundDistance < args->distance) {
                 distance = boundDistance;
@@ -860,7 +862,7 @@ EntityItemID EntityTree::evalRayIntersection(const glm::vec3& origin, const glm:
     vec3 dirReciprocal = glm::vec3(direction.x == 0.0f ? 0.0f : 1.0f / direction.x,
                                    direction.y == 0.0f ? 0.0f : 1.0f / direction.y,
                                    direction.z == 0.0f ? 0.0f : 1.0f / direction.z);
-    RayArgs args = { origin, direction, dirReciprocal, entityIdsToInclude, entityIdsToDiscard,
+    RayArgs args = { origin, direction, dirReciprocal, BillboardModeHelpers::getPrimaryViewFrustumPosition(), entityIdsToInclude, entityIdsToDiscard,
             searchFilter, element, distance, face, surfaceNormal, extraInfo, EntityItemID() };
     distance = FLT_MAX;
 
@@ -882,6 +884,7 @@ public:
     glm::vec3 origin;
     glm::vec3 velocity;
     glm::vec3 acceleration;
+    glm::vec3 viewFrustumPos;
     const QVector<EntityItemID>& entityIdsToInclude;
     const QVector<EntityItemID>& entityIdsToDiscard;
     PickFilter searchFilter;
@@ -899,7 +902,7 @@ bool evalParabolaIntersectionOp(const OctreeElementPointer& element, void* extra
     ParabolaArgs* args = static_cast<ParabolaArgs*>(extraData);
     bool keepSearching = true;
     EntityTreeElementPointer entityTreeElementPointer = std::static_pointer_cast<EntityTreeElement>(element);
-    EntityItemID entityID = entityTreeElementPointer->evalParabolaIntersection(args->origin, args->velocity, args->acceleration,
+    EntityItemID entityID = entityTreeElementPointer->evalParabolaIntersection(args->origin, args->velocity, args->acceleration, args->viewFrustumPos,
         args->element, args->parabolicDistance, args->face, args->surfaceNormal, args->entityIdsToInclude,
         args->entityIdsToDiscard, args->searchFilter, args->extraInfo);
     if (!entityID.isNull()) {
@@ -921,7 +924,8 @@ float evalParabolaIntersectionSortingOp(const OctreeElementPointer& element, voi
         float boundDistance = FLT_MAX;
         BoxFace face;
         glm::vec3 surfaceNormal;
-        if (entityTreeElementPointer->getAACube().findParabolaIntersection(args->origin, args->velocity, args->acceleration, boundDistance, face, surfaceNormal)) {
+        if (entityTreeElementPointer->getAACube().findParabolaIntersection(args->origin, args->velocity, args->acceleration,
+            boundDistance, face, surfaceNormal)) {
             // Don't add this cell if it's already farther than our best distance so far
             if (boundDistance < args->parabolicDistance) {
                 distance = boundDistance;
@@ -937,8 +941,8 @@ EntityItemID EntityTree::evalParabolaIntersection(const PickParabola& parabola,
                                     OctreeElementPointer& element, glm::vec3& intersection, float& distance, float& parabolicDistance,
                                     BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
                                     Octree::lockType lockType, bool* accurateResult) {
-    ParabolaArgs args = { parabola.origin, parabola.velocity, parabola.acceleration, entityIdsToInclude, entityIdsToDiscard,
-        searchFilter, element, parabolicDistance, face, surfaceNormal, extraInfo, EntityItemID() };
+    ParabolaArgs args = { parabola.origin, parabola.velocity, parabola.acceleration, BillboardModeHelpers::getPrimaryViewFrustumPosition(),
+        entityIdsToInclude, entityIdsToDiscard, searchFilter, element, parabolicDistance, face, surfaceNormal, extraInfo, EntityItemID() };
     parabolicDistance = FLT_MAX;
     distance = FLT_MAX;
 
@@ -3156,6 +3160,13 @@ bool EntityTree::readFromMap(QVariantMap& map, const bool isImport) {
             if (entityMap.contains("created")) {
                 quint64 created = QDateTime::fromString(entityMap["created"].toString().trimmed(), Qt::ISODate).toMSecsSinceEpoch() * 1000;
                 properties.setCreated(created);
+            }
+        }
+
+        // Before, billboarded entities ignored rotation.  Now, they use it to determine which axis is facing you.
+        if (contentVersion < (int)EntityVersion::AllBillboardMode) {
+            if (properties.getBillboardMode() != BillboardMode::NONE) {
+                properties.setRotation(glm::quat());
             }
         }
 

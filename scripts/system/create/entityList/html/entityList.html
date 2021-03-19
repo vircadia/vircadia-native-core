@@ -25,9 +25,10 @@
     </head>
     <body onload='loaded();' id="entity-list-body">
         <div id="entity-list-menubar">
-            <input type="button" class="normal" id="selection" value="Select&#9662;" />
-            <input type="button" class="normal" id="actions" value="Edit&#9662;" />
-            <input type="button" class="normal" id="tools" value="Tools&#9662;" />            
+            <input type="button" class="entity-list-menutitle" id="actions" value="Edit&#9662;" />
+            <input type="button" class="entity-list-menutitle" id="selection" value="Select&#9662;" />
+            <input type="button" class="entity-list-menutitle" id="transform" value="Transform&#9662;" />
+            <input type="button" class="entity-list-menutitle" id="tools" value="Tools&#9662;" />
         </div>
         <div id="entity-list-header">
             <input type="button" class="glyph" id="refresh" value="F" />
@@ -146,35 +147,22 @@
                 </div>
             </button>
             <div class="menu-separator"></div>
-            <button class="menu-button" id="moveEntitySelectionToAvatar" >
+            <button class="menu-button" id="exportSelectedEntities" >
                 <div class = "menu-item">
-                    <div class = "menu-item-caption">Move Selected Entities to Avatar</div>
+                    <div class = "menu-item-caption">Export Selected Entities</div>
                     <div class = "menu-item-shortcut"></div>
                 </div>
             </button>
-            <div class="menu-separator"></div>
-            <button class="menu-button" id="rotateAsTheNextClickedSurface" >
+            <button class="menu-button" id="importEntitiesFromFile" >
                 <div class = "menu-item">
-                    <div class = "menu-item-caption">Snap To Next Clicked Surface</div>
-                    <div class = "menu-item-shortcut">0</div>
+                    <div class = "menu-item-caption">Import Entities (.json) From a File</div>
+                    <div class = "menu-item-shortcut"></div>
                 </div>
             </button>
-            <button class="menu-button" id="quickRotate90x" >
+            <button class="menu-button" id="importEntitiesFromUrl" >
                 <div class = "menu-item">
-                    <div class = "menu-item-caption">Rotate 90&deg; on X axis</div>
-                    <div class = "menu-item-shortcut">7</div>
-                </div>
-            </button>
-            <button class="menu-button" id="quickRotate90y" >
-                <div class = "menu-item">
-                    <div class = "menu-item-caption">Rotate 90&deg; on Y axis</div>
-                    <div class = "menu-item-shortcut">8</div>
-                </div>
-            </button>
-            <button class="menu-button" id="quickRotate90z" >
-                <div class = "menu-item">
-                    <div class = "menu-item-caption">Rotate 90&deg; on Z axis</div>
-                    <div class = "menu-item-shortcut">9</div>
+                    <div class = "menu-item-caption">Import Entities (.json) From a URL</div>
+                    <div class = "menu-item-shortcut"></div>
                 </div>
             </button>
         </div>
@@ -242,6 +230,40 @@
                 </div>
             </button>
         </div>
+        <div class="entity-list-menu" id="transform-menu" >
+            <button class="menu-button" id="moveEntitySelectionToAvatar" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Move Selected Entities to Avatar</div>
+                    <div class = "menu-item-shortcut"></div>
+                </div>
+            </button>
+            <div class="menu-separator"></div>
+            <button class="menu-button" id="rotateAsTheNextClickedSurface" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Snap To Next Clicked Surface</div>
+                    <div class = "menu-item-shortcut">0</div>
+                </div>
+            </button>
+            <div class="menu-separator"></div>            
+            <button class="menu-button" id="quickRotate90x" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Rotate 90&deg; on X axis</div>
+                    <div class = "menu-item-shortcut">7</div>
+                </div>
+            </button>
+            <button class="menu-button" id="quickRotate90y" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Rotate 90&deg; on Y axis</div>
+                    <div class = "menu-item-shortcut">8</div>
+                </div>
+            </button>
+            <button class="menu-button" id="quickRotate90z" >
+                <div class = "menu-item">
+                    <div class = "menu-item-caption">Rotate 90&deg; on Z axis</div>
+                    <div class = "menu-item-shortcut">9</div>
+                </div>
+            </button>        
+        </div>
         <div class="entity-list-menu" id="tools-menu" >
             <button class="menu-button" id="setCameraFocusToSelection" >
                 <div class = "menu-item">
@@ -260,25 +282,6 @@
                 <div class = "menu-item">
                     <div class = "menu-item-caption">Toggle Local/World Mode</div>
                     <div class = "menu-item-shortcut">T</div>
-                </div>
-            </button>
-            <div class="menu-separator"></div>
-            <button class="menu-button" id="exportSelectedEntities" >
-                <div class = "menu-item">
-                    <div class = "menu-item-caption">Export Selected Entities</div>
-                    <div class = "menu-item-shortcut"></div>
-                </div>
-            </button>
-            <button class="menu-button" id="importEntitiesFromFile" >
-                <div class = "menu-item">
-                    <div class = "menu-item-caption">Import Entities (.json) From a File</div>
-                    <div class = "menu-item-shortcut"></div>
-                </div>
-            </button>
-            <button class="menu-button" id="importEntitiesFromUrl" >
-                <div class = "menu-item">
-                    <div class = "menu-item-caption">Import Entities (.json) From a URL</div>
-                    <div class = "menu-item-shortcut"></div>
                 </div>
             </button>            
             <div class="menu-separator"></div>

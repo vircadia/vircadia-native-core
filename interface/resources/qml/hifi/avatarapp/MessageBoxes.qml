@@ -112,8 +112,7 @@ MessageBox {
         popup.button1text = 'CANCEL'
         popup.titleText = 'Get Avatars'
 
-        popup.bodyText = 'Get avatars from <b><a href="app://marketplace">Marketplace.</a></b>' + '<br/>' +
-                         'Wear avatars in <b><a href="app://purchases">Inventory.</a></b>'
+        popup.bodyText = 'Get avatars from the Community Bazaar. (Coming soon!)'
 
         popup.onLinkClicked = function(link) {
             popup.close();

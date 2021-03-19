@@ -16,6 +16,7 @@
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonArray>
 
+#include <render/Args.h>
 #include <gpu/Shader.h>
 #include <gpu/Pipeline.h>
 #include <gpu/Batch.h>
@@ -113,9 +114,9 @@ public:
     void setDoesFade(bool doesFade) { _doesFade = doesFade; }
 
     bool hasVertexShader() const;
-    void setBoundOperator(const std::function<AABox()>& boundOperator) { _boundOperator = boundOperator; }
+    void setBoundOperator(const std::function<AABox(RenderArgs*)>& boundOperator) { _boundOperator = boundOperator; }
     bool hasBoundOperator() const { return (bool)_boundOperator; }
-    AABox getBound() { return _boundOperator(); }
+    AABox getBound(RenderArgs* args) { return _boundOperator(args); }
 
     gpu::Shader::Source _vertexSource;
     gpu::Shader::Source _vertexSourceSkinned;
@@ -199,7 +200,7 @@ private:
     bool _doesFade { true };
     ProceduralProgramKey _prevKey;
 
-    std::function<AABox()> _boundOperator { nullptr };
+    std::function<AABox(RenderArgs*)> _boundOperator { nullptr };
 
     mutable std::mutex _mutex;
 };
@@ -232,9 +233,9 @@ public:
 
     void initializeProcedural();
 
-    void setBoundOperator(const std::function<AABox()>& boundOperator) { _procedural.setBoundOperator(boundOperator); }
+    void setBoundOperator(const std::function<AABox(RenderArgs*)>& boundOperator) { _procedural.setBoundOperator(boundOperator); }
     bool hasBoundOperator() const { return _procedural.hasBoundOperator(); }
-    AABox getBound() { return _procedural.getBound(); }
+    AABox getBound(RenderArgs* args) { return _procedural.getBound(args); }
 
 private:
     QString _proceduralString;

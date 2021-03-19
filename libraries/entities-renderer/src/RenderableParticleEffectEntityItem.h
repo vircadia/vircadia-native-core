@@ -30,7 +30,7 @@ protected:
 
     virtual ItemKey getKey() override;
     virtual ShapeKey getShapeKey() override;
-    virtual Item::Bound getBound() override;
+    virtual Item::Bound getBound(RenderArgs* args) override;
     virtual void doRender(RenderArgs* args) override;
 
 private:
