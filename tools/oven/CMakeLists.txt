@@ -17,3 +17,5 @@ elseif (APPLE)
   # Fix up the rpath so macdeployqt works
   set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH "@executable_path/../Frameworks")
 endif()
+
+install_beside_interface()

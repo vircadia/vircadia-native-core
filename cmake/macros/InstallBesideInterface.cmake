@@ -1,48 +1,39 @@
 #
-#  InstallBesideConsole.cmake
+#  InstallBesideInterface.cmake
 #  cmake/macros
 #
-#  Copyright 2016 High Fidelity, Inc.
 #  Created by Stephen Birarda on January 5th, 2016
+#  Copyright 2016 High Fidelity, Inc.
+#  Copyright 2021 Vircadia contributors.
 #
 #  Distributed under the Apache License, Version 2.0.
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 #
 
-macro(install_beside_console)
+macro(install_beside_interface)
   if (WIN32 OR APPLE)
-    # install this component beside the installed server-console executable
+    # install this component beside the installed interface executable
     if (APPLE)
       install(
         TARGETS ${TARGET_NAME}
-        RUNTIME DESTINATION ${COMPONENT_INSTALL_DIR}
-        LIBRARY DESTINATION ${CONSOLE_PLUGIN_INSTALL_DIR}
-        COMPONENT ${SERVER_COMPONENT}
+        RUNTIME DESTINATION ${UTILS_COMPONENT_INSTALL_DIR}
+        LIBRARY DESTINATION ${UTILS_PLUGIN_INSTALL_DIR}
+        COMPONENT ${CLIENT_COMPONENT}
       )
     else ()
       # setup install of executable and things copied by fixup/windeployqt
       install(
         DIRECTORY "$<TARGET_FILE_DIR:${TARGET_NAME}>/"
-        DESTINATION ${COMPONENT_INSTALL_DIR}
-        COMPONENT ${SERVER_COMPONENT}
+        DESTINATION ${UTILS_COMPONENT_INSTALL_DIR}
+        COMPONENT ${CLIENT_COMPONENT}
         PATTERN "*.pdb" EXCLUDE
         PATTERN "*.lib" EXCLUDE
         PATTERN "*.exp" EXCLUDE
       )
 
       # on windows for PR and production builds, sign the executable
-      set(EXECUTABLE_COMPONENT ${SERVER_COMPONENT})
+      set(EXECUTABLE_COMPONENT ${CLIENT_COMPONENT})
       optional_win_executable_signing()
-    endif ()
-
-    if (TARGET_NAME STREQUAL domain-server)
-      # install the resources folder for the domain-server where its executable will be
-      install(
-        DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/resources
-        DESTINATION ${COMPONENT_INSTALL_DIR}
-        USE_SOURCE_PERMISSIONS
-        COMPONENT ${SERVER_COMPONENT}
-      )
     endif ()
 
     if (APPLE)
@@ -56,26 +47,26 @@ macro(install_beside_console)
       endif ()
 
       # during the install phase, call macdeployqt to drop the shared libraries for these components in the right place
-      set(COMPONENTS_BUNDLE_PATH "\${CMAKE_INSTALL_PREFIX}/${COMPONENT_APP_PATH}")
-      string(REPLACE " " "\\ " ESCAPED_BUNDLE_NAME ${COMPONENTS_BUNDLE_PATH})
+      set(UTILS_COMPONENTS_BUNDLE_PATH "\${CMAKE_INSTALL_PREFIX}/${UTILS_COMPONENT_APP_PATH}")
+      string(REPLACE " " "\\ " ESCAPED_BUNDLE_NAME ${UTILS_COMPONENTS_BUNDLE_PATH})
 
-      set(EXECUTABLE_NEEDING_FIXUP "\${CMAKE_INSTALL_PREFIX}/${COMPONENT_INSTALL_DIR}/${TARGET_NAME}")
+      set(EXECUTABLE_NEEDING_FIXUP "\${CMAKE_INSTALL_PREFIX}/${UTILS_COMPONENT_INSTALL_DIR}/${TARGET_NAME}")
       string(REPLACE " " "\\ " ESCAPED_EXECUTABLE_NAME ${EXECUTABLE_NEEDING_FIXUP})
 
       # configure Info.plist for COMPONENT_APP
       install(CODE "
-        set(MACOSX_BUNDLE_EXECUTABLE_NAME domain-server)
-        set(MACOSX_BUNDLE_GUI_IDENTIFIER com.highfidelity.server-components)
-        set(MACOSX_BUNDLE_BUNDLE_NAME Console\\ Components)
+        set(MACOSX_BUNDLE_EXECUTABLE_NAME utils)
+        set(MACOSX_BUNDLE_GUI_IDENTIFIER com.highfidelity.utilities)
+        set(MACOSX_BUNDLE_BUNDLE_NAME interface\\ Utilities)
         configure_file(${HF_CMAKE_DIR}/templates/MacOSXBundleComponentsInfo.plist.in ${ESCAPED_BUNDLE_NAME}/Contents/Info.plist)
         execute_process(COMMAND ${MACDEPLOYQT_COMMAND} ${ESCAPED_BUNDLE_NAME} -verbose=2 -executable=${ESCAPED_EXECUTABLE_NAME})"
-        COMPONENT ${SERVER_COMPONENT}
+        COMPONENT ${CLIENT_COMPONENT}
       )
     endif()
 
     # set variables used by manual ssleay library copy
-    set(TARGET_INSTALL_DIR ${COMPONENT_INSTALL_DIR})
-    set(TARGET_INSTALL_COMPONENT ${SERVER_COMPONENT})
+    set(TARGET_INSTALL_DIR ${UTILS_COMPONENT_INSTALL_DIR})
+    set(TARGET_INSTALL_COMPONENT ${CLIENT_COMPONENT})
     manually_install_openssl_for_qt()
 
   endif ()
