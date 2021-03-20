@@ -12,8 +12,16 @@
 
 macro(install_beside_interface)
   if (WIN32 OR APPLE)
+
+    message(STATUS, "####### InstallBesideInterface.cmake");
+
     # install this component beside the installed interface executable
     if (APPLE)
+      message(STATUS, "####... TARGET_NAME: ${TARGET_NAME}");
+      message(STATUS, "####... UTILS_COMPONENT_INSTALL_DIR: ${UTILS_COMPONENT_INSTALL_DIR}");
+      message(STATUS, "####... UTILS_PLUGIN_INSTALL_DIR: ${UTILS_PLUGIN_INSTALL_DIR}");
+      message(STATUS, "####... CLIENT_COMPONENT: ${CLIENT_COMPONENT}");
+
       install(
         TARGETS ${TARGET_NAME}
         RUNTIME DESTINATION ${UTILS_COMPONENT_INSTALL_DIR}
@@ -22,6 +30,12 @@ macro(install_beside_interface)
       )
     else ()
       # setup install of executable and things copied by fixup/windeployqt
+
+      message(STATUS, "####... TARGET_NAME: ${TARGET_NAME}");
+      message(STATUS, "####... $<...>/: $<TARGET_FILE_DIR:${TARGET_NAME}>/");
+      message(STATUS, "####... UTILS_COMPONENT_INSTALL_DIR: ${UTILS_COMPONENT_INSTALL_DIR}");
+      message(STATUS, "####... CLIENT_COMPONENT: ${CLIENT_COMPONENT}");
+
       install(
         DIRECTORY "$<TARGET_FILE_DIR:${TARGET_NAME}>/"
         DESTINATION ${UTILS_COMPONENT_INSTALL_DIR}
