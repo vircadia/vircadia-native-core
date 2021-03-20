@@ -1772,13 +1772,11 @@ bool EntityItem::contains(const glm::vec3& point) const {
     ShapeType shapeType = getShapeType();
 
     if (shapeType == SHAPE_TYPE_SPHERE) {
-        // SPHERE case is special:
-        // anything with shapeType == SPHERE must collide as a bounding sphere in the world-frame regardless of dimensions
-        // therefore we must do math using an unscaled localPoint relative to sphere center
         glm::vec3 dimensions = getScaledDimensions();
-        glm::vec3 localPoint = point - (getWorldPosition() + getWorldOrientation() * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()) + getPivot()));
-        const float HALF_SQUARED = 0.25f;
-        return glm::length2(localPoint) < HALF_SQUARED * glm::length2(dimensions);
+        if (dimensions.x == dimensions.y && dimensions.y == dimensions.z) {
+            glm::vec3 localPoint = point - (getWorldPosition() + getWorldOrientation() * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()) + getPivot()));
+            return glm::length2(localPoint) < glm::length2(0.5f * dimensions.x);
+        }
     }
 
     // we transform into the "normalized entity-frame" where the bounding box is centered on the origin
@@ -1805,6 +1803,7 @@ bool EntityItem::contains(const glm::vec3& point) const {
             localPoint = glm::abs(localPoint);
             return glm::all(glm::lessThanEqual(localPoint, glm::vec3(NORMALIZED_HALF_SIDE)));
         }
+        case SHAPE_TYPE_SPHERE:
         case SHAPE_TYPE_ELLIPSOID: {
             // since we've transformed into the normalized space this is just a sphere-point intersection test
             return glm::length2(localPoint) <= NORMALIZED_RADIUS_SQUARED;
