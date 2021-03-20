@@ -121,9 +121,9 @@ gpu::TexturePointer processCubeTextureColorFromImage(Image&& srcImage, const std
 
 const QStringList getSupportedFormats();
 
-gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::string& url, ColorChannel sourceChannel,
-                                 int maxNumPixels, TextureUsage::Type textureType,
-                                 bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing = false);
+std::pair<gpu::TexturePointer, glm::ivec2> processImage(std::shared_ptr<QIODevice> content, const std::string& url, ColorChannel sourceChannel,
+                                                        int maxNumPixels, TextureUsage::Type textureType,
+                                                        bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing = false);
 
 void convertToTextureWithMips(gpu::Texture* texture, Image&& image, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing = false, int face = -1);
 void convertToTexture(gpu::Texture* texture, Image&& image, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing = false, int face = -1, int mipLevel = 0);

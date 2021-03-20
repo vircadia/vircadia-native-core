@@ -63,8 +63,8 @@ void ImageEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
     if (!_textureIsLoaded) {
         emit requestRenderUpdate();
         if (nextTextureLoaded) {
-            float width = _texture->getWidth();
-            float height = _texture->getHeight();
+            float width = _texture->getOriginalWidth();
+            float height = _texture->getOriginalHeight();
             glm::vec3 naturalDimensions = glm::vec3(1.0f, 1.0f, 0.01f);
             if (width < height) {
                 naturalDimensions.x = width / height;
@@ -116,13 +116,15 @@ void ImageEntityRenderer::doRender(RenderArgs* args) {
 
     float imageWidth = _texture->getWidth();
     float imageHeight = _texture->getHeight();
+    float originalWidth = _texture->getOriginalWidth();
+    float originalHeight = _texture->getOriginalHeight();
 
     QRect fromImage;
     if (_subImage.width() <= 0) {
         fromImage.setX(0);
         fromImage.setWidth(imageWidth);
     } else {
-        float scaleX = imageWidth / _texture->getOriginalWidth();
+        float scaleX = imageWidth / originalWidth;
         fromImage.setX(scaleX * _subImage.x());
         fromImage.setWidth(scaleX * _subImage.width());
     }
@@ -131,7 +133,7 @@ void ImageEntityRenderer::doRender(RenderArgs* args) {
         fromImage.setY(0);
         fromImage.setHeight(imageHeight);
     } else {
-        float scaleY = imageHeight / _texture->getOriginalHeight();
+        float scaleY = imageHeight / originalHeight;
         fromImage.setY(scaleY * _subImage.y());
         fromImage.setHeight(scaleY * _subImage.height());
     }
@@ -141,7 +143,7 @@ void ImageEntityRenderer::doRender(RenderArgs* args) {
 
     if (_keepAspectRatio) {
         glm::vec3 scale = transform.getScale();
-        float targetAspectRatio = imageWidth / imageHeight;
+        float targetAspectRatio = originalWidth / originalHeight;
         float currentAspectRatio = scale.x / scale.y;
 
         if (targetAspectRatio < currentAspectRatio) {
