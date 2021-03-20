@@ -167,6 +167,7 @@ macro(SET_PACKAGING_PARAMETERS)
       set(NITPICK_INSTALL_DIR ".")
     endif ()
 
+    set(UTILS_COMPONENT_INSTALL_DIR ".")
     set(COMPONENT_INSTALL_DIR ".")
     set(INTERFACE_INSTALL_DIR ".")
   endif ()
