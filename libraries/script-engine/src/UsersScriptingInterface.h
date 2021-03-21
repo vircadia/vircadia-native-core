@@ -127,7 +127,7 @@ public slots:
      * <p>This function only works if you're an administrator of the domain you're in.</p>
      * @function Users.kick
      * @param {Uuid} sessionID - The session ID of the user to kick and ban.
-     * @param {number} - Preferred ban flags. <i>Bans a user by username (if available) and machine fingerprint by default.</i>
+     * @param {BanFlags} - Preferred ban flags. <i>Bans a user by username (if available) and machine fingerprint by default.</i>
      */
     void kick(const QUuid& nodeID, unsigned int banFlags = ModerationFlags::getDefaultBanFlags());
 
