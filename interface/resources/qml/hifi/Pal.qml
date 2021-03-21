@@ -644,7 +644,7 @@ Rectangle {
                     width: 32;
                     height: 32;
                     onClicked: {
-                        Users[styleData.role](model.sessionId, Users.BAN_BY_USERNAME | Users.BAN_BY_FINGERPRINT | Users.BAN_BY_IP); // Ban params add up to 7 from Users.BAN_BY_USERNAME | Users.BAN_BY_FINGERPRINT | Users.BAN_BY_IP
+                        Users[styleData.role](model.sessionId, Users.BAN_BY_USERNAME | Users.BAN_BY_FINGERPRINT | Users.BAN_BY_IP);
                         UserActivityLogger["palAction"](styleData.role, model.sessionId);
                         if (styleData.role === "kick") {
                             nearbyUserModelData.splice(model.userIndex, 1);
