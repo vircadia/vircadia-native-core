@@ -1315,6 +1315,13 @@ ParabolaToEntityIntersectionResult EntityScriptingInterface::evalParabolaInterse
     return result;
 }
 
+void EntityScriptingInterface::reloadModelURL(const QUuid& entityID) {
+    if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
+        auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
+        modelEntity->forceReloadModelURL();
+    }
+}
+
 bool EntityScriptingInterface::reloadServerScripts(const QUuid& entityID) {
     auto client = DependencyManager::get<EntityScriptClient>();
     return client->reloadServerScript(entityID);

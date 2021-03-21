@@ -1237,7 +1237,8 @@ void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
     render::Transaction transaction;
 
     // Check for removal
-    if (!_hasModel) {
+    bool shouldReloadModelURL = entity->shouldForceReloadModelURL();
+    if (!_hasModel || shouldReloadModelURL) {
         if (model) {
             model->removeFromScene(scene, transaction);
             entity->bumpAncestorChainRenderableVersion();
@@ -1248,6 +1249,9 @@ void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
         }
         _didLastVisualGeometryRequestSucceed = false;
         setKey(_didLastVisualGeometryRequestSucceed, model);
+        if (shouldReloadModelURL) {
+            emit requestRenderUpdate();
+        }
         return;
     }
 
