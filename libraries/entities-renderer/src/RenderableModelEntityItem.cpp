@@ -1244,6 +1244,7 @@ void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
             emit DependencyManager::get<scriptable::ModelProviderFactory>()->
                 modelRemovedFromScene(entity->getEntityItemID(), NestableType::Entity, model);
             withWriteLock([&] { _model.reset(); });
+            scene->enqueueTransaction(transaction);
         }
         _didLastVisualGeometryRequestSucceed = false;
         setKey(_didLastVisualGeometryRequestSucceed, model);
