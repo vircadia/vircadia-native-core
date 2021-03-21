@@ -33,10 +33,10 @@
  *     <code>false</code>. <em>Read-only.</em>
  * @property {boolean} requestsDomainListData - <code>true</code> if the client requests extra data from the mixers (such as 
  *     positional data of an avatar they've ignored). <em>Read-only.</em>
- * @property {BanFlags} NO_BAN - Do not ban person. <em>Read-only.</em>
- * @property {BanFlags} BAN_BY_USERNAME - Ban person by username. <em>Read-only.</em>
- * @property {BanFlags} BAN_BY_FINGERPRINT - Ban person by fingerprint. <em>Read-only.</em>
- * @property {BanFlags} BAN_BY_IP - Ban person by IP address. <em>Read-only.</em>
+ * @property {BanFlags} NO_BAN - Do not ban user. <em>Read-only.</em>
+ * @property {BanFlags} BAN_BY_USERNAME - Ban user by username. <em>Read-only.</em>
+ * @property {BanFlags} BAN_BY_FINGERPRINT - Ban user by fingerprint. <em>Read-only.</em>
+ * @property {BanFlags} BAN_BY_IP - Ban user by IP address. <em>Read-only.</em>
  */
 class UsersScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
