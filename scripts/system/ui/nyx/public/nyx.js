@@ -255,10 +255,9 @@ function onMousePressOnEntity (pressedEntityID, event) {
         // Default trigger settings for triggering Nyx Entity when in VR.
         if ((Controller.getValue(Controller.Standard.LeftGrip)
                 || Controller.getValue(Controller.Standard.RightGrip))
-            && (Controller.getValue(Controller.Standard.LT)
-                || Controller.getValue(Controller.Standard.RT))) 
+            && (Controller.getValue(Controller.Standard.LT) // Redundant?
+                || Controller.getValue(Controller.Standard.RT)))
         {
-            console.log("Passed 1 ######");
             toggleEntityMenu(pressedEntityID);
         }
     } else {
