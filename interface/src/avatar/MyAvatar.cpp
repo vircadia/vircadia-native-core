@@ -1595,7 +1595,11 @@ bool MyAvatar::hasAvatarEntities() const {
 void MyAvatar::handleCanRezAvatarEntitiesChanged(bool canRezAvatarEntities) {
     if (canRezAvatarEntities) {
         // Start displaying avatar entities.
-        addAvatarEntitiesToTree();
+        // Allow time for the avatar mixer to be updated with the user's permissions so that it doesn't discard the avatar 
+        // entities sent.
+        QTimer::singleShot(2 * DOMAIN_SERVER_CHECK_IN_MSECS, this, [this] {
+            addAvatarEntitiesToTree();
+        });
     } else {
         // Stop displaying avatar entities.
         removeAvatarEntitiesFromTree();
