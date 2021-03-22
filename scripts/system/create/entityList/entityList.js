@@ -413,8 +413,8 @@ EntityListTool = function(shouldUseEditTabletApp) {
             alignGridToSelection();
         } else if (data.type === 'alignGridToAvatar') {
             alignGridToAvatar();
-        } else if (data.type === 'brokenUrlReport') {
-            brokenUrlReport(selectionManager.selections);
+        } else if (data.type === 'brokenURLReport') {
+            brokenURLReport(selectionManager.selections);
         } else if (data.type === 'toggleGridVisibility') {
             toggleGridVisibility();
         } else if (data.type === 'toggleSnapToGrid') {
