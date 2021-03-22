@@ -1,5 +1,5 @@
 (function () {
-    var NyxAlpha1 = Script.require('../nyx-helpers.js?ds3545');
+    var NyxAlpha1 = Script.require('../nyx-helpers.js');
 
     var _entityID;
     var gunID;
@@ -88,7 +88,8 @@
                     g: initialProps.color.g,
                     b: initialProps.color.b,
                     a: initialProps.alpha
-                }
+                },
+                loadValue: Entities.getEntityProperties(entityID, ['color']).color
             },
             {
                 type: 'slider',
@@ -97,7 +98,8 @@
                 color: 'yellow',
                 initialValue: initialProps.alpha,
                 minValue: 0,
-                maxValue: 1
+                maxValue: 1,
+                loadValue: Entities.getEntityProperties(entityID, ['color']).color
             }
         ]);
 

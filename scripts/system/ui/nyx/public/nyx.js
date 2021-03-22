@@ -11,9 +11,10 @@
 //
 
 Script.include('/~/system/libraries/utils.js');
-var NyxSit = Script.require('./modules/sit.js?12dsadsadsdsadadadsad3dfdsadasdssa45');
+var NyxSit = Script.require('./modules/sit.js');
 var NyxParentSelf = Script.require('./modules/parentSelf.js');
 
+// Consts
 var SETTING_NYX_PREFIX = 'nyx/';
 var NYX_SETTINGS_SETTINGS = 'Nyx Settings'; // lol
 var NYX_UI_CHANNEL = 'nyx-ui';
@@ -26,11 +27,13 @@ var entityWebMenuOverlay;
 var registeredEntityMenus = {};
 var lastTriggeredEntityInfo = {};
 var lastTriggeredPointerLocation = null;
+
+// Consts
 var MENU_WEB_OVERLAY_SCALE = {
     x: 400,
     y: 500
 };
-var BOOTSTRAP_MENU_WEB_OVERLAY_TITLE = 'Nyx UI';
+var BOOTSTRAP_MENU_WEB_OVERLAY_TITLE = 'Entity Menu';
 var BOOTSTRAP_MENU_WEB_OVERLAY_SCALE = {
     x: 1,
     y: 1
@@ -41,6 +44,8 @@ var BOOTSTRAP_MENU_WEB_OVERLAY_POSITION = {
 };
 var BOOTSTRAP_MENU_WEB_OVERLAY_SOURCE;
 var BOOTSTRAP_MENU_WEB_OVERLAY_DPI = 7;
+
+///////////////// ENTITY MENU OVERLAY ---> MAIN FUNCTIONALITY
 
 function registerWithEntityMenu(messageData) {
     registeredEntityMenus[messageData.entityID] = { 'actions': messageData.actions };
@@ -87,9 +92,14 @@ function toggleEntityMenu(pressedEntityID) {
 
         sendToWeb('script-to-web-triggered-entity-info', lastTriggeredEntityInfo);
         
-        var newOverlayPosition = {
-            x: (lastTriggeredPointerLocation.x - (MENU_WEB_OVERLAY_SCALE.x / 2)),
-            y: (lastTriggeredPointerLocation.y - (MENU_WEB_OVERLAY_SCALE.y / 2))
+        var newOverlayPosition = {}; 
+        // If in VR mode, we put the Nyx Entity menu in the center.
+        if (HMD.mounted) {
+            newOverlayPosition.x = (Overlays.width() / 2) - (MENU_WEB_OVERLAY_SCALE.x / 2);
+            newOverlayPosition.y = (Overlays.height() / 2) - (MENU_WEB_OVERLAY_SCALE.y / 2);
+        } else {
+            newOverlayPosition.x = (lastTriggeredPointerLocation.x - (MENU_WEB_OVERLAY_SCALE.x / 2));
+            newOverlayPosition.y = (lastTriggeredPointerLocation.y - (MENU_WEB_OVERLAY_SCALE.y / 2));
         }
         
         entityWebMenuOverlay.setPosition(newOverlayPosition);
@@ -240,15 +250,27 @@ function onMousePressOnEntity (pressedEntityID, event) {
     if (!entityWebMenuOverlay.isVisible()) {
         NyxSit.capturePickPosition();
     }
-
-    // Default if settings are not configured.
-    if (!nyxSettings || !nyxSettings.entityMenu.useMouseTriggers || nyxSettings.entityMenu.selectedMouseTriggers.length === 0) {
-        if (event.isPrimaryHeld && event.isSecondaryHeld && !isInEditMode()) {
+    
+    if (HMD.mounted) {
+        // Default trigger settings for triggering Nyx Entity when in VR.
+        if ((Controller.getValue(Controller.Standard.LeftGrip)
+                || Controller.getValue(Controller.Standard.RightGrip))
+            && (Controller.getValue(Controller.Standard.LT)
+                || Controller.getValue(Controller.Standard.RT))) 
+        {
+            console.log("Passed 1 ######");
             toggleEntityMenu(pressedEntityID);
         }
-    // If settings are configured, process the event accordingly.
-    } else if (processMouseEvent(event) === true) {
-        toggleEntityMenu(pressedEntityID);
+    } else {
+        // Default if settings are not configured.
+        if (!nyxSettings || !nyxSettings.entityMenu.useMouseTriggers || nyxSettings.entityMenu.selectedMouseTriggers.length === 0) {
+            if (event.isPrimaryHeld && event.isSecondaryHeld && !isInEditMode()) {
+                toggleEntityMenu(pressedEntityID);
+            }
+        // If settings are configured, process the event accordingly.
+        } else if (processMouseEvent(event) === true) {
+            toggleEntityMenu(pressedEntityID);
+        }
     }
 }
 
@@ -306,7 +328,7 @@ function unloadNyxMenu() {
 function startup() {
     Messages.messageReceived.connect(onMessageReceived);
     Entities.mousePressOnEntity.connect(onMousePressOnEntity);
-    Menu.menuItemEvent.connect(handleMenuEvent);
+    Menu.menuItemEvent.connect(handleMenuEvent);    
     
     nyxSettings = Settings.getValue(SETTING_NYX_PREFIX + NYX_SETTINGS_SETTINGS, '');
     
