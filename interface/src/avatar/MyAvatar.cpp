@@ -1542,7 +1542,11 @@ void MyAvatar::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFrom
         return;
     }
 
-    AvatarData::clearAvatarEntity(entityID);
+    clearAvatarEntityInternal(entityID);
+}
+
+void MyAvatar::clearAvatarEntityInternal(const QUuid& entityID) {
+    AvatarData::clearAvatarEntityInternal(entityID);
 
     if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
         // Don't delete potentially non-rezzed avatar entities from cache, otherwise they're removed from settings.
@@ -2596,7 +2600,7 @@ void MyAvatar::removeWornAvatarEntity(const EntityItemID& entityID) {
         auto entity = entityTree->findEntityByID(entityID);
         if (entity && isWearableEntity(entity)) {
             treeRenderer->deleteEntity(entityID);
-            clearAvatarEntity(entityID);
+            clearAvatarEntityInternal(entityID);
         }
     }
 }

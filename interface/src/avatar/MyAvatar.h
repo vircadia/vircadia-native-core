@@ -2710,6 +2710,9 @@ private:
     bool findAvatarEntity(const QString& modelURL, const QString& jointName, QUuid& entityID);
     void addAvatarEntitiesToTree();
 
+    // FIXME: Rename to clearAvatarEntity() once the API call is removed.
+    void clearAvatarEntityInternal(const QUuid& entityID) override;
+
     bool cameraInsideHead(const glm::vec3& cameraPosition) const;
 
     void updateEyeContactTarget(float deltaTime);
