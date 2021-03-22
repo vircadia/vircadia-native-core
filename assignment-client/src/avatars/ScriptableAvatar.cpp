@@ -398,7 +398,7 @@ void ScriptableAvatar::setAvatarEntityData(const AvatarEntityMap& avatarEntityDa
 
     // clear deleted traits
     for (const auto& id : idsToClear) {
-        clearAvatarEntity(id);
+        clearAvatarEntityInternal(id);
     }
 }
 
@@ -408,7 +408,7 @@ void ScriptableAvatar::updateAvatarEntity(const QUuid& entityID, const QByteArra
         std::map<QUuid, EntityItemPointer>::iterator itr = _entities.find(entityID);
         if (itr != _entities.end()) {
             _entities.erase(itr);
-            clearAvatarEntity(entityID);
+            clearAvatarEntityInternal(entityID);
         }
         return;
     }

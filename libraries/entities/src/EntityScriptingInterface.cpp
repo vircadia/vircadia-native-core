@@ -1016,7 +1016,7 @@ void EntityScriptingInterface::deleteEntity(const QUuid& id) {
 
     for (auto entity : entitiesToDeleteImmediately) {
         if (entity->isMyAvatarEntity()) {
-            getEntityPacketSender()->getMyAvatar()->clearAvatarEntity(entity->getID(), false);
+            getEntityPacketSender()->getMyAvatar()->clearAvatarEntityInternal(entity->getID());
         }
     }
 }

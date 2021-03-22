@@ -1542,7 +1542,11 @@ void MyAvatar::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFrom
         return;
     }
 
-    AvatarData::clearAvatarEntity(entityID);
+    clearAvatarEntityInternal(entityID);
+}
+
+void MyAvatar::clearAvatarEntityInternal(const QUuid& entityID) {
+    AvatarData::clearAvatarEntityInternal(entityID);
 
     if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
         // Don't delete potentially non-rezzed avatar entities from cache, otherwise they're removed from settings.
@@ -1595,7 +1599,11 @@ bool MyAvatar::hasAvatarEntities() const {
 void MyAvatar::handleCanRezAvatarEntitiesChanged(bool canRezAvatarEntities) {
     if (canRezAvatarEntities) {
         // Start displaying avatar entities.
-        addAvatarEntitiesToTree();
+        // Allow time for the avatar mixer to be updated with the user's permissions so that it doesn't discard the avatar 
+        // entities sent.
+        QTimer::singleShot(2 * DOMAIN_SERVER_CHECK_IN_MSECS, this, [this] {
+            addAvatarEntitiesToTree();
+        });
     } else {
         // Stop displaying avatar entities.
         removeAvatarEntitiesFromTree();
@@ -2592,7 +2600,7 @@ void MyAvatar::removeWornAvatarEntity(const EntityItemID& entityID) {
         auto entity = entityTree->findEntityByID(entityID);
         if (entity && isWearableEntity(entity)) {
             treeRenderer->deleteEntity(entityID);
-            clearAvatarEntity(entityID);
+            clearAvatarEntityInternal(entityID);
         }
     }
 }

@@ -1187,6 +1187,9 @@ public:
      */
     Q_INVOKABLE virtual void clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree = true);
     
+    // FIXME: Rename to clearAvatarEntity() once the API call is removed.
+    virtual void clearAvatarEntityInternal(const QUuid& entityID);
+
     void clearAvatarEntities();
 
     QList<QUuid> getAvatarEntityIDs() const;
