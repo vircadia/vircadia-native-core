@@ -36,7 +36,7 @@ Script.include([
     "entityList/entityList.js",
     "entitySelectionTool/entitySelectionTool.js",
     "audioFeedback/audioFeedback.js",
-    "modules/brokenUrlReport.js"    
+    "modules/brokenURLReport.js"    
 ]);
 
 var CreateWindow = Script.require('./modules/createWindow.js');
