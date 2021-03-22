@@ -19,4 +19,4 @@ elseif (UNIX AND NOT APPLE)
   endif()
 endif ()
 
-install_beside_console()
+install_beside_interface()
