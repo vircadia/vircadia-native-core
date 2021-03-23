@@ -918,7 +918,6 @@ const GROUPS = [
                 label: "Material Scale",
                 type: "vec2",
                 vec2Type: "xyz",
-                min: 0,
                 step: 0.1,
                 decimals: 4,
                 subLabels: [ "x", "y" ],

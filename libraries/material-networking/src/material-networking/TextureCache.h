@@ -58,10 +58,10 @@ public:
 
     QString getType() const override { return "NetworkTexture"; }
 
-    int getOriginalWidth() const { return _originalWidth; }
-    int getOriginalHeight() const { return _originalHeight; }
-    int getWidth() const { return _width; }
-    int getHeight() const { return _height; }
+    int getOriginalWidth() const { return _textureSource->getGPUTexture() ? _textureSource->getGPUTexture()->getOriginalWidth() : 0; }
+    int getOriginalHeight() const { return _textureSource->getGPUTexture() ? _textureSource->getGPUTexture()->getOriginalHeight() : 0; }
+    int getWidth() const { return _textureSource->getGPUTexture() ? _textureSource->getGPUTexture()->getWidth() : 0; }
+    int getHeight() const { return _textureSource->getGPUTexture() ? _textureSource->getGPUTexture()->getHeight() : 0; }
     image::TextureUsage::Type getTextureType() const { return _type; }
 
     gpu::TexturePointer getFallbackTexture() const;
@@ -143,8 +143,6 @@ private:
     // mip offsets to change.
     ktx::KTXDescriptorPointer _originalKtxDescriptor;
 
-    int _originalWidth { 0 };
-    int _originalHeight { 0 };
     int _width { 0 };
     int _height { 0 };
     int _maxNumPixels { ABSOLUTE_MAX_TEXTURE_NUM_PIXELS };

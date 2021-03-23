@@ -390,8 +390,6 @@ NetworkTexture::NetworkTexture(const NetworkTexture& other) :
     _type(other._type),
     _sourceChannel(other._sourceChannel),
     _currentlyLoadingResourceType(other._currentlyLoadingResourceType),
-    _originalWidth(other._originalWidth),
-    _originalHeight(other._originalHeight),
     _width(other._width),
     _height(other._height),
     _maxNumPixels(other._maxNumPixels),
@@ -467,13 +465,12 @@ void NetworkTexture::setExtra(void* extra) {
 
 void NetworkTexture::setImage(gpu::TexturePointer texture, int originalWidth,
                               int originalHeight) {
-    _originalWidth = originalWidth;
-    _originalHeight = originalHeight;
 
     // Passing ownership
     _textureSource->resetTexture(texture);
 
     if (texture) {
+        texture->setOriginalSize(originalWidth, originalHeight);
         _width = texture->getWidth();
         _height = texture->getHeight();
         setSize(texture->getStoredSize());

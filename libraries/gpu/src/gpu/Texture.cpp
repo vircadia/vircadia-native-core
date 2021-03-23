@@ -322,6 +322,16 @@ bool Texture::isDepthStencilRenderTarget() const {
     return (_texelFormat.getSemantic() == gpu::DEPTH) || (_texelFormat.getSemantic() == gpu::DEPTH_STENCIL);
 }
 
+void Texture::setSize(int width, int height) {
+    _width = width;
+    _height = height;
+}
+
+void Texture::setOriginalSize(int width, int height) {
+    _originalWidth = width;
+    _originalHeight = height;
+}
+
 uint16 Texture::evalDimMaxNumMips(uint16 size) {
     double largerDim = size;
     double val = log(largerDim)/log(2.0);
@@ -894,12 +904,12 @@ const gpu::TexturePointer TextureSource::getGPUTexture() const {
     return _gpuTexture;
 }
 
-void TextureSource::resetTexture(gpu::TexturePointer texture) {
+void TextureSource::resetTexture(const gpu::TexturePointer& texture) {
     _gpuTexture = texture;
     _gpuTextureOperator = nullptr;
 }
 
-void TextureSource::resetTextureOperator(std::function<gpu::TexturePointer()> textureOperator) {
+void TextureSource::resetTextureOperator(const std::function<gpu::TexturePointer()>& textureOperator) {
     _gpuTexture = nullptr;
     _gpuTextureOperator = textureOperator;
 }
