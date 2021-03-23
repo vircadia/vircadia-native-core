@@ -446,18 +446,20 @@
           "default": [
             {
                 "id_can_connect": true,
+                "id_can_rez_avatar_entities": true,
                 "id_can_rez_tmp_certified": true,
                 "permissions_id": "anonymous"
             },
             {
                 "id_can_connect": true,
+                "id_can_rez_avatar_entities": true,
                 "id_can_rez_tmp_certified": true,
                 "permissions_id": "friends"
             },
             {
-                "id_can_adjust_locks": true,
-                "id_can_rez_avatar_entities": true,
                 "id_can_connect": true,
+                "id_can_rez_avatar_entities": true,
+                "id_can_adjust_locks": true,
                 "id_can_connect_past_max_capacity": true,
                 "id_can_kick": true,
                 "id_can_replace_content": true,
@@ -471,6 +473,7 @@
             },
             {
                 "id_can_connect": true,
+                "id_can_rez_avatar_entities": true,
                 "id_can_rez_tmp_certified": true,
                 "permissions_id": "logged-in"
             }
