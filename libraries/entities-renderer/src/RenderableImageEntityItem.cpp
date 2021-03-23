@@ -71,6 +71,8 @@ void ImageEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
             } else {
                 naturalDimensions.y = height / width;
             }
+            // Unlike Models (where the Renderer also doubles as the EntityItem), Images need to
+            // convey this information back to the game object from the Renderer
             entity->setNaturalDimension(naturalDimensions);
         }
     }
