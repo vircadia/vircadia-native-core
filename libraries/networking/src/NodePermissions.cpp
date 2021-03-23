@@ -144,6 +144,9 @@ QDebug operator<<(QDebug debug, const NodePermissions& perms) {
     if (perms.can(NodePermissions::Permission::canConnectToDomain)) {
         debug << " connect";
     }
+    if (perms.can(NodePermissions::Permission::canRezAvatarEntities)) {
+        debug << " rez-avatar-entities";
+    }
     if (perms.can(NodePermissions::Permission::canAdjustLocks)) {
         debug << " locks";
     }
@@ -174,12 +177,10 @@ QDebug operator<<(QDebug debug, const NodePermissions& perms) {
     if (perms.can(NodePermissions::Permission::canGetAndSetPrivateUserData)) {
         debug << " get-and-set-private-user-data";
     }
-    if (perms.can(NodePermissions::Permission::canRezAvatarEntities)) {
-        debug << " rez-avatar-entities";
-    }
     debug.nospace() << "]";
     return debug.nospace();
 }
+
 QDebug operator<<(QDebug debug, const NodePermissionsPointer& perms) {
     if (perms) {
         return operator<<(debug, *perms.get());
