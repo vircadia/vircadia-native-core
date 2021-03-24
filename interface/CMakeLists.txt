@@ -456,6 +456,24 @@ if (DOWNLOAD_SERVERLESS_CONTENT)
   )
 endif ()
 
+if (BUILD_TOOLS)
+  add_dependencies(${TARGET_NAME} oven)
+
+  if (WIN32)
+    add_custom_command(
+      TARGET ${TARGET_NAME} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_directory
+              $<TARGET_FILE_DIR:oven>
+              $<TARGET_FILE_DIR:${TARGET_NAME}>)
+  else()
+    add_custom_command(
+      TARGET ${TARGET_NAME} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E create_symlink
+              $<TARGET_FILE:oven>
+              $<TARGET_FILE_DIR:${TARGET_NAME}>/oven)
+  endif()
+endif (BUILD_TOOLS)
+
 if (WIN32)
     set(EXTRA_DEPLOY_OPTIONS "--qmldir  \"${PROJECT_SOURCE_DIR}/resources/qml\"")
 
