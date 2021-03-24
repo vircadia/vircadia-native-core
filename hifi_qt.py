@@ -10,6 +10,31 @@ import json
 import xml.etree.ElementTree as ET
 import functools
 
+# The way Qt is handled is a bit complicated, so I'm documenting it here.
+#
+# 1. User runs cmake
+# 2. cmake calls prebuild.py, which is referenced in /CMakeLists.txt
+# 3. prebuild.py calls this code.
+# 4. hifi_qt.py determines how to handle cmake: do we need to download a package, and which?
+# 4.a - Using system Qt
+#       No download, most special paths are turned off.
+#       We build in the same way a normal Qt program would.
+# 4.b - Using an user-provided Qt build in a custom directory.
+#       We just need to set the cmakePath to the right dir (qt5-install/lib/cmake)
+# 4.c - Using a premade package.
+#       We check the OS and distro and set qtUrl to the URL to download.
+#       After this, it works on the same pathway as 4.b.
+# 5. We write /qt.cmake, which contains paths that are passed down to SetupQt.cmake
+#    The template for this file is in CMAKE_TEMPLATE just below this comment
+#    and it sets the QT_CMAKE_PREFIX_PATH variable used by SetupQt.cmake.
+# 6. cmake includes /qt.cmake receiving our information
+#    In the case of system Qt, this step is skipped.
+# 7. cmake runs SetupQt.cmake which takes care of the cmake parts of the Qt configuration.
+#    In the case of system Qt, SetupQt.cmake is a no-op. It runs but exits immediately.
+#
+# The format for a prebuilt qt is a package containing a top-level directory named
+# 'qt5-install', which contains the result of a "make install" from a build of the Qt source.
+
 print = functools.partial(print, flush=True)
 
 # Encapsulates the vcpkg system
