@@ -37,7 +37,7 @@ endif()
         system_qt = False
 
         # Here we handle the 3 possible cases of dealing with Qt:
-        if os.getenv('VIRCADIA_USE_SYSTEM_QT'):
+        if os.getenv('VIRCADIA_USE_SYSTEM_QT', "") != "":
             # 1. Using the system provided Qt. This is only recommended for Qt 5.15.0 and above,
             # as it includes a required fix on Linux.
             #
@@ -53,7 +53,7 @@ endif()
             system_qt = True
             print("Using system Qt")
 
-        elif os.getenv('VIRCADIA_QT_PATH'):
+        elif os.getenv('VIRCADIA_QT_PATH', "") != "":
             # 2. Using an user-provided directory.
             # VIRCADIA_QT_PATH must point to a directory with a Qt install in it.
 
