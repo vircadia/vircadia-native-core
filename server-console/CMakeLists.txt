@@ -1,5 +1,10 @@
 set(TARGET_NAME packaged-server-console)
 
+if (CLIENT_ONLY AND APPLE)
+  # Don't include Console.app in client-only OSX DMGs.
+  return()
+endif()
+
 if (PRODUCTION_BUILD)
   set(PRODUCTION_OPTION "--production")
 endif()
