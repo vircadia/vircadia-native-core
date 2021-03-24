@@ -460,7 +460,7 @@ var labels = {
         }
     },
     goHome: {
-        label: 'Visit Sandbox',
+        label: 'Visit Local Server',
         click: visitSandboxClicked,
         enabled: false
     },
