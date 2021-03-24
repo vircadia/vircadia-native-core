@@ -63,8 +63,8 @@ For example, under OSX:
 
     export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.15.2/lib/cmake
 
-Note: You only need the following components checked under Qt 5.15.2 (select the "Custom Installation" option): 
-		"MSVC 2019 64-bit", "Qt WebEngine", and "Qt Script (Deprecated)".
+Note: You only need the following components checked under Qt 5.15.2 (select the "Custom Installation" option):
+"MSVC 2019 64-bit", "Qt WebEngine", and "Qt Script (Deprecated)".
 
 Note: Installing the sources is optional but recommended if you have room for them (~3GB). You may also want the Qt debug 
 information files (~7GB).
