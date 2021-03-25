@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2014-09-10.
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -35,11 +36,11 @@ const QString REDIRECT_HIFI_ADDRESS = NetworkingConstants::REDIRECT_HIFI_ADDRESS
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
 const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
 
-const QString DEFAULT_VIRCADIA_ADDRESS = (!BuildInfo::INITIAL_STARTUP_LOCATION.isEmpty())
-                                       ? BuildInfo::INITIAL_STARTUP_LOCATION
+const QString DEFAULT_VIRCADIA_ADDRESS = (!BuildInfo::PRELOADED_STARTUP_LOCATION.isEmpty())
+                                       ? BuildInfo::PRELOADED_STARTUP_LOCATION
                                        : NetworkingConstants::DEFAULT_VIRCADIA_ADDRESS;
-const QString DEFAULT_HOME_ADDRESS = (!BuildInfo::INITIAL_STARTUP_LOCATION.isEmpty()) 
-                                       ? BuildInfo::INITIAL_STARTUP_LOCATION
+const QString DEFAULT_HOME_ADDRESS = (!BuildInfo::PRELOADED_STARTUP_LOCATION.isEmpty()) 
+                                       ? BuildInfo::PRELOADED_STARTUP_LOCATION
                                        : NetworkingConstants::DEFAULT_VIRCADIA_ADDRESS;
 
 Setting::Handle<QUrl> currentAddressHandle(QStringList() << ADDRESS_MANAGER_SETTINGS_GROUP << "address", DEFAULT_VIRCADIA_ADDRESS);

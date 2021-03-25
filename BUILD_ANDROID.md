@@ -42,11 +42,13 @@ Follow the directions [here](https://developer.android.com/studio/publish/app-si
 
 Create a `gradle.properties` file in the `.gradle` folder (`$HOME/.gradle` on Unix, `Users/<yourname>/.gradle` on Windows). Edit the file to contain the following
 
-    HIFI_ANDROID_PRECOMPILED=<your_home_directory>/Android/hifi_externals
-    HIFI_ANDROID_KEYSTORE=<key_store_directory>/<keystore_name>.jks
-    HIFI_ANDROID_KEYSTORE_PASSWORD=<password>
-    HIFI_ANDROID_KEY_ALIAS=<key_alias>
-    HIFI_ANDROID_KEY_PASSWORD=<key_passwords>
+```properties
+HIFI_ANDROID_PRECOMPILED=<your_home_directory>/Android/hifi_externals
+HIFI_ANDROID_KEYSTORE=<key_store_directory>/<keystore_name>.jks
+HIFI_ANDROID_KEYSTORE_PASSWORD=<password>
+HIFI_ANDROID_KEY_ALIAS=<key_alias>
+HIFI_ANDROID_KEY_PASSWORD=<key_passwords>
+```
 
 Note, do not use $HOME for the path. It must be a fully qualified path name. Also, be sure to use forward slashes in your path.
 
@@ -54,21 +56,26 @@ Note, do not use $HOME for the path. It must be a fully qualified path name. Als
 
 Add these lines to `gradle.properties`
 
-    SUPPRESS_QUEST_INTERFACE
-    SUPPRESS_QUEST_FRAME_PLAYER
+```properties
+SUPPRESS_QUEST_INTERFACE
+SUPPRESS_QUEST_FRAME_PLAYER
+```
 
 #### If you are building for an Oculus Quest
 
 Add these lines to `gradle.properties`
 
-    SUPPRESS_INTERFACE
-    SUPPRESS_FRAME_PLAYER
-
+```properties
+SUPPRESS_INTERFACE
+SUPPRESS_FRAME_PLAYER
+```
 
 #### The Frame Player for both Android Phone and Oculus Quest is optional, so if you encounter problems with these during your build, you can skip them by adding these lines to `gradle.properties`
 
-    SUPPRESS_FRAME_PLAYER
-    SUPPRESS_QUEST_FRAME_PLAYER
+```properties
+SUPPRESS_FRAME_PLAYER
+SUPPRESS_QUEST_FRAME_PLAYER
+```
 
 ### Clone the repository
 

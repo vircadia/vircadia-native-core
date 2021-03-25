@@ -587,7 +587,7 @@
         "tooltip": "The mode in which to draw an entity, either \"Solid\" or \"Wireframe\"."
     },
     "billboardMode": {
-        "tooltip": "Determines if and how the entity will face the camera.",
+        "tooltip": "Determines if and how the entity will face the camera."
     },
     "renderWithZones": {
         "tooltip": "If set, this entity will only render when your avatar is inside of a zone in this list."

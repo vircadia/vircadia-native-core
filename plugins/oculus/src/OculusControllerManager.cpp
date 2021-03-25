@@ -369,7 +369,13 @@ void OculusControllerManager::TouchDevice::handleRotationForUntrackedHand(const 
     pose = pose.transform(controllerToAvatar);
 }
 
-bool OculusControllerManager::TouchDevice::triggerHapticPulse(float strength, float duration, controller::Hand hand) {
+bool OculusControllerManager::TouchDevice::triggerHapticPulse(float strength, float duration, uint16_t index) {
+    if (index > 2) {
+        return false;
+    }
+
+    controller::Hand hand = (controller::Hand)index;
+
     Locker locker(_lock);
     bool toReturn = true;
     ovr::withSession([&](ovrSession session) {
