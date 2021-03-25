@@ -21,15 +21,19 @@ endfunction()
 if (BUILD_TOOLS)
     set(ALL_TOOLS 
         udt-test
-        vhacd-util
         gpu-frame-player
         ice-client
         ktx-tool
         ac-client
         skeleton-dump
         atp-client
-        oven
     )
+
+    # Don't include oven or vhacd-til in OSX client-only DMGs.
+    if (NOT CLIENT_ONLY OR NOT APPLE)
+        list(APPEND ALL_TOOLS oven)
+        list(APPEND ALL_TOOLS vhacdutil)
+    endif()
 
     # Allow different tools for stable builds
     if (STABLE_BUILD)
