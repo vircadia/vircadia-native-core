@@ -32,7 +32,7 @@ if (BUILD_TOOLS)
     # Don't include oven or vhacd-til in OSX client-only DMGs.
     if (NOT CLIENT_ONLY OR NOT APPLE)
         list(APPEND ALL_TOOLS oven)
-        list(APPEND ALL_TOOLS vhacdutil)
+        list(APPEND ALL_TOOLS vhacd-util)
     endif()
 
     # Allow different tools for stable builds
