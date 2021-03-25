@@ -3111,6 +3111,8 @@ private:
 
     glm::vec3 _cameraEyesOffset;
     float _landingAfterJumpTime { 0.0f };
+
+    QTimer _addAvatarEntitiesToTreeTimer;
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

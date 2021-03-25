@@ -368,12 +368,20 @@ MyAvatar::MyAvatar(QThread* thread) :
     connect(&(_skeletonModel->getRig()), &Rig::onLoadFailed, this, &MyAvatar::onLoadFailed);
 
     _characterController.setDensity(_density);
+
+    _addAvatarEntitiesToTreeTimer.setSingleShot(true);
+    connect(&_addAvatarEntitiesToTreeTimer, &QTimer::timeout, [this] {
+        addAvatarEntitiesToTree();
+    });
 }
 
 MyAvatar::~MyAvatar() {
     _lookAtTargetAvatar.reset();
     delete _scriptEngine;
     _scriptEngine = nullptr;
+    if (_addAvatarEntitiesToTreeTimer.isActive()) {
+        _addAvatarEntitiesToTreeTimer.stop();
+    }
 }
 
 QString MyAvatar::getDominantHand() const {
@@ -1600,11 +1608,17 @@ void MyAvatar::handleCanRezAvatarEntitiesChanged(bool canRezAvatarEntities) {
     if (canRezAvatarEntities) {
         // Start displaying avatar entities.
         // Allow time for the avatar mixer to be updated with the user's permissions so that it doesn't discard the avatar 
-        // entities sent.
-        QTimer::singleShot(2 * DOMAIN_SERVER_CHECK_IN_MSECS, this, [this] {
-            addAvatarEntitiesToTree();
-        });
+        // entities sent. In theory, typical worst case would be Interface running on same PC as server and the timings of
+        // Interface and the avatar mixer sending DomainListRequest to the domain server being such that the avatar sends its
+        // DomainListRequest and gets its DomainList response DOMAIN_SERVER_CHECK_IN_MSECS after Interface does. Allow extra
+        // time in case the avatar mixer is bogged down.
+        _addAvatarEntitiesToTreeTimer.start(5 * DOMAIN_SERVER_CHECK_IN_MSECS);  // Single-shot.
     } else {
+        // Cancel any pending addAvatarEntitiesToTree() call.
+        if (_addAvatarEntitiesToTreeTimer.isActive()) {
+            _addAvatarEntitiesToTreeTimer.stop();
+        }
+
         // Stop displaying avatar entities.
         removeAvatarEntitiesFromTree();
     }
