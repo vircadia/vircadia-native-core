@@ -90,7 +90,10 @@ BUILD_NUMBER
 RELEASE_TYPE=PRODUCTION|PR|DEV
 
 // The Interface will have a custom default home and startup location.
-INITIAL_STARTUP_LOCATION=Location/IP/URL
+PRELOADED_STARTUP_LOCATION=Location/IP/URL
+// The Interface will have a custom default script whitelist, comma separated, no spaces.
+// This will also activate the whitelist on Interface's first run.
+PRELOADED_SCRIPT_WHITELIST=ListOfEntries
 
 // Code-signing environment variables must be set during runtime of CMake AND globally when the signing takes place.
 HF_PFX_FILE=Path to certificate

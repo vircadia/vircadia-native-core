@@ -692,10 +692,28 @@ Rectangle {
 
                     visible: !status.visible;
 
+                    function onNoiseGateOpened() {
+                        noiseBar.gated = false;
+                    }
+
+                    function onNoiseGateClosed() {
+                        noiseBar.gated = true;
+                    }
+
+                    function onInputLevelChanged(level) {
+                        noiseBar.level = level;
+                    }
+
                     Component.onCompleted: {
-                        AudioScriptingInterface.noiseGateOpened.connect(function () { noiseBar.gated = false; });
-                        AudioScriptingInterface.noiseGateClosed.connect(function () { noiseBar.gated = true; });
-                        AudioScriptingInterface.inputLevelChanged.connect(function () { noiseBar.level = AudioScriptingInterface.inputLevel; });
+                        AudioScriptingInterface.noiseGateOpened.connect(onNoiseGateOpened);
+                        AudioScriptingInterface.noiseGateClosed.connect(onNoiseGateClosed);
+                        AudioScriptingInterface.inputLevelChanged.connect(onInputLevelChanged);
+                    }
+
+                    Component.onDestruction: {
+                        AudioScriptingInterface.noiseGateOpened.disconnect(onNoiseGateOpened);
+                        AudioScriptingInterface.noiseGateClosed.disconnect(onNoiseGateClosed);
+                        AudioScriptingInterface.inputLevelChanged.disconnect(onInputLevelChanged);
                     }
 
                     Rectangle { // base
