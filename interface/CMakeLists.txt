@@ -477,7 +477,7 @@ if (APPLE)
     add_custom_command(TARGET ${TARGET_NAME} 
                        POST_BUILD
                        COMMAND ${CMAKE_COMMAND} -E rename
-                           "${ESCAPED_INSTALL_PATH}/${ESCAPED_BUNDLE_NAME}.app"
-                           "${ESCAPED_INSTALL_PATH}/Vircadia.app"
-                       COMMENT "Renaming '${ESCAPED_INSTALL_PATH}/${ESCAPED_BUNDLE_NAME}.app' to 'Vircadia.app'")
+                           "${INTERFACE_INSTALL_DIR}/${INTERFACE_BUNDLE_NAME}.app"
+                           "${INTERFACE_INSTALL_DIR}/Vircadia.app"
+                       COMMENT "Renaming '${INTERFACE_INSTALL_DIR}/${INTERFACE_BUNDLE_NAME}.app' to 'Vircadia.app'")
 endif()
