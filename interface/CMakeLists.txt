@@ -474,7 +474,7 @@ target_include_directories(${TARGET_NAME} PUBLIC ${GIFCREATOR_INCLUDE_DIRS})
 set_property(SOURCE ui_console.h PROPERTY SKIP_AUTOMOC ON)
 
 if (APPLE)
-    add_custom_command(TARGET ${TARGE_NAME} 
+    add_custom_command(TARGET ${TARGET_NAME} 
                        POST_BUILD
                        COMMAND ${CMAKE_COMMAND} -E rename
                            "${ESCAPED_INSTALL_PATH}/${ESCAPED_BUNDLE_NAME}.app"
