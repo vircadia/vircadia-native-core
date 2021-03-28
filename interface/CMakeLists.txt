@@ -478,6 +478,6 @@ if (APPLE)
                        POST_BUILD
                        COMMAND ${CMAKE_COMMAND} -E rename
                            "${INTERFACE_INSTALL_DIR}/${INTERFACE_BUNDLE_NAME}.app"
-                           "${INTERFACE_INSTALL_DIR}/Vircadia.app"
+                           "Vircadia.app"
                        COMMENT "Renaming '${INTERFACE_INSTALL_DIR}/${INTERFACE_BUNDLE_NAME}.app' to 'Vircadia.app'")
 endif()
