@@ -37,15 +37,14 @@ static const QString FALLBACK_FINGERPRINT_KEY = "fallbackFingerprint";
 QUuid FingerprintUtils::_machineFingerprint { QUuid() };
 
 QString FingerprintUtils::getMachineFingerprintString() {
-    QString uuidString;
+    QCryptographicHash hash(QCryptographicHash::Keccak_256);
+
 #ifdef Q_OS_LINUX
     // As per the documentation:
     // https://man7.org/linux/man-pages/man5/machine-id.5.html
     //
     // we use the machine id as a base, but add an application-specific key to it.
     // If machine-id isn't available, we try hardware networking devices instead.
-
-    QCryptographicHash hash(QCryptographicHash::Keccak_256);
 
     QFile machineIdFile("/etc/machine-id");
     if (!machineIdFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -58,7 +57,7 @@ QString FingerprintUtils::getMachineFingerprintString() {
         if (netDevicesInfo.empty()) {
             // Let getMachineFingerprint handle this contingency
             qCWarning(networking) << "Failed to find any hardware networking devices";
-            return "";
+            return QUuid().toString();
         }
 
         for(auto& fileInfo : netDevicesInfo) {
@@ -84,6 +83,51 @@ QString FingerprintUtils::getMachineFingerprintString() {
         hash.addData(data);
     }
 
+#endif //Q_OS_LINUX
+
+#ifdef Q_OS_MAC
+    io_registry_entry_t ioRegistryRoot = IORegistryEntryFromPath(kIOMasterPortDefault, "IOService:/");
+    CFStringRef uuidCf = (CFStringRef) IORegistryEntryCreateCFProperty(ioRegistryRoot, CFSTR(kIOPlatformUUIDKey), kCFAllocatorDefault, 0);
+    IOObjectRelease(ioRegistryRoot);
+    hash.addData(QString::fromCFString(uuidCf).toUtf8());
+    CFRelease(uuidCf); 
+#endif //Q_OS_MAC
+
+#ifdef Q_OS_WIN
+    HKEY cryptoKey;
+    bool success = false;
+
+    // try and open the key that contains the machine GUID
+    if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Cryptography", 0, KEY_READ, &cryptoKey) == ERROR_SUCCESS) {
+        DWORD type;
+        DWORD guidSize;
+
+        const char* MACHINE_GUID_KEY = "MachineGuid";
+
+        // try and retrieve the size of the GUID value
+        if (RegQueryValueEx(cryptoKey, MACHINE_GUID_KEY, NULL, &type, NULL, &guidSize) == ERROR_SUCCESS) {
+            // make sure that the value is a string
+            if (type == REG_SZ) {
+                // retrieve the machine GUID and return that as our UUID string
+                std::string machineGUID(guidSize / sizeof(char), '\0');
+
+                if (RegQueryValueEx(cryptoKey, MACHINE_GUID_KEY, NULL, NULL,
+                                    reinterpret_cast<LPBYTE>(&machineGUID[0]), &guidSize) == ERROR_SUCCESS) {
+                    hash.addData(QString::fromStdString(machineGUID).toUtf8());
+                    success = true;
+                }
+            }
+        }
+
+        RegCloseKey(cryptoKey);
+    }
+
+    if (!success) {
+        // Let getMachineFingerprint handle this contingency
+        return QUuid().toString();
+    }
+#endif //Q_OS_WIN
+
     // Makes this hash unique to us
     hash.addData("Vircadia");
 
@@ -104,7 +148,7 @@ QString FingerprintUtils::getMachineFingerprintString() {
     // So we have to turn it into:
     // {1b1b9d6d-45c2-473b-ac13-dc3011ff58d6}
 
-    uuidString = result.toHex();
+    QString uuidString = result.toHex();
     uuidString.insert(20, '-');
     uuidString.insert(16, '-');
     uuidString.insert(12, '-');
@@ -112,49 +156,9 @@ QString FingerprintUtils::getMachineFingerprintString() {
     uuidString.prepend("{");
     uuidString.append("}");
 
-    qCDebug(networking) << "Linux machine fingerprint:" << uuidString;
-#endif //Q_OS_LINUX
-
-#ifdef Q_OS_MAC
-    io_registry_entry_t ioRegistryRoot = IORegistryEntryFromPath(kIOMasterPortDefault, "IOService:/");
-    CFStringRef uuidCf = (CFStringRef) IORegistryEntryCreateCFProperty(ioRegistryRoot, CFSTR(kIOPlatformUUIDKey), kCFAllocatorDefault, 0);
-    IOObjectRelease(ioRegistryRoot);
-    uuidString = QString::fromCFString(uuidCf);
-    CFRelease(uuidCf); 
-    qCDebug(networking) << "Mac serial number: " << uuidString;
-#endif //Q_OS_MAC
-
-#ifdef Q_OS_WIN
-    HKEY cryptoKey;
-    
-    // try and open the key that contains the machine GUID
-    if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Cryptography", 0, KEY_READ, &cryptoKey) == ERROR_SUCCESS) {
-        DWORD type;
-        DWORD guidSize;
-
-        const char* MACHINE_GUID_KEY = "MachineGuid";
-
-        // try and retrieve the size of the GUID value
-        if (RegQueryValueEx(cryptoKey, MACHINE_GUID_KEY, NULL, &type, NULL, &guidSize) == ERROR_SUCCESS) {
-            // make sure that the value is a string
-            if (type == REG_SZ) {
-                // retrieve the machine GUID and return that as our UUID string
-                std::string machineGUID(guidSize / sizeof(char), '\0');
-
-                if (RegQueryValueEx(cryptoKey, MACHINE_GUID_KEY, NULL, NULL,
-                                    reinterpret_cast<LPBYTE>(&machineGUID[0]), &guidSize) == ERROR_SUCCESS) {
-                    uuidString = QString::fromStdString(machineGUID);
-                }
-            }
-        }
-
-        RegCloseKey(cryptoKey);
-    }
-
-#endif //Q_OS_WIN
+    qCDebug(networking) << "Final machine fingerprint:" << uuidString;
 
     return uuidString;
-
 }
 
 QUuid FingerprintUtils::getMachineFingerprint() {
