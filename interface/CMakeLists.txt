@@ -1,6 +1,16 @@
 set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
+# #######
+message(STATUS "####### interface CMakeLists.txt")
+message(STATUS "####... project(${TARGET_NAME}})")
+message(STATUS "####... PROJECT_SOURCE_DIR: ${PROJECT_SOURCE_DIR})")
+message(STATUS "####... INTERFACE_SOURCE_DIR: ${INTERFACE_SOURCE_DIR})")
+message(STATUS "####... XIRCADIA_SOURCE_DIR: ${XIRCADIA_SOURCE_DIR})")
+message(STATUS "####... PROJECT_BINARY_DIR: ${PROJECT_BINARY_DIR})")
+message(STATUS "####... INTERFACE_BINARY_DIR: ${INTERFACE_BINARY_DIR})")
+message(STATUS "####... XIRCADIA_BINARY_DIR: ${XIRCADIA_BINARY_DIR})")
+
 file(GLOB_RECURSE QML_SRC resources/qml/*.qml resources/qml/*.js)
 add_custom_target(qmls SOURCES ${QML_SRC})
 GroupSources("resources/qml")
