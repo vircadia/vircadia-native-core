@@ -21,9 +21,14 @@ if (HIFI_MEMORY_DEBUGGING)
         SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -shared-libasan -fsanitize=undefined -fsanitize=address -fsanitize-recover=address")
     else ()
         # for gcc on Linux
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -fsanitize=address -U_FORTIFY_SOURCE -fno-stack-protector -fno-omit-frame-pointer")
-        SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libasan -static-libstdc++ -fsanitize=undefined -fsanitize=address")
-        SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libasan -static-libstdc++ -fsanitize=undefined -fsanitize=address")
+        # For some reason, using -fstack-protector results in this error:
+        # usr/bin/ld: ../../libraries/audio/libaudio.so: undefined reference to `FIR_1x4_AVX512(float*, float*, float*, float*, float*, float (*) [64], int)'
+        # The '-DSTACK_PROTECTOR' argument below disables the usage of this function in the code. This should be fine as it only works on the latest Intel hardware,
+        # and is an optimization that should make no functional difference.
+
+        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -fsanitize=address -U_FORTIFY_SOURCE -DSTACK_PROTECTOR -fstack-protector-strong -fno-omit-frame-pointer")
+        SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=undefined -fsanitize=address")
+        SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=undefined -fsanitize=address")
     endif()
   endif (UNIX)
 endif ()
