@@ -1965,7 +1965,7 @@ bool GLTFSerializer::addArrayFromAccessor(GLTFAccessor& accessor, QVector<T>& ou
     } else {
         for (int i = 0; i < accessor.count; ++i) {
             T value;
-            memset(&value, 0, sizeof(T));  // Make sure the dummy array is initalised to zero.
+            memset(&value, 0, sizeof(T));  // Make sure the dummy array is initialized to zero.
             outarray.push_back(value);
         }
     }
