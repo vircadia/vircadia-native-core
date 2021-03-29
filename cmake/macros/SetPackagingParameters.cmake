@@ -96,6 +96,8 @@ macro(SET_PACKAGING_PARAMETERS)
     add_definitions(-DDEV_BUILD)
   endif ()
 
+  message(STATUS "####### INTERFACE_BUNDLE_NAME: ${INTERFACE_BUNDLE_NAME}")
+
   set(NITPICK_BUNDLE_NAME "nitpick")
   if (RELEASE_TYPE STREQUAL "PRODUCTION")
     set(NITPICK_ICON_PREFIX "nitpick")

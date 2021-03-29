@@ -33,7 +33,7 @@ macro(fixup_interface)
                 COMPONENT ${CLIENT_COMPONENT}
             )
         else ()
-            message(STATUS, "####### fixup_interface : MACDEPLOYQT_COMMAND : $<TARGET_FILE_DIR:${TARGET_NAME}>")
+            message(STATUS "####### fixup_interface : MACDEPLOYQT_COMMAND : $<TARGET_FILE_DIR:${TARGET_NAME}>")
             add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
                 COMMAND ${MACDEPLOYQT_COMMAND} "$<TARGET_FILE_DIR:${TARGET_NAME}>/../.." -verbose=2 -qmldir=${CMAKE_SOURCE_DIR}/interface/resources/qml/
             )
