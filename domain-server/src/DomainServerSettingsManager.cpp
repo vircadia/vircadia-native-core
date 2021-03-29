@@ -37,6 +37,7 @@
 #include <SettingHandle.h>
 #include <SettingHelpers.h>
 #include <FingerprintUtils.h>
+#include <ModerationFlags.h>
 
 #include "DomainServerNodeData.h"
 
@@ -863,6 +864,20 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
         // pull the UUID being kicked from the packet
         QUuid nodeUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
+        bool hasOptionalBanParameters = false;
+        int banParameters;
+        bool banByUsername;
+        bool banByFingerprint;
+        bool banByIP;
+        // pull optional ban parameters from the packet
+        if (message.data()->getSize() == (NUM_BYTES_RFC4122_UUID + sizeof(int))) {
+            hasOptionalBanParameters = true;
+            message->readPrimitive(&banParameters);
+            banByUsername = banParameters & ModerationFlags::BanFlags::BAN_BY_USERNAME;
+            banByFingerprint = banParameters & ModerationFlags::BanFlags::BAN_BY_FINGERPRINT;
+            banByIP = banParameters & ModerationFlags::BanFlags::BAN_BY_IP;
+        }
+
         if (!nodeUUID.isNull() && nodeUUID != sendingNode->getUUID()) {
             // make sure we actually have a node with this UUID
             auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
@@ -881,16 +896,20 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
                 if (!verifiedUsername.isEmpty()) {
                     // if we have a verified user name for this user, we first apply the kick to the username
 
-                    // check if there were already permissions
-                    bool hadPermissions = havePermissionsForName(verifiedUsername);
+                    // if we have optional ban parameters, we should ban the username based on the parameter
+                    if (!hasOptionalBanParameters || banByUsername) {
+                        // check if there were already permissions
+                        bool hadPermissions = havePermissionsForName(verifiedUsername);
 
-                    // grab or create permissions for the given username
-                    auto userPermissions = _agentPermissions[matchingNode->getPermissions().getKey()];
+                        // grab or create permissions for the given username
+                        auto userPermissions = _agentPermissions[matchingNode->getPermissions().getKey()];
 
-                    newPermissions = !hadPermissions || userPermissions->can(NodePermissions::Permission::canConnectToDomain);
+                        newPermissions =
+                            !hadPermissions || userPermissions->can(NodePermissions::Permission::canConnectToDomain);
 
-                    // ensure that the connect permission is clear
-                    userPermissions->clear(NodePermissions::Permission::canConnectToDomain);
+                        // ensure that the connect permission is clear
+                        userPermissions->clear(NodePermissions::Permission::canConnectToDomain);
+                    }
                 }
 
                 // if we didn't have a username, or this domain-server uses the "multi-kick" setting to
@@ -898,7 +917,7 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
                 // then we remove connect permissions for the machine fingerprint (or IP as fallback)
                 const QString MULTI_KICK_SETTINGS_KEYPATH = "security.multi_kick_logged_in";
 
-                if (verifiedUsername.isEmpty() || valueOrDefaultValueForKeyPath(MULTI_KICK_SETTINGS_KEYPATH).toBool()) {
+                if (banByFingerprint || verifiedUsername.isEmpty() || valueOrDefaultValueForKeyPath(MULTI_KICK_SETTINGS_KEYPATH).toBool()) {
                     // remove connect permissions for the machine fingerprint
                     DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(matchingNode->getLinkedData());
                     if (nodeData) {
@@ -923,36 +942,39 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
                             fingerprintPermissions->clear(NodePermissions::Permission::canConnectToDomain);
                         }
                     } else {
-                        // if no node data, all we can do is IP address
-                        auto& kickAddress = matchingNode->getActiveSocket()
-                            ? matchingNode->getActiveSocket()->getAddress()
-                            : matchingNode->getPublicSocket().getAddress();
+                        // if no node data, all we can do is ban by IP address
+                        banByIP = true;
+                    }
+                }
+                
+                if (banByIP) {
+                    auto& kickAddress = matchingNode->getActiveSocket()
+                        ? matchingNode->getActiveSocket()->getAddress()
+                        : matchingNode->getPublicSocket().getAddress();
 
-                        // probably isLoopback covers it, as whenever I try to ban an agent on same machine as the domain-server
-                        // it is always 127.0.0.1, but looking at the public and local addresses just to be sure
-                        // TODO: soon we will have feedback (in the form of a message to the client) after we kick.  When we
-                        // do, we will have a success flag, and perhaps a reason for failure.  For now, just don't do it.
-                        if (kickAddress == limitedNodeList->getPublicSockAddr().getAddress() ||
-                            kickAddress == limitedNodeList->getLocalSockAddr().getAddress() ||
-                            kickAddress.isLoopback() ) {
-                            qWarning() << "attempt to kick node running on same machine as domain server, ignoring KickRequest";
-                            return;
-                        }
+                    // probably isLoopback covers it, as whenever I try to ban an agent on same machine as the domain-server
+                    // it is always 127.0.0.1, but looking at the public and local addresses just to be sure
+                    // TODO: soon we will have feedback (in the form of a message to the client) after we kick.  When we
+                    // do, we will have a success flag, and perhaps a reason for failure.  For now, just don't do it.
+                    if (kickAddress == limitedNodeList->getPublicSockAddr().getAddress() ||
+                        kickAddress == limitedNodeList->getLocalSockAddr().getAddress() ||
+                        kickAddress.isLoopback() ) {
+                        qWarning() << "attempt to kick node running on same machine as domain server, ignoring KickRequest";
+                        return;
+                    }
 
+                    NodePermissionsKey ipAddressKey(kickAddress.toString(), QUuid());
 
-                        NodePermissionsKey ipAddressKey(kickAddress.toString(), QUuid());
+                    // check if there were already permissions for the IP
+                    bool hadIPPermissions = hasPermissionsForIP(kickAddress);
 
-                        // check if there were already permissions for the IP
-                        bool hadIPPermissions = hasPermissionsForIP(kickAddress);
+                    // grab or create permissions for the given IP address
+                    auto ipPermissions = _ipPermissions[ipAddressKey];
 
-                        // grab or create permissions for the given IP address
-                        auto ipPermissions = _ipPermissions[ipAddressKey];
+                    if (!hadIPPermissions || ipPermissions->can(NodePermissions::Permission::canConnectToDomain)) {
+                        newPermissions = true;
 
-                        if (!hadIPPermissions || ipPermissions->can(NodePermissions::Permission::canConnectToDomain)) {
-                            newPermissions = true;
-
-                            ipPermissions->clear(NodePermissions::Permission::canConnectToDomain);
-                        }
+                        ipPermissions->clear(NodePermissions::Permission::canConnectToDomain);
                     }
                 }
 
