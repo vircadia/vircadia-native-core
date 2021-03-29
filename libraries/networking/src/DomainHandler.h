@@ -163,6 +163,10 @@ public:
     bool checkInPacketTimeout();
     void clearPendingCheckins() { _checkInPacketsSinceLastReply = 0; }
 
+    void resetConfirmConnectWithoutAvatarEntities() {
+        _haveAskedConnectWithoutAvatarEntities = false;
+    }
+
     /**jsdoc
      * <p>The reasons that you may be refused connection to a domain are defined by numeric values:</p>
      * <table>

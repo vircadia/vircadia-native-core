@@ -42,6 +42,7 @@
 #include "udt/PacketHeaders.h"
 #include "SharedUtil.h"
 #include <Trace.h>
+#include <ModerationFlags.h>
 
 using namespace std::chrono;
 
@@ -1291,17 +1292,19 @@ float NodeList::getInjectorGain() {
     return _injectorGain;
 }
 
-void NodeList::kickNodeBySessionID(const QUuid& nodeID) {
+void NodeList::kickNodeBySessionID(const QUuid& nodeID, unsigned int banFlags) {
     // send a request to domain-server to kick the node with the given session ID
     // the domain-server will handle the persistence of the kick (via username or IP)
 
     if (!nodeID.isNull() && getSessionUUID() != nodeID ) {
         if (getThisNodeCanKick()) {
             // setup the packet
-            auto kickPacket = NLPacket::create(PacketType::NodeKickRequest, NUM_BYTES_RFC4122_UUID, true);
+            auto kickPacket = NLPacket::create(PacketType::NodeKickRequest, NUM_BYTES_RFC4122_UUID + sizeof(int), true);
 
             // write the node ID to the packet
             kickPacket->write(nodeID.toRfc4122());
+            // write the ban parameters to the packet
+            kickPacket->writePrimitive(banFlags);
 
             qCDebug(networking) << "Sending packet to kick node" << uuidStringWithoutCurlyBraces(nodeID);
 

@@ -66,7 +66,7 @@ int AnimSkeleton::nameToJointIndex(const QString& jointName) const {
     if (_jointIndicesByName.end() != itr) {
         return itr.value();
     }
-    return -1;
+    return INVALID_JOINT_INDEX;
 }
 
 int AnimSkeleton::getNumJoints() const {
@@ -80,7 +80,7 @@ int AnimSkeleton::getChainDepth(int jointIndex) const {
         do {
             chainDepth++;
             index = _parentIndices[index];
-        } while (index != -1);
+        } while (index != INVALID_JOINT_INDEX);
         return chainDepth;
     } else {
         return 0;
@@ -108,7 +108,7 @@ const AnimPose& AnimSkeleton::getPostRotationPose(int jointIndex) const {
 std::vector<int> AnimSkeleton::getChildrenOfJoint(int jointIndex) const {
     // Children and grandchildren, etc.
     std::vector<int> result;
-    if (jointIndex != -1) {
+    if (jointIndex != INVALID_JOINT_INDEX) {
         for (int i = jointIndex + 1; i < (int)_parentIndices.size(); i++) {
             if (_parentIndices[i] == jointIndex || (std::find(result.begin(), result.end(), _parentIndices[i]) != result.end())) {
                 result.push_back(i);
@@ -135,7 +135,7 @@ void AnimSkeleton::convertRelativePosesToAbsolute(AnimPoseVec& poses) const {
     int lastIndex = std::min((int)poses.size(), _jointsSize);
     for (int i = 0; i < lastIndex; ++i) {
         int parentIndex = _parentIndices[i];
-        if (parentIndex != -1) {
+        if (parentIndex != INVALID_JOINT_INDEX) {
             poses[i] = poses[parentIndex] * poses[i];
         }
     }
@@ -146,7 +146,7 @@ void AnimSkeleton::convertAbsolutePosesToRelative(AnimPoseVec& poses) const {
     int lastIndex = std::min((int)poses.size(), _jointsSize);
     for (int i = lastIndex - 1; i >= 0; --i) {
         int parentIndex = _parentIndices[i];
-        if (parentIndex != -1) {
+        if (parentIndex != INVALID_JOINT_INDEX) {
             poses[i] = poses[parentIndex].inverse() * poses[i];
         }
     }
@@ -157,7 +157,7 @@ void AnimSkeleton::convertRelativeRotationsToAbsolute(std::vector<glm::quat>& ro
     int lastIndex = std::min((int)rotations.size(), _jointsSize);
     for (int i = 0; i < lastIndex; ++i) {
         int parentIndex = _parentIndices[i];
-        if (parentIndex != -1) {
+        if (parentIndex != INVALID_JOINT_INDEX) {
             rotations[i] = rotations[parentIndex] * rotations[i];
         }
     }
@@ -168,7 +168,7 @@ void AnimSkeleton::convertAbsoluteRotationsToRelative(std::vector<glm::quat>& ro
     int lastIndex = std::min((int)rotations.size(), _jointsSize);
     for (int i = lastIndex - 1; i >= 0; --i) {
         int parentIndex = _parentIndices[i];
-        if (parentIndex != -1) {
+        if (parentIndex != INVALID_JOINT_INDEX) {
             rotations[i] = glm::inverse(rotations[parentIndex]) * rotations[i];
         }
     }
@@ -280,7 +280,7 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<HFMJoint>& joints, 
             // so we can restore them after a future mirror operation
             _nonMirroredIndices.push_back(i);
         }
-        int mirrorJointIndex = -1;
+        int mirrorJointIndex = INVALID_JOINT_INDEX;
         if (_joints[i].name.startsWith("Left")) {
             QString mirrorJointName = QString(_joints[i].name).replace(0, 4, "Right");
             mirrorJointIndex = nameToJointIndex(mirrorJointName);
@@ -350,7 +350,7 @@ std::vector<int> AnimSkeleton::lookUpJointIndices(const std::vector<QString>& jo
     result.reserve(jointNames.size());
     for (auto& name : jointNames) {
         int index = nameToJointIndex(name);
-        if (index == -1) {
+        if (index == INVALID_JOINT_INDEX) {
             qWarning(animation) << "AnimSkeleton::lookUpJointIndices(): could not find bone with name " << name;
         }
         result.push_back(index);

@@ -1404,15 +1404,9 @@ float loadSetting(Settings& settings, const QString& name, float defaultValue) {
 }
 
 void MyAvatar::setToggleHips(bool followHead) {
-    _follow.setToggleHipsFollowing(followHead);
-}
-
-void MyAvatar::FollowHelper::setToggleHipsFollowing(bool followHead) {
-    _toggleHipsFollowing = followHead;
-}
-
-bool MyAvatar::FollowHelper::getToggleHipsFollowing() const {
-    return _toggleHipsFollowing;
+    Q_UNUSED(followHead);
+    qCDebug(interfaceapp) << "MyAvatar.setToggleHips is deprecated; it no longer does anything; it will soon be removed from the API; "
+                             "please update your script";
 }
 
 void MyAvatar::setEnableDebugDrawBaseOfSupport(bool isEnabled) {
@@ -2112,7 +2106,6 @@ void MyAvatar::loadData() {
         allowAvatarLeaningPreferenceStrings[static_cast<uint>(AllowAvatarLeaningPreference::Default)])));
 
     setEnableMeshVisible(Menu::getInstance()->isOptionChecked(MenuOption::MeshVisible));
-    _follow.setToggleHipsFollowing (Menu::getInstance()->isOptionChecked(MenuOption::ToggleHipsFollowing));
     setEnableDebugDrawBaseOfSupport(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawBaseOfSupport));
     setEnableDebugDrawDefaultPose(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawDefaultPose));
     setEnableDebugDrawAnimPose(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawAnimPose));
@@ -5644,7 +5637,7 @@ void MyAvatar::setSitStandStateChange(bool stateChanged) {
 }
 
 // Determine if the user's real-world sit/stand state has changed.
-float MyAvatar::getSitStandStateChange() const {
+bool MyAvatar::getSitStandStateChange() const {
     return _sitStandStateChange;
 }
 
@@ -5826,7 +5819,7 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontal_userSitting(const MyAvatar
     bool stepDetected = false;
     if (forwardLeanAmount > MAX_FORWARD_LEAN) {
         stepDetected = true;
-    } else if (forwardLeanAmount < 0 && forwardLeanAmount < -MAX_BACKWARD_LEAN) {
+    } else if (forwardLeanAmount < -MAX_BACKWARD_LEAN) {
         stepDetected = true;
     } else {
         stepDetected = fabs(lateralLeanAmount) > MAX_LATERAL_LEAN;
