@@ -44,10 +44,12 @@ enum WorldDetailQuality {
 };
 Q_DECLARE_METATYPE(WorldDetailQuality);
 
+const bool DEFAULT_LOD_MODE = false; // true for auto, false for manual.
+
 #ifdef Q_OS_ANDROID
-const float LOD_DEFAULT_QUALITY_LEVEL = 0.2f; // default quality level setting is High (lower framerate)
+const float DEFAULT_LOD_QUALITY_LEVEL = 0.2f; // default quality level setting is High (lower framerate)
 #else
-const float LOD_DEFAULT_QUALITY_LEVEL = 0.5f; // default quality level setting is Mid
+const float DEFAULT_LOD_QUALITY_LEVEL = 0.5f; // default quality level setting is Mid
 #endif
 
 #ifdef Q_OS_ANDROID
@@ -255,7 +257,6 @@ public:
      */
     Q_INVOKABLE float getLODTargetFPS() const;
 
-
     float getPresentTime() const { return _presentTime; }
     float getEngineRunTime() const { return _engineRunTime; }
     float getBatchTime() const { return _batchTime; }
@@ -351,7 +352,7 @@ private:
     void setWorldDetailQuality(WorldDetailQuality quality, bool isHMDMode);
 
     std::mutex _automaticLODLock;
-    bool _automaticLODAdjust = true;
+    bool _automaticLODAdjust = DEFAULT_LOD_MODE;
 
     float _presentTime{ 0.0f }; // msec
     float _engineRunTime{ 0.0f }; // msec
@@ -362,7 +363,7 @@ private:
     float _smoothScale{ 10.0f }; // smooth is evaluated over 10 times longer than now
     float _smoothRenderTime{ 0.0f }; // msec
 
-    float _lodQualityLevel{ LOD_DEFAULT_QUALITY_LEVEL };
+    float _lodQualityLevel{ DEFAULT_LOD_QUALITY_LEVEL };
 
     WorldDetailQuality _desktopWorldDetailQuality { DEFAULT_WORLD_DETAIL_QUALITY };
     WorldDetailQuality _hmdWorldDetailQuality { DEFAULT_WORLD_DETAIL_QUALITY };
