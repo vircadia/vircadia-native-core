@@ -32,7 +32,7 @@ QTEST_MAIN(TextureTest)
 
 static const QString TEST_DATA(ExternalResource::getInstance()->getUrl(ExternalResource::Bucket::HF_Public, "/austin/test_data/test_ktx.zip"));
 static const QString TEST_DIR_NAME("{630b8f02-52af-4cdf-a896-24e472b94b28}");
-static const QString KTX_TEST_DIR_ENV("HIFI_KTX_TEST_DIR");
+static const QString KTX_TEST_DIR_ENV("VIRCADIA_KTX_TEST_DIR");
 
 std::string vertexShaderSource = R"SHADER(
 layout(location = 0) out vec2 outTexCoord0;

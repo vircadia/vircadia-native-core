@@ -35,7 +35,7 @@ bool ovr::available() {
     static std::once_flag once;
     static bool result{ false };
     std::call_once(once, [&] {
-        static const QString DEBUG_FLAG("HIFI_DEBUG_OPENVR");
+        static const QString DEBUG_FLAG("VIRCADIA_DEBUG_OPENVR");
         static bool enableDebugOpenVR = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
         if (enableDebugOpenVR) {
             return;

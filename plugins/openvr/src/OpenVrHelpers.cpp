@@ -65,7 +65,7 @@ bool isOculusPresent() {
 }
 
 bool oculusViaOpenVR() {
-    static const QString DEBUG_FLAG("HIFI_DEBUG_OPENVR");
+    static const QString DEBUG_FLAG("VIRCADIA_DEBUG_OPENVR");
     static bool enableDebugOpenVR = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
     return enableDebugOpenVR && isOculusPresent() && vr::VR_IsHmdPresent();
 }
@@ -87,7 +87,7 @@ std::string getOpenVrDeviceName() {
 }
 
 bool openVrSupported() {
-    static const QString DEBUG_FLAG("HIFI_DEBUG_OPENVR");
+    static const QString DEBUG_FLAG("VIRCADIA_DEBUG_OPENVR");
     static bool enableDebugOpenVR = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
     return (enableDebugOpenVR || !isOculusPresent()) && vr::VR_IsHmdPresent();
 }
@@ -214,7 +214,7 @@ void finishOpenVrKeyboardInput() {
     }
 }
 
-static const QString DEBUG_FLAG("HIFI_DISABLE_STEAM_VR_KEYBOARD");
+static const QString DEBUG_FLAG("VIRCADIA_DISABLE_STEAM_VR_KEYBOARD");
 bool disableSteamVrKeyboard = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
 
 void enableOpenVrKeyboard(PluginContainer* container) {

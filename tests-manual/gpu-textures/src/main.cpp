@@ -159,7 +159,7 @@ class MyTestWindow : public TestWindow {
 
 int main(int argc, char** argv) {
     setupHifiApplication("GPU Test");
-    qputenv("HIFI_DEBUG_OPENGL", QByteArray("1"));
+    qputenv("VIRCADIA_DEBUG_OPENGL", QByteArray("1"));
     QApplication app(argc, argv);
     MyTestWindow window;
     app.exec();

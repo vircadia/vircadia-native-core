@@ -36,33 +36,33 @@
 
 const unsigned short DEFAULT_DOMAIN_SERVER_PORT =
     QProcessEnvironment::systemEnvironment()
-    .contains("HIFI_DOMAIN_SERVER_PORT")
+    .contains("VIRCADIA_DOMAIN_SERVER_PORT")
         ? QProcessEnvironment::systemEnvironment()
-            .value("HIFI_DOMAIN_SERVER_PORT")
+            .value("VIRCADIA_DOMAIN_SERVER_PORT")
             .toUShort()
         : 40102;
 
 const unsigned short DEFAULT_DOMAIN_SERVER_DTLS_PORT =
     QProcessEnvironment::systemEnvironment()
-    .contains("HIFI_DOMAIN_SERVER_DTLS_PORT")
+    .contains("VIRCADIA_DOMAIN_SERVER_DTLS_PORT")
         ? QProcessEnvironment::systemEnvironment()
-            .value("HIFI_DOMAIN_SERVER_DTLS_PORT")
+            .value("VIRCADIA_DOMAIN_SERVER_DTLS_PORT")
             .toUShort()
         : 40103;
 
 const quint16 DOMAIN_SERVER_HTTP_PORT =
     QProcessEnvironment::systemEnvironment()
-    .contains("HIFI_DOMAIN_SERVER_HTTP_PORT")
+    .contains("VIRCADIA_DOMAIN_SERVER_HTTP_PORT")
         ? QProcessEnvironment::systemEnvironment()
-            .value("HIFI_DOMAIN_SERVER_HTTP_PORT")
+            .value("VIRCADIA_DOMAIN_SERVER_HTTP_PORT")
             .toUInt()
         : 40100;
 
 const quint16 DOMAIN_SERVER_HTTPS_PORT =
     QProcessEnvironment::systemEnvironment()
-    .contains("HIFI_DOMAIN_SERVER_HTTPS_PORT")
+    .contains("VIRCADIA_DOMAIN_SERVER_HTTPS_PORT")
         ? QProcessEnvironment::systemEnvironment()
-            .value("HIFI_DOMAIN_SERVER_HTTPS_PORT")
+            .value("VIRCADIA_DOMAIN_SERVER_HTTPS_PORT")
             .toUInt()
         : 40101;
 

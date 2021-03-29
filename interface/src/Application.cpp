@@ -291,7 +291,7 @@ static QTimer pingTimer;
 #if defined(Q_OS_ANDROID)
 static bool DISABLE_WATCHDOG = true;
 #else
-static const QString DISABLE_WATCHDOG_FLAG{ "HIFI_DISABLE_WATCHDOG" };
+static const QString DISABLE_WATCHDOG_FLAG{ "VIRCADIA_DISABLE_WATCHDOG" };
 static bool DISABLE_WATCHDOG = nsightActive() || QProcessEnvironment::systemEnvironment().contains(DISABLE_WATCHDOG_FLAG);
 #endif
 
@@ -4528,9 +4528,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_G:
                 if (isShifted && isControlOrCommand && isOption && isMetaOrMacControl) {
-                    static const QString HIFI_FRAMES_FOLDER_VAR = "HIFI_FRAMES_FOLDER";
-                    static const QString GPU_FRAME_FOLDER = QProcessEnvironment::systemEnvironment().contains(HIFI_FRAMES_FOLDER_VAR)
-                        ? QProcessEnvironment::systemEnvironment().value(HIFI_FRAMES_FOLDER_VAR)
+                    static const QString VIRCADIA_FRAMES_FOLDER_VAR = "VIRCADIA_FRAMES_FOLDER";
+                    static const QString GPU_FRAME_FOLDER = QProcessEnvironment::systemEnvironment().contains(VIRCADIA_FRAMES_FOLDER_VAR)
+                        ? QProcessEnvironment::systemEnvironment().value(VIRCADIA_FRAMES_FOLDER_VAR)
                         : "hifiFrames";
                     static QString GPU_FRAME_TEMPLATE = GPU_FRAME_FOLDER + "/{DATE}_{TIME}";
                     QString fullPath = FileUtils::computeDocumentPath(FileUtils::replaceDateTimeTokens(GPU_FRAME_TEMPLATE));

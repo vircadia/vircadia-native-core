@@ -481,7 +481,7 @@ public:
         _initContext.makeCurrent();
         DependencyManager::get<GeometryCache>()->initializeShapePipelines();
         // Render engine init
-        static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
+        static const QString RENDER_FORWARD = "VIRCADIA_RENDER_FORWARD";
         bool isDeferred = !QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
         _renderEngine->addJob<UpdateSceneTask>("UpdateScene");
         _renderEngine->addJob<RenderViewTask>("RenderMainView", _cullFunctor, isDeferred);

@@ -24,7 +24,7 @@
 #include <gpu/TextureTable.h>
 #include <gpu/gl/GLTexelFormat.h>
 
-static const QString FORCE_MOBILE_TEXTURES_STRING{ "HIFI_FORCE_MOBILE_TEXTURES" };
+static const QString FORCE_MOBILE_TEXTURES_STRING{ "VIRCADIA_FORCE_MOBILE_TEXTURES" };
 static bool FORCE_MOBILE_TEXTURES = QProcessEnvironment::systemEnvironment().contains(FORCE_MOBILE_TEXTURES_STRING);
 
 
