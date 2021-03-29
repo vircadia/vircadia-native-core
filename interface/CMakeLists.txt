@@ -12,10 +12,10 @@ endif()
 
 # #######
 message(STATUS "####... PROJECT_SOURCE_DIR: ${PROJECT_SOURCE_DIR})")
-message(STATUS "####... INTERFACE_SOURCE_DIR: ${INTERFACE_SOURCE_DIR})")
+message(STATUS "####... interface_SOURCE_DIR: ${interface_SOURCE_DIR})")
 message(STATUS "####... XIRCADIA_SOURCE_DIR: ${XIRCADIA_SOURCE_DIR})")
 message(STATUS "####... PROJECT_BINARY_DIR: ${PROJECT_BINARY_DIR})")
-message(STATUS "####... INTERFACE_BINARY_DIR: ${INTERFACE_BINARY_DIR})")
+message(STATUS "####... interface_BINARY_DIR: ${interface_BINARY_DIR})")
 message(STATUS "####... XIRCADIA_BINARY_DIR: ${XIRCADIA_BINARY_DIR})")
 
 file(GLOB_RECURSE QML_SRC resources/qml/*.qml resources/qml/*.js)
@@ -35,6 +35,9 @@ find_npm()
 if (BUILD_TOOLS AND NPM_EXECUTABLE)
   add_custom_qrc_path(CUSTOM_INTERFACE_QRC_PATHS "${CMAKE_SOURCE_DIR}/tools/jsdoc/out/hifiJSDoc.json" "auto-complete/hifiJSDoc.json")
 endif ()
+
+message(STATUS, "####... CMAKE_CURRENT_BINARY_DIR: ${CMAKE_CURRENT_BINARY_DIR}")
+message(STATUS, "####... CMAKE_CURRENT_SOURCE_DIR: ${CMAKE_CURRENT_SOURCE_DIR}")
 
 set(RESOURCES_QRC ${CMAKE_CURRENT_BINARY_DIR}/resources.qrc)
 set(RESOURCES_RCC ${CMAKE_CURRENT_SOURCE_DIR}/compiledResources/resources.rcc)
@@ -151,6 +154,8 @@ if (APPLE)
 
   # set how the icon shows up in the Info.plist file
   set(MACOSX_BUNDLE_ICON_FILE "${INTERFACE_ICON_FILENAME}")
+
+  message(STATUS, "####... MACOSX_PACKAGE_LOCATION: ${MACOSX_PACKAGE_LOCATION}")
 
   # set where in the bundle to put the resources file
   set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/icon/${INTERFACE_ICON_FILENAME} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
