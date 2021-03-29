@@ -251,8 +251,8 @@ Var substringResult
 
 !macro InitSection SecName
   ;  This macro reads component installed flag from the registry and
-  ;changes checked state of the section on the components page.
-  ;Input: section index constant name specified in Section command.
+  ;  changes checked state of the section on the components page.
+  ;  Input: section index constant name specified in Section command.
 
   ClearErrors
   ;Reading component status from registry
@@ -718,7 +718,7 @@ Function InstallTypesPage
   StrCpy $OffsetUnits u
   StrCpy $Express "0"
 
-  ${NSD_CreateRadioButton} 30% $CurrentOffset$OffsetUnits 100% 10u "Express Install (Recommended)"; $\nInstalls Vircadia Interface and Vircadia Sandbox"
+  ${NSD_CreateRadioButton} 30% $CurrentOffset$OffsetUnits 100% 10u "Express Install (Recommended)"; $\nInstalls Vircadia Interface"
   pop $ExpressInstallRadioButton
   ${NSD_OnClick} $ExpressInstallRadioButton ChangeExpressLabel
   IntOp $CurrentOffset $CurrentOffset + 15
@@ -1346,6 +1346,7 @@ Section "-Core installation"
   ${EndIf}
 
   ${If} @SERVER_COMPONENT_CONDITIONAL@
+  ${AndIf} $Express != "1"
     ; handling for server console shortcut
     Delete "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk"
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@SANDBOX_HF_SHORTCUT_NAME@.lnk" \

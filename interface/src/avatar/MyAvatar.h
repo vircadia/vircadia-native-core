@@ -1801,7 +1801,7 @@ public:
     void setAnalogPlusSprintSpeed(float value);
     float getAnalogPlusSprintSpeed() const;
     void setSitStandStateChange(bool stateChanged);
-    float getSitStandStateChange() const;
+    bool getSitStandStateChange() const;
     void updateSitStandState(float newHeightReading, float dt);
 
     QVector<QString> getScriptUrls();
@@ -2909,8 +2909,6 @@ private:
         void setForceActivateVertical(bool val);
         bool getForceActivateHorizontal() const;
         void setForceActivateHorizontal(bool val);
-        bool getToggleHipsFollowing() const;
-        void setToggleHipsFollowing(bool followHead);
         std::atomic<bool> _forceActivateRotation { false };
         std::atomic<bool> _forceActivateVertical { false };
         std::atomic<bool> _forceActivateHorizontal { false };

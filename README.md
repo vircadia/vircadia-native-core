@@ -29,9 +29,11 @@ Vircadia™ is a 3D social software project seeking to incrementally bring about
 
 ### How to generate an Installer
 
-- [For Windows](https://github.com/vircadia/vircadia/blob/master/INSTALLER.md)
-- [For Mac](https://github.com/vircadia/vircadia/blob/master/INSTALLER.md#os-x)
-- [For Linux - AppImage - Vircadia Builder](https://github.com/vircadia/vircadia-builder/blob/master/README.md#building-appimages)
+- [For Windows - Interface & Server](https://github.com/vircadia/vircadia/blob/master/INSTALLER.md)
+- [For Mac - Interface](https://github.com/vircadia/vircadia/blob/master/INSTALLER.md#os-x)
+- [For Linux - Server .deb - Vircadia Builder](INSTALLER.md#ubuntu-1804--deb)
+- [For Linux - Server .rpm - Vircadia Builder](INSTALLER.md#amazon-linux-2--rpm)
+- [For Linux - Interface AppImage - Vircadia Builder](https://github.com/vircadia/vircadia-builder/blob/master/README.md#building-appimages)
 
 ### Boot to Metaverse: [The Goal](https://vircadia.com/vision/)
 

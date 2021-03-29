@@ -24,6 +24,7 @@
 #include "ScriptEngine.h"
 #include "ScriptsModel.h"
 #include "ScriptsModelFilter.h"
+#include "ScriptGatekeeper.h"
 
 class ScriptEngine;
 
@@ -176,6 +177,8 @@ public:
     bool isStopped() const { return _isStopped; }
 
     void addScriptEngine(ScriptEnginePointer);
+    
+    ScriptGatekeeper scriptGatekeeper;
 
 signals:
 
