@@ -1,9 +1,16 @@
 set(TARGET_NAME interface)
-project(${TARGET_NAME})
 
 # #######
 message(STATUS "####### interface CMakeLists.txt")
 message(STATUS "####... project(${TARGET_NAME}})")
+#project(${TARGET_NAME})
+if (APPLE)
+  project(${INTERFACE_BUNDLE_NAME})
+else()
+  project(${TARGET_NAME})
+endif()
+
+# #######
 message(STATUS "####... PROJECT_SOURCE_DIR: ${PROJECT_SOURCE_DIR})")
 message(STATUS "####... INTERFACE_SOURCE_DIR: ${INTERFACE_SOURCE_DIR})")
 message(STATUS "####... XIRCADIA_SOURCE_DIR: ${XIRCADIA_SOURCE_DIR})")
