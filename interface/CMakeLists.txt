@@ -4,7 +4,7 @@ set(TARGET_NAME interface)
 message(STATUS "####### interface CMakeLists.txt")
 #project(${TARGET_NAME})
 if (APPLE)
-  message(STATUS "####... project(${INTERFACE_BUNDLE_NAME}})")
+  message(STATUS "####... project(${INTERFACE_BUNDLE_NAME})")
   project(${INTERFACE_BUNDLE_NAME})
 else()
   message(STATUS "####... project(${TARGET_NAME}})")
@@ -152,6 +152,8 @@ if (APPLE)
       set(MACOSX_BUNDLE_GUI_IDENTIFIER com.vircadia.interface-pr)
     endif ()
   endif ()
+
+  set(MACOSX_PACKAGE_LOCATION "Xircadia")
 
   # set how the icon shows up in the Info.plist file
   set(MACOSX_BUNDLE_ICON_FILE "${INTERFACE_ICON_FILENAME}")
