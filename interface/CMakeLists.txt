@@ -14,12 +14,14 @@ else()
 endif()
 
 # #######
-message(STATUS "####... PROJECT_SOURCE_DIR: ${PROJECT_SOURCE_DIR})")
-message(STATUS "####... interface_SOURCE_DIR: ${interface_SOURCE_DIR})")
-message(STATUS "####... XIRCADIA_SOURCE_DIR: ${XIRCADIA_SOURCE_DIR})")
-message(STATUS "####... PROJECT_BINARY_DIR: ${PROJECT_BINARY_DIR})")
-message(STATUS "####... interface_BINARY_DIR: ${interface_BINARY_DIR})")
-message(STATUS "####... XIRCADIA_BINARY_DIR: ${XIRCADIA_BINARY_DIR})")
+message(STATUS "####... PROJECT_SOURCE_DIR: ${PROJECT_SOURCE_DIR}")
+message(STATUS "####... interface_SOURCE_DIR: ${interface_SOURCE_DIR}")
+message(STATUS "####... XIRCADIA_SOURCE_DIR: ${XIRCADIA_SOURCE_DIR}")
+message(STATUS "####... Xircadia_SOURCE_DIR: ${Xircadia_SOURCE_DIR}")
+message(STATUS "####... PROJECT_BINARY_DIR: ${PROJECT_BINARY_DIR}")
+message(STATUS "####... interface_BINARY_DIR: ${interface_BINARY_DIR}")
+message(STATUS "####... XIRCADIA_BINARY_DIR: ${XIRCADIA_BINARY_DIR}")
+message(STATUS "####... Xircadia_BINARY_DIR: ${Xircadia_BINARY_DIR}")
 
 file(GLOB_RECURSE QML_SRC resources/qml/*.qml resources/qml/*.js)
 add_custom_target(qmls SOURCES ${QML_SRC})
@@ -140,6 +142,8 @@ if (ANDROID)
 endif ()
 
 if (APPLE)
+
+  set(MACOSX_BUNDLE_BUNDLE_NAME "Xircadia")
 
   # configure CMake to use a custom Info.plist
   set_target_properties(${this_target} PROPERTIES MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in)
