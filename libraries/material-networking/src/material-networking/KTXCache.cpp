@@ -19,7 +19,7 @@ using FilePointer = cache::FilePointer;
 
 // Whenever a change is made to the serialized format for the KTX cache that isn't backward compatible,
 // this value should be incremented.  This will force the KTX cache to be wiped
-const int KTXCache::CURRENT_VERSION = 0x01;
+const int KTXCache::CURRENT_VERSION = 0x02;
 const int KTXCache::INVALID_VERSION = 0x00;
 const char* KTXCache::SETTING_VERSION_NAME = "hifi.ktx.cache_version";
 

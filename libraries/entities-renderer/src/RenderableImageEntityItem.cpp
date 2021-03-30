@@ -84,10 +84,24 @@ void ImageEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
 
     updateMaterials(materialChanged);
 
+    bool nextTextureLoaded = _texture && (_texture->isLoaded() || _texture->isFailed());
     if (!_textureIsLoaded) {
         emit requestRenderUpdate();
+        if (nextTextureLoaded) {
+            float width = _texture->getOriginalWidth();
+            float height = _texture->getOriginalHeight();
+            glm::vec3 naturalDimensions = glm::vec3(1.0f, 1.0f, 0.01f);
+            if (width < height) {
+                naturalDimensions.x = width / height;
+            } else {
+                naturalDimensions.y = height / width;
+            }
+            // Unlike Models (where the Renderer also doubles as the EntityItem), Images need to
+            // convey this information back to the game object from the Renderer
+            entity->setNaturalDimension(naturalDimensions);
+        }
     }
-    _textureIsLoaded = _texture && (_texture->isLoaded() || _texture->isFailed());
+    _textureIsLoaded = nextTextureLoaded;
 }
 
 bool ImageEntityRenderer::isTransparent() const {
@@ -135,17 +149,18 @@ void ImageEntityRenderer::doRender(RenderArgs* args) {
 
     transform.setRotation(BillboardModeHelpers::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
         args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
-    batch->setModelTransform(transform);
 
     float imageWidth = _texture->getWidth();
     float imageHeight = _texture->getHeight();
+    float originalWidth = _texture->getOriginalWidth();
+    float originalHeight = _texture->getOriginalHeight();
 
     QRect fromImage;
     if (_subImage.width() <= 0) {
         fromImage.setX(0);
         fromImage.setWidth(imageWidth);
     } else {
-        float scaleX = imageWidth / _texture->getOriginalWidth();
+        float scaleX = imageWidth / originalWidth;
         fromImage.setX(scaleX * _subImage.x());
         fromImage.setWidth(scaleX * _subImage.width());
     }
@@ -154,17 +169,27 @@ void ImageEntityRenderer::doRender(RenderArgs* args) {
         fromImage.setY(0);
         fromImage.setHeight(imageHeight);
     } else {
-        float scaleY = imageHeight / _texture->getOriginalHeight();
+        float scaleY = imageHeight / originalHeight;
         fromImage.setY(scaleY * _subImage.y());
         fromImage.setHeight(scaleY * _subImage.height());
     }
 
-    float maxSize = glm::max(fromImage.width(), fromImage.height());
-    float x = _keepAspectRatio ? fromImage.width() / (2.0f * maxSize) : 0.5f;
-    float y = _keepAspectRatio ? fromImage.height() / (2.0f * maxSize) : 0.5f;
-
     glm::vec2 texCoordBottomLeft((fromImage.x() + 0.5f) / imageWidth, (fromImage.y() + fromImage.height() - 0.5f) / imageHeight);
     glm::vec2 texCoordTopRight((fromImage.x() + fromImage.width() - 0.5f) / imageWidth, (fromImage.y() + 0.5f) / imageHeight);
+
+    if (_keepAspectRatio) {
+        glm::vec3 scale = transform.getScale();
+        float targetAspectRatio = originalWidth / originalHeight;
+        float currentAspectRatio = scale.x / scale.y;
+
+        if (targetAspectRatio < currentAspectRatio) {
+            scale.x *= targetAspectRatio / currentAspectRatio;
+        } else {
+            scale.y /= targetAspectRatio / currentAspectRatio;
+        }
+        transform.setScale(scale);
+    }
+    batch->setModelTransform(transform);
 
     Pipeline pipelineType = getPipelineType(materials);
     if (pipelineType == Pipeline::PROCEDURAL) {
@@ -180,7 +205,7 @@ void ImageEntityRenderer::doRender(RenderArgs* args) {
     }
 
     DependencyManager::get<GeometryCache>()->renderQuad(
-        *batch, glm::vec2(-x, -y), glm::vec2(x, y), texCoordBottomLeft, texCoordTopRight,
+        *batch, glm::vec2(-0.5f), glm::vec2(0.5f), texCoordBottomLeft, texCoordTopRight,
         color, _geometryId
     );
 

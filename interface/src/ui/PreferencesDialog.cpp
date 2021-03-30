@@ -250,9 +250,9 @@ void setupPreferences() {
     {
         auto getter = []()->bool { return !Menu::getInstance()->isOptionChecked(MenuOption::DisableActivityLogger); };
         auto setter = [](bool value) { Menu::getInstance()->setIsOptionChecked(MenuOption::DisableActivityLogger, !value); };
-        preferences->addPreference(new CheckPreference("Privacy", "Send data - High Fidelity uses information provided by your "
+        preferences->addPreference(new CheckPreference("Privacy", "Send data - Vircadia uses information provided by your "
                                 "client to improve the product through the logging of errors, tracking of usage patterns, "
-                                "installation and system details. By allowing High Fidelity to collect this information "
+                                "installation and system details. By allowing Vircadia to collect this information "
                                 "you are helping to improve the product. ", getter, setter));
     }
 
@@ -364,7 +364,7 @@ void setupPreferences() {
         auto preference = new SpinnerSliderPreference(VR_MOVEMENT, "Camera Sensitivity", getter, setter);
         preference->setMin(0.01f);
         preference->setMax(5.0f);
-        preference->setStep(0.1);
+        preference->setStep(0.1f);
         preference->setDecimals(2);
         preferences->addPreference(preference);
     }

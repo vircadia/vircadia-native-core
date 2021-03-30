@@ -338,9 +338,9 @@ void mapToRedChannel(Image& image, ColorChannel sourceChannel) {
     }
 }
 
-gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::string& filename, ColorChannel sourceChannel,
-                                 int maxNumPixels, TextureUsage::Type textureType,
-                                 bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing) {
+std::pair<gpu::TexturePointer, glm::ivec2> processImage(std::shared_ptr<QIODevice> content, const std::string& filename, ColorChannel sourceChannel,
+                                                        int maxNumPixels, TextureUsage::Type textureType,
+                                                        bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing) {
 
     Image image = processRawImageData(*content.get(), filename);
     // Texture content can take up a lot of memory. Here we release our ownership of that content
@@ -354,7 +354,7 @@ gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::
     if (imageWidth == 0 || imageHeight == 0 || image.getFormat() == Image::Format_Invalid) {
         QString reason(image.getFormat() == Image::Format_Invalid ? "(Invalid Format)" : "(Size is invalid)");
         qCWarning(imagelogging) << "Failed to load:" << qPrintable(reason);
-        return nullptr;
+        return { nullptr, { imageWidth, imageHeight } };
     }
 
     // Validate the image is less than _maxNumPixels, and downscale if necessary
@@ -378,7 +378,7 @@ gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::
     auto loader = TextureUsage::getTextureLoaderForType(textureType);
     auto texture = loader(std::move(image), filename, compress, target, abortProcessing);
 
-    return texture;
+    return { texture, { imageWidth, imageHeight } };
 }
 
 Image processSourceImage(Image&& srcImage, bool cubemap, BackendTarget target) {

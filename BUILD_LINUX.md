@@ -168,39 +168,3 @@ If your goal is to set up a development environment, it is desirable to set the
 directory that vcpkg builds into with the `HIFI_VCPKG_BASE` environment variable.
 For example, you might set `HIFI_VCPKG_BASE` to `/home/$USER/vcpkg`.
 By default, vcpkg will build in the system `/tmp` directory.
-
-##### Ubuntu 18.04 only
-
-In Ubuntu 18.04 there is a problem related with NVidia driver library version.
-
-It can be worked around following these steps:
-
-1.  Uninstall incompatible nvtt libraries:  
-`sudo apt-get remove libnvtt2 libnvtt-dev`  
-
-1.  Install libssl1.0-dev:  
-`sudo apt-get -y install libssl1.0-dev`  
-
-1.  Clone castano nvidia-texture-tools:  
-`git clone https://github.com/castano/nvidia-texture-tools`  
-`cd nvidia-texture-tools/` 
-
-1.  Make these changes in repo:  
-* In file **VERSION** set `2.2.1`  
-* In file **configure**:  
-  * set `build="release"`  
-  * set `-DNVTT_SHARED=1`  
-
-1.  Configure, build and install:  
-`./configure`  
-`make`  
-`sudo make install`  
-
-1. Link compiled files:  
-`sudo ln -s /usr/local/lib/libnvcore.so /usr/lib/libnvcore.so`  
-`sudo ln -s /usr/local/lib/libnvimage.so /usr/lib/libnvimage.so`  
-`sudo ln -s /usr/local/lib/libnvmath.so /usr/lib/libnvmath.so`  
-`sudo ln -s /usr/local/lib/libnvtt.so /usr/lib/libnvtt.so`  
-
-1.  After running these steps you can run interface:  
-`interface/interface`  
