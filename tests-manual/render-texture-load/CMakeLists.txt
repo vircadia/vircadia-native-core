@@ -6,6 +6,7 @@ if (WIN32)
 endif()
 
 setup_memory_debugger()
+setup_thread_debugger()
 
 # This is not a testcase -- just set it up as a regular hifi project
 setup_hifi_project(Quick Gui)

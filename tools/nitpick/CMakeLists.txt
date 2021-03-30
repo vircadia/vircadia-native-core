@@ -31,6 +31,7 @@ source_group("UI Files" FILES ${QT_UI_FILES})
 qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 
 setup_memory_debugger()
+setup_thread_debugger()
 
 # add them to the nitpick source files
 set(NITPICK_SRCS ${NITPICK_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")

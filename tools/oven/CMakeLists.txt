@@ -5,6 +5,7 @@ setup_hifi_project(Widgets Gui Concurrent)
 link_hifi_libraries(shared shaders image gpu ktx fbx hfm baking graphics networking procedural material-networking model-baker task)
 
 setup_memory_debugger()
+setup_thread_debugger()
 
 if (WIN32)
   package_libraries_for_deployment()
