@@ -4,6 +4,8 @@ set(TARGET_NAME interface)
 message(STATUS "####### interface CMakeLists.txt")
 #project(${TARGET_NAME})
 if (APPLE)
+  set(APP_NAME "Xircadia")
+
   message(STATUS "####... project(${INTERFACE_BUNDLE_NAME})")
   project(${INTERFACE_BUNDLE_NAME})
 else()
