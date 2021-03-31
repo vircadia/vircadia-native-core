@@ -1,7 +1,7 @@
 if (APPLE)
-  set(TARGET_NAME interface)
-else()
   set(TARGET_NAME Vircadia)
+else()
+  set(TARGET_NAME interface)
 endif()
 
 project(${TARGET_NAME})
