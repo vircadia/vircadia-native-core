@@ -350,16 +350,30 @@ if (APPLE)
 
   target_link_libraries(${TARGET_NAME} ${OpenGL} ${AppKit})
 
+  message(STATUS "#####.. TARGET_NAME: ${TARGET_NAME}")
+  message(STATUS "#####.. CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX}")
+  message(STATUS "#####.. INTERFACE_INSTALL_DIR: ${INTERFACE_INSTALL_DIR}")
+  message(STATUS "#####.. CLIENT_COMPONENT: ${CLIENT_COMPONENT}")
+
   # setup install of OS X interface bundle
   install(TARGETS ${TARGET_NAME}
     BUNDLE DESTINATION ${INTERFACE_INSTALL_DIR}
     COMPONENT ${CLIENT_COMPONENT}
   )
 
+  message(STATUS "#####.. INTERFACE_INSTALL_APP_PATH: ${INTERFACE_INSTALL_APP_PATH}")
+  message(STATUS "#####.. $<TARGET_FILE_DIR:${TARGET_NAME}>")
+
   set(SCRIPTS_INSTALL_DIR "${INTERFACE_INSTALL_APP_PATH}/Contents/Resources")
   set(RESOURCES_DEV_DIR "$<TARGET_FILE_DIR:${TARGET_NAME}>/../Resources")
 
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+    message(STATUS "#####.. interface POST_BUILD")
+    message(STATUS "#####.. CMAKE_CURRENT_BINARY_DIR: ${CMAKE_CURRENT_BINARY_DIR}")
+    message(STATUS "#####.. RESOURCES_DEV_DIR: ${RESOURCES_DEV_DIR}")
+    message(STATUS "#####.. CMAKE_SOURCE_DIR: ${CMAKE_SOURCE_DIR}")
+
+    # #######: Not needed?
     # copy script files beside the executable
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${CMAKE_SOURCE_DIR}/scripts"

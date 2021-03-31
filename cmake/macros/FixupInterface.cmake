@@ -10,10 +10,17 @@
 #
 
 macro(fixup_interface)
+    message(STATUS "####### fixup_interface()")
     if (APPLE)
         string(REPLACE " " "\\ " ESCAPED_BUNDLE_NAME ${INTERFACE_BUNDLE_NAME})
         string(REPLACE " " "\\ " ESCAPED_INSTALL_PATH ${INTERFACE_INSTALL_DIR})
         set(_INTERFACE_INSTALL_PATH "${ESCAPED_INSTALL_PATH}/${ESCAPED_BUNDLE_NAME}.app")
+
+        message(STATUS "####... INTERFACE_BUNDLE_NAME: ${INTERFACE_BUNDLE_NAME}")
+        message(STATUS "####... ESCAPED_BUNDLE_NAME: ${ESCAPED_BUNDLE_NAME}")
+        message(STATUS "####... INTERFACE_INSTALL_DIR: ${INTERFACE_INSTALL_DIR}")
+        message(STATUS "####... ESCAPED_INSTALL_PATH: ${ESCAPED_INSTALL_PATH}")
+        message(STATUS "####... _INTERFACE_INSTALL_PATH: ${_INTERFACE_INSTALL_PATH}")
 
         find_program(MACDEPLOYQT_COMMAND macdeployqt PATHS "${QT_DIR}/bin" NO_DEFAULT_PATH)
 
