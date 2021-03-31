@@ -367,12 +367,11 @@ if (APPLE)
   set(SCRIPTS_INSTALL_DIR "${INTERFACE_INSTALL_APP_PATH}/Contents/Resources")
   set(RESOURCES_DEV_DIR "$<TARGET_FILE_DIR:${TARGET_NAME}>/../Resources")
 
-  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-    message(STATUS "#####.. interface POST_BUILD")
-    message(STATUS "#####.. CMAKE_CURRENT_BINARY_DIR: ${CMAKE_CURRENT_BINARY_DIR}")
-    message(STATUS "#####.. RESOURCES_DEV_DIR: ${RESOURCES_DEV_DIR}")
-    message(STATUS "#####.. CMAKE_SOURCE_DIR: ${CMAKE_SOURCE_DIR}")
+  message(STATUS "#####.. CMAKE_CURRENT_BINARY_DIR: ${CMAKE_CURRENT_BINARY_DIR}")
+  message(STATUS "#####.. RESOURCES_DEV_DIR: ${RESOURCES_DEV_DIR}")
+  message(STATUS "#####.. CMAKE_SOURCE_DIR: ${CMAKE_SOURCE_DIR}")
 
+  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
     # #######: Not needed?
     # copy script files beside the executable
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
