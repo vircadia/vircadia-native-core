@@ -148,7 +148,7 @@ endif ()
 
 # create the executable, make it a bundle on OS X
 if (APPLE)
-  add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
+  add_executable(Vircadia ALIAS ${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
   # make sure the output name for the .app bundle is correct
   # Fix up the rpath so macdeployqt works
