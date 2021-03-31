@@ -13,6 +13,8 @@
 
 #include <GizmoEntityItem.h>
 
+#include <procedural/Procedural.h>
+
 namespace render { namespace entities {
 
 class GizmoEntityRenderer : public TypedEntityRenderer<GizmoEntityItem> {
@@ -29,10 +31,12 @@ protected:
     bool isTransparent() const override;
 
 private:
+    virtual bool needsRenderUpdate() const override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
     virtual void doRender(RenderArgs* args) override;
 
+    std::shared_ptr<graphics::ProceduralMaterial> _material { std::make_shared<graphics::ProceduralMaterial>() };
     GizmoType _gizmoType { UNSET_GIZMO_TYPE };
     RingGizmoPropertyGroup _ringProperties;
     PrimitiveMode _prevPrimitiveMode;

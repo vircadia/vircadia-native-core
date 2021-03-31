@@ -821,14 +821,12 @@ void GeometryCache::renderWireShape(gpu::Batch& batch, Shape shape) {
 
 void GeometryCache::renderShape(gpu::Batch& batch, Shape shape, const glm::vec4& color) {
     batch.setInputFormat(getSolidStreamFormat());
-    // Color must be set after input format
     batch._glColor4f(color.r, color.g, color.b, color.a);
     _shapes[shape].draw(batch);
 }
 
 void GeometryCache::renderWireShape(gpu::Batch& batch, Shape shape, const glm::vec4& color) {
     batch.setInputFormat(getWireStreamFormat());
-    // Color must be set after input format
     batch._glColor4f(color.r, color.g, color.b, color.a);
     _shapes[shape].drawWire(batch);
 }

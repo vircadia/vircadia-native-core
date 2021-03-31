@@ -13,6 +13,8 @@
 
 #include <ImageEntityItem.h>
 
+#include <procedural/Procedural.h>
+
 namespace render { namespace entities {
 
 class ImageEntityRenderer : public TypedEntityRenderer<ImageEntityItem> {
@@ -23,11 +25,13 @@ public:
     ~ImageEntityRenderer();
 
 protected:
+    Item::Bound getBound(RenderArgs* args) override;
     ShapeKey getShapeKey() override;
 
     bool isTransparent() const override;
 
 private:
+    virtual bool needsRenderUpdate() const override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
     virtual void doRender(RenderArgs* args) override;
@@ -40,8 +44,9 @@ private:
     bool _keepAspectRatio;
     QRect _subImage;
 
-    glm::u8vec3 _color;
-    float _alpha;
+    std::shared_ptr<graphics::ProceduralMaterial> _material { std::make_shared<graphics::ProceduralMaterial>() };
+    glm::vec3 _color { NAN };
+    float _alpha { NAN };
     PulsePropertyGroup _pulseProperties;
 
     int _geometryId { 0 };
