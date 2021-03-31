@@ -1,4 +1,9 @@
-set(TARGET_NAME interface)
+if (APPLE)
+  set(TARGET_NAME interface)
+else()
+  set(TARGET_NAME Vircadia)
+endif()
+
 project(${TARGET_NAME})
 
 file(GLOB_RECURSE QML_SRC resources/qml/*.qml resources/qml/*.js)
