@@ -339,7 +339,7 @@ bool ShapeEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, 
 
 bool ShapeEntityItem::getRotateForPicking() const {
     auto shape = getShape();
-    return getBillboardMode() != BillboardMode::NONE && (_shape < entity::Shape::Cube || _shape > entity::Shape::Icosahedron);
+    return getBillboardMode() != BillboardMode::NONE && (shape < entity::Shape::Cube || shape > entity::Shape::Icosahedron);
 }
 
 void ShapeEntityItem::debugDump() const {
