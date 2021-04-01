@@ -320,15 +320,29 @@ if (APPLE)
   target_link_libraries(${TARGET_NAME} ${OpenGL} ${AppKit})
 
   # setup install of OS X interface bundle
+  message(STATUS "####### Set up OSX install...")
+  message(STATUS "####... TARGET_NAME: ${TARGET_NAME}")
+  message(STATUS "####... INTERFACE_INSTALL_DIR: ${INTERFACE_INSTALL_DIR}")
+  message(STATUS "####... TARGET_NAME: ${TARGET_NAME}")
+  message(STATUS "####... CLIENT_COMPONENT: ${CLIENT_COMPONENT}")
   install(TARGETS ${TARGET_NAME}
     BUNDLE DESTINATION ${INTERFACE_INSTALL_DIR}
     COMPONENT ${CLIENT_COMPONENT}
   )
 
+  message(STATUS "####... INTERFACE_INSTALL_APP_PATH: ${INTERFACE_INSTALL_APP_PATH}")
+
   set(SCRIPTS_INSTALL_DIR "${INTERFACE_INSTALL_APP_PATH}/Contents/Resources")
   set(RESOURCES_DEV_DIR "$<TARGET_FILE_DIR:${TARGET_NAME}>/../Resources")
 
+  message(STATUS "####... SCRIPTS_INSTALL_DIR: ${SCRIPTS_INSTALL_DIR}")
+  message(STATUS "####... RESOURCES_DEV_DIR: ${RESOURCES_DEV_DIR}")
+
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+
+    message(STATUS "####### POST_BUILD")
+    message(STATUS "####... RESOURCES_DEV_DIR: ${RESOURCES_DEV_DIR}")
+
     # copy script files beside the executable
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${CMAKE_SOURCE_DIR}/scripts"

@@ -11,9 +11,11 @@
 
 macro(fixup_interface)
     if (APPLE)
+        message(STATUS "####### fixup_interface")
         string(REPLACE " " "\\ " ESCAPED_BUNDLE_NAME ${INTERFACE_BUNDLE_NAME})
         string(REPLACE " " "\\ " ESCAPED_INSTALL_PATH ${INTERFACE_INSTALL_DIR})
         set(_INTERFACE_INSTALL_PATH "${ESCAPED_INSTALL_PATH}/${ESCAPED_BUNDLE_NAME}.app")
+        message(STATUS "####... _INTERFACE_INSTALL_PATH: ${_INTERFACE_INSTALL_PATH}")
 
         find_program(MACDEPLOYQT_COMMAND macdeployqt PATHS "${QT_DIR}/bin" NO_DEFAULT_PATH)
 
@@ -25,6 +27,7 @@ macro(fixup_interface)
         endif ()
 
         if (RELEASE_TYPE STREQUAL "DEV")
+            message(STATUS "####... DEV")
             install(CODE "
                 execute_process(COMMAND ${MACDEPLOYQT_COMMAND}\
                     \${CMAKE_INSTALL_PREFIX}/${_INTERFACE_INSTALL_PATH}/\
@@ -33,6 +36,7 @@ macro(fixup_interface)
                 COMPONENT ${CLIENT_COMPONENT}
             )
         else ()
+            message(STATUS "####... POST_BUILD")
             add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
                 COMMAND ${MACDEPLOYQT_COMMAND} "$<TARGET_FILE_DIR:${TARGET_NAME}>/../.." -verbose=2 -qmldir=${CMAKE_SOURCE_DIR}/interface/resources/qml/
             )

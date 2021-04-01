@@ -114,6 +114,21 @@ macro(GENERATE_INSTALLERS)
     message(STATUS "####... CMAKE_CURRENT_BINARY_DIR: ${CMAKE_CURRENT_BINARY_DIR}")
     message(STATUS "####... HF_CMAKE_DIR: ${HF_CMAKE_DIR}")
 
+    # ####### GenerateInstallers.cmake
+    # ####... CMAKE_INSTALL_PREFIX: /usr/local
+    # ####... CPACK_INSTALL_PREFIX: 
+    # ####... CPACK_PACKAGING_PREFIX: 
+    # ####... CPACK_PACKAGE_INSTALL_DIRECTORY: /
+    # ####... CPACK_PACKAGING_INSTALL_PREFIX: /
+    # ####... CPACK_SET_DESTDIR: 
+    # ####... CPACK_PACKAGE_DIRECTORY: 
+    # ####... CPACK_PACKAGE_FILE_NAME: Vircadia-Interface-PR1139-f6065a9-
+    # ####... CPACK_DMG_VOLUME_NAME: 
+    # ####... DMG_SUBFOLDER_NAME: Vircadia - PR1139
+    # ####... ESCAPED_DMG_SUBFOLDER_NAME: Vircadia\ -\ PR1139
+    # ####... CMAKE_CURRENT_BINARY_DIR: /Users/runner/work/vircadia/build
+    # ####... HF_CMAKE_DIR: /Users/runner/work/vircadia/vircadia/cmake
+
     # Create folder if used.
     if (NOT INTERFACE_INSTALL_DIR STREQUAL ".")
       # make sure a High Fidelity directory exists, in case this hits prior to other installs

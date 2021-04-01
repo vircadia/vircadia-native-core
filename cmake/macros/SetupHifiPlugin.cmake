@@ -20,6 +20,9 @@ macro(SETUP_HIFI_PLUGIN)
         set(PLUGIN_PATH "plugins")
     endif()
 
+    message(STATUS "####### SETUP_HIFI_PLUGIN")
+    message(STATUS "####... PLUGIN_PATH: ${PLUGIN_PATH}")
+
     if (WIN32)
         # produce PDB files for plugins as well
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zi")
