@@ -39,7 +39,7 @@
                 font-size: 18px;
                 text-align: center;
                 font-weight: 900;
-                background-color:#999999; 
+                background-color:#999999;
             }
             td.header {
                 font-weight: 900;
@@ -71,7 +71,7 @@
                 color: #99e1ff;
                 background-color: transparent;
                 text-decoration: none;
-            }            
+            }
         </style>
     </head>
     <body>
@@ -91,7 +91,7 @@
         EventBridge.scriptEventReceived.connect(function (message) {
             document.getElementById("report").innerHTML = message;
         });
-        
+
         function selectEntity(id) {
             EventBridge.emitWebEvent(JSON.stringify({
                 "action": "select",
