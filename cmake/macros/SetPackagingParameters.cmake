@@ -38,6 +38,12 @@ macro(SET_PACKAGING_PARAMETERS)
   set(CLIENT_COMPONENT client)
   set(SERVER_COMPONENT server)
 
+  if (APPLE)
+    set(INTERFACE_BUNDLE_NAME "interface")
+  else()
+    set(INTERFACE_BUNDLE_NAME "Vircadia")
+  endif()
+
   if (RELEASE_TYPE STREQUAL "PRODUCTION")
     set(DEPLOY_PACKAGE TRUE)
     set(PRODUCTION_BUILD 1)
@@ -45,7 +51,6 @@ macro(SET_PACKAGING_PARAMETERS)
     set(BUILD_ORGANIZATION "Vircadia")
     set(HIGH_FIDELITY_PROTOCOL "hifi")
     set(HIGH_FIDELITY_APP_PROTOCOL "hifiapp")
-    set(INTERFACE_BUNDLE_NAME "interface")
     set(INTERFACE_ICON_PREFIX "interface")
 
     # add definition for this release type
@@ -68,7 +73,6 @@ macro(SET_PACKAGING_PARAMETERS)
     set(PR_BUILD 1)
     set(BUILD_VERSION "PR${RELEASE_NUMBER}")
     set(BUILD_ORGANIZATION "Vircadia - PR${RELEASE_NUMBER}")
-    set(INTERFACE_BUNDLE_NAME "interface")
     set(INTERFACE_ICON_PREFIX "interface-beta")
 
     # add definition for this release type
@@ -77,7 +81,6 @@ macro(SET_PACKAGING_PARAMETERS)
     set(DEV_BUILD 1)
     set(BUILD_VERSION "dev")
     set(BUILD_ORGANIZATION "Vircadia - ${BUILD_VERSION}")
-    set(INTERFACE_BUNDLE_NAME "interface")
     set(INTERFACE_ICON_PREFIX "interface-beta")
 
     # add definition for this release type
