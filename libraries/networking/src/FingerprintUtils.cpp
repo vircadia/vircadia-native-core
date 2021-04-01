@@ -32,6 +32,18 @@
 #include <IOKit/storage/IOMedia.h>
 #endif //Q_OS_MAC
 
+// Number of iterations to apply to the hash, for stretching.
+// The number is arbitrary and has the only purpose of slowing down brute-force
+// attempts. The number here should be low enough not to cause any trouble for
+// low-end hardware.
+//
+// Changing this results in different hardware IDs being computed.
+static const int HASH_ITERATIONS = 65535;
+
+// Salt string for the hardware ID, makes our IDs unique to our project.
+// Changing this results in different hardware IDs being computed.
+static const QByteArray HASH_SALT{"Vircadia"};
+
 static const QString FALLBACK_FINGERPRINT_KEY = "fallbackFingerprint";
 
 QUuid FingerprintUtils::_machineFingerprint { QUuid() };
@@ -129,10 +141,10 @@ QString FingerprintUtils::getMachineFingerprintString() {
 #endif //Q_OS_WIN
 
     // Makes this hash unique to us
-    hash.addData("Vircadia");
+    hash.addData(HASH_SALT);
 
     // Stretching
-    for (int i=0; i < 65535; i++) {
+    for (int i = 0; i < HASH_ITERATIONS; i++) {
         hash.addData(hash.result());
     }
 
