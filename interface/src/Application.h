@@ -51,6 +51,7 @@
 #include <shared/FileLogger.h>
 #include <RunningMarker.h>
 #include <ModerationFlags.h>
+#include <OffscreenUi.h>
 
 #include "avatar/MyAvatar.h"
 #include "FancyCamera.h"
@@ -325,6 +326,8 @@ public:
 
     int getOtherAvatarsReplicaCount() { return DependencyManager::get<AvatarHashMap>()->getReplicaCount(); }
     void setOtherAvatarsReplicaCount(int count) { DependencyManager::get<AvatarHashMap>()->setReplicaCount(count); }
+
+    void confirmConnectWithoutAvatarEntities();
 
     bool getLoginDialogPoppedUp() const { return _loginDialogPoppedUp; }
     void createLoginDialog();
@@ -723,6 +726,8 @@ private:
 
     bool _loginDialogPoppedUp{ false };
     bool _desktopRootItemCreated{ false };
+
+    ModalDialogListener* _confirmConnectWithoutAvatarEntitiesDialog { nullptr };
 
     bool _developerMenuVisible{ false };
     QString _previousAvatarSkeletonModel;

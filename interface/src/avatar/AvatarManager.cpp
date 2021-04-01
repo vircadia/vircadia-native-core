@@ -544,7 +544,7 @@ void AvatarManager::removeDeadAvatarEntities(const SetOfEntities& deadEntities) 
         QUuid entityOwnerID = entity->getOwningAvatarID();
         AvatarSharedPointer avatar = getAvatarBySessionID(entityOwnerID);
         if (avatar) {
-            avatar->clearAvatarEntity(entity->getID());
+            avatar->clearAvatarEntityInternal(entity->getID());
         }
     }
 }

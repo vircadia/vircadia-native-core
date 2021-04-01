@@ -2250,7 +2250,7 @@ void AvatarData::processTraitInstance(AvatarTraits::TraitType traitType,
 
 void AvatarData::processDeletedTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID) {
     if (traitType == AvatarTraits::AvatarEntity) {
-        clearAvatarEntity(instanceID);
+        clearAvatarEntityInternal(instanceID);
     } else if (traitType == AvatarTraits::Grab) {
         clearAvatarGrabData(instanceID);
     }
@@ -3038,6 +3038,10 @@ void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& ent
 
 void AvatarData::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree) {
     // NOTE: requiresRemovalFromTree is unused
+    clearAvatarEntityInternal(entityID);
+}
+
+void AvatarData::clearAvatarEntityInternal(const QUuid& entityID) {
     bool removedEntity = false;
     _avatarEntitiesLock.withWriteLock([this, &removedEntity, &entityID] {
         removedEntity = _packedAvatarEntityData.remove(entityID);
@@ -3048,6 +3052,24 @@ void AvatarData::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFr
         // so that changes are sent next frame
         _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, entityID);
     }
+}
+
+void AvatarData::clearAvatarEntities() {
+    QList<QUuid> avatarEntityIDs;
+    _avatarEntitiesLock.withReadLock([&] {
+        avatarEntityIDs = _packedAvatarEntityData.keys();
+    });
+    for (const auto& entityID : avatarEntityIDs) {
+        clearAvatarEntityInternal(entityID);
+    }
+}
+
+QList<QUuid> AvatarData::getAvatarEntityIDs() const {
+    QList<QUuid> avatarEntityIDs;
+    _avatarEntitiesLock.withReadLock([&] {
+        avatarEntityIDs = _packedAvatarEntityData.keys();
+    });
+    return avatarEntityIDs;
 }
 
 AvatarEntityMap AvatarData::getAvatarEntityData() const {

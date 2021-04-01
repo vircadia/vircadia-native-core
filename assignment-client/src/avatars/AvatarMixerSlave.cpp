@@ -432,6 +432,17 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             }
         }
 
+        // The source avatar should be removing its avatar entities. However, provide a back-up.
+        if (sendAvatar) {
+            if (!sourceAvatarNode->getCanRezAvatarEntities()) {
+                auto sourceAvatarNodeData = reinterpret_cast<AvatarMixerClientData*>(sourceAvatarNode->getLinkedData());
+                auto avatarEntityIDs = sourceAvatarNodeData->getAvatar().getAvatarEntityIDs();
+                if (avatarEntityIDs.count() > 0) {
+                    sourceAvatarNodeData->emulateDeleteEntitiesTraitsMessage(avatarEntityIDs);
+                }
+            }
+        }
+
         if (sendAvatar) {
             AvatarDataSequenceNumber lastSeqToReceiver = destinationNodeData->getLastBroadcastSequenceNumber(sourceAvatarNode->getLocalID());
             AvatarDataSequenceNumber lastSeqFromSender = sourceAvatarNodeData->getLastReceivedSequenceNumber();
