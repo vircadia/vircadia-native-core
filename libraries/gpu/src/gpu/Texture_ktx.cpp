@@ -40,7 +40,7 @@ struct GPUKTXPayload {
     Sampler::Desc _samplerDesc;
     Texture::Usage _usage;
     TextureUsageType _usageType;
-    glm::ivec2 _originalSize;
+    glm::ivec2 _originalSize { 0, 0 };
 
     Byte* serialize(Byte* data) const {
         *(Version*)data = CURRENT_VERSION;
@@ -65,15 +65,14 @@ struct GPUKTXPayload {
     }
 
     bool unserialize(const Byte* data, size_t size) {
-        if (size != SIZE) {
-            return false;
-        }
-
         Version version = *(const Version*)data;
-        if (version != CURRENT_VERSION) {
+        data += sizeof(Version);
+
+        if (version > CURRENT_VERSION) {
+            // If we try to load a version that we don't know how to parse,
+            // it will render incorrectly
             return false;
         }
-        data += sizeof(Version);
 
         memcpy(&_samplerDesc, data, sizeof(Sampler::Desc));
         data += sizeof(Sampler::Desc);
@@ -88,8 +87,11 @@ struct GPUKTXPayload {
         memcpy(&_usageType, data, sizeof(TextureUsageType));
         data += sizeof(TextureUsageType);
 
-        memcpy(&_originalSize, data, sizeof(glm::ivec2));
-        data += sizeof(glm::ivec2);
+        if (version >= 2) {
+            memcpy(&_originalSize, data, sizeof(glm::ivec2));
+            data += sizeof(glm::ivec2);
+        }
+
         return true;
     }
 
