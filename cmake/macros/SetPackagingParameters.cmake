@@ -39,9 +39,9 @@ macro(SET_PACKAGING_PARAMETERS)
   set(SERVER_COMPONENT server)
 
   if (APPLE)
-    set(INTERFACE_BUNDLE_NAME "interface")
-  else()
     set(INTERFACE_BUNDLE_NAME "Vircadia")
+  else()
+    set(INTERFACE_BUNDLE_NAME "interface")
   endif()
 
   if (RELEASE_TYPE STREQUAL "PRODUCTION")
