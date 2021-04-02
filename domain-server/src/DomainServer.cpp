@@ -1545,9 +1545,9 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress, const
 
     static const QString PORT_SETTINGS_KEY = "domain_server." + PUBLIC_SOCKET_PORT_KEY;
     const int portFromSettings = _settingsManager.valueForKeyPath(PORT_SETTINGS_KEY).toInt();
-    if (port != NULL) {
+    if (port != 0) {
         domainObject[PUBLIC_SOCKET_PORT_KEY] = port;
-    } else if (portFromSettings != NULL) {
+    } else if (portFromSettings != 0) {
         domainObject[PUBLIC_SOCKET_PORT_KEY] = portFromSettings;
     }
 
