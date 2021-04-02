@@ -340,8 +340,8 @@ if (APPLE)
 
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
 
-    message(STATUS "####### POST_BUILD")
-    message(STATUS "####... RESOURCES_DEV_DIR: ${RESOURCES_DEV_DIR}")
+    COMMENT "####### POST_BUILD"
+    COMMENT "####... RESOURCES_DEV_DIR: ${RESOURCES_DEV_DIR}"
 
     # copy script files beside the executable
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
