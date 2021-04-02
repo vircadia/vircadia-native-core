@@ -6,6 +6,10 @@
 #  See the accompanying file LICENSE or http:#www.apache.org/licenses/LICENSE-2.0.html
 #
 macro(SETUP_HIFI_PLUGIN)
+    message(STATUS "####### SETUP_HIFI_PLUGIN")
+    message(STATUS "####... ARGV: ${ARGV}")
+    message(STATUS "####... TARGET_NAME: ${TARGET_NAME}")
+
     set(${TARGET_NAME}_SHARED 1)
     setup_hifi_library(${ARGV})
     if (BUILD_CLIENT)
@@ -30,22 +34,30 @@ macro(SETUP_HIFI_PLUGIN)
         set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /DEBUG")
     endif()
 
+    message(STATUS "####... CMAKE_BINARY_DIR: ${CMAKE_BINARY_DIR}")
+    message(STATUS "####... INTERFACE_BUNDLE_NAME: ${INTERFACE_BUNDLE_NAME}")
+    message(STATUS "####... PLUGIN_PATH: ${PLUGIN_PATH}")
+
     if (CMAKE_SYSTEM_NAME MATCHES "Linux" OR CMAKE_GENERATOR STREQUAL "Unix Makefiles")
         set(PLUGIN_FULL_PATH "${CMAKE_BINARY_DIR}/${INTERFACE_BUNDLE_NAME}/${PLUGIN_PATH}/")
     else()
         set(PLUGIN_FULL_PATH "${CMAKE_BINARY_DIR}/${INTERFACE_BUNDLE_NAME}/$<CONFIGURATION>/${PLUGIN_PATH}/")
     endif()
 
+    message(STATUS "####... PLUGIN_FULL_PATH: ${PLUGIN_FULL_PATH}")
+
     # create the destination for the plugin binaries
     add_custom_command(
         TARGET ${TARGET_NAME} POST_BUILD
         COMMAND "${CMAKE_COMMAND}" -E make_directory
         ${PLUGIN_FULL_PATH}
+        COMMENT "####### SETUP_HIFI_PLUGIN POST_BUILD make_directory ${PLUGIN_FULL_PATH}"
     )
 
     add_custom_command(TARGET ${DIR} POST_BUILD
         COMMAND "${CMAKE_COMMAND}" -E copy
         "$<TARGET_FILE:${TARGET_NAME}>"
         ${PLUGIN_FULL_PATH}
+        COMMENT "####### SETUP_HIFI_PLUGIN POST_BUILD copy $<TARGET_FILE:${TARGET_NAME}>"
     )
 endmacro()
