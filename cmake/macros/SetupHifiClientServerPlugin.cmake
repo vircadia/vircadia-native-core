@@ -6,6 +6,10 @@
 #  See the accompanying file LICENSE or http:#www.apache.org/licenses/LICENSE-2.0.html
 #
 macro(SETUP_HIFI_CLIENT_SERVER_PLUGIN)
+  message(STATUS "####### SETUP_HIFI_CLIENT_SERVER_PLUGIN")
+  message(STATUS "####... ARGN: ${ARGN}")
+  message(STATUS "####... TARGET_NAME: ${TARGET_NAME}")
+
   set(${TARGET_NAME}_SHARED 1)
   set(PLUGIN_SUBFOLDER ${ARGN})
   setup_hifi_library()
@@ -28,10 +32,16 @@ macro(SETUP_HIFI_CLIENT_SERVER_PLUGIN)
     set(SERVER_PLUGIN_PATH "plugins")
   endif()
 
+  message(STATUS "####... CLIENT_PLUGIN_PATH: ${CLIENT_PLUGIN_PATH}")
+  message(STATUS "####... SERVER_PLUGIN_PATH: ${SERVER_PLUGIN_PATH}")
+
   if (PLUGIN_SUBFOLDER)
       set(CLIENT_PLUGIN_PATH "${CLIENT_PLUGIN_PATH}/${PLUGIN_SUBFOLDER}")
       set(SERVER_PLUGIN_PATH "${SERVER_PLUGIN_PATH}/${PLUGIN_SUBFOLDER}")
   endif()
+
+  message(STATUS "####... CLIENT_PLUGIN_PATH: ${CLIENT_PLUGIN_PATH}")
+  message(STATUS "####... SERVER_PLUGIN_PATH: ${SERVER_PLUGIN_PATH}")
 
   if (CMAKE_SYSTEM_NAME MATCHES "Linux" OR CMAKE_GENERATOR STREQUAL "Unix Makefiles")
     set(CLIENT_PLUGIN_FULL_PATH "${CMAKE_BINARY_DIR}/interface/${CLIENT_PLUGIN_PATH}/")
@@ -44,17 +54,22 @@ macro(SETUP_HIFI_CLIENT_SERVER_PLUGIN)
     set(SERVER_PLUGIN_FULL_PATH "${CMAKE_BINARY_DIR}/assignment-client/$<CONFIGURATION>/${SERVER_PLUGIN_PATH}/")
   endif()
 
+  message(STATUS "####... CLIENT_PLUGIN_FULL_PATH: ${CLIENT_PLUGIN_FULL_PATH}")
+  message(STATUS "####... SERVER_PLUGIN_FULL_PATH: ${SERVER_PLUGIN_FULL_PATH}")
+
   # create the destination for the client plugin binaries
   add_custom_command(
     TARGET ${TARGET_NAME} POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E make_directory
     ${CLIENT_PLUGIN_FULL_PATH}
+    COMMENT "####### SETUP_HIFI_CLIENT_SERVER_PLUGIN POST_BUILD make_directory ${CLIENT_PLUGIN_FULL_PATH}"
   )
   # copy the client plugin binaries
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy
     "$<TARGET_FILE:${TARGET_NAME}>"
     ${CLIENT_PLUGIN_FULL_PATH}
+    COMMENT "####### SETUP_HIFI_CLIENT_SERVER_PLUGIN POST_BUILD copy $<TARGET_FILE:${TARGET_NAME}>"
   )
 
   # create the destination for the server plugin binaries
@@ -62,12 +77,14 @@ macro(SETUP_HIFI_CLIENT_SERVER_PLUGIN)
     TARGET ${TARGET_NAME} POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E make_directory
     ${SERVER_PLUGIN_FULL_PATH}
+    COMMENT "####### SETUP_HIFI_CLIENT_SERVER_PLUGIN POST_BUILD make_directory ${SERVER_PLUGIN_FULL_PATH}"
   )
   # copy the server plugin binaries
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy
     "$<TARGET_FILE:${TARGET_NAME}>"
     ${SERVER_PLUGIN_FULL_PATH}
+    COMMENT "####### SETUP_HIFI_CLIENT_SERVER_PLUGIN POST_BUILD copy $<TARGET_FILE:${TARGET_NAME}>"
   )
 
 endmacro()
