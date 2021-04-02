@@ -9,6 +9,10 @@
 
 macro(SETUP_HIFI_LIBRARY)
 
+  message(STATUS "####### SETUP_HIFI_LIBRARY")
+  message(STATUS "####... ARGN: ${ARGN}")
+  message(STATUS "####... TARGET_NAME: ${TARGET_NAME}")
+
   project(${TARGET_NAME})
 
   # grab the implementation and header files
@@ -63,6 +67,7 @@ macro(SETUP_HIFI_LIBRARY)
 
   set(${TARGET_NAME}_DEPENDENCY_QT_MODULES ${ARGN})
   list(APPEND ${TARGET_NAME}_DEPENDENCY_QT_MODULES Core)
+  message(STATUS "####... {TARGET_NAME}_DEPENDENCY_QT_MODULES: ${TARGET_NAME}_DEPENDENCY_QT_MODULES")
 
   # find these Qt modules and link them to our own target
   find_package(Qt5 COMPONENTS ${${TARGET_NAME}_DEPENDENCY_QT_MODULES} REQUIRED CMAKE_FIND_ROOT_PATH_BOTH)
