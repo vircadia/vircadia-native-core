@@ -28,6 +28,7 @@
 #include <QtCore/QMutexLocker>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
+#include "ScriptContextHelper.h"
 
 QMutex LogHandler::_mutex(QMutex::Recursive);
 
@@ -209,6 +210,15 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
             fprintf(stdout, "[Previous message was repeated %i times]\n", _repeatCount);
         }
 
+        if (strcmp(context.category, "vircadia.script-engine.logging-agent") != 0 ) {
+            QStringList context = ScriptContextHelper::get();
+            if ( !context.isEmpty()) {
+                fprintf(stdout, "Script context:\n");
+                for( auto line : context) {
+                    fprintf(stdout, "\t%s\n", line.toStdString().c_str());
+                }
+            }
+        }
         fprintf(stdout, "%s%s%s", color, qPrintable(logMessage), resetColor);
         _repeatCount = 0;
     } else {

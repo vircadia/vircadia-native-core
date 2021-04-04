@@ -255,6 +255,7 @@
 #include "AboutUtil.h"
 #include "ExternalResource.h"
 #include <ThreadHelpers.h>
+#include "ScriptEngineLoggingAgent.h"
 
 #if defined(Q_OS_WIN)
 #include <VersionHelpers.h>
@@ -7652,6 +7653,9 @@ void Application::registerScriptEngineWithApplicationServices(const ScriptEngine
     connect(scriptEngine.data(), &ScriptEngine::infoMessage, scriptEngines, &ScriptEngines::onInfoMessage);
     connect(scriptEngine.data(), &ScriptEngine::clearDebugWindow, scriptEngines, &ScriptEngines::onClearDebugWindow);
 
+
+    ScriptEngineLoggingAgent *scriptLogger = new ScriptEngineLoggingAgent(scriptEngine.data());
+    scriptEngine->setAgent(scriptLogger);
 }
 
 bool Application::canAcceptURL(const QString& urlString) const {
