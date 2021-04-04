@@ -1,9 +1,8 @@
 /* eslint-disable no-magic-numbers */
 //
-// soundEmitter_localfile.js
+// soundEmitter.js
 // 
 // Created by Zach Fox on 2019-07-05
-// modified for relative path by Silverfish 2021
 // Copyright High Fidelity 2019
 //
 // Licensed under the Apache 2.0 License
@@ -12,7 +11,7 @@
 
 (function() {
     var that;
-    var SOUND_EMITTER_UPDATE_INTERVAL_MS = 5000;
+    var SOUND_EMITTER_UPDATE_INTERVAL_MS = 500;
     var DEFAULT_AUDIO_INJECTOR_OPTIONS = {
         "position": {
             "x": 0,
@@ -21,7 +20,7 @@
         },
         "volume": 0.5,
         "loop": false,
-        "localOnly": true
+        "localOnly": false
     };
 
 
@@ -42,7 +41,7 @@
             that.entityID = entityID;
 
             var properties = Entities.getEntityProperties(that.entityID, ["userData"]);
-            
+
             var userData;
 
             try {
@@ -50,14 +49,10 @@
             } catch (e) {
                 console.error("Error parsing userData: ", e);
             }
-            
+
             if (userData) {
                 if (userData.soundURL && userData.soundURL.length > 0) {
-                    //----I added script resolve here---
-                    localSoundURL = Script.resolvePath(userData.soundURL);
-                    print("New Local sound url: ", localSoundURL);
-                    that.handleNewSoundURL(localSoundURL); 
-                    //that.handleNewSoundURL(userData.soundURL);
+                    that.handleNewSoundURL(userData.soundURL);
                 } else {
                     console.log("Please specify this entity's `userData`! See README.md for instructions.");
                     return;
@@ -103,8 +98,8 @@
 
         handleNewSoundURL: function(newSoundURL) {
             that.clearCurrentSoundData();
+
             that.soundObjectURL = newSoundURL;
-            print(newSoundURL);
             that.soundObject = SoundCache.getSound(that.soundObjectURL);
 
             if (that.soundObject.downloaded) {
@@ -138,15 +133,10 @@
             var shouldRestartPlayback = false;
             var newPosition = properties.position;
 
-            //---I added script resolve here---
             if (userData) {
-                if (userData.soundURL && userData.soundURL.length > 0 && Script.resolvePath(userData.soundURL) !== that.soundObjectURL) {
+                if (userData.soundURL && userData.soundURL.length > 0 && userData.soundURL !== that.soundObjectURL) {
                     console.log("Sound Emitter: User put a new sound URL into `userData`! Resetting...");
-                    localSoundURL = Script.resolvePath(userData.soundURL);
-                    print("New Local sound url: ", localSoundURL);
-                    that.handleNewSoundURL(localSoundURL);                
-                    //that.handleNewSoundURL(userData.soundURL);
-                    
+                    that.handleNewSoundURL(userData.soundURL);
                     return;
                 }
 
@@ -177,11 +167,11 @@
 
             var localOnly = that.audioInjectorOptions.localOnly;
             // If this script is attached as a client entity script...
-            if (properties.script.indexOf("soundEmitter_localfile.js") > -1) {
+            if (properties.script.indexOf("soundEmitter.js") > -1) {
                 // ... Make sure that the audio injector IS local only.
                 localOnly = true;
             // Else if this script is attached as a client server script...
-            } else if (properties.serverScripts.indexOf("soundEmitter_localfile.js") > -1) {
+            } else if (properties.serverScripts.indexOf("soundEmitter.js") > -1) {
                 // ... Make sure that the audio injector IS NOT local only.
                 localOnly = false;
             }
