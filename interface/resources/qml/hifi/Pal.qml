@@ -756,7 +756,7 @@ Rectangle {
                                      "Admin Actions",
                                      "<b>Silence</b> mutes a user's microphone. Silenced users can unmute themselves by clicking &quot;UNMUTE&quot; on their toolbar.<br><br>" +
                                      "<b>Ban (left)</b> identifies a user by username (if applicable) and machine fingerprint, then removes them from this domain and prevents them from returning. Admins can un-ban users from the Server Domain Settings page.<br><br>" +
-                                     "<b>Hard Ban (right)</b> identifies a user by username (if applicable), machine fingerprint, and IP address, then removes them from this domain and prevents them from returning. Admins can un-ban users from the Sandbox Domain Settings page.");
+                                     "<b>Hard Ban (right)</b> identifies a user by username (if applicable), machine fingerprint, and IP address, then removes them from this domain and prevents them from returning. Admins can un-ban users from the Server Domain Settings page.");
                 onEntered: adminHelpText.color = "#94132e";
                 onExited: adminHelpText.color = hifi.colors.redHighlight;
             }
