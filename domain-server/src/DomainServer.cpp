@@ -2799,7 +2799,7 @@ std::pair<bool, QString>  DomainServer::isAuthenticatedRequest(HTTPConnection* c
 
     QVariant adminUsersVariant = _settingsManager.valueForKeyPath(ADMIN_USERS_CONFIG_KEY);
     QVariant adminRolesVariant = _settingsManager.valueForKeyPath(ADMIN_ROLES_CONFIG_KEY);
-    QString httpPeer = connection->peerAddress().toString();
+    QString httpPeerAddress = connection->peerAddress().toString();
     QString httpOperation = operationToString(connection->requestOperation());
 
 
@@ -2835,13 +2835,15 @@ std::pair<bool, QString>  DomainServer::isAuthenticatedRequest(HTTPConnection* c
                 foreach(const QString& userRole, sessionData.getRoles()) {
                     if (adminRolesArray.contains(userRole)) {
                         // this user has a role that allows them to administer the domain-server
-                        qCInfo(domain_server_auth) << httpPeer << "- OAuth:" << profileUsername << " - " << httpOperation << " " << connection->requestUrl();
+                        qCInfo(domain_server_auth) << httpPeerAddress << "- OAuth:" << profileUsername << " - "
+                                                   << httpOperation << " " << connection->requestUrl();
                         return { true, profileUsername };
                     }
                 }
             }
 
-            qCWarning(domain_server_auth) << httpPeer << "- OAuth authentication failed for " << profileUsername << "-" << httpOperation << " " << connection->requestUrl();
+            qCWarning(domain_server_auth) << httpPeerAddress << "- OAuth authentication failed for " << profileUsername << "-"
+                                          << httpOperation << " " << connection->requestUrl();
             connection->respond(HTTPConnection::StatusCode401, UNAUTHENTICATED_BODY);
 
             // the user does not have allowed username or role, return 401
@@ -2854,7 +2856,8 @@ std::pair<bool, QString>  DomainServer::isAuthenticatedRequest(HTTPConnection* c
                 // unauthorized XHR requests get a 401 and not a 302, since there isn't an XHR
                 // path to OAuth authorize
 
-                qCWarning(domain_server_auth) << httpPeer << "- Oauth unauthorized XHR -" << httpOperation << " " << connection->requestUrl();
+                qCWarning(domain_server_auth) << httpPeerAddress << "- OAuth unauthorized XHR -"
+                                              << httpOperation << " " << connection->requestUrl();
                 connection->respond(HTTPConnection::StatusCode401, UNAUTHENTICATED_BODY);
             } else {
                 // re-direct this user to OAuth page
@@ -2871,7 +2874,8 @@ std::pair<bool, QString>  DomainServer::isAuthenticatedRequest(HTTPConnection* c
 
                 redirectHeaders.insert("Location", authURL.toEncoded());
 
-                qCWarning(domain_server_auth) << httpPeer << "- Oauth redirecting -" << httpOperation << " " << connection->requestUrl();
+                qCWarning(domain_server_auth) << httpPeerAddress << "- OAuth redirecting -"
+                                              << httpOperation << " " << connection->requestUrl();
                 connection->respond(HTTPConnection::StatusCode302,
                                     QByteArray(), HTTPConnection::DefaultContentType, redirectHeaders);
             }
@@ -2906,10 +2910,12 @@ std::pair<bool, QString>  DomainServer::isAuthenticatedRequest(HTTPConnection* c
                         "" : QCryptographicHash::hash(headerPassword.toUtf8(), QCryptographicHash::Sha256).toHex();
 
                     if (settingsUsername == headerUsername && hexHeaderPassword == settingsPassword) {
-                        qCInfo(domain_server_auth) << httpPeer << "- basic:" << headerUsername << "-" << httpOperation << " " << connection->requestUrl();
+                        qCInfo(domain_server_auth) << httpPeerAddress << "- Basic:" << headerUsername << "-"
+                                                   << httpOperation << " " << connection->requestUrl();
                         return { true, headerUsername };
                     } else {
-                        qCWarning(domain_server_auth) << httpPeer << "- Basic auth failed for" << headerUsername << "-" << httpOperation << " " << connection->requestUrl();
+                        qCWarning(domain_server_auth) << httpPeerAddress << "- Basic auth failed for" << headerUsername << "-"
+                                                      << httpOperation << " " << connection->requestUrl();
                     }
                 }
             }
@@ -2930,13 +2936,13 @@ std::pair<bool, QString>  DomainServer::isAuthenticatedRequest(HTTPConnection* c
         connection->respond(HTTPConnection::StatusCode401, UNAUTHENTICATED_BODY,
                             HTTPConnection::DefaultContentType, basicAuthHeader);
 
-        qCWarning(domain_server_auth) << httpPeer << "- Basic auth required -" << httpOperation << " " << connection->requestUrl();
+        qCWarning(domain_server_auth) << httpPeerAddress << "- Basic auth required -" << httpOperation << " " << connection->requestUrl();
         // not authenticated, bubble up false
         return { false, QString() };
 
     } else {
         // we don't have an OAuth URL + admin roles/usernames, so all users are authenticated
-        qCWarning(domain_server_auth) << httpPeer << "- OPEN ACCESS -" << httpOperation << " " << connection->requestUrl();
+        qCWarning(domain_server_auth) << httpPeerAddress << "- OPEN ACCESS -" << httpOperation << " " << connection->requestUrl();
         return { true, QString() };
     }
 }
