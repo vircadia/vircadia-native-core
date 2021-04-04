@@ -14,6 +14,8 @@
 #include <QDebug>
 #include <QtCore/QCoreApplication>
 
+#include "ThreadHelpers.h"
+
 GenericThread::GenericThread() :
     _stopThread(false),
     _isThreaded(false) // assume non-threaded, must call initialize()
@@ -36,8 +38,11 @@ void GenericThread::initialize(bool isThreaded, QThread::Priority priority) {
         // match the thread name to our object name
         _thread->setObjectName(objectName());
 
-        connect(_thread, &QThread::started, this, &GenericThread::started);
-        connect(_thread, &QThread::started, this, &GenericThread::threadRoutine);
+        connect(_thread, &QThread::started, this, [this] {
+            setThreadName("Generic thread " + objectName().toStdString());
+            started();
+            threadRoutine();
+        });
         connect(_thread, &QThread::finished, this, &GenericThread::finished);
 
         moveToThread(_thread);

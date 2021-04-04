@@ -4,6 +4,7 @@
 #
 #  Created by Leonardo Murillo on 12/16/2015.
 #  Copyright 2015 High Fidelity, Inc.
+#  Copyright 2021 Vircadia contributors.
 #
 #  Distributed under the Apache License, Version 2.0.
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -20,9 +21,9 @@ macro(GENERATE_INSTALLERS)
     set(INSTALLER_TYPE "client_only")
     string(REGEX REPLACE "Vircadia" "Vircadia Interface" _DISPLAY_NAME ${BUILD_ORGANIZATION})
   elseif (SERVER_ONLY)
-    set(_PACKAGE_NAME_EXTRA "-Sandbox")
+    set(_PACKAGE_NAME_EXTRA "-Server")
     set(INSTALLER_TYPE "server_only")
-    string(REGEX REPLACE "Vircadia" "Vircadia Sandbox" _DISPLAY_NAME ${BUILD_ORGANIZATION})
+    string(REGEX REPLACE "Vircadia" "Vircadia Server" _DISPLAY_NAME ${BUILD_ORGANIZATION})
   else ()
     set(_DISPLAY_NAME ${BUILD_ORGANIZATION})
     set(INSTALLER_TYPE "full")
@@ -31,7 +32,7 @@ macro(GENERATE_INSTALLERS)
   set(CPACK_PACKAGE_NAME ${_DISPLAY_NAME})
   set(CPACK_PACKAGE_VENDOR "Vircadia")
   set(CPACK_PACKAGE_VERSION ${BUILD_VERSION})
-  set(CPACK_PACKAGE_FILE_NAME "Vircadia-Alpha${_PACKAGE_NAME_EXTRA}-${BUILD_VERSION}")
+  set(CPACK_PACKAGE_FILE_NAME "Vircadia${_PACKAGE_NAME_EXTRA}-${BUILD_VERSION}-${RELEASE_NAME}")
   set(CPACK_NSIS_DISPLAY_NAME ${_DISPLAY_NAME})
   set(CPACK_NSIS_PACKAGE_NAME ${_DISPLAY_NAME})
   if (PR_BUILD)
@@ -122,7 +123,7 @@ macro(GENERATE_INSTALLERS)
   endif ()
 
   if (BUILD_SERVER)
-    cpack_add_component(${SERVER_COMPONENT} DISPLAY_NAME "Vircadia Sandbox")
+    cpack_add_component(${SERVER_COMPONENT} DISPLAY_NAME "Vircadia Server")
   endif ()
 
   include(CPack)

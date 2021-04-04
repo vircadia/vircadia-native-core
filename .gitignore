@@ -111,3 +111,4 @@ tools/unity-avatar-exporter
 server-console/package-lock.json
 vcpkg/
 /tools/nitpick/compiledResources
+qt/

@@ -283,15 +283,16 @@ class MyAvatar : public Avatar {
      *     the value.</p>
      * @property {number} analogPlusSprintSpeed - The sprint (run) speed of your avatar for the "AnalogPlus" control scheme.
      * @property {MyAvatar.SitStandModelType} userRecenterModel - Controls avatar leaning and recentering behavior.
-     * @property {number} isInSittingState - <code>true</code> if the user wearing the HMD is determined to be sitting
-     *     (avatar leaning is disabled, recentering is enabled), <code>false</code> if the user wearing the HMD is
-     *     determined to be standing (avatar leaning is enabled, and avatar recenters if it leans too far).
-     *     If <code>userRecenterModel == 2</code> (i.e., "auto") the property value automatically updates as the user sits
-     *     or stands, unless <code>isSitStandStateLocked == true</code>. Setting the property value overrides the current
-     *     sitting / standing state, which is updated when the user next sits or stands unless
-     *     <code>isSitStandStateLocked == true</code>.
+     *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
+     * @property {boolean} isInSittingState - <code>true</code> if the user wearing the HMD is determined to be sitting;
+     *     <code>false</code> if the user wearing the HMD is determined to be standing.  This can affect whether the avatar
+     *     is allowed to stand, lean or recenter its footing, depending on user preferences.
+     *     The property value automatically updates as the user sits or stands. Setting the property value overrides the current
+     *     sitting / standing state, which is updated when the user next sits or stands.
      * @property {boolean} isSitStandStateLocked - <code>true</code> to lock the avatar sitting/standing state, i.e., use this 
      *     to disable automatically changing state.
+     *     <p class="important">Deprecated: This property is deprecated and will be removed.  
+     *     See also: <code>getUserRecenterModel</code> and <code>setUserRecenterModel</code>.</p>
      * @property {boolean} allowTeleporting - <code>true</code> if teleporting is enabled in the Interface settings, 
      *     <code>false</code> if it isn't. <em>Read-only.</em>
      *
@@ -413,8 +414,8 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float walkBackwardSpeed READ getWalkBackwardSpeed WRITE setWalkBackwardSpeed NOTIFY walkBackwardSpeedChanged);
     Q_PROPERTY(float sprintSpeed READ getSprintSpeed WRITE setSprintSpeed NOTIFY sprintSpeedChanged);
     Q_PROPERTY(bool isInSittingState READ getIsInSittingState WRITE setIsInSittingState);
-    Q_PROPERTY(MyAvatar::SitStandModelType userRecenterModel READ getUserRecenterModel WRITE setUserRecenterModel);
-    Q_PROPERTY(bool isSitStandStateLocked READ getIsSitStandStateLocked WRITE setIsSitStandStateLocked);
+    Q_PROPERTY(MyAvatar::SitStandModelType userRecenterModel READ getUserRecenterModel WRITE setUserRecenterModel);  // Deprecated
+    Q_PROPERTY(bool isSitStandStateLocked READ getIsSitStandStateLocked WRITE setIsSitStandStateLocked);      // Deprecated
     Q_PROPERTY(bool allowTeleporting READ getAllowTeleporting)
 
     const QString DOMINANT_LEFT_HAND = "left";
@@ -519,6 +520,7 @@ public:
 
     /**jsdoc
      * <p>Specifies different avatar leaning and recentering behaviors.</p>
+     * <p class="important">Deprecated: This type is deprecated and will be removed.</p>
      * <table>
      *   <thead>
      *     <tr><th>Value</th><th>Name</th><th>Description</th></tr>
@@ -548,6 +550,29 @@ public:
         NumSitStandTypes
     };
     Q_ENUM(SitStandModelType)
+
+    // Note: The option strings in setupPreferences (PreferencesDialog.cpp) must match this order.
+    enum class AllowAvatarStandingPreference : uint {
+        WhenUserIsStanding,
+        Always,
+        Count,
+        Default = Always
+    };
+    Q_ENUM(AllowAvatarStandingPreference)
+
+    // Note: The option strings in setupPreferences (PreferencesDialog.cpp) must match this order.
+    enum class AllowAvatarLeaningPreference : uint {
+        WhenUserIsStanding,
+        Always,
+        Never,
+        AlwaysNoRecenter,  // experimental
+        Count,
+        Default = WhenUserIsStanding
+    };
+    Q_ENUM(AllowAvatarLeaningPreference)
+
+    static const std::array<QString, (uint)AllowAvatarStandingPreference::Count> allowAvatarStandingPreferenceStrings;
+    static const std::array<QString, (uint)AllowAvatarLeaningPreference::Count> allowAvatarLeaningPreferenceStrings;
 
     explicit MyAvatar(QThread* thread);
     virtual ~MyAvatar();
@@ -1417,7 +1442,6 @@ public:
     controller::Pose getControllerPoseInSensorFrame(controller::Action action) const;
     controller::Pose getControllerPoseInWorldFrame(controller::Action action) const;
     controller::Pose getControllerPoseInAvatarFrame(controller::Action action) const;
-    glm::quat getOffHandRotation() const;
 
     bool hasDriveInput() const;
 
@@ -1430,6 +1454,7 @@ public:
 
     void removeWornAvatarEntity(const EntityItemID& entityID);
     void clearWornAvatarEntities();
+    bool hasAvatarEntities() const;
 
     /**jsdoc
      * Checks whether your avatar is flying.
@@ -1596,7 +1621,7 @@ public:
      * @function MyAvatar.getAvatarScale
      * @returns {number} The target scale for the avatar, range <code>0.005</code> &ndash; <code>1000.0</code>.
      */
-    Q_INVOKABLE float getAvatarScale();
+    Q_INVOKABLE float getAvatarScale() const;
 
     /**jsdoc
      * Sets the target scale of the avatar. The target scale is the desired scale of the avatar without any restrictions on 
@@ -1709,7 +1734,7 @@ public:
 
     // derive avatar body position and orientation from the current HMD Sensor location.
     // results are in sensor frame (-z forward)
-    glm::mat4 deriveBodyFromHMDSensor() const;
+    glm::mat4 deriveBodyFromHMDSensor(const bool forceFollowYPos = false) const;
 
     glm::mat4 getSpine2RotationRigSpace() const;
 
@@ -1753,10 +1778,14 @@ public:
     bool getIsInWalkingState() const;
     void setIsInSittingState(bool isSitting);
     bool getIsInSittingState() const;
-    void setUserRecenterModel(MyAvatar::SitStandModelType modelName);
-    MyAvatar::SitStandModelType getUserRecenterModel() const;
-    void setIsSitStandStateLocked(bool isLocked);
-    bool getIsSitStandStateLocked() const;
+    void setUserRecenterModel(MyAvatar::SitStandModelType modelName);  // Deprecated, will be removed.
+    MyAvatar::SitStandModelType getUserRecenterModel() const;          // Deprecated, will be removed.
+    void setIsSitStandStateLocked(bool isLocked);                      // Deprecated, will be removed.
+    bool getIsSitStandStateLocked() const;                             // Deprecated, will be removed.
+    void setAllowAvatarStandingPreference(const AllowAvatarStandingPreference preference);
+    AllowAvatarStandingPreference getAllowAvatarStandingPreference() const;
+    void setAllowAvatarLeaningPreference(const AllowAvatarLeaningPreference preference);
+    AllowAvatarLeaningPreference getAllowAvatarLeaningPreference() const;
     void setWalkSpeed(float value);
     float getWalkSpeed() const;
     void setWalkBackwardSpeed(float value);
@@ -1772,7 +1801,7 @@ public:
     void setAnalogPlusSprintSpeed(float value);
     float getAnalogPlusSprintSpeed() const;
     void setSitStandStateChange(bool stateChanged);
-    float getSitStandStateChange() const;
+    bool getSitStandStateChange() const;
     void updateSitStandState(float newHeightReading, float dt);
 
     QVector<QString> getScriptUrls();
@@ -1911,6 +1940,8 @@ public:
 
     void avatarEntityDataToJson(QJsonObject& root) const override;
 
+    void storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& payload) override;
+
     /**jsdoc
      * @comment Uses the base class's JSDoc.
      */
@@ -1989,6 +2020,10 @@ public:
     glm::vec3 getLookAtPivotPoint();
     glm::vec3 getCameraEyesPosition(float deltaTime);
     bool isJumping();
+    bool getHMDCrouchRecenterEnabled() const;
+    bool isAllowedToLean() const;
+    bool areFeetTracked() const { return _isBodyPartTracked._feet; };  // Determine if the feet are under direct control.
+    bool areHipsTracked() const { return _isBodyPartTracked._hips; };  // Determine if the hips are under direct control.
 
 public slots:
 
@@ -2245,12 +2280,6 @@ public slots:
      */
     bool getEnableMeshVisible() const override;
 
-    /**jsdoc
-     * @function MyAvatar.storeAvatarEntityDataPayload
-     * @deprecated This function is deprecated and will be removed.
-     */
-    void storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& payload) override;
-    
     /**jsdoc
      * @comment Uses the base class's JSDoc.
      */
@@ -2624,6 +2653,7 @@ private slots:
 
 protected:
     void handleChangedAvatarEntityData();
+    void handleCanRezAvatarEntitiesChanged(bool canRezAvatarEntities);
     virtual void beParentOfChild(SpatiallyNestablePointer newChild) const override;
     virtual void forgetChild(SpatiallyNestablePointer newChild) const override;
     virtual void recalculateChildCauterization() const override;
@@ -2678,6 +2708,10 @@ private:
     void attachmentDataToEntityProperties(const AttachmentData& data, EntityItemProperties& properties);
     AttachmentData entityPropertiesToAttachmentData(const EntityItemProperties& properties) const;
     bool findAvatarEntity(const QString& modelURL, const QString& jointName, QUuid& entityID);
+    void addAvatarEntitiesToTree();
+
+    // FIXME: Rename to clearAvatarEntity() once the API call is removed.
+    void clearAvatarEntityInternal(const QUuid& entityID) override;
 
     bool cameraInsideHead(const glm::vec3& cameraPosition) const;
 
@@ -2708,6 +2742,16 @@ private:
     bool _isBeingPushed { false };
     bool _isBraking { false };
     bool _isAway { false };
+
+    // Indicates which parts of the body are under direct control (tracked).
+    struct {
+        bool _feet { false };  // Left or right foot.
+        bool _feetPreviousUpdate{ false };// Value of _feet on the previous update.
+        bool _hips{ false };
+        bool _leftHand{ false };
+        bool _rightHand{ false };
+        bool _head{ false };
+    } _isBodyPartTracked;
 
     float _boomLength { ZOOM_DEFAULT };
     float _yawSpeed; // degrees/sec
@@ -2791,6 +2835,7 @@ private:
     void resetLookAtRotation(const glm::vec3& avatarPosition, const glm::quat& avatarOrientation);
     void resetPointAt();
     static glm::vec3 aimToBlendValues(const glm::vec3& aimVector, const glm::quat& frameOrientation);
+    void centerBodyInternal(const bool forceFollowYPos = false);
 
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;
@@ -2841,26 +2886,21 @@ private:
     struct FollowHelper {
         FollowHelper();
 
-        enum FollowType {
-            Rotation = 0,
-            Horizontal,
-            Vertical,
-            NumFollowTypes
-        };
-        float _timeRemaining[NumFollowTypes];
+        CharacterController::FollowTimePerType _timeRemaining;
 
         void deactivate();
-        void deactivate(FollowType type);
-        void activate();
-        void activate(FollowType type);
+        void deactivate(CharacterController::FollowType type);
+        void activate(CharacterController::FollowType type, const bool snapFollow);
         bool isActive() const;
-        bool isActive(FollowType followType) const;
-        float getMaxTimeRemaining() const;
+        bool isActive(CharacterController::FollowType followType) const;
         void decrementTimeRemaining(float dt);
-        bool shouldActivateRotation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
+        bool shouldActivateRotation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix, bool& shouldSnapOut) const;
         bool shouldActivateVertical(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
-        bool shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
-        bool shouldActivateHorizontalCG(MyAvatar& myAvatar) const;
+        bool shouldActivateHorizontal(const MyAvatar& myAvatar,
+                                      const glm::mat4& desiredBodyMatrix,
+                                      const glm::mat4& currentBodyMatrix,
+                                      bool& resetModeOut,
+                                      bool& goToWalkingStateOut) const;
         void prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& bodySensorMatrix, const glm::mat4& currentBodyMatrix, bool hasDriveInput);
         glm::mat4 postPhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& currentBodyMatrix);
         bool getForceActivateRotation() const;
@@ -2869,18 +2909,23 @@ private:
         void setForceActivateVertical(bool val);
         bool getForceActivateHorizontal() const;
         void setForceActivateHorizontal(bool val);
-        bool getToggleHipsFollowing() const;
-        void setToggleHipsFollowing(bool followHead);
-        bool _squatDetected { false };
         std::atomic<bool> _forceActivateRotation { false };
         std::atomic<bool> _forceActivateVertical { false };
         std::atomic<bool> _forceActivateHorizontal { false };
         std::atomic<bool> _toggleHipsFollowing { true };
+
+    private:
+        bool shouldActivateHorizontal_userSitting(const MyAvatar& myAvatar,
+                                                  const glm::mat4& desiredBodyMatrix,
+                                                  const glm::mat4& currentBodyMatrix) const;
+        bool shouldActivateHorizontal_userStanding(const MyAvatar& myAvatar,
+                                                   bool& resetModeOut,
+                                                   bool& goToWalkingStateOut) const;
     };
 
     FollowHelper _follow;
 
-    bool isFollowActive(FollowHelper::FollowType followType) const;
+    bool isFollowActive(CharacterController::FollowType followType) const;
 
     bool _goToPending { false };
     bool _physicsSafetyPending { false };
@@ -2922,6 +2967,9 @@ private:
 
     bool _centerOfGravityModelEnabled { true };
     bool _hmdLeanRecenterEnabled { true };
+    bool _hmdCrouchRecenterEnabled {
+        true
+    };  // Is MyAvatar allowed to recenter vertically (stand) when the user is sitting in the real world.
     bool _sprint { false };
 
     AnimPose _prePhysicsRoomPose;
@@ -2953,7 +3001,6 @@ private:
     ThreadSafeValueCache<float> _userHeight { DEFAULT_AVATAR_HEIGHT };
     float _averageUserHeightSensorSpace { _userHeight.get() };
     bool _sitStandStateChange { false };
-    ThreadSafeValueCache<bool> _lockSitStandState { false };
 
     // max unscaled forward movement speed
     ThreadSafeValueCache<float> _defaultWalkSpeed { DEFAULT_AVATAR_MAX_WALKING_SPEED };
@@ -2969,9 +3016,13 @@ private:
     float _walkSpeedScalar { AVATAR_WALK_SPEED_SCALAR };
     bool _isInWalkingState { false };
     ThreadSafeValueCache<bool> _isInSittingState { false };
-    ThreadSafeValueCache<MyAvatar::SitStandModelType> _userRecenterModel { MyAvatar::SitStandModelType::Auto };
+    ThreadSafeValueCache<MyAvatar::AllowAvatarStandingPreference> _allowAvatarStandingPreference{
+        MyAvatar::AllowAvatarStandingPreference::Default
+    };  // The user preference of when MyAvatar may stand.
+    ThreadSafeValueCache<MyAvatar::AllowAvatarLeaningPreference> _allowAvatarLeaningPreference{
+        MyAvatar::AllowAvatarLeaningPreference::Default
+    };  // The user preference of when MyAvatar may lean.
     float _sitStandStateTimer { 0.0f };
-    float _squatTimer { 0.0f };
     float _tippingPoint { _userHeight.get() };
 
     // load avatar scripts once when rig is ready
@@ -3012,7 +3063,8 @@ private:
     Setting::Handle<int> _controlSchemeIndexSetting;
     std::vector<Setting::Handle<QUuid>> _avatarEntityIDSettings;
     std::vector<Setting::Handle<QByteArray>> _avatarEntityDataSettings;
-    Setting::Handle<QString> _userRecenterModelSetting;
+    Setting::Handle<QString> _allowAvatarStandingPreferenceSetting;
+    Setting::Handle<QString> _allowAvatarLeaningPreferenceSetting;
 
     // AvatarEntities stuff:
     // We cache the "map of unfortunately-formatted-binary-blobs" because they are expensive to compute
@@ -3057,6 +3109,8 @@ private:
 
     glm::vec3 _cameraEyesOffset;
     float _landingAfterJumpTime { 0.0f };
+
+    QTimer _addAvatarEntitiesToTreeTimer;
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

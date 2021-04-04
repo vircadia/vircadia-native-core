@@ -29,7 +29,7 @@ protected:
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
 
     virtual ItemKey getKey() override;
-    virtual Item::Bound getBound() override;
+    virtual Item::Bound getBound(RenderArgs* args) override;
     virtual void doRender(RenderArgs* args) override;
 
 private:

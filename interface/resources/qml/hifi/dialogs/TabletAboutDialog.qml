@@ -28,13 +28,18 @@ Rectangle {
             fillMode: Image.PreserveAspectFit
             source: "../../../images/vircadia-banner.svg"
         }
-        Item { height: 30; width: 1 }
+        Item { height: 25; width: 1 }
         Column {
-            id: buildColumm
+            id: buildColumn
             anchors.left: parent.left
-            anchors.leftMargin: 70
+            anchors.leftMargin: 0
             RalewayRegular {
-                text: "Build " + About.buildVersion
+                text: "Interface"
+                size: 16
+                color: "white"
+            }
+            RalewayRegular {
+                text: "Build " + About.buildVersion + " " + About.releaseName
                 size: 16
                 color: "white"
             }
@@ -54,14 +59,25 @@ Rectangle {
             textFormat: Text.StyledText
             linkColor: "#00B4EF"
             color: "white"
-            text: "<a href=\"https://github.com/vircadia/vircadia\">Vircadia Github</a>."
+            text: "<a href=\"https://vircadia.com\">Website</a>"
             size: 20
             onLinkActivated: {
-                About.openUrl("https:/github.com/vircadia/vircadia");
+                About.openUrl("https://vircadia.com");
             }
 
         }
-        Item { height: 40; width: 1 }
+        RalewayRegular {
+            textFormat: Text.StyledText
+            linkColor: "#00B4EF"
+            color: "white"
+            text: "<a href=\"https://github.com/vircadia/vircadia\">Source</a>"
+            size: 20
+            onLinkActivated: {
+                About.openUrl("https://github.com/vircadia/vircadia");
+            }
+
+        }
+        Item { height: 25; width: 1 }
         Row {
             spacing: 5
             Image {
@@ -117,7 +133,7 @@ Rectangle {
         Item { height: 20; width: 1 }
         RalewayRegular {
             color: "white"
-            text: "© 2019-2020 Vircadia contributors."
+            text: "© 2019 - 2021 Vircadia contributors."
             size: 14
         }
         RalewayRegular {
@@ -134,6 +150,24 @@ Rectangle {
             onLinkActivated: {
                 About.openUrl("http://www.apache.org/licenses/LICENSE-2.0.html");
             }
+        }
+        Item { height: 35; width: 1 }
+        RalewayRegular {
+            color: "white"
+            text: "In memoriam,"
+            size: 14
+        }
+        RalewayRegular {
+            color: "white"
+            text: "2012 - 2019 the High Fidelity virtual reality project."
+            size: 14
+        }
+        Item { height: 5; width: 1 }
+        Image {
+            id: hifiLogo
+            width: 200; height: 50
+            fillMode: Image.PreserveAspectFit
+            source: "../../../images/about-highfidelity.png"
         }
     }
 }

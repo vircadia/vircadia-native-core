@@ -250,9 +250,9 @@ void setupPreferences() {
     {
         auto getter = []()->bool { return !Menu::getInstance()->isOptionChecked(MenuOption::DisableActivityLogger); };
         auto setter = [](bool value) { Menu::getInstance()->setIsOptionChecked(MenuOption::DisableActivityLogger, !value); };
-        preferences->addPreference(new CheckPreference("Privacy", "Send data - High Fidelity uses information provided by your "
+        preferences->addPreference(new CheckPreference("Privacy", "Send data - Vircadia uses information provided by your "
                                 "client to improve the product through the logging of errors, tracking of usage patterns, "
-                                "installation and system details. By allowing High Fidelity to collect this information "
+                                "installation and system details. By allowing Vircadia to collect this information "
                                 "you are helping to improve the product. ", getter, setter));
     }
 
@@ -364,7 +364,7 @@ void setupPreferences() {
         auto preference = new SpinnerSliderPreference(VR_MOVEMENT, "Camera Sensitivity", getter, setter);
         preference->setMin(0.01f);
         preference->setMax(5.0f);
-        preference->setStep(0.1);
+        preference->setStep(0.1f);
         preference->setDecimals(2);
         preferences->addPreference(preference);
     }
@@ -422,40 +422,40 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
-        auto getter = [myAvatar]()->int {
-            switch (myAvatar->getUserRecenterModel()) {
-                case MyAvatar::SitStandModelType::Auto:
-                    default:
-                    return 0;
-                case MyAvatar::SitStandModelType::ForceSit:
-                    return 1;
-                case MyAvatar::SitStandModelType::ForceStand:
-                    return 2;
-                case MyAvatar::SitStandModelType::DisableHMDLean:
-                    return 3;
-            }
+        IntPreference::Getter getter = [myAvatar]() -> int {
+            return static_cast<int>(myAvatar->getAllowAvatarStandingPreference());
         };
-        auto setter = [myAvatar](int value) {
-            switch (value) {
-                case 0:
-                default:
-                    myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::Auto);
-                    break;
-                case 1:
-                    myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::ForceSit);
-                    break;
-                case 2:
-                    myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::ForceStand);
-                    break;
-                case 3:
-                    myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::DisableHMDLean);
-                    break;
-            }
+
+        IntPreference::Setter setter = [myAvatar](const int& value) {
+            myAvatar->setAllowAvatarStandingPreference(static_cast<MyAvatar::AllowAvatarStandingPreference>(value));
         };
-        auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Auto / Force Sit / Force Stand / Disable Recenter", getter, setter);
+
+        auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Allow my avatar to stand", getter, setter);
         QStringList items;
-        items << "Auto - turns on avatar leaning when standing in real world" << "Seated - disables all avatar leaning while sitting in real world" << "Standing - enables avatar leaning while sitting in real world" << "Disabled - allows avatar sitting on the floor [Experimental]";
-        preference->setHeading("Avatar leaning behavior");
+        items << "When I'm standing"
+              << "Always";  // Must match the order in MyAvatar::AllowAvatarStandingPreference.
+        assert(items.size() == static_cast<uint>(MyAvatar::AllowAvatarStandingPreference::Count));
+        preference->setHeading("Allow my avatar to stand:");
+        preference->setItems(items);
+        preferences->addPreference(preference);
+    }
+    {
+        IntPreference::Getter getter = [myAvatar]() -> int {
+            return static_cast<int>(myAvatar->getAllowAvatarLeaningPreference());
+        };
+
+        IntPreference::Setter setter = [myAvatar](const int& value) {
+            myAvatar->setAllowAvatarLeaningPreference(static_cast<MyAvatar::AllowAvatarLeaningPreference>(value));
+        };
+
+        auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Allow my avatar to lean", getter, setter);
+        QStringList items;
+        items << "When I'm standing"
+              << "Always"
+              << "Never"
+              << "Always, no recenter (Experimental)";  // Must match the order in MyAvatar::AllowAvatarLeaningPreference.
+        assert(items.size() == static_cast<uint>(MyAvatar::AllowAvatarLeaningPreference::Count));
+        preference->setHeading("Allow my avatar to lean:");
         preference->setItems(items);
         preferences->addPreference(preference);
     }

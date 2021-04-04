@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2016-07-11.
 //  Copyright 2016 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -16,6 +17,7 @@
 
 #include <DependencyManager.h>
 #include <shared/ReadWriteLockable.h>
+#include <ModerationFlags.h>
 
 /**jsdoc
  * The <code>Users</code> API provides features to regulate your interaction with other users.
@@ -31,6 +33,10 @@
  *     <code>false</code>. <em>Read-only.</em>
  * @property {boolean} requestsDomainListData - <code>true</code> if the client requests extra data from the mixers (such as 
  *     positional data of an avatar they've ignored). <em>Read-only.</em>
+ * @property {BanFlags} NO_BAN - Do not ban user. <em>Read-only.</em>
+ * @property {BanFlags} BAN_BY_USERNAME - Ban user by username. <em>Read-only.</em>
+ * @property {BanFlags} BAN_BY_FINGERPRINT - Ban user by fingerprint. <em>Read-only.</em>
+ * @property {BanFlags} BAN_BY_IP - Ban user by IP address. <em>Read-only.</em>
  */
 class UsersScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
@@ -39,9 +45,14 @@ class UsersScriptingInterface : public QObject, public Dependency {
     Q_PROPERTY(bool canKick READ getCanKick)
     Q_PROPERTY(bool requestsDomainListData READ getRequestsDomainListData WRITE setRequestsDomainListData)
 
+    Q_PROPERTY(unsigned int NO_BAN READ getNoBan CONSTANT)
+    Q_PROPERTY(unsigned int BAN_BY_USERNAME READ getBanByUsername CONSTANT)
+    Q_PROPERTY(unsigned int BAN_BY_FINGERPRINT READ getBanByFingerprint CONSTANT)
+    Q_PROPERTY(unsigned int BAN_BY_IP READ getBanByIP CONSTANT)
+
 public:
     UsersScriptingInterface();
-    void setKickConfirmationOperator(std::function<void(const QUuid& nodeID)> kickConfirmationOperator) {
+    void setKickConfirmationOperator(std::function<void(const QUuid& nodeID, unsigned int banFlags)> kickConfirmationOperator) {
         _kickConfirmationOperator = kickConfirmationOperator;
     }
 
@@ -111,13 +122,14 @@ public slots:
     float getAvatarGain(const QUuid& nodeID);
 
     /**jsdoc
-     * Kicks and bans a user. This removes them from the server and prevents them from returning. The ban is by user name if 
-     * available, or machine fingerprint otherwise.
+     * Kicks and bans a user. This removes them from the server and prevents them from returning. The ban is by user name (if 
+     * available) and by machine fingerprint. The ban functionality can be controlled with flags.
      * <p>This function only works if you're an administrator of the domain you're in.</p>
      * @function Users.kick
      * @param {Uuid} sessionID - The session ID of the user to kick and ban.
+     * @param {BanFlags} - Preferred ban flags. <i>Bans a user by username (if available) and machine fingerprint by default.</i>
      */
-    void kick(const QUuid& nodeID);
+    void kick(const QUuid& nodeID, unsigned int banFlags = ModerationFlags::getDefaultBanFlags());
 
     /**jsdoc
      * Mutes a user's microphone for everyone. The mute is not permanent: the user can unmute themselves. 
@@ -237,7 +249,12 @@ private:
     bool getRequestsDomainListData();
     void setRequestsDomainListData(bool requests);
 
-    std::function<void(const QUuid& nodeID)> _kickConfirmationOperator;
+    static constexpr unsigned int getNoBan() { return ModerationFlags::BanFlags::NO_BAN; };
+    static constexpr unsigned int getBanByUsername() { return ModerationFlags::BanFlags::BAN_BY_USERNAME; };
+    static constexpr unsigned int getBanByFingerprint() { return ModerationFlags::BanFlags::BAN_BY_FINGERPRINT; };
+    static constexpr unsigned int getBanByIP() { return ModerationFlags::BanFlags::BAN_BY_IP; };
+
+    std::function<void(const QUuid& nodeID, unsigned int banFlags)> _kickConfirmationOperator;
 
     ReadWriteLockable _kickResponseLock;
     bool _waitingForKickResponse { false };

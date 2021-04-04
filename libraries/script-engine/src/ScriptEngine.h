@@ -174,7 +174,6 @@ public:
 
     QString getFilename() const;
 
-
     QList<EntityItemID> getListOfEntityScriptIDs();
 
     /**jsdoc

@@ -99,11 +99,16 @@ void DesktopScriptingInterface::setHUDAlpha(float alpha) {
 }
 
 void DesktopScriptingInterface::show(const QString& path, const QString&  title) {
+    auto offscreenUI = DependencyManager::get<OffscreenUi>();
+    if (!offscreenUI) {
+        return;
+    }
+
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "show", Qt::QueuedConnection, Q_ARG(QString, path), Q_ARG(QString, title));
         return;
     }
-    DependencyManager::get<OffscreenUi>()->show(path, title);
+    offscreenUI->show(path, title);
 }
 
 InteractiveWindowPointer DesktopScriptingInterface::createWindow(const QString& sourceUrl, const QVariantMap& properties) {

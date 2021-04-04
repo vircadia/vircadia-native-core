@@ -212,22 +212,28 @@ namespace controller {
          * @function Controller.triggerHapticPulse
          * @param {number} strength - The strength of the haptic pulse, range <code>0.0</code> &ndash; <code>1.0</code>.
          * @param {number} duration - The duration of the haptic pulse, in milliseconds.
-         * @param {Controller.Hand} [hand=2] - The hand or hands to trigger the haptic pulse on.
+         * @param {number} [index=2] - The index on devices on which to trigger the haptic pulse.  The meaning of each index
+         *     will vary by device.  For example, for hand controllers, <code>index = 0</code> is the left hand,
+         *     <code>index = 1</code> is the right hand, and <code>index = 2</code> is both hands.  For other devices,
+         *     such as haptic vests, index will have a different meaning, defined by the input device.
          * @example <caption>Trigger a haptic pulse on the right hand.</caption>
          * var HAPTIC_STRENGTH = 0.5;
          * var HAPTIC_DURATION = 10;
          * var RIGHT_HAND = 1;
          * Controller.triggerHapticPulse(HAPTIC_STRENGTH, HAPTIC_DURATION, RIGHT_HAND);
          */
-        Q_INVOKABLE bool triggerHapticPulse(float strength, float duration, controller::Hand hand = BOTH) const;
+        Q_INVOKABLE bool triggerHapticPulse(float strength, float duration, uint16_t index = 2) const;
 
         /**jsdoc
          * Triggers a 250ms haptic pulse on connected and enabled devices that have the capability.
          * @function Controller.triggerShortHapticPulse
          * @param {number} strength - The strength of the haptic pulse, range <code>0.0</code> &ndash; <code>1.0</code>.
-         * @param {Controller.Hand} [hand=2] - The hand or hands to trigger the haptic pulse on.
+         * @param {number} [index=2] - The index on devices on which to trigger the haptic pulse.  The meaning of each index
+         *     will vary by device.  For example, for hand controllers, <code>index = 0</code> is the left hand,
+         *     <code>index = 1</code> is the right hand, and <code>index = 2</code> is both hands.  For other devices,
+         *     such as haptic vests, index will have a different meaning, defined by the input device.
          */
-        Q_INVOKABLE bool triggerShortHapticPulse(float strength, controller::Hand hand = BOTH) const;
+        Q_INVOKABLE bool triggerShortHapticPulse(float strength, uint16_t index = 2) const;
 
         /**jsdoc
          * Triggers a haptic pulse on a particular device if connected and enabled and it has the capability.
@@ -235,7 +241,10 @@ namespace controller {
          * @param {number} deviceID - The ID of the device to trigger the haptic pulse on.
          * @param {number} strength - The strength of the haptic pulse, range <code>0.0</code> &ndash; <code>1.0</code>.
          * @param {number} duration - The duration of the haptic pulse, in milliseconds.
-         * @param {Controller.Hand} [hand=2] - The hand or hands to trigger the haptic pulse on.
+         * @param {number} [index=2] - The index on this device on which to trigger the haptic pulse.  The meaning of each index
+         *     will vary by device.  For example, for hand controllers, <code>index = 0</code> is the left hand,
+         *     <code>index = 1</code> is the right hand, and <code>index = 2</code> is both hands.  For other devices,
+         *     such as haptic vests, index will have a different meaning, defined by the input device.
          * @example <caption>Trigger a haptic pulse on an Oculus Touch controller.</caption>
          * var HAPTIC_STRENGTH = 0.5;
          * var deviceID = Controller.findDevice("OculusTouch");
@@ -243,19 +252,20 @@ namespace controller {
          * var RIGHT_HAND = 1;
          * Controller.triggerHapticPulseOnDevice(deviceID, HAPTIC_STRENGTH, HAPTIC_DURATION, RIGHT_HAND);
          */
-        Q_INVOKABLE bool triggerHapticPulseOnDevice(unsigned int device, float strength, float duration, 
-            controller::Hand hand = BOTH) const;
+        Q_INVOKABLE bool triggerHapticPulseOnDevice(unsigned int device, float strength, float duration,
+            uint16_t index = 2) const;
 
         /**jsdoc
          * Triggers a 250ms haptic pulse on a particular device if connected and enabled and it has the capability.
          * @function Controller.triggerShortHapticPulseOnDevice
          * @param {number} deviceID - The ID of the device to trigger the haptic pulse on.
          * @param {number} strength - The strength of the haptic pulse, range <code>0.0</code> &ndash; <code>1.0</code>.
-         * @param {Controller.Hand} [hand=2] - The hand or hands to trigger the haptic pulse on.
+         * @param {number} [index=2] - The index on this device on which to trigger the haptic pulse.  The meaning of each index
+         *     will vary by device.  For example, for hand controllers, <code>index = 0</code> is the left hand,
+         *     <code>index = 1</code> is the right hand, and <code>index = 2</code> is both hands.  For other devices,
+         *     such as haptic vests, index will have a different meaning, defined by the input device.
          */
-        Q_INVOKABLE bool triggerShortHapticPulseOnDevice(unsigned int device, float strength, controller::Hand hand = BOTH) 
-            const;
-
+        Q_INVOKABLE bool triggerShortHapticPulseOnDevice(unsigned int device, float strength, uint16_t index = 2) const;
 
         /**jsdoc
          * Creates a new controller mapping. Routes can then be added to the mapping using {@link MappingObject} methods and 

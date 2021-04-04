@@ -14,9 +14,6 @@
 
 #include <shared/QtHelpers.h>
 
-#include "OffscreenUi.h"
-
-
 std::mutex QmlFragmentClass::_mutex;
 std::map<QString, QScriptValue> QmlFragmentClass::_fragments;
 
@@ -40,7 +37,6 @@ QScriptValue QmlFragmentClass::internal_constructor(QScriptContext* context, QSc
     }
 
     auto properties = parseArguments(context);
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
     QmlFragmentClass* retVal = new QmlFragmentClass(restricted, qml.toString());
     Q_ASSERT(retVal);
     if (QThread::currentThread() != qApp->thread()) {

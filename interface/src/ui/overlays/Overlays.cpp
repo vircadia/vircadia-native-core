@@ -1212,8 +1212,8 @@ float Overlays::width() {
         return result;
     }
 
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    return offscreenUi->getWindow()->size().width();
+    auto offscreenUI = DependencyManager::get<OffscreenUi>();
+    return offscreenUI ? offscreenUI->getWindow()->size().width() : -1.0f;
 }
 
 float Overlays::height() {
@@ -1224,8 +1224,8 @@ float Overlays::height() {
         return result;
     }
 
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    return offscreenUi->getWindow()->size().height();
+    auto offscreenUI = DependencyManager::get<OffscreenUi>();
+    return offscreenUI ? offscreenUI->getWindow()->size().height() : -1.0f;
 }
 
 void Overlays::mousePressOnPointerEvent(const QUuid& id, const PointerEvent& event) {

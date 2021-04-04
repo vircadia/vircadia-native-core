@@ -41,13 +41,13 @@ PolyLineEntityRenderer::PolyLineEntityRenderer(const EntityItemPointer& entity) 
     }
 }
 
-void PolyLineEntityRenderer::updateModelTransformAndBound() {
+void PolyLineEntityRenderer::updateModelTransformAndBound(const EntityItemPointer& entity) {
     bool success = false;
-    auto newModelTransform = _entity->getTransformToCenter(success);
+    auto newModelTransform = getTransformToCenterWithMaybeOnlyLocalRotation(entity, success);
     if (success) {
         _modelTransform = newModelTransform;
 
-        auto lineEntity = std::static_pointer_cast<PolyLineEntityItem>(_entity);
+        auto lineEntity = std::static_pointer_cast<PolyLineEntityItem>(entity);
         AABox bound;
         lineEntity->computeTightLocalBoundingBox(bound);
         bound.transform(newModelTransform);
@@ -325,8 +325,11 @@ void PolyLineEntityRenderer::doRender(RenderArgs* args) {
         buildPipelines();
     }
 
-    batch.setPipeline(_pipelines[{args->_renderMethod, isTransparent()}]);
+    transform.setRotation(BillboardModeHelpers::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
+        args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
     batch.setModelTransform(transform);
+
+    batch.setPipeline(_pipelines[{args->_renderMethod, isTransparent()}]);
     batch.setResourceTexture(0, texture);
     batch.draw(gpu::TRIANGLE_STRIP, (gpu::uint32)(2 * _numVertices), 0);
 }

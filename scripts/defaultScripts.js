@@ -36,7 +36,9 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/inspect.js",
     "system/keyboardShortcuts/keyboardShortcuts.js",
     "system/checkForUpdates.js",
-    "system/onFirstRun.js"
+    "system/onEscape.js",
+    "system/onFirstRun.js",
+    "system/appreciate/appreciate_app.js"
 ];
 var DEFAULT_SCRIPTS_SEPARATE = [
     "system/controllers/controllerScripts.js",

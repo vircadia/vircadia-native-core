@@ -11,8 +11,12 @@
 
 #include "AudioMixerSlavePool.h"
 
+#include <QObject>
+
 #include <assert.h>
 #include <algorithm>
+
+#include <ThreadHelpers.h>
 
 void AudioMixerSlaveThread::run() {
     while (true) {
@@ -157,6 +161,7 @@ void AudioMixerSlavePool::resize(int numThreads) {
         // start new slaves
         for (int i = 0; i < numThreads - _numThreads; ++i) {
             auto slave = new AudioMixerSlaveThread(*this, _workerSharedData);
+            QObject::connect(slave, &QThread::started, [] { setThreadName("AudioMixerSlaveThread"); });
             slave->start();
             _slaves.emplace_back(slave);
         }

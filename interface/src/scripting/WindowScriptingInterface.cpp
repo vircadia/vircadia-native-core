@@ -199,9 +199,9 @@ void WindowScriptingInterface::setInterstitialModeEnabled(bool enableInterstitia
     DependencyManager::get<NodeList>()->getDomainHandler().setInterstitialModeEnabled(enableInterstitialMode);
 }
 
-bool  WindowScriptingInterface::isPointOnDesktopWindow(QVariant point) {
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    return offscreenUi->isPointOnDesktopWindow(point);
+bool WindowScriptingInterface::isPointOnDesktopWindow(QVariant point) {
+    auto offscreenUI = DependencyManager::get<OffscreenUi>();
+    return offscreenUI ? offscreenUI->isPointOnDesktopWindow(point) : false;
 }
 
 /// Makes sure that the reticle is visible, use this in blocking forms that require a reticle and
@@ -553,12 +553,14 @@ int WindowScriptingInterface::openMessageBox(QString title, QString text, int bu
  * @typedef {number} Window.MessageBoxButton
  */
 int WindowScriptingInterface::createMessageBox(QString title, QString text, int buttons, int defaultButton) {
-    auto messageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION, title, text,
-        static_cast<QFlags<QMessageBox::StandardButton>>(buttons), static_cast<QMessageBox::StandardButton>(defaultButton));
-    connect(messageBox, SIGNAL(selected(int)), this, SLOT(onMessageBoxSelected(int)));
+    if (auto offscreenUI = DependencyManager::get<OffscreenUi>()) {
+        auto messageBox = offscreenUI->createMessageBox(OffscreenUi::ICON_INFORMATION, title, text,
+            static_cast<QFlags<QMessageBox::StandardButton>>(buttons), static_cast<QMessageBox::StandardButton>(defaultButton));
+        connect(messageBox, SIGNAL(selected(int)), this, SLOT(onMessageBoxSelected(int)));
 
-    _lastMessageBoxID += 1;
-    _messageBoxes.insert(_lastMessageBoxID, messageBox);
+        _lastMessageBoxID += 1;
+        _messageBoxes.insert(_lastMessageBoxID, messageBox);
+    }
 
     return _lastMessageBoxID;
 }
@@ -646,13 +648,17 @@ void WindowScriptingInterface::setActiveDisplayPlugin(int index) {
 }
 
 void WindowScriptingInterface::openWebBrowser(const QString& url) {
+    auto offscreenUI = DependencyManager::get<OffscreenUi>();
+    if (!offscreenUI) {
+        return;
+    }
+
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "openWebBrowser", Q_ARG(const QString&, url));
         return;
     }
 
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
+    offscreenUI->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
         if (!url.isEmpty()) {
             newObject->setProperty("url", url);
         }

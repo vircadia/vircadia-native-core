@@ -87,7 +87,7 @@
 #include "SettingHandle.h"
 #include <AddressManager.h>
 #include <NetworkingConstants.h>
-
+#include <ThreadHelpers.h>
 
 const QString ScriptEngine::_SETTINGS_ENABLE_EXTENDED_EXCEPTIONS {
     "com.highfidelity.experimental.enableExtendedJSExceptions"
@@ -429,13 +429,17 @@ void ScriptEngine::runInThread() {
     // The thread interface cannot live on itself, and we want to move this into the thread, so
     // the thread cannot have this as a parent.
     QThread* workerThread = new QThread();
-    workerThread->setObjectName(QString("js:") + getFilename().replace("about:",""));
+    QString name = QString("js:") + getFilename().replace("about:","");
+    workerThread->setObjectName(name);
     moveToThread(workerThread);
 
     // NOTE: If you connect any essential signals for proper shutdown or cleanup of
     // the script engine, make sure to add code to "reconnect" them to the
     // disconnectNonEssentialSignals() method
-    connect(workerThread, &QThread::started, this, &ScriptEngine::run);
+    connect(workerThread, &QThread::started, this, [this, name] {
+        setThreadName(name.toStdString());
+        run();
+    });
     connect(this, &QObject::destroyed, workerThread, &QThread::quit);
     connect(workerThread, &QThread::finished, workerThread, &QObject::deleteLater);
 
@@ -466,7 +470,10 @@ void ScriptEngine::waitTillDoneRunning(bool shutdown) {
         // We should never be waiting (blocking) on our own thread
         assert(workerThread != QThread::currentThread());
 
-#ifdef Q_OS_MAC
+#if 0
+        // 26 Feb 2021 - Disabled this OSX-specific code because it causes OSX to crash on shutdown; without this code, OSX 
+        // doesn't crash on shutdown. Qt 5.12.3 and Qt 5.15.2.
+        //
         // On mac, don't call QCoreApplication::processEvents() here. This is to prevent
         // [NSApplication terminate:] from prematurely destroying the static destructors
         // while we are waiting for the scripts to shutdown. We will pump the message

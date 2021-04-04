@@ -203,14 +203,14 @@ void updateFromOpenVrKeyboardInput() {
 }
 
 void finishOpenVrKeyboardInput() {
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    auto offscreenUI = DependencyManager::get<OffscreenUi>();
     updateFromOpenVrKeyboardInput();
     // Simulate an enter press on the top level window to trigger the action
-    if (0 == (_currentHints & Qt::ImhMultiLine)) {
+    if (0 == (_currentHints & Qt::ImhMultiLine) && offscreenUI) {
         auto keyPress = QKeyEvent(QEvent::KeyPress, Qt::Key_Return, Qt::KeyboardModifiers(), QString("\n"));
         auto keyRelease = QKeyEvent(QEvent::KeyRelease, Qt::Key_Return, Qt::KeyboardModifiers());
-        qApp->sendEvent(offscreenUi->getWindow(), &keyPress);
-        qApp->sendEvent(offscreenUi->getWindow(), &keyRelease);
+        qApp->sendEvent(offscreenUI->getWindow(), &keyPress);
+        qApp->sendEvent(offscreenUI->getWindow(), &keyRelease);
     }
 }
 
@@ -221,9 +221,7 @@ void enableOpenVrKeyboard(PluginContainer* container) {
     if (disableSteamVrKeyboard) {
         return;
     }
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
     _overlay = vr::VROverlay();
-
 
     auto menu = container->getPrimaryMenu();
     auto action = menu->getActionForOption(MenuOption::Overlays);
@@ -282,7 +280,9 @@ void handleOpenVrEvents() {
             case vr::VREvent_KeyboardClosed:
                 _keyboardFocusObject = nullptr;
                 _keyboardShown = false;
-                DependencyManager::get<OffscreenUi>()->unfocusWindows();
+                if (auto offscreenUI = DependencyManager::get<OffscreenUi>()) {
+                    offscreenUI->unfocusWindows();
+                }
                 break;
 
             default:

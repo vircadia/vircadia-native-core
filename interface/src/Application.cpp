@@ -254,6 +254,7 @@
 
 #include "AboutUtil.h"
 #include "ExternalResource.h"
+#include <ThreadHelpers.h>
 
 #if defined(Q_OS_WIN)
 #include <VersionHelpers.h>
@@ -1168,6 +1169,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     if (!DISABLE_WATCHDOG) {
         auto deadlockWatchdogThread = new DeadlockWatchdogThread();
         deadlockWatchdogThread->setMainThreadID(QThread::currentThreadId());
+        connect(deadlockWatchdogThread, &QThread::started, [] { setThreadName("DeadlockWatchdogThread"); });
         deadlockWatchdogThread->start();
 
         // Pause the deadlock watchdog when we sleep, or it might
@@ -1303,6 +1305,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     _entityServerConnectionTimer.setSingleShot(true);
     connect(&_entityServerConnectionTimer, &QTimer::timeout, this, &Application::setFailedToConnectToEntityServer);
+
+    connect(&domainHandler, &DomainHandler::confirmConnectWithoutAvatarEntities,
+        this, &Application::confirmConnectWithoutAvatarEntities);
 
     connect(&domainHandler, &DomainHandler::connectedToDomain, this, [this]() {
         if (!isServerlessMode()) {
@@ -2455,13 +2460,19 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         DependencyManager::get<PickManager>()->setPrecisionPicking(rayPickID, value);
     });
 
-    EntityItem::setBillboardRotationOperator([](const glm::vec3& position, const glm::quat& rotation, BillboardMode billboardMode, const glm::vec3& frustumPos) {
+    BillboardModeHelpers::setBillboardRotationOperator([](const glm::vec3& position, const glm::quat& rotation,
+                                                          BillboardMode billboardMode, const glm::vec3& frustumPos, bool rotate90x) {
+        const glm::quat ROTATE_90X = glm::angleAxis(-(float)M_PI_2, Vectors::RIGHT);
         if (billboardMode == BillboardMode::YAW) {
             //rotate about vertical to face the camera
             glm::vec3 dPosition = frustumPos - position;
             // If x and z are 0, atan(x, z) is undefined, so default to 0 degrees
             float yawRotation = dPosition.x == 0.0f && dPosition.z == 0.0f ? 0.0f : glm::atan(dPosition.x, dPosition.z);
-            return glm::quat(glm::vec3(0.0f, yawRotation, 0.0f));
+            glm::quat result = glm::quat(glm::vec3(0.0f, yawRotation, 0.0f)) * rotation;
+            if (rotate90x) {
+                result *= ROTATE_90X;
+            }
+            return result;
         } else if (billboardMode == BillboardMode::FULL) {
             // use the referencial from the avatar, y isn't always up
             glm::vec3 avatarUP = DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldOrientation() * Vectors::UP;
@@ -2470,18 +2481,22 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
             // make sure s is not NaN for any component
             if (glm::length2(s) > 0.0f) {
-                return glm::conjugate(glm::toQuat(glm::lookAt(frustumPos, position, avatarUP)));
+                glm::quat result = glm::conjugate(glm::toQuat(glm::lookAt(frustumPos, position, avatarUP))) * rotation;
+                if (rotate90x) {
+                    result *= ROTATE_90X;
+                }
+                return result;
             }
         }
         return rotation;
     });
-    EntityItem::setPrimaryViewFrustumPositionOperator([this]() {
+    BillboardModeHelpers::setPrimaryViewFrustumPositionOperator([this]() {
         ViewFrustum viewFrustum;
         copyViewFrustum(viewFrustum);
         return viewFrustum.getPosition();
     });
 
-    DependencyManager::get<UsersScriptingInterface>()->setKickConfirmationOperator([this] (const QUuid& nodeID) { userKickConfirmation(nodeID); });
+    DependencyManager::get<UsersScriptingInterface>()->setKickConfirmationOperator([this] (const QUuid& nodeID, unsigned int banFlags) { userKickConfirmation(nodeID, banFlags); });
 
     render::entities::WebEntityRenderer::setAcquireWebSurfaceOperator([=](const QString& url, bool htmlContent, QSharedPointer<OffscreenQmlSurface>& webSurface, bool& cachedWebSurface) {
         bool isTablet = url == TabletScriptingInterface::QML;
@@ -2977,6 +2992,8 @@ Application::~Application() {
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
 
 #ifdef Q_OS_MAC
+    // 26 Feb 2021 - Tried re-enabling this call but OSX still crashes on exit.
+    //
     // 10/16/2019 - Disabling this call. This causes known crashes (A), and it is not
     // fully understood whether it might cause other unknown crashes (B).
     //
@@ -3561,7 +3578,7 @@ void Application::onDesktopRootItemCreated(QQuickItem* rootItem) {
     _desktopRootItemCreated = true;
 }
 
-void Application::userKickConfirmation(const QUuid& nodeID) {
+void Application::userKickConfirmation(const QUuid& nodeID, unsigned int banFlags) {
     auto avatarHashMap = DependencyManager::get<AvatarHashMap>();
     auto avatar = avatarHashMap->getAvatarBySessionID(nodeID);
 
@@ -3586,7 +3603,7 @@ void Application::userKickConfirmation(const QUuid& nodeID) {
             // ask the NodeList to kick the user with the given session ID
 
             if (yes) {
-                DependencyManager::get<NodeList>()->kickNodeBySessionID(nodeID);
+                DependencyManager::get<NodeList>()->kickNodeBySessionID(nodeID, banFlags);
             }
 
             DependencyManager::get<UsersScriptingInterface>()->setWaitForKickResponse(false);
@@ -4001,7 +4018,7 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     // If this is a first run we short-circuit the address passed in
     if (_firstRun.get()) {
-        if (!BuildInfo::INITIAL_STARTUP_LOCATION.isEmpty()) {
+        if (!BuildInfo::PRELOADED_STARTUP_LOCATION.isEmpty()) {
             DependencyManager::get<LocationBookmarks>()->setHomeLocationToAddress(NetworkingConstants::DEFAULT_VIRCADIA_ADDRESS);
             Menu::getInstance()->triggerOption(MenuOption::HomeLocation);
         }
@@ -5196,6 +5213,7 @@ void getCpuUsage(vec3& systemAndUser) {
 void setupCpuMonitorThread() {
     initCpuUsage();
     auto cpuMonitorThread = QThread::currentThread();
+    setThreadName("CPU Monitor Thread");
 
     QTimer* timer = new QTimer();
     timer->setInterval(50);
@@ -7180,6 +7198,10 @@ void Application::updateWindowTitle() const {
     QString buildVersion = " - Vircadia - "
         + (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable ? QString("Version") : QString("Build"))
         + " " + applicationVersion();
+        
+    if (BuildInfo::RELEASE_NAME != "") {
+        buildVersion += " - " + BuildInfo::RELEASE_NAME;
+    }
 
     QString connectionStatus = isInErrorState ? " (ERROR CONNECTING)" :
         nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED)";
@@ -9153,6 +9175,32 @@ void Application::setShowBulletConstraints(bool value) {
 
 void Application::setShowBulletConstraintLimits(bool value) {
     _physicsEngine->setShowBulletConstraintLimits(value);
+}
+
+void Application::confirmConnectWithoutAvatarEntities() {
+
+    if (_confirmConnectWithoutAvatarEntitiesDialog) {
+        // Dialog is already displayed.
+        return;
+    }
+
+    if (!getMyAvatar()->hasAvatarEntities()) {
+        // No avatar entities so continue with login.
+        DependencyManager::get<NodeList>()->getDomainHandler().setCanConnectWithoutAvatarEntities(true);
+        return;
+    }
+
+    QString continueMessage = "Your wearables will not display on this domain. Continue?";
+    _confirmConnectWithoutAvatarEntitiesDialog = OffscreenUi::asyncQuestion("Continue Without Wearables", continueMessage,
+        QMessageBox::Yes | QMessageBox::No);
+    if (_confirmConnectWithoutAvatarEntitiesDialog->getDialogItem()) {
+        QObject::connect(_confirmConnectWithoutAvatarEntitiesDialog, &ModalDialogListener::response, this, [=](QVariant answer) {
+            QObject::disconnect(_confirmConnectWithoutAvatarEntitiesDialog, &ModalDialogListener::response, this, nullptr);
+            _confirmConnectWithoutAvatarEntitiesDialog = nullptr;
+            bool shouldConnect = (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes);
+            DependencyManager::get<NodeList>()->getDomainHandler().setCanConnectWithoutAvatarEntities(shouldConnect);
+        });
+    }
 }
 
 void Application::createLoginDialog() {

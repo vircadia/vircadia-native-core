@@ -28,7 +28,7 @@ namespace render {
         return builder.build();
     }
 
-    template <> const Item::Bound payloadGetBound(const LightPayload::Pointer& payload) {
+    template <> const Item::Bound payloadGetBound(const LightPayload::Pointer& payload, RenderArgs* args) {
         if (payload) {
             return payload->editBound();
         }
@@ -98,7 +98,7 @@ namespace render {
         return builder.build();
     }
 
-    template <> const Item::Bound payloadGetBound(const KeyLightPayload::Pointer& payload) {
+    template <> const Item::Bound payloadGetBound(const KeyLightPayload::Pointer& payload, RenderArgs* args) {
         if (payload) {
             return payload->editBound();
         }

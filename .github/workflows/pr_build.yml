@@ -86,9 +86,9 @@ jobs:
         echo "${{ steps.buildenv1.outputs.symbols_archive }}"
         echo "GIT_COMMIT_SHORT=${{ steps.buildenv1.outputs.github_sha_short }}" >> $GITHUB_ENV
         if [[ "${{ matrix.build_type }}" != "android" ]]; then
-          echo "ARTIFACT_PATTERN=Vircadia-Alpha-PR${{ github.event.number }}-*.$INSTALLER_EXT" >> $GITHUB_ENV
+          echo "ARTIFACT_PATTERN=Vircadia-PR${{ github.event.number }}-*.$INSTALLER_EXT" >> $GITHUB_ENV
           # Build type variables
-          echo "INSTALLER=Vircadia-Alpha-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT" >> $GITHUB_ENV
+          echo "INSTALLER=Vircadia-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT" >> $GITHUB_ENV
         else
           echo "ARTIFACT_PATTERN=*.$INSTALLER_EXT" >> $GITHUB_ENV
         fi

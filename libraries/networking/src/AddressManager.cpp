@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2014-09-10.
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -35,11 +36,11 @@ const QString REDIRECT_HIFI_ADDRESS = NetworkingConstants::REDIRECT_HIFI_ADDRESS
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
 const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
 
-const QString DEFAULT_VIRCADIA_ADDRESS = (!BuildInfo::INITIAL_STARTUP_LOCATION.isEmpty())
-                                       ? BuildInfo::INITIAL_STARTUP_LOCATION
+const QString DEFAULT_VIRCADIA_ADDRESS = (!BuildInfo::PRELOADED_STARTUP_LOCATION.isEmpty())
+                                       ? BuildInfo::PRELOADED_STARTUP_LOCATION
                                        : NetworkingConstants::DEFAULT_VIRCADIA_ADDRESS;
-const QString DEFAULT_HOME_ADDRESS = (!BuildInfo::INITIAL_STARTUP_LOCATION.isEmpty()) 
-                                       ? BuildInfo::INITIAL_STARTUP_LOCATION
+const QString DEFAULT_HOME_ADDRESS = (!BuildInfo::PRELOADED_STARTUP_LOCATION.isEmpty()) 
+                                       ? BuildInfo::PRELOADED_STARTUP_LOCATION
                                        : NetworkingConstants::DEFAULT_VIRCADIA_ADDRESS;
 
 Setting::Handle<QUrl> currentAddressHandle(QStringList() << ADDRESS_MANAGER_SETTINGS_GROUP << "address", DEFAULT_VIRCADIA_ADDRESS);
@@ -414,6 +415,8 @@ void AddressManager::handleLookupString(const QString& lookupString, bool fromSu
 
     QString sanitizedString = lookupString.trimmed();
     if (!sanitizedString.isEmpty()) {
+        resetConfirmConnectWithoutAvatarEntities();
+
         // make this a valid hifi URL and handle it off to handleUrl
         handleUrl(sanitizedString, fromSuggestions ? Suggestions : UserInput);
     }
@@ -873,6 +876,11 @@ bool AddressManager::setDomainInfo(const QUrl& domainURL, LookupTrigger trigger)
     return emitHostChanged;
 }
 
+void AddressManager::goToEntry(LookupTrigger trigger) {
+    resetConfirmConnectWithoutAvatarEntities();
+    handleUrl(DEFAULT_VIRCADIA_ADDRESS, trigger);
+}
+
 void AddressManager::goToUser(const QString& username, bool shouldMatchOrientation) {
     QString formattedUsername = QUrl::toPercentEncoding(username);
 
@@ -887,6 +895,11 @@ void AddressManager::goToUser(const QString& username, bool shouldMatchOrientati
                                               QNetworkAccessManager::GetOperation,
                                               apiCallbackParameters(),
                                               QByteArray(), nullptr, requestParams);
+}
+
+void AddressManager::goToLastAddress() {
+    resetConfirmConnectWithoutAvatarEntities();
+    handleUrl(_lastVisitedURL, LookupTrigger::AttemptedRefresh);
 }
 
 bool AddressManager::canGoBack() const {
@@ -1022,4 +1035,11 @@ QString AddressManager::getPlaceName() const {
         return _domainURL.host();
     }
     return QString();
+}
+
+void AddressManager::resetConfirmConnectWithoutAvatarEntities() {
+    DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
+    if (!domainHandler.isConnected()) {
+        domainHandler.resetConfirmConnectWithoutAvatarEntities();
+    }
 }

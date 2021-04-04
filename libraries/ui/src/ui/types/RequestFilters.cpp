@@ -4,6 +4,7 @@
 //
 //  Created by Kunal Gosar on 2017-03-10.
 //  Copyright 2017 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -25,7 +26,7 @@
 
 namespace {
 
-    bool isAuthableHighFidelityURL(const QUrl& url) {
+    bool isAuthableMetaverseURL(const QUrl& url) {
         auto metaverseServerURL = MetaverseAPI::getCurrentMetaverseServerURL();
         static QStringList HF_HOSTS = {
             metaverseServerURL.toString()
@@ -70,7 +71,7 @@ void RequestFilters::interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info,
     }
 
     // check if this is a request to a highfidelity URL
-    bool isAuthable = isAuthableHighFidelityURL(info.requestUrl());
+    bool isAuthable = isAuthableMetaverseURL(info.requestUrl());
     auto accountManager = DependencyManager::get<AccountManager>();
     if (isAuthable) {
         // if we have an access token, add it to the right HTTP header for authorization
@@ -82,13 +83,6 @@ void RequestFilters::interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info,
             info.setHttpHeader(OAUTH_AUTHORIZATION_HEADER.toLocal8Bit(), bearerTokenString.toLocal8Bit());
         }
     }
-    static const QString USER_AGENT = "User-Agent";
-    const QString tokenStringMobile{ NetworkingConstants::MOBILE_USER_AGENT };
-    const QString tokenStringMetaverse{ NetworkingConstants::METAVERSE_USER_AGENT };
-    const QString tokenStringLimitedCommerce{ "Chrome/48.0 (VircadiaInterface limitedCommerce)" };
-
-    const QString tokenString = !isAuthable ? tokenStringMobile : (accountManager->getLimitedCommerce() ? tokenStringLimitedCommerce : tokenStringMetaverse);
-    info.setHttpHeader(USER_AGENT.toLocal8Bit(), tokenString.toLocal8Bit());
 }
 
 void RequestFilters::interceptFileType(QWebEngineUrlRequestInfo& info) {

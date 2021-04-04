@@ -84,6 +84,7 @@ public:
     bool getCanKick() const { return _permissions.can(NodePermissions::Permission::canKick); }
     bool getCanReplaceContent() const { return _permissions.can(NodePermissions::Permission::canReplaceDomainContent); }
     bool getCanGetAndSetPrivateUserData() const { return _permissions.can(NodePermissions::Permission::canGetAndSetPrivateUserData); }
+    bool getCanRezAvatarEntities() const { return _permissions.can(NodePermissions::Permission::canRezAvatarEntities); }
 
     using NodesIgnoredPair = std::pair<std::vector<QUuid>, bool>;
 
