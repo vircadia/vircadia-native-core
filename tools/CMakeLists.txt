@@ -38,7 +38,10 @@ if (BUILD_TOOLS)
     # Allow different tools for stable builds
     if (STABLE_BUILD)
     else()
-        list(APPEND ALL_TOOLS nitpick)
+        # Don't include nitpick in OSX client-only DMGs.
+        if(NOT APPLE OR NOT CLIENT_ONLY)
+            list(APPEND ALL_TOOLS nitpick)
+        endif()
     endif()
 
     foreach(TOOL ${ALL_TOOLS})
