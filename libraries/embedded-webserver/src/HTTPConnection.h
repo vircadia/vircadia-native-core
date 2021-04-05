@@ -78,6 +78,9 @@ public:
     /// Returns a pointer to the underlying socket, to which WebSocket message bodies should be written.
     QTcpSocket* socket() const { return _socket; }
 
+    /// Returns the IP address on the other side of the connection
+    const QHostAddress &peerAddress() const { return _address; }
+
     /// Returns the request operation.
     QNetworkAccessManager::Operation requestOperation() const { return _requestOperation; }
 
