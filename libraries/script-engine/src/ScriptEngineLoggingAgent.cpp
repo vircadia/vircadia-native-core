@@ -31,11 +31,11 @@ void ScriptEngineLoggingAgent::functionEntry(qint64 scriptId) {
     }
 
     QStringList backtrace;
-    QScriptContext *ctx = engine()->currentContext();
-    while( ctx ) {
-        QScriptContextInfo ctx_info(ctx);
-        backtrace.append( QString("%1:%2 %3").arg(ctx_info.fileName()).arg(ctx_info.lineNumber()).arg(ctx_info.functionName()) );
-        ctx = ctx->parentContext();
+    if (_lock.try_lock()) {
+        // We may end up calling ourselves through backtrace(). In such a case, do nothing to avoid
+        // getting into an infinite loop.
+        backtrace = engine()->currentContext()->backtrace();
+        _lock.unlock();
     }
 
     ScriptContextHelper::push( backtrace );

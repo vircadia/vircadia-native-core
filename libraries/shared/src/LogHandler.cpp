@@ -210,7 +210,7 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
             fprintf(stdout, "[Previous message was repeated %i times]\n", _repeatCount);
         }
 
-        if (strcmp(context.category, "vircadia.script-engine.logging-agent") != 0 ) {
+        if (context.category && strcmp(context.category, "vircadia.script-engine.logging-agent") != 0 ) {
             QStringList context = ScriptContextHelper::get();
             if ( !context.isEmpty()) {
                 fprintf(stdout, "Script context:\n");

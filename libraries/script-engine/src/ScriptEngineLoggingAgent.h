@@ -17,6 +17,7 @@
 #include <QScriptEngineAgent>
 #include <QThreadStorage>
 #include <QLoggingCategory>
+#include <mutex>
 
 Q_DECLARE_LOGGING_CATEGORY(script_logger)
 
@@ -27,7 +28,8 @@ public:
     ScriptEngineLoggingAgent(QScriptEngine *engine);
     virtual void functionEntry(qint64 scriptId) override;
     virtual void functionExit(qint64 scriptId, const QScriptValue &returnValue) override;
-
+private:
+    std::mutex _lock;
 };
 
 #endif
