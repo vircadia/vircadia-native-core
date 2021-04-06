@@ -53,6 +53,7 @@ endif()
 
         # OS dependent information
         system = platform.system()
+        cpu_architecture = platform.machine()
 
         if 'Windows' == system:
             self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-windows3.tar.gz%3FversionId=5ADqP0M0j5ZfimUHrx4zJld6vYceHEsI'
@@ -62,27 +63,64 @@ endif()
             import distro
             dist = distro.linux_distribution()
 
-            if distro.id() == 'ubuntu':
-                u_major = int( distro.major_version() )
-                u_minor = int( distro.minor_version() )
+            if 'x86_64' == cpu_architecture:
+                if distro.id() == 'ubuntu':
+                    u_major = int( distro.major_version() )
+                    u_minor = int( distro.minor_version() )
 
-                if u_major == 16:
-                    self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04-with-symbols.tar.gz'
-                elif u_major == 18:
-                    self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-18.04.tar.gz'
-                elif u_major == 19 and u_minor == 10:
-                    self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.6-ubuntu-19.10.tar.xz'
-                elif u_major > 19:
-                    print("We don't support " + distro.name(pretty=True) + " yet. Perhaps consider helping us out?")
-                    raise Exception('LINUX DISTRO IS NOT SUPPORTED YET!!!')
+                    if u_major == 16:
+                        self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04-with-symbols.tar.gz'
+                    elif u_major == 18:
+                        self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-18.04.tar.gz'
+                    elif u_major == 19 and u_minor == 10:
+                        self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.6-ubuntu-19.10.tar.xz'
+                    elif u_major > 19:
+                        print("We don't support " + distro.name(pretty=True) + " on x86_64 yet. Perhaps consider helping us out?")
+                        raise Exception('LINUX DISTRO IS NOT SUPPORTED YET!!!')
+                    else:
+                        print("Sorry, " + distro.name(pretty=True) + " is old and won't be officially supported. Please consider upgrading.");
+                        raise Exception('UNKNOWN LINUX DISTRO VERSION!!!')
                 else:
-                    print("Sorry, " + distro.name(pretty=True) + " is old and won't be officially supported. Please consider upgrading.");
-                    raise Exception('UNKNOWN LINUX DISTRO VERSION!!!')
+                    print("Sorry, " + distro.name(pretty=True) + " is not supported on x86_64. Please consider helping us out.")
+                    print("It's also possible to build Qt for your distribution, please see the documentation at:")
+                    print("https://github.com/vircadia/vircadia/tree/master/tools/qt-builder")
+                    raise Exception('UNKNOWN LINUX VERSION!!!')
+            elif 'aarch64' == cpu_architecture:
+                if distro.id() == 'ubuntu':
+                    u_major = int( distro.major_version() )
+                    u_minor = int( distro.minor_version() )
+
+                    if u_major == 18:
+                        self.qtUrl = 'http://motofckr9k.ddns.net/vircadia_packages/qt5-install-5.15.2-ubuntu-18.04-aarch64_test.tar.xz'
+                    elif u_major > 19:
+                        print("We don't support " + distro.name(pretty=True) + " on aarch64 yet. Perhaps consider helping us out?")
+                        raise Exception('LINUX DISTRO IS NOT SUPPORTED YET!!!')
+                    else:
+                        print("Sorry, " + distro.name(pretty=True) + " is old and won't be officially supported. Please consider upgrading.");
+                        raise Exception('UNKNOWN LINUX DISTRO VERSION!!!')
+
+                elif distro.id() == 'debian':
+                    u_major = int( distro.major_version() )
+                    u_minor = int( distro.minor_version() )
+
+                    if u_major == 10:
+                        #self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04-with-symbols.tar.gz'
+                        print("We don't support " + distro.name(pretty=True) + " on aarch64 yet. Perhaps consider helping us out?")
+                        raise Exception('LINUX DISTRO IS NOT SUPPORTED YET!!!')
+                    elif u_major > 10:
+                        print("We don't support " + distro.name(pretty=True) + " on aarch64 yet. Perhaps consider helping us out?")
+                        raise Exception('LINUX DISTRO IS NOT SUPPORTED YET!!!')
+                    else:
+                        print("Sorry, " + distro.name(pretty=True) + " is old and won't be officially supported. Please consider upgrading.");
+                        raise Exception('UNKNOWN LINUX DISTRO VERSION!!!')
+                else:
+                    print("Sorry, " + distro.name(pretty=True) + " is not supported on aarch64. Please consider helping us out.")
+                    print("It's also possible to build Qt for your distribution, please see the documentation at:")
+                    print("https://github.com/vircadia/vircadia/tree/master/tools/qt-builder")
+                    raise Exception('UNKNOWN LINUX VERSION!!!')
             else:
-                print("Sorry, " + distro.name(pretty=True) + " is not supported. Please consider helping us out.")
-                print("It's also possible to build Qt for your distribution, please see the documentation at:")
-                print("https://github.com/vircadia/vircadia/tree/master/tools/qt-builder")
-                raise Exception('UNKNOWN LINUX VERSION!!!')
+                raise Exception('UNKNOWN CPU ARCHITECTURE!!!')
+
         else:
             print("System      : " + platform.system())
             print("Architecture: " + platform.architecture())
