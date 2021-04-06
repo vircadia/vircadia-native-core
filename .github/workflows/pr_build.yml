@@ -54,6 +54,7 @@ jobs:
       run: |
         echo ::set-output name=github_sha_short::`echo $GIT_COMMIT | cut -c1-7`
         echo "JOB_NAME=build (${{matrix.os}}, ${{matrix.build_type}})" >> $GITHUB_ENV
+        echo "APP_TARGET_NAME=$APP_NAME" >> $GITHUB_ENV
 
         # Linux build variables
         if [[ "${{ matrix.os }}" = "ubuntu-"* ]]; then
@@ -75,6 +76,7 @@ jobs:
           else
             echo "CMAKE_EXTRA=-DCLIENT_ONLY=1 -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode" >> $GITHUB_ENV
           fi
+          echo "APP_TARGET_NAME=Vircadia" >> $GITHUB_ENV
         fi
         # Windows build variables
         if [ "${{ matrix.os }}" = "windows-latest" ]; then
@@ -142,7 +144,7 @@ jobs:
       if: matrix.build_type == 'full' || matrix.build_type == 'client'
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME $CMAKE_BUILD_EXTRA
+      run: cmake --build . --config $BUILD_TYPE --target $APP_TARGET_NAME $CMAKE_BUILD_EXTRA
     - name: Build Domain Server
       if: matrix.build_type == 'full'
       working-directory: ${{runner.workspace}}/build
