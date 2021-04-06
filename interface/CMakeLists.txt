@@ -196,10 +196,17 @@ if (BUILD_TOOLS AND NPM_EXECUTABLE)
   add_dependencies(resources jsdoc)
 endif()
 
-if (WIN32 OR APPLE)
-    add_dependencies(${TARGET_NAME} resources screenshare)
+if (WIN32)
+  add_dependencies(${TARGET_NAME} resources screenshare)
 endif()
 
+if (APPLE)
+  add_dependencies(${TARGET_NAME} resources)
+  # Don't include Screenshare in OSX client-only builds.
+  if (NOT CLIENT_ONLY)
+    add_dependencies(${TARGET_NAME} screenshare)
+  endif()
+endif()
 
 if (WIN32)
   # These are external plugins, but we need to do the 'add dependency' here so that their

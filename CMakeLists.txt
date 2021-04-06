@@ -316,7 +316,10 @@ endif()
 
 if (BUILD_CLIENT)
   add_subdirectory(interface)
-  add_subdirectory(screenshare)
+  if (NOT APPLE OR NOT CLIENT_ONLY)
+    # Don't include Screenshare in OSX client-only builds.
+    add_subdirectory(screenshare)
+  endif()
   if (APPLE)
     set_target_properties(Vircadia PROPERTIES FOLDER "Apps")
   else()
