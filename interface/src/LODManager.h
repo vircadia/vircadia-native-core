@@ -44,7 +44,7 @@ enum WorldDetailQuality {
 };
 Q_DECLARE_METATYPE(WorldDetailQuality);
 
-const bool DEFAULT_LOD_MODE = false; // true for auto, false for manual.
+const bool DEFAULT_LOD_AUTO_ADJUST = false; // true for auto, false for manual.
 
 #ifdef Q_OS_ANDROID
 const float DEFAULT_LOD_QUALITY_LEVEL = 0.2f; // default quality level setting is High (lower framerate)
@@ -352,7 +352,7 @@ private:
     void setWorldDetailQuality(WorldDetailQuality quality, bool isHMDMode);
 
     std::mutex _automaticLODLock;
-    bool _automaticLODAdjust = DEFAULT_LOD_MODE;
+    bool _automaticLODAdjust = DEFAULT_LOD_AUTO_ADJUST;
 
     float _presentTime{ 0.0f }; // msec
     float _engineRunTime{ 0.0f }; // msec

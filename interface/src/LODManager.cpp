@@ -21,7 +21,7 @@
 
 const QString LOD_SETTINGS_PREFIX { "lodManager/" };
 
-Setting::Handle<bool> automaticLODAdjust(LOD_SETTINGS_PREFIX + "automaticLODAdjust", (bool)DEFAULT_LOD_MODE);
+Setting::Handle<bool> automaticLODAdjust(LOD_SETTINGS_PREFIX + "automaticLODAdjust", (bool)DEFAULT_LOD_AUTO_ADJUST);
 Setting::Handle<float> lodHalfAngle(LOD_SETTINGS_PREFIX + "lodHalfAngle", (float)getHalfAngleFromVisibilityDistance(DEFAULT_VISIBILITY_DISTANCE_FOR_UNIT_ELEMENT));
 Setting::Handle<int> desktopWorldDetailQuality(LOD_SETTINGS_PREFIX + "desktopWorldDetailQuality", (int)DEFAULT_WORLD_DETAIL_QUALITY);
 Setting::Handle<int> hmdWorldDetailQuality(LOD_SETTINGS_PREFIX + "hmdWorldDetailQuality", (int)DEFAULT_WORLD_DETAIL_QUALITY);
