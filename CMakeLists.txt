@@ -125,6 +125,15 @@ else()
   set(MOBILE 0)
 endif()
 
+set(SCREENSHARE 0)
+if (WIN32)
+  set(SCREENSHARE 1)
+endif()
+if (APPLE AND NOT CLIENT_ONLY)
+  # Don't include Screenshare in OSX client-only builds.
+  set(SCREENSHARE 1)
+endif()
+
 # Use default time server if none defined in environment
 set_from_env(TIMESERVER_URL TIMESERVER_URL "http://timestamp.comodoca.com?td=sha256")
 
@@ -316,10 +325,6 @@ endif()
 
 if (BUILD_CLIENT)
   add_subdirectory(interface)
-  if (NOT APPLE OR NOT CLIENT_ONLY)
-    # Don't include Screenshare in OSX client-only builds.
-    add_subdirectory(screenshare)
-  endif()
   if (APPLE)
     set_target_properties(Vircadia PROPERTIES FOLDER "Apps")
   else()
@@ -332,6 +337,10 @@ endif()
 if (BUILD_CLIENT OR BUILD_SERVER)
   add_subdirectory(plugins)
   add_subdirectory(server-console)
+endif()
+
+if (SCREENSHARE)
+  add_subdirectory(screenshare)
 endif()
 
 # BUILD_TOOLS option will be handled inside the tools's CMakeLists.txt because 'scribe' tool is required for build anyway
