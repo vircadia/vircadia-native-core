@@ -154,7 +154,7 @@ jobs:
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target assignment-client $CMAKE_BUILD_EXTRA
     - name: Build Console
-      if: matrix.build_type == 'full'
+      if: matrix.build_type == 'full' || matrix.os == 'windows-latest'
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target packaged-server-console $CMAKE_BUILD_EXTRA
