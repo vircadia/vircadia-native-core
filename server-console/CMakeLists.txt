@@ -29,7 +29,11 @@ set_target_properties(${TARGET_NAME}-npm-install PROPERTIES FOLDER "hidden/Serve
 
 # add a dependency from the package target to the server components
 if (BUILD_CLIENT)
-  add_dependencies(${TARGET_NAME} interface)
+  if (APPLE)
+    add_dependencies(${TARGET_NAME} Vircadia)
+  else()
+    add_dependencies(${TARGET_NAME} interface)
+  endif()
 endif()
 
 if (BUILD_SERVER)
