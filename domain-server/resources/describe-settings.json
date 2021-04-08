@@ -1,5 +1,5 @@
 {
-  "version": 2.4,
+  "version": 2.5,
   "settings": [
     {
       "name": "metaverse",
@@ -295,10 +295,10 @@
         },
         {
           "name": "approved_safe_urls",
-          "label": "Approved Script and QML URLs",
+          "label": "Approved Script and QML URLs (Not Enabled)",
           "help": "These URLs will be sent to the Interface as safe URLs to allow through the whitelist if the Interface has this security option enabled.",
-          "placeholder": "0",
-          "default": "1",
+          "placeholder": "",
+          "default": "",
           "advanced": false
         },
         {
@@ -338,7 +338,7 @@
           "name": "standard_permissions",
           "type": "table",
           "label": "Domain-Wide User Permissions",
-          "help": "Indicate which types of users can have which <a data-toggle='tooltip' data-html=true title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether a user can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether a user change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether a user can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Rez Certified</strong><br />Sets whether a user can create new certified entities.</li><li><strong>Rez Temporary Certified</strong><br />Sets whether a user can create new certified entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether a user can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether a user can connect even if the domain has reached or exceeded its maximum allowed agents.</li><li><strong>Rez Certified</strong><br />Sets whether a user can create new certified entities.</li><li><strong>Get and Set Private User Data</strong><br>Sets whether a user can get and set the privateUserData entity property.</li></ul><p>Note that permissions assigned to a specific user will supersede any parameter-level permissions that might otherwise apply to that user. Additionally, if more than one parameter is applicable to a given user, the permissions given to that user will be the sum of all applicable parameters. For example, let&rsquo;s say only localhost users can connect and only logged in users can lock and unlock entities. If a user is both logged in and on localhost then they will be able to both connect and lock/unlock entities.</p>'>domain-wide permissions</a>.",
+          "help": "Indicate which types of users can have which <a data-toggle='tooltip' data-html=true title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether a user can connect to the domain.</li><li><strong>Avatar Entities</strong><br />Sets whether a user can use avatar entities on the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether a user change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether a user can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Rez Certified</strong><br />Sets whether a user can create new certified entities.</li><li><strong>Rez Temporary Certified</strong><br />Sets whether a user can create new certified entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether a user can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether a user can connect even if the domain has reached or exceeded its maximum allowed agents.</li><li><strong>Rez Certified</strong><br />Sets whether a user can create new certified entities.</li><li><strong>Get and Set Private User Data</strong><br>Sets whether a user can get and set the privateUserData entity property.</li></ul><p>Note that permissions assigned to a specific user will supersede any parameter-level permissions that might otherwise apply to that user. Additionally, if more than one parameter is applicable to a given user, the permissions given to that user will be the sum of all applicable parameters. For example, let&rsquo;s say only localhost users can connect and only logged in users can lock and unlock entities. If a user is both logged in and on localhost then they will be able to both connect and lock/unlock entities.</p>'>domain-wide permissions</a>.",
           "caption": "Standard Permissions",
           "can_add_new_rows": false,
           "groups": [
@@ -347,8 +347,8 @@
               "span": 1
             },
             {
-               "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether a user can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether a user change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether a user can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Rez Certified</strong><br />Sets whether a user can create new certified entities.</li><li><strong>Rez Temporary Certified</strong><br />Sets whether a user can create new certified entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether a user can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether a user can connect even if the domain has reached or exceeded its maximum allowed agents.</li><li><strong>Replace Content</strong><br>Sets whether a user can replace entire content sets by wiping existing domain content.</li><li><strong>Get and Set Private User Data</strong><br>Sets whether a user can get and set the privateUserData entity property.</li></ul><p>Note that permissions assigned to a specific user will supersede any parameter-level permissions that might otherwise apply to that user. Additionally, if more than one parameter is applicable to a given user, the permissions given to that user will be the sum of all applicable parameters. For example, let&rsquo;s say only localhost users can connect and only logged in users can lock and unlock entities. If a user is both logged in and on localhost then they will be able to both connect and lock/unlock entities.</p>'>?</a>",
-               "span": 11
+              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether a user can connect to the domain.</li><li><strong>Avatar Entities</strong><br />Sets whether a user can use avatar entities on the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether a user change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether a user can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Rez Certified</strong><br />Sets whether a user can create new certified entities.</li><li><strong>Rez Temporary Certified</strong><br />Sets whether a user can create new certified entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether a user can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether a user can connect even if the domain has reached or exceeded its maximum allowed agents.</li><li><strong>Replace Content</strong><br>Sets whether a user can replace entire content sets by wiping existing domain content.</li><li><strong>Get and Set Private User Data</strong><br>Sets whether a user can get and set the privateUserData entity property.</li></ul><p>Note that permissions assigned to a specific user will supersede any parameter-level permissions that might otherwise apply to that user. Additionally, if more than one parameter is applicable to a given user, the permissions given to that user will be the sum of all applicable parameters. For example, let&rsquo;s say only localhost users can connect and only logged in users can lock and unlock entities. If a user is both logged in and on localhost then they will be able to both connect and lock/unlock entities.</p>'>?</a>",
+              "span": 12
             }
           ],
           "columns": [
@@ -359,6 +359,13 @@
             {
               "name": "id_can_connect",
               "label": "Connect",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez_avatar_entities",
+              "label": "Avatar Entities",
               "type": "checkbox",
               "editable": true,
               "default": false
@@ -439,17 +446,20 @@
           "default": [
             {
                 "id_can_connect": true,
+                "id_can_rez_avatar_entities": true,
                 "id_can_rez_tmp_certified": true,
                 "permissions_id": "anonymous"
             },
             {
                 "id_can_connect": true,
+                "id_can_rez_avatar_entities": true,
                 "id_can_rez_tmp_certified": true,
                 "permissions_id": "friends"
             },
             {
-                "id_can_adjust_locks": true,
                 "id_can_connect": true,
+                "id_can_rez_avatar_entities": true,
+                "id_can_adjust_locks": true,
                 "id_can_connect_past_max_capacity": true,
                 "id_can_kick": true,
                 "id_can_replace_content": true,
@@ -463,6 +473,7 @@
             },
             {
                 "id_can_connect": true,
+                "id_can_rez_avatar_entities": true,
                 "id_can_rez_tmp_certified": true,
                 "permissions_id": "logged-in"
             }
@@ -484,8 +495,8 @@
               "span": 1
             },
             {
-              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether users in specific groups can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether users in specific groups can change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether users in specific groups can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether users in specific groups can create new entities with a finite lifetime.</li><li><strong>Rez Temporary</strong><br />Sets whether users in specific groups can create new entities with a finite lifetime.</li><li><strong>Rez Certified</strong><br />Sets whether a users in specific groups can create new certified entities.</li><li><strong>Rez Temporary Certified</strong><br />Sets whether a user can create new certified entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether users in specific groups can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether user in specific groups can connect even if the domain has reached or exceeded its maximum allowed agents.</li><li><strong>Replace Content</strong><br>Sets whether a user can replace entire content sets by wiping existing domain content.</li><li><strong>Get and Set Private User Data</strong><br>Sets whether a user can get and set the privateUserData entity property.</li></ul><p>Permissions granted to a specific user will be a union of the permissions granted to the groups they are in, as well as permissions from the previous section.  Group permissions are only granted if the user doesn&rsquo;t have their own row in the per-account section, below.</p>'>?</a>",
-              "span": 11
+              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether users in specific groups can connect to the domain.</li><li><strong>Avatar Entities</strong><br />Sets whether users in specific groups can use avatar entities on the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether users in specific groups can change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether users in specific groups can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether users in specific groups can create new entities with a finite lifetime.</li><li><strong>Rez Temporary</strong><br />Sets whether users in specific groups can create new entities with a finite lifetime.</li><li><strong>Rez Certified</strong><br />Sets whether users in specific groups can create new certified entities.</li><li><strong>Rez Temporary Certified</strong><br />Sets whether users in specific groups can create new certified entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether users in specific groups can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether user in specific groups can connect even if the domain has reached or exceeded its maximum allowed agents.</li><li><strong>Replace Content</strong><br>Sets whether a user can replace entire content sets by wiping existing domain content.</li><li><strong>Get and Set Private User Data</strong><br>Sets whether a user can get and set the privateUserData entity property.</li></ul><p>Permissions granted to a specific user will be a union of the permissions granted to the groups they are in, as well as permissions from the previous section.  Group permissions are only granted if the user doesn&rsquo;t have their own row in the per-account section, below.</p>'>?</a>",
+              "span": 12
             }
           ],
           "columns": [
@@ -521,6 +532,13 @@
             {
               "name": "id_can_connect",
               "label": "Connect",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez_avatar_entities",
+              "label": "Avatar Entities",
               "type": "checkbox",
               "editable": true,
               "default": false
@@ -613,8 +631,8 @@
               "span": 1
             },
             {
-              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether users in specific groups can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether users in specific groups can change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether users in specific groups can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether users in specific groups can create new entities with a finite lifetime.</li><li><strong>Rez Certified</strong><br />Sets whether a users in specific groups can create new certified entities.</li><li><strong>Rez Temporary Certified</strong><br />Sets whether a user can create new certified entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether users in specific groups can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether user in specific groups can connect even if the domain has reached or exceeded its maximum allowed agents.</li><li><strong>Replace Content</strong><br>Sets whether users in specific groups can replace entire content sets by wiping existing domain content.</li><li><strong>Get and Set Private User Data</strong><br>Sets whether a user can get and set the privateUserData entity property</li></ul><p>Permissions granted to a specific user will be a union of the permissions granted to the groups they are in.  Group permissions are only granted if the user doesn&rsquo;t have their own row in the per-account section, below.</p>'>?</a>",
-              "span": 11
+              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether users in specific groups can connect to the domain.</li><li><strong>Avatar Entities</strong><br />Sets whether users in specific groups can use avatar entities on the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether users in specific groups can change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether users in specific groups can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether users in specific groups can create new entities with a finite lifetime.</li><li><strong>Rez Certified</strong><br />Sets whether users in specific groups can create new certified entities.</li><li><strong>Rez Temporary Certified</strong><br />Sets whether users in specific groups can create new certified entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether users in specific groups can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether user in specific groups can connect even if the domain has reached or exceeded its maximum allowed agents.</li><li><strong>Replace Content</strong><br>Sets whether users in specific groups can replace entire content sets by wiping existing domain content.</li><li><strong>Get and Set Private User Data</strong><br>Sets whether a user can get and set the privateUserData entity property</li></ul><p>Permissions granted to a specific user will be a union of the permissions granted to the groups they are in.  Group permissions are only granted if the user doesn&rsquo;t have their own row in the per-account section, below.</p>'>?</a>",
+              "span": 12
             }
           ],
           "columns": [
@@ -647,6 +665,13 @@
             {
               "name": "id_can_connect",
               "label": "Connect",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez_avatar_entities",
+              "label": "Avatar Entities",
               "type": "checkbox",
               "editable": true,
               "default": false
@@ -734,8 +759,8 @@
               "span": 1
             },
             {
-              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether a user can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether a user change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether a user can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Rez Certified</strong><br />Sets whether a user can create new certified entities.</li><li><strong>Rez Temporary Certified</strong><br />Sets whether a user can create new certified entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether a user can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether a user can connect even if the domain has reached or exceeded its maximum allowed agents.</li><li><strong>Replace Content</strong><br>Sets whether a user can replace entire content sets by wiping existing domain content.</li><li><strong>Get and Set Private User Data</strong><br>Sets whether a user can get and set the privateUserData entity property.</li></ul><p>Note that permissions assigned to a specific user will supersede any parameter-level or group permissions that might otherwise apply to that user.</p>'>?</a>",
-              "span": 11
+              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide User Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether a user can connect to the domain.</li><li><strong>Avatar Entities</strong><br />Sets whether a user can use avatar entities on the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether a user change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether a user can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Rez Certified</strong><br />Sets whether a user can create new certified entities.</li><li><strong>Rez Temporary Certified</strong><br />Sets whether a user can create new certified entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether a user can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether a user can connect even if the domain has reached or exceeded its maximum allowed agents.</li><li><strong>Replace Content</strong><br>Sets whether a user can replace entire content sets by wiping existing domain content.</li><li><strong>Get and Set Private User Data</strong><br>Sets whether a user can get and set the privateUserData entity property.</li></ul><p>Note that permissions assigned to a specific user will supersede any parameter-level or group permissions that might otherwise apply to that user.</p>'>?</a>",
+              "span": 12
             }
           ],
           "columns": [
@@ -746,6 +771,13 @@
             {
               "name": "id_can_connect",
               "label": "Connect",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez_avatar_entities",
+              "label": "Avatar Entities",
               "type": "checkbox",
               "editable": true,
               "default": false
@@ -833,8 +865,8 @@
               "span": 1
             },
             {
-              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide IP Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether users from specific IPs can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether users from specific IPs can change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether users from specific IPs can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether users from specific IPs can create new entities with a finite lifetime.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Rez Certified</strong><br />Sets whether users from specific IPs can create new certified entities.</li><li><strong>Rez Temporary Certified</strong><br />Sets whether users from specific IPs can create new certified entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether users from specific IPs can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether users from specific IPs can connect even if the domain has reached or exceeded its maximum allowed agents.</li><li><strong>Replace Content</strong><br>Sets whether users from specific IPs can replace entire content sets by wiping existing domain content.</li><li><strong>Get and Set Private User Data</strong><br>Sets whether a user can get and set the privateUserData entity property.</li></ul><p>Note that permissions assigned to a specific IP will supersede any parameter-level permissions that might otherwise apply to that user (from groups or standard permissions above). IP address permissions are overriden if the user has their own row in the users section.</p>'>?</a>",
-              "span": 11
+              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide IP Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether users from specific IPs can connect to the domain.</li><li><strong>Avatar Entities</strong><br />Sets whether users from specific IPs can use avatar entities on the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether users from specific IPs can change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether users from specific IPs can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether users from specific IPs can create new entities with a finite lifetime.</li><li><strong>Rez Temporary</strong><br />Sets whether a user can create new entities with a finite lifetime.</li><li><strong>Rez Certified</strong><br />Sets whether users from specific IPs can create new certified entities.</li><li><strong>Rez Temporary Certified</strong><br />Sets whether users from specific IPs can create new certified entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether users from specific IPs can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether users from specific IPs can connect even if the domain has reached or exceeded its maximum allowed agents.</li><li><strong>Replace Content</strong><br>Sets whether users from specific IPs can replace entire content sets by wiping existing domain content.</li><li><strong>Get and Set Private User Data</strong><br>Sets whether a user can get and set the privateUserData entity property.</li></ul><p>Note that permissions assigned to a specific IP will supersede any parameter-level permissions that might otherwise apply to that user (from groups or standard permissions above). IP address permissions are overriden if the user has their own row in the users section.</p>'>?</a>",
+              "span": 12
             }
           ],
           "columns": [
@@ -845,6 +877,13 @@
             {
               "name": "id_can_connect",
               "label": "Connect",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez_avatar_entities",
+              "label": "Avatar Entities",
               "type": "checkbox",
               "editable": true,
               "default": false
@@ -932,8 +971,8 @@
               "span": 1
             },
             {
-              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide MAC Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether users with specific MACs can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether users from specific MACs can change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether users with specific MACs can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether users with specific MACs can create new entities with a finite lifetime.</li><li><strong>Rez Certified</strong><br />Sets whether users with specific MACs can create new certified entities.</li><li><strong>Rez Temporary Certified</strong><br />Sets whether users with specific MACs can create new certified entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether users with specific MACs can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether users with specific MACs can connect even if the domain has reached or exceeded its maximum allowed agents.</li><li><strong>Replace Content</strong><br>Sets whether users with specific MACs can replace entire content sets by wiping existing domain content.</li><li><strong>Get and Set Private User Data</strong><br>Sets whether a user can get and set the privateUserData entity property.</li></ul><p>Note that permissions assigned to a specific MAC will supersede any parameter-level permissions that might otherwise apply to that user (from groups or standard permissions above). MAC address permissions are overriden if the user has their own row in the users section.</p>'>?</a>",
-              "span": 11
+              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide MAC Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether users with specific MACs can connect to the domain.</li><li><strong>Avatar Entities</strong><br />Sets whether users with specific MACs can use avatar entities on the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether users from specific MACs can change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether users with specific MACs can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether users with specific MACs can create new entities with a finite lifetime.</li><li><strong>Rez Certified</strong><br />Sets whether users with specific MACs can create new certified entities.</li><li><strong>Rez Temporary Certified</strong><br />Sets whether users with specific MACs can create new certified entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether users with specific MACs can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether users with specific MACs can connect even if the domain has reached or exceeded its maximum allowed agents.</li><li><strong>Replace Content</strong><br>Sets whether users with specific MACs can replace entire content sets by wiping existing domain content.</li><li><strong>Get and Set Private User Data</strong><br>Sets whether a user can get and set the privateUserData entity property.</li></ul><p>Note that permissions assigned to a specific MAC will supersede any parameter-level permissions that might otherwise apply to that user (from groups or standard permissions above). MAC address permissions are overriden if the user has their own row in the users section.</p>'>?</a>",
+              "span": 12
             }
           ],
           "columns": [
@@ -944,6 +983,13 @@
             {
               "name": "id_can_connect",
               "label": "Connect",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez_avatar_entities",
+              "label": "Avatar Entities",
               "type": "checkbox",
               "editable": true,
               "default": false
@@ -1031,8 +1077,8 @@
               "span": 1
             },
             {
-              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide Machine Fingerprint Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether users with specific Machine Fingerprints can connect to the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether users from specific Machine Fingerprints can change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether users with specific Machine Fingerprints can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether users with specific Machine Fingerprints can create new entities with a finite lifetime.</li><li><strong>Rez Certified</strong><br />Sets whether users with specific Machine Fingerprints can create new certified entities.</li><li><strong>Rez Temporary Certified</strong><br />Sets whether users with specific Machine Fingerprints can create new certified entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether users with specific Machine Fingerprints can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether users with specific Machine Fingerprints can connect even if the domain has reached or exceeded its maximum allowed agents.</li><li><strong>Replace Content</strong><br>Sets whether users with specific Machine Fingerprints can replace entire content sets by wiping existing domain content.</li><li><strong>Get and Set Private User Data</strong><br>Sets whether a user can get and set the privateUserData entity property.</li></ul><p>Note that permissions assigned to a specific Machine Fingerprint will supersede any parameter-level permissions that might otherwise apply to that user (from groups or standard permissions above). Machine Fingerprint address permissions are overriden if the user has their own row in the users section.</p>'>?</a>",
-              "span": 11
+              "label": "Permissions <a data-toggle='tooltip' data-html='true' title='<p><strong>Domain-Wide Machine Fingerprint Permissions</strong></p><ul><li><strong>Connect</strong><br />Sets whether users with specific Machine Fingerprints can connect to the domain.</li><li><strong>Avatar Entities</strong><br />Sets whether users with specific Machine Fingerprints can use avatar entities on the domain.</li><li><strong>Lock / Unlock</strong><br />Sets whether users from specific Machine Fingerprints can change the &ldquo;locked&rdquo; property of an entity (either from on to off or off to on).</li><li><strong>Rez</strong><br />Sets whether users with specific Machine Fingerprints can create new entities.</li><li><strong>Rez Temporary</strong><br />Sets whether users with specific Machine Fingerprints can create new entities with a finite lifetime.</li><li><strong>Rez Certified</strong><br />Sets whether users with specific Machine Fingerprints can create new certified entities.</li><li><strong>Rez Temporary Certified</strong><br />Sets whether users with specific Machine Fingerprints can create new certified entities with a finite lifetime.</li><li><strong>Write Assets</strong><br />Sets whether users with specific Machine Fingerprints can make changes to the domain&rsquo;s asset-server assets.</li><li><strong>Ignore Max Capacity</strong><br />Sets whether users with specific Machine Fingerprints can connect even if the domain has reached or exceeded its maximum allowed agents.</li><li><strong>Replace Content</strong><br>Sets whether users with specific Machine Fingerprints can replace entire content sets by wiping existing domain content.</li><li><strong>Get and Set Private User Data</strong><br>Sets whether a user can get and set the privateUserData entity property.</li></ul><p>Note that permissions assigned to a specific Machine Fingerprint will supersede any parameter-level permissions that might otherwise apply to that user (from groups or standard permissions above). Machine Fingerprint address permissions are overriden if the user has their own row in the users section.</p>'>?</a>",
+              "span": 12
             }
           ],
           "columns": [
@@ -1043,6 +1089,13 @@
             {
               "name": "id_can_connect",
               "label": "Connect",
+              "type": "checkbox",
+              "editable": true,
+              "default": false
+            },
+            {
+              "name": "id_can_rez_avatar_entities",
+              "label": "Avatar Entities",
               "type": "checkbox",
               "editable": true,
               "default": false
@@ -1485,6 +1538,24 @@
             "placeholder": "0.40",
             "default": "0.40",
             "advanced": true
+        }
+      ]
+    },
+    {
+      "name": "messages_mixer",
+      "label": "Messages Mixer",
+      "assignment-types": [
+        4
+      ],
+      "settings": [
+        {
+          "name": "max_node_messages_per_second",
+          "type": "int",
+          "label": "Maximum Message Rate",
+          "help": "Maximum message send rate (messages per second) per node",
+          "placeholder": 1000,
+          "default": 1000,
+          "advanced": true
         }
       ]
     },

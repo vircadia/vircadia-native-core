@@ -33,6 +33,8 @@ void GL41Backend::updateInput() {
 #endif
     _input._lastUpdateStereoState = isStereoNow;
 
+    bool hasColorAttribute = _input._hasColorAttribute;
+
     if (_input._invalidFormat || _input._invalidBuffers.any()) {
 
         auto format = acquire(_input._format);
@@ -71,8 +73,6 @@ void GL41Backend::updateInput() {
 
         // now we need to bind the buffers and assign the attrib pointers
         if (format) {
-            bool hasColorAttribute{ false };
-
             const auto& buffers = _input._buffers;
             const auto& offsets = _input._bufferOffsets;
             const auto& strides = _input._bufferStrides;
@@ -110,7 +110,7 @@ void GL41Backend::updateInput() {
                             uintptr_t pointer = (uintptr_t)(attrib._offset + offsets[bufferNum]);
                             GLboolean isNormalized = attrib._element.isNormalized();
 
-                            hasColorAttribute = hasColorAttribute || (slot == Stream::COLOR);
+                            hasColorAttribute |= slot == Stream::COLOR;
 
                             for (size_t locNum = 0; locNum < locationCount; ++locNum) {
                                 if (attrib._element.isInteger()) {
@@ -132,17 +132,16 @@ void GL41Backend::updateInput() {
                 }
             }
 
-            if (_input._hadColorAttribute && !hasColorAttribute) {
-                // The previous input stage had a color attribute but this one doesn't so reset
-                // color to pure white.
-                const auto white = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-                glVertexAttrib4fv(Stream::COLOR, &white.r);
-                _input._colorAttribute = white;
+            if (!hasColorAttribute && _input._hadColorAttribute) {
+                // The previous input stage had a color attribute but this one doesn't, so reset the color to pure white.
+                _input._colorAttribute = glm::vec4(1.0f);
+                glVertexAttrib4fv(Stream::COLOR, &_input._colorAttribute.r);
             }
-            _input._hadColorAttribute = hasColorAttribute;
         }
         // everything format related should be in sync now
         _input._invalidFormat = false;
     }
-}
 
+    _input._hadColorAttribute = hasColorAttribute;
+    _input._hasColorAttribute = false;
+}

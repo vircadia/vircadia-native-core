@@ -68,6 +68,8 @@ void ScriptEngines::onErrorLoadingScript(const QString& url) {
 ScriptEngines::ScriptEngines(ScriptEngine::Context context, const QUrl& defaultScriptsOverride)
     : _context(context), _defaultScriptsOverride(defaultScriptsOverride)
 {
+    scriptGatekeeper.initialize();
+    
     _scriptsModelFilter.setSourceModel(&_scriptsModel);
     _scriptsModelFilter.sort(0, Qt::AscendingOrder);
     _scriptsModelFilter.setDynamicSortFilter(true);

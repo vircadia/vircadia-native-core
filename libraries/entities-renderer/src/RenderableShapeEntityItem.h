@@ -35,9 +35,6 @@ private:
     virtual void doRender(RenderArgs* args) override;
     virtual bool isTransparent() const override;
 
-    enum Pipeline { SIMPLE, MATERIAL, PROCEDURAL };
-    Pipeline getPipelineType(const graphics::MultiMaterial& materials) const;
-
     QString _proceduralData;
     entity::Shape _shape { entity::Sphere };
 

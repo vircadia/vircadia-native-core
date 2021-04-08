@@ -86,7 +86,7 @@ public:
     void setInjectorGain(float gain);
     float getInjectorGain();
 
-    void kickNodeBySessionID(const QUuid& nodeID);
+    void kickNodeBySessionID(const QUuid& nodeID, unsigned int banFlags);
     void muteNodeBySessionID(const QUuid& nodeID);
     void requestUsernameFromSessionID(const QUuid& nodeID);
     bool getRequestsDomainListData() { return _requestsDomainListData; }
@@ -122,6 +122,11 @@ public slots:
     void processICEPingPacket(QSharedPointer<ReceivedMessage> message);
 
     void processUsernameFromIDReply(QSharedPointer<ReceivedMessage> message);
+
+    // FIXME: Can remove these work-arounds in version 2021.2.0. (New protocol version implies a domain server upgrade.)
+    bool adjustCanRezAvatarEntitiesPermissions(const QJsonObject& domainSettingsObject, NodePermissions& permissions,
+        bool notify);
+    void adjustCanRezAvatarEntitiesPerSettings(const QJsonObject& domainSettingsObject);
 
 #if (PR_BUILD || DEV_BUILD)
     void toggleSendNewerDSConnectVersion(bool shouldSendNewerVersion) { _shouldSendNewerVersion = shouldSendNewerVersion; }
