@@ -9,6 +9,10 @@
 
 macro(SETUP_MEMORY_DEBUGGER)
 if ("$ENV{VIRCADIA_MEMORY_DEBUGGING}")
+  if (VIRCADIA_THREAD_DEBUGGING)
+    message(FATAL_ERROR "Thread debugging and memory debugging can't be enabled at the same time." )
+  endif()
+
   SET( VIRCADIA_MEMORY_DEBUGGING true )
 endif ()
 

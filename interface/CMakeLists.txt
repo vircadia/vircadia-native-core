@@ -47,6 +47,7 @@ add_custom_target(resources ALL DEPENDS ${GENERATE_QRC_DEPENDS})
 set(OPTIONAL_EXTERNALS "LeapMotion")
 
 setup_memory_debugger()
+setup_thread_debugger()
 
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
@@ -299,7 +300,7 @@ target_link_libraries(
   ${PLATFORM_QT_LIBRARIES}
 )
 
-if (UNIX AND NOT ANDROID)
+if (UNIX AND NOT ANDROID AND NOT VIRCADIA_THREAD_DEBUGGING)
     if (CMAKE_SYSTEM_NAME MATCHES "Linux")
         # Linux
         target_link_libraries(${TARGET_NAME} pthread atomic)

@@ -53,6 +53,7 @@ macro(SETUP_HIFI_LIBRARY)
   endforeach()
 
   setup_memory_debugger()
+  setup_thread_debugger()
 
   # create a library and set the property so it can be referenced later
   if (${${TARGET_NAME}_SHARED})
