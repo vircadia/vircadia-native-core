@@ -92,7 +92,7 @@ private:
     bool _cauterized { false };
     bool _cullWithParent { false };
     QVector<QUuid> _renderWithZones;
-    BillboardMode _billboardMode;
+    BillboardMode _billboardMode { BillboardMode::NONE };
     uint64_t _created;
 
     Transform _localTransform;

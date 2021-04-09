@@ -364,7 +364,7 @@ void setupPreferences() {
         auto preference = new SpinnerSliderPreference(VR_MOVEMENT, "Camera Sensitivity", getter, setter);
         preference->setMin(0.01f);
         preference->setMax(5.0f);
-        preference->setStep(0.1);
+        preference->setStep(0.1f);
         preference->setDecimals(2);
         preferences->addPreference(preference);
     }

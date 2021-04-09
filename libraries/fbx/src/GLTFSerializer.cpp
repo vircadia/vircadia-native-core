@@ -1863,7 +1863,7 @@ void GLTFSerializer::setHFMMaterial(HFMMaterial& hfmMat, const GLTFMaterial& mat
 
 template<typename T, typename L>
 bool GLTFSerializer::readArray(const hifi::ByteArray& bin, int byteOffset, int count,
-                           QVector<L>& outarray, int accessorType) {
+                           QVector<L>& outarray, int accessorType, bool normalized) {
     
     QDataStream blobstream(bin);
     blobstream.setByteOrder(QDataStream::LittleEndian);
@@ -1899,12 +1899,22 @@ bool GLTFSerializer::readArray(const hifi::ByteArray& bin, int byteOffset, int c
         blobstream.setDevice(nullptr);
         return false;
     }
+
+    float scale = 1.0f;  // Normalized output values should always be floats.
+    if (normalized) {
+        scale = (float)(std::numeric_limits<T>::max)();
+    }
+    
     for (int i = 0; i < count; ++i) {
         for (int j = 0; j < bufferCount; ++j) {
             if (!blobstream.atEnd()) {
                 T value;
                 blobstream >> value;
-                outarray.push_back(value);
+                if (normalized) {
+                    outarray.push_back(std::max((float)value / scale, -1.0f));
+                } else {
+                    outarray.push_back(value);
+                }
             } else {
                 blobstream.setDevice(nullptr);
                 return false;
@@ -1917,24 +1927,24 @@ bool GLTFSerializer::readArray(const hifi::ByteArray& bin, int byteOffset, int c
 }
 template<typename T>
 bool GLTFSerializer::addArrayOfType(const hifi::ByteArray& bin, int byteOffset, int count,
-                                QVector<T>& outarray, int accessorType, int componentType) {
+                                QVector<T>& outarray, int accessorType, int componentType, bool normalized) {
     
     switch (componentType) {
     case GLTFAccessorComponentType::BYTE: {}
     case GLTFAccessorComponentType::UNSIGNED_BYTE: {
-        return readArray<uchar>(bin, byteOffset, count, outarray, accessorType);
+        return readArray<uchar>(bin, byteOffset, count, outarray, accessorType, normalized);
     }
     case GLTFAccessorComponentType::SHORT: {
-        return readArray<short>(bin, byteOffset, count, outarray, accessorType);
+        return readArray<short>(bin, byteOffset, count, outarray, accessorType, normalized);
     }
     case GLTFAccessorComponentType::UNSIGNED_INT: {
-        return readArray<uint>(bin, byteOffset, count, outarray, accessorType);
+        return readArray<uint>(bin, byteOffset, count, outarray, accessorType, normalized);
     }
     case GLTFAccessorComponentType::UNSIGNED_SHORT: {
-        return readArray<ushort>(bin, byteOffset, count, outarray, accessorType);
+        return readArray<ushort>(bin, byteOffset, count, outarray, accessorType, normalized);
     }
     case GLTFAccessorComponentType::FLOAT: {
-        return readArray<float>(bin, byteOffset, count, outarray, accessorType);
+        return readArray<float>(bin, byteOffset, count, outarray, accessorType, normalized);
     }
     }
     return false;
@@ -1951,11 +1961,11 @@ bool GLTFSerializer::addArrayFromAccessor(GLTFAccessor& accessor, QVector<T>& ou
         int accBoffset = accessor.defined["byteOffset"] ? accessor.byteOffset : 0;
 
         success = addArrayOfType(buffer.blob, bufferview.byteOffset + accBoffset, accessor.count, outarray, accessor.type,
-                                 accessor.componentType);
+                                 accessor.componentType, accessor.normalized);
     } else {
         for (int i = 0; i < accessor.count; ++i) {
             T value;
-            memset(&value, 0, sizeof(T));  // Make sure the dummy array is initalised to zero.
+            memset(&value, 0, sizeof(T));  // Make sure the dummy array is initialized to zero.
             outarray.push_back(value);
         }
     }
@@ -1971,7 +1981,7 @@ bool GLTFSerializer::addArrayFromAccessor(GLTFAccessor& accessor, QVector<T>& ou
 
             success = addArrayOfType(sparseIndicesBuffer.blob, sparseIndicesBufferview.byteOffset + accSIBoffset,
                                      accessor.sparse.count, out_sparse_indices_array, GLTFAccessorType::SCALAR,
-                                     accessor.sparse.indices.componentType);
+                                     accessor.sparse.indices.componentType, false);
             if (success) {
                 QVector<T> out_sparse_values_array;
 
@@ -1981,7 +1991,8 @@ bool GLTFSerializer::addArrayFromAccessor(GLTFAccessor& accessor, QVector<T>& ou
                 int accSVBoffset = accessor.sparse.values.defined["byteOffset"] ? accessor.sparse.values.byteOffset : 0;
 
                 success = addArrayOfType(sparseValuesBuffer.blob, sparseValuesBufferview.byteOffset + accSVBoffset,
-                                         accessor.sparse.count, out_sparse_values_array, accessor.type, accessor.componentType);
+                                         accessor.sparse.count, out_sparse_values_array, accessor.type, accessor.componentType,
+                                         accessor.normalized);
 
                 if (success) {
                     for (int i = 0; i < accessor.sparse.count; ++i) {

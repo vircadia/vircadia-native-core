@@ -219,6 +219,10 @@ ShapeKey MaterialEntityRenderer::getShapeKey() {
         builder.withTranslucent();
     }
 
+    if (drawMaterial) {
+        builder.withCullFaceMode(drawMaterial->getCullFaceMode());
+    }
+
     if (drawMaterial && drawMaterial->isProcedural() && drawMaterial->isReady()) {
         builder.withOwnPipeline();
     } else {

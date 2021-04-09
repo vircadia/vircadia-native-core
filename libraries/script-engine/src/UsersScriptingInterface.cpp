@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2016-07-11.
 //  Copyright 2016 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -51,15 +52,14 @@ float UsersScriptingInterface::getAvatarGain(const QUuid& nodeID) {
     return DependencyManager::get<NodeList>()->getAvatarGain(nodeID);
 }
 
-void UsersScriptingInterface::kick(const QUuid& nodeID) {
-
+void UsersScriptingInterface::kick(const QUuid& nodeID, unsigned int banFlags) {
     if (_kickConfirmationOperator) {
         bool waitingForKickResponse = _kickResponseLock.resultWithReadLock<bool>([&] { return _waitingForKickResponse; });
         if (getCanKick() && !waitingForKickResponse) {
-            _kickConfirmationOperator(nodeID);
+            _kickConfirmationOperator(nodeID, banFlags);
         }
     } else {
-        DependencyManager::get<NodeList>()->kickNodeBySessionID(nodeID);
+        DependencyManager::get<NodeList>()->kickNodeBySessionID(nodeID, banFlags);
     }
 }
 

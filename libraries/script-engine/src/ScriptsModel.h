@@ -35,6 +35,7 @@ public:
     void setParent(TreeNodeFolder* parent) { _parent = parent; }
     TreeNodeType getType() { return _type; }
     const QString& getName() { return _name; };
+    virtual ~TreeNodeBase() = default;
 
 private:
     TreeNodeFolder* _parent;
