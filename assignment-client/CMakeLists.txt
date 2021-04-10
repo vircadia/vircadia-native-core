@@ -8,6 +8,7 @@ if (APPLE)
 endif ()
 
 setup_memory_debugger()
+setup_thread_debugger()
 
 # link in the shared libraries
 link_hifi_libraries(

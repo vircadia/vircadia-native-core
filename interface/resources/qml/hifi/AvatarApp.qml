@@ -518,7 +518,12 @@ Rectangle {
             glyphText: "\ue02e"
 
             onClicked: {
-                adjustWearables.open(currentAvatar);
+                if (!AddressManager.isConnected || Entities.canRezAvatarEntities()) {
+                    adjustWearables.open(currentAvatar);
+                } else {
+                    Window.alert("You cannot use wearables on this domain.")
+                }
+
             }
         }
 
@@ -529,7 +534,11 @@ Rectangle {
             glyphText: wearablesFrozen ? hifi.glyphs.lock : hifi.glyphs.unlock;
 
             onClicked: {
-                emitSendToScript({'method' : 'toggleWearablesFrozen'});
+                if (!AddressManager.isConnected || Entities.canRezAvatarEntities()) {
+                    emitSendToScript({'method' : 'toggleWearablesFrozen'});
+                } else {
+                    Window.alert("You cannot use wearables on this domain.")
+                }
             }
         }
     }

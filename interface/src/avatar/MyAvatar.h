@@ -1454,6 +1454,7 @@ public:
 
     void removeWornAvatarEntity(const EntityItemID& entityID);
     void clearWornAvatarEntities();
+    bool hasAvatarEntities() const;
 
     /**jsdoc
      * Checks whether your avatar is flying.
@@ -1800,7 +1801,7 @@ public:
     void setAnalogPlusSprintSpeed(float value);
     float getAnalogPlusSprintSpeed() const;
     void setSitStandStateChange(bool stateChanged);
-    float getSitStandStateChange() const;
+    bool getSitStandStateChange() const;
     void updateSitStandState(float newHeightReading, float dt);
 
     QVector<QString> getScriptUrls();
@@ -1938,6 +1939,8 @@ public:
     void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) override;
 
     void avatarEntityDataToJson(QJsonObject& root) const override;
+
+    void storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& payload) override;
 
     /**jsdoc
      * @comment Uses the base class's JSDoc.
@@ -2277,12 +2280,6 @@ public slots:
      */
     bool getEnableMeshVisible() const override;
 
-    /**jsdoc
-     * @function MyAvatar.storeAvatarEntityDataPayload
-     * @deprecated This function is deprecated and will be removed.
-     */
-    void storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& payload) override;
-    
     /**jsdoc
      * @comment Uses the base class's JSDoc.
      */
@@ -2656,6 +2653,7 @@ private slots:
 
 protected:
     void handleChangedAvatarEntityData();
+    void handleCanRezAvatarEntitiesChanged(bool canRezAvatarEntities);
     virtual void beParentOfChild(SpatiallyNestablePointer newChild) const override;
     virtual void forgetChild(SpatiallyNestablePointer newChild) const override;
     virtual void recalculateChildCauterization() const override;
@@ -2710,6 +2708,10 @@ private:
     void attachmentDataToEntityProperties(const AttachmentData& data, EntityItemProperties& properties);
     AttachmentData entityPropertiesToAttachmentData(const EntityItemProperties& properties) const;
     bool findAvatarEntity(const QString& modelURL, const QString& jointName, QUuid& entityID);
+    void addAvatarEntitiesToTree();
+
+    // FIXME: Rename to clearAvatarEntity() once the API call is removed.
+    void clearAvatarEntityInternal(const QUuid& entityID) override;
 
     bool cameraInsideHead(const glm::vec3& cameraPosition) const;
 
@@ -2907,8 +2909,6 @@ private:
         void setForceActivateVertical(bool val);
         bool getForceActivateHorizontal() const;
         void setForceActivateHorizontal(bool val);
-        bool getToggleHipsFollowing() const;
-        void setToggleHipsFollowing(bool followHead);
         std::atomic<bool> _forceActivateRotation { false };
         std::atomic<bool> _forceActivateVertical { false };
         std::atomic<bool> _forceActivateHorizontal { false };
@@ -3109,6 +3109,8 @@ private:
 
     glm::vec3 _cameraEyesOffset;
     float _landingAfterJumpTime { 0.0f };
+
+    QTimer _addAvatarEntitiesToTreeTimer;
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

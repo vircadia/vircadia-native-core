@@ -1,6 +1,6 @@
 # General Build Information
 
-*Last Updated on January 16, 2021*
+*Last Updated on March 8, 2021*
 
 ### OS Specific Build Guides
 

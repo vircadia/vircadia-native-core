@@ -301,9 +301,7 @@ public slots:
      * @param {location.LookupTrigger} trigger=StartupFromSettings - The reason for the function call. Helps ensure that user's
      *     location history is correctly maintained.
      */
-    void goToEntry(LookupTrigger trigger = LookupTrigger::StartupFromSettings) {
-        handleUrl(DEFAULT_VIRCADIA_ADDRESS, trigger);
-    }
+    void goToEntry(LookupTrigger trigger = LookupTrigger::StartupFromSettings);
 
     /**jsdoc
      * Takes you to the specified user's location.
@@ -318,7 +316,7 @@ public slots:
      * Takes you to the last address tried. This will be the last URL tried from <code>location.handleLookupString</code>.
      * @function location.goToLastAddress
      */
-    void goToLastAddress() { handleUrl(_lastVisitedURL, LookupTrigger::AttemptedRefresh); }
+    void goToLastAddress();
 
     /**jsdoc
      * Checks if going back to the previous location is possible.
@@ -526,6 +524,8 @@ private:
     void attemptDomainIDLookup(const QString& lookupString, const QString& overridePath, LookupTrigger trigger);
 
     void addCurrentAddressToHistory(LookupTrigger trigger);
+
+    void resetConfirmConnectWithoutAvatarEntities();
 
     QUrl _domainURL;
     QUrl _lastVisitedURL;
