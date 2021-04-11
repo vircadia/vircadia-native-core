@@ -44,8 +44,8 @@ elseif (APPLE)
 elseif (UNIX)
   ExternalProject_Add(
     ${EXTERNAL_NAME}
-    URL "${EXTERNAL_BUILD_ASSETS}/dependencies/crashpad_linux_ssl_c7d1d2a1.tar.bz2"
-    URL_MD5 f016faf1dea7dcb3af4b2ebffc7586cc
+    URL "${EXTERNAL_BUILD_ASSETS}/dependencies/crashpad_linux_f1943fcb.tar.bz2"
+    URL_MD5 e0949e5988905471c63c399833879482
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
