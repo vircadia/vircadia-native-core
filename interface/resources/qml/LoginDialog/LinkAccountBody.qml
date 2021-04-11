@@ -131,6 +131,9 @@ Item {
         if (!isLoggingInToDomain) {
             var savedUsername = Settings.getValue("keepMeLoggedIn/savedUsername", "");
             emailField.text = keepMeLoggedInCheckbox.checked ? savedUsername === "Unknown user" ? "" : savedUsername : "";
+            
+            var metaverseServer = Settings.getValue("private/selectedMetaverseURL", "");
+            metaverseServerField.text = metaverseServer;
         } else {
             // ####### TODO
         }
@@ -160,7 +163,7 @@ Item {
         Item {
             id: loginContainer
             width: displayNameField.width
-            height: errorContainer.height + loginDialogTextContainer.height + displayNameField.height + emailField.height + passwordField.height + 5.5 * hifi.dimensions.contentSpacing.y +
+            height: errorContainer.height + loginDialogTextContainer.height + displayNameField.height + emailField.height + passwordField.height + metaverseServerField.height + 5.5 * hifi.dimensions.contentSpacing.y +
                 keepMeLoggedInCheckbox.height + loginButton.height + cantAccessTextMetrics.height + continueButton.height
             anchors {
                 top: parent.top
@@ -250,7 +253,7 @@ Item {
                             break;
                         case Qt.Key_Backtab:
                             event.accepted = true;
-                            passwordField.focus = true;
+                            metaverseServerField.focus = true;
                             break;
                         case Qt.Key_Enter:
                         case Qt.Key_Return:
@@ -360,7 +363,7 @@ Item {
                     switch (event.key) {
                         case Qt.Key_Tab:
                             event.accepted = true;
-                            displayNameField.focus = true;
+                            metaverseServerField.focus = true;
                             break;
                         case Qt.Key_Backtab:
                             event.accepted = true;
@@ -386,12 +389,11 @@ Item {
                 }
                 placeholderText: "Metaverse Server (optional)"
                 activeFocusOnPress: true
-                visible: !isLoggingInToDomain
                 Keys.onPressed: {
                     switch (event.key) {
                         case Qt.Key_Tab:
                             event.accepted = true;
-                            emailField.focus = true;
+                            displayNameField.focus = true;
                             break;
                         case Qt.Key_Backtab:
                             event.accepted = true;
