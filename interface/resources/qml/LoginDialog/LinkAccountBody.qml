@@ -74,6 +74,19 @@ Item {
     }
 
     function login() {
+        // make sure the metaverse server is set so we don't send your password to the wrong place!
+        if (!isLoggingInToDomain) {
+            Settings.setValue("private/selectedMetaverseURL", metaverseServerField.text);
+        }
+        
+        if (keepMeLoggedInCheckbox.checked) {
+            if (!isLoggingInToDomain) {
+                Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
+            } else {
+                // ####### TODO
+            }
+        }
+
         if (!isLoggingInToDomain) {
             loginDialog.login(emailField.text, passwordField.text);
         } else {
@@ -242,13 +255,6 @@ Item {
                         case Qt.Key_Enter:
                         case Qt.Key_Return:
                             event.accepted = true;
-                            if (keepMeLoggedInCheckbox.checked) {
-                                if (!isLoggingInToDomain) {
-                                    Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
-                                } else {
-                                    // ####### TODO
-                                }
-                            }
                             linkAccountBody.login();
                             break;
                     }
@@ -285,13 +291,7 @@ Item {
                         case Qt.Key_Enter:
                         case Qt.Key_Return:
                             event.accepted = true;
-                            if (keepMeLoggedInCheckbox.checked) {
-                                if (!isLoggingInToDomain) {
-                                    Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
-                                } else {
-                                    // ####### TODO
-                                }
-                            }
+                            
                             linkAccountBody.login();
                             break;
                     }
@@ -369,15 +369,48 @@ Item {
                         case Qt.Key_Enter:
                         case Qt.Key_Return:
                             event.accepted = true;
-                            if (keepMeLoggedInCheckbox.checked) {
-                                if (!isLoggingInToDomain) {
-                                    Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
-                                } else {
-                                    // ####### TODO
-                                }
+                            linkAccountBody.login();
+                            break;
+                    }
+                }
+            }
+            HifiControlsUit.TextField {
+                id: metaverseServerField
+                width: root.bannerWidth
+                height: linkAccountBody.textFieldHeight
+                font.pixelSize: linkAccountBody.textFieldFontSize
+                styleRenderType: Text.QtRendering
+                anchors {
+                    top: loginDialogTextContainer.bottom
+                    topMargin: 1.5 * hifi.dimensions.contentSpacing.y
+                }
+                placeholderText: "Metaverse Server (optional)"
+                activeFocusOnPress: true
+                visible: !isLoggingInToDomain
+                Keys.onPressed: {
+                    switch (event.key) {
+                        case Qt.Key_Tab:
+                            event.accepted = true;
+                            emailField.focus = true;
+                            break;
+                        case Qt.Key_Backtab:
+                            event.accepted = true;
+                            passwordField.focus = true;
+                            break;
+                        case Qt.Key_Enter:
+                        case Qt.Key_Return:
+                            event.accepted = true;
+                            if (!isLoggingInToDomain) {
+                                Settings.setValue("private/selectedMetaverseURL", metaverseServerField.text);
                             }
                             linkAccountBody.login();
                             break;
+                    }
+                }
+                onFocusChanged: {
+                    root.text = "";
+                    if (focus) {
+                        root.isPassword = false;
                     }
                 }
             }
@@ -714,4 +747,4 @@ Item {
                 break;
         }
     }
-}
+metaverseServerField
