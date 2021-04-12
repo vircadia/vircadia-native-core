@@ -131,8 +131,9 @@ Item {
         if (!isLoggingInToDomain) {
             var savedUsername = Settings.getValue("keepMeLoggedIn/savedUsername", "");
             emailField.text = keepMeLoggedInCheckbox.checked ? savedUsername === "Unknown user" ? "" : savedUsername : "";
-            
+
             var metaverseServer = Settings.getValue("private/selectedMetaverseURL", "");
+            console.log("Saved metaverse server:", metaverseServer);
             metaverseServerField.text = metaverseServer;
         } else {
             // ####### TODO
@@ -384,7 +385,7 @@ Item {
                 font.pixelSize: linkAccountBody.textFieldFontSize
                 styleRenderType: Text.QtRendering
                 anchors {
-                    top: loginDialogTextContainer.bottom
+                    top: passwordField.bottom
                     topMargin: 1.5 * hifi.dimensions.contentSpacing.y
                 }
                 placeholderText: "Metaverse Server (optional)"
@@ -403,6 +404,7 @@ Item {
                         case Qt.Key_Return:
                             event.accepted = true;
                             if (!isLoggingInToDomain) {
+                                console.log("Setting metaverse server to", metaverseServerField.text);
                                 Settings.setValue("private/selectedMetaverseURL", metaverseServerField.text);
                             }
                             linkAccountBody.login();
@@ -426,9 +428,9 @@ Item {
                 color: hifi.colors.white;
                 visible: !isLoggingInToDomain
                 anchors {
-                    top: passwordField.bottom;
+                    top: metaverseServerField.bottom;
                     topMargin: hifi.dimensions.contentSpacing.y;
-                    left: passwordField.left;
+                    left: metaverseServerField.left;
                 }
                 onCheckedChanged: {
                     Settings.setValue("keepMeLoggedIn", checked);
@@ -749,4 +751,4 @@ Item {
                 break;
         }
     }
-metaverseServerField
+}
