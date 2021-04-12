@@ -404,8 +404,10 @@ Item {
                         case Qt.Key_Return:
                             event.accepted = true;
                             if (!isLoggingInToDomain) {
-                                console.log("Setting metaverse server to", metaverseServerField.text);
-                                Settings.setValue("private/selectedMetaverseURL", metaverseServerField.text);
+                                var url = metaverseServerField.text;
+                                console.log("Setting metaverse server to", url);
+                                Settings.setValue("private/selectedMetaverseURL", url);
+                                setAuthURL(url);
                             }
                             linkAccountBody.login();
                             break;

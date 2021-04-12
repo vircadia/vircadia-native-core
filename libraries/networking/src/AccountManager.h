@@ -134,6 +134,7 @@ public slots:
     void logout();
     void generateNewUserKeypair() { generateNewKeypair(); }
     void generateNewDomainKeypair(const QUuid& domainID) { generateNewKeypair(false, domainID); }
+    void setAuthURL(cost QUrl& authURL);
 
 signals:
     void authRequired();
