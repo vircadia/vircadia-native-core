@@ -91,7 +91,7 @@ To create this variable:
 * Set "Variable name" to `HIFI_VCPKG_BOOTSTRAP`
 * Set "Variable value" to `1`
 
-### Step 6. Running CMake to Generate Build Files
+### Step 7. Running CMake to Generate Build Files
 
 Run Command Prompt from Start and run the following commands:  
 `cd "%VIRCADIA_DIR%"`  
@@ -106,7 +106,7 @@ Run `cmake .. -G "Visual Studio 16 2019" -A x64`.
 
 Where `%VIRCADIA_DIR%` is the directory for the Vircadia repository.
 
-### Step 7. Making a Build
+### Step 8. Making a Build
 
 Open `%VIRCADIA_DIR%\build\vircadia.sln` using Visual Studio.
 
@@ -114,7 +114,7 @@ Change the Solution Configuration (menu ribbon under the menu bar, next to the g
 
 Run from the menu bar `Build > Build Solution`.
 
-### Step 8. Testing Interface
+### Step 9. Testing Interface
 
 Create another environment variable (see Step #3)
 * Set "Variable name": `_NO_DEBUG_HEAP`
