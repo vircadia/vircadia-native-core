@@ -55,7 +55,7 @@ Install version 10.15.0 LTS (or greater) of [Node.JS and NPM](<https://nodejs.or
 
 ### Step 5. (Optional) Install Qt
 
-Install version 5.12.3 of [Qt](<https://www.qt.io/download-open-source>), as well as the following packages:
+If you would like to compile Qt instead of using the precompiled package provided during CMake, you can do so now. Install version 5.12.3 of [Qt](<https://www.qt.io/download-open-source>), as well as the following packages:
 * Qt 5.12.3
 * MSVC 2017 64-bit
 * Qt WebEngine
