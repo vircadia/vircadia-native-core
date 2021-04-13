@@ -61,7 +61,7 @@ If you would like to compile Qt instead of using the precompiled package provide
 * Qt WebEngine
 * Qt Script (Deprecated)
 
-You may also want the Qt Debug Information Files and Sources packages, for convenience.
+For convenience, you may also want the "Qt Debug Information" and "Sources" packages.
 
 You'll need to create the environment variable that CMake uses to find your system's Qt install.
 
@@ -70,7 +70,7 @@ To create this variable:
 * Click on 'Environment Variables'
 * Select 'New'
 * Set "Variable name" to `QT_CMAKE_PREFIX_PATH`
-* Set "Variable value" to %QT_INSTALL_DIR%\5.12.3\msvc2017_64\lib\cmake, where %QT_INSTALL_DIR% is the directory you specified for Qt's installation. The default is C:\Qt.
+* Set "Variable value" to `%QT_INSTALL_DIR%\5.12.3\msvc2017_64\lib\cmake`, where `%QT_INSTALL_DIR%` is the directory you specified for Qt's installation. The default is `C:\Qt`.
 
 ### Step 6. Create VCPKG environment variable
 In the next step, you will use CMake to build Vircadia. By default, the CMake process builds dependency files in Windows' `%TEMP%` directory, which is periodically cleared by the operating system. To prevent you from having to re-build the dependencies in the event that Windows clears that directory, we recommend that you create a `HIFI_VCPKG_BASE` environment variable linked to a directory somewhere on your machine. That directory will contain all dependency files until you manually remove them.
