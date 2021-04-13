@@ -76,7 +76,7 @@ To create this variable:
 In the next step, you will use CMake to build Vircadia. By default, the CMake process builds dependency files in Windows' `%TEMP%` directory, which is periodically cleared by the operating system. To prevent you from having to re-build the dependencies in the event that Windows clears that directory, we recommend that you create a `HIFI_VCPKG_BASE` environment variable linked to a directory somewhere on your machine. That directory will contain all dependency files until you manually remove them.
 
 To create this variable:
-* Naviagte to 'Edit the System Environment Variables' Through the start menu.
+* Navigate to 'Edit the System Environment Variables' Through the start menu.
 * Click on 'Environment Variables'
 * Select 'New'
 * Set "Variable name" to `HIFI_VCPKG_BASE`
@@ -85,7 +85,7 @@ To create this variable:
 Additionally, if you have Visual Studio 2019 installed and _only_ Visual Studio 2019 (i.e. you do not have Visual Studio 2017 installed) you must add an additional environment variable `HIFI_VCPKG_BOOTSTRAP` that will fix a bug in our `vcpkg` pre-build step.
 
 To create this variable:
-* Naviagte to 'Edit the System Environment Variables' Through the start menu.
+* Navigate to 'Edit the System Environment Variables' Through the start menu.
 * Click on 'Environment Variables'
 * Select 'New'
 * Set "Variable name" to `HIFI_VCPKG_BOOTSTRAP`
@@ -122,7 +122,7 @@ Create another environment variable (see Step #3)
 
 Restart Visual Studio again.
 
-In Visual Studio, right+click "interface" under the Apps folder in Solution Explorer and select "Set as Startup Project". Run from the menu bar `Debug > Start Debugging`.
+In Visual Studio, right-click "interface" under the Apps folder in Solution Explorer and select "Set as Startup Project". Run from the menu bar `Debug > Start Debugging`.
 
 Now, you should have a full build of Vircadia and be able to run the Interface using Visual Studio.
 
