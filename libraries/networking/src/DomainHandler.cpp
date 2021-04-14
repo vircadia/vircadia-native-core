@@ -126,6 +126,8 @@ void DomainHandler::hardReset(QString reason) {
     emit resetting();
 
     softReset(reason);
+    _haveAskedConnectWithoutAvatarEntities = false;
+    _canConnectWithoutAvatarEntities = false;
     _isInErrorState = false;
     emit redirectErrorStateChanged(_isInErrorState);
 
@@ -364,15 +366,37 @@ void DomainHandler::setIsConnected(bool isConnected) {
             _lastDomainConnectionError = -1;
             emit connectedToDomain(_domainURL);
 
+            // FIXME: Reinstate the requestDomainSettings() call here in version 2021.2.0 instead of having it in 
+            // NodeList::processDomainServerList().
+            /*
             if (_domainURL.scheme() == URL_SCHEME_HIFI && !_domainURL.host().isEmpty()) {
                 // we've connected to new domain - time to ask it for global settings
                 requestDomainSettings();
             }
+            */
 
         } else {
             emit disconnectedFromDomain();
         }
     }
+}
+
+void DomainHandler::setCanConnectWithoutAvatarEntities(bool canConnect) {
+    _canConnectWithoutAvatarEntities = canConnect;
+    _haveAskedConnectWithoutAvatarEntities = true;
+}
+
+bool DomainHandler::canConnectWithoutAvatarEntities() {
+    if (!_canConnectWithoutAvatarEntities && !_haveAskedConnectWithoutAvatarEntities) {
+        if (_isConnected) {
+            // Already connected so don't ask. (Permission removed from user while in the domain.)
+            setCanConnectWithoutAvatarEntities(true);
+        } else {
+            // Ask whether to connect to the domain.
+            emit confirmConnectWithoutAvatarEntities();
+        }
+    }
+    return _canConnectWithoutAvatarEntities;
 }
 
 void DomainHandler::connectedToServerless(std::map<QString, QString> namedPaths) {

@@ -278,6 +278,9 @@ MyAvatar::MyAvatar(QThread* thread) :
     // when we leave a domain we lift whatever restrictions that domain may have placed on our scale
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &MyAvatar::leaveDomain);
 
+    auto nodeList = DependencyManager::get<NodeList>();
+    connect(nodeList.data(), &NodeList::canRezAvatarEntitiesChanged, this, &MyAvatar::handleCanRezAvatarEntitiesChanged);
+
     _bodySensorMatrix = deriveBodyFromHMDSensor();
 
     using namespace recording;
@@ -365,12 +368,20 @@ MyAvatar::MyAvatar(QThread* thread) :
     connect(&(_skeletonModel->getRig()), &Rig::onLoadFailed, this, &MyAvatar::onLoadFailed);
 
     _characterController.setDensity(_density);
+
+    _addAvatarEntitiesToTreeTimer.setSingleShot(true);
+    connect(&_addAvatarEntitiesToTreeTimer, &QTimer::timeout, [this] {
+        addAvatarEntitiesToTree();
+    });
 }
 
 MyAvatar::~MyAvatar() {
     _lookAtTargetAvatar.reset();
     delete _scriptEngine;
     _scriptEngine = nullptr;
+    if (_addAvatarEntitiesToTreeTimer.isActive()) {
+        _addAvatarEntitiesToTreeTimer.stop();
+    }
 }
 
 QString MyAvatar::getDominantHand() const {
@@ -1527,7 +1538,23 @@ void MyAvatar::storeAvatarEntityDataPayload(const QUuid& entityID, const QByteAr
 
 void MyAvatar::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree) {
     // NOTE: the requiresRemovalFromTree argument is unused
-    AvatarData::clearAvatarEntity(entityID);
+
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(interfaceapp) << "Ignoring clearAvatarEntity() because don't have canRezAvatarEntities permission on domain";
+        return;
+    }
+
+    clearAvatarEntityInternal(entityID);
+}
+
+void MyAvatar::clearAvatarEntityInternal(const QUuid& entityID) {
+    AvatarData::clearAvatarEntityInternal(entityID);
+
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        // Don't delete potentially non-rezzed avatar entities from cache, otherwise they're removed from settings.
+        return;
+    }
+
     _avatarEntitiesLock.withWriteLock([&] {
         _cachedAvatarEntityBlobsToDelete.push_back(entityID);
     });
@@ -1558,6 +1585,39 @@ void MyAvatar::sanitizeAvatarEntityProperties(EntityItemProperties& properties) 
     properties.markAllChanged();
 }
 
+void MyAvatar::addAvatarEntitiesToTree() {
+    AvatarEntityMap::const_iterator constItr = _cachedAvatarEntityBlobs.begin();
+    while (constItr != _cachedAvatarEntityBlobs.end()) {
+        QUuid id = constItr.key();
+        _entitiesToAdd.push_back(id);  // worked once: hat shown. then unshown when permissions removed but then entity was deleted somewhere along the line!
+        ++constItr;
+    }
+}
+
+bool MyAvatar::hasAvatarEntities() const {
+    return _cachedAvatarEntityBlobs.count() > 0;
+}
+
+void MyAvatar::handleCanRezAvatarEntitiesChanged(bool canRezAvatarEntities) {
+    if (canRezAvatarEntities) {
+        // Start displaying avatar entities.
+        // Allow time for the avatar mixer to be updated with the user's permissions so that it doesn't discard the avatar 
+        // entities sent. In theory, typical worst case would be Interface running on same PC as server and the timings of
+        // Interface and the avatar mixer sending DomainListRequest to the domain server being such that the avatar sends its
+        // DomainListRequest and gets its DomainList response DOMAIN_SERVER_CHECK_IN_MSECS after Interface does. Allow extra
+        // time in case the avatar mixer is bogged down.
+        _addAvatarEntitiesToTreeTimer.start(5 * DOMAIN_SERVER_CHECK_IN_MSECS);  // Single-shot.
+    } else {
+        // Cancel any pending addAvatarEntitiesToTree() call.
+        if (_addAvatarEntitiesToTreeTimer.isActive()) {
+            _addAvatarEntitiesToTreeTimer.stop();
+        }
+
+        // Stop displaying avatar entities.
+        removeAvatarEntitiesFromTree();
+    }
+}
+
 void MyAvatar::handleChangedAvatarEntityData() {
     // NOTE: this is a per-frame update
     if (getID().isNull() ||
@@ -1576,6 +1636,8 @@ void MyAvatar::handleChangedAvatarEntityData() {
     if (!entityTree) {
         return;
     }
+
+    bool canRezAvatarEntites = DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities();
 
     // We collect changes to AvatarEntities and then handle them all in one spot per frame: handleChangedAvatarEntityData().
     // Basically this is a "transaction pattern" with an extra complication: these changes can come from two
@@ -1663,12 +1725,15 @@ void MyAvatar::handleChangedAvatarEntityData() {
             continue;
         }
         sanitizeAvatarEntityProperties(properties);
-        entityTree->withWriteLock([&] {
-            EntityItemPointer entity = entityTree->addEntity(id, properties);
-            if (entity) {
-                packetSender->queueEditAvatarEntityMessage(entityTree, id);
-            }
-        });
+        if (canRezAvatarEntites) {
+            entityTree->withWriteLock([&] {
+                EntityItemPointer entity = entityTree->addEntity(id, properties);
+                if (entity) {
+                    packetSender->queueEditAvatarEntityMessage(entityTree, id);
+                }
+            });
+        }
+        
     }
 
     // CHANGE real entities
@@ -1686,7 +1751,7 @@ void MyAvatar::handleChangedAvatarEntityData() {
                 skip = true;
             }
         });
-        if (!skip) {
+        if (!skip && canRezAvatarEntites) {
             sanitizeAvatarEntityProperties(properties);
             entityTree->withWriteLock([&] {
                 if (entityTree->updateEntity(id, properties)) {
@@ -1828,6 +1893,11 @@ AvatarEntityMap MyAvatar::getAvatarEntityData() const {
         return data;
     }
 
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(interfaceapp) << "Ignoring getAvatarEntityData() because don't have canRezAvatarEntities permission on domain";
+        return data;
+    }
+
     QList<QUuid> avatarEntityIDs;
     _avatarEntitiesLock.withReadLock([&] {
         avatarEntityIDs = _packedAvatarEntityData.keys();
@@ -1873,6 +1943,12 @@ void MyAvatar::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
     // avatarEntityData is expected to be a map of QByteArrays that represent EntityItemProperties objects from JavaScript,
     // aka: unfortunately-formatted-binary-blobs because we store them in non-human-readable format in Settings.
     //
+
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(interfaceapp) << "Ignoring setAvatarEntityData() because don't have canRezAvatarEntities permission on domain";
+        return;
+    }
+
     if (avatarEntityData.size() > MAX_NUM_AVATAR_ENTITIES) {
         // the data is suspect
         qCDebug(interfaceapp) << "discard suspect AvatarEntityData with size =" << avatarEntityData.size();
@@ -1933,6 +2009,12 @@ void MyAvatar::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
 
 void MyAvatar::updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) {
     // NOTE: this is an invokable Script call
+
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(interfaceapp) << "Ignoring updateAvatarEntity() because don't have canRezAvatarEntities permission on domain";
+        return;
+    }
+
     bool changed = false;
     _avatarEntitiesLock.withWriteLock([&] {
         auto data = QJsonDocument::fromBinaryData(entityData);
@@ -2525,7 +2607,7 @@ void MyAvatar::removeWornAvatarEntity(const EntityItemID& entityID) {
         auto entity = entityTree->findEntityByID(entityID);
         if (entity && isWearableEntity(entity)) {
             treeRenderer->deleteEntity(entityID);
-            clearAvatarEntity(entityID);
+            clearAvatarEntityInternal(entityID);
         }
     }
 }
@@ -2558,6 +2640,13 @@ QVariantList MyAvatar::getAvatarEntitiesVariant() {
     QVariantList avatarEntitiesData;
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+
+    if (entityTree && !DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(interfaceapp)
+            << "Ignoring getAvatarEntitiesVariant() because don't have canRezAvatarEntities permission on domain";
+        return avatarEntitiesData;
+    }
+
     if (entityTree) {
         QList<QUuid> avatarEntityIDs;
         _avatarEntitiesLock.withReadLock([&] {
@@ -2890,6 +2979,11 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName,
         );
         return;
     }
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(interfaceapp) << "Ignoring attach() because don't have canRezAvatarEntities permission on domain";
+        return;
+    }
+
     AttachmentData data;
     data.modelURL = modelURL;
     data.jointName = jointName;
@@ -2911,6 +3005,11 @@ void MyAvatar::detachOne(const QString& modelURL, const QString& jointName) {
         );
         return;
     }
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(interfaceapp) << "Ignoring detachOne() because don't have canRezAvatarEntities permission on domain";
+        return;
+    }
+
     QUuid entityID;
     if (findAvatarEntity(modelURL, jointName, entityID)) {
         DependencyManager::get<EntityScriptingInterface>()->deleteEntity(entityID);
@@ -2926,6 +3025,11 @@ void MyAvatar::detachAll(const QString& modelURL, const QString& jointName) {
         );
         return;
     }
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(interfaceapp) << "Ignoring detachAll() because don't have canRezAvatarEntities permission on domain";
+        return;
+    }
+
     QUuid entityID;
     while (findAvatarEntity(modelURL, jointName, entityID)) {
         DependencyManager::get<EntityScriptingInterface>()->deleteEntity(entityID);
@@ -2939,6 +3043,11 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
             Q_ARG(const QVector<AttachmentData>&, attachmentData));
         return;
     }
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(interfaceapp) << "Ignoring setAttachmentData() because don't have canRezAvatarEntities permission on domain";
+        return;
+    }
+
     std::vector<EntityItemProperties> newEntitiesProperties;
     for (auto& data : attachmentData) {
         QUuid entityID;
@@ -2961,6 +3070,12 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
 
 QVector<AttachmentData> MyAvatar::getAttachmentData() const {    
     QVector<AttachmentData> attachmentData;
+
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(interfaceapp) << "Ignoring getAttachmentData() because don't have canRezAvatarEntities permission on domain";
+        return attachmentData;
+    }
+
     QList<QUuid> avatarEntityIDs;
     _avatarEntitiesLock.withReadLock([&] {
         avatarEntityIDs = _packedAvatarEntityData.keys();
@@ -2975,6 +3090,13 @@ QVector<AttachmentData> MyAvatar::getAttachmentData() const {
 
 QVariantList MyAvatar::getAttachmentsVariant() const {
     QVariantList result;
+
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(interfaceapp)
+            << "Ignoring getAttachmentsVariant() because don't have canRezAvatarEntities permission on domain";
+        return result;
+    }
+
     for (const auto& attachment : getAttachmentData()) {
         result.append(attachment.toVariant());
     }
@@ -2987,6 +3109,13 @@ void MyAvatar::setAttachmentsVariant(const QVariantList& variant) {
             Q_ARG(const QVariantList&, variant));
         return;
     }
+
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(interfaceapp)
+            << "Ignoring setAttachmentsVariant() because don't have canRezAvatarEntities permission on domain";
+        return;
+    }
+
     QVector<AttachmentData> newAttachments;
     newAttachments.reserve(variant.size());
     for (const auto& attachmentVar : variant) {
@@ -4058,7 +4187,8 @@ float MyAvatar::getGravity() {
 void MyAvatar::setSessionUUID(const QUuid& sessionUUID) {
     QUuid oldSessionID = getSessionUUID();
     Avatar::setSessionUUID(sessionUUID);
-    bool sendPackets = !DependencyManager::get<NodeList>()->getSessionUUID().isNull();
+    bool sendPackets = !DependencyManager::get<NodeList>()->getSessionUUID().isNull()
+        && DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities();
     if (!sendPackets) {
         return;
     }

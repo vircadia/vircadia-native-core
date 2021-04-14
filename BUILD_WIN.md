@@ -13,7 +13,7 @@ If you are upgrading from previous versions, do a clean uninstall of those versi
 
 If you don’t have Community or Professional edition of Visual Studio, download [Visual Studio Community 2019](https://visualstudio.microsoft.com/vs/). If you have Visual Studio 2017, you are not required to download Visual Studio 2019.
 
-When selecting components, check "Desktop development with C++". 
+When selecting components, check "Desktop development with C++".
 
 If you do not already have a Python 3.x development environment installed and want to install it with Visual Studio, check "Python Development". If you already have Visual Studio installed and need to add Python, open the "Add or remove programs" control panel and find the "Microsoft Visual Studio Installer". Select it and click "Modify". In the installer, select "Modify" again, then check "Python Development" and allow the installer to apply the changes.
 
@@ -44,7 +44,7 @@ If you do not use an administrator command-line, you will get errors.
 
 ### Step 3. Installing CMake
 
-Download and install the latest version of CMake 3.15. 
+Download and install the latest version of CMake 3.15.
  * Note that earlier versions of CMake will work, but there is a specific bug related to the interaction of Visual Studio 2019 and CMake versions prior to 3.15 that will cause Visual Studio to rebuild far more than it needs to on every build
 
 Download the file named win64-x64 Installer from the [CMake Website](https://cmake.org/download/). You can access the installer on this [3.15 Version page](https://cmake.org/files/v3.15/). During installation, make sure to check "Add CMake to system PATH for all users" when prompted.
@@ -53,26 +53,45 @@ Download the file named win64-x64 Installer from the [CMake Website](https://cma
 
 Install version 10.15.0 LTS (or greater) of [Node.JS and NPM](<https://nodejs.org/en/download/>).
 
-### Step 5. Create VCPKG environment variable
+### Step 5. (Optional) Install Qt
+
+If you would like to compile Qt instead of using the precompiled package provided during CMake, you can do so now. Install version 5.12.3 of [Qt](<https://www.qt.io/download-open-source>), as well as the following packages:
+* Qt 5.12.3
+* MSVC 2017 64-bit
+* Qt WebEngine
+* Qt Script (Deprecated)
+
+For convenience, you may also want the "Qt Debug Information" and "Sources" packages.
+
+You'll need to create the environment variable that CMake uses to find your system's Qt install.
+
+To create this variable:
+* Navigate to 'Edit the System Environment Variables' through the start menu.
+* Click on 'Environment Variables'
+* Select 'New'
+* Set "Variable name" to `QT_CMAKE_PREFIX_PATH`
+* Set "Variable value" to `%QT_INSTALL_DIR%\5.12.3\msvc2017_64\lib\cmake`, where `%QT_INSTALL_DIR%` is the directory you specified for Qt's installation. The default is `C:\Qt`.
+
+### Step 6. Create VCPKG environment variable
 In the next step, you will use CMake to build Vircadia. By default, the CMake process builds dependency files in Windows' `%TEMP%` directory, which is periodically cleared by the operating system. To prevent you from having to re-build the dependencies in the event that Windows clears that directory, we recommend that you create a `HIFI_VCPKG_BASE` environment variable linked to a directory somewhere on your machine. That directory will contain all dependency files until you manually remove them.
 
 To create this variable:
-* Naviagte to 'Edit the System Environment Variables' Through the start menu.
+* Navigate to 'Edit the System Environment Variables' Through the start menu.
 * Click on 'Environment Variables'
-* Select 'New' 
+* Select 'New'
 * Set "Variable name" to `HIFI_VCPKG_BASE`
 * Set "Variable value" to any directory that you have control over.
 
 Additionally, if you have Visual Studio 2019 installed and _only_ Visual Studio 2019 (i.e. you do not have Visual Studio 2017 installed) you must add an additional environment variable `HIFI_VCPKG_BOOTSTRAP` that will fix a bug in our `vcpkg` pre-build step.
 
 To create this variable:
-* Naviagte to 'Edit the System Environment Variables' Through the start menu.
+* Navigate to 'Edit the System Environment Variables' Through the start menu.
 * Click on 'Environment Variables'
-* Select 'New' 
+* Select 'New'
 * Set "Variable name" to `HIFI_VCPKG_BOOTSTRAP`
 * Set "Variable value" to `1`
 
-### Step 6. Running CMake to Generate Build Files
+### Step 7. Running CMake to Generate Build Files
 
 Run Command Prompt from Start and run the following commands:  
 `cd "%VIRCADIA_DIR%"`  
@@ -87,7 +106,7 @@ Run `cmake .. -G "Visual Studio 16 2019" -A x64`.
 
 Where `%VIRCADIA_DIR%` is the directory for the Vircadia repository.
 
-### Step 7. Making a Build
+### Step 8. Making a Build
 
 Open `%VIRCADIA_DIR%\build\vircadia.sln` using Visual Studio.
 
@@ -95,7 +114,7 @@ Change the Solution Configuration (menu ribbon under the menu bar, next to the g
 
 Run from the menu bar `Build > Build Solution`.
 
-### Step 8. Testing Interface
+### Step 9. Testing Interface
 
 Create another environment variable (see Step #3)
 * Set "Variable name": `_NO_DEBUG_HEAP`
@@ -103,7 +122,7 @@ Create another environment variable (see Step #3)
 
 Restart Visual Studio again.
 
-In Visual Studio, right+click "interface" under the Apps folder in Solution Explorer and select "Set as Startup Project". Run from the menu bar `Debug > Start Debugging`.
+In Visual Studio, right-click "interface" under the Apps folder in Solution Explorer and select "Set as Startup Project". Run from the menu bar `Debug > Start Debugging`.
 
 Now, you should have a full build of Vircadia and be able to run the Interface using Visual Studio.
 

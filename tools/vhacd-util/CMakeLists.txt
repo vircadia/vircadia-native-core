@@ -7,6 +7,7 @@ include_hifi_library_headers(image)
 target_vhacd()
 
 setup_memory_debugger()
+setup_thread_debugger()
 
 if (WIN32)
   package_libraries_for_deployment()

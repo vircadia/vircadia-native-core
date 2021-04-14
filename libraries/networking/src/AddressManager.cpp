@@ -415,6 +415,8 @@ void AddressManager::handleLookupString(const QString& lookupString, bool fromSu
 
     QString sanitizedString = lookupString.trimmed();
     if (!sanitizedString.isEmpty()) {
+        resetConfirmConnectWithoutAvatarEntities();
+
         // make this a valid hifi URL and handle it off to handleUrl
         handleUrl(sanitizedString, fromSuggestions ? Suggestions : UserInput);
     }
@@ -874,6 +876,11 @@ bool AddressManager::setDomainInfo(const QUrl& domainURL, LookupTrigger trigger)
     return emitHostChanged;
 }
 
+void AddressManager::goToEntry(LookupTrigger trigger) {
+    resetConfirmConnectWithoutAvatarEntities();
+    handleUrl(DEFAULT_VIRCADIA_ADDRESS, trigger);
+}
+
 void AddressManager::goToUser(const QString& username, bool shouldMatchOrientation) {
     QString formattedUsername = QUrl::toPercentEncoding(username);
 
@@ -888,6 +895,11 @@ void AddressManager::goToUser(const QString& username, bool shouldMatchOrientati
                                               QNetworkAccessManager::GetOperation,
                                               apiCallbackParameters(),
                                               QByteArray(), nullptr, requestParams);
+}
+
+void AddressManager::goToLastAddress() {
+    resetConfirmConnectWithoutAvatarEntities();
+    handleUrl(_lastVisitedURL, LookupTrigger::AttemptedRefresh);
 }
 
 bool AddressManager::canGoBack() const {
@@ -1023,4 +1035,11 @@ QString AddressManager::getPlaceName() const {
         return _domainURL.host();
     }
     return QString();
+}
+
+void AddressManager::resetConfirmConnectWithoutAvatarEntities() {
+    DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
+    if (!domainHandler.isConnected()) {
+        domainHandler.resetConfirmConnectWithoutAvatarEntities();
+    }
 }

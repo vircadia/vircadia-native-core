@@ -528,6 +528,28 @@ void DomainServerSettingsManager::setupConfigMap(const QString& userConfigFilena
             *newAdminRoles = adminRoles;
         }
 
+        if (oldVersion < 2.5) {
+            // Default values for new canRezAvatarEntities permission.
+            unpackPermissions();
+            std::list<std::unordered_map<NodePermissionsKey, NodePermissionsPointer>> permissionsSets{
+                _standardAgentPermissions.get(),
+                _agentPermissions.get(),
+                _ipPermissions.get(),
+                _macPermissions.get(),
+                _machineFingerprintPermissions.get(),
+                _groupPermissions.get(),
+                _groupForbiddens.get()
+            };
+            foreach (auto permissionsSet, permissionsSets) {
+                for (auto entry : permissionsSet) {
+                    const auto& userKey = entry.first;
+                    if (permissionsSet[userKey]->can(NodePermissions::Permission::canConnectToDomain)) {
+                        permissionsSet[userKey]->set(NodePermissions::Permission::canRezAvatarEntities);
+                    }
+                }
+            }
+            packPermissions();
+        }
 
         // write the current description version to our settings
         *versionVariant = _descriptionVersion;
@@ -1469,6 +1491,8 @@ QJsonObject DomainServerSettingsManager::settingsResponseObjectForType(const QSt
                                                                        DefaultSettingsInclusion defaultSettingsInclusion,
                                                                        SettingsBackupFlag settingsBackupFlag) {
     QJsonObject responseObject;
+
+    responseObject["version"] = _descriptionVersion;  // Domain settings version number.
 
     if (!typeValue.isEmpty() || authentication == Authenticated) {
         // convert the string type value to a QJsonValue
