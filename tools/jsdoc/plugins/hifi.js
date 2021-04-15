@@ -44,7 +44,7 @@ exports.handlers = {
             '../../libraries/controllers/src/controllers/impl/',
             '../../libraries/display-plugins/src/display-plugins/',
             '../../libraries/entities/src',
-            '../../libraries/fbx/src',
+            '../../libraries/model-serializers/src',
             '../../libraries/graphics/src/graphics/',
             '../../libraries/graphics-scripting/src/graphics-scripting/',
             '../../libraries/image/src/image',
