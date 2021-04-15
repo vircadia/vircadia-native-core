@@ -527,7 +527,7 @@ struct GLTFAccessor {
     int componentType; //required
     int count; //required
     int type; //required
-    bool normalized{ false };
+    bool normalized { false };
     QVector<double> max;
     QVector<double> min;
     GLTFAccessorSparse sparse;
@@ -832,11 +832,11 @@ private:
 
     template<typename T, typename L>
     bool readArray(const hifi::ByteArray& bin, int byteOffset, int count,
-                   QVector<L>& outarray, int accessorType);
+                   QVector<L>& outarray, int accessorType, bool normalized);
 
     template<typename T>
     bool addArrayOfType(const hifi::ByteArray& bin, int byteOffset, int count,
-                        QVector<T>& outarray, int accessorType, int componentType);
+                        QVector<T>& outarray, int accessorType, int componentType, bool normalized);
 
     template <typename T>
     bool addArrayFromAccessor(GLTFAccessor& accessor, QVector<T>& outarray);
