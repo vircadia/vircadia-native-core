@@ -1,6 +1,6 @@
 //
 //  GLTFSerializer.h
-//  libraries/fbx/src
+//  libraries/model-serializers/src
 //
 //  Created by Luis Cuenca on 8/30/17.
 //  Copyright 2017 High Fidelity, Inc.
@@ -343,7 +343,7 @@ struct GLTFCamera {
     QString name;
     GLTFCameraPerspective perspective;  //required (or)
     GLTFCameraOrthographic orthographic;  //required (or)
-    int type; 
+    int type;
     QMap<QString, bool> defined;
     void dump() {
         if (defined["name"]) {
@@ -519,7 +519,7 @@ struct GLTFAccessor {
 
         QMap<QString, bool> defined;
         void dump() {
-        
+
         }
     };
     int bufferView;
@@ -527,7 +527,7 @@ struct GLTFAccessor {
     int componentType; //required
     int count; //required
     int type; //required
-    bool normalized { false };
+    bool normalized{ false };
     QVector<double> max;
     QVector<double> min;
     GLTFAccessorSparse sparse;
@@ -778,26 +778,26 @@ private:
 
     bool buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& mapping, const hifi::URL& url);
     bool parseGLTF(const hifi::ByteArray& data);
-    
-    bool getStringVal(const QJsonObject& object, const QString& fieldname, 
+
+    bool getStringVal(const QJsonObject& object, const QString& fieldname,
                       QString& value, QMap<QString, bool>&  defined);
-    bool getBoolVal(const QJsonObject& object, const QString& fieldname, 
+    bool getBoolVal(const QJsonObject& object, const QString& fieldname,
                     bool& value, QMap<QString, bool>&  defined);
-    bool getIntVal(const QJsonObject& object, const QString& fieldname, 
+    bool getIntVal(const QJsonObject& object, const QString& fieldname,
                    int& value, QMap<QString, bool>&  defined);
-    bool getDoubleVal(const QJsonObject& object, const QString& fieldname, 
+    bool getDoubleVal(const QJsonObject& object, const QString& fieldname,
                       double& value, QMap<QString, bool>&  defined);
-    bool getObjectVal(const QJsonObject& object, const QString& fieldname, 
+    bool getObjectVal(const QJsonObject& object, const QString& fieldname,
                       QJsonObject& value, QMap<QString, bool>&  defined);
-    bool getIntArrayVal(const QJsonObject& object, const QString& fieldname, 
+    bool getIntArrayVal(const QJsonObject& object, const QString& fieldname,
                         QVector<int>& values, QMap<QString, bool>&  defined);
-    bool getDoubleArrayVal(const QJsonObject& object, const QString& fieldname, 
+    bool getDoubleArrayVal(const QJsonObject& object, const QString& fieldname,
                            QVector<double>& values, QMap<QString, bool>&  defined);
-    bool getObjectArrayVal(const QJsonObject& object, const QString& fieldname, 
+    bool getObjectArrayVal(const QJsonObject& object, const QString& fieldname,
                            QJsonArray& objects, QMap<QString, bool>& defined);
 
     hifi::ByteArray setGLBChunks(const hifi::ByteArray& data);
-    
+
     graphics::MaterialKey::OpacityMapMode getMaterialAlphaMode(const QString& type);
     int getAccessorType(const QString& type);
     int getAnimationSamplerInterpolation(const QString& interpolation);
@@ -805,7 +805,7 @@ private:
     int getImageMimeType(const QString& mime);
     int getMeshPrimitiveRenderingMode(const QString& type);
 
-    bool getIndexFromObject(const QJsonObject& object, const QString& field, 
+    bool getIndexFromObject(const QJsonObject& object, const QString& field,
                             int& outidx, QMap<QString, bool>& defined);
 
     bool setAsset(const QJsonObject& object);
@@ -832,17 +832,17 @@ private:
 
     template<typename T, typename L>
     bool readArray(const hifi::ByteArray& bin, int byteOffset, int count,
-                   QVector<L>& outarray, int accessorType, bool normalized);
+                   QVector<L>& outarray, int accessorType);
 
     template<typename T>
     bool addArrayOfType(const hifi::ByteArray& bin, int byteOffset, int count,
-                        QVector<T>& outarray, int accessorType, int componentType, bool normalized);
+                        QVector<T>& outarray, int accessorType, int componentType);
 
     template <typename T>
     bool addArrayFromAccessor(GLTFAccessor& accessor, QVector<T>& outarray);
 
-    void retriangulate(const QVector<int>& in_indices, const QVector<glm::vec3>& in_vertices, 
-                       const QVector<glm::vec3>& in_normals, QVector<int>& out_indices, 
+    void retriangulate(const QVector<int>& in_indices, const QVector<glm::vec3>& in_vertices,
+                       const QVector<glm::vec3>& in_normals, QVector<int>& out_indices,
                        QVector<glm::vec3>& out_vertices, QVector<glm::vec3>& out_normals);
 
     std::tuple<bool, hifi::ByteArray> requestData(hifi::URL& url);

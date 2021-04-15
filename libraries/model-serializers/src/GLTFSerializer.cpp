@@ -1,6 +1,6 @@
 //
 //  GLTFSerializer.cpp
-//  libraries/fbx/src
+//  libraries/model-serializers/src
 //
 //  Created by Luis Cuenca on 8/30/17.
 //  Copyright 2017 High Fidelity, Inc.
@@ -148,7 +148,7 @@ bool GLTFSerializer::getObjectArrayVal(const QJsonObject& object, const QString&
 }
 
 hifi::ByteArray GLTFSerializer::setGLBChunks(const hifi::ByteArray& data) {
-    int byte = 4; 
+    int byte = 4;
     int jsonStart = data.indexOf("JSON", Qt::CaseSensitive);
     int binStart = data.indexOf("BIN", Qt::CaseSensitive);
     int jsonLength, binLength;
@@ -271,7 +271,7 @@ bool GLTFSerializer::setAsset(const QJsonObject& object) {
     QJsonObject jsAsset;
     bool isAssetDefined = getObjectVal(object, "asset", jsAsset, _file.defined);
     if (isAssetDefined) {
-        if (!getStringVal(jsAsset, "version", _file.asset.version, 
+        if (!getStringVal(jsAsset, "version", _file.asset.version,
                           _file.asset.defined) || _file.asset.version != "2.0") {
             return false;
         }
@@ -318,7 +318,7 @@ GLTFAccessor::GLTFAccessorSparse GLTFSerializer::createAccessorSparse(const QJso
 
 bool GLTFSerializer::addAccessor(const QJsonObject& object) {
     GLTFAccessor accessor;
-    
+
     getIntVal(object, "bufferView", accessor.bufferView, accessor.defined);
     getIntVal(object, "byteOffset", accessor.byteOffset, accessor.defined);
     getIntVal(object, "componentType", accessor.componentType, accessor.defined);
@@ -344,7 +344,7 @@ bool GLTFSerializer::addAccessor(const QJsonObject& object) {
 
 bool GLTFSerializer::addAnimation(const QJsonObject& object) {
     GLTFAnimation animation;
-    
+
     QJsonArray channels;
     if (getObjectArrayVal(object, "channels", channels, animation.defined)) {
         foreach(const QJsonValue & v, channels) {
@@ -355,7 +355,7 @@ bool GLTFSerializer::addAnimation(const QJsonObject& object) {
                 if (getObjectVal(v.toObject(), "target", jsChannel, channel.defined)) {
                     getIntVal(jsChannel, "node", channel.target.node, channel.target.defined);
                     getIntVal(jsChannel, "path", channel.target.path, channel.target.defined);
-                }             
+                }
             }
         }
     }
@@ -374,7 +374,7 @@ bool GLTFSerializer::addAnimation(const QJsonObject& object) {
             }
         }
     }
-    
+
     _file.animations.push_back(animation);
 
     return true;
@@ -382,20 +382,20 @@ bool GLTFSerializer::addAnimation(const QJsonObject& object) {
 
 bool GLTFSerializer::addBufferView(const QJsonObject& object) {
     GLTFBufferView bufferview;
-    
+
     getIntVal(object, "buffer", bufferview.buffer, bufferview.defined);
     getIntVal(object, "byteLength", bufferview.byteLength, bufferview.defined);
     getIntVal(object, "byteOffset", bufferview.byteOffset, bufferview.defined);
     getIntVal(object, "target", bufferview.target, bufferview.defined);
-    
+
     _file.bufferviews.push_back(bufferview);
-   
+
     return true;
 }
 
 bool GLTFSerializer::addBuffer(const QJsonObject& object) {
     GLTFBuffer buffer;
-   
+
     getIntVal(object, "byteLength", buffer.byteLength, buffer.defined);
 
     if (_url.path().endsWith("glb")) {
@@ -411,13 +411,13 @@ bool GLTFSerializer::addBuffer(const QJsonObject& object) {
         }
     }
     _file.buffers.push_back(buffer);
-    
+
     return true;
 }
 
 bool GLTFSerializer::addCamera(const QJsonObject& object) {
     GLTFCamera camera;
-    
+
     QJsonObject jsPerspective;
     QJsonObject jsOrthographic;
     QString type;
@@ -437,15 +437,15 @@ bool GLTFSerializer::addCamera(const QJsonObject& object) {
     } else if (getStringVal(object, "type", type, camera.defined)) {
         camera.type = getCameraType(type);
     }
-    
+
     _file.cameras.push_back(camera);
-    
+
     return true;
 }
 
 bool GLTFSerializer::addImage(const QJsonObject& object) {
     GLTFImage image;
-    
+
     QString mime;
     getStringVal(object, "uri", image.uri, image.defined);
     if (image.uri.contains("data:image/png;base64,")) {
@@ -455,9 +455,9 @@ bool GLTFSerializer::addImage(const QJsonObject& object) {
     }
     if (getStringVal(object, "mimeType", mime, image.defined)) {
         image.mimeType = getImageMimeType(mime);
-    } 
+    }
     getIntVal(object, "bufferView", image.bufferView, image.defined);
-    
+
     _file.images.push_back(image);
 
     return true;
@@ -489,20 +489,20 @@ bool GLTFSerializer::addMaterial(const QJsonObject& object) {
     getDoubleVal(object, "alphaCutoff", material.alphaCutoff, material.defined);
     QJsonObject jsMetallicRoughness;
     if (getObjectVal(object, "pbrMetallicRoughness", jsMetallicRoughness, material.defined)) {
-        getDoubleArrayVal(jsMetallicRoughness, "baseColorFactor", 
-                          material.pbrMetallicRoughness.baseColorFactor, 
+        getDoubleArrayVal(jsMetallicRoughness, "baseColorFactor",
+                          material.pbrMetallicRoughness.baseColorFactor,
                           material.pbrMetallicRoughness.defined);
-        getIndexFromObject(jsMetallicRoughness, "baseColorTexture", 
-                           material.pbrMetallicRoughness.baseColorTexture, 
+        getIndexFromObject(jsMetallicRoughness, "baseColorTexture",
+                           material.pbrMetallicRoughness.baseColorTexture,
                            material.pbrMetallicRoughness.defined);
-        getDoubleVal(jsMetallicRoughness, "metallicFactor", 
-                     material.pbrMetallicRoughness.metallicFactor, 
+        getDoubleVal(jsMetallicRoughness, "metallicFactor",
+                     material.pbrMetallicRoughness.metallicFactor,
                      material.pbrMetallicRoughness.defined);
-        getDoubleVal(jsMetallicRoughness, "roughnessFactor", 
-                     material.pbrMetallicRoughness.roughnessFactor, 
+        getDoubleVal(jsMetallicRoughness, "roughnessFactor",
+                     material.pbrMetallicRoughness.roughnessFactor,
                      material.pbrMetallicRoughness.defined);
-        getIndexFromObject(jsMetallicRoughness, "metallicRoughnessTexture", 
-                           material.pbrMetallicRoughness.metallicRoughnessTexture, 
+        getIndexFromObject(jsMetallicRoughness, "metallicRoughnessTexture",
+                           material.pbrMetallicRoughness.metallicRoughnessTexture,
                            material.pbrMetallicRoughness.defined);
     }
    _file.materials.push_back(material);
@@ -524,7 +524,7 @@ bool GLTFSerializer::addMesh(const QJsonObject& object) {
                 getIntVal(jsPrimitive, "mode", primitive.mode, primitive.defined);
                 getIntVal(jsPrimitive, "indices", primitive.indices, primitive.defined);
                 getIntVal(jsPrimitive, "material", primitive.material, primitive.defined);
-                
+
                 QJsonObject jsAttributes;
                 if (getObjectVal(jsPrimitive, "attributes", jsAttributes, primitive.defined)) {
                     QStringList attrKeys = jsAttributes.keys();
@@ -550,7 +550,7 @@ bool GLTFSerializer::addMesh(const QJsonObject& object) {
                             primitive.targets.push_back(target);
                         }
                     }
-                }                
+                }
                 mesh.primitives.push_back(primitive);
             }
         }
@@ -561,8 +561,8 @@ bool GLTFSerializer::addMesh(const QJsonObject& object) {
     if (getObjectVal(object, "extras", jsExtras, mesh.defined)) {
         QJsonArray jsTargetNames;
         if (getObjectArrayVal(jsExtras, "targetNames", jsTargetNames, extras.defined)) {
-            foreach (const QJsonValue& tarName, jsTargetNames) { 
-                extras.targetNames.push_back(tarName.toString()); 
+            foreach (const QJsonValue& tarName, jsTargetNames) {
+                extras.targetNames.push_back(tarName.toString());
             }
         }
         mesh.extras = extras;
@@ -575,7 +575,7 @@ bool GLTFSerializer::addMesh(const QJsonObject& object) {
 
 bool GLTFSerializer::addNode(const QJsonObject& object) {
     GLTFNode node;
-    
+
     getStringVal(object, "name", node.name, node.defined);
     getIntVal(object, "camera", node.camera, node.defined);
     getIntVal(object, "mesh", node.mesh, node.defined);
@@ -630,10 +630,10 @@ bool GLTFSerializer::addSkin(const QJsonObject& object) {
 }
 
 bool GLTFSerializer::addTexture(const QJsonObject& object) {
-    GLTFTexture texture; 
+    GLTFTexture texture;
     getIntVal(object, "sampler", texture.sampler, texture.defined);
     getIntVal(object, "source", texture.source, texture.defined);
-    
+
     _file.textures.push_back(texture);
 
     return true;
@@ -646,8 +646,8 @@ bool GLTFSerializer::parseGLTF(const hifi::ByteArray& data) {
 
     if (_url.path().endsWith("glb") && data.indexOf("glTF") == 0 && data.contains("JSON")) {
         jsonChunk = setGLBChunks(data);
-    }    
-   
+    }
+
     QJsonDocument d = QJsonDocument::fromJson(jsonChunk);
     QJsonObject jsFile = d.object();
 
@@ -769,7 +769,7 @@ bool GLTFSerializer::parseGLTF(const hifi::ByteArray& data) {
                 }
             }
         }
-    } 
+    }
     return success;
 }
 
@@ -789,13 +789,13 @@ glm::mat4 GLTFSerializer::getModelTransform(const GLTFNode& node) {
             s = glm::scale(s, scale);
             tmat = s * tmat;
         }
-        
+
         if (node.defined["rotation"] && node.rotation.size() == 4) {
             //quat(x,y,z,w) to quat(w,x,y,z)
             glm::quat rotquat = glm::quat(node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]);
             tmat = glm::mat4_cast(rotquat) * tmat;
         }
-        
+
         if (node.defined["translation"] && node.translation.size() == 3) {
             glm::vec3 trans = glm::vec3(node.translation[0], node.translation[1], node.translation[2]);
             glm::mat4 t = glm::mat4(1.0);
@@ -842,7 +842,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         sortedNodes.push_back(nodecount);
         ++nodecount;
     }
-    
+
 
     // Build transforms
     nodecount = 0;
@@ -965,8 +965,8 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     std::vector<float>& value = inverseBindValues[s];
                     int matrixCount = 16 * matrixIndex;
                     jointInverseBindTransforms[jointIndex] =
-                        glm::mat4(value[matrixCount], value[matrixCount + 1], value[matrixCount + 2], value[matrixCount + 3], 
-                            value[matrixCount + 4], value[matrixCount + 5], value[matrixCount + 6], value[matrixCount + 7], 
+                        glm::mat4(value[matrixCount], value[matrixCount + 1], value[matrixCount + 2], value[matrixCount + 3],
+                            value[matrixCount + 4], value[matrixCount + 5], value[matrixCount + 6], value[matrixCount + 7],
                             value[matrixCount + 8], value[matrixCount + 9], value[matrixCount + 10], value[matrixCount + 11],
                             value[matrixCount + 12], value[matrixCount + 13], value[matrixCount + 14], value[matrixCount + 15]);
                 } else {
@@ -1008,7 +1008,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         setHFMMaterial(hfmMaterial, _file.materials[i]);
     }
 
-    
+
     // Build meshes
     nodecount = 0;
     hfmModel.meshExtents.reset();
@@ -1061,7 +1061,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     qWarning(modelformat) << "Indices accessor index is out of bounds for model " << _url;
                     continue;
                 }
-                
+
                 GLTFAccessor& indicesAccessor = _file.accessors[indicesAccessorIdx];
 
                 // Buffers
@@ -1561,7 +1561,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                             // Use blendshape from mapping.
                             foreach(const QVariant& mapping, mappings) {
                                 auto blendshapeMapping = mapping.toList();
-                                blendshapeIndices.insert(blendshapeMapping.at(0).toString(), 
+                                blendshapeIndices.insert(blendshapeMapping.at(0).toString(),
                                     WeightedIndex(i, blendshapeMapping.at(1).toFloat()));
                             }
                         } else {
@@ -1627,7 +1627,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     glm::vec3 transformedVertex = glm::vec3(globalTransforms[nodeIndex] * glm::vec4(vertex, 1.0f));
                     mesh.meshExtents.addPoint(transformedVertex);
                     hfmModel.meshExtents.addPoint(transformedVertex);
-                }               
+                }
             }
 
             // Mesh extents must be at least a minimum size, in particular for blendshapes to work on planar meshes.
@@ -1664,7 +1664,7 @@ std::unique_ptr<hfm::Serializer::Factory> GLTFSerializer::getFactory() const {
 HFMModel::Pointer GLTFSerializer::read(const hifi::ByteArray& data, const hifi::VariantHash& mapping, const hifi::URL& url) {
 
     _url = url;
-    
+
     // Normalize url for local files
     hifi::URL normalizeUrl = DependencyManager::get<ResourceManager>()->normalizeURL(_url);
     if (normalizeUrl.scheme().isEmpty() || (normalizeUrl.scheme() == "file")) {
@@ -1699,7 +1699,7 @@ bool GLTFSerializer::readBinary(const QString& url, hifi::ByteArray& outdata) {
         hifi::URL binaryUrl = _url.resolved(url);
         std::tie<bool, hifi::ByteArray>(success, outdata) = requestData(binaryUrl);
     }
-    
+
     return success;
 }
 
@@ -1732,7 +1732,7 @@ std::tuple<bool, hifi::ByteArray> GLTFSerializer::requestData(hifi::URL& url) {
 }
 
 hifi::ByteArray GLTFSerializer::requestEmbeddedData(const QString& url) {
-    QString binaryUrl = url.split(",")[1]; 
+    QString binaryUrl = url.split(",")[1];
     return binaryUrl.isEmpty() ? hifi::ByteArray() : QByteArray::fromBase64(binaryUrl.toUtf8());
 }
 
@@ -1764,7 +1764,7 @@ QNetworkReply* GLTFSerializer::request(hifi::URL& url, bool isTest) {
 HFMTexture GLTFSerializer::getHFMTexture(const GLTFTexture& texture) {
     HFMTexture fbxtex = HFMTexture();
     fbxtex.texcoordSet = 0;
-  
+
     if (texture.defined["source"]) {
         QString url = _file.images[texture.source].uri;
 
@@ -1775,7 +1775,7 @@ HFMTexture GLTFSerializer::getHFMTexture(const GLTFTexture& texture) {
 
         if (_url.path().endsWith("glb") && !_glbBinary.isEmpty()) {
             int bufferView = _file.images[texture.source].bufferView;
-       
+
             GLTFBufferView& imagesBufferview = _file.bufferviews[bufferView];
             int offset = imagesBufferview.byteOffset;
             int length = imagesBufferview.byteLength;
@@ -1785,7 +1785,7 @@ HFMTexture GLTFSerializer::getHFMTexture(const GLTFTexture& texture) {
         }
 
         if (url.contains("data:image/jpeg;base64,") || url.contains("data:image/png;base64,")) {
-            fbxtex.content = requestEmbeddedData(url); 
+            fbxtex.content = requestEmbeddedData(url);
         }
     }
     return fbxtex;
@@ -1815,12 +1815,12 @@ void GLTFSerializer::setHFMMaterial(HFMMaterial& hfmMat, const GLTFMaterial& mat
         hfmMat.emissiveTexture = getHFMTexture(_file.textures[material.emissiveTexture]);
         hfmMat.useEmissiveMap = true;
     }
-    
+
     if (material.defined["normalTexture"]) {
         hfmMat.normalTexture = getHFMTexture(_file.textures[material.normalTexture]);
         hfmMat.useNormalMap = true;
     }
-    
+
     if (material.defined["occlusionTexture"]) {
         hfmMat.occlusionTexture = getHFMTexture(_file.textures[material.occlusionTexture]);
         hfmMat.useOcclusionMap = true;
@@ -1848,7 +1848,7 @@ void GLTFSerializer::setHFMMaterial(HFMMaterial& hfmMat, const GLTFMaterial& mat
         if (material.pbrMetallicRoughness.defined["roughnessFactor"]) {
             hfmMat._material->setRoughness(material.pbrMetallicRoughness.roughnessFactor);
         }
-        if (material.pbrMetallicRoughness.defined["baseColorFactor"] && 
+        if (material.pbrMetallicRoughness.defined["baseColorFactor"] &&
             material.pbrMetallicRoughness.baseColorFactor.size() == 4) {
             glm::vec3 dcolor =
                 glm::vec3(material.pbrMetallicRoughness.baseColorFactor[0], material.pbrMetallicRoughness.baseColorFactor[1],
@@ -1863,8 +1863,8 @@ void GLTFSerializer::setHFMMaterial(HFMMaterial& hfmMat, const GLTFMaterial& mat
 
 template<typename T, typename L>
 bool GLTFSerializer::readArray(const hifi::ByteArray& bin, int byteOffset, int count,
-                           QVector<L>& outarray, int accessorType, bool normalized) {
-    
+                           QVector<L>& outarray, int accessorType) {
+
     QDataStream blobstream(bin);
     blobstream.setByteOrder(QDataStream::LittleEndian);
     blobstream.setVersion(QDataStream::Qt_5_9);
@@ -1899,22 +1899,12 @@ bool GLTFSerializer::readArray(const hifi::ByteArray& bin, int byteOffset, int c
         blobstream.setDevice(nullptr);
         return false;
     }
-
-    float scale = 1.0f;  // Normalized output values should always be floats.
-    if (normalized) {
-        scale = (float)(std::numeric_limits<T>::max)();
-    }
-    
     for (int i = 0; i < count; ++i) {
         for (int j = 0; j < bufferCount; ++j) {
             if (!blobstream.atEnd()) {
                 T value;
                 blobstream >> value;
-                if (normalized) {
-                    outarray.push_back(std::max((float)value / scale, -1.0f));
-                } else {
-                    outarray.push_back(value);
-                }
+                outarray.push_back(value);
             } else {
                 blobstream.setDevice(nullptr);
                 return false;
@@ -1927,24 +1917,24 @@ bool GLTFSerializer::readArray(const hifi::ByteArray& bin, int byteOffset, int c
 }
 template<typename T>
 bool GLTFSerializer::addArrayOfType(const hifi::ByteArray& bin, int byteOffset, int count,
-                                QVector<T>& outarray, int accessorType, int componentType, bool normalized) {
-    
+                                QVector<T>& outarray, int accessorType, int componentType) {
+
     switch (componentType) {
     case GLTFAccessorComponentType::BYTE: {}
     case GLTFAccessorComponentType::UNSIGNED_BYTE: {
-        return readArray<uchar>(bin, byteOffset, count, outarray, accessorType, normalized);
+        return readArray<uchar>(bin, byteOffset, count, outarray, accessorType);
     }
     case GLTFAccessorComponentType::SHORT: {
-        return readArray<short>(bin, byteOffset, count, outarray, accessorType, normalized);
+        return readArray<short>(bin, byteOffset, count, outarray, accessorType);
     }
     case GLTFAccessorComponentType::UNSIGNED_INT: {
-        return readArray<uint>(bin, byteOffset, count, outarray, accessorType, normalized);
+        return readArray<uint>(bin, byteOffset, count, outarray, accessorType);
     }
     case GLTFAccessorComponentType::UNSIGNED_SHORT: {
-        return readArray<ushort>(bin, byteOffset, count, outarray, accessorType, normalized);
+        return readArray<ushort>(bin, byteOffset, count, outarray, accessorType);
     }
     case GLTFAccessorComponentType::FLOAT: {
-        return readArray<float>(bin, byteOffset, count, outarray, accessorType, normalized);
+        return readArray<float>(bin, byteOffset, count, outarray, accessorType);
     }
     }
     return false;
@@ -1961,11 +1951,11 @@ bool GLTFSerializer::addArrayFromAccessor(GLTFAccessor& accessor, QVector<T>& ou
         int accBoffset = accessor.defined["byteOffset"] ? accessor.byteOffset : 0;
 
         success = addArrayOfType(buffer.blob, bufferview.byteOffset + accBoffset, accessor.count, outarray, accessor.type,
-                                 accessor.componentType, accessor.normalized);
+                                 accessor.componentType);
     } else {
         for (int i = 0; i < accessor.count; ++i) {
             T value;
-            memset(&value, 0, sizeof(T));  // Make sure the dummy array is initialized to zero.
+            memset(&value, 0, sizeof(T));  // Make sure the dummy array is initalised to zero.
             outarray.push_back(value);
         }
     }
@@ -1981,7 +1971,7 @@ bool GLTFSerializer::addArrayFromAccessor(GLTFAccessor& accessor, QVector<T>& ou
 
             success = addArrayOfType(sparseIndicesBuffer.blob, sparseIndicesBufferview.byteOffset + accSIBoffset,
                                      accessor.sparse.count, out_sparse_indices_array, GLTFAccessorType::SCALAR,
-                                     accessor.sparse.indices.componentType, false);
+                                     accessor.sparse.indices.componentType);
             if (success) {
                 QVector<T> out_sparse_values_array;
 
@@ -1991,12 +1981,11 @@ bool GLTFSerializer::addArrayFromAccessor(GLTFAccessor& accessor, QVector<T>& ou
                 int accSVBoffset = accessor.sparse.values.defined["byteOffset"] ? accessor.sparse.values.byteOffset : 0;
 
                 success = addArrayOfType(sparseValuesBuffer.blob, sparseValuesBufferview.byteOffset + accSVBoffset,
-                                         accessor.sparse.count, out_sparse_values_array, accessor.type, accessor.componentType,
-                                         accessor.normalized);
+                                         accessor.sparse.count, out_sparse_values_array, accessor.type, accessor.componentType);
 
                 if (success) {
                     for (int i = 0; i < accessor.sparse.count; ++i) {
-                        if ((i * 3) + 2 < out_sparse_values_array.size()) { 
+                        if ((i * 3) + 2 < out_sparse_values_array.size()) {
                             if ((out_sparse_indices_array[i] * 3) + 2 < outarray.length()) {
                                 for (int j = 0; j < 3; ++j) {
                                     outarray[(out_sparse_indices_array[i] * 3) + j] = out_sparse_values_array[(i * 3) + j];
@@ -2018,8 +2007,8 @@ bool GLTFSerializer::addArrayFromAccessor(GLTFAccessor& accessor, QVector<T>& ou
     return success;
 }
 
-void GLTFSerializer::retriangulate(const QVector<int>& inIndices, const QVector<glm::vec3>& in_vertices, 
-                               const QVector<glm::vec3>& in_normals, QVector<int>& outIndices, 
+void GLTFSerializer::retriangulate(const QVector<int>& inIndices, const QVector<glm::vec3>& in_vertices,
+                               const QVector<glm::vec3>& in_normals, QVector<int>& outIndices,
                                QVector<glm::vec3>& out_vertices, QVector<glm::vec3>& out_normals) {
     for (int i = 0; i < inIndices.size(); i = i + 3) {
 

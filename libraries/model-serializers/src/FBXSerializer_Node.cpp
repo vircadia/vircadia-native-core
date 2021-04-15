@@ -1,6 +1,6 @@
 //
 //  FBXSerializer_Node.cpp
-//  interface/src/fbx
+//  libraries/model-serializers/src
 //
 //  Created by Sam Gateau on 8/27/2015.
 //  Copyright 2015 High Fidelity, Inc.
@@ -183,7 +183,7 @@ FBXNode parseBinaryFBXNode(QDataStream& in, int& position, bool has64BitPosition
 
     // FBX 2016 and beyond uses 64bit positions in the node headers, pre-2016 used 32bit values
     // our code generally doesn't care about the size that much, so we will use 64bit values
-    // from here on out, but if the file is an older format we read the stream into temp 32bit 
+    // from here on out, but if the file is an older format we read the stream into temp 32bit
     // values and then assign to our actual 64bit values.
     if (has64BitPositions) {
         in >> endOffset;
@@ -335,8 +335,8 @@ FBXNode parseTextFBXNode(Tokenizer& tokenizer) {
             if ((token = tokenizer.nextToken()) == ':') {
                 tokenizer.ungetChar(':');
                 tokenizer.pushBackToken(Tokenizer::DATUM_TOKEN);
-                return node;    
-                
+                return node;
+
             } else {
                 tokenizer.pushBackToken(token);
                 node.properties.append(datum);

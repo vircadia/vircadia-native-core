@@ -1,6 +1,6 @@
 //
 //  FBXSerializer.h
-//  libraries/fbx/src
+//  libraries/model-serializers/src
 //
 //  Created by Andrzej Kapolka on 9/18/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -69,7 +69,7 @@ public:
         useMaterial(true),
         isDefault(true)
     {}
-    
+
     TextureParam(const TextureParam& src) :
         cropping(src.cropping),
         UVSet(src.UVSet),
@@ -81,7 +81,7 @@ public:
         useMaterial(src.useMaterial),
         isDefault(src.isDefault)
     {}
-    
+
 };
 
 class MaterialParam {
