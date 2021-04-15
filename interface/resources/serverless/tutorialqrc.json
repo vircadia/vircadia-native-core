@@ -1,0 +1,2204 @@
+{
+    "DataVersion": 0,
+    "Paths": {
+      "/old": "/0.155245,-0.941538,23.9289/0,0.791589,0,0.611053",
+      "/": "/21.6727,1.02002,25.1977/0,0.999868,0,-0.016252"
+      
+  },
+  "Entities": [
+    {
+        "id": "{0a199807-4a83-4286-b09c-f21124627c3e}",
+        "type": "Box",
+        "name": "Config Wizard Loader",
+        "locked": true,
+        "lastEdited": 1613737207915514,
+        "visible": false,
+        "position": {
+          "x": 21.8,
+          "y": 1.9,
+          "z": 28
+        },
+        "dimensions": {
+          "x": 0.20000000298023224,
+          "y": 0.20000000298023224,
+          "z": 0.20000000298023224
+        },
+        "rotation": {
+            "x": 3.5931313391301956e-7,
+            "y": -0.9996991753578186,
+            "z": 0.000014645980627392419,
+            "w": 0.024525845423340797
+        },
+        "created": 1613736996738696,
+        "lastEditedBy": "{ff9b500e-e450-4127-b41f-1c42be16f71b}",
+        "queryAACube": {
+          "x": -0.17320507764816284,
+          "y": -0.17320507764816284,
+          "z": -0.17320507764816284,
+          "scale": 0.3464101552963257
+        },
+        "grab": {
+          "grabbable": false
+        },
+        "damping": 0,
+        "angularDamping": 0,
+        "collisionless": true,
+        "ignoreForCollisions": true,
+        "script": "qrc:///serverless/Scripts/wizardLoader.js",
+        "color": {
+          "red": 0,
+          "green": 180,
+          "blue": 239
+        },
+        "shape": "Cube",
+        "clientOnly": false,
+        "avatarEntity": false,
+        "localEntity": false,
+        "faceCamera": false,
+        "isFacingAvatar": false
+    },
+    {
+    "id": "{b9444e0f-1cda-4ad3-80e5-9ef3bf0ec6cd}",
+    "type": "Model",
+    "lastEdited": 1617134731448079,
+    "name": "mirror_reflectingPlane",
+    "locked": true,
+    "userData": "{\"grabbableKey\":{\"grabbable\":false,\"ignoreIK\":false},\"original\":{\"id\":\"{6291b4e5-0dcb-484c-9c11-fe47725a4ad8}\"}}",
+    "position": {
+        "x": 3.3984665870666504,
+        "y": 1.891787052154541,
+        "z": 20.900876998901367
+    },
+    "dimensions": {
+        "x": 1.6291353702545166,
+        "y": 2.206333875656128,
+        "z": 0.01092288363724947
+    },
+    "rotation": {
+        "x": -0.0000152587890625,
+        "y": -0.8816205263137817,
+        "z": 0.0000152587890625,
+        "w": -0.4719768166542053
+    },
+    "created": 1614198986204053,
+    "lastEditedBy": "{0b759026-5fea-494c-99de-ab6301e73d4c}",
+    "queryAACube": {
+        "x": 2.0271434783935547,
+        "y": 0.5204638242721558,
+        "z": 19.52955436706543,
+        "scale": 2.7426464557647705
+    },
+    "grab": {
+        "grabbable": false,
+        "grabFollowsController": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "collisionless": true,
+    "ignoreForCollisions": true,
+    "collisionMask": 0,
+    "collidesWith": "",
+    "script": "qrc:///serverless/Scripts/mirrorClient.js",
+    "scriptTimestamp": 1601084665601,
+    "modelURL": "qrc:///serverless/Models/mirror_without_backface.baked.fbx",
+    "blendshapeCoefficients": "{\n}\n",
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{61e0e141-bb95-4e7a-a043-3f4f783e39f4}",
+    "type": "Text",
+    "lastEdited": 1617134727215565,
+    "locked": true,
+    "description": "mirror text",
+    "position": {
+        "x": 3.306519031524658,
+        "y": 4.0622100830078125,
+        "z": 20.931333541870117
+    },
+    "dimensions": {
+        "x": 3.2473599910736084,
+        "y": 0.6462407112121582,
+        "z": 0.009999999776482582
+    },
+    "rotation": {
+        "x": 0.0008392333984375,
+        "y": -0.0000152587890625,
+        "z": -0.0000152587890625,
+        "w": 0.999969482421875
+    },
+    "created": 1614383649622836,
+    "lastEditedBy": "{0b759026-5fea-494c-99de-ab6301e73d4c}",
+    "queryAACube": {
+        "x": 1.6509922742843628,
+        "y": 2.4066834449768066,
+        "z": 19.275806427001953,
+        "scale": 3.311053514480591
+    },
+    "billboardMode": "yaw",
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "collisionMask": 23,
+    "collidesWith": "static,dynamic,kinematic,otherAvatar,",
+    "text": "Mirror",
+    "lineHeight": 0.6000000238418579,
+    "textColor": {
+        "red": 0,
+        "green": 0,
+        "blue": 0
+    },
+    "backgroundAlpha": 0,
+    "unlit": true,
+    "font": "Inconsolata",
+    "textEffect": "outline fill",
+    "textEffectColor": {
+        "red": 0,
+        "green": 208,
+        "blue": 255
+    },
+    "textEffectThickness": 0.30000001192092896,
+    "alignment": "center",
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": true,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{4b1ac4d3-325b-46a2-9c27-0e94ee1afcaf}",
+    "type": "Model",
+    "lastEdited": 1617140845328587,
+    "name": "Seagull",
+    "locked": true,
+    "position": {
+        "x": 23.798669815063477,
+        "y": 4.926492214202881,
+        "z": 10.381175994873047
+    },
+    "dimensions": {
+        "x": 0.9342527389526367,
+        "y": 0.8603132963180542,
+        "z": 0.47802668809890747
+    },
+    "rotation": {
+        "x": -0.017654716968536377,
+        "y": -0.4898908734321594,
+        "z": 0.030106067657470703,
+        "w": 0.8710917234420776
+    },
+    "created": 1614198986205195,
+    "lastEditedBy": "{7f097416-1c40-4cba-aa7c-6e20a7281823}",
+    "queryAACube": {
+        "x": 23.12016487121582,
+        "y": 4.247987270355225,
+        "z": 9.70267105102539,
+        "scale": 1.3570102453231812
+    },
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "shapeType": "simple-compound",
+    "modelURL": "qrc:///serverless/Models/seagull-ANI.fbx",
+    "blendshapeCoefficients": "{\n}\n",
+    "animation": {
+        "url": "qrc:///serverless/Models/seagull-ANI.fbx",
+        "allowTranslation": false,
+        "currentFrame": 99.81153869628906,
+        "running": true,
+        "lastFrame": 120
+    },
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{7c7f80be-4fa3-4615-86f3-5446c6737350}",
+    "type": "Box",
+    "lastEdited": 1617140739515673,
+    "parentID": "{6c76b816-5064-424c-84b2-dbb478e47d5d}",
+    "visible": false,
+    "name": "Sound Emitter",
+    "locked": true,
+    "userData": "{\"soundURL\":\"qrc:///serverless/Sounds/468407__onderwish__sci-fi-survival-dreamscape.mp3\",\"shouldLoop\":true,\"volume\":0.18,\"refreshInterval\":100,\"grabbableKey\":{\"grabbable\":false}}",
+    "position": {
+        "x": 0,
+        "y": 1.0455207824707031,
+        "z": 0
+    },
+    "dimensions": {
+        "x": 0.20000000298023224,
+        "y": 0.20000000298023224,
+        "z": 0.20000000298023224
+    },
+    "rotation": {
+        "x": -0.0000152587890625,
+        "y": -0.0000152587890625,
+        "z": -0.0000152587890625,
+        "w": 1
+    },
+    "created": 1614198017837347,
+    "lastEditedBy": "{7f097416-1c40-4cba-aa7c-6e20a7281823}",
+    "queryAACube": {
+        "x": 28.069303512573242,
+        "y": 5.205089092254639,
+        "z": 26.711923599243164,
+        "scale": 0.3464101552963257
+    },
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "script": "qrc:///serverless/Scripts/soundEmitter.js",
+    "scriptTimestamp": 1601079357399,
+    "color": {
+        "red": 0,
+        "green": 180,
+        "blue": 239
+    },
+    "shape": "Cube",
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{0436152a-b188-4608-abe9-a3fb1c4b283d}",
+    "type": "Model",
+    "lastEdited": 1617140818158676,
+    "name": "Vircadia Sign",
+    "locked": true,
+    "position": {
+        "x": 43.52519226074219,
+        "y": 4.912969589233398,
+        "z": 8.236417770385742
+    },
+    "dimensions": {
+        "x": 4.443090915679932,
+        "y": 0.7363157868385315,
+        "z": 0.16073395311832428
+    },
+    "rotation": {
+        "x": -0.0000152587890625,
+        "y": -0.7019302845001221,
+        "z": 0.0000152587890625,
+        "w": 0.7122453451156616
+    },
+    "created": 1614198986205729,
+    "lastEditedBy": "{7f097416-1c40-4cba-aa7c-6e20a7281823}",
+    "queryAACube": {
+        "x": 41.271915435791016,
+        "y": 2.659691333770752,
+        "z": 5.983139514923096,
+        "scale": 4.506556510925293
+    },
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "modelURL": "qrc:///serverless/Models/VircadiaLogo.fbx",
+    "blendshapeCoefficients": "{\n}\n",
+    "animation": {
+        "allowTranslation": false
+    },
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{06b826d4-5385-4c49-92c2-47e24f97b35a}",
+    "type": "Text",
+    "lastEdited": 1617134764395172,
+    "name": "(2)",
+    "locked": true,
+    "description": "mirror text",
+    "position": {
+        "x": 34.17714309692383,
+        "y": 4.050739288330078,
+        "z": 27.204530715942383
+    },
+    "dimensions": {
+        "x": 3.2473599910736084,
+        "y": 0.6462407112121582,
+        "z": 0.009999999776482582
+    },
+    "rotation": {
+        "x": 0.0008392333984375,
+        "y": -0.0000152587890625,
+        "z": -0.0000152587890625,
+        "w": 0.999969482421875
+    },
+    "created": 1614453280539951,
+    "lastEditedBy": "{0b759026-5fea-494c-99de-ab6301e73d4c}",
+    "queryAACube": {
+        "x": 32.5216178894043,
+        "y": 2.3952126502990723,
+        "z": 25.54900360107422,
+        "scale": 3.311053514480591
+    },
+    "billboardMode": "yaw",
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "collisionMask": 23,
+    "collidesWith": "static,dynamic,kinematic,otherAvatar,",
+    "text": "Controls",
+    "lineHeight": 0.6000000238418579,
+    "textColor": {
+        "red": 0,
+        "green": 0,
+        "blue": 0
+    },
+    "backgroundAlpha": 0,
+    "unlit": true,
+    "font": "Inconsolata",
+    "textEffect": "outline fill",
+    "textEffectColor": {
+        "red": 0,
+        "green": 208,
+        "blue": 255
+    },
+    "textEffectThickness": 0.30000001192092896,
+    "alignment": "center",
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": true,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{159f2743-d862-47e3-9f27-5de062b09941}",
+    "type": "Material",
+    "lastEdited": 1617140810844450,
+    "parentID": "{0436152a-b188-4608-abe9-a3fb1c4b283d}",
+    "parentJointIndex": 0,
+    "name": "VClogo",
+    "locked": true,
+    "userData": "{\"verticalOffset\":0,\"segments\":16,\"updateInterval\":1000}",
+    "position": {
+        "x": -0.00001823902130126953,
+        "y": -0.0002636909484863281,
+        "z": 0.10145187377929688
+    },
+    "rotation": {
+        "x": 0.0012969970703125,
+        "y": 0.0000152587890625,
+        "z": 0.0000457763671875,
+        "w": 0.999969482421875
+    },
+    "created": 1614198986205783,
+    "lastEditedBy": "{7f097416-1c40-4cba-aa7c-6e20a7281823}",
+    "queryAACube": {
+        "x": 47.7151985168457,
+        "y": 1.0358200073242188,
+        "z": 24.254812240600586,
+        "scale": 4.506557464599609
+    },
+    "canCastShadow": false,
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "collisionMask": 23,
+    "collidesWith": "static,dynamic,kinematic,otherAvatar,",
+    "scriptTimestamp": 1597610738986,
+    "materialURL": "materialData",
+    "priority": 3,
+    "parentMaterialName": "[mat::NeonTubes]",
+    "materialMappingPos": {
+        "x": 0.8125,
+        "y": 0
+    },
+    "materialData": "{\"materialVersion\":1,\"materials\":[{\"name\":\"baseMaterial2\",\"model\":\"hifi_pbr\",\"opacity\":1,\"albedo\":[0,0,0],\"roughness\":1,\"metallic\":0,\"emissive\":[2.3,2,2],\"scattering\":0,\"unlit\":false,\"opacityMapMode\":\"OPACITY_MAP_MASK\",\"cullFaceMode\":\"CULL_BACK\",\"defaultFallthrough\":false}]}",
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false 
+},
+{
+    "id": "{5b6443c5-ec22-4c8a-9581-85134ceb6856}",
+    "parentID": "{6c76b816-5064-424c-84b2-dbb478e47d5d}",
+    "type": "Model",
+    "name": "Bowl",
+    "locked": true,
+    "lastEdited": 1617218059378792,
+    "dimensions": {
+        "x": 1.7757656574249268,
+        "y": 1.2933320999145508,
+        "z": 1.7757654190063477
+    },
+    "rotation": {
+        "x": -0.000030517578125,
+        "y": -0.000030517578125,
+        "z": -0.000030517578125,
+        "w": 1
+    },
+    "created": 1617216882976266,
+    "lastEditedBy": "{f72b151a-b325-4c9f-805a-7a7a520f82f7}",
+    "position": {
+        "x": -0.00001823902130126953,
+        "y": -5.1002636909484863281,
+        "z": 0.10145187377929688
+    },
+    "queryAACube": {
+        "x": -1.4123910665512085,
+        "y": -1.4123910665512085,
+        "z": -1.4123910665512085,
+        "scale": 2.824782133102417
+    },
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "shapeType": "static-mesh",
+    "modelURL": "qrc:///serverless/Models/bowl2.fbx",
+    "blendshapeCoefficients": "{\n}\n",
+    "animation": {
+        "allowTranslation": false
+    },
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{9c451827-4c87-4bf7-8372-aeb6bbd61eaa}",
+    "type": "ParticleEffect",
+    "lastEdited": 1617217817025177,
+    "parentID": "{5b6443c5-ec22-4c8a-9581-85134ceb6856}",
+    "name": "Brew",
+    "locked": true,
+    "position": {
+        "x": 0,
+        "y": 0.44699999690055847,
+        "z": 0
+    },
+    "dimensions": {
+        "x": 16.263307571411133,
+        "y": 16.263307571411133,
+        "z": 16.263307571411133
+    },
+    "rotation": {
+        "x": 8.988587651970192e-12,
+        "y": -0.00008631677337689325,
+        "z": -0.7071500420570374,
+        "w": 0.7070636749267578
+    },
+    "created": 1617216898348298,
+    "lastEditedBy": "{f72b151a-b325-4c9f-805a-7a7a520f82f7}",
+    "queryAACube": {
+        "x": 7.714627265930176,
+        "y": -12.719738006591797,
+        "z": -5.470824241638184,
+        "scale": 28.168874740600586
+    },
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "shapeType": "ellipsoid",
+    "color": {
+        "red": 4,
+        "green": 101,
+        "blue": 143
+    },
+    "alpha": 0.30000001192092896,
+    "textures": "qrc:///serverless/Textures/default_particle.png",
+    "maxParticles": 80,
+    "lifespan": 2,
+    "emitRate": 47,
+    "emitSpeed": 0.30000001192092896,
+    "speedSpread": 0,
+    "emitOrientation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+    },
+    "emitDimensions": {
+        "x": 1,
+        "y": 1,
+        "z": 0
+    },
+    "emitRadiusStart": 0,
+    "polarStart": 0.8700000047683716,
+    "polarFinish": 1.2200000286102295,
+    "azimuthStart": 3.0999999046325684,
+    "azimuthFinish": 3.140000104904175,
+    "emitAcceleration": {
+        "x": 0,
+        "y": -0.9900000095367432,
+        "z": 0
+    },
+    "accelerationSpread": {
+        "x": 0.10000000149011612,
+        "y": 0.3400000035762787,
+        "z": 0.10000000149011612
+    },
+    "particleRadius": 1.5,
+    "radiusStart": 0.5,
+    "radiusFinish": 0.30000001192092896,
+    "colorSpread": {
+        "red": 0,
+        "green": 150,
+        "blue": 150
+    },
+    "colorStart": {
+        "red": 0,
+        "green": 0,
+        "blue": 0
+    },
+    "colorFinish": {
+        "red": 0,
+        "green": 0,
+        "blue": 0
+    },
+    "alphaStart": 0.5,
+    "alphaFinish": 0,
+    "emitterShouldTrail": true,
+    "spinStart": null,
+    "spinFinish": null,
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{77cbbb3f-e1fe-436c-8b0a-11b45b96181b}",
+    "type": "ParticleEffect",
+    "lastEdited": 1617216897203063,
+    "parentID": "{5b6443c5-ec22-4c8a-9581-85134ceb6856}",
+    "name": "steam",
+    "locked": true,
+    "position": {
+        "x": 0.03824615478515625,
+        "y": 5.34733772277832,
+        "z": 0.057065125554800034
+    },
+    "dimensions": {
+        "x": 14.4042329788208,
+        "y": 14.4042329788208,
+        "z": 14.4042329788208
+    },
+    "rotation": {
+        "x": -0.0000152587890625,
+        "y": -0.0000152587890625,
+        "z": -0.0000152587890625,
+        "w": 1
+    },
+    "created": 1617216882977327,
+    "lastEditedBy": "{7f097416-1c40-4cba-aa7c-6e20a7281823}",
+    "queryAACube": {
+        "x": 9.363174438476562,
+        "y": -6.209394454956055,
+        "z": -3.8040504455566406,
+        "scale": 24.948863983154297
+    },
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "shapeType": "ellipsoid",
+    "alpha": 0.014999999664723873,
+    "textures": "qrc:///serverless/Textures/default_particle.png",
+    "maxParticles": 100,
+    "lifespan": 3.069999933242798,
+    "emitSpeed": 0.4000000059604645,
+    "speedSpread": 0.10000000149011612,
+    "emitOrientation": {
+        "x": -0.0000152587890625,
+        "y": -0.0000152587890625,
+        "z": -0.0000152587890625,
+        "w": 1
+    },
+    "polarFinish": 3.1415927410125732,
+    "emitAcceleration": {
+        "x": 0,
+        "y": -1,
+        "z": 0
+    },
+    "particleRadius": 1.5,
+    "radiusStart": 0.5,
+    "radiusFinish": 0.4000000059604645,
+    "colorStart": {
+        "red": 0,
+        "green": 0,
+        "blue": 0
+    },
+    "colorFinish": {
+        "red": 0,
+        "green": 0,
+        "blue": 0
+    },
+    "alphaStart": 0.5,
+    "alphaFinish": 0,
+    "emitterShouldTrail": true,
+    "spinStart": null,
+    "spinFinish": null,
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{463bad19-9d44-479e-af6c-9d86ee76fc45}",
+    "type": "Light",
+    "lastEdited": 1617217841543322,
+    "parentID": "{5b6443c5-ec22-4c8a-9581-85134ceb6856}",
+    "name": "blacklight",
+    "locked": true,
+    "position": {
+        "x": 0,
+        "y": 1.6233999729156494,
+        "z": 0
+    },
+    "dimensions": {
+        "x": 3.867255687713623,
+        "y": 3.867255687713623,
+        "z": 4.0243144035339355
+    },
+    "rotation": {
+        "x": -0.7071176171302795,
+        "y": 3.849143226375418e-12,
+        "z": -0.000021579189706244506,
+        "w": 0.7070960402488708
+    },
+    "created": 1617217525079443,
+    "lastEditedBy": "{f72b151a-b325-4c9f-805a-7a7a520f82f7}",
+    "queryAACube": {
+        "x": 18.404050827026367,
+        "y": -0.8539872169494629,
+        "z": 5.2184553146362305,
+        "scale": 6.790172100067139
+    },
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "isSpotlight": true,
+    "intensity": -25.700000762939453,
+    "exponent": 19.6299991607666,
+    "cutoff": 73.94000244140625,
+    "falloffRadius": 72.4000015258789,
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{a80ee618-752e-44e4-a9de-04f089b4fe03}",
+    "type": "Model",
+    "lastEdited": 1617140830643374,
+    "parentID": "{6c76b816-5064-424c-84b2-dbb478e47d5d}",
+    "name": "Dome Glass",
+    "locked": true,
+    "position": {
+        "x": -0.000016799232980702072,
+        "y": 3.1790809631347656,
+        "z": 0.000016798756405478343
+    },
+    "dimensions": {
+        "x": 44.38727569580078,
+        "y": 7.3717122077941895,
+        "z": 44.38727569580078
+    },
+    "rotation": {
+        "x": -0.0000152587890625,
+        "y": -0.0000152587890625,
+        "z": -0.0000152587890625,
+        "w": 1
+    },
+    "created": 1614198986204337,
+    "lastEditedBy": "{7f097416-1c40-4cba-aa7c-6e20a7281823}",
+    "queryAACube": {
+        "x": -3.359670639038086,
+        "y": -24.09037208557129,
+        "z": -4.717145919799805,
+        "scale": 63.20445251464844
+    },
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "shapeType": "static-mesh",
+    "modelURL": "qrc:///serverless/Models/dome2_glass.glb",
+    "blendshapeCoefficients": "{\n}\n",
+    "animation": {
+        "allowTranslation": false
+    },
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{d2ef46ed-c85f-4ab5-bef3-14feb46e9091}",
+    "type": "Model",
+    "lastEdited": 1617134717193282,
+    "parentID": "{6c76b816-5064-424c-84b2-dbb478e47d5d}",
+    "name": "trees",
+    "locked": true,
+    "position": {
+        "x": -0.000016800577213871293,
+        "y": -0.5505132675170898,
+        "z": 0.000016800084267742932
+    },
+    "dimensions": {
+        "x": 26.59911346435547,
+        "y": 9.549417495727539,
+        "z": 26.465896606445312
+    },
+    "rotation": {
+        "x": -0.0000152587890625,
+        "y": -0.0000152587890625,
+        "z": -0.0000152587890625,
+        "w": 1
+    },
+    "created": 1614198986202454,
+    "lastEditedBy": "{0b759026-5fea-494c-99de-ab6301e73d4c}",
+    "queryAACube": {
+        "x": 8.883026123046875,
+        "y": -15.577155113220215,
+        "z": 7.525779724121094,
+        "scale": 38.71883010864258
+    },
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "modelURL": "qrc:///serverless/Models/Trees1.glb",
+    "blendshapeCoefficients": "{\n}\n",
+    "animation": {
+        "allowTranslation": false
+    },
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{f3d87e87-a250-42f8-a285-84cbeb777353}",
+    "type": "Model",
+    "lastEdited": 1617140880548597,
+    "parentID": "{6c76b816-5064-424c-84b2-dbb478e47d5d}",
+    "name": "Panels",
+    "locked": true,
+    "position": {
+        "x": -0.0001735687255859375,
+        "y": -5.685686111450195,
+        "z": 0.00017449550796300173
+    },
+    "dimensions": {
+        "x": 36.70009231567383,
+        "y": 3.3704721927642822,
+        "z": 25.731521606445312
+    },
+    "rotation": {
+        "x": -0.0000152587890625,
+        "y": -0.0000152587890625,
+        "z": -0.0000152587890625,
+        "w": 1
+    },
+    "created": 1614377167635894,
+    "lastEditedBy": "{7f097416-1c40-4cba-aa7c-6e20a7281823}",
+    "queryAACube": {
+        "x": -5.742575168609619,
+        "y": -23.827165603637695,
+        "z": 4.4112548828125,
+        "scale": 59.816864013671875
+    },
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "modelURL": "qrc:///serverless/Models/Stands.fbx",
+    "blendshapeCoefficients": "{\n}\n",
+    "useOriginalPivot": true,
+    "animation": {
+        "url": "qrc:///serverless/Models/Stands.fbx",
+        "allowTranslation": false,
+        "currentFrame": 68342.515625,
+        "running": true
+    },
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{25638e51-c19c-420a-a9cc-ff02626b62ef}",
+    "type": "Box",
+    "lastEdited": 1617134697724395,
+    "visible": false,
+    "name": "portalCube",
+    "locked": true,
+    "userData": "{\"destination\":\"hifi://172.104.248.237:40102/154.572,-96.8437,-417.945/0,1,0,-1.52586e-05\"}",
+    "position": {
+        "x": 0.06047534942626953,
+        "y": 1.751168131828308,
+        "z": 4.2923126220703125
+    },
+    "dimensions": {
+        "x": 1.6716244220733643,
+        "y": 2.5448203086853027,
+        "z": 0.26420968770980835
+    },
+    "rotation": {
+        "x": 0.0000152587890625,
+        "y": 0.6351872682571411,
+        "z": -0.0000457763671875,
+        "w": 0.772335410118103
+    },
+    "created": 1614454164933827,
+    "lastEditedBy": "{0b759026-5fea-494c-99de-ab6301e73d4c}",
+    "queryAACube": {
+        "x": -1.4676154851913452,
+        "y": 0.22307729721069336,
+        "z": 2.764221668243408,
+        "scale": 3.0561816692352295
+    },
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "collisionMask": 23,
+    "collidesWith": "static,dynamic,kinematic,otherAvatar,",
+    "damping": 0,
+    "angularDamping": 0,
+    "script": "qrc:///serverless/Scripts/portal.js",
+    "scriptTimestamp": 1617134674001,
+    "color": {
+        "red": 0,
+        "green": 180,
+        "blue": 239
+    },
+    "shape": "Cube",
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{e0261cde-c5e0-44bf-a747-787c4c867d79}",
+    "type": "Light",
+    "lastEdited": 1617140788480898,
+    "name": "mainDomeLight",
+    "locked": true,
+    "position": {
+        "x": 21.799074172973633,
+        "y": 10.247319221496582,
+        "z": 8.613605499267578
+    },
+    "dimensions": {
+        "x": 61.943946838378906,
+        "y": 61.943946838378906,
+        "z": 61.943946838378906
+    },
+    "rotation": {
+        "x": -0.0000152587890625,
+        "y": -0.0000152587890625,
+        "z": -0.0000152587890625,
+        "w": 1
+    },
+    "created": 1614198986202528,
+    "lastEditedBy": "{7f097416-1c40-4cba-aa7c-6e20a7281823}",
+    "queryAACube": {
+        "x": -31.845956802368164,
+        "y": -43.39771270751953,
+        "z": -45.03142547607422,
+        "scale": 107.2900619506836
+    },
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "collisionMask": 23,
+    "collidesWith": "static,dynamic,kinematic,otherAvatar,",
+    "color": {
+        "red": 255,
+        "green": 235,
+        "blue": 87
+    },
+    "intensity": 0.8999999761581421,
+    "exponent": 1,
+    "cutoff": 75,
+    "falloffRadius": 30,
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{6c76b816-5064-424c-84b2-dbb478e47d5d}",
+    "type": "Model",
+    "lastEdited": 1617134709051164,
+    "name": "Dome",
+    "locked": true,
+    "position": {
+        "x": 21.799192428588867,
+        "y": 5.9566450119018555,
+        "z": 8.613487243652344
+    },
+    "dimensions": {
+        "x": 54.60203552246094,
+        "y": 13.734564781188965,
+        "z": 54.60203552246094
+    },
+    "rotation": {
+        "x": -0.0000152587890625,
+        "y": -0.0000152587890625,
+        "z": -0.0000152587890625,
+        "w": 1
+    },
+    "created": 1614198986203467,
+    "lastEditedBy": "{0b759026-5fea-494c-99de-ab6301e73d4c}",
+    "queryAACube": {
+        "x": -25952.515625,
+        "y": -25921.0625,
+        "z": -25953.87890625,
+        "scale": 51961.5234375
+    },
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "shapeType": "static-mesh",
+    "modelURL": "qrc:///serverless/Models/dome2.glb",
+    "blendshapeCoefficients": "{\n}\n",
+    "animation": {
+        "allowTranslation": false
+    },
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{52c84c1c-6567-4670-9b2b-9aa9bc1456ea}",
+    "type": "Model",
+    "lastEdited": 1617134574674644,
+    "parentID": "{6c76b816-5064-424c-84b2-dbb478e47d5d}",
+    "locked": true,
+    "position": {
+        "x": 4.238387418808998e-12,
+        "y": -2.3088181018829346,
+        "z": -7.275957614183426e-12
+    },
+    "dimensions": {
+        "x": 5.688337802886963,
+        "y": 7.10263204574585,
+        "z": 5.688361644744873
+    },
+    "rotation": {
+        "x": -0.0000152587890625,
+        "y": -0.0000152587890625,
+        "z": -0.0000152587890625,
+        "w": 1
+    },
+    "created": 1614198986204522,
+    "lastEditedBy": "{78b82b17-4e7a-410f-95ce-1c3ace1cd609}",
+    "queryAACube": {
+        "x": -4.850972652435303,
+        "y": -3.341723680496216,
+        "z": -4.9151411056518555,
+        "scale": 38.45905685424805
+    },
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "scriptTimestamp": 1598912452582,
+    "shapeType": "static-mesh",
+    "modelURL": "qrc:///serverless/Models/temple5.glb",
+    "blendshapeCoefficients": "{\n}\n",
+    "animation": {
+        "allowTranslation": false
+    },
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{d344138a-adb8-4ae7-9aae-447266a48869}",
+    "type": "Light",
+    "lastEdited": 1617140788480765,
+    "parentID": "{b9444e0f-1cda-4ad3-80e5-9ef3bf0ec6cd}",
+    "name": "mirrorLight",
+    "locked": true,
+    "position": {
+        "x": -0.0015339851379394531,
+        "y": -0.000001519918441772461,
+        "z": 0.26983165740966797
+    },
+    "dimensions": {
+        "x": 3.8637032508850098,
+        "y": 3.8637032508850098,
+        "z": 4
+    },
+    "rotation": {
+        "x": 0.0000152587890625,
+        "y": 1,
+        "z": 0.0000152587890625,
+        "w": -0.0000152587890625
+    },
+    "created": 1614453808970411,
+    "lastEditedBy": "{7f097416-1c40-4cba-aa7c-6e20a7281823}",
+    "queryAACube": {
+        "x": 6.681288719177246,
+        "y": -3.11796498298645,
+        "z": 35.638336181640625,
+        "scale": 6.771735668182373
+    },
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "color": {
+        "red": 255,
+        "green": 255,
+        "blue": 235
+    },
+    "isSpotlight": true,
+    "intensity": 0.699999988079071,
+    "exponent": 1,
+    "cutoff": 75,
+    "falloffRadius": 10,
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{0d85144d-a15c-4d1b-84a5-b3a379d31798}",
+    "type": "Light",
+    "lastEdited": 1617140731977291,
+    "parentID": "{b9444e0f-1cda-4ad3-80e5-9ef3bf0ec6cd}",
+    "name": "Mirror Light",
+    "locked": true,
+    "position": {
+        "x": 0.08925724029541016,
+        "y": 0.4832591116428375,
+        "z": 0.20032405853271484
+    },
+    "dimensions": {
+        "x": 6.747879505157471,
+        "y": 6.747879505157471,
+        "z": 6.985918998718262
+    },
+    "rotation": {
+        "x": -0.999969482421875,
+        "y": -0.0001373291015625,
+        "z": -0.0000762939453125,
+        "w": 0.00856029987335205
+    },
+    "created": 1614198986203073,
+    "lastEditedBy": "{7f097416-1c40-4cba-aa7c-6e20a7281823}",
+    "queryAACube": {
+        "x": 4.045637607574463,
+        "y": -5.162182331085205,
+        "z": 33.07383346557617,
+        "scale": 11.826699256896973
+    },
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "isSpotlight": true,
+    "intensity": 2,
+    "exponent": 1,
+    "cutoff": 75,
+    "falloffRadius": 5.699999809265137,
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{89f2cd0b-782f-4e4e-a674-587ae5893f7d}",
+    "type": "Light",
+    "lastEdited": 1617140712801743,
+    "parentID": "{52c84c1c-6567-4670-9b2b-9aa9bc1456ea}",
+    "name": "templeLight",
+    "locked": true,
+    "position": {
+        "x": -0.10364770889282227,
+        "y": 0.5877461433410645,
+        "z": -0.16811557114124298
+    },
+    "dimensions": {
+        "x": 5.481564998626709,
+        "y": 5.481564998626709,
+        "z": 5.481564998626709
+    },
+    "rotation": {
+        "x": -0.0000152587890625,
+        "y": -0.0000152587890625,
+        "z": -0.0000152587890625,
+        "w": 1
+    },
+    "created": 1614198986204117,
+    "lastEditedBy": "{7f097416-1c40-4cba-aa7c-6e20a7281823}",
+    "queryAACube": {
+        "x": 23.39162826538086,
+        "y": -2.135477066040039,
+        "z": 21.969898223876953,
+        "scale": 9.494348526000977
+    },
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "color": {
+        "red": 255,
+        "green": 0,
+        "blue": 255
+    },
+    "intensity": 10,
+    "exponent": 1,
+    "cutoff": 75,
+    "falloffRadius": 1,
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{3a740728-5d6f-4a3b-a710-49a8c6cb1ae0}",
+    "type": "Zone",
+    "lastEdited": 1617140938876740,
+    "parentID": "{6c76b816-5064-424c-84b2-dbb478e47d5d}",
+    "name": "MainDomeZone",
+    "locked": true,
+    "userData": "{\n    \"grabbableKey\": {\n        \"grabbable\": false,\n        \"ignoreIK\": false\n    }\n}",
+    "position": {
+        "x": 0.0006103417836129665,
+        "y": 55.367820739746094,
+        "z": -0.0006103613413870335
+    },
+    "dimensions": {
+        "x": 10000,
+        "y": 10000,
+        "z": 10000
+    },
+    "rotation": {
+        "x": 0.44721001386642456,
+        "y": 0.5232430100440979,
+        "z": 0.06775686889886856,
+        "w": 0.7222389578819275
+    },
+    "created": 1614198986203133,
+    "lastEditedBy": "{7f097416-1c40-4cba-aa7c-6e20a7281823}",
+    "queryAACube": {
+        "x": -25952.515625,
+        "y": -25921.0625,
+        "z": -25953.87890625,
+        "scale": 51961.5234375
+    },
+    "grab": {
+        "grabbable": false,
+        "grabFollowsController": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "angularVelocity": {
+        "x": 0.008699734695255756,
+        "y": 0.008700265549123287,
+        "z": 8.107145163527285e-12
+    },
+    "angularDamping": 0,
+    "shapeType": "box",
+    "keyLight": {
+        "color": {
+            "red": 158,
+            "green": 127,
+            "blue": 68
+        },
+        "intensity": 1.5,
+        "direction": {
+            "x": 0.20760862529277802,
+            "y": -0.7512804269790649,
+            "z": 0.6264793872833252
+        },
+        "castShadows": true,
+        "shadowBias": 0.20000000298023224,
+        "shadowMaxDistance": 57.79999923706055
+    },
+    "ambientLight": {
+        "ambientIntensity": 0.8999999761581421,
+        "ambientURL": "qrc:///serverless/Textures/galaxySkybox.png"
+    },
+    "skybox": {
+        "color": {
+            "red": 235,
+            "green": 235,
+            "blue": 235
+        },
+        "url": "qrc:///serverless/Textures/galaxySkybox.png"
+    },
+    "haze": {
+        "hazeRange": 50,
+        "hazeColor": {
+            "red": 4,
+            "green": 25,
+            "blue": 94
+        },
+        "hazeGlareColor": {
+            "red": 255,
+            "green": 0,
+            "blue": 255
+        },
+        "hazeEnableGlare": true,
+        "hazeGlareAngle": 27,
+        "hazeAltitudeEffect": true,
+        "hazeCeiling": -75,
+        "hazeBaseRef": -250,
+        "hazeBackgroundBlend": 0.5
+    },
+    "bloom": {
+        "bloomIntensity": 0.4000000059604645,
+        "bloomThreshold": 0.800000011920929,
+        "bloomSize": 1
+    },
+    "keyLightMode": "enabled",
+    "ambientLightMode": "enabled",
+    "skyboxMode": "enabled",
+    "hazeMode": "enabled",
+    "bloomMode": "enabled",
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{c5a35dbf-8253-4782-b121-26d0c609aad5}",
+    "type": "Shape",
+    "lastEdited": 1617140925236269,
+    "parentID": "{6c76b816-5064-424c-84b2-dbb478e47d5d}",
+    "name": "MainCollision",
+    "locked": true,
+    "position": {
+        "x": 0.00002288818359375,
+        "y": -6.380376815795898,
+        "z": -0.00002409383887425065
+    },
+    "dimensions": {
+        "x": 54.22285461425781,
+        "y": 0.890187680721283,
+        "z": 54.22285461425781
+    },
+    "rotation": {
+        "x": -0.0000152587890625,
+        "y": -0.0000152587890625,
+        "z": -0.0000152587890625,
+        "w": 1
+    },
+    "created": 1614198986204167,
+    "lastEditedBy": "{7f097416-1c40-4cba-aa7c-6e20a7281823}",
+    "queryAACube": {
+        "x": -10.101629257202148,
+        "y": -40.391536712646484,
+        "z": -11.458602905273438,
+        "scale": 76.6878662109375
+    },
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "color": {
+        "red": 0,
+        "green": 0,
+        "blue": 0
+    },
+    "shape": "Cylinder",
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{99f186d7-a623-4339-930e-1689d62a23e0}",
+    "type": "Zone",
+    "lastEdited": 1617134741129783,
+    "parentID": "{b9444e0f-1cda-4ad3-80e5-9ef3bf0ec6cd}",
+    "visible": false,
+    "name": "mirror_zone",
+    "locked": true,
+    "userData": "{\"grabbableKey\":{\"grabbable\":false},\"original\":{\"id\":\"{da1e2fcd-d69b-47d7-b861-25b31f1c7175}\"}}",
+    "position": {
+        "x": -0.01726818084716797,
+        "y": 0.2113490104675293,
+        "z": 1.704751968383789
+    },
+    "dimensions": {
+        "x": 2.8482747077941895,
+        "y": 3.153184413909912,
+        "z": 3.6725244522094727
+    },
+    "rotation": {
+        "x": -0.0161592960357666,
+        "y": 0.0000152587890625,
+        "z": -0.006424069404602051,
+        "w": 0.999847412109375
+    },
+    "created": 1614198986202623,
+    "lastEditedBy": "{0b759026-5fea-494c-99de-ab6301e73d4c}",
+    "queryAACube": {
+        "x": 8.46190071105957,
+        "y": -2.328949451446533,
+        "z": 35.4334716796875,
+        "scale": 5.6162872314453125
+    },
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "script": "qrc:///serverless/Scripts/mirrorReflection.js",
+    "scriptTimestamp": 1601084668318,
+    "shapeType": "box",
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{33d5305a-641d-4a4f-baa9-23ec22bb9d48}",
+    "type": "Light",
+    "lastEdited": 1617140731977526,
+    "parentID": "{6c76b816-5064-424c-84b2-dbb478e47d5d}",
+    "name": "TreeLight_4",
+    "locked": true,
+    "position": {
+        "x": -8.819656372070312,
+        "y": -0.07544326782226562,
+        "z": -9.190401077270508
+    },
+    "dimensions": {
+        "x": 10.24996280670166,
+        "y": 10.24996280670166,
+        "z": 10.24996280670166
+    },
+    "rotation": {
+        "x": -0.0000152587890625,
+        "y": -0.0000152587890625,
+        "z": -0.0000152587890625,
+        "w": 1
+    },
+    "created": 1614198986202730,
+    "lastEditedBy": "{7f097416-1c40-4cba-aa7c-6e20a7281823}",
+    "queryAACube": {
+        "x": 10.546369552612305,
+        "y": -4.619409561157227,
+        "z": 8.817764282226562,
+        "scale": 17.753456115722656
+    },
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "color": {
+        "red": 250,
+        "green": 214,
+        "blue": 32
+    },
+    "intensity": 15,
+    "exponent": 1,
+    "cutoff": 75,
+    "falloffRadius": 26.100000381469727,
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{67b2c758-41ea-4448-80eb-f171d792ab5c}",
+    "type": "Box",
+    "lastEdited": 1617140777516274,
+    "visible": false,
+    "name": "LandingPoint",
+    "locked": true,
+    "position": {
+        "x": 21.792818069458008,
+        "y": 0,
+        "z": 25.644922256469727
+    },
+    "dimensions": {
+        "x": 3.2382099628448486,
+        "y": 0.20000000298023224,
+        "z": 1.8551445007324219
+    },
+    "rotation": {
+        "x": -0.0000152587890625,
+        "y": -0.0000152587890625,
+        "z": -0.0000152587890625,
+        "w": 1
+    },
+    "created": 1617140160943861,
+    "lastEditedBy": "{7f097416-1c40-4cba-aa7c-6e20a7281823}",
+    "queryAACube": {
+        "x": 19.924158096313477,
+        "y": -1.8686603307724,
+        "z": 23.776262283325195,
+        "scale": 3.7373206615448
+    },
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "color": {
+        "red": 0,
+        "green": 180,
+        "blue": 239
+    },
+    "shape": "Cube",
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{a4421b2e-123a-4619-8788-e36eef8029ea}",
+    "type": "Light",
+    "lastEdited": 1617140788480412,
+    "parentID": "{6c76b816-5064-424c-84b2-dbb478e47d5d}",
+    "name": "TreeLight_2",
+    "locked": true,
+    "position": {
+        "x": -8.819664001464844,
+        "y": -0.24757671356201172,
+        "z": 8.97313404083252
+    },
+    "dimensions": {
+        "x": 10.24996280670166,
+        "y": 10.24996280670166,
+        "z": 10.24996280670166
+    },
+    "rotation": {
+        "x": -0.0000152587890625,
+        "y": -0.0000152587890625,
+        "z": -0.0000152587890625,
+        "w": 1
+    },
+    "created": 1614198986202574,
+    "lastEditedBy": "{7f097416-1c40-4cba-aa7c-6e20a7281823}",
+    "queryAACube": {
+        "x": 10.54580307006836,
+        "y": -4.790988445281982,
+        "z": 26.981304168701172,
+        "scale": 17.753456115722656
+    },
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "color": {
+        "red": 191,
+        "green": 31,
+        "blue": 255
+    },
+    "intensity": 15,
+    "exponent": 1,
+    "cutoff": 75,
+    "falloffRadius": 26.100000381469727,
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{523e1c2d-1603-47bb-80f1-314747b161b0}",
+    "type": "Material",
+    "lastEdited": 1617140991884044,
+    "parentID": "{f3d87e87-a250-42f8-a285-84cbeb777353}",
+    "parentJointIndex": 4,
+    "name": "moveMaterial",
+    "userData": "{\n  \"verticalOffset\": 0,\n  \"segments\": 64,\n  \"updateInterval\": 200\n}",
+    "position": {
+        "x": 0.00000476837158203125,
+        "y": 7.152557373046875e-7,
+        "z": 0.000003814697265625
+    },
+    "rotation": {
+        "x": -0.0000152587890625,
+        "y": -0.0000457763671875,
+        "z": -0.0000152587890625,
+        "w": 1
+    },
+    "created": 1614382837959471,
+    "lastEditedBy": "{7f097416-1c40-4cba-aa7c-6e20a7281823}",
+    "queryAACube": {
+        "x": -5.742575168609619,
+        "y": -21.97960662841797,
+        "z": 11.547750473022461,
+        "scale": 52.68036651611328
+    },
+    "canCastShadow": false,
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "collisionMask": 23,
+    "collidesWith": "static,dynamic,kinematic,otherAvatar,",
+    "script": "qrc:///serverless/Scripts/materialSequencer.js",
+    "scriptTimestamp": 1601250646975,
+    "materialURL": "materialData",
+    "priority": 3,
+    "parentMaterialName": "[mat::move]",
+    "materialMappingPos": {
+        "x": 0.265625,
+        "y": 0
+    },
+    "materialData": "{\"materialVersion\":1,\"materials\":[{\"name\":\"moveMaterial\",\"model\":\"hifi_pbr\",\"opacity\":0.8,\"albedo\":[1,1,1],\"roughness\":1,\"metallic\":0,\"emissive\":[0,0,0],\"scattering\":0,\"unlit\":false,\"emissiveMap\":\"qrc:///serverless/Textures/gradient1.jpg\",\"albedoMap\":\"qrc:///serverless/Textures/gradient1.jpg\",\"opacityMapMode\":\"OPACITY_MAP_BLEND\",\"cullFaceMode\":\"CULL_NONE\",\"defaultFallthrough\":false}]}",
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{35eb5c90-08e6-44de-b6b9-46c9fd36494a}",
+    "type": "Text",
+    "lastEdited": 1617134723640851,
+    "name": "(2)",
+    "locked": true,
+    "description": "mirror text",
+    "position": {
+        "x": 0,
+        "y": 4.090241432189941,
+        "z": 4.291414260864258
+    },
+    "dimensions": {
+        "x": 3.2473599910736084,
+        "y": 0.6462407112121582,
+        "z": 0.009999999776482582
+    },
+    "rotation": {
+        "x": 0.0008392333984375,
+        "y": -0.0000152587890625,
+        "z": -0.0000152587890625,
+        "w": 0.999969482421875
+    },
+    "created": 1614453187953099,
+    "lastEditedBy": "{0b759026-5fea-494c-99de-ab6301e73d4c}",
+    "queryAACube": {
+        "x": -1.6555267572402954,
+        "y": 2.4347147941589355,
+        "z": 2.635887622833252,
+        "scale": 3.311053514480591
+    },
+    "billboardMode": "yaw",
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "collisionMask": 23,
+    "collidesWith": "static,dynamic,kinematic,otherAvatar,",
+    "text": "Portal",
+    "lineHeight": 0.6000000238418579,
+    "textColor": {
+        "red": 0,
+        "green": 0,
+        "blue": 0
+    },
+    "backgroundAlpha": 0,
+    "unlit": true,
+    "font": "Inconsolata",
+    "textEffect": "outline fill",
+    "textEffectColor": {
+        "red": 0,
+        "green": 208,
+        "blue": 255
+    },
+    "textEffectThickness": 0.30000001192092896,
+    "alignment": "center",
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": true,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{7d040847-617e-494b-9593-05ab35142098}",
+    "type": "Light",
+    "lastEdited": 1617140731977921,
+    "parentID": "{6c76b816-5064-424c-84b2-dbb478e47d5d}",
+    "name": "TreeLight_3",
+    "locked": true,
+    "position": {
+        "x": 9.418960571289062,
+        "y": -0.07544326782226562,
+        "z": -9.190400123596191
+    },
+    "dimensions": {
+        "x": 10.24996280670166,
+        "y": 10.24996280670166,
+        "z": 10.24996280670166
+    },
+    "rotation": {
+        "x": -0.0000152587890625,
+        "y": -0.0000152587890625,
+        "z": -0.0000152587890625,
+        "w": 1
+    },
+    "created": 1614198986202887,
+    "lastEditedBy": "{7f097416-1c40-4cba-aa7c-6e20a7281823}",
+    "queryAACube": {
+        "x": 28.784984588623047,
+        "y": -4.61996603012085,
+        "z": 8.818321228027344,
+        "scale": 17.753456115722656
+    },
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "color": {
+        "red": 69,
+        "green": 255,
+        "blue": 69
+    },
+    "intensity": 20.5,
+    "exponent": 1,
+    "cutoff": 75,
+    "falloffRadius": 26.100000381469727,
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{c191dc9f-7a8e-4f98-9974-b23c9bb7992d}",
+    "type": "Light",
+    "lastEdited": 1617140788480592,
+    "parentID": "{6c76b816-5064-424c-84b2-dbb478e47d5d}",
+    "name": "TreeLight_1",
+    "locked": true,
+    "position": {
+        "x": 9.000457763671875,
+        "y": -0.2475719451904297,
+        "z": 8.999537467956543
+    },
+    "dimensions": {
+        "x": 10.24996280670166,
+        "y": 10.24996280670166,
+        "z": 10.24996280670166
+    },
+    "rotation": {
+        "x": -0.0000152587890625,
+        "y": -0.0000152587890625,
+        "z": -0.0000152587890625,
+        "w": 1
+    },
+    "created": 1614198986203735,
+    "lastEditedBy": "{7f097416-1c40-4cba-aa7c-6e20a7281823}",
+    "queryAACube": {
+        "x": 28.365924835205078,
+        "y": -4.791526794433594,
+        "z": 27.008251190185547,
+        "scale": 17.753456115722656
+    },
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "color": {
+        "red": 69,
+        "green": 106,
+        "blue": 255
+    },
+    "intensity": 17.799999237060547,
+    "exponent": 1,
+    "cutoff": 75,
+    "falloffRadius": 26.100000381469727,
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+},
+    {
+    "id": "{cf666211-2b88-4ee6-af3c-a1a92bd6c513}",
+    "type": "Model",
+    "lastEdited": 1617140858220173,
+    "parentID": "{6c76b816-5064-424c-84b2-dbb478e47d5d}",
+    "name": "Planters",
+    "locked": true,
+    "position": {
+        "x": -0.00016648943710606545,
+        "y": -5.586750030517578,
+        "z": 0.00017049156303983182
+    },
+    "dimensions": {
+        "x": 19.592937469482422,
+        "y": 0.6371747255325317,
+        "z": 19.592937469482422
+    },
+    "rotation": {
+        "x": -0.0000152587890625,
+        "y": -0.0000152587890625,
+        "z": -0.0000152587890625,
+        "w": 1
+    },
+    "created": 1614198986203890,
+    "lastEditedBy": "{7f097416-1c40-4cba-aa7c-6e20a7281823}",
+    "queryAACube": {
+        "x": 14.384176254272461,
+        "y": -15.1119384765625,
+        "z": 13.02754020690918,
+        "scale": 27.715923309326172
+    },
+    "grab": {
+        "grabbable": false,
+        "equippableLeftRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        },
+        "equippableRightRotation": {
+            "x": -0.0000152587890625,
+            "y": -0.0000152587890625,
+            "z": -0.0000152587890625,
+            "w": 1
+        }
+    },
+    "damping": 0,
+    "angularDamping": 0,
+    "shapeType": "static-mesh",
+    "modelURL": "qrc:///serverless/Models/Planter.glb",
+    "blendshapeCoefficients": "{\n}\n",
+    "animation": {
+        "allowTranslation": false
+    },
+    "clientOnly": false,
+    "avatarEntity": false,
+    "localEntity": false,
+    "faceCamera": false,
+    "isFacingAvatar": false
+}
+    ],
+  "Id": "{2fef14da-af5c-43f2-855c-b36bfa23d90f}",
+  "Version": 133
+}
