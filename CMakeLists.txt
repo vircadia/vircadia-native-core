@@ -41,7 +41,14 @@ endif()
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/_env/EXTERNAL_BUILD_ASSETS.txt" "${EXTERNAL_BUILD_ASSETS}")
 MESSAGE(STATUS "EXTERNAL_BUILD_ASSETS: ${EXTERNAL_BUILD_ASSETS}")
 
+# read USE_GLES enviroment variable and sets it as GLES option
+# TODO still gets overwritten by "use GLES on linux aarch64"
 set(GLES_OPTION "$ENV{USE_GLES}")
+
+# use GLES on linux aarch64
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+    set(GLES_OPTION ON)
+endif()
 
 # Will affect VCPKG dependencies
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/_env/USE_GLES.txt" "${GLES_OPTION}")
@@ -187,7 +194,7 @@ else ()
   set(PLATFORM_QT_COMPONENTS WebEngine Xml)
 endif ()
 
-if (USE_GLES AND (NOT ANDROID))
+if (USE_GLES AND (NOT ANDROID AND NOT UNIX))
   set(DISABLE_QML_OPTION ON)
 endif()
 
