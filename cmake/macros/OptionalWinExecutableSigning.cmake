@@ -11,8 +11,8 @@
 
 macro(optional_win_executable_signing)
   if (WIN32 AND PRODUCTION_BUILD AND NOT BYPASS_SIGNING)
-    if (DEFINED ENV{HF_PFX_FILE})
-      if (DEFINED ENV{HF_PFX_PASSPHRASE})
+    if (DEFINED ENV{VIRCADIA_PFX_FILE})
+      if (DEFINED ENV{VIRCADIA_PFX_PASSPHRASE})
         message(STATUS "Executable for ${TARGET_NAME} will be signed with SignTool.")
 
         if (NOT EXECUTABLE_PATH)
@@ -22,13 +22,13 @@ macro(optional_win_executable_signing)
         # setup a post build command to sign the executable
         add_custom_command(
           TARGET ${TARGET_NAME} POST_BUILD
-          COMMAND ${SIGNTOOL_EXECUTABLE} sign /fd sha256 /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr ${TIMESERVER_URL} /td SHA256 ${EXECUTABLE_PATH}
+          COMMAND ${SIGNTOOL_EXECUTABLE} sign /fd sha256 /f %VIRCADIA_PFX_FILE% /p %VIRCADIA_PFX_PASSPHRASE% /tr ${TIMESERVER_URL} /td SHA256 ${EXECUTABLE_PATH}
         )
       else ()
-        message(FATAL_ERROR "HF_PFX_PASSPHRASE must be set for executables to be signed.")
+        message(FATAL_ERROR "VIRCADIA_PFX_PASSPHRASE must be set for executables to be signed.")
       endif ()
     else ()
-      message(WARNING "Creating a production build but not code signing since HF_PFX_FILE is not set.")
+      message(WARNING "Creating a production build but not code signing since VIRCADIA_PFX_FILE is not set.")
     endif ()
   endif ()
 endmacro()

@@ -117,14 +117,14 @@ def signBuild(executablePath):
         print('Skipping signing because RELEASE_TYPE "{}" != "PRODUCTION"'.format(RELEASE_TYPE))
         return
 
-    HF_PFX_FILE = os.getenv("HF_PFX_FILE", "")
-    if HF_PFX_FILE == "":
-        print('Skipping signing because HF_PFX_FILE is empty')
+    VIRCADIA_PFX_FILE = os.getenv("VIRCADIA_PFX_FILE", "")
+    if VIRCADIA_PFX_FILE == "":
+        print('Skipping signing because VIRCADIA_PFX_FILE is empty')
         return
 
-    HF_PFX_PASSPHRASE = os.getenv("HF_PFX_PASSPHRASE", "")
-    if HF_PFX_PASSPHRASE == "":
-        print('Skipping signing because HF_PFX_PASSPHRASE is empty')
+    VIRCADIA_PFX_PASSPHRASE = os.getenv("VIRCADIA_PFX_PASSPHRASE", "")
+    if VIRCADIA_PFX_PASSPHRASE == "":
+        print('Skipping signing because VIRCADIA_PFX_PASSPHRASE is empty')
         return
 
     # FIXME use logic similar to the SetPackagingParameteres.cmake to locate the executable
@@ -135,8 +135,8 @@ def signBuild(executablePath):
             SIGN_TOOL,
             'sign', 
             '/fd', 'sha256',
-            '/f', HF_PFX_FILE,
-            '/p', HF_PFX_PASSPHRASE,
+            '/f', VIRCADIA_PFX_FILE,
+            '/p', VIRCADIA_PFX_PASSPHRASE,
             '/tr', 'http://sha256timestamp.ws.symantec.com/sha256/timestamp',
             '/td', 'SHA256',
             executablePath

@@ -75,8 +75,8 @@ jobs:
           echo "CMAKE_EXTRA=-A x64" >> $GITHUB_ENV
           echo "SYMBOL_REGEX=\(exe\|dll\|pdb\)" >> $GITHUB_ENV
           echo "symbols_archive=${BUILD_NUMBER}-${{ matrix.build_type }}-win-symbols.zip" >> $GITHUB_ENV
-          # echo "HF_PFX_PASSPHRASE=${{secrets.pfx_key}}" >> $GITHUB_ENV
-          # echo "HF_PFX_FILE=${{runner.workspace}}\build\codesign.pfx" >> $GITHUB_ENV
+          # echo "VIRCADIA_PFX_PASSPHRASE=${{secrets.pfx_key}}" >> $GITHUB_ENV
+          # echo "VIRCADIA_PFX_FILE=${{runner.workspace}}\build\codesign.pfx" >> $GITHUB_ENV
         fi
     # Configuration is broken into two steps because you can't set an env var and also reference it in the same step
     - name: Configure build environment 2

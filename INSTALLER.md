@@ -65,7 +65,7 @@ To produce an executable installer on Windows, the following are required:
     
 #### Code Signing (optional)
 
-For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PASSPHRASE` environment variables to be present during CMake runtime and globally as we proceed to package the installer.
+For code signing to work, you will need to set the `VIRCADIA_PFX_FILE` and `VIRCADIA_PFX_PASSPHRASE` environment variables to be present during CMake runtime and globally as we proceed to package the installer.
 
 #### Creating the Installer
     
