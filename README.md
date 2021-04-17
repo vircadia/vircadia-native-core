@@ -1,4 +1,4 @@
-# Vircadia (Codename Athena)
+<p align="center"><a href="https://vircadia.com/"><img src="interface/resources/images/vircadia-banner.svg" alt="Vircadia - Codename Athena" width="350"/></a></p>
 
 ### What is this?
 
