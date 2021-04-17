@@ -87,16 +87,6 @@ enum class Blendshapes : int {
     BlendshapeCount
 };
 
-enum class LegacyBlendshpaes : int {
-    JawChew,  // not in ARKit
-    LipsUpperUp, // split in ARKit
-    LipsLowerDown, // split in ARKit
-    ChinLowerRaise, // not in ARKit
-    ChinUpperRaise, // not in ARKit
-    Sneer, // split in ARKit
-    LegacyBlendshapeCount
-};
-
 // Original blendshapes were per Faceshift.
 
 // NEW in ARKit
