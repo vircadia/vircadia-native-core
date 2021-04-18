@@ -1550,7 +1550,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     typedef QPair<int, float> WeightedIndex;
                     hifi::VariantHash blendshapeMappings = mapping.value("bs").toHash();
                     QMultiHash<QString, WeightedIndex> blendshapeIndices;
-
                     for (int i = 0;; ++i) {
                         auto blendshapeName = QString(BLENDSHAPE_NAMES[i]);
                         if (blendshapeName.isEmpty()) {
@@ -1561,7 +1560,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                             // Use blendshape from mapping.
                             foreach(const QVariant& mapping, mappings) {
                                 auto blendshapeMapping = mapping.toList();
-                                blendshapeIndices.insert(blendshapeMapping.at(0).toString(), 
+                                blendshapeIndices.insert(blendshapeMapping.at(0).toString(),
                                     WeightedIndex(i, blendshapeMapping.at(1).toFloat()));
                             }
                         } else {
@@ -1570,6 +1569,19 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                                 blendshapeIndices.insert(blendshapeName, WeightedIndex(i, 1.0f));
                             }
                         }
+                    }
+
+                    // Augment list of blendshapes from synonyms in model.
+                    QMap<QString, QPair<QString, float>>::const_iterator synonym = BLENDSHAPE_SYNONYMS_MAP.constBegin();
+                    while (synonym != BLENDSHAPE_SYNONYMS_MAP.constEnd()) {
+                        if (_file.meshes[node.mesh].extras.targetNames.contains(synonym.key())) {
+                            auto blendshape = BLENDSHAPE_LOOKUP_MAP.find(synonym.value().first);
+                            if (blendshape != BLENDSHAPE_LOOKUP_MAP.end()) {
+                                blendshapeIndices.insert(synonym.key(),
+                                    WeightedIndex(blendshape.value(), synonym.value().second));
+                            }
+                        }
+                        ++synonym;
                     }
 
                     // Create blendshapes.
