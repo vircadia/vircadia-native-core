@@ -1,4 +1,10 @@
-set(TARGET_NAME interface)
+if (APPLE)
+  # Make the OSX DMG app be Vircadia.app.
+  set(TARGET_NAME Vircadia)
+else()
+  set(TARGET_NAME interface)
+endif()
+
 project(${TARGET_NAME})
 
 file(GLOB_RECURSE QML_SRC resources/qml/*.qml resources/qml/*.js)
@@ -192,9 +198,12 @@ if (BUILD_TOOLS AND NPM_EXECUTABLE)
 endif()
 
 if (WIN32 OR APPLE)
-    add_dependencies(${TARGET_NAME} resources screenshare)
+  add_dependencies(${TARGET_NAME} resources)
 endif()
 
+if (SCREENSHARE)
+  add_dependencies(${TARGET_NAME} screenshare)
+endif()
 
 if (WIN32)
   # These are external plugins, but we need to do the 'add dependency' here so that their
@@ -334,10 +343,6 @@ if (APPLE)
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${CMAKE_SOURCE_DIR}/scripts"
       "${RESOURCES_DEV_DIR}/scripts"
-    # copy screenshare app to the resource folder
-    COMMAND "${CMAKE_COMMAND}" -E copy_directory
-      "${CMAKE_CURRENT_BINARY_DIR}/../screenshare/hifi-screenshare-darwin-x64/hifi-screenshare.app"
-      "${RESOURCES_DEV_DIR}/hifi-screenshare.app"
     # copy JSDoc files beside the executable
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${CMAKE_SOURCE_DIR}/tools/jsdoc/out"
@@ -363,6 +368,15 @@ if (APPLE)
       "${PROJECT_SOURCE_DIR}/resources/serverless/redirect.json"
       "${RESOURCES_DEV_DIR}/serverless/redirect.json"
     )
+
+  if (SCREENSHARE)
+    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+      # copy screenshare app to the resource folder
+      COMMAND "${CMAKE_COMMAND}" -E copy_directory
+        "${CMAKE_CURRENT_BINARY_DIR}/../screenshare/hifi-screenshare-darwin-x64/hifi-screenshare.app"
+        "${RESOURCES_DEV_DIR}/hifi-screenshare.app"
+      )
+  endif()
 
   # call the fixup_interface macro to add required bundling commands for installation
   fixup_interface()
