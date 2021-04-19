@@ -4,7 +4,7 @@ link_hifi_libraries(shared shaders gpu graphics animation material-networking mo
 include_hifi_library_headers(avatars)
 include_hifi_library_headers(networking)
 include_hifi_library_headers(hfm)
-include_hifi_library_headers(fbx)
+include_hifi_library_headers(model-serializers)
 include_hifi_library_headers(recording)
 include_hifi_library_headers(ktx)
 include_hifi_library_headers(procedural)

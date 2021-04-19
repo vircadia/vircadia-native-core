@@ -1,6 +1,6 @@
 //
 //  FBX.h
-//  libraries/fbx/src
+//  libraries/model-serializers/src
 //
 //  Created by Ryan Huffman on 9/5/17.
 //  Copyright 2017 High Fidelity, Inc.

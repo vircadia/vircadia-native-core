@@ -2,7 +2,7 @@ set(TARGET_NAME oven)
 
 setup_hifi_project(Widgets Gui Concurrent)
 
-link_hifi_libraries(shared shaders image gpu ktx fbx hfm baking graphics networking procedural material-networking model-baker task)
+link_hifi_libraries(shared shaders image gpu ktx model-serializers hfm baking graphics networking procedural material-networking model-baker task)
 
 setup_memory_debugger()
 setup_thread_debugger()

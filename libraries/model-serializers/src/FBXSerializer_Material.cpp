@@ -1,6 +1,6 @@
 //
 //  FBXSerializer_Material.cpp
-//  interface/src/fbx
+//  libraries/model-serializers/src
 //
 //  Created by Sam Gateau on 8/27/2015.
 //  Copyright 2015 High Fidelity, Inc.
