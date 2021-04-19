@@ -1,4 +1,5 @@
 <p align="center"><a href="https://vircadia.com/"><img src="interface/resources/images/vircadia-banner.svg" alt="Vircadia - Codename Athena" width="350"/></a></p>
+<h3 align="center"><a href="https://vircadia.com/">Website</a> | <a href="https://discordapp.com/invite/Pvx2vke">Discord</a> | <a href="https://vircadia.com/download-vircadia/">Download</a></h3>
 
 ### What is this?
 
@@ -12,8 +13,6 @@ Vircadia™ is a 3D social software project seeking to incrementally bring about
 * 16km^3 world space in a server
 * Fully self-hosted
 * Apache 2.0
-
-### [Website](https://vircadia.com/) | [Discord](https://discordapp.com/invite/Pvx2vke) | [Download](https://vircadia.com/download-vircadia/)
 
 ### Releases
 
