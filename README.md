@@ -2,7 +2,16 @@
 
 ### What is this?
 
-Vircadia™ is a 3D social software project seeking to incrementally bring about a truly free and open metaverse, in desktop and XR.
+Vircadia™ is a 3D social software project seeking to incrementally bring about a truly free and open metaverse.
+
+* Desktop and VR use
+* Hundreds of users simultaneously
+* Full-body avatars
+* FBX, glTF, and OBJ support
+* JavaScript scripting engine
+* 16km^3 world space in a server
+* Fully self-hosted
+* Apache 2.0
 
 ### [Website](https://vircadia.com/) | [Discord](https://discordapp.com/invite/Pvx2vke) | [Download](https://vircadia.com/download-vircadia/)
 
@@ -10,24 +19,26 @@ Vircadia™ is a 3D social software project seeking to incrementally bring about
 
 [View Releases here](https://github.com/vircadia/vircadia/releases/)
 
-### How to build the Interface
+### How to deploy a Server
+
+- [For Windows and Linux](https://vircadia.com/deploy-a-server/)
+
+### Building
+
+#### How to build the Interface
 
 - [For Windows](https://github.com/vircadia/vircadia/blob/master/BUILD_WIN.md)
 - [For Mac](https://github.com/vircadia/vircadia/blob/master/BUILD_OSX.md)
 - [For Linux](https://github.com/vircadia/vircadia/blob/master/BUILD_LINUX.md)
 - [For Linux - Vircadia Builder](https://github.com/vircadia/vircadia-builder)
 
-### How to deploy a Server
-
-- [For Windows and Linux](https://vircadia.com/deploy-a-server/)
-
-### How to build a Server
+#### How to build a Server
 
 - [For Windows](https://github.com/vircadia/vircadia/blob/master/BUILD_WIN.md)
 - [For Linux](https://github.com/vircadia/vircadia/blob/master/BUILD_LINUX.md)
 - [For Linux - Vircadia Builder](https://github.com/vircadia/vircadia-builder)
 
-### How to generate an Installer
+#### How to generate an Installer
 
 - [For Windows - Interface & Server](https://github.com/vircadia/vircadia/blob/master/INSTALLER.md)
 - [For Mac - Interface](https://github.com/vircadia/vircadia/blob/master/INSTALLER.md#os-x)
@@ -48,7 +59,7 @@ Vircadia consists of many projects and codebases with its unifying structure's g
 - The UI Framework (Codename Nyx) - Codebase coming soon.
 - [The Metaverse (Codename Iamus)](https://github.com/vircadia/Iamus/)
 - [The Metaverse Dashboard (Codename Iamus)](https://github.com/vircadia/project-iamus-dashboard/)
-- [The Launcher (Codename Pantheon)](https://github.com/vircadia/pantheon-launcher/)
+- [The Launcher (Codename Pantheon)](https://github.com/vircadia/pantheon-launcher/) - Currently Windows only.
 
 #### Child Projects
 - [Vircadia Builder for Linux](https://github.com/vircadia/vircadia-builder/)
