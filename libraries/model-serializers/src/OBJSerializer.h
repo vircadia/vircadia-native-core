@@ -1,6 +1,6 @@
 //
 //  OBJSerializer.h
-//  libraries/fbx/src/
+//  libraries/model-serializers/src
 //
 //  Created by Seth Alves on 3/6/15.
 //  Copyright 2015 High Fidelity, Inc.
@@ -93,7 +93,7 @@ class OBJSerializer: public QObject, public HFMSerializer { // QObject so we can
 public:
     MediaType getMediaType() const override;
     std::unique_ptr<hfm::Serializer::Factory> getFactory() const override;
-    
+
     typedef QVector<OBJFace> FaceGroup;
     QVector<glm::vec3> vertices;
     QVector<glm::vec3> vertexColors;
@@ -102,7 +102,7 @@ public:
     QVector<FaceGroup> faceGroups;
     QString currentMaterialName;
     QHash<QString, OBJMaterial> materials;
-    
+
     HFMModel::Pointer read(const hifi::ByteArray& data, const hifi::VariantHash& mapping, const hifi::URL& url = hifi::URL()) override;
 
 private:

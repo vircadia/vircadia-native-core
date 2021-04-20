@@ -1,6 +1,6 @@
 //
 //  FBXSerializer.cpp
-//  libraries/fbx/src
+//  libraries/model-serializers/src
 //
 //  Created by Andrzej Kapolka on 9/18/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -404,7 +404,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
     QVector<ExtractedBlendshape> blendshapes;
 
     QHash<QString, FBXModel> fbxModels;
-    QHash<QString, Cluster> clusters; 
+    QHash<QString, Cluster> clusters;
     QHash<QString, AnimationCurve> animationCurves;
 
     QHash<QString, QString> typeFlags;
@@ -1236,7 +1236,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         // models with clusters must be parented to the cluster top
         // Unless the model is a root node.
         bool isARootNode = !modelIDs.contains(_connectionParentMap.value(fbxModel.key()));
-        if (!isARootNode) {  
+        if (!isARootNode) {
             foreach(const QString& deformerID, _connectionChildMap.values(fbxModel.key())) {
                 foreach(const QString& clusterID, _connectionChildMap.values(deformerID)) {
                     if (!clusters.contains(clusterID)) {

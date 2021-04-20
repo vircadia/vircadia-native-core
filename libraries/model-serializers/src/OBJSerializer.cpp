@@ -1,6 +1,6 @@
 //
 //  OBJSerializer.cpp
-//  libraries/fbx/src/
+//  libraries/model-serializers/src
 //
 //  Created by Seth Alves on 3/7/15.
 //  Copyright 2013 High Fidelity, Inc.
@@ -15,7 +15,7 @@
 #include "OBJSerializer.h"
 
 #include <ctype.h>  // .obj files are not locale-specific. The C/ASCII charset applies.
-#include <sstream> 
+#include <sstream>
 
 #include <QtCore/QBuffer>
 #include <QtCore/QIODevice>
@@ -263,16 +263,16 @@ void OBJSerializer::parseMaterialLibrary(QIODevice* device) {
             default:
                 materials[matName] = currentMaterial;
                 #ifdef WANT_DEBUG
-                qCDebug(modelformat) << 
+                qCDebug(modelformat) <<
                                      "OBJSerializer Last material illumination model:" << currentMaterial.illuminationModel <<
-                                     " shininess:" << currentMaterial.shininess << 
+                                     " shininess:" << currentMaterial.shininess <<
                                      " opacity:" << currentMaterial.opacity <<
-                                     " diffuse color:" << currentMaterial.diffuseColor << 
-                                     " specular color:" << currentMaterial.specularColor << 
-                                     " emissive color:" << currentMaterial.emissiveColor << 
-                                     " diffuse texture:" << currentMaterial.diffuseTextureFilename << 
-                                     " specular texture:" << currentMaterial.specularTextureFilename << 
-                                     " emissive texture:" << currentMaterial.emissiveTextureFilename << 
+                                     " diffuse color:" << currentMaterial.diffuseColor <<
+                                     " specular color:" << currentMaterial.specularColor <<
+                                     " emissive color:" << currentMaterial.emissiveColor <<
+                                     " diffuse texture:" << currentMaterial.diffuseTextureFilename <<
+                                     " specular texture:" << currentMaterial.specularTextureFilename <<
+                                     " emissive texture:" << currentMaterial.emissiveTextureFilename <<
                                      " bump texture:" << currentMaterial.bumpTextureFilename <<
                                      " opacity texture:" << currentMaterial.opacityTextureFilename;
 #endif
@@ -352,7 +352,7 @@ void OBJSerializer::parseMaterialLibrary(QIODevice* device) {
             }
         }
     }
-} 
+}
 
 void OBJSerializer::parseTextureLine(const hifi::ByteArray& textureLine, hifi::ByteArray& filename, OBJMaterialTextureOptions& textureOptions) {
     // Texture options reference http://paulbourke.net/dataformats/mtl/
@@ -803,7 +803,7 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
                     n0 = checked_at(normals, face.normalIndices[0]);
                     n1 = checked_at(normals, face.normalIndices[1]);
                     n2 = checked_at(normals, face.normalIndices[2]);
-                } else { 
+                } else {
                     // generate normals from triangle plane if not provided
                     n0 = n1 = n2 = glm::cross(v1 - v0, v2 - v0);
                 }
@@ -932,7 +932,7 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
         bool applyNonMetallic = false;
         bool fresnelOn = false;
 
-        // Illumination model reference http://paulbourke.net/dataformats/mtl/ 
+        // Illumination model reference http://paulbourke.net/dataformats/mtl/
         switch (objMaterial.illuminationModel) {
             case 0: // Color on and Ambient off
                 // We don't support ambient = do nothing?
@@ -976,7 +976,7 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
             case 10: // Casts shadows onto invisible surfaces
                 // Do nothing?
                 break;
-        }      
+        }
 
         if (applyTransparency) {
             hfmMaterial.opacity = std::max(hfmMaterial.opacity, ILLUMINATION_MODEL_MIN_OPACITY);
