@@ -1,6 +1,6 @@
 //
 //  FBXToJSON.h
-//  libraries/fbx/src
+//  libraries/model-serializers/src
 //
 //  Created by Simon Walton on 5/4/2018.
 //  Copyright 2018 High Fidelity, Inc.

@@ -38,6 +38,12 @@ macro(SET_PACKAGING_PARAMETERS)
   set(CLIENT_COMPONENT client)
   set(SERVER_COMPONENT server)
 
+  if (APPLE)
+    set(INTERFACE_BUNDLE_NAME "Vircadia")
+  else()
+    set(INTERFACE_BUNDLE_NAME "interface")
+  endif()
+
   if (RELEASE_TYPE STREQUAL "PRODUCTION")
     set(DEPLOY_PACKAGE TRUE)
     set(PRODUCTION_BUILD 1)
@@ -45,7 +51,6 @@ macro(SET_PACKAGING_PARAMETERS)
     set(BUILD_ORGANIZATION "Vircadia")
     set(HIGH_FIDELITY_PROTOCOL "hifi")
     set(HIGH_FIDELITY_APP_PROTOCOL "hifiapp")
-    set(INTERFACE_BUNDLE_NAME "interface")
     set(INTERFACE_ICON_PREFIX "interface")
 
     # add definition for this release type
@@ -68,7 +73,6 @@ macro(SET_PACKAGING_PARAMETERS)
     set(PR_BUILD 1)
     set(BUILD_VERSION "PR${RELEASE_NUMBER}")
     set(BUILD_ORGANIZATION "Vircadia - PR${RELEASE_NUMBER}")
-    set(INTERFACE_BUNDLE_NAME "interface")
     set(INTERFACE_ICON_PREFIX "interface-beta")
 
     # add definition for this release type
@@ -77,7 +81,6 @@ macro(SET_PACKAGING_PARAMETERS)
     set(DEV_BUILD 1)
     set(BUILD_VERSION "dev")
     set(BUILD_ORGANIZATION "Vircadia - ${BUILD_VERSION}")
-    set(INTERFACE_BUNDLE_NAME "interface")
     set(INTERFACE_ICON_PREFIX "interface-beta")
 
     # add definition for this release type
@@ -85,7 +88,11 @@ macro(SET_PACKAGING_PARAMETERS)
   endif ()
 
   set(NITPICK_BUNDLE_NAME "nitpick")
-  set(NITPICK_ICON_PREFIX "nitpick")
+  if (RELEASE_TYPE STREQUAL "PRODUCTION")
+    set(NITPICK_ICON_PREFIX "nitpick")
+  else ()
+    set(NITPICK_ICON_PREFIX "nitpick-beta")
+  endif ()
 
   string(TIMESTAMP BUILD_TIME "%d/%m/%Y")
 
@@ -125,10 +132,10 @@ macro(SET_PACKAGING_PARAMETERS)
 
     set(DMG_SUBFOLDER_ICON "${HF_CMAKE_DIR}/installer/install-folder.rsrc")
 
-    set(CONSOLE_INSTALL_DIR       ${DMG_SUBFOLDER_NAME})
-    set(INTERFACE_INSTALL_DIR     ${DMG_SUBFOLDER_NAME})
-    set(SCREENSHARE_INSTALL_DIR   ${DMG_SUBFOLDER_NAME})
-    set(NITPICK_INSTALL_DIR       ${DMG_SUBFOLDER_NAME})
+    set(CONSOLE_INSTALL_DIR       ".")
+    set(INTERFACE_INSTALL_DIR     ".")
+    set(SCREENSHARE_INSTALL_DIR   ".")
+    set(NITPICK_INSTALL_DIR       ".")
 
     if (CLIENT_ONLY)
       set(CONSOLE_EXEC_NAME "Console.app")
@@ -147,7 +154,7 @@ macro(SET_PACKAGING_PARAMETERS)
     
     set(SCREENSHARE_APP_CONTENTS "${SCREENSHARE_INSTALL_APP_PATH}/Contents")
 
-    set(INTERFACE_INSTALL_APP_PATH "${CONSOLE_INSTALL_DIR}/${INTERFACE_BUNDLE_NAME}.app")
+    set(INTERFACE_INSTALL_APP_PATH "${INTERFACE_INSTALL_DIR}/${INTERFACE_BUNDLE_NAME}.app")
     set(INTERFACE_ICON_FILENAME "${INTERFACE_ICON_PREFIX}.icns")
     set(NITPICK_ICON_FILENAME "${NITPICK_ICON_PREFIX}.icns")
   else ()

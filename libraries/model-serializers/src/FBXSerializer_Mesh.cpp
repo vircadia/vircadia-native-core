@@ -1,6 +1,6 @@
 //
 //  FBXSerializer_Mesh.cpp
-//  interface/src/fbx
+//  libraries/model-serializers/src
 //
 //  Created by Sam Gateau on 8/27/2015.
 //  Copyright 2015 High Fidelity, Inc.
@@ -106,7 +106,7 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index, bool deduplic
     }
     Vertex vertex;
     vertex.originalIndex = vertexIndex;
-    
+
     glm::vec3 position;
     if (vertexIndex < data.vertices.size()) {
         position = data.vertices.at(vertexIndex);
@@ -114,7 +114,7 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index, bool deduplic
 
     glm::vec3 normal;
     int normalIndex = data.normalsByVertex ? vertexIndex : index;
-    if (data.normalIndices.isEmpty()) {    
+    if (data.normalIndices.isEmpty()) {
         if (normalIndex < data.normals.size()) {
             normal = data.normals.at(normalIndex);
         }
@@ -130,7 +130,7 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index, bool deduplic
     bool hasColors = (data.colors.size() > 0);
     if (hasColors) {
         int colorIndex = data.colorsByVertex ? vertexIndex : index;
-        if (data.colorIndices.isEmpty()) {    
+        if (data.colorIndices.isEmpty()) {
             if (colorIndex < data.colors.size()) {
                 color = data.colors.at(colorIndex);
             }
@@ -152,7 +152,7 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index, bool deduplic
             vertex.texCoord = data.texCoords.at(texCoordIndex);
         }
     }
-    
+
     bool hasMoreTexcoords = (data.attributes.size() > 1);
     if (hasMoreTexcoords) {
         if (data.attributes[1].texCoordIndices.empty()) {
@@ -222,7 +222,7 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
 
                 } else if (subdata.name == "MappingInformationType" && subdata.properties.at(0) == BY_VERTICE) {
                     data.normalsByVertex = true;
-                    
+
                 } else if (subdata.name == "ReferenceInformationType" && subdata.properties.at(0) == INDEX_TO_DIRECT) {
                     indexToDirect = true;
                 }
@@ -242,7 +242,7 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
 
                 } else if (subdata.name == "MappingInformationType" && subdata.properties.at(0) == BY_VERTICE) {
                     data.colorsByVertex = true;
-                    
+
                 } else if (subdata.name == "ReferenceInformationType" && subdata.properties.at(0) == INDEX_TO_DIRECT) {
                     indexToDirect = true;
                 }
@@ -264,7 +264,7 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
                 qCDebug(modelformat) << "LayerElementColor has an average value of 0.0f... let's forget it.";
             }
 #endif
-         
+
         } else if (child.name == "LayerElementUV") {
             if (child.properties.at(0).toInt() == 0) {
                 AttributeData attrib;
@@ -278,7 +278,7 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
                         attrib.texCoordIndices = getIntVector(subdata);
                     } else if (subdata.name == "Name") {
                         attrib.name = subdata.properties.at(0).toString();
-                    } 
+                    }
 #if defined(DEBUG_FBXSERIALIZER)
                     else {
                         int unknown = 0;
@@ -579,6 +579,6 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
             }
         }
     }
-    
+
     return data.extracted;
 }

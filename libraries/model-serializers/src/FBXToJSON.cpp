@@ -1,6 +1,6 @@
 //
 //  FBXToJSON.cpp
-//  libraries/fbx/src
+//  libraries/model-serializers/src
 //
 //  Created by Simon Walton on 5/4/2018.
 //  Copyright 2018 High Fidelity, Inc.
@@ -61,7 +61,7 @@ FBXToJSON& FBXToJSON::operator<<(const FBXNode& fbxNode) {
         case QMetaType::QByteArray:
             *this << '"' << stringEscape(prop.toByteArray().toStdString()) << '"';
             break;
-           
+
         default:
             if (prop.canConvert<QVector<float>>()) {
                 *this << prop.value<QVector<float>>();
@@ -95,7 +95,7 @@ FBXToJSON& FBXToJSON::operator<<(const FBXNode& fbxNode) {
 string FBXToJSON::stringEscape(const string& in) {
     string out;
     out.reserve(in.length());
-    
+
     for (unsigned char inChar: in) {
         if (inChar == '"') {
             out.append(R"(\")");
