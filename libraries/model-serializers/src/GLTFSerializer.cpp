@@ -1572,8 +1572,8 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     }
 
                     // Augment list of blendshapes from synonyms in model.
-                    QMap<QString, QPair<QString, float>>::const_iterator synonym = BLENDSHAPE_SYNONYMS_MAP.constBegin();
-                    while (synonym != BLENDSHAPE_SYNONYMS_MAP.constEnd()) {
+                    QMap<QString, QPair<QString, float>>::const_iterator synonym = READYPLAYERME_BLENDSHAPES_MAP.constBegin();
+                    while (synonym != READYPLAYERME_BLENDSHAPES_MAP.constEnd()) {
                         if (_file.meshes[node.mesh].extras.targetNames.contains(synonym.key())) {
                             auto blendshape = BLENDSHAPE_LOOKUP_MAP.find(synonym.value().first);
                             if (blendshape != BLENDSHAPE_LOOKUP_MAP.end()) {

@@ -20,6 +20,7 @@
 /// The names of the supported blendshapes, terminated with an empty string.
 extern const char* BLENDSHAPE_NAMES[];
 extern const QMap<QString, int> BLENDSHAPE_LOOKUP_MAP;
+extern const QMap<QString, QPair<QString, float>> READYPLAYERME_BLENDSHAPES_MAP;
 
 enum class Blendshapes : int {
     EyeBlink_L = 0,
@@ -112,24 +113,6 @@ enum class Blendshapes : int {
 // * ChinUpperRaise (not in ARKit)
 // * LipsUpperOpen (not in ARKit)
 // * LipsLowerOpen (not in ARKit)
-
-const QMap<QString, QPair<QString, float>> BLENDSHAPE_SYNONYMS_MAP {
-    // ReadyPlayerMe
-    {"browDownLeft", {"BrowsD_L", 0.5f}},
-    {"browDownRight", {"BrowsD_R", 0.5f}},
-    {"browInnerUp", {"BrowsU_C", 0.3f}},
-    {"browOuterUpLeft", {"BrowsU_L", 0.3f}},
-    {"browOuterUpRight", {"BrowsU_R", 0.3f}},
-    {"eyeBlinkLeft", {"EyeBlink_L", 1.0f}},
-    {"eyeBlinkRight", {"EyeBlink_R", 1.0f}},
-    {"eyeWideLeft", {"EyeOpen_L", 1.0f}},
-    {"eyeWideRight", {"EyeOpen_R", 1.0f}},
-    {"mouthLeft", {"MouthSmile_L", 0.6f}},
-    {"mouthOpen", {"JawOpen", 1.0f}},
-    {"mouthRight", {"MouthSmile_R", 0.6f}},
-    {"mouthShrugLower", {"LipsUpperClose", 0.1f}},
-    {"viseme_O", {"LipsFunnel", 0.5f}}
-};
 
 struct BlendshapeOffsetPacked {
     glm::uvec4 packedPosNorTan;
