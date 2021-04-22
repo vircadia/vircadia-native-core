@@ -1,30 +1,25 @@
 # Build Windows
 
-*Last Updated on May 17, 2020*
+*Last Updated on 15 Apr 2021*
 
 This is a stand-alone guide for creating your first Vircadia build for Windows 64-bit.  
 
-Note: We are now using Visual Studio 2017 or 2019 and Qt 5.12.3.  
+Note: We are now using Visual Studio 2019 and Qt 5.15.2.
 If you are upgrading from previous versions, do a clean uninstall of those versions before going through this guide.  
 
 **Note: The prerequisites will require about 10 GB of space on your drive. You will also need a system with at least 8GB of main memory.**
 
 ### Step 1. Visual Studio & Python 3.x
 
-If you don’t have Community or Professional edition of Visual Studio, download [Visual Studio Community 2019](https://visualstudio.microsoft.com/vs/). If you have Visual Studio 2017, you are not required to download Visual Studio 2019.
+If you don't have Community or Professional edition of Visual Studio 2019, download [Visual Studio Community 2019](https://visualstudio.microsoft.com/vs/). If you have Visual Studio 2017, you need to download Visual Studio 2019.
 
 When selecting components, check "Desktop development with C++".
 
 If you do not already have a Python 3.x development environment installed and want to install it with Visual Studio, check "Python Development". If you already have Visual Studio installed and need to add Python, open the "Add or remove programs" control panel and find the "Microsoft Visual Studio Installer". Select it and click "Modify". In the installer, select "Modify" again, then check "Python Development" and allow the installer to apply the changes.
 
-On the right on the Summary toolbar, select the following components based on your Visual Studio version.
+#### Visual Studio 2019
 
-#### If you're installing Visual Studio 2017
-
-* Windows 8.1 SDK and UCRT SDK
-* VC++ 2015.3 v14.00 (v140) toolset for desktop
-
-#### If you're installing Visual Studio 2019
+On the right on the Summary toolbar, select the following components.
 
 * MSVC v142 - VS 2019 C++ X64/x86 build tools
 * MSVC v141 - VS 2017 C++ x64/x86 build tools
@@ -56,8 +51,8 @@ Install version 10.15.0 LTS (or greater) of [Node.JS and NPM](<https://nodejs.or
 ### Step 5. (Optional) Install Qt
 
 If you would like to compile Qt instead of using the precompiled package provided during CMake, you can do so now. Install version 5.12.3 of [Qt](<https://www.qt.io/download-open-source>), as well as the following packages:
-* Qt 5.12.3
-* MSVC 2017 64-bit
+* Qt 5.15.2
+* MSVC 2019 64-bit
 * Qt WebEngine
 * Qt Script (Deprecated)
 
@@ -66,26 +61,26 @@ For convenience, you may also want the "Qt Debug Information" and "Sources" pack
 You'll need to create the environment variable that CMake uses to find your system's Qt install.
 
 To create this variable:
-* Navigate to 'Edit the System Environment Variables' through the start menu.
+* Navigate to 'Edit the System Environment Variables' through the Start menu.
 * Click on 'Environment Variables'
 * Select 'New'
 * Set "Variable name" to `QT_CMAKE_PREFIX_PATH`
-* Set "Variable value" to `%QT_INSTALL_DIR%\5.12.3\msvc2017_64\lib\cmake`, where `%QT_INSTALL_DIR%` is the directory you specified for Qt's installation. The default is `C:\Qt`.
+* Set "Variable value" to `%QT_INSTALL_DIR%\5.15.2\msvc2019_64\lib\cmake`, where `%QT_INSTALL_DIR%` is the directory you specified for Qt's installation. The default is `C:\Qt`.
 
 ### Step 6. Create VCPKG environment variable
 In the next step, you will use CMake to build Vircadia. By default, the CMake process builds dependency files in Windows' `%TEMP%` directory, which is periodically cleared by the operating system. To prevent you from having to re-build the dependencies in the event that Windows clears that directory, we recommend that you create a `HIFI_VCPKG_BASE` environment variable linked to a directory somewhere on your machine. That directory will contain all dependency files until you manually remove them.
 
 To create this variable:
-* Navigate to 'Edit the System Environment Variables' Through the start menu.
+* Navigate to 'Edit the System Environment Variables' Through the Start menu.
 * Click on 'Environment Variables'
 * Select 'New'
 * Set "Variable name" to `HIFI_VCPKG_BASE`
 * Set "Variable value" to any directory that you have control over.
 
-Additionally, if you have Visual Studio 2019 installed and _only_ Visual Studio 2019 (i.e. you do not have Visual Studio 2017 installed) you must add an additional environment variable `HIFI_VCPKG_BOOTSTRAP` that will fix a bug in our `vcpkg` pre-build step.
+Additionally, if you have Visual Studio 2019 installed and _only_ Visual Studio 2019 (i.e., you do not have Visual Studio 2017 installed) you must add an additional environment variable `HIFI_VCPKG_BOOTSTRAP` that will fix a bug in our `vcpkg` pre-build step.
 
 To create this variable:
-* Navigate to 'Edit the System Environment Variables' Through the start menu.
+* Navigate to 'Edit the System Environment Variables' through the Start menu.
 * Click on 'Environment Variables'
 * Select 'New'
 * Set "Variable name" to `HIFI_VCPKG_BOOTSTRAP`
@@ -98,10 +93,7 @@ Run Command Prompt from Start and run the following commands:
 `mkdir build`  
 `cd build`  
 
-#### If you're using Visual Studio 2017,
-Run `cmake .. -G "Visual Studio 15 Win64"`.
-
-#### If you're using Visual Studio 2019,
+#### Visual Studio 2019
 Run `cmake .. -G "Visual Studio 16 2019" -A x64`.
 
 Where `%VIRCADIA_DIR%` is the directory for the Vircadia repository.
