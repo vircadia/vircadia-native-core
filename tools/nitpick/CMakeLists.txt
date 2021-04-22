@@ -139,7 +139,7 @@ include_directories("${PROJECT_SOURCE_DIR}/src")
 if (UNIX AND NOT ANDROID)
     if (CMAKE_SYSTEM_NAME MATCHES "Linux")
         # Linux
-        target_link_libraries(${TARGET_NAME} pthread atomic)
+        target_link_libraries(${TARGET_NAME} atomic pthread)
     else ()
         # OSX
         target_link_libraries(${TARGET_NAME} pthread)
