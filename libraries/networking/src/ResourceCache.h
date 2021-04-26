@@ -28,7 +28,7 @@
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
 
-#include <QScriptEngine>
+#include <QtScript/QScriptEngine>
 
 #include <DependencyManager.h>
 

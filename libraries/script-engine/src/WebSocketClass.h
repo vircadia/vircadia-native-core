@@ -13,7 +13,7 @@
 #define hifi_WebSocketClass_h
 
 #include <QObject>
-#include <QScriptEngine>
+#include <QtScript/QScriptEngine>
 #include <QWebSocket>
 
 /**jsdoc

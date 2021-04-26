@@ -13,7 +13,7 @@
 #define hifi_AnimationObject_h
 
 #include <QObject>
-#include <QScriptable>
+#include <QtScript/QScriptable>
 
 #include <FBXSerializer.h>
 

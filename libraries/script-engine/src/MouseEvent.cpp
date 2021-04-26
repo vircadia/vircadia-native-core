@@ -11,8 +11,8 @@
 
 #include "MouseEvent.h"
 
-#include <qscriptengine.h>
-#include <qscriptvalue.h>
+#include <QtScript/qscriptengine.h>
+#include <QtScript/qscriptvalue.h>
 
 MouseEvent::MouseEvent() :
     x(0.0f),

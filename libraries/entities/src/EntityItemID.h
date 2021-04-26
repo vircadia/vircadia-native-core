@@ -17,7 +17,7 @@
 #include <QDebug>
 #include <QObject>
 #include <QHash>
-#include <QScriptEngine>
+#include <QtScript/QScriptEngine>
 #include <QUuid>
 
 const QUuid UNKNOWN_ENTITY_ID; // null uuid

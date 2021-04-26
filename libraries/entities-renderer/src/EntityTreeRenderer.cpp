@@ -15,7 +15,7 @@
 #include <queue>
 
 #include <QEventLoop>
-#include <QScriptSyntaxCheckResult>
+#include <QtScript/QScriptSyntaxCheckResult>
 #include <QThreadPool>
 
 #include <shared/QtHelpers.h>

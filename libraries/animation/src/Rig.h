@@ -16,7 +16,7 @@
 
 #include <QObject>
 #include <QMutex>
-#include <QScriptValue>
+#include <QtScript/QScriptValue>
 #include <vector>
 #include <JointData.h>
 #include <QReadWriteLock>

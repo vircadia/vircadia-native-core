@@ -10,8 +10,8 @@
 //
 
 #include "ModelScriptingInterface.h"
-#include <QScriptEngine>
-#include <QScriptValueIterator>
+#include <QtScript/QScriptEngine>
+#include <QtScript/QScriptValueIterator>
 #include <QtScript/QScriptValue>
 #include <model-networking/SimpleMeshProxy.h>
 #include "ScriptEngine.h"

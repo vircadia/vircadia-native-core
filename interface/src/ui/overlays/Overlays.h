@@ -20,7 +20,7 @@
 
 #include <QMouseEvent>
 #include <QReadWriteLock>
-#include <QScriptValue>
+#include <QtScript/QScriptValue>
 
 #include <PointerEvent.h>
 

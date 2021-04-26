@@ -11,8 +11,8 @@
 
 #include "WheelEvent.h"
 
-#include <QScriptEngine>
-#include <QScriptValue>
+#include <QtScript/QScriptEngine>
+#include <QtScript/QScriptValue>
 
 WheelEvent::WheelEvent() :
     x(0.0f),

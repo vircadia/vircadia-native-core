@@ -13,9 +13,9 @@
 #define hifi_AccountServicesScriptingInterface_h
 
 #include <QObject>
-#include <QScriptContext>
-#include <QScriptEngine>
-#include <QScriptValue>
+#include <QtScript/QScriptContext>
+#include <QtScript/QScriptEngine>
+#include <QtScript/QScriptValue>
 #include <QString>
 #include <QStringList>
 

@@ -12,7 +12,7 @@
 #ifndef hifi_ArrayBufferViewClass_h
 #define hifi_ArrayBufferViewClass_h
 
-#include <QScriptClass>
+#include <QtScript/QScriptClass>
 #include <QtCore/QObject>
 #include <QtScript/QScriptClass>
 #include <QtScript/QScriptContext>

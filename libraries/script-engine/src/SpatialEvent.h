@@ -15,7 +15,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include <qscriptengine.h>
+#include <QtScript/qscriptengine.h>
 
 class SpatialEvent {
 public:

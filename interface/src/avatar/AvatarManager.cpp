@@ -13,7 +13,7 @@
 
 #include <string>
 
-#include <QScriptEngine>
+#include <QtScript/QScriptEngine>
 
 #include "AvatarLogging.h"
 

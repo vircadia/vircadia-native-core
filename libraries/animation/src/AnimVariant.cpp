@@ -11,8 +11,8 @@
 
 #include "AnimVariant.h" // which has AnimVariant/AnimVariantMap
 
-#include <QScriptEngine>
-#include <QScriptValueIterator>
+#include <QtScript/QScriptEngine>
+#include <QtScript/QScriptValueIterator>
 #include <QThread>
 #include <RegisteredMetaTypes.h>
 

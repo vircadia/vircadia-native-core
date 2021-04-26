@@ -13,8 +13,8 @@
 
 #include <QObject>
 #include <QMap>
-#include <QScriptValue>
-#include <QScriptEngine>
+#include <QtScript/QScriptValue>
+#include <QtScript/QScriptEngine>
 #include <glm/glm.hpp>
 
 #include <functional>

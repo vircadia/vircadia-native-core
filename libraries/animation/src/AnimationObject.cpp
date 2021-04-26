@@ -11,7 +11,7 @@
 
 #include "AnimationObject.h"
 
-#include <QScriptEngine>
+#include <QtScript/QScriptEngine>
 
 #include "AnimationCache.h"
 

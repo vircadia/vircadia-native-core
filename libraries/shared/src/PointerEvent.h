@@ -16,7 +16,7 @@
 
 #include <stdint.h>
 #include <glm/glm.hpp>
-#include <QScriptValue>
+#include <QtScript/QScriptValue>
 
 class PointerEvent {
 public:
