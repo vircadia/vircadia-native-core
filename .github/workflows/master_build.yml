@@ -35,7 +35,7 @@ jobs:
         include:
           - os: ubuntu-18.04
             build_type: full
-            apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
+            apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0 libsnappy1v5 libwebpdemux2 libwebpmux3
       fail-fast: false
     runs-on: ${{matrix.os}}
     steps:

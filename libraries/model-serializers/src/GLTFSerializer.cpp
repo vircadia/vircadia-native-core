@@ -1404,7 +1404,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
                 if (colors.size() == partVerticesCount * colorStride) {
                     for (int n = 0; n < colors.size(); n += colorStride) {
-                        mesh.colors.push_back(glm::vec3(colors[n], colors[n + 1], colors[n + 2]));
+                        mesh.colors.push_back(ColorUtils::tosRGBVec3(glm::vec3(colors[n], colors[n + 1], colors[n + 2])));
                     }
                 } else {
                     if (meshAttributes.contains("COLOR_0")) {

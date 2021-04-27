@@ -27,7 +27,7 @@ endif()
     def __init__(self, args):
         self.args = args
         self.configFilePath = os.path.join(args.build_root, 'qt.cmake')
-        self.version = os.getenv('VIRCADIA_USE_QT_VERSION', '5.12.3')
+        self.version = os.getenv('VIRCADIA_USE_QT_VERSION', '5.15.2')
 
         self.assets_url = hifi_utils.readEnviromentVariableFromFile(args.build_root, 'EXTERNAL_BUILD_ASSETS')
 
@@ -56,9 +56,9 @@ endif()
         cpu_architecture = platform.machine()
 
         if 'Windows' == system:
-            self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-windows3.tar.gz%3FversionId=5ADqP0M0j5ZfimUHrx4zJld6vYceHEsI'
+            self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.15.2-windows.tar.gz'
         elif 'Darwin' == system:
-            self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-macos.tar.gz%3FversionId=bLAgnoJ8IMKpqv8NFDcAu8hsyQy3Rwwz'
+            self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.15.2-macos.tar.gz'
         elif 'Linux' == system:
             import distro
             dist = distro.linux_distribution()
@@ -68,14 +68,10 @@ endif()
                     u_major = int( distro.major_version() )
                     u_minor = int( distro.minor_version() )
 
-                    if u_major == 16:
-                        self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04-with-symbols.tar.gz'
-                    elif u_major == 18:
-                        self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-18.04.tar.gz'
-                    elif u_major == 19 and u_minor == 10:
-                        self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.6-ubuntu-19.10.tar.xz'
+                    if u_major == 18:
+                        self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.15.2-ubuntu-18.04-amd64.tar.xz'
                     elif u_major > 19:
-                        print("We don't support " + distro.name(pretty=True) + " on x86_64 yet. Perhaps consider helping us out?")
+                        print("We don't support " + distro.name(pretty=True) + " yet. Perhaps consider helping us out?")
                         raise Exception('LINUX DISTRO IS NOT SUPPORTED YET!!!')
                     else:
                         print("Sorry, " + distro.name(pretty=True) + " is old and won't be officially supported. Please consider upgrading.");
@@ -113,6 +109,7 @@ endif()
                     else:
                         print("Sorry, " + distro.name(pretty=True) + " is old and won't be officially supported. Please consider upgrading.");
                         raise Exception('UNKNOWN LINUX DISTRO VERSION!!!')
+
                 else:
                     print("Sorry, " + distro.name(pretty=True) + " is not supported on aarch64. Please consider helping us out.")
                     print("It's also possible to build Qt for your distribution, please see the documentation at:")
