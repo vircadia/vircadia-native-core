@@ -1583,7 +1583,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                         && fileTargetNames.contains("viseme_O")
                         && fileTargetNames.contains("mouthShrugLower");
                     if (blendshapeMappings.count() == 0 && likelyReadyPlayerMeFile) {
-                        QMap<QString, QPair<QString, float>>::const_iterator synonym 
+                        QHash<QString, QPair<QString, float>>::const_iterator synonym 
                             = READYPLAYERME_BLENDSHAPES_MAP.constBegin();
                         while (synonym != READYPLAYERME_BLENDSHAPES_MAP.constEnd()) {
                             if (fileTargetNames.contains(synonym.key())) {

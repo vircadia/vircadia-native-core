@@ -77,15 +77,15 @@ const char* BLENDSHAPE_NAMES[] = {
     ""
 };
 
-const QMap<QString, int> BLENDSHAPE_LOOKUP_MAP = [] {
-    QMap<QString, int> toReturn;
+const QHash<QString, int> BLENDSHAPE_LOOKUP_MAP = [] {
+    QHash<QString, int> toReturn;
     for (int i = 0; i < (int)Blendshapes::BlendshapeCount; i++) {
         toReturn[BLENDSHAPE_NAMES[i]] = i;
     }
     return toReturn;
 }();
 
-const QMap<QString, QPair<QString, float>> READYPLAYERME_BLENDSHAPES_MAP = {
+const QHash<QString, QPair<QString, float>> READYPLAYERME_BLENDSHAPES_MAP = {
     // ReadyPlayerMe blendshape default mapping.
     { "mouthOpen", { "JawOpen", 1.0f } },
     { "eyeBlinkLeft", { "EyeBlink_L", 1.0f } },

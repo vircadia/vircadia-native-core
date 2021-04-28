@@ -12,15 +12,15 @@
 #ifndef hifi_BlendshapeConstants_h
 #define hifi_BlendshapeConstants_h
 
-#include <QMap>
+#include <QHash>
 #include <QString>
 
 #include <glm/glm.hpp>
 
 /// The names of the supported blendshapes, terminated with an empty string.
 extern const char* BLENDSHAPE_NAMES[];
-extern const QMap<QString, int> BLENDSHAPE_LOOKUP_MAP;
-extern const QMap<QString, QPair<QString, float>> READYPLAYERME_BLENDSHAPES_MAP;
+extern const QHash<QString, int> BLENDSHAPE_LOOKUP_MAP;
+extern const QHash<QString, QPair<QString, float>> READYPLAYERME_BLENDSHAPES_MAP;
 
 enum class Blendshapes : int {
     EyeBlink_L = 0,
