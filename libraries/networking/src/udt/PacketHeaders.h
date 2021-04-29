@@ -33,7 +33,7 @@ public:
     // This enum must hold 256 or fewer packet types (so the value is <= 255) since it is statically typed as a uint8_t
     enum class Value : uint8_t {
         Unknown,
-        StunResponse,
+        DomainConnectRequestPending,
         DomainList,
         Ping,
         PingReply,
@@ -170,7 +170,7 @@ public:
 
     const static QSet<PacketTypeEnum::Value> getNonSourcedPackets() {
         const static QSet<PacketTypeEnum::Value> NON_SOURCED_PACKETS = QSet<PacketTypeEnum::Value>()
-            << PacketTypeEnum::Value::StunResponse << PacketTypeEnum::Value::CreateAssignment
+            << PacketTypeEnum::Value::DomainConnectRequestPending << PacketTypeEnum::Value::CreateAssignment
             << PacketTypeEnum::Value::RequestAssignment << PacketTypeEnum::Value::DomainServerRequireDTLS
             << PacketTypeEnum::Value::DomainConnectRequest << PacketTypeEnum::Value::DomainList
             << PacketTypeEnum::Value::DomainConnectionDenied << PacketTypeEnum::Value::DomainServerPathQuery
