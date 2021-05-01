@@ -1550,7 +1550,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     typedef QPair<int, float> WeightedIndex;
                     hifi::VariantHash blendshapeMappings = mapping.value("bs").toHash();
                     QMultiHash<QString, WeightedIndex> blendshapeIndices;
-
                     for (int i = 0;; ++i) {
                         auto blendshapeName = QString(BLENDSHAPE_NAMES[i]);
                         if (blendshapeName.isEmpty()) {
@@ -1569,6 +1568,32 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                             if (_file.meshes[node.mesh].extras.targetNames.contains(blendshapeName)) {
                                 blendshapeIndices.insert(blendshapeName, WeightedIndex(i, 1.0f));
                             }
+                        }
+                    }
+
+                    // If an FST isn't being used and the model is likely from ReadyPlayerMe, add blendshape synonyms.
+                    auto fileTargetNames = _file.meshes[node.mesh].extras.targetNames;
+                    bool likelyReadyPlayerMeFile =
+                           fileTargetNames.contains("browOuterUpLeft")
+                        && fileTargetNames.contains("browInnerUp")
+                        && fileTargetNames.contains("browDownLeft")
+                        && fileTargetNames.contains("eyeBlinkLeft")
+                        && fileTargetNames.contains("eyeWideLeft")
+                        && fileTargetNames.contains("mouthLeft")
+                        && fileTargetNames.contains("viseme_O")
+                        && fileTargetNames.contains("mouthShrugLower");
+                    if (blendshapeMappings.count() == 0 && likelyReadyPlayerMeFile) {
+                        QHash<QString, QPair<QString, float>>::const_iterator synonym 
+                            = READYPLAYERME_BLENDSHAPES_MAP.constBegin();
+                        while (synonym != READYPLAYERME_BLENDSHAPES_MAP.constEnd()) {
+                            if (fileTargetNames.contains(synonym.key())) {
+                                auto blendshape = BLENDSHAPE_LOOKUP_MAP.find(synonym.value().first);
+                                if (blendshape != BLENDSHAPE_LOOKUP_MAP.end()) {
+                                    blendshapeIndices.insert(synonym.key(),
+                                        WeightedIndex(blendshape.value(), synonym.value().second));
+                                }
+                            }
+                            ++synonym;
                         }
                     }
 
