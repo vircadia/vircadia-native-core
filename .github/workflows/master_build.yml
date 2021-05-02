@@ -3,7 +3,7 @@ name: Master CI Build
 on: 
   push:
     branches:
-      - master
+      - merge-test
 
 env:
   APP_NAME: interface
