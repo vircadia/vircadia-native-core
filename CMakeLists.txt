@@ -280,6 +280,12 @@ GroupSources("scripts")
 GroupSources("unpublishedScripts")
 unset(JS_SRC)
 
+file(GLOB_RECURSE WEB_APP_SRC vircadia-web/*.*)
+list(FILTER WEB_APP_SRC EXCLUDE REGEX "vircadia-web/(dist|node_modules|public)/*" )
+add_custom_target(vircadia-web SOURCES ${WEB_APP_SRC})
+GroupSources("vircadia-web")
+unset(WEB_APP_SRC)
+
 set_packaging_parameters()
 
 # Locate the required Qt build on the filesystem
