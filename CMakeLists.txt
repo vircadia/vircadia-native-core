@@ -274,7 +274,7 @@ add_custom_target(cmake SOURCES ${CMAKE_SRC})
 GroupSources("cmake")
 unset(CMAKE_SRC)
 
-file(GLOB_RECURSE JS_SRC scripts/*.js unpublishedScripts/*.js)
+file(GLOB_RECURSE JS_SRC scripts/*.* unpublishedScripts/*.*)
 add_custom_target(js SOURCES ${JS_SRC})
 GroupSources("scripts")
 GroupSources("unpublishedScripts")
