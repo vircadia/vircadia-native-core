@@ -56,9 +56,10 @@ Vircadia consists of many projects and codebases with its unifying structure's g
 
 - The Interface (Codename Athena) - You are here!
 - The Server (Codename Athena) - You are also here!
-- The UI Framework (Codename Nyx) - Codebase coming soon.
-- [The Metaverse (Codename Iamus)](https://github.com/vircadia/Iamus/)
-- [The Metaverse Dashboard (Codename Iamus)](https://github.com/vircadia/project-iamus-dashboard/)
+- [The Web Interface (Codename Aether)](https://github.com/vircadia/vircadia-web/)
+- [The Web SDK (Codename Ananke)](https://github.com/vircadia/vircadia-web-sdk/)
+- [The Metaverse Server (Codename Iamus)](https://github.com/vircadia/Iamus/)
+- [The Metaverse Server Dashboard (Codename Iamus)](https://github.com/vircadia/project-iamus-dashboard/)
 - [The Launcher (Codename Pantheon)](https://github.com/vircadia/pantheon-launcher/) - Currently Windows only.
 
 #### Child Projects
