@@ -16,7 +16,7 @@
 #include <QFileInfo>
 #include <QString>
 
-/**jsdoc
+/*@jsdoc
  * The <code>File</code> API provides some facilities for working with the file system.
  *
  * @namespace File
@@ -36,7 +36,7 @@ public:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * Extracts a filename from a URL, where the filename is specified in the query part of the URL as <code>filename=</code>.
      * @function File.convertUrlToPath
      * @param {string} url - The URL to extract the filename from.
@@ -47,7 +47,7 @@ public slots:
      */
     QString convertUrlToPath(QUrl url);
 
-    /**jsdoc
+    /*@jsdoc
      * Unzips a file in the local file system to a new, unique temporary directory.
      * @function File.runUnzip
      * @param {string} path - The path of the zip file in the local file system. May have a leading <code>"file:///"</code>. 
@@ -79,7 +79,7 @@ public slots:
      */
     void runUnzip(QString path, QUrl url, bool autoAdd, bool isZip, bool isBlocks);
 
-    /**jsdoc
+    /*@jsdoc
      * Creates a new, unique directory for temporary use.
      * @function File.getTempDir
      * @returns {string} The path of the newly created temporary directory.
@@ -90,7 +90,7 @@ public slots:
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when {@link File.runUnzip|runUnzip} completes.
      * @function File.unzipResult
      * @param {string} zipFile - The file that was unzipped.

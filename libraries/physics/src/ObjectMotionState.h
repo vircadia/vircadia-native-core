@@ -29,7 +29,7 @@ enum PhysicsMotionType {
     MOTION_TYPE_KINEMATIC   // keyframed motion
 };
 
-/**jsdoc
+/*@jsdoc
  * <p>An entity's physics motion type may be one of the following:</p>
  * <table>
  *   <thead>

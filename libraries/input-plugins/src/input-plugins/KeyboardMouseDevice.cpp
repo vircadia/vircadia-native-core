@@ -310,7 +310,7 @@ controller::Input KeyboardMouseDevice::InputDevice::makeInput(KeyboardMouseDevic
     return controller::Input(_deviceID, button, controller::ChannelType::BUTTON);
 }
 
-/**jsdoc
+/*@jsdoc
  * <p>The <code>Controller.Hardware.Keyboard</code> object has properties representing keyboard, mouse, and display touch 
  * events. The property values are integer IDs, uniquely identifying each output. <em>Read-only.</em></p>
  * <p>These events can be mapped to actions or functions or <code>Controller.Standard</code> items in a {@link RouteObject}

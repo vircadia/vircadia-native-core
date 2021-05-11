@@ -11,7 +11,7 @@
 
 #include "QString"
 
-/**jsdoc
+/*@jsdoc
  * <p>A {@link Entities.EntityProperties-Text|Text} entity may use one of the following effects:</p>
  * <table>
  *   <thead>

@@ -1816,7 +1816,7 @@ void ViveControllerManager::InputDevice::setConfigFromString(const QString& valu
     }
 }
 
-/**jsdoc
+/*@jsdoc
  * <p>The <code>Controller.Hardware.Vive</code> object has properties representing the Vive. The property values are integer 
  * IDs, uniquely identifying each output. <em>Read-only.</em></p>
  * <p>These outputs can be mapped to actions or functions or <code>Controller.Standard</code> items in a {@link RouteObject} 

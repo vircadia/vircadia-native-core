@@ -30,7 +30,7 @@ namespace image {
 
 namespace TextureUsage {
 
-/**jsdoc
+/*@jsdoc
  * <p>Describes the type of texture.</p>
  * <p>See also: {@link Material} and 
  * {@link https://docs.vircadia.dev/create/3d-models/pbr-materials-guide.html|PBR Materials Guide}.</p>

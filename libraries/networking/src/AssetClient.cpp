@@ -89,7 +89,7 @@ namespace {
     const QString& CACHE_ERROR_MESSAGE{ "AssetClient::Error: %1 %2" };
 }
 
-/**jsdoc
+/*@jsdoc
  * Cache status value returned by {@link Assets.getCacheStatus}.
  * @typedef {object} Assets.GetCacheStatusResult
  * @property {string} cacheDirectory - The path of the cache directory.
@@ -117,7 +117,7 @@ MiniPromise::Promise AssetClient::cacheInfoRequestAsync(MiniPromise::Promise def
     return deferred;
 }
 
-/**jsdoc
+/*@jsdoc
  * Information on an asset in the cache. Value returned by {@link Assets.queryCacheMeta} and included in the data returned by 
  * {@link Assets.loadFromCache}.
  * @typedef {object} Assets.CacheItemMetaData
@@ -227,7 +227,7 @@ namespace {
     }
 }
 
-/**jsdoc
+/*@jsdoc
  * Last-modified and expiry times for a cache item.
  * @typedef {object} Assets.SaveToCacheHeaders
  * @property {string} [expires] - The date and time the cache value expires, in the format:
@@ -235,7 +235,7 @@ namespace {
  * @property {string} [last-modified] - The date and time the cache value was last modified, in the format:
  *     <code>"ddd, dd MMM yyyy HH:mm:ss"</code>. The default value is the current date and time.
  */
-/**jsdoc
+/*@jsdoc
  * Information on saving asset data to the cache with {@link Assets.saveToCache}.
  * @typedef {object} Assets.SaveToCacheResult
  * @property {number} [byteLength] - The size of the cached data, in bytes.

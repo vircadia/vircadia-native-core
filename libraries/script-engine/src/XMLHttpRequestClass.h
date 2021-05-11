@@ -56,7 +56,7 @@ XMlHttpRequest.getAllResponseHeaders() function
 XMlHttpRequest.getResponseHeader(QString) function
 */
 
-/**jsdoc
+/*@jsdoc
  * Provides a means to interact with web servers. It is a near-complete implementation of the XMLHttpRequest API described in 
  * the Mozilla docs:
  * <a href="https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest">https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest</a>.
@@ -175,7 +175,7 @@ public:
 
     static const int MAXIMUM_REDIRECTS = 5;
 
-    /**jsdoc
+    /*@jsdoc
      * <p>The state of an XMLHttpRequest.</p>
      * <table>
      *   <thead>
@@ -228,13 +228,13 @@ public:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * Aborts the request.
      * @function XMLHttpRequest.abort
      */
     void abort();
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the value of an HTTP request header. Must be called after {@link XMLHttpRequest.open} but before 
      * {@link XMLHttpRequest.send};
      * @function XMLHttpRequest.setRequestHeader
@@ -243,7 +243,7 @@ public slots:
      */
     void setRequestHeader(const QString& name, const QString& value);
 
-    /**jsdoc
+    /*@jsdoc
      * Initializes a request.
      * @function XMLHttpRequest.open
      * @param {string} method - The <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods">HTTP request method</a> 
@@ -257,7 +257,7 @@ public slots:
     void open(const QString& method, const QString& url, bool async = true, const QString& username = "",
               const QString& password = "");
 
-    /**jsdoc
+    /*@jsdoc
      * Sends the request to the server.
      * @function XMLHttpRequest.send
      * @param {*} [data] - The data to send.
@@ -265,14 +265,14 @@ public slots:
     void send();
     void send(const QScriptValue& data);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the response headers.
      * @function XMLHttpRequest.getAllResponseHeaders
      * @returns {string} The response headers, separated by <code>"\n"</code> characters.
      */
     QScriptValue getAllResponseHeaders() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets a response header.
      * @function XMLHttpRequest.getResponseHeader
      * @param {string} name - 
@@ -282,7 +282,7 @@ public slots:
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the request is complete &mdash; with or without error (incl. timeout).
      * @function XMLHttpRequest.requestComplete
      * @returns {Signal}
@@ -310,7 +310,7 @@ private:
     QScriptValue _onReadyStateChange { QScriptValue::NullValue };
     ReadyState _readyState { XMLHttpRequestClass::UNSENT };
 
-    /**jsdoc
+    /*@jsdoc
      * <p>The type of network error.</p>
      * <table>
      *   <thead>

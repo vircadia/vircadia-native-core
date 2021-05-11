@@ -23,7 +23,7 @@ class MaterialCacheScriptingInterface : public ScriptableResourceCache, public D
 
     // Properties are copied over from ResourceCache (see ResourceCache.h for reason).
 
-    /**jsdoc
+    /*@jsdoc
      * The <code>MaterialCache</code> API manages material cache resources.
      *
      * @namespace MaterialCache

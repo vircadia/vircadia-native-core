@@ -16,7 +16,7 @@
 #include "HashKey.h"
 #include "NumericalConstants.h" // for MILLIMETERS_PER_METER
 
-/**jsdoc
+/*@jsdoc
  * <p>Defines the shape used for collisions or zones.</p>
  * <table>
  *   <thead>

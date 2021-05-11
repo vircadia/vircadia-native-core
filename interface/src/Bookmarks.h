@@ -51,7 +51,7 @@ protected:
     bool _isMenuSorted;
 
 protected slots:
-    /**jsdoc
+    /*@jsdoc
      * Prompts the user to delete a bookmark. The user can select the bookmark to delete in the dialog that is opened.
      * @function LocationBookmarks.deleteBookmark
      */

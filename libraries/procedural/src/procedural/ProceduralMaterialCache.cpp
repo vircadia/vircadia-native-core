@@ -30,7 +30,7 @@ void NetworkMaterialResource::downloadFinished(const QByteArray& data) {
     finishedLoading(true);
 }
 
-/**jsdoc
+/*@jsdoc
  * <p>An RGB or SRGB color value.</p>
  * <table>
  *   <thead>
@@ -71,7 +71,7 @@ bool NetworkMaterialResource::parseJSONColor(const QJsonValue& array, glm::vec3&
     return false;
 }
 
-/**jsdoc
+/*@jsdoc
  * A material or set of materials used by a {@link Entities.EntityType|Material entity}.
  * @typedef {object} Entities.MaterialResource
  * @property {number} materialVersion=1 - The version of the material. <em>Currently not used.</em>
@@ -110,7 +110,7 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
     return toReturn;
 }
 
-/**jsdoc
+/*@jsdoc
  * A material used in a {@link Entities.MaterialResource|MaterialResource}.
  * @typedef {object} Entities.Material
  * @property {string} name="" - A name for the material. Supported by all material models.

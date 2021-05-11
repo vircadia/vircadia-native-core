@@ -21,7 +21,7 @@
 
 namespace entity {
 
-    /**jsdoc
+    /*@jsdoc
      * <p>A <code>"Shape"</code>, <code>"Box"</code>, or <code>"Sphere"</code> {@link Entities.EntityType|EntityType} may 
      * display as one of the following geometrical shapes:</p>
      * <table>

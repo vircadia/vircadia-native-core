@@ -165,7 +165,7 @@ void TouchEvent::calculateMetaAttributes(const TouchEvent& other) {
     }
 }
 
-/**jsdoc
+/*@jsdoc
  * A display or device touch event.
  * @typedef {object} TouchEvent
  * @property {number} x - Integer x-coordinate of the average position of the touch events.

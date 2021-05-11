@@ -167,7 +167,7 @@ public:
         _haveAskedConnectWithoutAvatarEntities = false;
     }
 
-    /**jsdoc
+    /*@jsdoc
      * <p>The reasons that you may be refused connection to a domain are defined by numeric values:</p>
      * <table>
      *   <thead>
