@@ -45,8 +45,8 @@ option in the "Wizard" tab of the Doxywizard program.
 
 ## Altering the Doxygen configuration
 
-Most easily accomplished by using the Doxyfile GUI and using it to write a new `Libraries.Doxyfile` file.
-Alternatively, you can edit the `Libraries.Doxyfile` file in a text editor.
+This is most easily accomplished by using the Doxyfile GUI and using it to write a new `Doxyfile` file.
+Alternatively, you can edit the `Doxyfile` configuration file in a text editor.
 
 
 ## References
