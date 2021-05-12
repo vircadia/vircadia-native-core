@@ -1354,6 +1354,12 @@ const GROUPS = [
                 spaceMode: PROPERTY_SPACE_MODE.LOCAL,
             },
             {
+                type: "buttons",
+                buttons: [  { id: "copyPosition", label: "Copy Position", className: "black", onClick: copyPositionProperty },
+                            { id: "pastePosition", label: "Paste Position", className: "black", onClick: pastePositionProperty } ],
+                propertyID: "copyPastePosition"
+            },
+            {
                 label: "Rotation",
                 type: "vec3",
                 vec3Type: "pyr",
@@ -1375,6 +1381,12 @@ const GROUPS = [
                 propertyID: "localRotation",
                 spaceMode: PROPERTY_SPACE_MODE.LOCAL,
             },
+            {
+                type: "buttons",
+                buttons: [  { id: "copyRotation", label: "Copy Rotation", className: "black", onClick: copyRotationProperty },
+                            { id: "pasteRotation", label: "Paste Rotation", className: "black", onClick: pasteRotationProperty } ],
+                propertyID: "copyPasteRotation"
+            },          
             {
                 label: "Dimensions",
                 type: "vec3",
@@ -1850,6 +1862,24 @@ function showPropertyElement(propertyID, show) {
 
 function setPropertyVisibility(property, visible) {
     property.elContainer.style.display = visible ? null : "none";
+}
+
+function setCopyPastePositionAndRotationAvailability (selectionLength, islocked) {
+    if (selectionLength === 1) {
+        $('#property-copyPastePosition-button-copyPosition').attr('disabled', false);
+        $('#property-copyPasteRotation-button-copyRotation').attr('disabled', false);
+    } else {
+        $('#property-copyPastePosition-button-copyPosition').attr('disabled', true);
+        $('#property-copyPasteRotation-button-copyRotation').attr('disabled', true);        
+    }
+    
+    if (selectionLength > 0 && !islocked) {
+        $('#property-copyPastePosition-button-pastePosition').attr('disabled', false);
+        $('#property-copyPasteRotation-button-pasteRotation').attr('disabled', false);           
+    } else {
+        $('#property-copyPastePosition-button-pastePosition').attr('disabled', true);
+        $('#property-copyPasteRotation-button-pasteRotation').attr('disabled', true);            
+    }
 }
 
 function resetProperties() {
@@ -3217,6 +3247,33 @@ function copySkyboxURLToAmbientURL() {
     updateProperty("ambientLight.ambientURL", skyboxURL, false);
 }
 
+function copyPositionProperty() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "action",
+        action: "copyPosition"
+    }));
+}
+
+function pastePositionProperty() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "action",
+        action: "pastePosition"
+    }));    
+}
+
+function copyRotationProperty() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "action",
+        action: "copyRotation"
+    }));    
+}
+
+function pasteRotationProperty() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "action",
+        action: "pasteRotation"
+    }));    
+}
 
 /**
  * USER DATA FUNCTIONS
@@ -3952,7 +4009,7 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
     selectedEntityIDs = new Set(selections.map(selection => selection.id));
     const multipleSelections = currentSelections.length > 1;
     const hasSelectedEntityChanged = !areSetsEqual(selectedEntityIDs, previouslySelectedEntityIDs);
-    
+
     requestZoneList();
     
     if (selections.length === 0) {
@@ -3975,6 +4032,8 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
         showMaterialDataTextArea();
         showSaveMaterialDataButton();
         showNewJSONMaterialEditorButton();
+
+        setCopyPastePositionAndRotationAvailability (selections.length, true);
 
         disableProperties();
     } else {
@@ -4006,10 +4065,12 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
         if (lockedMultiValue.isMultiDiffValue || lockedMultiValue.value) {
             disableProperties();
             getPropertyInputElement('locked').removeAttribute('disabled');
+            setCopyPastePositionAndRotationAvailability (selections.length, true);
         } else {
             enableProperties();
             disableSaveUserDataButton();
             disableSaveMaterialDataButton();
+            setCopyPastePositionAndRotationAvailability (selections.length, false);
         }
 
         const certificateIDMultiValue = getMultiplePropertyValue('certificateID');
