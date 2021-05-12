@@ -1,12 +1,13 @@
 set(TARGET_NAME vhacd-util)
 setup_hifi_project(Core)
-link_hifi_libraries(shared fbx hfm graphics gpu gl)
+link_hifi_libraries(shared model-serializers hfm graphics gpu gl)
 
 include_hifi_library_headers(image)
 
 target_vhacd()
 
 setup_memory_debugger()
+setup_thread_debugger()
 
 if (WIN32)
   package_libraries_for_deployment()

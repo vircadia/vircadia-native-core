@@ -31,6 +31,7 @@ source_group("UI Files" FILES ${QT_UI_FILES})
 qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 
 setup_memory_debugger()
+setup_thread_debugger()
 
 # add them to the nitpick source files
 set(NITPICK_SRCS ${NITPICK_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
@@ -138,7 +139,7 @@ include_directories("${PROJECT_SOURCE_DIR}/src")
 if (UNIX AND NOT ANDROID)
     if (CMAKE_SYSTEM_NAME MATCHES "Linux")
         # Linux
-        target_link_libraries(${TARGET_NAME} pthread atomic)
+        target_link_libraries(${TARGET_NAME} atomic pthread)
     else ()
         # OSX
         target_link_libraries(${TARGET_NAME} pthread)

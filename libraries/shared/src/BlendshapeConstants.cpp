@@ -77,10 +77,47 @@ const char* BLENDSHAPE_NAMES[] = {
     ""
 };
 
-const QMap<QString, int> BLENDSHAPE_LOOKUP_MAP = [] {
-    QMap<QString, int> toReturn;
+const QHash<QString, int> BLENDSHAPE_LOOKUP_MAP = [] {
+    QHash<QString, int> toReturn;
     for (int i = 0; i < (int)Blendshapes::BlendshapeCount; i++) {
         toReturn[BLENDSHAPE_NAMES[i]] = i;
     }
     return toReturn;
 }();
+
+const QHash<QString, QPair<QString, float>> READYPLAYERME_BLENDSHAPES_MAP = {
+    // ReadyPlayerMe blendshape default mapping.
+    { "mouthOpen", { "JawOpen", 1.0f } },
+    { "eyeBlinkLeft", { "EyeBlink_L", 1.0f } },
+    { "eyeBlinkRight", { "EyeBlink_R", 1.0f } },
+    { "eyeSquintLeft", { "EyeSquint_L", 1.0f } },
+    { "eyeSquintRight", { "EyeSquint_R", 1.0f } },
+    { "eyeWideLeft", { "EyeOpen_L", 1.0f } },
+    { "eyeWideRight", { "EyeOpen_R", 1.0f } },
+    { "browDownLeft", { "BrowsD_L", 1.0f } },
+    { "browDownRight", { "BrowsD_R", 1.0f } },
+    { "browInnerUp", { "BrowsU_C", 1.0f } },
+    { "browOuterUpLeft", { "BrowsU_L", 1.0f } },
+    { "browOuterUpRight", { "BrowsU_R", 1.0f } },
+    { "mouthFrownLeft", { "MouthFrown_L", 1.0f } },
+    { "mouthFrownRight", { "MouthFrown_R", 1.0f } },
+    { "mouthPucker", { "LipsPucker", 1.0f } },
+    { "jawForward", { "JawFwd", 1.0f } },
+    { "jawLeft", { "JawLeft", 1.0f } },
+    { "jawRight", { "JawRight", 1.0f } },
+    { "mouthLeft", { "MouthLeft", 1.0f } },
+    { "mouthRight", { "MouthRight", 1.0f } },
+    { "noseSneerLeft", { "NoseSneer_L", 1.0f } },
+    { "noseSneerRight", { "NoseSneer_R", 1.0f } },
+    { "mouthLowerDownLeft", { "MouthLowerDown_L", 1.0f } },
+    { "mouthLowerDownRight", { "MouthLowerDown_R", 1.0f } },
+    { "mouthShrugLower", { "MouthShrugLower", 1.0f } },
+    { "mouthShrugUpper", { "MouthShrugUpper", 1.0f } },
+    { "viseme_sil", { "MouthClose", 1.0f } },
+    { "mouthSmile", { "MouthSmile_L", 1.0f } },
+    { "mouthSmile", { "MouthSmile_R", 1.0f } },
+    { "viseme_CH", { "LipsFunnel", 1.0f } },
+    { "viseme_PP", { "LipsUpperClose", 1.0f } },
+    { "mouthShrugLower", { "LipsLowerClose", 1.0f } },
+    { "viseme_FF", { "Puff", 1.0f } }
+};

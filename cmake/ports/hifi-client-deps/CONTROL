@@ -1,4 +1,4 @@
 Source: hifi-client-deps
 Version: 0.1
 Description: Collected dependencies for High Fidelity applications
-Build-Depends: hifi-deps, aristo (windows), glslang, liblo (windows), nlohmann-json, openvr (linux|windows), quazip (!android), sdl2 (!android), spirv-cross (!android), spirv-tools (!android), sranipal (windows), vulkanmemoryallocator
+Build-Depends: hifi-deps, aristo (windows), glslang, liblo (windows), nlohmann-json, openvr ((linux&!arm)|windows), quazip (!android), sdl2 (!android), spirv-cross (!android), spirv-tools (!android), sranipal (windows), vulkanmemoryallocator

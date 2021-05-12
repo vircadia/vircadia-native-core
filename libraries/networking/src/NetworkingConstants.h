@@ -26,7 +26,7 @@ namespace NetworkingConstants {
     // if you manually generate a personal access token for the domains scope
     // at https://staging.highfidelity.com/user/tokens/new?for_domain_server=true
     
-    const QString WEB_ENGINE_VERSION = "Chrome/69.0.3497.113";
+    const QString WEB_ENGINE_VERSION = "Chrome/83.0.4103.122";
 
     // For now we only have one Metaverse server.
     const QUrl METAVERSE_SERVER_URL_STABLE { "https://metaverse.vircadia.com/live" };

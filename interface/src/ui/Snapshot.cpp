@@ -47,7 +47,7 @@
 const QString FILENAME_PATH_FORMAT = "vircadia-snap-by-%1-on-%2.jpg";
 const QString DATETIME_FORMAT = "yyyy-MM-dd_hh-mm-ss";
 const QString SNAPSHOTS_DIRECTORY = "Snapshots";
-const QString URL = "highfidelity_url";
+const QString URL = "vircadia_url";
 static const int SNAPSHOT_360_TIMER_INTERVAL = 350;
 static const QList<QString> SUPPORTED_IMAGE_FORMATS = { "jpg", "jpeg", "png" };
 
