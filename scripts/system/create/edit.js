@@ -113,6 +113,9 @@ var hmdMultiSelectMode = false;
 var expectingRotateAsClickedSurface = false;
 var keepSelectedOnNextClick = false;
 
+var copiedPosition;
+var copiedRotation;
+
 var cameraManager = new CameraManager();
 
 var grid = new Grid();
@@ -2612,6 +2615,46 @@ var PropertiesTool = function (opts) {
                     for (i = 0; i < selectionManager.selections.length; i++) {
                         Entities.reloadServerScripts(selectionManager.selections[i]);
                     }
+                }
+            } else if (data.action === "copyPosition") {
+                selectionManager.saveProperties();
+                properties = selectionManager.savedProperties[selectionManager.selections[0]];
+                copiedPosition = properties.position;
+                Window.copyToClipboard(JSON.stringify(copiedPosition));
+                print("COPIED: " + JSON.stringify(copiedPosition));
+            } else if (data.action === "copyRotation") {
+                selectionManager.saveProperties();
+                properties = selectionManager.savedProperties[selectionManager.selections[0]];               
+                copiedRotation = properties.rotation;
+                Window.copyToClipboard(JSON.stringify(copiedRotation));
+                print("COPIED: " + JSON.stringify(copiedRotation));
+            } else if (data.action === "pastePosition") {
+                if (copiedPosition !== undefined) {
+                    selectionManager.saveProperties();
+                    for (i = 0; i < selectionManager.selections.length; i++) {
+                        Entities.editEntity(selectionManager.selections[i], {
+                            position: copiedPosition
+                        });
+                    }
+                    pushCommandForSelections();
+                    selectionManager._update(false, this);
+                    print("PASTE POSITION");
+                } else {
+                    audioFeedback.rejection();
+                }
+            } else if (data.action === "pasteRotation") {
+                if (copiedRotation !== undefined) {
+                    selectionManager.saveProperties();
+                    for (i = 0; i < selectionManager.selections.length; i++) {
+                        Entities.editEntity(selectionManager.selections[i], {
+                            rotation: copiedRotation
+                        });
+                    }
+                    pushCommandForSelections();
+                    selectionManager._update(false, this);                
+                    print("PASTE ROTATION");
+                } else {
+                    audioFeedback.rejection();
                 }
             }
         } else if (data.type === "propertiesPageReady") {
