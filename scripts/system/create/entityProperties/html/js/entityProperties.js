@@ -1355,8 +1355,8 @@ const GROUPS = [
             },
             {
                 type: "buttons",
-                buttons: [  { id: "copyPosition", label: "Copy Position", className: "black", onClick: copyPositionProperty },
-                            { id: "pastePosition", label: "Paste Position", className: "black", onClick: pastePositionProperty } ],
+                buttons: [  { id: "copyPosition", label: "Copy Position", className: "secondary", onClick: copyPositionProperty },
+                            { id: "pastePosition", label: "Paste Position", className: "secondary", onClick: pastePositionProperty } ],
                 propertyID: "copyPastePosition"
             },
             {
@@ -1383,8 +1383,8 @@ const GROUPS = [
             },
             {
                 type: "buttons",
-                buttons: [  { id: "copyRotation", label: "Copy Rotation", className: "black", onClick: copyRotationProperty },
-                            { id: "pasteRotation", label: "Paste Rotation", className: "black", onClick: pasteRotationProperty } ],
+                buttons: [  { id: "copyRotation", label: "Copy Rotation", className: "secondary", onClick: copyRotationProperty },
+                            { id: "pasteRotation", label: "Paste Rotation", className: "secondary", onClick: pasteRotationProperty } ],
                 propertyID: "copyPasteRotation"
             },          
             {
