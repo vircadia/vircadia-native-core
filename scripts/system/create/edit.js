@@ -2617,19 +2617,21 @@ var PropertiesTool = function (opts) {
                     }
                 }
             } else if (data.action === "copyPosition") {
-                selectionManager.saveProperties();
-                properties = selectionManager.savedProperties[selectionManager.selections[0]];
-                copiedPosition = properties.position;
-                Window.copyToClipboard(JSON.stringify(copiedPosition));
-                print("COPIED: " + JSON.stringify(copiedPosition));
+                if (selectionManager.selections.length === 1) {
+                    selectionManager.saveProperties();
+                    properties = selectionManager.savedProperties[selectionManager.selections[0]];
+                    copiedPosition = properties.position;
+                    Window.copyToClipboard(JSON.stringify(copiedPosition));
+                }
             } else if (data.action === "copyRotation") {
-                selectionManager.saveProperties();
-                properties = selectionManager.savedProperties[selectionManager.selections[0]];               
-                copiedRotation = properties.rotation;
-                Window.copyToClipboard(JSON.stringify(copiedRotation));
-                print("COPIED: " + JSON.stringify(copiedRotation));
+                if (selectionManager.selections.length === 1) {
+                    selectionManager.saveProperties();
+                    properties = selectionManager.savedProperties[selectionManager.selections[0]];
+                    copiedRotation = properties.rotation;
+                    Window.copyToClipboard(JSON.stringify(copiedRotation));
+                }
             } else if (data.action === "pastePosition") {
-                if (copiedPosition !== undefined) {
+                if (copiedPosition !== undefined && selectionManager.selections.length > 0 && SelectionManager.hasUnlockedSelection()) {
                     selectionManager.saveProperties();
                     for (i = 0; i < selectionManager.selections.length; i++) {
                         Entities.editEntity(selectionManager.selections[i], {
@@ -2638,12 +2640,11 @@ var PropertiesTool = function (opts) {
                     }
                     pushCommandForSelections();
                     selectionManager._update(false, this);
-                    print("PASTE POSITION");
                 } else {
                     audioFeedback.rejection();
                 }
             } else if (data.action === "pasteRotation") {
-                if (copiedRotation !== undefined) {
+                if (copiedRotation !== undefined  && selectionManager.selections.length > 0 && SelectionManager.hasUnlockedSelection()) {
                     selectionManager.saveProperties();
                     for (i = 0; i < selectionManager.selections.length; i++) {
                         Entities.editEntity(selectionManager.selections[i], {
@@ -2651,8 +2652,7 @@ var PropertiesTool = function (opts) {
                         });
                     }
                     pushCommandForSelections();
-                    selectionManager._update(false, this);                
-                    print("PASTE ROTATION");
+                    selectionManager._update(false, this);
                 } else {
                     audioFeedback.rejection();
                 }
