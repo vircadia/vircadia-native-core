@@ -51,6 +51,6 @@ Alternatively, you can edit the `Doxyfile` configuration file in a text editor.
 
 ## References
 
-- [Doxygen Web Site](https://www.doxygen.nl/)
+- [Doxygen Website](https://www.doxygen.nl/)
 - [Doxygen Tutorial](https://embeddedinventor.com/doxygen-tutorial-getting-started-using-doxygen-on-windows/)
 - [Complete Guide On Using Doxygen](https://embeddedinventor.com/guide-to-configure-doxygen-to-document-c-source-code-for-beginners/)
