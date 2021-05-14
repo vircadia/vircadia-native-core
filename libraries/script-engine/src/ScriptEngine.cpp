@@ -675,7 +675,7 @@ static void scriptableResourceFromScriptValue(const QScriptValue& value, Scripta
     resource = static_cast<ScriptableResourceRawPtr>(value.toQObject());
 }
 
-/**jsdoc
+/*@jsdoc
  * The <code>Resource</code> API provides values that define the possible loading states of a resource.
  *
  * @namespace Resource
@@ -797,7 +797,7 @@ void ScriptEngine::init() {
     QScriptValue webSocketConstructorValue = newFunction(WebSocketClass::constructor);
     globalObject().setProperty("WebSocket", webSocketConstructorValue);
 
-    /**jsdoc
+    /*@jsdoc
      * Prints a message to the program log and emits {@link Script.printedMessage}.
      * The message logged is the message values separated by spaces.
      * <p>Alternatively, you can use {@link Script.print} or one of the {@link console} API methods.</p>
@@ -1097,7 +1097,7 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
 
         // Two common cases of event handler, differing only in argument signature.
 
-        /**jsdoc
+        /*@jsdoc
          * Called when an entity event occurs on an entity as registered with {@link Script.addEventHandler}.
          * @callback Script~entityEventCallback
          * @param {Uuid} entityID - The ID of the entity the event has occured on.
@@ -1109,7 +1109,7 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
             };
         };
 
-        /**jsdoc
+        /*@jsdoc
          * Called when a pointer event occurs on an entity as registered with {@link Script.addEventHandler}.
          * @callback Script~pointerEventCallback
          * @param {Uuid} entityID - The ID of the entity the event has occurred on.
@@ -1124,7 +1124,7 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
             };
         };
 
-        /**jsdoc
+        /*@jsdoc
          * Called when a collision event occurs on an entity as registered with {@link Script.addEventHandler}.
          * @callback Script~collisionEventCallback
          * @param {Uuid} entityA - The ID of one entity in the collision.
@@ -1139,7 +1139,7 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
             };
         };
 
-        /**jsdoc
+        /*@jsdoc
          * <p>The name of an entity event. When the entity event occurs, any function that has been registered for that event 
          * via {@link Script.addEventHandler} is called with parameters per the entity event.</p>
          * <table>
@@ -2349,7 +2349,7 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
     }, forceRedownload);
 }
 
-/**jsdoc
+/*@jsdoc
  * Triggered when the script starts for a user. See also, {@link Script.entityScriptPreloadFinished}.
  * <p>Note: Can only be connected to via <code>this.preload = function (...) { ... }</code> in the entity script.</p>
  * <p class="availableIn"><strong>Supported Script Types:</strong> Client Entity Scripts &bull; Server Entity Scripts</p>
@@ -2636,7 +2636,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     emit entityScriptPreloadFinished(entityID);
 }
 
-/**jsdoc
+/*@jsdoc
  * Triggered when the script terminates for a user.
  * <p>Note: Can only be connected to via <code>this.unoad = function () { ... }</code> in the entity script.</p>
  * <p class="availableIn"><strong>Supported Script Types:</strong> Client Entity Scripts &bull; Server Entity Scripts</p>

@@ -29,7 +29,7 @@ class OctreePacketData;
 class EntityTreeElementExtraEncodeData;
 class ReadBitstreamToTreeParams;
 
-/**jsdoc
+/*@jsdoc
  * A skybox is defined by the following properties:
  * @typedef {object} Entities.Skybox
  * @property {Color} color=0,0,0 - Sets the color of the sky if <code>url</code> is <code>""</code>, otherwise modifies the

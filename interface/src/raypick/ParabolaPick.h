@@ -42,7 +42,7 @@ public:
     float parabolicDistance { FLT_MAX };
     bool intersects { false };
 
-    /**jsdoc
+    /*@jsdoc
      * An intersection result for a parabola pick.
      *
      * @typedef {object} ParabolaPickResult

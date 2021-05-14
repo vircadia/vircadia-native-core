@@ -15,7 +15,7 @@
 #include <Pick.h>
 #include <PickFilter.h>
 
-/**jsdoc
+/*@jsdoc
  * The <code>Picks</code> API lets you create and manage objects for repeatedly calculating intersections.
  *
  * @namespace Picks
@@ -105,7 +105,7 @@ class PickScriptingInterface : public QObject, public Dependency {
 public:
     void registerMetaTypes(QScriptEngine* engine);
 
-    /**jsdoc
+    /*@jsdoc
      * Creates a new pick. Different {@link PickType}s use different properties, and within one PickType the properties you 
      * choose can lead to a wide range of behaviors. For example, with <code>PickType.Ray</code>, the properties could 
      * configure a mouse ray pick, an avatar head ray pick, or a joint ray pick.
@@ -120,21 +120,21 @@ public:
     // TODO: expand Pointers to be able to be fully configurable with PickFilters
     Q_INVOKABLE unsigned int createPick(const PickQuery::PickType type, const QVariant& properties);
 
-    /**jsdoc
+    /*@jsdoc
      * Enables a pick. Enabled picks update their pick results.
      * @function Picks.enablePick
      * @param {number} id - The ID of the pick.
      */
     Q_INVOKABLE void enablePick(unsigned int uid);
 
-    /**jsdoc
+    /*@jsdoc
      * Disables a pick. Disabled picks do not update their pick results.
      * @function Picks.disablePick
      * @param {number} id - The ID of the pick.
      */
     Q_INVOKABLE void disablePick(unsigned int uid);
 
-    /**jsdoc
+    /*@jsdoc
      * Get the enabled status of a pick. Enabled picks update their pick results.
      * @function Picks.isPickEnabled
      * @param {number} id - The ID of the pick.
@@ -142,14 +142,14 @@ public:
      */
     Q_INVOKABLE bool isPickEnabled(unsigned int uid) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Removes (deletes) a pick.
      * @function Picks.removePick
      * @param {number} id - The ID of the pick.
      */
     Q_INVOKABLE void removePick(unsigned int uid);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the current properties of the pick.
      * @function Picks.getPickProperties
      * @param {number} id - The ID of the pick.
@@ -158,7 +158,7 @@ public:
      */
     Q_INVOKABLE QVariantMap getPickProperties(unsigned int uid) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the parameters that were passed in to {@link Picks.createPick} to create the pick, if the pick was created through 
      * a script. Note that these properties do not reflect the current state of the pick.
      * See {@link Picks.getPickProperties}.
@@ -169,14 +169,14 @@ public:
      */
     Q_INVOKABLE QVariantMap getPickScriptParameters(unsigned int uid) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets all picks which currently exist, including disabled picks.
      * @function Picks.getPicks
      * @returns {number[]} picks - The IDs of the picks.
      */
     Q_INVOKABLE QVector<unsigned int> getPicks() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the most recent result from a pick. A pick continues to be updated ready to return a result, as long as it is 
      * enabled.
      * <p><strong>Note:</strong> Stylus picks only intersect with objects in their include list, set using 
@@ -228,7 +228,7 @@ public:
      */
     Q_INVOKABLE QVariantMap getPrevPickResult(unsigned int uid);
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether or not a pick should use precision picking, i.e., whether it should pick against precise meshes or coarse 
      * meshes.
      * This has the same effect as using the <code>PICK_PRECISE</code> or <code>PICK_COARSE</code> filter flags.
@@ -238,7 +238,7 @@ public:
      */
     Q_INVOKABLE void setPrecisionPicking(unsigned int uid, bool precisionPicking);
 
-    /**jsdoc
+    /*@jsdoc
      * Sets a list of entity and avatar IDs that a pick should ignore during intersection.
      * <p><strong>Note:</strong> Not used by stylus picks.</p>
      * @function Picks.setIgnoreItems
@@ -247,7 +247,7 @@ public:
      */
     Q_INVOKABLE void setIgnoreItems(unsigned int uid, const QScriptValue& ignoreItems);
 
-    /**jsdoc
+    /*@jsdoc
      * Sets a list of entity and avatar IDs that a pick should include during intersection, instead of intersecting with 
      * everything.
      * <p><strong>Note:</strong> Stylus picks only intersect with items in their include list.</p>
@@ -257,7 +257,7 @@ public:
      */
     Q_INVOKABLE void setIncludeItems(unsigned int uid, const QScriptValue& includeItems);
 
-    /**jsdoc
+    /*@jsdoc
      * Checks if a pick is associated with the left hand: a ray or parabola pick with <code>joint</code> property set to 
      * <code>"_CONTROLLER_LEFTHAND"</code> or <code>"_CAMERA_RELATIVE_CONTROLLER_LEFTHAND"</code>, or a stylus pick with 
      * <code>hand</code> property set to <code>0</code>.
@@ -267,7 +267,7 @@ public:
      */
     Q_INVOKABLE bool isLeftHand(unsigned int uid);
 
-    /**jsdoc
+    /*@jsdoc
      * Checks if a pick is associated with the right hand: a ray or parabola pick with <code>joint</code> property set to
      * <code>"_CONTROLLER_RIGHTHAND"</code> or <code>"_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND"</code>, or a stylus pick with 
      * <code>hand</code> property set to <code>1</code>.
@@ -277,7 +277,7 @@ public:
      */
     Q_INVOKABLE bool isRightHand(unsigned int uid);
 
-    /**jsdoc
+    /*@jsdoc
      * Checks if a pick is associated with the system mouse: a ray or parabola pick with <code>joint</code> property set to 
      * <code>"Mouse"</code>.
      * @function Picks.isMouse
@@ -293,7 +293,7 @@ public:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * @function Picks.PICK_ENTITIES
      * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_DOMAIN_ENTITIES | 
      *     Picks.PICK_AVATAR_ENTITIES</code> properties expression instead.
@@ -301,7 +301,7 @@ public slots:
      */
     static constexpr unsigned int PICK_ENTITIES() { return PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES) | PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES); }
 
-    /**jsdoc
+    /*@jsdoc
      * @function Picks.PICK_OVERLAYS
      * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_LOCAL_ENTITIES</code> property 
      *     instead.
@@ -310,7 +310,7 @@ public slots:
     static constexpr unsigned int PICK_OVERLAYS() { return PickFilter::getBitMask(PickFilter::FlagBit::LOCAL_ENTITIES); }
 
 
-    /**jsdoc
+    /*@jsdoc
      * @function Picks.PICK_DOMAIN_ENTITIES
      * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_DOMAIN_ENTITIES</code> property 
      *     instead.
@@ -318,7 +318,7 @@ public slots:
      */
     static constexpr unsigned int PICK_DOMAIN_ENTITIES() { return PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES); }
 
-    /**jsdoc
+    /*@jsdoc
      * @function Picks.PICK_AVATAR_ENTITIES
      * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_AVATAR_ENTITIES</code> property 
      *     instead.
@@ -326,7 +326,7 @@ public slots:
      */
     static constexpr unsigned int PICK_AVATAR_ENTITIES() { return PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES); }
 
-    /**jsdoc
+    /*@jsdoc
      * @function Picks.PICK_LOCAL_ENTITIES
      * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_LOCAL_ENTITIES</code> property 
      *     instead.
@@ -334,7 +334,7 @@ public slots:
      */
     static constexpr unsigned int PICK_LOCAL_ENTITIES() { return PickFilter::getBitMask(PickFilter::FlagBit::LOCAL_ENTITIES); }
 
-    /**jsdoc
+    /*@jsdoc
      * @function Picks.PICK_AVATARS
      * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_AVATARS</code> property 
      *     instead.
@@ -342,7 +342,7 @@ public slots:
      */
     static constexpr unsigned int PICK_AVATARS() { return PickFilter::getBitMask(PickFilter::FlagBit::AVATARS); }
 
-    /**jsdoc
+    /*@jsdoc
      * @function Picks.PICK_HUD
      * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_HUD</code> property instead.
      * @returns {number}
@@ -350,7 +350,7 @@ public slots:
     static constexpr unsigned int PICK_HUD() { return PickFilter::getBitMask(PickFilter::FlagBit::HUD); }
 
 
-    /**jsdoc
+    /*@jsdoc
      * @function Picks.PICK_INCLUDE_VISIBLE
      * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_INCLUDE_VISIBLE</code> property 
      *     instead.
@@ -358,7 +358,7 @@ public slots:
      */
     static constexpr unsigned int PICK_INCLUDE_VISIBLE() { return PickFilter::getBitMask(PickFilter::FlagBit::VISIBLE); }
 
-    /**jsdoc
+    /*@jsdoc
      * @function Picks.PICK_INCLUDE_INVISIBLE
      * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_INCLUDE_INVISIBLE</code> property 
      *     instead.
@@ -367,7 +367,7 @@ public slots:
     static constexpr unsigned int PICK_INCLUDE_INVISIBLE() { return PickFilter::getBitMask(PickFilter::FlagBit::INVISIBLE); }
 
 
-    /**jsdoc
+    /*@jsdoc
      * @function Picks.PICK_INCLUDE_COLLIDABLE
      * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_INCLUDE_COLLIDABLE</code> property 
      *     instead.
@@ -375,7 +375,7 @@ public slots:
      */
     static constexpr unsigned int PICK_INCLUDE_COLLIDABLE() { return PickFilter::getBitMask(PickFilter::FlagBit::COLLIDABLE); }
 
-    /**jsdoc
+    /*@jsdoc
      * @function Picks.PICK_INCLUDE_NONCOLLIDABLE
      * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_INCLUDE_NONCOLLIDABLE</code> 
      *     property instead.
@@ -384,14 +384,14 @@ public slots:
     static constexpr unsigned int PICK_INCLUDE_NONCOLLIDABLE() { return PickFilter::getBitMask(PickFilter::FlagBit::NONCOLLIDABLE); }
 
 
-    /**jsdoc
+    /*@jsdoc
      * @function Picks.PICK_PRECISE
      * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_PRECISE</code> property instead.
      * @returns {number}
      */
     static constexpr unsigned int PICK_PRECISE() { return PickFilter::getBitMask(PickFilter::FlagBit::PRECISE); }
 
-    /**jsdoc
+    /*@jsdoc
      * @function Picks.PICK_COARSE
      * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_COARSE</code> property instead.
      * @returns {number}
@@ -399,7 +399,7 @@ public slots:
     static constexpr unsigned int PICK_COARSE() { return PickFilter::getBitMask(PickFilter::FlagBit::COARSE); }
 
 
-    /**jsdoc
+    /*@jsdoc
      * @function Picks.PICK_ALL_INTERSECTIONS
      * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_ALL_INTERSECTIONS</code> property 
      *     instead.
@@ -407,7 +407,7 @@ public slots:
      */
     static constexpr unsigned int PICK_ALL_INTERSECTIONS() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_ALL_INTERSECTIONS); }
 
-    /**jsdoc
+    /*@jsdoc
      * @function Picks.INTERSECTED_NONE
      * @deprecated This function is deprecated and will be removed. Use the <code>Picks.INTERSECTED_NONE</code> property 
      *     instead.
@@ -415,7 +415,7 @@ public slots:
      */
     static constexpr unsigned int INTERSECTED_NONE() { return IntersectionType::NONE; }
 
-    /**jsdoc
+    /*@jsdoc
      * @function Picks.INTERSECTED_ENTITY
      * @deprecated This function is deprecated and will be removed. Use the <code>Picks.INTERSECTED_ENTITY</code> property 
      *     instead.
@@ -423,7 +423,7 @@ public slots:
      */
     static constexpr unsigned int INTERSECTED_ENTITY() { return IntersectionType::ENTITY; }
 
-    /**jsdoc
+    /*@jsdoc
      * @function Picks.INTERSECTED_LOCAL_ENTITY
      * @deprecated This function is deprecated and will be removed. Use the <code>Picks.INTERSECTED_LOCAL_ENTITY</code> 
      *     property instead.
@@ -431,7 +431,7 @@ public slots:
      */
     static constexpr unsigned int INTERSECTED_LOCAL_ENTITY() { return IntersectionType::LOCAL_ENTITY; }
 
-    /**jsdoc
+    /*@jsdoc
      * @function Picks.INTERSECTED_OVERLAY
      * @deprecated This function is deprecated and will be removed. Use the <code>Picks.INTERSECTED_LOCAL_ENTITY</code> 
      *     property instead.
@@ -439,7 +439,7 @@ public slots:
      */
     static constexpr unsigned int INTERSECTED_OVERLAY() { return INTERSECTED_LOCAL_ENTITY(); }
 
-    /**jsdoc
+    /*@jsdoc
      * @function Picks.INTERSECTED_AVATAR
      * @deprecated This function is deprecated and will be removed. Use the <code>Picks.INTERSECTED_AVATAR</code> property 
      *     instead.
@@ -447,7 +447,7 @@ public slots:
      */
     static constexpr unsigned int INTERSECTED_AVATAR() { return IntersectionType::AVATAR; }
 
-    /**jsdoc
+    /*@jsdoc
      * @function Picks.INTERSECTED_HUD
      * @deprecated This function is deprecated and will be removed. Use the <code>Picks.INTERSECTED_HUD</code> property 
      *     instead.

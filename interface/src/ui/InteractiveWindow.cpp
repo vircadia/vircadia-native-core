@@ -128,7 +128,7 @@ void InteractiveWindow::emitMainWindowResizeEvent() {
     emit qApp->getWindow()->windowGeometryChanged(qApp->getWindow()->geometry());
 }
 
-/**jsdoc
+/*@jsdoc
  * Property values used when creating an <code>InteractiveWindow</code>.
  * @typedef {object} InteractiveWindow.WindowProperties
  * @property {string} [title="InteractiveWindow] - The title of the window.
@@ -151,7 +151,7 @@ void InteractiveWindow::emitMainWindowResizeEvent() {
   *     pixels. Excludes the window frame.
   * @property {boolean} [isFullScreenWindow] - <code>true</code> to make the window full screen.
  */
-/**jsdoc
+/*@jsdoc
  * <p>A set of flags customizing <code>InteractiveWindow</code> controls. The value is constructed by using the <code>|</code> 
  * (bitwise OR) operator on the individual flag values.</code>.</p>
  * <table>
@@ -212,7 +212,7 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
         //add any whitelisted callbacks
         OffscreenUi::applyWhiteList(sourceUrl, quickView->rootContext());
 
-        /**jsdoc
+        /*@jsdoc
          * Configures how a <code>NATIVE</code> window is displayed.
          * @typedef {object} InteractiveWindow.PresentationWindowInfo
          * @property {InteractiveWindow.DockArea} dockArea - The edge of the Interface window to dock to.

@@ -27,7 +27,7 @@ public:
 
     QmlFragmentClass(bool restricted, QString id);
 
-    /**jsdoc
+    /*@jsdoc
      * Creates a new button, adds it to this and returns it.
      * @function QmlFragmentClass#addButton
      * @param properties {object} button properties 

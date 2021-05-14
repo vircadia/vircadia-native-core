@@ -76,7 +76,7 @@ namespace scriptable {
         graphics::MaterialKey key { 0 };
     };
 
-    /**jsdoc
+    /*@jsdoc
      * A material layer.
      * @typedef {object} Graphics.MaterialLayer
      * @property {Graphics.Material} material - The layer's material.
@@ -108,7 +108,7 @@ namespace scriptable {
         ScriptableMeshBase& operator=(const ScriptableMeshBase& view);
         virtual ~ScriptableMeshBase();
 
-        /**jsdoc
+        /*@jsdoc
          * @function GraphicsMesh.getMeshPointer
          * @deprecated This method is deprecated and will be removed.
          * @returns {undefined}
@@ -116,7 +116,7 @@ namespace scriptable {
         // scriptable::MeshPointer is not registered as a JavaScript type.
         Q_INVOKABLE const scriptable::MeshPointer getMeshPointer() const { return weakMesh.lock(); }
 
-        /**jsdoc
+        /*@jsdoc
          * @function GraphicsMesh.getModelProviderPointer
          * @deprecated This method is deprecated and will be removed.
          * @returns {undefined}
@@ -124,7 +124,7 @@ namespace scriptable {
         // scriptable::ModelProviderPointer is not registered as a JavaScript type.
         Q_INVOKABLE const scriptable::ModelProviderPointer getModelProviderPointer() const { return provider.lock(); }
 
-        /**jsdoc
+        /*@jsdoc
          * @function GraphicsMesh.getModelBasePointer
          * @deprecated This method is deprecated and will be removed.
          * @returns {undefined}

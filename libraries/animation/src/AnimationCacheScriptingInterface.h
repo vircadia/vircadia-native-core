@@ -24,7 +24,7 @@ class AnimationCacheScriptingInterface : public ScriptableResourceCache, public 
 
     // Properties are copied over from ResourceCache (see ResourceCache.h for reason).
 
-    /**jsdoc
+    /*@jsdoc
      * The <code>AnimationCache</code> API manages animation cache resources.
      *
      * @namespace AnimationCache
@@ -52,7 +52,7 @@ class AnimationCacheScriptingInterface : public ScriptableResourceCache, public 
 public:
     AnimationCacheScriptingInterface();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets information about an animation resource.
      * @function AnimationCache.getAnimation
      * @param {string} url - The URL of the animation.

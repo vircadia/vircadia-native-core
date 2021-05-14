@@ -19,7 +19,7 @@
 class QScriptEngine;
 class QScriptContext;
 
-/**jsdoc
+/*@jsdoc
  * A <code>OverlayWindow</code> displays a QML window inside Interface.
  *
  * <p>The QML can optionally include a <code>WebView</code> control that embeds an HTML-based windows. (The <code>WebView</code> 
@@ -66,7 +66,7 @@ public:
     QmlWindowClass(bool restricted);
     ~QmlWindowClass();
 
-    /**jsdoc
+    /*@jsdoc
      * @function OverlayWindow.initQml
      * @param {OverlayWindow.Properties} properties - Properties.
      * @deprecated This method is deprecated and will be removed.
@@ -80,14 +80,14 @@ public:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether the window is shown or hidden.
      * @function OverlayWindow.isVisible
      * @returns {boolean} code>true</code> if the window is shown, <code>false</code> if it is hidden.
      */
     bool isVisible();
 
-    /**jsdoc
+    /*@jsdoc
      * Shows or hides the window.
      * @function OverlayWindow.setVisible
      * @param {boolean} visible - code>true</code> to show the window, <code>false</code> to hide it.
@@ -95,21 +95,21 @@ public slots:
     void setVisible(bool visible);
 
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the position of the window.
      * @function OverlayWindow.getPosition
      * @returns {Vec2} The position of the window, in pixels.
      */
     glm::vec2 getPosition();
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the position of the window, from a {@link Vec2}.
      * @function OverlayWindow.setPosition
      * @param {Vec2} position - The position of the window, in pixels.
      */
     void setPosition(const glm::vec2& position);
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the position of the window, from a pair of numbers.
      * @function OverlayWindow.setPosition
      * @param {number} x - The x position of the window, in pixels.
@@ -118,21 +118,21 @@ public slots:
     void setPosition(int x, int y);
 
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the size of the window interior.
      * @function OverlayWindow.getSize
      * @returns {Vec2} The size of the window interior, in pixels.
      */
     glm::vec2 getSize();
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the size of the window interior, from a {@link Vec2}.
      * @function OverlayWindow.setSize
      * @param {Vec2} size - The size of the window interior, in pixels.
      */
     void setSize(const glm::vec2& size);
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the size of the window interior, from a pair of numbers.
      * @function OverlayWindow.setSize
      * @param {number} width - The width of the window interior, in pixels.
@@ -140,27 +140,27 @@ public slots:
      */
     void setSize(int width, int height);
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the window title.
      * @function OverlayWindow.setTitle
      * @param {string} title - The window title.
      */
     void setTitle(const QString& title);
 
-    /**jsdoc
+    /*@jsdoc
      * Raises the window to the top.
      * @function OverlayWindow.raise
      */
     Q_INVOKABLE void raise();
 
-    /**jsdoc
+    /*@jsdoc
      * Closes the window.
      * <p>Note: The window also closes when the script ends.</p>
      * @function OverlayWindow.close
      */
     Q_INVOKABLE void close();
 
-    /**jsdoc
+    /*@jsdoc
      * @function OverlayWindow.getEventBridge
      * @returns {object} Object.
      * @deprecated This method is deprecated and will be removed.
@@ -169,7 +169,7 @@ public slots:
     Q_INVOKABLE QObject* getEventBridge() { return this; };
 
 
-    /**jsdoc
+    /*@jsdoc
      * Sends a message to the QML. To receive the message, the QML must implement a function:
      * <pre class="prettyprint"><code>function fromScript(message) {
      *   ...
@@ -219,13 +219,13 @@ public slots:
     // Scripts can use this to send a message to the QML object
     void sendToQml(const QVariant& message);
 
-    /**jsdoc
+    /*@jsdoc
      * Calls a <code>clearWindow()</code> function if present in the QML.
      * @function OverlayWindow.clearDebugWindow
      */
     void clearDebugWindow();
 
-    /**jsdoc
+    /*@jsdoc
      * Sends a message to an embedded HTML web page. To receive the message, the HTML page's script must connect to the
      * <code>EventBridge</code> that is automatically provided for the script:
      * <pre class="prettyprint"><code>EventBridge.scriptEventReceived.connect(function(message) {
@@ -237,7 +237,7 @@ public slots:
     // QmlWindow content may include WebView requiring EventBridge.
     void emitScriptEvent(const QVariant& scriptMessage);
 
-    /**jsdoc
+    /*@jsdoc
      * @function OverlayWindow.emitWebEvent
      * @param {object|string} message - The message.
      * @deprecated This function is deprecated and will be removed.
@@ -246,28 +246,28 @@ public slots:
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the window is hidden or shown.
      * @function OverlayWindow.visibleChanged
      * @returns {Signal}
      */
     void visibleChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the window changes position.
      * @function OverlayWindow.positionChanged
      * @returns {Signal}
      */
     void positionChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the window changes size.
      * @function OverlayWindow.sizeChanged
      * @returns {Signal}
      */
     void sizeChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the window changes position.
      * @function OverlayWindow.moved
      * @param {Vec2} position - The position of the window, in pixels.
@@ -275,7 +275,7 @@ signals:
      */
     void moved(glm::vec2 position);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the window changes size.
      * @function OverlayWindow.resized
      * @param {Size} size - The size of the window interior, in pixels.
@@ -283,14 +283,14 @@ signals:
      */
     void resized(QSizeF size);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the window is closed.
      * @function OverlayWindow.closed
      * @returns {Signal}
      */
     void closed();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when a message from the QML page is received. The QML page can send a message (string or object) by calling:
      * <pre class="prettyprint"><code>sendToScript(message);</code></pre>
      * @function OverlayWindow.fromQml
@@ -301,7 +301,7 @@ signals:
     void fromQml(const QVariant& message);
 
 
-    /**jsdoc
+    /*@jsdoc
      * @function OverlayWindow.scriptEventReceived
      * @param {object} message - The message.
      * @returns {Signal}
@@ -310,7 +310,7 @@ signals:
     // QmlWindow content may include WebView requiring EventBridge.
     void scriptEventReceived(const QVariant& message);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when a message from an embedded HTML page is received. The HTML page can send a message by calling:
      * <pre class="prettyprint"><code>EventBridge.emitWebEvent(message);</code></pre>
      * @function OverlayWindow.webEventReceived
@@ -321,7 +321,7 @@ signals:
 
 protected slots:
 
-    /**jsdoc
+    /*@jsdoc
      * @function OverlayWindow.hasMoved
      * @param {Vec2} position - Position.
      * @deprecated This method is deprecated and will be removed.
@@ -329,14 +329,14 @@ protected slots:
     // Shouldn't be in the API: it is just connected to in order to emit a signal.
     void hasMoved(QVector2D);
 
-    /**jsdoc
+    /*@jsdoc
      * @function OverlayWindow.hasClosed
      * @deprecated This method is deprecated and will be removed.
      */
     // Shouldn't be in the API: it is just connected to in order to emit a signal.
     void hasClosed();
 
-    /**jsdoc
+    /*@jsdoc
      * @function OverlayWindow.qmlToScript
      * @param {object} message - Message.
      * @deprecated This method is deprecated and will be removed.

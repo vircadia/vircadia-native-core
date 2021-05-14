@@ -55,7 +55,7 @@ public:
 
     void getWalletStatus();
     
-    /**jsdoc
+    /*@jsdoc
      * <p>A <code>WalletStatus</code> may have one of the following values:</p>
      * <table>
      *   <thead>

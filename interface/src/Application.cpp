@@ -657,7 +657,7 @@ private:
     }
 };
 
-/**jsdoc
+/*@jsdoc
  * <p>The <code>Controller.Hardware.Application</code> object has properties representing Interface's state. The property
  * values are integer IDs, uniquely identifying each output. <em>Read-only.</em></p>
  * <p>These states can be mapped to actions or functions or <code>Controller.Standard</code> items in a {@link RouteObject}
