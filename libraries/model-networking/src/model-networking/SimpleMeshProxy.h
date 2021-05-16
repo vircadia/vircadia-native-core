@@ -12,10 +12,6 @@
 #ifndef hifi_SimpleMeshProxy_h
 #define hifi_SimpleMeshProxy_h
 
-#include <QtScript/QScriptEngine>
-#include <QtScript/QScriptValueIterator>
-#include <QtScript/QScriptValue>
-
 #include <RegisteredMetaTypes.h>
 
 class SimpleMeshProxy : public MeshProxy {

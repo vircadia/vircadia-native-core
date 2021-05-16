@@ -12,8 +12,11 @@
 #include "DataViewPrototype.h"
 
 #include <QDebug>
+#include <QtCore/QDataStream>
 
 #include <glm/glm.hpp>
+
+#include <SharedUtil.h>
 
 #include "DataViewClass.h"
 

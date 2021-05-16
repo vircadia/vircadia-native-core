@@ -13,8 +13,8 @@
 
 #include <glm/glm.hpp>
 
-#include <QBuffer>
-#include <QImage>
+#include <QtCore/QBuffer>
+#include <QtGui/QImage>
 
 #include "ArrayBufferClass.h"
 

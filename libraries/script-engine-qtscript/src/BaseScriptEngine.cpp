@@ -21,9 +21,6 @@
 
 #include "Profile.h"
 
-const QString BaseScriptEngine::SCRIPT_EXCEPTION_FORMAT { "[%0] %1 in %2:%3" };
-const QString BaseScriptEngine::SCRIPT_BACKTRACE_SEP { "\n    " };
-
 bool BaseScriptEngine::IS_THREADSAFE_INVOCATION(const QThread *thread, const QString& method) {
     if (QThread::currentThread() == thread) {
         return true;
@@ -84,7 +81,7 @@ QScriptValue BaseScriptEngine::lintScript(const QString& sourceCode, const QStri
         err.setProperty("fileName", fileName);
         err.setProperty("lineNumber", syntaxCheck.errorLineNumber());
         err.setProperty("expressionBeginOffset", syntaxCheck.errorColumnNumber());
-        err.setProperty("stack", currentContext()->backtrace().join(SCRIPT_BACKTRACE_SEP));
+        err.setProperty("stack", currentContext()->backtrace().join(ScriptManager::SCRIPT_BACKTRACE_SEP));
         {
             const auto error = syntaxCheck.errorMessage();
             const auto line = QString::number(syntaxCheck.errorLineNumber());
@@ -120,7 +117,7 @@ QScriptValue BaseScriptEngine::cloneUncaughtException(const QString& extraDetail
     auto backtrace = uncaughtExceptionBacktrace();
     if (backtrace.isEmpty()) {
         // fallback to the error object
-        backtrace = exception.property("stack").toString().split(SCRIPT_BACKTRACE_SEP);
+        backtrace = exception.property("stack").toString().split(ScriptManager::SCRIPT_BACKTRACE_SEP);
     }
     // the ad hoc "detail" property can be used now to embed additional clues
     auto detail = exception.property("detail").toString();
@@ -150,7 +147,7 @@ QScriptValue BaseScriptEngine::cloneUncaughtException(const QString& extraDetail
     err.setProperty("fileName", fileName);
     err.setProperty("lineNumber", lineNumber );
     err.setProperty("detail", detail);
-    err.setProperty("stack", backtrace.join(SCRIPT_BACKTRACE_SEP));
+    err.setProperty("stack", backtrace.join(ScriptManager::SCRIPT_BACKTRACE_SEP));
 
 #ifdef DEBUG_JS_EXCEPTIONS
     err.setProperty("_fileName", exception.property("fileName").toString());
@@ -158,38 +155,6 @@ QScriptValue BaseScriptEngine::cloneUncaughtException(const QString& extraDetail
     err.setProperty("_lineNumber", uncaughtExceptionLineNumber());
 #endif
     return err;
-}
-
-QString BaseScriptEngine::formatException(const QScriptValue& exception, bool includeExtendedDetails) {
-    if (!IS_THREADSAFE_INVOCATION(thread(), __FUNCTION__)) {
-        return QString();
-    }
-    QString note { "UncaughtException" };
-    QString result;
-
-    if (!exception.isObject()) {
-        return result;
-    }
-    const auto message = exception.toString();
-    const auto fileName = exception.property("fileName").toString();
-    const auto lineNumber = exception.property("lineNumber").toString();
-    const auto stacktrace =  exception.property("stack").toString();
-
-    if (includeExtendedDetails) {
-        // Display additional exception / troubleshooting hints that can be added via the custom Error .detail property
-        // Example difference:
-        //   [UncaughtExceptions] Error: Can't find variable: foobar in atp:/myentity.js\n...
-        //   [UncaughtException (construct {1eb5d3fa-23b1-411c-af83-163af7220e3f})] Error: Can't find variable: foobar in atp:/myentity.js\n...
-        if (exception.property("detail").isValid()) {
-            note += " " + exception.property("detail").toString();
-        }
-    }
-
-    result = QString(SCRIPT_EXCEPTION_FORMAT).arg(note, message, fileName, lineNumber);
-    if (!stacktrace.isEmpty()) {
-        result += QString("\n[Backtrace]%1%2").arg(SCRIPT_BACKTRACE_SEP).arg(stacktrace);
-    }
-    return result;
 }
 
 bool BaseScriptEngine::raiseException(const QScriptValue& exception) {

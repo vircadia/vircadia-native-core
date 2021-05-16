@@ -16,16 +16,13 @@
 #include <QtCore/QDebug>
 #include <QtScript/QScriptEngine>
 
-class ScriptEngine;
-using ScriptEnginePointer = QSharedPointer<ScriptEngine>;
+class ScriptEngineQtScript;
+using ScriptEngineQtScriptPointer = QSharedPointer<ScriptEngineQtScript>;
 
 // common base class for extending QScriptEngine itself
 class BaseScriptEngine : public QScriptEngine, public QEnableSharedFromThis<BaseScriptEngine> {
     Q_OBJECT
 public:
-    static const QString SCRIPT_EXCEPTION_FORMAT;
-    static const QString SCRIPT_BACKTRACE_SEP;
-
     // threadsafe "unbound" version of QScriptEngine::nullValue()
     static const QScriptValue unboundNullValue() { return QScriptValue(0, QScriptValue::NullValue); }
 
@@ -50,15 +47,6 @@ public:
      */
     Q_INVOKABLE QScriptValue makeError(const QScriptValue& other = QScriptValue(), const QString& type = "Error");
     
-    /**jsdoc
-     * @function Script.formatExecption
-     * @param {object} exception - Exception.
-     * @param {boolean} inludeExtendeDetails - Include extended details.
-     * @returns {string} String.
-     * @deprecated This function is deprecated and will be removed.
-     */
-    Q_INVOKABLE QString formatException(const QScriptValue& exception, bool includeExtendedDetails);
-
     QScriptValue cloneUncaughtException(const QString& detail = QString());
     QScriptValue evaluateInClosure(const QScriptValue& locals, const QScriptProgram& program);
 
@@ -80,19 +68,6 @@ signals:
      */
     // Script.signalHandlerException is exposed by QScriptEngine.
     
-    /**jsdoc
-     * Triggered when a script generates an unhandled exception.
-     * @function Script.unhandledException
-     * @param {object} exception - The details of the exception.
-     * @returns {Signal}
-     * @example <caption>Report the details of an unhandled exception.</caption>
-     * Script.unhandledException.connect(function (exception) {
-     *     print("Unhandled exception: " + JSON.stringify(exception));
-     * });
-     * var properties = JSON.parse("{ x: 1"); // Invalid JSON string.
-     */
-    void unhandledException(const QScriptValue& exception);
-
 protected:
     // like `newFunction`, but allows mapping inline C++ lambdas with captures as callable QScriptValues
     // even though the context/engine parameters are redundant in most cases, the function signature matches `newFunction`
@@ -104,18 +79,6 @@ protected:
     static void _debugDump(const QString& header, const QScriptValue& object, const QString& footer = QString());
 #endif
 };
-
-// Standardized CPS callback helpers (see: http://fredkschott.com/post/2014/03/understanding-error-first-callbacks-in-node-js/)
-// These two helpers allow async JS APIs that use a callback parameter to be more friendly to scripters by accepting thisObject
-// context and adopting a consistent and intuitable callback signature:
-//   function callback(err, result) { if (err) { ... } else { /* do stuff with result */ } }
-//
-// To use, first pass the user-specified callback args in the same order used with optionally-scoped  Qt signal connections:
-//   auto handler = makeScopedHandlerObject(scopeOrCallback, optionalMethodOrName);
-// And then invoke the scoped handler later per CPS conventions:
-//   auto result = callScopedHandlerObject(handler, err, result);
-QScriptValue makeScopedHandlerObject(QScriptValue scopeOrCallback, QScriptValue methodOrName);
-QScriptValue callScopedHandlerObject(QScriptValue handler, QScriptValue err, QScriptValue result);
 
 // Lambda helps create callable QScriptValues out of std::functions:
 // (just meant for use from within the script engine itself)
