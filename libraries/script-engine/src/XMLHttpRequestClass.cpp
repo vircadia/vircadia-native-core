@@ -113,7 +113,7 @@ ScriptValuePointer XMLHttpRequestClass::getResponseHeader(const QString& name) c
     return _engine->nullValue();
 }
 
-/**jsdoc
+/*@jsdoc
  * Called when the request's ready state changes.
  * @callback XMLHttpRequest~onReadyStateChangeCallback
  */
@@ -192,7 +192,7 @@ void XMLHttpRequestClass::doSend() {
     }
 }
 
-/**jsdoc
+/*@jsdoc
  * Called when the request times out.
  * @callback XMLHttpRequest~onTimeoutCallback 
  */

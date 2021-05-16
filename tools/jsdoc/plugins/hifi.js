@@ -83,13 +83,13 @@ exports.handlers = {
                     // load entire file into a string
                     var data = fs.readFileSync(path, "utf8");
 
-                    // this regex searches for blocks starting with /**jsdoc and end with */
-                    var reg = /(\/\*\*jsdoc(.|[\r\n])*?\*\/)/gm;
+                    // this regex searches for blocks starting with /*@jsdoc and end with */
+                    var reg = /(\/\*@jsdoc(.|[\r\n])*?\*\/)/gm;
                     var matches = data.match(reg);
                     if (matches) {
                         // add to source, but strip off c-comment asterisks
                         e.source += matches.map(function (s) {
-                            return s.replace('/**jsdoc', '/**');
+                            return s.replace('/*@jsdoc', '/**');
                         }).join('\n');
                     }
                 }

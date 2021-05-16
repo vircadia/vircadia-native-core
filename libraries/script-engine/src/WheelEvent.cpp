@@ -53,7 +53,7 @@ WheelEvent::WheelEvent(const QWheelEvent& event) {
     isAlt = event.modifiers().testFlag(Qt::AltModifier);
 }
 
-/**jsdoc
+/*@jsdoc
  * A mouse wheel event.
  * @typedef {object} WheelEvent
  * @property {number} x - Integer x-coordinate of the event on the Interface window or HMD HUD.

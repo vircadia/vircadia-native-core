@@ -31,7 +31,7 @@ public:
     };
     static bool isValidRefreshRateProfile(RefreshRateProfile value) { return (value >= RefreshRateProfile::ECO && value <= RefreshRateProfile::REALTIME); }
 
-    /**jsdoc
+    /*@jsdoc
      * <p>Interface states that affect the refresh rate.</p>
      * <table>
      *   <thead>
@@ -59,7 +59,7 @@ public:
     };
     static bool isValidRefreshRateRegime(RefreshRateRegime value) { return (value >= RefreshRateRegime::FOCUS_ACTIVE && value <= RefreshRateRegime::SHUTDOWN); }
 
-    /**jsdoc
+    /*@jsdoc
      * <p>User experience (UX) modes.</p>
      * <table>
      *   <thead>

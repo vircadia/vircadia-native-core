@@ -37,7 +37,7 @@ private:
 };
 
 
-/**jsdoc
+/*@jsdoc
  * The <code>Snapshot</code> API provides access to the path that snapshots are saved to. This path is that provided in 
  * Settings &gt; General &gt; Snapshots. Snapshots may be taken using <code>Window</code> API functions such as 
  * {@link Window.takeSnapshot}.
@@ -67,7 +67,7 @@ public:
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the path that snapshots are saved to is changed.
      * @function Snapshot.snapshotLocationSet
      * @param {string} location - The new snapshots location.
@@ -82,14 +82,14 @@ signals:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the path that snapshots are saved to.
      * @function Snapshot.getSnapshotsLocation
      * @returns {string} The path to save snapshots to.
      */
     Q_INVOKABLE QString getSnapshotsLocation();
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the path that snapshots are saved to.
      * @function Snapshot.setSnapshotsLocation
      * @param {String} location - The path to save snapshots to.

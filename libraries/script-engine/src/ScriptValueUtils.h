@@ -27,7 +27,7 @@ bool isListOfStrings(const ScriptValuePointer& value);
 void registerMetaTypes(ScriptEngine* engine);
 
 // Mat4
-/**jsdoc
+/*@jsdoc
  * A 4 x 4 matrix, typically containing a scale, rotation, and translation transform. See also the {@link Mat4(0)|Mat4} object.
  *
  * @typedef {object} Mat4
@@ -51,7 +51,7 @@ void registerMetaTypes(ScriptEngine* engine);
 ScriptValuePointer mat4toScriptValue(ScriptEngine* engine, const glm::mat4& mat4);
 void mat4FromScriptValue(const ScriptValuePointer& object, glm::mat4& mat4);
 
-/**jsdoc
+/*@jsdoc
 * A 2-dimensional vector.
 *
 * @typedef {object} Vec2
@@ -68,7 +68,7 @@ void mat4FromScriptValue(const ScriptValuePointer& object, glm::mat4& mat4);
 ScriptValuePointer vec2ToScriptValue(ScriptEngine* engine, const glm::vec2& vec2);
 void vec2FromScriptValue(const ScriptValuePointer& object, glm::vec2& vec2);
 
-/**jsdoc
+/*@jsdoc
 * A 3-dimensional vector. See also the {@link Vec3(0)|Vec3} object.
 *
 * @typedef {object} Vec3
@@ -92,7 +92,7 @@ ScriptValuePointer vec3ToScriptValue(ScriptEngine* engine, const glm::vec3& vec3
 ScriptValuePointer vec3ColorToScriptValue(ScriptEngine* engine, const glm::vec3& vec3);
 void vec3FromScriptValue(const ScriptValuePointer& object, glm::vec3& vec3);
 
-/**jsdoc
+/*@jsdoc
  * A color vector. See also the {@link Vec3(0)|Vec3} object.
  *
  * @typedef {object} Color
@@ -111,7 +111,7 @@ void vec3FromScriptValue(const ScriptValuePointer& object, glm::vec3& vec3);
  * Entities.editEntity(<id>, { color: "red"});                                // { red: 255, green: 0, blue: 0 }
  * Entities.editEntity(<id>, { color: "#00FF00"});                            // { red: 0, green: 255, blue: 0 }
  */
-/**jsdoc
+/*@jsdoc
  * A color vector with real values. Values may also be <code>null</code>. See also the {@link Vec3(0)|Vec3} object.
  *
  * @typedef {object} ColorFloat
@@ -134,7 +134,7 @@ ScriptValuePointer u8vec3ToScriptValue(ScriptEngine* engine, const glm::u8vec3& 
 ScriptValuePointer u8vec3ColorToScriptValue(ScriptEngine* engine, const glm::u8vec3& vec3);
 void u8vec3FromScriptValue(const ScriptValuePointer& object, glm::u8vec3& vec3);
 
-/**jsdoc
+/*@jsdoc
  * A 4-dimensional vector.
  *
  * @typedef {object} Vec4
@@ -150,7 +150,7 @@ void vec4FromScriptValue(const ScriptValuePointer& object, glm::vec4& vec4);
 ScriptValuePointer quatToScriptValue(ScriptEngine* engine, const glm::quat& quat);
 void quatFromScriptValue(const ScriptValuePointer& object, glm::quat& quat);
 
-/**jsdoc
+/*@jsdoc
  * Defines a rectangular portion of an image or screen, or similar.
  * @typedef {object} Rect
  * @property {number} x - Left, x-coordinate value.
@@ -218,7 +218,7 @@ class Collision;
 ScriptValuePointer collisionToScriptValue(ScriptEngine* engine, const Collision& collision);
 void collisionFromScriptValue(const ScriptValuePointer& object, Collision& collision);
 
-/**jsdoc
+/*@jsdoc
  * UUIDs (Universally Unique IDentifiers) are used to uniquely identify entities, avatars, and the like. They are represented 
  * in JavaScript as strings in the format, <code>"{nnnnnnnn-nnnn-nnnn-nnnn-nnnnnnnnnnnn}"</code>, where the "n"s are
  * hexadecimal digits.

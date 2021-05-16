@@ -15,7 +15,7 @@
 #include "ScriptsModel.h"
 #include <QSortFilterProxyModel>
 
-/**jsdoc
+/*@jsdoc
  * Sorted and filtered information on the scripts that are in the default scripts directory of the Interface installation. This 
  * is provided as a property of {@link ScriptDiscoveryService}.
  *

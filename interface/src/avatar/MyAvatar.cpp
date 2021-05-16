@@ -2623,7 +2623,7 @@ void MyAvatar::clearWornAvatarEntities() {
     }
 }
 
-/**jsdoc
+/*@jsdoc
  * <p>Information about an avatar entity.</p>
  * <table>
  *   <thead>
@@ -4301,7 +4301,7 @@ void MyAvatar::clearScaleRestriction() {
     _haveReceivedHeightLimitsFromDomain = false;
 }
 
-/**jsdoc
+/*@jsdoc
  * A teleport target.
  * @typedef {object} MyAvatar.GoToProperties
  * @property {Vec3} position - The avatar's new position.
@@ -4796,7 +4796,7 @@ void MyAvatar::setCollisionWithOtherAvatarsFlags() {
     _characterController.setPendingFlagsUpdateCollisionMask();
 }
 
-/**jsdoc
+/*@jsdoc
  * A collision capsule is a cylinder with hemispherical ends. It is often used to approximate the extents of an avatar.
  * @typedef {object} MyAvatar.CollisionCapsule
  * @property {Vec3} start - The bottom end of the cylinder, excluding the bottom hemisphere.
@@ -6609,7 +6609,7 @@ void MyAvatar::addAvatarHandsToFlow(const std::shared_ptr<Avatar>& otherAvatar) 
     }
 }
 
-/**jsdoc
+/*@jsdoc
  * Physics options to use in the flow simulation of a joint.
  * @typedef {object} MyAvatar.FlowPhysicsOptions
  * @property {boolean} [active=true] - <code>true</code> to enable flow on the joint, otherwise <code>false</code>.
@@ -6620,7 +6620,7 @@ void MyAvatar::addAvatarHandsToFlow(const std::shared_ptr<Avatar>& otherAvatar) 
  * @property {number} [stiffness=0.0] - The stiffness of each thread.
  * @property {number} [delta=0.55] - Delta time for every integration step.
  */
-/**jsdoc
+/*@jsdoc
  * Collision options to use in the flow simulation of a joint.
  * @typedef {object} MyAvatar.FlowCollisionsOptions
  * @property {string} [type="sphere"] - Currently, only <code>"sphere"</code> is supported.
@@ -6695,7 +6695,7 @@ void MyAvatar::useFlow(bool isActive, bool isCollidable, const QVariantMap& phys
     }
 }
 
-/**jsdoc
+/*@jsdoc
  * Flow options currently used in flow simulation.
  * @typedef {object} MyAvatar.FlowData
  * @property {boolean} initialized - <code>true</code> if flow has been initialized for the current avatar, <code>false</code> 
@@ -6709,7 +6709,7 @@ void MyAvatar::useFlow(bool isActive, bool isCollidable, const QVariantMap& phys
  * @property {Object<ThreadName, number[]>} threads - The threads that have been configured, with the first joint's name as the 
  *     <code>ThreadName</code> and value as an array of the indexes of all the joints in the thread.
  */
-/**jsdoc
+/*@jsdoc
  * A set of physics options currently used in flow simulation.
  * @typedef {object} MyAvatar.FlowPhysicsData
  * @property {boolean} active - <code>true</code> to enable flow on the joint, otherwise <code>false</code>.
@@ -6721,7 +6721,7 @@ void MyAvatar::useFlow(bool isActive, bool isCollidable, const QVariantMap& phys
  * @property {number} delta - Delta time for every integration step.
  * @property {number[]} jointIndices - The indexes of the joints the options are applied to.
  */
-/**jsdoc
+/*@jsdoc
  * A set of collision options currently used in flow simulation.
  * @typedef {object} MyAvatar.FlowCollisionsData
  * @property {number} radius - Collision sphere radius.

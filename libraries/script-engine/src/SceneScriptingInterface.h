@@ -14,7 +14,7 @@
 
 #include <DependencyManager.h>
 
-/**jsdoc
+/*@jsdoc
  * The <code>Scene</code> API provides some control over what is rendered.
  *
  * @namespace Scene
@@ -41,7 +41,7 @@ public:
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when whether or not avatars are rendered changes.
      * @function Scene.shouldRenderAvatarsChanged
      * @param {boolean} shouldRenderAvatars - <code>true</code> if avatars are rendered, <code>false</code> if they aren't.
@@ -53,7 +53,7 @@ signals:
      */
     void shouldRenderAvatarsChanged(bool shouldRenderAvatars);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when whether or not entities are rendered changes.
      * @function Scene.shouldRenderEntitiesChanged
      * @param {boolean} shouldRenderEntities - <code>true</code> if entities (domain, avatar, and local) are rendered, 

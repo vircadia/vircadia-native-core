@@ -22,7 +22,7 @@ class ScriptEngine;
 class ScriptValue;
 using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
-/**jsdoc
+/*@jsdoc
  * Manages {@link WebSocket}s in server entity and assignment client scripts.
  *
  * <p>Create using <code>new WebSocketServer(...)</code>.</p>
@@ -96,7 +96,7 @@ public:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * Closes all connections and closes the WebSocketServer.
      * @function WebSocketServer.close
      */
@@ -112,7 +112,7 @@ private slots:
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when there is a new connection.
      * @function WebSocketServer.newConnection
      * @param {WebSocket} webSocket - The {@link WebSocket} for the new connection.

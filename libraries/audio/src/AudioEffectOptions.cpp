@@ -62,7 +62,7 @@ static void setOption(ScriptValuePointer arguments, const QString name, float de
     variable = arguments->property(name)->isNumber() ? (float)arguments->property(name)->toNumber() : defaultValue;
 }
 
-/**jsdoc
+/*@jsdoc
  * Reverberation options that can be used to initialize an {@link AudioEffectOptions} object when created.
  * @typedef {object} AudioEffectOptions.ReverbOptions
  * @property {number} bandwidth=10000 - The corner frequency (Hz) of the low-pass filter at reverb input.

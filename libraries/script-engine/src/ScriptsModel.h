@@ -67,7 +67,7 @@ public:
     TreeNodeFolder(const QString& foldername, TreeNodeFolder* parent);
 };
 
-/**jsdoc
+/*@jsdoc
  * Information on the scripts that are in the default scripts directory of the Interface installation. This is provided as a 
  * property of {@link ScriptDiscoveryService}.
  *
@@ -155,26 +155,26 @@ public:
 
 protected slots:
 
-    /**jsdoc
+    /*@jsdoc
      * @function ScriptsModel.updateScriptsLocation
      * @param {string} newPath - New path.
      * @deprecated This method is deprecated and will be removed from the API.
      */
     void updateScriptsLocation(const QString& newPath);
 
-    /**jsdoc
+    /*@jsdoc
      * @function ScriptsModel.downloadFinished
      * @deprecated This method is deprecated and will be removed from the API.
      */
     void downloadFinished();
 
-    /**jsdoc
+    /*@jsdoc
      * @function ScriptsModel.reloadLocalFiles
      * @deprecated This method is deprecated and will be removed from the API.
      */
     void reloadLocalFiles();
 
-    /**jsdoc
+    /*@jsdoc
      * @function ScriptsModel.reloadDefaultFiles
      * @deprecated This method is deprecated and will be removed from the API.
      */

@@ -108,7 +108,7 @@ void AssetScriptingInterface::setMapping(QString path, QString hash, ScriptValue
     setMappingRequest->start();
 }
 
-/**jsdoc
+/*@jsdoc
  * The success or failure of an {@link Assets.downloadData} call.
  * @typedef {object} Assets.DownloadDataError
  * @property {string} errorMessage - <code>""</code> if the download was successful, otherwise a description of the error.
@@ -253,7 +253,7 @@ void AssetScriptingInterface::deleteAsset(ScriptValuePointer options, ScriptValu
     jsVerify(false, "TODO: deleteAsset API");
 }
 
-/**jsdoc
+/*@jsdoc
  * Source and download options for {@link Assets.getAsset}.
  * @typedef {object} Assets.GetOptions
  * @property {boolean} [decompress=false] - <code>true</code> to gunzip decompress the downloaded data. Synonym:
@@ -261,7 +261,7 @@ void AssetScriptingInterface::deleteAsset(ScriptValuePointer options, ScriptValu
  * @property {Assets.ResponseType} [responseType="text"] - The desired result type.
  * @property {string} url - The mapped path or hash to download. May have a leading <code>"atp:"</code>.
  */
-/**jsdoc
+/*@jsdoc
  * Result value returned by {@link Assets.getAsset}. 
  * @typedef {object} Assets.GetResult
  * @property {number} [byteLength] - The number of bytes in the downloaded content in <code>response</code>.
@@ -329,12 +329,12 @@ void AssetScriptingInterface::getAsset(ScriptValuePointer options, ScriptValuePo
     }
 }
 
-/**jsdoc
+/*@jsdoc
  * Source options for {@link Assets.resolveAsset}.
  * @typedef {object} Assets.ResolveOptions
  * @property {string} url - The hash or path to resolve. May have a leading <code>"atp:"</code>.
  */
-/**jsdoc
+/*@jsdoc
  * Result value returned by {@link Assets.resolveAsset}.
  * <p>Note: If resolving a hash, a file of that hash need not be present on the asset server for the hash to resolve.</p>
  * @typedef {object} Assets.ResolveResult
@@ -357,13 +357,13 @@ void AssetScriptingInterface::resolveAsset(ScriptValuePointer options, ScriptVal
     jsPromiseReady(getAssetInfo(asset), scope, callback);
 }
 
-/**jsdoc
+/*@jsdoc
  * Content and decompression options for {@link Assets.decompressData}.
  * @typedef {object} Assets.DecompressOptions
  * @property {ArrayBuffer} data - The data to decompress.
  * @property {Assets.ResponseType} [responseType=text] - The type of decompressed data to return.
  */
-/**jsdoc
+/*@jsdoc
  * Result value returned by {@link Assets.decompressData}.
  * @typedef {object} Assets.DecompressResult
  * @property {number} [byteLength] - The number of bytes in the decompressed data.
@@ -397,7 +397,7 @@ namespace {
     const int32_t MAX_GZIP_COMPRESSION_LEVEL = 9;
 }
 
-/**jsdoc
+/*@jsdoc
  * Content and compression options for {@link Assets.compressData}.
  * @typedef {object} Assets.CompressOptions
  * @property {string|ArrayBuffer} data - The data to compress.
@@ -405,7 +405,7 @@ namespace {
  *     use the default gzip compression level, <code>0</code> means no compression, and <code>9</code> means maximum 
  *     compression.
  */
-/**jsdoc
+/*@jsdoc
  * Result value returned by {@link Assets.compressData}.
  * @typedef {object} Assets.CompressResult
  * @property {number} [byteLength] - The number of bytes in the compressed data.
@@ -421,7 +421,7 @@ void AssetScriptingInterface::compressData(ScriptValuePointer options, ScriptVal
     jsPromiseReady(compressBytes(dataByteArray, level), scope, callback);
 }
 
-/**jsdoc
+/*@jsdoc
  * Content and upload options for {@link Assets.putAsset}.
  * @typedef {object} Assets.PutOptions
  * @property {boolean} [compress=false] - <code>true</code> to gzip compress the content for upload and storage,
@@ -432,7 +432,7 @@ void AssetScriptingInterface::compressData(ScriptValuePointer options, ScriptVal
  *     <p>Note: The asset server destroys any unmapped SHA256-named file at server restart. Either set the mapping path 
  *     with this property or use {@link Assets.setMapping} to set a path-to-hash mapping for the uploaded file.</p>
  */
-/**jsdoc
+/*@jsdoc
  * Result value returned by {@link Assets.putAsset}.
  * @typedef {object} Assets.PutResult
  * @property {number} [byteLength] - The number of bytes in the hash file stored on the asset server.
@@ -492,7 +492,7 @@ void AssetScriptingInterface::putAsset(ScriptValuePointer options, ScriptValuePo
     }
 }
 
-/**jsdoc
+/*@jsdoc
  * Source for {@link Assets.queryCacheMeta}.
  * @typedef {object} Assets.QueryCacheMetaOptions
  * @property {string} url - The URL of the cached asset to get information on. Must start with <code>"atp:"</code> or 
@@ -504,7 +504,7 @@ void AssetScriptingInterface::queryCacheMeta(ScriptValuePointer options, ScriptV
     jsPromiseReady(Parent::queryCacheMeta(url), scope, callback);
 }
 
-/**jsdoc
+/*@jsdoc
  * Source and retrieval options for {@link Assets.loadFromCache}.
  * @typedef {object} Assets.LoadFromCacheOptions
  * @property {boolean} [decompress=false] - <code>true</code> to gunzip decompress the cached data. Synonym:
@@ -547,7 +547,7 @@ bool AssetScriptingInterface::canWriteCacheValue(const QUrl& url) {
     return true;
 }
 
-/**jsdoc
+/*@jsdoc
  * The data to save to the cache and cache options for {@link Assets.saveToCache}.
  * @typedef {object} Assets.SaveToCacheOptions
  * @property {string|ArrayBuffer} data - The data to save to the cache.

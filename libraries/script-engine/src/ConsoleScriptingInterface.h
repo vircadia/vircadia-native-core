@@ -33,7 +33,7 @@ class ScriptEngine;
 class ScriptValue;
 using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
-/**jsdoc
+/*@jsdoc
  * The <code>console</code> API provides program logging facilities.
  *
  * @namespace console
@@ -49,7 +49,7 @@ class ConsoleScriptingInterface : public QObject, protected Scriptable {
     Q_OBJECT
 public:
 
-    /**jsdoc
+    /*@jsdoc
      * Logs an "INFO" message to the program log and triggers {@link Script.infoMessage}. 
      * The message logged is "INFO -" followed by the message values separated by spaces.
      * @function console.info
@@ -57,7 +57,7 @@ public:
      */
     static ScriptValuePointer info(ScriptContext* context, ScriptEngine* engine);
 
-    /**jsdoc
+    /*@jsdoc
      * Logs a message to the program log and triggers {@link Script.printedMessage}.
      * The message logged is the message values separated by spaces.
      * <p>If a {@link console.group} is in effect, the message is indented by an amount proportional to the group level.</p>
@@ -75,7 +75,7 @@ public:
      */
     static ScriptValuePointer log(ScriptContext* context, ScriptEngine* engine);
 
-    /**jsdoc
+    /*@jsdoc
      * Logs a message to the program log and triggers {@link Script.printedMessage}.
      * The message logged is the message values separated by spaces.
      * @function console.debug
@@ -83,7 +83,7 @@ public:
      */
     static ScriptValuePointer debug(ScriptContext* context, ScriptEngine* engine);
 
-    /**jsdoc
+    /*@jsdoc
      * Logs a "WARNING" message to the program log and triggers {@link Script.warningMessage}.
      * The message logged is "WARNING - " followed by the message values separated by spaces.
      * @function console.warn
@@ -91,7 +91,7 @@ public:
      */
     static ScriptValuePointer warn(ScriptContext* context, ScriptEngine* engine);
 
-    /**jsdoc
+    /*@jsdoc
      * Logs an "ERROR" message to the program log and triggers {@link Script.errorMessage}.
      * The message logged is "ERROR - " followed by the message values separated by spaces.
      * @function console.error
@@ -99,7 +99,7 @@ public:
      */
     static ScriptValuePointer error(ScriptContext* context, ScriptEngine* engine);
 
-    /**jsdoc
+    /*@jsdoc
      * A synonym of {@link console.error}.
      * Logs an "ERROR" message to the program log and triggers {@link Script.errorMessage}.
      * The message logged is "ERROR - " followed by the message values separated by spaces.
@@ -108,7 +108,7 @@ public:
      */
     static ScriptValuePointer exception(ScriptContext* context, ScriptEngine* engine);
 
-    /**jsdoc
+    /*@jsdoc
      * Logs an "ERROR" message to the program log and triggers {@link Script.errorMessage}, if a test condition fails.
      * The message logged is "ERROR - Assertion failed : " followed by the message values separated by spaces.
      * <p>Note: Script execution continues whether or not the test condition fails.</p>
@@ -131,7 +131,7 @@ public:
     // Note: Is registered in the script engine as "assert"
     static ScriptValuePointer assertion(ScriptContext* context, ScriptEngine* engine);
 
-    /**jsdoc
+    /*@jsdoc
      * Logs a message to the program log and triggers {@link Script.printedMessage}, then starts indenting subsequent 
      * {@link console.log} messages until a {@link console.groupEnd}. Groups may be nested.
      * @function console.group
@@ -159,7 +159,7 @@ public:
      */
     static ScriptValuePointer group(ScriptContext* context, ScriptEngine* engine);
 
-    /**jsdoc
+    /*@jsdoc
      * Has the same behavior as {@link console.group}.
      * Logs a message to the program log and triggers {@link Script.printedMessage}, then starts indenting subsequent
      * {@link console.log} messages until a {@link console.groupEnd}. Groups may be nested.
@@ -168,7 +168,7 @@ public:
      */
     static ScriptValuePointer groupCollapsed(ScriptContext* context, ScriptEngine* engine);
 
-    /**jsdoc
+    /*@jsdoc
      * Finishes a group of indented {@link console.log} messages.
      * @function console.groupEnd
      */
@@ -176,7 +176,7 @@ public:
 
 public slots:
     
-    /**jsdoc
+    /*@jsdoc
      * Starts a timer, logs a message to the program log, and triggers {@link Script.printedMessage}. The message logged has 
      * the timer name and "Timer started".
      * @function console.time
@@ -199,7 +199,7 @@ public slots:
      * // MyTimer: 1001ms     */
     void time(QString labelName);
 
-    /**jsdoc
+    /*@jsdoc
      * Finishes a timer, logs a message to the program log, and triggers {@link Script.printedMessage}. The message logged has 
      * the timer name and the number of milliseconds since the timer was started.
      * @function console.timeEnd
@@ -207,13 +207,13 @@ public slots:
      */
     void timeEnd(QString labelName);
 
-    /**jsdoc
+    /*@jsdoc
      * Logs the JavaScript call stack at the point of call to the program log.
      * @function console.trace
      */
     void trace();
 
-    /**jsdoc
+    /*@jsdoc
      * Clears the Developer &gt; Scripting &gt; Script Log debug window.
      * @function console.clear
      */

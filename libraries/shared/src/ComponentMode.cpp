@@ -8,7 +8,7 @@
 
 #include "ComponentMode.h"
 
-/**jsdoc
+/*@jsdoc
  * <p>How an effect is applied in a {@link Entities.EntityProperties-Zone|Zone} entity.</p>
  * <table>
  *   <thead>
@@ -38,7 +38,7 @@ QString ComponentModeHelpers::getNameForComponentMode(ComponentMode mode) {
     return componentModeNames[(int)mode];
 }
 
-/**jsdoc
+/*@jsdoc
  * <p>The priority of updates from avatars in a zone to other clients.</p>
  * <table>
  *   <thead>

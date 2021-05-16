@@ -18,7 +18,7 @@
 #include <ScriptEngine.h>
 #include <EntityItem.h>
 
-/**jsdoc
+/*@jsdoc
  * The <code>Avatar</code> API is used to manipulate scriptable avatars on the domain. This API is a subset of the 
  * {@link MyAvatar} API. To enable this API, set {@link Agent|Agent.isAvatar} to <code>true</code>.
  *
@@ -110,7 +110,7 @@ public:
 
     ScriptableAvatar();
 
-    /**jsdoc
+    /*@jsdoc
      * Starts playing an animation on the avatar.
      * @function Avatar.startAnimation
      * @param {string} url - The animation file's URL. Animation files need to be in glTF or FBX format but only need to 
@@ -130,13 +130,13 @@ public:
                                     bool hold = false, float firstFrame = 0.0f, float lastFrame = FLT_MAX, 
                                     const QStringList& maskedJoints = QStringList());
 
-    /**jsdoc
+    /*@jsdoc
      * Stops playing the current animation.
      * @function Avatar.stopAnimation
      */
     Q_INVOKABLE void stopAnimation();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the details of the current avatar animation that is being or was recently played.
      * @function Avatar.getAnimationDetails
      * @returns {Avatar.AnimationDetails} The current or recent avatar animation.
@@ -146,30 +146,30 @@ public:
      */
     Q_INVOKABLE AnimationDetails getAnimationDetails();
 
-    /**jsdoc
+    /*@jsdoc
      * @comment Uses the base class's JSDoc.
      */
     Q_INVOKABLE virtual QStringList getJointNames() const override;
 
-    /**jsdoc
+    /*@jsdoc
      * @comment Uses the base class's JSDoc.
      */
     /// Returns the index of the joint with the specified name, or -1 if not found/unknown.
     Q_INVOKABLE virtual int getJointIndex(const QString& name) const override;
 
-    /**jsdoc
+    /*@jsdoc
      * @comment Uses the base class's JSDoc.
      */
     Q_INVOKABLE virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
 
-    /**jsdoc
+    /*@jsdoc
      * @comment Uses the base class's JSDoc.
      */
     int sendAvatarDataPacket(bool sendAll = false) override;
 
     virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking = false) override;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets details of all avatar entities.
      * <p><strong>Warning:</strong> Potentially an expensive call. Do not use if possible.</p>
      * @function Avatar.getAvatarEntityData
@@ -184,7 +184,7 @@ public:
 
     AvatarEntityMap getAvatarEntityDataInternal(bool allProperties) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Sets all avatar entities from an object.
      * <p><strong>Warning:</strong> Potentially an expensive call. Do not use if possible.</p>
      * @function Avatar.setAvatarEntityData
@@ -192,20 +192,20 @@ public:
      */
     Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData) override;
 
-    /**jsdoc
+    /*@jsdoc
      * @comment Uses the base class's JSDoc.
      */
     Q_INVOKABLE void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) override;
 
 public slots:
-    /**jsdoc
+    /*@jsdoc
      * @function Avatar.update
      * @param {number} deltaTime - Delta time.
      * @deprecated This function is deprecated and will be removed.
      */
     void update(float deltatime);
 
-    /**jsdoc
+    /*@jsdoc
      * @function Avatar.setJointMappingsFromNetworkReply
      * @deprecated This function is deprecated and will be removed.
      */

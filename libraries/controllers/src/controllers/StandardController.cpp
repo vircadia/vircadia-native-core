@@ -27,7 +27,7 @@ void StandardController::focusOutEvent() {
     _buttonPressedMap.clear();
 };
 
-/**jsdoc
+/*@jsdoc
  * <p>The <code>Controller.Standard</code> object has properties representing standard controller outputs. Those for physical 
  * controllers are based on the XBox controller, with aliases for PlayStation. The property values are integer IDs, uniquely 
  * identifying each output. <em>Read-only.</em></p>

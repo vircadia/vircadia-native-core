@@ -65,7 +65,7 @@ void PointerEvent::setButton(Button button) {
     _buttons |= button;
 }
 
-/**jsdoc
+/*@jsdoc
  * A 2D or 3D mouse or similar pointer event.
  * @typedef {object} PointerEvent
  * @property {string} type - The type of event: <code>"Press"</code>, <code>"DoublePress"</code>, <code>"Release"</code>, or
@@ -99,7 +99,7 @@ void PointerEvent::setButton(Button button) {
  * @property {KeyboardModifiers} keyboardModifiers - Integer value with bits set according to which keyboard modifier keys were
  *     pressed when the event was generated.
  */
-/**jsdoc
+/*@jsdoc
  * <p>A KeyboardModifiers value is used to specify which modifier keys on the keyboard are pressed. The value is the sum 
  * (bitwise OR) of the relevant combination of values from the following table:</p>
  * <table>

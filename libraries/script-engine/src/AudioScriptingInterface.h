@@ -41,7 +41,7 @@ public:
         return _localAudioInterface->getAudioSolo().getUUIDs();
     }
 
-    /**jsdoc
+    /*@jsdoc
      * Adds avatars to the audio solo list. If the audio solo list is not empty, only audio from the avatars in the list is 
      * played.
      * @function Audio.addToSoloList
@@ -78,7 +78,7 @@ public:
         _localAudioInterface->getAudioSolo().addUUIDs(uuidList);
     }
 
-    /**jsdoc
+    /*@jsdoc
      * Removes avatars from the audio solo list. If the audio solo list is not empty, only audio from the avatars in the list 
      * is played.
      * @function Audio.removeFromSoloList
@@ -88,7 +88,7 @@ public:
         _localAudioInterface->getAudioSolo().removeUUIDs(uuidList);
     }
 
-    /**jsdoc
+    /*@jsdoc
      * Clears the audio solo list.
      * @function Audio.resetSoloList
      */
@@ -96,7 +96,7 @@ public:
         _localAudioInterface->getAudioSolo().reset();
     }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether your microphone audio is echoed back to you from the server. When enabled, microphone audio is echoed only 
      * if you're unmuted or are using push-to-talk.
      * @function Audio.getServerEcho
@@ -105,7 +105,7 @@ public:
      */
     Q_INVOKABLE bool getServerEcho();
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether your microphone audio is echoed back to you from the server. When enabled, microphone audio is echoed 
      * only if you're unmuted or are using push-to-talk.
      * @function Audio.setServerEcho
@@ -114,14 +114,14 @@ public:
      */
     Q_INVOKABLE void setServerEcho(bool serverEcho);
 
-    /**jsdoc
+    /*@jsdoc
      * Toggles the echoing of microphone audio back to you from the server. When enabled, microphone audio is echoed only if 
      * you're unmuted or are using push-to-talk.
      * @function Audio.toggleServerEcho
      */
     Q_INVOKABLE void toggleServerEcho();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether your microphone audio is echoed back to you by the client. When enabled, microphone audio is echoed 
      * even if you're muted or not using push-to-talk.
      * @function Audio.getLocalEcho
@@ -130,7 +130,7 @@ public:
      */
     Q_INVOKABLE bool getLocalEcho();
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether your microphone audio is echoed back to you by the client. When enabled, microphone audio is echoed 
      * even if you're muted or not using push-to-talk.
      * @function Audio.setLocalEcho
@@ -144,7 +144,7 @@ public:
      */
     Q_INVOKABLE void setLocalEcho(bool localEcho);
 
-    /**jsdoc
+    /*@jsdoc
      * Toggles the echoing of microphone audio back to you by the client. When enabled, microphone audio is echoed even if 
      * you're muted or not using push-to-talk.
      * @function Audio.toggleLocalEcho
@@ -157,7 +157,7 @@ protected:
 
     // these methods are protected to stop C++ callers from calling, but invokable from script
 
-    /**jsdoc
+    /*@jsdoc
      * Starts playing or "injecting" the content of an audio file. The sound is played globally (sent to the audio 
      * mixer) so that everyone hears it, unless the <code>injectorOptions</code> has <code>localOnly</code> set to 
      * <code>true</code> in which case only the client hears the sound played. No sound is played if sent to the audio mixer 
@@ -192,7 +192,7 @@ protected:
      */
     Q_INVOKABLE ScriptAudioInjector* playSound(SharedSoundPointer sound, const AudioInjectorOptions& injectorOptions = AudioInjectorOptions());
 
-    /**jsdoc
+    /*@jsdoc
      * Starts playing the content of an audio file locally (isn't sent to the audio mixer). This is the same as calling 
      * {@link Audio.playSound} with {@link AudioInjector.AudioInjectorOptions} <code>localOnly</code> set <code>true</code> and 
      * the specified <code>position</code>.
@@ -203,7 +203,7 @@ protected:
      */
     Q_INVOKABLE ScriptAudioInjector* playSystemSound(SharedSoundPointer sound);
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether the audio input should be used in stereo. If the audio input doesn't support stereo then setting a value 
      * of <code>true</code> has no effect.
      * @function Audio.setStereoInput
@@ -211,7 +211,7 @@ protected:
      */
     Q_INVOKABLE void setStereoInput(bool stereo);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether the audio input is used in stereo.
      * @function Audio.isStereoInput
      * @returns {boolean} <code>true</code> if the audio input is used in stereo, otherwise <code>false</code>. 
@@ -220,7 +220,7 @@ protected:
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the client is muted by the mixer because their loudness value for the noise background has reached the 
      * threshold set for the domain (in the server settings).
      * @function Audio.mutedByMixer
@@ -228,7 +228,7 @@ signals:
      */
     void mutedByMixer();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the client is muted by the mixer because they're within a certain radius (50m) of someone who requested 
      * the mute through Developer &gt; Audio &gt; Mute Environment.
      * @function Audio.environmentMuted
@@ -236,21 +236,21 @@ signals:
      */
     void environmentMuted();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the client receives its first packet from the audio mixer.
      * @function Audio.receivedFirstPacket
      * @returns {Signal} 
      */
     void receivedFirstPacket();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the client is disconnected from the audio mixer.
      * @function Audio.disconnected
      * @returns {Signal} 
      */
     void disconnected();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the noise gate is opened. The input audio signal is no longer blocked (fully attenuated) because it has 
      * risen above an adaptive threshold set just above the noise floor. Only occurs if <code>Audio.noiseReduction</code> is 
      * <code>true</code>.
@@ -259,7 +259,7 @@ signals:
      */
     void noiseGateOpened();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the noise gate is closed. The input audio signal is blocked (fully attenuated) because it has fallen 
      * below an adaptive threshold set just above the noise floor. Only occurs if <code>Audio.noiseReduction</code> is 
      * <code>true</code>.
@@ -268,7 +268,7 @@ signals:
      */
     void noiseGateClosed();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when a frame of audio input is processed.
      * @function Audio.inputReceived
      * @param {Int16Array} inputSamples - The audio input processed.
@@ -276,7 +276,7 @@ signals:
      */
     void inputReceived(const QByteArray& inputSamples);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the input audio use changes between mono and stereo.
      * @function Audio.isStereoInputChanged
      * @param {boolean} isStereo - <code>true</code> if the input audio is stereo, otherwise <code>false</code>.

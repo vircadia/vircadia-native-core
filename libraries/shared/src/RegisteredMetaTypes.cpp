@@ -507,7 +507,7 @@ QRectF qRectFFromVariant(const QVariant& object) {
     return qRectFFromVariant(object, valid);
 }
 
-/**jsdoc
+/*@jsdoc
  * Details of a collision between avatars and entities.
  * @typedef {object} Collision
  * @property {ContactEventType} type - The contact type of the collision event.

@@ -47,7 +47,7 @@ ScriptValuePointer injectorOptionsToScriptValue(ScriptEngine* engine, const Audi
     return obj;
 }
 
-/**jsdoc
+/*@jsdoc
  * Configures where and how an audio injector plays its audio.
  * @typedef {object} AudioInjector.AudioInjectorOptions
  * @property {Vec3} position=Vec3.ZERO - The position in the domain to play the sound.

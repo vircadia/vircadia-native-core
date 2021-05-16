@@ -28,7 +28,7 @@ class ScriptEngine;
 class ScriptValue;
 using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
-/**jsdoc
+/*@jsdoc
  * A color and alpha pulse that an entity may have.
  * @typedef {object} Entities.Pulse
  * @property {number} min=0 - The minimum value of the pulse multiplier.

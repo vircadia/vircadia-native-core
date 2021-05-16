@@ -47,7 +47,7 @@ bool operator!=(const AnimationPropertyGroup& a, const AnimationPropertyGroup& b
 }
 
 
-/**jsdoc
+/*@jsdoc
  * An animation is configured by the following properties:
  * @typedef {object} Entities.AnimationProperties
  * @property {string} url="" - The URL of the glTF or FBX file that has the animation. glTF files may be in JSON or binary 

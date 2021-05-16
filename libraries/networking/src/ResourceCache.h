@@ -88,7 +88,7 @@ private:
 /// Wrapper to expose resources to JS/QML
 class ScriptableResource : public QObject {
 
-    /**jsdoc
+    /*@jsdoc
      * Information about a cached resource. Created by {@link AnimationCache.prefetch}, {@link MaterialCache.prefetch}, 
      * {@link ModelCache.prefetch}, {@link SoundCache.prefetch}, or {@link TextureCache.prefetch}.
      *
@@ -110,7 +110,7 @@ class ScriptableResource : public QObject {
 
 public:
 
-    /**jsdoc
+    /*@jsdoc
      * The loading state of a resource.
      * @typedef {object} Resource.State
      * @property {number} QUEUED - The resource is queued up, waiting to be loaded.
@@ -131,7 +131,7 @@ public:
     ScriptableResource(const QUrl& url);
     virtual ~ScriptableResource() = default;
 
-    /**jsdoc
+    /*@jsdoc
       * Releases the resource.
       * @function ResourceObject#release
       */
@@ -146,7 +146,7 @@ public:
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the resource's download progress changes.
      * @function ResourceObject#progressChanged
      * @param {number} bytesReceived - Bytes downloaded so far.
@@ -155,7 +155,7 @@ signals:
      */
     void progressChanged(uint64_t bytesReceived, uint64_t bytesTotal);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the resource's loading state changes.
      * @function ResourceObject#stateChanged
      * @param {Resource.State} state - New state.
@@ -305,7 +305,7 @@ class ScriptableResourceCache : public QObject {
     // JSDoc 3.5.5 doesn't augment name spaces with @property definitions so the following properties JSDoc is copied to the 
     // different exposed cache classes.
 
-    /**jsdoc
+    /*@jsdoc
      * @property {number} numTotal - Total number of total resources. <em>Read-only.</em>
      * @property {number} numCached - Total number of cached resource. <em>Read-only.</em>
      * @property {number} sizeTotal - Size in bytes of all resources. <em>Read-only.</em>
@@ -316,7 +316,7 @@ class ScriptableResourceCache : public QObject {
     Q_PROPERTY(size_t sizeTotal READ getSizeTotalResources NOTIFY dirty)
     Q_PROPERTY(size_t sizeCached READ getSizeCachedResources NOTIFY dirty)
 
-    /**jsdoc
+    /*@jsdoc
      * @property {number} numGlobalQueriesPending - Total number of global queries pending (across all resource cache managers).
      *     <em>Read-only.</em>
      * @property {number} numGlobalQueriesLoading - Total number of global queries loading (across all resource cache managers).
@@ -328,7 +328,7 @@ class ScriptableResourceCache : public QObject {
 public:
     ScriptableResourceCache(QSharedPointer<ResourceCache> resourceCache);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the URLs of all resources in the cache.
      * @function ResourceCache.getResourceList
      * @returns {string[]} The URLs of all resources in the cache.
@@ -340,14 +340,14 @@ public:
      */
     Q_INVOKABLE QVariantList getResourceList();
 
-    /**jsdoc
+    /*@jsdoc
      * @function ResourceCache.updateTotalSize
      * @param {number} deltaSize - Delta size.
      * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE void updateTotalSize(const qint64& deltaSize);
 
-    /**jsdoc
+    /*@jsdoc
      * Prefetches a resource.
      * @function ResourceCache.prefetch
      * @param {string} url - The URL of the resource to prefetch.
@@ -384,7 +384,7 @@ public:
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the cache content has changed.
      * @function ResourceCache.dirty
      * @returns {Signal}

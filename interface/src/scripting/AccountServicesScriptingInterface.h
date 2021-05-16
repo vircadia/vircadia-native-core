@@ -39,7 +39,7 @@ void DownloadInfoResultFromScriptValue(const ScriptValuePointer& object, Downloa
 class AccountServicesScriptingInterface : public QObject {
     Q_OBJECT
 
-    /**jsdoc
+    /*@jsdoc
      * The <code>AccountServices</code> API provides functions that give information on user connectivity, visibility, and 
      * asset download progress.
      * 
@@ -64,7 +64,7 @@ class AccountServicesScriptingInterface : public QObject {
      *     &mdash; typically <code>"https://metaverse.highfidelity.com"</code>. <em>Read-only.</em>
      */
 
-    /**jsdoc
+    /*@jsdoc
      * The <code>Account</code> API provides functions that give information on user connectivity, visibility, and asset 
      * download progress.
      *
@@ -104,7 +104,7 @@ class AccountServicesScriptingInterface : public QObject {
      * @borrows AccountServices.loggedInChanged as loggedInChanged
      */
 
-    /**jsdoc
+    /*@jsdoc
      * The <code>GlobalServices</code> API provides functions that give information on user connectivity, visibility, and asset 
      * download progress.
      *
@@ -158,21 +158,21 @@ public:
     
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * Gets information on the download progress of assets in the domain.
      * @function AccountServices.getDownloadInfo
      * @returns {AccountServices.DownloadInfoResult} Information on the download progress of assets.
      */
     DownloadInfoResult getDownloadInfo();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggers a {@link AccountServices.downloadInfoChanged|downloadInfoChanged} signal with information on the current 
      * download progress of the assets in the domain.
      * @function AccountServices.updateDownloadInfo
      */
     void updateDownloadInfo();
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether the user is logged in.
      * @function AccountServices.isLoggedIn
      * @returns {boolean} <code>true</code> if the user is logged in, <code>false</code> if not.
@@ -182,14 +182,14 @@ public slots:
      */
     bool isLoggedIn();
 
-    /**jsdoc
+    /*@jsdoc
      * The function returns the login status of the user and prompts the user to log in (with a login dialog) if they're not already logged in.
      * @function AccountServices.checkAndSignalForAccessToken
      * @returns {boolean} <code>true</code> if the user is logged in, <code>false</code> if not.
      */
     bool checkAndSignalForAccessToken();
 
-    /**jsdoc
+    /*@jsdoc
      * Logs the user out.
      * @function AccountServices.logOut
      */
@@ -207,14 +207,14 @@ private slots:
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * Not currently used.
      * @function AccountServices.connected
      * @returns {Signal}
      */
     void connected();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the user logs out.
      * @function AccountServices.disconnected
      * @param {string} reason - Has the value, <code>"logout"</code>.
@@ -222,7 +222,7 @@ signals:
      */
     void disconnected(const QString& reason);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the username logged in with changes, i.e., when the user logs in or out.
      * @function AccountServices.myUsernameChanged
      * @param {string} username - The user name of the user logged in. If there is no user logged in, it is <code>""</code>.
@@ -234,7 +234,7 @@ signals:
      */
     void myUsernameChanged(const QString& username);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the download progress of the assets in the domain changes.
      * @function AccountServices.downloadInfoChanged
      * @param {AccountServices.DownloadInfoResult} downloadInfo - Information on the download progress of assets.
@@ -242,7 +242,7 @@ signals:
      */
     void downloadInfoChanged(DownloadInfoResult info);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the user's visibility to others changes.
      * @function AccountServices.findableByChanged
      * @param {string} findableBy - The user's visibility to other people:
@@ -270,7 +270,7 @@ signals:
      */
     void findableByChanged(const QString& discoverabilityMode);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the login status of the user changes.
      * @function AccountServices.loggedInChanged
      * @param {boolean} loggedIn - <code>true</code> if the user is logged in, <code>false</code> if not.

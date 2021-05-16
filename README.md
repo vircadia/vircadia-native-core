@@ -1,5 +1,6 @@
 <p align="center"><a href="https://vircadia.com/"><img src="interface/resources/images/vircadia-banner.svg" alt="Vircadia - Codename Athena" width="350"/></a></p>
 <h3 align="center"><a href="https://vircadia.com/">Website</a> | <a href="https://discordapp.com/invite/Pvx2vke">Discord</a> | <a href="https://vircadia.com/download-vircadia/">Download</a></h3>
+<p align="center"><a href="CONTRIBUTING.md"><img alt="GitHub contributors" src="https://img.shields.io/github/contributors/vircadia/vircadia"></a> <a href="https://github.com/vircadia/vircadia/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/vircadia/vircadia"></a> <a href="https://github.com/vircadia/vircadia/network"><img alt="GitHub forks" src="https://img.shields.io/github/forks/vircadia/vircadia"></a> <a href="https://www.apache.org/licenses/LICENSE-2.0"><img alt="Apache 2.0" src="https://img.shields.io/badge/license-Apache--2.0-%230A7BBB?style=flat"></a> <a href="https://discordapp.com/invite/Pvx2vke"><img alt="Discord" src="https://img.shields.io/discord/564926326025224212?style=flat"></a></p>
 
 ### What is this?
 
@@ -55,9 +56,10 @@ Vircadia consists of many projects and codebases with its unifying structure's g
 
 - The Interface (Codename Athena) - You are here!
 - The Server (Codename Athena) - You are also here!
-- The UI Framework (Codename Nyx) - Codebase coming soon.
-- [The Metaverse (Codename Iamus)](https://github.com/vircadia/Iamus/)
-- [The Metaverse Dashboard (Codename Iamus)](https://github.com/vircadia/project-iamus-dashboard/)
+- [The Web Interface (Codename Aether)](https://github.com/vircadia/vircadia-web/)
+- [The Web SDK (Codename Ananke)](https://github.com/vircadia/vircadia-web-sdk/)
+- [The Metaverse Server (Codename Iamus)](https://github.com/vircadia/Iamus/)
+- [The Metaverse Server Dashboard (Codename Iamus)](https://github.com/vircadia/project-iamus-dashboard/)
 - [The Launcher (Codename Pantheon)](https://github.com/vircadia/pantheon-launcher/) - Currently Windows only.
 
 #### Child Projects

@@ -11,7 +11,7 @@
 
 #include "QString"
 
-/**jsdoc
+/*@jsdoc
  * <p>A layer in which an entity may be rendered.</p>
  * <table>
  *   <thead>

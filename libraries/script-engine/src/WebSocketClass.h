@@ -21,7 +21,7 @@ class ScriptEngine;
 class ScriptValue;
 using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
-/**jsdoc
+/*@jsdoc
  * Provides a bi-directional, event-driven communication session between the script and another WebSocket connection. It is a 
  * near-complete implementation of the WebSocket API described in the Mozilla docs: 
  * <a href="https://developer.mozilla.org/en-US/docs/Web/API/WebSocket">https://developer.mozilla.org/en-US/docs/Web/API/WebSocket</a>.
@@ -110,7 +110,7 @@ public:
 
     static ScriptValuePointer constructor(ScriptContext* context, ScriptEngine* engine);
 
-    /**jsdoc
+    /*@jsdoc
      * The state of a WebSocket connection.
      * <table>
      *   <thead>
@@ -183,20 +183,20 @@ public:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * Sends a message on the connection.
      * @function WebSocket.send
      * @param {string|object} message - The message to send. If an object, it is converted to a string.
      */
     void send(ScriptValuePointer message);
 
-    /**jsdoc
+    /*@jsdoc
      * Closes the connection.
      * @function WebSocket.close
      * @param {WebSocket.CloseCode} [closeCode=1000] - The reason for closing.
      * @param {string} [reason=""] - A description of the reason for closing.
      */
-    /**jsdoc
+    /*@jsdoc
      * The reason why the connection was closed.
      * <table>
      *   <thead>

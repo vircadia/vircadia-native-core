@@ -1009,7 +1009,7 @@ void AvatarManager::setAvatarSortCoefficient(const QString& name, const ScriptVa
     }
 }
 
-/**jsdoc
+/*@jsdoc
  * PAL (People Access List) data for an avatar.
  * @typedef {object} AvatarManager.PalData
  * @property {Uuid} sessionUUID - The avatar's session ID. <code>""</code> if the avatar is your own.

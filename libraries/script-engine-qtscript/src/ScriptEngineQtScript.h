@@ -60,7 +60,7 @@ class ScriptManager;
 
 Q_DECLARE_METATYPE(ScriptEngineQtScriptPointer)
 
-/**jsdoc
+/*@jsdoc
  * The <code>Script</code> API provides facilities for working with scripts.
  *
  * @namespace Script
@@ -124,7 +124,7 @@ public:
     // NOTE - these are NOT intended to be public interfaces available to scripts, the are only Q_INVOKABLE so we can
     //        properly ensure they are only called on the correct thread
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.registerGlobalObject
      * @param {string} name - Name.
      * @param {object} object - Object.
@@ -133,7 +133,7 @@ public:
     /// registers a global object by name
     Q_INVOKABLE void registerGlobalObject(const QString& name, QObject* object);
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.registerGetterSetter
      * @param {string} name - Name.
      * @param {function} getter - Getter.
@@ -145,7 +145,7 @@ public:
     Q_INVOKABLE void registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,
                                           QScriptEngine::FunctionSignature setter, const QString& parent = QString(""));
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.registerFunction
      * @param {string} name - Name.
      * @param {function} function - Function.
@@ -155,7 +155,7 @@ public:
     /// register a global function
     Q_INVOKABLE void registerFunction(const QString& name, QScriptEngine::FunctionSignature fun, int numArguments = -1);
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.registerFunction
      * @param {string} parent - Parent.
      * @param {string} name - Name.
@@ -167,7 +167,7 @@ public:
     Q_INVOKABLE void registerFunction(const QString& parent, const QString& name, QScriptEngine::FunctionSignature fun,
                                       int numArguments = -1);
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.registerEnum
      * @param {string} name - Name.
      * @param {object} enum - Enum.
@@ -178,7 +178,7 @@ public:
     /// registers a global enum
     Q_INVOKABLE void registerEnum(const QString& enumName, QMetaEnum newEnum);
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.registerValue
      * @param {string} name - Name.
      * @param {object} value - Value.
@@ -187,7 +187,7 @@ public:
     /// registers a global object by name
     Q_INVOKABLE void registerValue(const QString& valueName, QScriptValue value);
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.evaluate
      * @param {string} program - Program.
      * @param {string} filename - File name.
@@ -198,7 +198,7 @@ public:
     /// evaluate some code in the context of the ScriptEngineQtScript and return the result
     Q_INVOKABLE QScriptValue evaluate(const QString& program, const QString& fileName, int lineNumber = 1); // this is also used by the script tool widget
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.evaluateInClosure
      * @param {object} locals - Locals.
      * @param {object} program - Program.
@@ -207,7 +207,7 @@ public:
      */
     Q_INVOKABLE QScriptValue evaluateInClosure(const QScriptValue& locals, const QScriptProgram& program);
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether the application was compiled as a debug build.
      * @function Script.isDebugMode
      * @returns {boolean} <code>true</code> if the application was compiled as a debug build, <code>false</code> if it was 
@@ -218,7 +218,7 @@ public:
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // MODULE related methods
 
-    /**jsdoc
+    /*@jsdoc
      * Prints a message to the program log and emits {@link Script.printedMessage}.
      * <p>Alternatively, you can use {@link print} or one of the {@link console} API methods.</p>
      * @function Script.print
@@ -229,7 +229,7 @@ public:
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Entity Script Related methods
 
-    /**jsdoc
+    /*@jsdoc
      * Manually runs the JavaScript garbage collector which reclaims memory by disposing of objects that are no longer 
      * reachable.
      * @function Script.requestGarbageCollection
@@ -247,7 +247,7 @@ public:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.updateMemoryCost
      * @param {number} deltaSize - Delta size.
      * @deprecated This function is deprecated and will be removed.
@@ -256,7 +256,7 @@ public slots:
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered frequently at a system-determined interval.
      * @function Script.update
      * @param {number} deltaTime - The time since the last update, in s.
@@ -268,7 +268,7 @@ signals:
      */
     void update(float deltaTime);
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.finished
      * @param {string} filename - File name.
      * @param {object} engine - Engine.
@@ -277,7 +277,7 @@ signals:
      */
     void finished(const QString& fileNameString, ScriptEngineQtScriptPointer);
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.cleanupMenuItem
      * @param {string} menuItem - Menu item.
      * @returns {Signal}
@@ -285,7 +285,7 @@ signals:
      */
     void cleanupMenuItem(const QString& menuItemString);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the script prints a message to the program log via {@link  print}, {@link Script.print}, 
      * {@link console.log}, {@link console.debug}, {@link console.group}, {@link console.groupEnd}, {@link console.time}, or 
      * {@link console.timeEnd}.
@@ -296,7 +296,7 @@ signals:
      */
     void printedMessage(const QString& message, const QString& scriptName);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the script generates an error, {@link console.error} or {@link console.exception} is called, or 
      * {@link console.assert} is called and fails.
      * @function Script.errorMessage
@@ -306,7 +306,7 @@ signals:
      */
     void errorMessage(const QString& message, const QString& scriptName);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the script generates a warning or {@link console.warn} is called.
      * @function Script.warningMessage
      * @param {string} message - The warning message.
@@ -315,7 +315,7 @@ signals:
      */
     void warningMessage(const QString& message, const QString& scriptName);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the script generates an information message or {@link console.info} is called.
      * @function Script.infoMessage
      * @param {string} message - The information message.
@@ -324,21 +324,21 @@ signals:
      */
     void infoMessage(const QString& message, const QString& scriptName);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the running state of the script changes, e.g., from running to stopping.
      * @function Script.runningStateChanged
      * @returns {Signal}
      */
     void runningStateChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.clearDebugWindow
      * @returns {Signal}
      * @deprecated This signal is deprecated and will be removed.
      */
     void clearDebugWindow();
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.loadScript
      * @param {string} scriptName - Script name.
      * @param {boolean} isUserLoaded - Is user loaded.
@@ -347,7 +347,7 @@ signals:
      */
     void loadScript(const QString& scriptName, bool isUserLoaded);
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.reloadScript
      * @param {string} scriptName - Script name.
      * @param {boolean} isUserLoaded - Is user loaded.
@@ -356,14 +356,14 @@ signals:
      */
     void reloadScript(const QString& scriptName, bool isUserLoaded);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the script has stopped.
      * @function Script.doneRunning
      * @returns {Signal}
      */
     void doneRunning();
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.entityScriptDetailsUpdated
      * @returns {Signal}
      * @deprecated This signal is deprecated and will be removed.
@@ -374,7 +374,7 @@ signals:
 
 protected:
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.executeOnScriptThread
      * @param {function} function - Function.
      * @param {ConnectionType} [type=2] - Connection type.

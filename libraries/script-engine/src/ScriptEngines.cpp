@@ -195,7 +195,7 @@ void ScriptEngines::shutdownScripting() {
     qCDebug(scriptengine) << "DONE Stopping all scripts....";
 }
 
-/**jsdoc
+/*@jsdoc
  * Information on a public script, i.e., a script that's included in the Interface installation.
  * @typedef {object} ScriptDiscoveryService.PublicScript
  * @property {string} name - The script's file name.
@@ -238,7 +238,7 @@ QVariantList ScriptEngines::getPublic() {
     return getPublicChildNodes(NULL);
 }
 
-/**jsdoc
+/*@jsdoc
  * Information on a local script.
  * @typedef {object} ScriptDiscoveryService.LocalScript
  * @property {string} name - The script's file name.
@@ -265,7 +265,7 @@ QVariantList ScriptEngines::getLocal() {
     return result;
 }
 
-/**jsdoc
+/*@jsdoc
  * Information on a running script.
  * @typedef {object} ScriptDiscoveryService.RunningScript
  * @property {boolean} local - <code>true</code> if the script is a local file (i.e., the scheme is "file"), <code>false</code> 

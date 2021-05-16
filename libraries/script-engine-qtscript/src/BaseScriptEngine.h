@@ -28,7 +28,7 @@ public:
 
     BaseScriptEngine() {}
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.lintScript
      * @param {string} sourceCode - Source code.
      * @param {string} fileName - File name.
@@ -38,7 +38,7 @@ public:
      */
     Q_INVOKABLE QScriptValue lintScript(const QString& sourceCode, const QString& fileName, const int lineNumber = 1);
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.makeError
      * @param {object} [other] - Other.
      * @param {string} [type="Error"] - Error.
@@ -60,7 +60,7 @@ public:
     // helper to detect and log warnings when other code invokes QScriptEngine/BaseScriptEngine in thread-unsafe ways
     static bool IS_THREADSAFE_INVOCATION(const QThread *thread, const QString& method);
 signals:
-    /**jsdoc
+    /*@jsdoc
      * @function Script.signalHandlerException
      * @param {object} exception - Exception.
      * @returns {Signal}

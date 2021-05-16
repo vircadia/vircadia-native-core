@@ -19,7 +19,7 @@
 
 #include "Scriptable.h"
 
-/**jsdoc
+/*@jsdoc
  * The <code>Uuid</code> API provides facilities for working with UUIDs.
  *
  * @namespace Uuid
@@ -40,7 +40,7 @@ class ScriptUUID : public QObject, protected Scriptable {
     Q_PROPERTY(QString NULL READ NULL_UUID CONSTANT) // String for use in scripts.
 
 public slots:
-    /**jsdoc
+    /*@jsdoc
      * Generates a UUID from a string representation of the UUID.
      * @function Uuid(0).fromString
      * @param {string} string - A string representation of a UUID. The curly braces are optional.
@@ -57,7 +57,7 @@ public slots:
      */
     QUuid fromString(const QString& string);
 
-    /**jsdoc
+    /*@jsdoc
      * Generates a string representation of a UUID. However, because UUIDs are represented in JavaScript as strings, this is in
      * effect a no-op.
      * @function Uuid(0).toString
@@ -66,7 +66,7 @@ public slots:
      */
     QString toString(const QUuid& id);
     
-    /**jsdoc
+    /*@jsdoc
      * Generates a new UUID.
      * @function Uuid(0).generate
      * @returns {Uuid} A new UUID.
@@ -77,7 +77,7 @@ public slots:
      */
     QUuid generate();
 
-    /**jsdoc
+    /*@jsdoc
      * Tests whether two UUIDs are equal.
      * @function Uuid(0).isEqual
      * @param {Uuid} idA - The first UUID to compare.
@@ -92,7 +92,7 @@ public slots:
      */
     bool isEqual(const QUuid& idA, const QUuid& idB);
 
-    /**jsdoc
+    /*@jsdoc
      * Tests whether a UUID is null.
      * @function Uuid(0).isNull
      * @param {Uuid} id - The UUID to test.
@@ -110,7 +110,7 @@ public slots:
      */
     bool isNull(const QUuid& id);
 
-    /**jsdoc
+    /*@jsdoc
      * Prints a UUID to the program log, as a text label followed by the UUID value.
      * @function Uuid(0).print
      * @param {string} label - The label to print.

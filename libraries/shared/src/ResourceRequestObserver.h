@@ -16,7 +16,7 @@
 
 #include "DependencyManager.h"
 
-/**jsdoc
+/*@jsdoc
  * The <code>ResourceRequestObserver</code> API provides notifications when an observable resource request is made.
  *
  * @namespace ResourceRequestObserver
@@ -33,7 +33,7 @@ public:
     void update(const QUrl& requestUrl, const qint64 callerId = -1, const QString& extra = "");
 
 signals:
-    /**jsdoc
+    /*@jsdoc
      * Triggered when an observable resource request is made.
      * @function ResourceRequestObserver.resourceRequestEvent
      * @param {ResourceRequestObserver.ResourceRequest} request - Information about the resource request.

@@ -53,7 +53,7 @@ ScriptValuePointer menuItemPropertiesToScriptValue(ScriptEngine* engine, const M
     return obj;
 }
 
-/**jsdoc
+/*@jsdoc
  * A set of properties that can be passed to {@link Menu.addMenuItem} to create a new menu item.
  *
  * If none of the properties, <code>position</code>, <code>beforeItem</code>, <code>afterItem</code>, or <code>grouping</code> 

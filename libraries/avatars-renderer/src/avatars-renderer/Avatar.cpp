@@ -531,7 +531,7 @@ void Avatar::relayJointDataToChildren() {
     _reconstructSoftEntitiesJointMap = false;
 }
 
-/**jsdoc
+/*@jsdoc
  * <p>An avatar has different types of data simulated at different rates, in Hz.</p>
  *
  * <table>
@@ -1918,7 +1918,7 @@ void Avatar::setParentJointIndex(quint16 parentJointIndex) {
     }
 }
 
-/**jsdoc
+/*@jsdoc
  * Information about a joint in an avatar's skeleton hierarchy.
  * @typedef {object} SkeletonJoint
  * @property {string} name - Joint name.

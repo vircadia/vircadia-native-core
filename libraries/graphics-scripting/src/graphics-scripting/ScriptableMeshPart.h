@@ -16,7 +16,7 @@ class ScriptValue;
 using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 namespace scriptable {
-    /**jsdoc
+    /*@jsdoc
      * A handle to in-memory mesh part data in a {@link GraphicsModel}.
      *
      * <p>Create using the {@link Graphics} API, {@link GraphicsModel.cloneModel}, {@link GraphicsMesh.cloneMesh}, or 
@@ -89,14 +89,14 @@ namespace scriptable {
 
     public slots:
 
-        /**jsdoc
+        /*@jsdoc
          * Gets the vertex indices.
          * @function GraphicsMeshPart.getIndices
          * @returns {number[]} The vertex indices.
          */
         QVector<glm::uint32> getIndices() const;
         
-        /**jsdoc
+        /*@jsdoc
          * Sets the vertex indices.
          * @function GraphicsMeshPart.setIndices
          * @param {number[]} indices - The vertex indices.
@@ -105,7 +105,7 @@ namespace scriptable {
          */
         bool setIndices(const QVector<glm::uint32>& indices);
 
-        /**jsdoc
+        /*@jsdoc
          * Gets the indices of nearby vertices in the mesh part.
          * @function GraphicsMeshPart.findNearbyPartVertexIndices
          * @param {Vec3} origin - The search position, in model coordinates.
@@ -115,7 +115,7 @@ namespace scriptable {
          */
         QVector<glm::uint32> findNearbyPartVertexIndices(const glm::vec3& origin, float epsilon = 1e-6) const;
 
-        /**jsdoc
+        /*@jsdoc
          * Gets the value of an attribute for all vertices in the <em>whole</em> mesh (i.e., parent and mesh parts).
          * @function GraphicsMeshPArt.queryVertexAttributes
          * @param {Graphics.BufferTypeName} name - The name of the attribute to get the vertex values of.
@@ -130,7 +130,7 @@ namespace scriptable {
         // @borrows jsdoc from GraphicsMesh.
         bool setVertexAttributes(glm::uint32 vertexIndex, const QVariantMap& attributeValues);
 
-        /**jsdoc
+        /*@jsdoc
          * Gets the value of a vertex's attribute.
          * @function GraphicsMeshPart.getVertexProperty
          * @param {number} index - The vertex index.
@@ -141,7 +141,7 @@ namespace scriptable {
          */
         QVariant getVertexProperty(glm::uint32 vertexIndex, const QString& attributeName) const;
 
-        /**jsdoc
+        /*@jsdoc
          * Sets the value of a vertex's attribute.
          * @function GraphicsMeshPart.setVertexProperty
          * @param {number} index - The vertex index.
@@ -153,7 +153,7 @@ namespace scriptable {
          */
         bool setVertexProperty(glm::uint32 vertexIndex, const QString& attributeName, const QVariant& attributeValues);
 
-        /**jsdoc
+        /*@jsdoc
          * Gets the vertex indices that make up a face.
          * @function GraphicsMeshPart.getFace
          * @param {number} index - The index of the face.
@@ -161,7 +161,7 @@ namespace scriptable {
          */
         QVector<glm::uint32> getFace(glm::uint32 faceIndex) const;
 
-        /**jsdoc
+        /*@jsdoc
          * Scales the mesh to so that it's maximum model coordinate dimension is a specified length.
          * @function GraphicsMeshPart.scaleToFit
          * @param {number} scale - The target dimension.
@@ -169,7 +169,7 @@ namespace scriptable {
          */
         QVariantMap scaleToFit(float unitScale);
 
-        /**jsdoc
+        /*@jsdoc
          * Translates the mesh part.
          * @function GraphicsMeshPart.translate
          * @param {Vec3} translation - The translation to apply, in model coordinates.
@@ -177,7 +177,7 @@ namespace scriptable {
          */
         QVariantMap translate(const glm::vec3& translation);
 
-        /**jsdoc
+        /*@jsdoc
          * Scales the mesh part.
          * @function GraphicsMeshPart.scale
          * @param {Vec3} scale - The scale to apply in each model coordinate direction.
@@ -186,7 +186,7 @@ namespace scriptable {
          */
         QVariantMap scale(const glm::vec3& scale, const glm::vec3& origin = glm::vec3(NAN));
 
-        /**jsdoc
+        /*@jsdoc
          * Rotates the mesh part, using Euler angles.
          * @function GraphicsMeshPart.rotateDegrees
          * @param {Vec3} eulerAngles - The rotation to perform, in mesh coordinates, as Euler angles in degrees.
@@ -196,7 +196,7 @@ namespace scriptable {
          */
         QVariantMap rotateDegrees(const glm::vec3& eulerAngles, const glm::vec3& origin = glm::vec3(NAN));
 
-        /**jsdoc
+        /*@jsdoc
          * Rotates the mesh part, using a quaternion.
          * @function GraphicsMeshPart.rotate
          * @param {Quat} rotation - The rotation to perform, in model coordinates.
@@ -206,7 +206,7 @@ namespace scriptable {
          */
         QVariantMap rotate(const glm::quat& rotation, const glm::vec3& origin = glm::vec3(NAN));
 
-        /**jsdoc
+        /*@jsdoc
          * Scales, rotates, and translates the mesh.
          * @function GraphicsMeshPart.transform
          * @param {Mat4} transform - The scale, rotate, and translate transform to apply.
@@ -217,7 +217,7 @@ namespace scriptable {
         // @borrows jsdoc from GraphicsMesh.
         glm::uint32 addAttribute(const QString& attributeName, const QVariant& defaultValue = QVariant());
 
-        /**jsdoc
+        /*@jsdoc
          * Sets the value of an attribute for all vertices in the <em>whole</em> mesh (i.e., parent and mesh parts).
          * @function GraphicsMeshPart.fillAttribute
          * @param {Graphics.BufferTypeName} name - The name of the attribute. The attribute is added to the vertices if not
@@ -228,7 +228,7 @@ namespace scriptable {
          */
         glm::uint32 fillAttribute(const QString& attributeName, const QVariant& value);
 
-        /**jsdoc
+        /*@jsdoc
          * Removes an attribute from all vertices in the <em>whole</em> mesh (i.e., parent and mesh parts).
          * <p>Note: The <code>"position"</code> attribute cannot be removed.</p>
          * @function GraphicsMeshPArt.removeAttribute
@@ -237,7 +237,7 @@ namespace scriptable {
          */
         bool removeAttribute(const QString& attributeName);
 
-        /**jsdoc
+        /*@jsdoc
          * Deduplicates vertices.
          * @function GraphicsMeshPart.dedupeVertices
          * @param {number} [epsilon=1e-6] - The deduplicadtion distance. If a pair of vertices is within this distance of each 
@@ -246,14 +246,14 @@ namespace scriptable {
          */
         bool dedupeVertices(float epsilon = 1e-6);
 
-        /**jsdoc
+        /*@jsdoc
          * Gets the parent mesh.
          * @function GraphicsMeshPart.getParentMesh
          * @returns {GraphicsMesh} The parent mesh.
          */
         scriptable::ScriptableMeshPointer getParentMesh() const { return parentMesh; }
 
-        /**jsdoc
+        /*@jsdoc
          * Replaces a mesh part with a copy of another mesh part.
          * @function GraphicsMeshPart.replaceMeshPartData
          * @param {GrphicsMeshPart} source - The mesh part to copy.
@@ -264,14 +264,14 @@ namespace scriptable {
          */
         bool replaceMeshPartData(scriptable::ScriptableMeshPartPointer source, const QVector<QString>& attributeNames = QVector<QString>());
         
-        /**jsdoc
+        /*@jsdoc
          * Makes a copy of the mesh part.
          * @function GraphicsMeshPart.cloneMeshPart
          * @returns {GraphicsMeshPart} A copy of the mesh part.
          */
         scriptable::ScriptableMeshPartPointer cloneMeshPart();
 
-        /**jsdoc
+        /*@jsdoc
          * Exports the mesh part to OBJ format.
          * @function GraphicsMeshPart.toOBJ
          * @returns {string} The OBJ format representation of the mesh part.
@@ -281,7 +281,7 @@ namespace scriptable {
 
         // ScriptEngine-specific wrappers
 
-        /**jsdoc
+        /*@jsdoc
          * Updates vertex attributes by calling a function for each vertex in the <em>whole</em> mesh (i.e., the parent and 
          * mesh parts). The function can return modified attributes to update the vertex with.
          * @function GraphicsMeshPart.updateVertexAttributes
@@ -290,7 +290,7 @@ namespace scriptable {
          */
         glm::uint32 updateVertexAttributes(ScriptValuePointer callback);
 
-        /**jsdoc
+        /*@jsdoc
          * Calls a function for each vertex in the <em>whole</em> mesh (i.e., parent and mesh parts).
          * @function GraphicsMeshPArt.forEachVertex
          * @param {GraphicsMesh~forEachVertexCallback} callback - The function to call for each vertex.
@@ -298,7 +298,7 @@ namespace scriptable {
          */
         glm::uint32 forEachVertex(ScriptValuePointer callback);
 
-        /**jsdoc
+        /*@jsdoc
          * Checks if an index is valid and, optionally, that vertex has a particular attribute.
          * @function GraphicsMeshPart.isValidIndex
          * @param {number} index - The index to check.

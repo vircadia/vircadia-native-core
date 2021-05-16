@@ -27,7 +27,7 @@
 class ScriptValue;
 using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
-/**jsdoc
+/*@jsdoc
  * The <code>Assets</code> API provides facilities for interacting with the domain's asset server and the client cache. 
  * <p>Assets are stored in the asset server in files with SHA256 names. These files are mapped to user-friendly URLs of the 
  * format: <code>atp:/path/filename</code>. The assets may optionally be baked, in which case a request for the original 
@@ -50,14 +50,14 @@ public:
     using Parent = BaseAssetScriptingInterface;
     AssetScriptingInterface(QObject* parent = nullptr);
 
-    /**jsdoc
+    /*@jsdoc
      * Called when an {@link Assets.uploadData} call is complete.
      * @callback Assets~uploadDataCallback
      * @param {string} url - The raw URL of the file that the content is stored in, with <code>atp:</code> as the scheme and 
      *     the SHA256 hash as the filename (with no extension).
      * @param {string} hash - The SHA256 hash of the content.
      */
-    /**jsdoc
+    /*@jsdoc
      * Uploads content to the asset server, storing it in a SHA256-named file.
      * <p>Note: The asset server destroys any unmapped SHA256-named file at server restart. Use {@link Assets.setMapping} to 
      * set a path-to-hash mapping for the new file.</p>
@@ -77,13 +77,13 @@ public:
      */
     Q_INVOKABLE void uploadData(QString data, ScriptValuePointer callback);
 
-    /**jsdoc
+    /*@jsdoc
      * Called when an {@link Assets.downloadData} call is complete.
      * @callback Assets~downloadDataCallback
      * @param {string} data - The content that was downloaded.
      * @param {Assets.DownloadDataError} error - The success or failure of the download.
      */
-    /**jsdoc
+    /*@jsdoc
      * Downloads content from the asset server, from a SHA256-named file.
      * @function Assets.downloadData
      * @param {string} url - The raw URL of asset to download: <code>atp:</code> followed by the assets's SHA256 hash.
@@ -113,12 +113,12 @@ public:
      */
     Q_INVOKABLE void downloadData(QString url, ScriptValuePointer callback);
 
-    /**jsdoc
+    /*@jsdoc
      * Called when an {@link Assets.setMapping} call is complete.
      * @callback Assets~setMappingCallback
      * @param {string} error - <code>null</code> if the path-to-hash mapping was set, otherwise a description of the error.
      */
-    /**jsdoc
+    /*@jsdoc
      * Sets a path-to-hash mapping within the asset server.
      * @function Assets.setMapping
      * @param {string} path - A user-friendly path for the file in the asset server, without leading <code>"atp:"</code>.
@@ -127,13 +127,13 @@ public:
      */
     Q_INVOKABLE void setMapping(QString path, QString hash, ScriptValuePointer callback);
 
-    /**jsdoc
+    /*@jsdoc
      * Called when an {@link Assets.getMapping} call is complete.
      * @callback Assets~getMappingCallback
      * @param {string} error - <code>null</code> if the path was found, otherwise a description of the error.
      * @param {string} hash - The hash value if the path was found, <code>""</code> if it wasn't.
      */
-    /**jsdoc
+    /*@jsdoc
      * Gets the hash for a path within the asset server. The hash is for the unbaked or baked version of the
      * asset, according to the asset server setting for the particular path.
      * @function Assets.getMapping
@@ -151,13 +151,13 @@ public:
      */
     Q_INVOKABLE void getMapping(QString path, ScriptValuePointer callback);
 
-    /**jsdoc
+    /*@jsdoc
      * Called when an {@link Assets.setBakingEnabled} call is complete.
      * @callback Assets~setBakingEnabledCallback
      * @param {string} error - <code>null</code> if baking was successfully enabled or disabled, otherwise a description of the 
      * error.
      */
-    /**jsdoc
+    /*@jsdoc
      * Sets whether or not to bake an asset in the asset server.
      * @function Assets.setBakingEnabled
      * @param {string} path - The path to a file in the asset server.
@@ -175,7 +175,7 @@ public:
     Q_INVOKABLE void sendFakedHandshake();
 #endif
 
-    /**jsdoc
+    /*@jsdoc
      * Details of a callback function.
      * @typedef {object} Assets.CallbackDetails
      * @property {object} scope - The scope that the <code>callback</code> function is defined in. This object is bound to 
@@ -187,13 +187,13 @@ public:
      *     identifier, it must be a member of <code>scope</code>.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Called when an {@link Assets.getAsset} call is complete.
      * @callback Assets~getAssetCallback
      * @param {string} error - <code>null</code> if the content was downloaded, otherwise a description of the error.
      * @param {Assets.GetResult} result - Information on and the content downloaded.
      */
-    /**jsdoc
+    /*@jsdoc
      * Downloads content from the asset server.
      * @function Assets.getAsset
      * @param {string|Assets.GetOptions} source - What to download and download options. If a string, the mapped path or hash 
@@ -223,14 +223,14 @@ public:
      */
     Q_INVOKABLE void getAsset(ScriptValuePointer options, ScriptValuePointer scope, ScriptValuePointer callback = ScriptValuePointer());
 
-    /**jsdoc
+    /*@jsdoc
      * Called when an {@link Assets.putAsset} call is complete.
      * @callback Assets~putAssetCallback
      * @param {string} error - <code>null</code> if the content was uploaded and any path-to-hash mapping set, otherwise a 
      *     description of the error.
      * @param {Assets.PutResult} result - Information on the content uploaded.
      */
-    /**jsdoc
+    /*@jsdoc
      * Uploads content to the asset server and sets a path-to-hash mapping.
      * @function Assets.putAsset
      * @param {string|Assets.PutOptions} options - The content to upload and upload options. If a string, the value of the
@@ -260,14 +260,14 @@ public:
      */
     Q_INVOKABLE void putAsset(ScriptValuePointer options, ScriptValuePointer scope, ScriptValuePointer callback = ScriptValuePointer());
 
-    /**jsdoc
+    /*@jsdoc
      * Called when an {@link Assets.deleteAsset} call is complete.
      * <p class="important">Not implemented: This type is not implemented yet.</p>
      * @callback Assets~deleteAssetCallback
      * @param {string} error - <code>null</code> if the content was deleted, otherwise a description of the error.
      * @param {Assets.DeleteResult} result - Information on the content deleted.
      */
-    /**jsdoc
+    /*@jsdoc
      * Deletes content from the asset server.
      * <p class="important">Not implemented: This method is not implemented yet.</p>
      * @function Assets.deleteAsset
@@ -277,13 +277,13 @@ public:
      */
     Q_INVOKABLE void deleteAsset(ScriptValuePointer options, ScriptValuePointer scope, ScriptValuePointer callback = ScriptValuePointer());
 
-    /**jsdoc
+    /*@jsdoc
      * Called when an {@link Assets.resolveAsset} call is complete.
      * @callback Assets~resolveAssetCallback
      * @param {string} error - <code>null</code> if the asset hash or path was resolved, otherwise a description of the error. 
      * @param {Assets.ResolveResult} result - Information on the hash or path resolved.
      */
-    /**jsdoc
+    /*@jsdoc
      * Resolves and returns information on a hash or a path in the asset server.
      * @function Assets.resolveAsset
      * @param {string|Assets.ResolveOptions} source - The hash or path to resolve if a string, otherwise an object specifying 
@@ -311,13 +311,13 @@ public:
      */
     Q_INVOKABLE void resolveAsset(ScriptValuePointer options, ScriptValuePointer scope, ScriptValuePointer callback = ScriptValuePointer());
     
-    /**jsdoc
+    /*@jsdoc
      * Called when an {@link Assets.decompressData} call is complete.
      * @callback Assets~decompressDataCallback
      * @param {string} error - <code>null</code> if the data was successfully compressed, otherwise a description of the error.
      * @param {Assets.DecompressResult} result - Information on and the decompressed data.
      */
-    /**jsdoc
+    /*@jsdoc
      * Decompresses data in memory using gunzip.
      * @function Assets.decompressData
      * @param {Assets.DecompressOptions} source - What to decompress and decompression options.
@@ -332,13 +332,13 @@ public:
      */
     Q_INVOKABLE void decompressData(ScriptValuePointer options, ScriptValuePointer scope, ScriptValuePointer callback = ScriptValuePointer());
     
-    /**jsdoc
+    /*@jsdoc
      * Called when an {@link Assets.compressData} call is complete.
      * @callback Assets~compressDataCallback
      * @param {string} error - <code>null</code> if the data was successfully compressed, otherwise a description of the error.
      * @param {Assets.CompressResult} result - Information on and the compressed data.
      */
-    /**jsdoc
+    /*@jsdoc
      * Compresses data in memory using gzip.
      * @function Assets.compressData
      * @param {string|ArrayBuffer|Assets.CompressOptions} source - What to compress and compression options. If a string or 
@@ -354,14 +354,14 @@ public:
      */
     Q_INVOKABLE void compressData(ScriptValuePointer options, ScriptValuePointer scope, ScriptValuePointer callback = ScriptValuePointer());
     
-    /**jsdoc
+    /*@jsdoc
      * Initializes the cache if it isn't already initialized.
      * @function Assets.initializeCache
      * @returns {boolean} <code>true</code> if the cache is initialized, <code>false</code> if it isn't.
      */
     Q_INVOKABLE bool initializeCache();
     
-    /**jsdoc
+    /*@jsdoc
      * Checks whether the script can write to the cache.
      * @function Assets.canWriteCacheValue
      * @param {string} url - <em>Not used.</em>
@@ -372,14 +372,14 @@ public:
      */
     Q_INVOKABLE bool canWriteCacheValue(const QUrl& url);
     
-    /**jsdoc
+    /*@jsdoc
      * Called when a {@link Assets.getCacheStatus} call is complete.
      * @callback Assets~getCacheStatusCallback
      * @param {string} error - <code>null</code> if the cache status was retrieved without error, otherwise a description of 
      *     the error.
      * @param {Assets.GetCacheStatusResult} result - Details of the current cache status.
      */
-    /**jsdoc
+    /*@jsdoc
      * Gets the current cache status.
      * @function Assets.getCacheStatus
      * @param {object|Assets.CallbackDetails|Assets~getCacheStatusCallback} scopeOrCallback - If an object, then the scope that 
@@ -401,13 +401,13 @@ public:
         jsPromiseReady(Parent::getCacheStatus(), scope, callback);
     }
 
-    /**jsdoc
+    /*@jsdoc
      * Called when {@link Assets.queryCacheMeta} is complete.
      * @callback Assets~queryCacheMetaCallback
      * @param {string} error - <code>null</code> if the URL has a valid cache entry, otherwise a description of the error.
      * @param {Assets.CacheItemMetaData} result - Information on an asset in the cache.
      */
-    /**jsdoc
+    /*@jsdoc
      * Gets information about the status of an asset in the cache.
      * @function Assets.queryCacheMeta
      * @param {string|Assets.QueryCacheMetaOptions} path - The URL of the cached asset to get information on if a string, 
@@ -439,14 +439,14 @@ public:
      */
     Q_INVOKABLE void queryCacheMeta(ScriptValuePointer options, ScriptValuePointer scope, ScriptValuePointer callback = ScriptValuePointer());
     
-    /**jsdoc
+    /*@jsdoc
      * Called when an {@link Assets.loadFromCache} call is complete.
      * @callback Assets~loadFromCacheCallback
      * @param {string} error - <code>null</code> if the cache item was successfully retrieved, otherwise a description of the 
      *     error.
      * @param {Assets.LoadFromCacheResult} result - Information on and the retrieved data.
      */
-    /**jsdoc
+    /*@jsdoc
      * Retrieves data from the cache directly, without downloading it. 
      * @function Assets.loadFromCache
      * @param {string|Assets.LoadFromCacheOptions} options - The URL of the asset to load from the cache if a string, otherwise 
@@ -479,14 +479,14 @@ public:
      */
     Q_INVOKABLE void loadFromCache(ScriptValuePointer options, ScriptValuePointer scope, ScriptValuePointer callback = ScriptValuePointer());
     
-    /**jsdoc
+    /*@jsdoc
      * Called when an {@link Assets.saveToCache} call is complete.
      * @callback Assets~saveToCacheCallback
      * @param {string} error - <code>null</code> if the asset data was successfully saved to the cache, otherwise a description 
      *     of the error.
      * @param {Assets.SaveToCacheResult} result - Information on the cached data.
      */
-    /**jsdoc
+    /*@jsdoc
      * Saves asset data to the cache directly, without downloading it from a URL.
      * <p>Note: Can only be used in Interface, avatar, and assignment client scripts.</p>
      * @function Assets.saveToCache
@@ -518,7 +518,7 @@ public:
      */
     Q_INVOKABLE void saveToCache(ScriptValuePointer options, ScriptValuePointer scope, ScriptValuePointer callback = ScriptValuePointer());
     
-    /**jsdoc
+    /*@jsdoc
      * Saves asset data to the cache directly, without downloading it from a URL.
      * <p>Note: Can only be used in Interface, avatar, and assignment client scripts.</p>
      * @function Assets.saveToCache

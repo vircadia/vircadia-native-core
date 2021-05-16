@@ -168,7 +168,7 @@ scriptable::ScriptableMeshPointer GraphicsScriptingInterface::newMesh(const QVar
     // TODO: this is bare-bones way for now to improvise a new mesh from the scripting side
     //  in the future we want to support a formal C++ structure data type here instead
 
-    /**jsdoc
+    /*@jsdoc
      * IFS (Indexed-Face Set) data defining a mesh.
      * @typedef {object} Graphics.IFSData
      * @property {string} [name=""] - Mesh name. (Useful for debugging.)
@@ -356,7 +356,7 @@ namespace scriptable {
         scriptValueToSequence(array, result);
     }
 
-    /**jsdoc
+    /*@jsdoc
      * A material in a {@link GraphicsModel}.
      * @typedef {object} Graphics.Material
      * @property {string} name - The name of the material.

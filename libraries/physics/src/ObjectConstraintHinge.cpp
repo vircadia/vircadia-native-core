@@ -245,7 +245,7 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
     return true;
 }
 
-/**jsdoc
+/*@jsdoc
  * The <code>"hinge"</code> {@link Entities.ActionType|ActionType} lets an entity pivot about an axis or connects two entities
  * with a hinge joint.
  * It has arguments in addition to the common {@link Entities.ActionArguments|ActionArguments}:

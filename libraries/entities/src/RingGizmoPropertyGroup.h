@@ -27,7 +27,7 @@ using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 using u8vec3Color = glm::u8vec3;
 
-/**jsdoc
+/*@jsdoc
  * A {@link Entities.EntityProperties-Gizmo|ring Gizmo} entity is defined by the following properties:
  * @typedef {object} Entities.RingGizmo
  *

@@ -31,7 +31,7 @@ class ScriptValue;
 using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 namespace scriptable {
-    /**jsdoc
+    /*@jsdoc
      * A handle to in-memory mesh data in a {@link GraphicsModel}.
      * 
      * <p>Create using the {@link Graphics} API, {@link GraphicsModel.cloneModel}, or {@link GraphicsMesh.cloneMesh}.</p>
@@ -110,7 +110,7 @@ namespace scriptable {
 
     public slots:
         
-        /**jsdoc
+        /*@jsdoc
          * Gets the model the mesh is part of.
          * <p><em>Currently doesn't work.</em></p>
          * @function GraphicsMesh.getParentModel
@@ -118,14 +118,14 @@ namespace scriptable {
          */
         const scriptable::ScriptableModelPointer getParentModel() const { return qobject_cast<scriptable::ScriptableModel*>(model); }
         
-        /**jsdoc
+        /*@jsdoc
          * Gets the vertex indices.
          * @function GraphicsMesh.getIndices
          * @returns {number[]} The vertex indices.
          */
         QVector<glm::uint32> getIndices() const;
 
-        /**jsdoc
+        /*@jsdoc
          * Gets the indices of nearby vertices.
          * @function GraphicsMesh.findNearbyVertexIndices
          * @param {Vec3} origin - The search position, in model coordinates.
@@ -135,7 +135,7 @@ namespace scriptable {
          */
         QVector<glm::uint32> findNearbyVertexIndices(const glm::vec3& origin, float epsilon = 1e-6) const;
 
-        /**jsdoc
+        /*@jsdoc
          * Adds an attribute for all vertices.
          * @function GraphicsMesh.addAttribute
          * @param {Graphics.BufferTypeName} name - The name of the attribute.
@@ -145,7 +145,7 @@ namespace scriptable {
          */
         glm::uint32 addAttribute(const QString& attributeName, const QVariant& defaultValue = QVariant());
 
-        /**jsdoc
+        /*@jsdoc
          * Sets the value of an attribute for all vertices.
          * @function GraphicsMesh.fillAttribute
          * @param {Graphics.BufferTypeName} name - The name of the attribute. The attribute is added to the vertices if not 
@@ -156,7 +156,7 @@ namespace scriptable {
          */
         glm::uint32 fillAttribute(const QString& attributeName, const QVariant& value);
 
-        /**jsdoc
+        /*@jsdoc
          * Removes an attribute from all vertices.
          * <p>Note: The <code>"position"</code> attribute cannot be removed.</p>
          * @function GraphicsMesh.removeAttribute
@@ -165,7 +165,7 @@ namespace scriptable {
          */
         bool removeAttribute(const QString& attributeName);
 
-        /**jsdoc
+        /*@jsdoc
          * Gets the value of an attribute for all vertices.
          * @function GraphicsMesh.queryVertexAttributes
          * @param {Graphics.BufferTypeName} name - The name of the attribute to get the vertex values of.
@@ -174,7 +174,7 @@ namespace scriptable {
          */
         QVariantList queryVertexAttributes(QVariant selector) const;
 
-        /**jsdoc
+        /*@jsdoc
          * Gets the attributes and attribute values of a vertex.
          * @function GraphicsMesh.getVertexAttributes
          * @param {number} index - The vertex to get the attributes for.
@@ -183,7 +183,7 @@ namespace scriptable {
          */
         QVariantMap getVertexAttributes(glm::uint32 vertexIndex) const;
 
-        /**jsdoc
+        /*@jsdoc
          * Updates attribute values of a vertex.
          * @function GraphicsMesh.setVertexAttributes
          * @param {number} index - The vertex to set the attributes for.
@@ -197,7 +197,7 @@ namespace scriptable {
         // @borrows jsdoc from GraphicsMesh
         bool setVertexAttributes(glm::uint32 vertexIndex, const QVariantMap& attributeValues);
 
-        /**jsdoc
+        /*@jsdoc
          * Gets the value of a vertex's attribute.
          * @function GraphicsMesh.getVertexProperty
          * @param {number} index - The vertex index.
@@ -208,7 +208,7 @@ namespace scriptable {
          */
         QVariant getVertexProperty(glm::uint32 vertexIndex, const QString& attributeName) const;
 
-        /**jsdoc
+        /*@jsdoc
          * Sets the value of a vertex's attribute.
          * @function GraphicsMesh.setVertexProperty
          * @param {number} index - The vertex index.
@@ -220,7 +220,7 @@ namespace scriptable {
          */
         bool setVertexProperty(glm::uint32 vertexIndex, const QString& attributeName, const QVariant& value);
 
-        /**jsdoc
+        /*@jsdoc
          * Makes a copy of the mesh.
          * @function GraphicsMesh.cloneMesh
          * @returns {GraphicsMesh} A copy of the mesh.
@@ -229,7 +229,7 @@ namespace scriptable {
 
         // ScriptEngine-specific wrappers
 
-        /**jsdoc
+        /*@jsdoc
          * Updates vertex attributes by calling a function for each vertex. The function can return modified attributes to 
          * update the vertex with.
          * @function GraphicsMesh.updateVertexAttributes
@@ -238,7 +238,7 @@ namespace scriptable {
          */
         glm::uint32 updateVertexAttributes(ScriptValuePointer callback);
 
-        /**jsdoc
+        /*@jsdoc
          * Calls a function for each vertex.
          * @function GraphicsMesh.forEachVertex
          * @param {GraphicsMesh~forEachVertexCallback} callback - The function to call for each vertex.
@@ -246,7 +246,7 @@ namespace scriptable {
          */
         glm::uint32 forEachVertex(ScriptValuePointer callback);
 
-        /**jsdoc
+        /*@jsdoc
          * Checks if an index is valid and, optionally, that vertex has a particular attribute.
          * @function GraphicsMesh.isValidIndex
          * @param {number} index - The index to check.

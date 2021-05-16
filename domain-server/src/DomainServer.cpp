@@ -661,7 +661,7 @@ bool DomainServer::isPacketVerified(const udt::Packet& packet) {
 
     // if this is a mismatching connect packet, we can't simply drop it on the floor
     // send back a packet to the interface that tells them we refuse connection for a mismatch
-    if (headerType == PacketType::DomainConnectRequest
+    if ((headerType == PacketType::DomainConnectRequest || headerType == PacketType::DomainConnectRequestPending)
         && headerVersion != versionForPacketType(PacketType::DomainConnectRequest)) {
         DomainGatekeeper::sendProtocolMismatchConnectionDenial(packet.getSenderSockAddr());
     }
@@ -806,6 +806,8 @@ void DomainServer::setupNodeListAndAssignments() {
 
     // register the gatekeeper for the packets it needs to receive
     packetReceiver.registerListener(PacketType::DomainConnectRequest,
+        PacketReceiver::makeUnsourcedListenerReference<DomainGatekeeper>(&_gatekeeper, &DomainGatekeeper::processConnectRequestPacket));
+    packetReceiver.registerListener(PacketType::DomainConnectRequestPending,
         PacketReceiver::makeUnsourcedListenerReference<DomainGatekeeper>(&_gatekeeper, &DomainGatekeeper::processConnectRequestPacket));
     packetReceiver.registerListener(PacketType::ICEPing,
         PacketReceiver::makeUnsourcedListenerReference<DomainGatekeeper>(&_gatekeeper, &DomainGatekeeper::processICEPingPacket));
