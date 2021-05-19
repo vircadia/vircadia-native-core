@@ -165,7 +165,11 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _gatekeeper(this),
-    _httpManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this)
+#ifdef WEBRTC_DATA_CHANNEL
+    _webrtcSignalingServer(QHostAddress::AnyIPv4, DEFAULT_DOMAIN_SERVER_WS_PORT, this),
+#endif
+    _httpManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTP_PORT,
+        QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this)
 {
     if (_parentPID != -1) {
         watchParentProcess(_parentPID);
