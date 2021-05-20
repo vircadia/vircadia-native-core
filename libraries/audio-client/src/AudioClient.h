@@ -58,6 +58,7 @@
 #include "HifiAudioDeviceInfo.h"
 
 #if defined(WEBRTC_AUDIO)
+#  define WEBRTC_APM_DEBUG_DUMP 0
 #  include <modules/audio_processing/include/audio_processing.h>
 #  include "modules/audio_processing/audio_processing_impl.h"
 #endif

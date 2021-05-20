@@ -1176,7 +1176,9 @@ void AudioClient::configureWebrtc() {
     config.high_pass_filter.enabled = false;
     config.echo_canceller.enabled = true;
     config.echo_canceller.mobile_mode = false;
+#if defined(WEBRTC_LEGACY)
     config.echo_canceller.use_legacy_aec = false;
+#endif
     config.noise_suppression.enabled = false;
     config.noise_suppression.level = webrtc::AudioProcessing::Config::NoiseSuppression::kModerate;
     config.voice_detection.enabled = false;
