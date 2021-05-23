@@ -48,6 +48,12 @@ jobs:
     runs-on: ${{matrix.os}}
     if: github.event.action != 'labeled' || github.event.label.name == 'rebuild'
     steps:
+    - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@v1.9
+      with:
+        cmake-version: '3.16.x'
+    - name: Use cmake
+      run: cmake --version
     - name: Configure Build Environment 1
       shell: bash
       id: buildenv1
