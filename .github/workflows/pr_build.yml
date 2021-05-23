@@ -199,8 +199,10 @@ jobs:
       shell: bash
       working-directory: ${{runner.workspace}}/vircadia
       run: |
-        echo "check cmake version"
+        echo "check cmake version(s)"
+        which cmake
         cmake --version
+        which -a cmake
         echo "Pre-cache the vcpkg managed dependencies"
         $PYTHON_EXEC prebuild.py --build-root ${{runner.workspace}}/build --android interface
         cd android
