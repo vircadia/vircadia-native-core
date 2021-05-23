@@ -200,7 +200,7 @@ jobs:
       working-directory: ${{runner.workspace}}/vircadia
       run: |
         echo "check cmake version /usr/local/bin/cmake"
-        /usr/local/cmake --version
+        /usr/local/bin/cmake --version
         echo "check cmake version /opt/hostedtoolcache/cmake/3.16.9/x64/cmake-3.16.9-Linux-x86_64/bin/cmake"
         /opt/hostedtoolcache/cmake/3.16.9/x64/cmake-3.16.9-Linux-x86_64/bin/cmake --version
         echo "chagning path"
