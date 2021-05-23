@@ -199,6 +199,8 @@ jobs:
       shell: bash
       working-directory: ${{runner.workspace}}/vircadia
       run: |
+        echo "moving /usr/local/bin/cmake to cmake-new"
+        mv /usr/local/bin/cmake /usr/local/bin/cmake-3.18
         echo "check cmake version(s)"
         which cmake
         cmake --version
