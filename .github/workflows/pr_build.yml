@@ -133,7 +133,7 @@ jobs:
 
         echo "Installing apt packages"
         sudo apt install -y ${{ matrix.apt-dependencies }} || exit 1
-     - name: Setup cmake
+    - name: Setup cmake
       uses: jwlawson/actions-setup-cmake@v1.9
       with:
         cmake-version: '3.16.x'
