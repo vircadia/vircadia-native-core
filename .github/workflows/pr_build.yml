@@ -48,12 +48,6 @@ jobs:
     runs-on: ${{matrix.os}}
     if: github.event.action != 'labeled' || github.event.label.name == 'rebuild'
     steps:
-    - name: Setup cmake
-      uses: jwlawson/actions-setup-cmake@v1.9
-      with:
-        cmake-version: '3.16.x'
-    - name: Use cmake
-      run: cmake --version
     - name: Configure Build Environment 1
       shell: bash
       id: buildenv1
@@ -139,6 +133,12 @@ jobs:
 
         echo "Installing apt packages"
         sudo apt install -y ${{ matrix.apt-dependencies }} || exit 1
+     - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@v1.9
+      with:
+        cmake-version: '3.16.x'
+    - name: Use cmake
+      run: cmake --version
     - name: Create Build Environment
       shell: bash
       run: cmake -E make_directory "${{runner.workspace}}/build"
