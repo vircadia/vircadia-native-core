@@ -11,7 +11,6 @@ android {
         ndk { abiFilters 'arm64-v8a' }
         externalNativeBuild {
             cmake {
-                version '3.10.2'
                 arguments '-DHIFI_ANDROID=1',
                     '-DHIFI_ANDROID_APP=questFramePlayer',
                     '-DANDROID_TOOLCHAIN=clang',
