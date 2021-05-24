@@ -194,7 +194,8 @@ jobs:
     # It will fall back to 3.10.2 which is already installed
     - name: Nuke CMake 3.18.1-g262b901
       run: |
-        ~/Library/Android/sdk/tools/bin/sdkmanager --uninstall 'cmake;3.18.1'
+        which sdkmanager
+        sdkmanager --uninstall 'cmake;3.18.1'
     - name: Build for Android + Quest
       if: matrix.build_type == 'android'
       shell: bash
