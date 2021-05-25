@@ -193,8 +193,12 @@ jobs:
     # Removing 3.18.1 version of CMake as its not compatible with our Android build.
     # It will fall back to 3.10.2 which is already installed
     - name: Nuke CMake 3.18.1-g262b901
+      shell: bash
+      working-directory: ${{runner.workspace}}/vircadia
       run: |
+        echo "which sdkmanager"
         which sdkmanager
+        echo "uninstall cmake"
         sdkmanager --uninstall 'cmake;3.18.1'
     - name: Build for Android + Quest
       if: matrix.build_type == 'android'
