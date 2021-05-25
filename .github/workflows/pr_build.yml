@@ -197,15 +197,8 @@ jobs:
       shell: bash
       working-directory: ${{runner.workspace}}/vircadia
       run: |
-        echo "which sdkmanager"
-        which sdkmanager
-        echo "ls some locations"
-        ls -la ~/.local/share/Android/Sdk/tools/bin/sdkmanager
-        ls -la ~/.local/share/Android/sdk/tools/bin/sdkmanager
-        ls -la ~/.config/Android/Sdk/tools/bin/sdkmanager
-        ls -la ~/.config/Android/sdk/tools/bin/sdkmanager
         echo "uninstall cmake"
-        sdkmanager --uninstall 'cmake;3.18.1'
+        ~/.local/share/Android/Sdk/tools/bin/sdkmanager --uninstall 'cmake;3.18.1'
     - name: Build for Android + Quest
       if: matrix.build_type == 'android'
       shell: bash
