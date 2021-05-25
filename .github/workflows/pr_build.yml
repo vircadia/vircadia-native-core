@@ -32,15 +32,15 @@ jobs:
     strategy:
         matrix:
           include:
-            #- os: windows-latest
-            #  build_type: full
-            #- os: macOS-latest
-            #  build_type: full
-            #- os: macOS-latest
-            #  build_type: client
-            #- os: ubuntu-18.04
-            #  build_type: full
-            #  apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0 libsnappy1v5 libwebpdemux2 libwebpmux3
+            - os: windows-latest
+              build_type: full
+            - os: macOS-latest
+              build_type: full
+            - os: macOS-latest
+              build_type: client
+            - os: ubuntu-18.04
+              build_type: full
+              apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0 libsnappy1v5 libwebpdemux2 libwebpmux3
             - os: ubuntu-18.04
               build_type: android
               apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
@@ -197,9 +197,6 @@ jobs:
       shell: bash
       working-directory: ${{runner.workspace}}/vircadia
       run: |
-        echo "ls -la /usr/local/lib/android/sdk"
-        ls -la /usr/local/lib/android/sdk
-        echo "uninstall cmake"
         /usr/local/lib/android/sdk/tools/bin/sdkmanager --uninstall 'cmake;3.18.1'
     - name: Build for Android + Quest
       if: matrix.build_type == 'android'
