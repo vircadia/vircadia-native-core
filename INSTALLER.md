@@ -1,6 +1,6 @@
 # Creating an Installer
 
-*Last Updated on March 4, 2021*
+*Last Updated on May 25, 2021*
 
 Follow the [build guide](BUILD.md) to figure out how to build Vircadia for your platform.
 
@@ -85,19 +85,30 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
     1. **Cause:** The complete path (current directory + relative path) has to be < 260 characters to any of the relevant files.
     1. **Solution:** Move your build and packaging folder as high up in the drive as possible to prevent an overage.
 
-### OS X
+### MacOS
 
-1.   [npm](<https://www.npmjs.com/get-npm>)
-      Install version 12.16.3 LTS
-   
-1.  Perform a clean CMake.
-1.  Perform a Release build of ALL_BUILD
-1.  Perform a Release build of `packaged-server-console` 
+1. Ensure you have all the prerequisites fulfilled from the [MacOS Build Guide](BUILD_OSX.md).
+2. Perform a clean CMake in your build folder. e.g.
+    ```bash
+    BUILD_GLOBAL_SERVICES=STABLE USE_STABLE_GLOBAL_SERVICES=1 RELEASE_BUILD=PRODUCTION BUILD_NUMBER="Insert Build Identifier here e.g. short hash of your last Git commit" RELEASE_NAME="Insert Release Name Here" STABLE_BUILD=1 PRODUCTION_BUILD=1 RELEASE_NUMBER="Insert Release Version Here e.g. 1.1.0" RELEASE_TYPE=PRODUCTION cmake -DCMAKE_OSX_SYSROOT="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk" -DCLIENT_ONLY=1 -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DOSX_SDK=10.12  ..
+    ```
+3. Pick a method to build and package your release.
+
+#### Option A: Use GUI
+
+1. Perform a Release build of ALL_BUILD
+2. Perform a Release build of `packaged-server-console` 
      This will add a folder to `build\server-console\` -  
      Sandbox-darwin-x64
-1.  Perform a Release build of `package`
-      Installer is now available in `build/_CPack_Packages/Darwin/DragNDrop
-      
+3. Perform a Release build of `package`
+      Installer is now available in `build/_CPack_Packages/Darwin/DragNDrop`
+
+#### Option B: Use Terminal
+
+1. Navigate to your build folder with your terminal.
+2. `make -j4`, you can change the number to match the number of threads you would like to use.
+3. `make package` to create the package.
+     
 ### Linux
 
 #### Server
