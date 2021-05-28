@@ -44,9 +44,9 @@ const unsigned short DEFAULT_DOMAIN_SERVER_PORT =
 
 const unsigned short DEFAULT_DOMAIN_SERVER_WS_PORT =
     QProcessEnvironment::systemEnvironment()
-    .contains("HIFI_DOMAIN_SERVER_WS_PORT")
+    .contains("VIRCADIA_DOMAIN_SERVER_WS_PORT")
         ? QProcessEnvironment::systemEnvironment()
-            .value("HIFI_DOMAIN_SERVER_WS_PORT")
+            .value("VIRCADIA_DOMAIN_SERVER_WS_PORT")
             .toUShort()
         : 40102;  // TCP
 
