@@ -8,7 +8,9 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
+/** @addtogroup ScriptEngine
+ *  @{
+*/
 #ifndef hifi_SpatialEvent_h
 #define hifi_SpatialEvent_h
 
@@ -17,6 +19,7 @@
 
 #include <qscriptengine.h>
 
+/// [unused] Represents a spatial event to the scripting engine
 class SpatialEvent {
 public:
     SpatialEvent();
@@ -34,3 +37,4 @@ public:
 Q_DECLARE_METATYPE(SpatialEvent)
 
 #endif // hifi_SpatialEvent_h
+/** @}*/

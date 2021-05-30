@@ -8,7 +8,9 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
+/** @addtogroup ScriptEngine
+ *  @{
+*/
 #ifndef hifi_FileScriptingInterface_h
 #define hifi_FileScriptingInterface_h
 
@@ -27,7 +29,7 @@
  * @hifi-server-entity
  * @hifi-assignment-client
  */
-
+/// Provides the <code><a href="https://apidocs.vircadia.dev/File.html">File</a></code> scripting API
 class FileScriptingInterface : public QObject {
     Q_OBJECT
 
@@ -114,3 +116,4 @@ private:
 };
 
 #endif // hifi_FileScriptingInterface_h
+/** @}*/

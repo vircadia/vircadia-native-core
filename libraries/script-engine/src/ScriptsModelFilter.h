@@ -8,7 +8,9 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
+/** @addtogroup ScriptEngine
+ *  @{
+*/
 #ifndef hifi_ScriptsModelFilter_h
 #define hifi_ScriptsModelFilter_h
 
@@ -71,6 +73,7 @@
  * print("Edit scripts:");
  * printDirectory(null, 0, "");  // null index for the root directory.
  */
+/// Provides script file information available from the <code><a href="https://apidocs.vircadia.dev/ScriptDiscoveryService.html">ScriptDiscoveryService</a></code> scripting interface
 class ScriptsModelFilter : public QSortFilterProxyModel {
     Q_OBJECT
 public:
@@ -81,3 +84,4 @@ protected:
 };
 
 #endif // hifi_ScriptsModelFilter_h
+/** @}*/

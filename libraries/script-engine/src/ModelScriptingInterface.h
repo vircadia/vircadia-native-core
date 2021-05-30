@@ -8,7 +8,9 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
+/** @addtogroup ScriptEngine
+ *  @{
+*/
 #ifndef hifi_ModelScriptingInterface_h
 #define hifi_ModelScriptingInterface_h
 
@@ -32,6 +34,7 @@ class QScriptEngine;
  *
  * @deprecated This API is deprecated. Use the {@link Graphics} API instead.
  */
+/// Provides the <code><a href="https://apidocs.vircadia.dev/Model.html">Model</a></code> scripting interface
 class ModelScriptingInterface : public QObject {
     Q_OBJECT
 
@@ -97,3 +100,4 @@ private:
 };
 
 #endif // hifi_ModelScriptingInterface_h
+/** @}*/
