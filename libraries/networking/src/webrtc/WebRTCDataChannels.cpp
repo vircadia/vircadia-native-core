@@ -129,7 +129,7 @@ WDCConnection::WDCConnection(quint16 webSocketID, WebRTCDataChannels* parent) :
     _parent(parent)
 {
 #ifdef WEBRTC_DEBUG
-    qCDebug(networking_webrtc) << "WebRTCDataChannels::WebRTCDataChannels()";
+    qCDebug(networking_webrtc) << "WDCConnection::WDCConnection() :" << webSocketID;
 #endif
 
     // Create observers.
@@ -267,7 +267,7 @@ void WDCConnection::onDataChannelOpened(rtc::scoped_refptr<DataChannelInterface>
 #endif
 
     _dataChannel = dataChannel;
-    _dataChannelID = dataChannel->id();
+    _dataChannelID = _parent->getNewDataChannelID();  // Not dataChannel->id() because it's only unique per peer connection.
     _dataChannel->RegisterObserver(_dataChannelObserver.get());
 
     _parent->onDataChannelOpened(this, _dataChannelID);
@@ -346,7 +346,7 @@ WebRTCDataChannels::WebRTCDataChannels(NodeType_t nodeType, QObject* parent) :
 }
 
 WebRTCDataChannels::~WebRTCDataChannels() {
-    QHashIterator<int, WDCConnection*> i(_connectionsByDataChannel);
+    QHashIterator<quint16, WDCConnection*> i(_connectionsByDataChannel);
     while (i.hasNext()) {
         i.next();
         delete i.value();
@@ -363,14 +363,20 @@ WebRTCDataChannels::~WebRTCDataChannels() {
     _rtcNetworkThread = nullptr;
 }
 
-void WebRTCDataChannels::onDataChannelOpened(WDCConnection* connection, int dataChannelID) {
+quint16 WebRTCDataChannels::getNewDataChannelID() {
+    static const int QUINT16_LIMIT = std::numeric_limits<uint16_t>::max() + 1;
+    _lastDataChannelID = std::max((_lastDataChannelID + 1) % QUINT16_LIMIT, 1);
+    return _lastDataChannelID;
+}
+
+void WebRTCDataChannels::onDataChannelOpened(WDCConnection* connection, quint16 dataChannelID) {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WebRTCDataChannels::onDataChannelOpened() :" << dataChannelID;
 #endif
     _connectionsByDataChannel.insert(dataChannelID, connection);
 }
 
-void WebRTCDataChannels::onDataChannelClosed(WDCConnection* connection, int dataChannelID) {
+void WebRTCDataChannels::onDataChannelClosed(WDCConnection* connection, quint16 dataChannelID) {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WebRTCDataChannels::onDataChannelClosed() :" << dataChannelID;
 #endif

@@ -206,15 +206,19 @@ public:
         return _nodeType;
     }
 
+    /// @brief Get a new data channel ID to uniquely identify a WDCConnection.
+    /// @return A new data channel ID.
+    quint16 getNewDataChannelID();
+
     /// @brief Handles a WebRTC data channel opening.
     /// @param connection The WebRTC data channel connection.
     /// @param dataChannelID The WebRTC data channel ID.
-    void onDataChannelOpened(WDCConnection* connection, int dataChannelID);
+    void onDataChannelOpened(WDCConnection* connection, quint16 dataChannelID);
 
     /// @brief Handles a WebRTC data channel closing.
     /// @param connection The WebRTC data channel connection.
     /// @param dataChannelID The WebRTC data channel ID.
-    void onDataChannelClosed(WDCConnection* connection, int dataChannelID);
+    void onDataChannelClosed(WDCConnection* connection, quint16 dataChannelID);
 
     /// @brief Emits a signalingMessage received for the Interface client.
     /// @param message The WebRTC signaling message to send.
@@ -268,8 +272,10 @@ private:
 
     rtc::scoped_refptr<PeerConnectionFactoryInterface> _peerConnectionFactory { nullptr };
 
+    quint16 _lastDataChannelID { 0 };
+
     QHash<quint16, WDCConnection*> _connectionsByWebSocket;
-    QHash<int, WDCConnection*> _connectionsByDataChannel;
+    QHash<quint16, WDCConnection*> _connectionsByDataChannel;
 };
 
 
