@@ -3,15 +3,15 @@
         "template": "hifi-jsdoc-template"
     },
     "docdash": {
-        "meta": {                       
-            "title": "",                
-            "description": "",          
-            "keyword": ""               
+        "meta": {
+            "title": "Vircadia API Docs",
+            "description": "API documentation for Vircadia.",
+            "keyword": "api, docs, vircadia, documentation"
         },
-        "search": [true],  
-        "collapse": [true],       
-        "typedefs": [false]    
-    },    
+        "search": [true],
+        "collapse": [true],
+        "typedefs": [false]
+    },
     "templates": {
         "default": {
             "outputSourceFiles": false
