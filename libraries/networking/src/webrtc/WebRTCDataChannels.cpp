@@ -280,6 +280,11 @@ void WDCConnection::onDataChannelStateChanged() {
         << DataChannelInterface::DataStateString(state);
 #endif
     if (state == DataChannelInterface::kClosed) {
+        _dataChannel->Close();
+        _dataChannel = nullptr;
+        // WEBRTC FIXME: The following line causes the _peerConnectionFactory to fail.
+        //_peerConnection->Close();
+        //_peerConnection = nullptr;
         _parent->onDataChannelClosed(this, _dataChannelID);
     }
 }
@@ -346,6 +351,9 @@ WebRTCDataChannels::WebRTCDataChannels(NodeType_t nodeType, QObject* parent) :
 }
 
 WebRTCDataChannels::~WebRTCDataChannels() {
+#ifdef WEBRTC_DEBUG
+    qCDebug(networking_webrtc) << "WebRTCDataChannels::~WebRTCDataChannels()";
+#endif
     QHashIterator<quint16, WDCConnection*> i(_connectionsByDataChannel);
     while (i.hasNext()) {
         i.next();
@@ -384,7 +392,8 @@ void WebRTCDataChannels::onDataChannelClosed(WDCConnection* connection, quint16 
     // Delete WDCConnection.
     _connectionsByWebSocket.remove(connection->getWebSocketID());
     _connectionsByDataChannel.remove(dataChannelID);
-    delete connection;
+    // WEBRTC FIXME: The following line causes the _peerConnectionFactory to fail.
+    //delete connection;
 }
 
 void WebRTCDataChannels::onSignalingMessage(const QJsonObject& message) {
@@ -474,7 +483,9 @@ rtc::scoped_refptr<PeerConnectionInterface> WebRTCDataChannels::createPeerConnec
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "2. Create a new PeerConnection";
 #endif
-    return _peerConnectionFactory->CreatePeerConnection(configuration, nullptr, nullptr, peerConnectionObserver.get());
+    PeerConnectionDependencies dependencies(peerConnectionObserver.get());
+    auto result = _peerConnectionFactory->CreatePeerConnection(configuration, std::move(dependencies));
+    return result;
 }
 
 
