@@ -2,6 +2,9 @@
     "opts": {
         "template": "hifi-jsdoc-template"
     },
+    "deploy": {
+        "root": "https://apidocs.vircadia.dev/"
+    },
     "docdash": {
         "meta": {
             "title": "Vircadia API Docs",
