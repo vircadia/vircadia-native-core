@@ -29,26 +29,33 @@ class WebRTCDataChannels;
 class WDCConnection;
 
 
-// A WebRTC data channel session description observer.
+/// @addtogroup Networking
+/// @{
+
+/// @brief A WebRTC session description observer.
 class WDCSetSessionDescriptionObserver : public SetSessionDescriptionObserver {
 public:
-    // The call to SetLocalDescription or SetRemoteDescription succeeded.
+
+    /// @brief The call to SetLocalDescription or SetRemoteDescription succeeded.
     void OnSuccess() override;
 
-    // The call to SetLocalDescription or SetRemoteDescription failed.
+    /// @brief The call to SetLocalDescription or SetRemoteDescription failed.
+    /// @param error Error information.
     void OnFailure(RTCError error) override;
 };
 
 
-// A WebRTC data channel create session description observer.
+/// @brief A WebRTC create session description observer.
 class WDCCreateSessionDescriptionObserver : public CreateSessionDescriptionObserver {
 public:
     WDCCreateSessionDescriptionObserver(WDCConnection* parent);
 
-    // The call to CreateAnswer succeeded.
+    /// @brief The call to CreateAnswer succeeded.
+    /// @param The session description.
     void OnSuccess(SessionDescriptionInterface* desc) override;
 
-    // The call to CreateAnswer failed.
+    //@ @brief The call to CreateAnswer failed.
+    /// @param error Error information.
     void OnFailure(RTCError error) override;
 
 private:
@@ -56,27 +63,32 @@ private:
 };
 
 
-// A WebRTC data channel peer connection observer.
+/// @brief A WebRTC peer connection observer.
 class WDCPeerConnectionObserver : public PeerConnectionObserver {
 public:
     WDCPeerConnectionObserver(WDCConnection* parent);
 
-    // Triggered when the SignalingState changed.
+    /// @brief Called when the SignalingState changes.
+    /// @param newState The new signaling state.
     void OnSignalingChange(PeerConnectionInterface::SignalingState newState) override;
 
-    // Triggered when renegotiation is needed. For example, an ICE restart has begun.
+    /// @brief Called when renegotiation is needed. For example, an ICE restart has begun.
     void OnRenegotiationNeeded() override;
 
-    // Called any time the IceGatheringState changes.
+    /// @brief Called when the ICE gather state changes.
+    /// @param newState The new ICE gathering state.
     void OnIceGatheringChange(PeerConnectionInterface::IceGatheringState newState) override;
 
-    // A new ICE candidate has been gathered.
+    /// @brief Called when a new ICE candidate has been gathered.
+    /// @param candidate The new ICE candidate.
     void OnIceCandidate(const IceCandidateInterface* candidate) override;
 
-    // Triggered when a remote peer opens a data channel.
+    /// @brief Called when a remote peer opens a data channel.
+    /// @param dataChannel The data channel.
     void OnDataChannel(rtc::scoped_refptr<DataChannelInterface> dataChannel) override;
 
-    // Called any time the PeerConnectionState changes.
+    /// @brief Called when the peer connection state changes.
+    /// @param newState The new peer connection state.
     void OnConnectionChange(PeerConnectionInterface::PeerConnectionState newState) override;
 
 private:
@@ -84,15 +96,16 @@ private:
 };
 
 
-// A WebRTC data channel observer.
+/// @brief A WebRTC data channel observer.
 class WDCDataChannelObserver : public DataChannelObserver {
 public:
     WDCDataChannelObserver(WDCConnection* parent);
 
-    // The data channel state changed.
+    /// @brief The data channel state changed.
     void OnStateChange() override;
 
-    //  A data buffer was successfully received.
+    /// @brief A data channel message was received.
+    /// @param The message received.
     void OnMessage(const DataBuffer& buffer) override;
 
 private:
@@ -175,7 +188,7 @@ private:
 };
 
 
-/// @brief Manages WebRTC data channels on the domain server or an assignment clients that Interface clients can connect to.
+/// @brief Manages WebRTC data channels on the domain server or an assignment client that Interface clients can connect to.
 ///
 /// @details Presents multiple individual WebRTC data channels as a single one-to-many WebRTCDataChannels object. Interface
 /// clients may use WebRTC data channels for Vircadia protocol network communications instead of UDP.
@@ -193,7 +206,7 @@ class WebRTCDataChannels : public QObject {
 public:
 
     /// @brief Constructs a new WebRTCDataChannels object.
-    /// @paramm nodeType The type of node that the WebRTCDataChannels object is being used in.
+    /// @param nodeType The type of node that the WebRTCDataChannels object is being used in.
     /// @param parent The parent Qt object.
     WebRTCDataChannels(NodeType_t nodeType, QObject* parent);
 
@@ -220,7 +233,7 @@ public:
     /// @param dataChannelID The WebRTC data channel ID.
     void onDataChannelClosed(WDCConnection* connection, quint16 dataChannelID);
 
-    /// @brief Emits a signalingMessage received for the Interface client.
+    /// @brief Emits a signalingMessage to be sent to the Interface client.
     /// @param message The WebRTC signaling message to send.
     void sendSignalingMessage(const QJsonObject& message);
 
@@ -250,12 +263,12 @@ public slots:
 signals:
 
     /// @brief A WebRTC signaling message to be sent to the Interface client.
-    /// @description This message is for the WebRTCSignalingServer to send.
+    /// @details This message is for the WebRTCSignalingServer to send.
     /// @param message The WebRTC signaling message to send.
     void signalingMessage(const QJsonObject& message);
 
     /// @brief A WebRTC data message received from the Interface client.
-    /// @description This message is for handling at a higher level in the Vircadia protocol.
+    /// @details This message is for handling at a higher level in the Vircadia protocol.
     /// @param dataChannelID The WebRTC data channel ID.
     /// @param byteArray The Vircadia protocol message.
     void dataMessage(int dataChannelID, const QByteArray& byteArray);
@@ -278,6 +291,8 @@ private:
     QHash<quint16, WDCConnection*> _connectionsByDataChannel;
 };
 
+
+/// @}
 
 #endif // WEBRTC_DATA_CHANNELS
 

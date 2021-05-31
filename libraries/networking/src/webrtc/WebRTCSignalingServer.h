@@ -19,8 +19,11 @@
 
 #include "../HifiSockAddr.h"
 
-/// @brief WebRTC signaling server that Interface clients can use to initiate WebRTC connections to the domain server and
-/// assignment clients.
+/// @addtogroup Networking
+/// @{
+
+/// @brief Provides a WebRTC signaling server that Interface clients can use to initiate WebRTC connections to the domain server
+/// and its assignment clients.
 /// 
 /// @details The signaling server is expected to be hosted in the domain server. It provides a WebSocket for Interface clients
 /// to use in the WebRTC signaling handshake process to establish WebRTC data channel connections to each of the domain server
@@ -48,14 +51,14 @@
 /// | `to`     | WebSocket port number  |
 /// | `from`   | NodeType               |
 /// | [`data`] | WebRTC payload         |
-/// | [`echo`] | Echo request           |
+/// | [`echo`] | Echo response          |
 ///
 class WebRTCSignalingServer : public QObject {
     Q_OBJECT
 
 public:
 
-    /// @brief Constructs a new WebRTCSignalingServer.
+    /// @brief Constructs a new WebRTCSignalingServer object.
     /// @param address The IP address to use for the WebSocket.
     /// @param port The port to use for the WebSocket.
     /// @param parent Qt parent object.
@@ -96,6 +99,7 @@ private:
     QTimer* _isWebSocketServerListeningTimer;
 };
 
+/// @}
 
 #endif // WEBRTC_DATA_CHANNELS
 
