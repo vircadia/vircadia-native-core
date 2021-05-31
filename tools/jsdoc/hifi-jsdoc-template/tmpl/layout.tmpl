@@ -33,6 +33,12 @@
         }
     </style>
     <script>
+    var headID = document.getElementsByTagName('head')[0];
+    var link = document.createElement('link');
+    link.rel = 'canonical';
+    link.href = window.location.href;
+    headID.appendChild(link);
+
     //We are running the check here to preload the theme because it may load the incorrect one first for a split second.
     var isLocalStorageSupported = false;
     try { // Edge browsing files on local file system doesn't support localStorage.
