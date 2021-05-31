@@ -28,6 +28,7 @@
 #include <HTTPSConnection.h>
 #include <LimitedNodeList.h>
 #include <shared/WebRTC.h>
+#include <webrtc/WebRTCDataChannels.h>
 #include <webrtc/WebRTCSignalingServer.h>
 
 #include "AssetsBackupHandler.h"
@@ -143,6 +144,9 @@ private slots:
     void updateReplicatedNodes();
     void updateDownstreamNodes();
     void updateUpstreamNodes();
+
+    void setUpWebRTC();
+
     void initializeExporter();
     void initializeMetadataExporter();
 
@@ -314,8 +318,9 @@ private:
 
     QThread _assetClientThread;
 
-#ifdef WEBRTC_DATA_CHANNEL
+#ifdef WEBRTC_DATA_CHANNELS
     WebRTCSignalingServer _webrtcSignalingServer;
+    WebRTCDataChannels _webrtcDataChannels;
 #endif
 };
 

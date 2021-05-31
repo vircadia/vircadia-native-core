@@ -165,8 +165,9 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _gatekeeper(this),
-#ifdef WEBRTC_DATA_CHANNEL
+#ifdef WEBRTC_DATA_CHANNELS
     _webrtcSignalingServer(QHostAddress::AnyIPv4, DEFAULT_DOMAIN_SERVER_WS_PORT, this),
+    _webrtcDataChannels(NodeType::DomainServer, this),
 #endif
     _httpManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTP_PORT,
         QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this)
@@ -250,6 +251,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     updateReplicatedNodes();
     updateDownstreamNodes();
     updateUpstreamNodes();
+
+    setUpWebRTC();
 
     if (_type != NonMetaverse) {
         // if we have a metaverse domain, we'll use an access token for API calls
@@ -3134,6 +3137,18 @@ void DomainServer::updateDownstreamNodes() {
 
 void DomainServer::updateUpstreamNodes() {
     updateReplicationNodes(Upstream);
+}
+
+void DomainServer::setUpWebRTC() {
+
+    // Inbound WebRTC signaling messages received from a client.
+    connect(&_webrtcSignalingServer, &WebRTCSignalingServer::messageReceived,
+        &_webrtcDataChannels, &WebRTCDataChannels::onSignalingMessage);
+
+    // Outbound WebRTC signaling messages being sent to a client.
+    connect(&_webrtcDataChannels, &WebRTCDataChannels::signalingMessage,
+        &_webrtcSignalingServer, &WebRTCSignalingServer::sendMessage);
+
 }
 
 void DomainServer::initializeExporter() {

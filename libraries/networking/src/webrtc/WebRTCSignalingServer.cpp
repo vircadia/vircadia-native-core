@@ -8,7 +8,7 @@
 
 #include "WebRTCSignalingServer.h"
 
-#if defined(WEBRTC_DATA_CHANNEL)
+#if defined(WEBRTC_DATA_CHANNELS)
 
 #include <QtCore>
 #include <QWebSocket>
@@ -93,4 +93,4 @@ void WebRTCSignalingServer::newWebSocketConnection() {
     _webSockets.insert(webSocket->peerPort(), webSocket);
 }
 
-#endif // WEBRTC_DATA_CHANNEL
+#endif // WEBRTC_DATA_CHANNELS

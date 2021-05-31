@@ -2,18 +2,16 @@
 //  WebRTCSignalingServer.h
 //  libraries/networking/src/webrtc
 //
-//  Provides a signaling channel for setting up WebRTC connections between the Web app and the domain servers and mixers.
-//
 //  Created by David Rowe on 16 May 2021.
 //  Copyright 2021 Vircadia contributors.
 //
 
-#ifndef vircadia_SignalingServer_h
-#define vircadia_SignalingServer_h
+#ifndef vircadia_WebRTCSignalingServer_h
+#define vircadia_WebRTCSignalingServer_h
 
 #include <shared/WebRTC.h>
 
-#if defined(WEBRTC_DATA_CHANNEL)
+#if defined(WEBRTC_DATA_CHANNELS)
 
 #include <QObject>
 #include <QtCore/QTimer>
@@ -99,6 +97,6 @@ private:
 };
 
 
-#endif // WEBRTC_DATA_CHANNEL
+#endif // WEBRTC_DATA_CHANNELS
 
-#endif // vircadia_SignalingServer_h
+#endif // vircadia_WebRTCSignalingServer_h
