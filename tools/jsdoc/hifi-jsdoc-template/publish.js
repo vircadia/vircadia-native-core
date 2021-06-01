@@ -380,8 +380,8 @@ function buildMemberNav(items, itemHeading, itemsSeen, linktoFn) {
 
                     itemsNav += "</ul>";
                 }
-                
-                
+
+
                 itemsNav += '</li>';
                 itemsSeen[item.longname] = true;
             }
