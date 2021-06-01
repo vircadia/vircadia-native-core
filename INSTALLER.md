@@ -94,7 +94,7 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
     ```
 3. Pick a method to build and package your release.
 
-#### Option A: Use GUI
+#### Option A: Use Xcode GUI
 
 1. Perform a Release build of ALL_BUILD
 2. Perform a Release build of `packaged-server-console` 
