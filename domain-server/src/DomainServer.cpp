@@ -3140,6 +3140,7 @@ void DomainServer::updateUpstreamNodes() {
 }
 
 void DomainServer::setUpWebRTC() {
+#ifdef WEBRTC_DATA_CHANNELS
 
     // Inbound WebRTC signaling messages received from a client.
     connect(&_webrtcSignalingServer, &WebRTCSignalingServer::messageReceived,
@@ -3149,6 +3150,7 @@ void DomainServer::setUpWebRTC() {
     connect(&_webrtcDataChannels, &WebRTCDataChannels::signalingMessage,
         &_webrtcSignalingServer, &WebRTCSignalingServer::sendMessage);
 
+#endif
 }
 
 void DomainServer::initializeExporter() {
