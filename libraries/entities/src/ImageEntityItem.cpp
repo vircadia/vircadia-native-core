@@ -34,6 +34,7 @@ EntityItemProperties ImageEntityItem::getProperties(const EntityPropertyFlags& d
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alpha, getAlpha);
     withReadLock([&] {
         _pulseProperties.getProperties(properties);
+        properties.setNaturalDimensions(_naturalDimensions);
     });
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(imageURL, getImageURL);
@@ -216,5 +217,11 @@ float ImageEntityItem::getAlpha() const {
 PulsePropertyGroup ImageEntityItem::getPulseProperties() const {
     return resultWithReadLock<PulsePropertyGroup>([&] {
         return _pulseProperties;
+    });
+}
+
+void ImageEntityItem::setNaturalDimension(const glm::vec3& naturalDimensions) const {
+    withWriteLock([&] {
+        _naturalDimensions = naturalDimensions;
     });
 }

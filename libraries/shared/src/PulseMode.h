@@ -11,7 +11,7 @@
 
 #include "QString"
 
-/**jsdoc
+/*@jsdoc
  * <p>Pulse modes for color and alpha pulsing.</p>
  * <table>
  *   <thead>

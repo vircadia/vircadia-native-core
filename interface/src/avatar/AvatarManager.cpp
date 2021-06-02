@@ -544,7 +544,7 @@ void AvatarManager::removeDeadAvatarEntities(const SetOfEntities& deadEntities) 
         QUuid entityOwnerID = entity->getOwningAvatarID();
         AvatarSharedPointer avatar = getAvatarBySessionID(entityOwnerID);
         if (avatar) {
-            avatar->clearAvatarEntity(entity->getID());
+            avatar->clearAvatarEntityInternal(entity->getID());
         }
     }
 }
@@ -1008,7 +1008,7 @@ void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptV
     }
 }
 
-/**jsdoc
+/*@jsdoc
  * PAL (People Access List) data for an avatar.
  * @typedef {object} AvatarManager.PalData
  * @property {Uuid} sessionUUID - The avatar's session ID. <code>""</code> if the avatar is your own.

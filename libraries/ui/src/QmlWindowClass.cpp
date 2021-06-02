@@ -88,7 +88,7 @@ QmlWindowClass::QmlWindowClass(bool restricted) : _restricted(restricted) {
 
 }
 
-/**jsdoc
+/*@jsdoc
  * Properties used to initialize an {@link OverlayWindow} or {@link OverlayWebWindow}.
  * @typedef {object} OverlayWindow.Properties
  * @property {string} [title="WebWindow] - The window title.

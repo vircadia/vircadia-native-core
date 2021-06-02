@@ -40,7 +40,7 @@ static const glm::vec3 INITIAL_EQUIPPABLE_INDICATOR_SCALE { glm::vec3(1.0f) };
 static const glm::vec3 INITIAL_EQUIPPABLE_INDICATOR_OFFSET { glm::vec3(0.0f) };
 
 
-/**jsdoc
+/*@jsdoc
  * Grabbing behavior is defined by the following properties:
  *
  * @typedef {object} Entities.Grab

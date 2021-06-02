@@ -35,7 +35,8 @@ Script.include([
     "../libraries/gridTool.js",
     "entityList/entityList.js",
     "entitySelectionTool/entitySelectionTool.js",
-    "audioFeedback/audioFeedback.js"
+    "audioFeedback/audioFeedback.js",
+    "modules/brokenURLReport.js"    
 ]);
 
 var CreateWindow = Script.require('./modules/createWindow.js');
@@ -111,6 +112,9 @@ var entityIconOverlayManager = new EntityIconOverlayManager(["Light", "ParticleE
 var hmdMultiSelectMode = false;
 var expectingRotateAsClickedSurface = false;
 var keepSelectedOnNextClick = false;
+
+var copiedPosition;
+var copiedRotation;
 
 var cameraManager = new CameraManager();
 
@@ -2611,6 +2615,46 @@ var PropertiesTool = function (opts) {
                     for (i = 0; i < selectionManager.selections.length; i++) {
                         Entities.reloadServerScripts(selectionManager.selections[i]);
                     }
+                }
+            } else if (data.action === "copyPosition") {
+                if (selectionManager.selections.length === 1) {
+                    selectionManager.saveProperties();
+                    properties = selectionManager.savedProperties[selectionManager.selections[0]];
+                    copiedPosition = properties.position;
+                    Window.copyToClipboard(JSON.stringify(copiedPosition));
+                }
+            } else if (data.action === "copyRotation") {
+                if (selectionManager.selections.length === 1) {
+                    selectionManager.saveProperties();
+                    properties = selectionManager.savedProperties[selectionManager.selections[0]];
+                    copiedRotation = properties.rotation;
+                    Window.copyToClipboard(JSON.stringify(copiedRotation));
+                }
+            } else if (data.action === "pastePosition") {
+                if (copiedPosition !== undefined && selectionManager.selections.length > 0 && SelectionManager.hasUnlockedSelection()) {
+                    selectionManager.saveProperties();
+                    for (i = 0; i < selectionManager.selections.length; i++) {
+                        Entities.editEntity(selectionManager.selections[i], {
+                            position: copiedPosition
+                        });
+                    }
+                    pushCommandForSelections();
+                    selectionManager._update(false, this);
+                } else {
+                    audioFeedback.rejection();
+                }
+            } else if (data.action === "pasteRotation") {
+                if (copiedRotation !== undefined  && selectionManager.selections.length > 0 && SelectionManager.hasUnlockedSelection()) {
+                    selectionManager.saveProperties();
+                    for (i = 0; i < selectionManager.selections.length; i++) {
+                        Entities.editEntity(selectionManager.selections[i], {
+                            rotation: copiedRotation
+                        });
+                    }
+                    pushCommandForSelections();
+                    selectionManager._update(false, this);
+                } else {
+                    audioFeedback.rejection();
                 }
             }
         } else if (data.type === "propertiesPageReady") {

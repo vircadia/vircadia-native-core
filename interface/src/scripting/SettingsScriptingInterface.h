@@ -15,7 +15,7 @@
 #include <QObject>
 #include <QString>
 
-/**jsdoc
+/*@jsdoc
  * The <code>Settings</code> API provides a facility to store and retrieve values that persist between Interface runs.
  *
  * @namespace Settings
@@ -32,7 +32,7 @@ public:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * Retrieves the value from a named setting.
      * @function Settings.getValue
      * @param {string} key - The name of the setting.
@@ -49,7 +49,7 @@ public slots:
     QVariant getValue(const QString& setting);
     QVariant getValue(const QString& setting, const QVariant& defaultValue);
 
-    /**jsdoc
+    /*@jsdoc
      * Stores a value in a named setting. If the setting already exists, its value is overwritten. If the value is 
      * <code>null</code> or <code>undefined</code>, the setting is deleted.
      * @function Settings.setValue

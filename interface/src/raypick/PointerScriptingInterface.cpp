@@ -83,7 +83,7 @@ QVariantMap PointerScriptingInterface::getPointerScriptParameters(unsigned int u
     return DependencyManager::get<PointerManager>()->getPointerScriptParameters(uid);
 }
 
-/**jsdoc
+/*@jsdoc
  * The properties of a stylus pointer. These include the properties from the underlying stylus pick that the pointer uses.
  * @typedef {object} Pointers.StylusPointerProperties
  * @property {Pointers.StylusPointerModel} [model] - Override some or all of the default stylus model properties.
@@ -96,7 +96,7 @@ QVariantMap PointerScriptingInterface::getPointerScriptParameters(unsigned int u
  * @see {@link Picks.StylusPickProperties} for additional properties from the underlying stylus pick.
  */
  
-/**jsdoc
+/*@jsdoc
  * The properties of a stylus pointer model.
  * @typedef {object} Pointers.StylusPointerModel
  * @property {string} [url] - The url of a model to use for the stylus, to override the default stylus mode.
@@ -141,14 +141,14 @@ std::shared_ptr<Pointer> PointerScriptingInterface::buildStylus(const QVariant& 
     return std::make_shared<StylusPointer>(properties, StylusPointer::buildStylus(propertyMap), hover, enabled, modelPositionOffset, modelRotationOffset, modelDimensions);
 }
 
-/**jsdoc
+/*@jsdoc
  * Properties that define the visual appearance of a ray pointer when the pointer is not intersecting something. These are the 
  * properties of {@link Pointers.RayPointerRenderState} but with an additional property.
  * @typedef {object} Pointers.DefaultRayPointerRenderState
  * @property {number} distance - The distance at which to render the end of the ray pointer.
  * @see {@link Pointers.RayPointerRenderState} for the remainder of the properties.
  */
-/**jsdoc
+/*@jsdoc
  * Properties that define the visual appearance of a ray pointer when the pointer is intersecting something.
  * @typedef {object} Pointers.RayPointerRenderState
  * @property {string} name - When creating using {@link Pointers.createPointer}, the name of the render state.
@@ -171,7 +171,7 @@ std::shared_ptr<Pointer> PointerScriptingInterface::buildStylus(const QVariant& 
  *     <p>When getting using {@link Pointers.getPointerProperties}, the ID of the overlay rendered at the end of the ray; 
  *     <code>null</code> if there is no overlay.
  */
-/**jsdoc
+/*@jsdoc
  * The properties of a ray pointer. These include the properties from the underlying ray pick that the pointer uses.
  * @typedef {object} Pointers.RayPointerProperties
  * @property {boolean} [faceAvatar=false] - <code>true</code> if the overlay rendered at the end of the ray rotates about the 
@@ -329,7 +329,7 @@ std::shared_ptr<Pointer> PointerScriptingInterface::buildLaserPointer(const QVar
                                           distanceScaleEnd, scaleWithParent, enabled);
 }
 
-/**jsdoc
+/*@jsdoc
  * The visual appearance of the parabolic path.
  * @typedef {object} Pointers.ParabolaPointerPath
  * @property {Color} [color=255,255,255] - The color of the parabola.
@@ -340,14 +340,14 @@ std::shared_ptr<Pointer> PointerScriptingInterface::buildLaserPointer(const QVar
  * @property {boolean} [drawInFront=false] - <code>true</code> if the parabola is rendered in front of objects in the world, 
  *     but behind the HUD, <code>false</code> if it is occluded by objects in front of it.
  */
-/**jsdoc
+/*@jsdoc
  * Properties that define the visual appearance of a parabola pointer when the pointer is not intersecting something. These are
  * properties of {@link Pointers.ParabolaPointerRenderState} but with an additional property.
  * @typedef {object} Pointers.DefaultParabolaPointerRenderState
  * @property {number} distance - The distance along the parabola at which to render the end of the parabola pointer.
  * @see {@link Pointers.ParabolaPointerRenderState} for the remainder of the properties.
  */
-/**jsdoc
+/*@jsdoc
  * Properties that define the visual appearance of a parabola pointer when the pointer is intersecting something.
  * @typedef {object} Pointers.ParabolaPointerRenderState
  * @property {string} name - When creating using {@link Pointers.createPointer}, the name of the render state.
@@ -366,7 +366,7 @@ std::shared_ptr<Pointer> PointerScriptingInterface::buildLaserPointer(const QVar
  *     <p>When getting using {@link Pointers.getPointerProperties}, the ID of the overlay rendered at the end of the parabola;
  *     <code>null</code> if there is no overlay.
  */
-/**jsdoc
+/*@jsdoc
  * The properties of a parabola pointer. These include the properties from the underlying parabola pick that the pointer uses.
  * @typedef {object} Pointers.ParabolaPointerProperties
  * @property {boolean} [faceAvatar=false] - <code>true</code> if the overlay rendered at the end of the ray rotates about the

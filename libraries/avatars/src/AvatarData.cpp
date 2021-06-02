@@ -1491,7 +1491,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     return numBytesRead;
 }
 
-/**jsdoc
+/*@jsdoc
  * <p>The avatar mixer data comprises different types of data, with the data rates of each being tracked in kbps.</p>
  *
  * <table>
@@ -1596,7 +1596,7 @@ float AvatarData::getDataRate(const QString& rateName) const {
     return 0.0f;
 }
 
-/**jsdoc
+/*@jsdoc
  * <p>The avatar mixer data comprises different types of data updated at different rates, in Hz.</p>
  *
  * <table>
@@ -2250,7 +2250,7 @@ void AvatarData::processTraitInstance(AvatarTraits::TraitType traitType,
 
 void AvatarData::processDeletedTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID) {
     if (traitType == AvatarTraits::AvatarEntity) {
-        clearAvatarEntity(instanceID);
+        clearAvatarEntityInternal(instanceID);
     } else if (traitType == AvatarTraits::Grab) {
         clearAvatarGrabData(instanceID);
     }
@@ -2926,7 +2926,7 @@ glm::vec3 AvatarData::getAbsoluteJointTranslationInObjectFrame(int index) const 
     return glm::vec3();
 }
 
-/**jsdoc
+/*@jsdoc
  * Information on an attachment worn by the avatar.
  * @typedef {object} AttachmentData
  * @property {string} modelUrl - The URL of the glTF, FBX, or OBJ model file. glTF models may be in JSON or binary format 
@@ -3038,6 +3038,10 @@ void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& ent
 
 void AvatarData::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree) {
     // NOTE: requiresRemovalFromTree is unused
+    clearAvatarEntityInternal(entityID);
+}
+
+void AvatarData::clearAvatarEntityInternal(const QUuid& entityID) {
     bool removedEntity = false;
     _avatarEntitiesLock.withWriteLock([this, &removedEntity, &entityID] {
         removedEntity = _packedAvatarEntityData.remove(entityID);
@@ -3048,6 +3052,24 @@ void AvatarData::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFr
         // so that changes are sent next frame
         _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, entityID);
     }
+}
+
+void AvatarData::clearAvatarEntities() {
+    QList<QUuid> avatarEntityIDs;
+    _avatarEntitiesLock.withReadLock([&] {
+        avatarEntityIDs = _packedAvatarEntityData.keys();
+    });
+    for (const auto& entityID : avatarEntityIDs) {
+        clearAvatarEntityInternal(entityID);
+    }
+}
+
+QList<QUuid> AvatarData::getAvatarEntityIDs() const {
+    QList<QUuid> avatarEntityIDs;
+    _avatarEntitiesLock.withReadLock([&] {
+        avatarEntityIDs = _packedAvatarEntityData.keys();
+    });
+    return avatarEntityIDs;
 }
 
 AvatarEntityMap AvatarData::getAvatarEntityData() const {
@@ -3104,7 +3126,7 @@ glm::mat4 AvatarData::getControllerRightHandMatrix() const {
     return _controllerRightHandMatrixCache.get();
 }
 
-/**jsdoc
+/*@jsdoc
  * Information about a ray-to-avatar intersection.
  * @typedef {object} RayToAvatarIntersectionResult
  * @property {boolean} intersects - <code>true</code> if an avatar is intersected, <code>false</code> if it isn't.
@@ -3160,7 +3182,7 @@ float AvatarData::_avatarSortCoefficientSize { 8.0f };
 float AvatarData::_avatarSortCoefficientCenter { 0.25f };
 float AvatarData::_avatarSortCoefficientAge { 1.0f };
 
-/**jsdoc
+/*@jsdoc
  * An object with the UUIDs of avatar entities as keys and avatar entity properties objects as values.
  * @typedef {Object.<Uuid, Entities.EntityProperties>} AvatarEntityMap
  */

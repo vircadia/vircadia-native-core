@@ -85,9 +85,9 @@ private:
     class UnsourcedListenerReference : public ListenerReference {
     public:
         inline UnsourcedListenerReference(T* target, void (T::*slot)(QSharedPointer<ReceivedMessage>));
-        virtual bool invokeDirectly(const QSharedPointer<ReceivedMessage>& receivedMessagePointer, const QSharedPointer<Node>& sourceNode);
-        virtual bool isSourced() const { return false; }
-        virtual QObject* getObject() const { return _target; }
+        virtual bool invokeDirectly(const QSharedPointer<ReceivedMessage>& receivedMessagePointer, const QSharedPointer<Node>& sourceNode) override;
+        virtual bool isSourced() const override { return false; }
+        virtual QObject* getObject() const override { return _target; }
 
     private:
         QPointer<T> _target;
@@ -98,9 +98,9 @@ private:
     class SourcedListenerReference : public ListenerReference {
     public:
         inline SourcedListenerReference(T* target, void (T::*slot)(QSharedPointer<ReceivedMessage>, QSharedPointer<Node>));
-        virtual bool invokeDirectly(const QSharedPointer<ReceivedMessage>& receivedMessagePointer, const QSharedPointer<Node>& sourceNode);
-        virtual bool isSourced() const { return true; }
-        virtual QObject* getObject() const { return _target; }
+        virtual bool invokeDirectly(const QSharedPointer<ReceivedMessage>& receivedMessagePointer, const QSharedPointer<Node>& sourceNode) override;
+        virtual bool isSourced() const override { return true; }
+        virtual QObject* getObject() const override { return _target; }
 
     private:
         QPointer<T> _target;

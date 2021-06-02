@@ -42,7 +42,7 @@ public:
     static ExternalResource* getInstance();
     ~ExternalResource(){};
 
-    /**jsdoc
+    /*@jsdoc
      * <p>An external resource bucket.</p>
      * <p>The original High Fidelity used "Public", "Content", and "MPAssets" Amazon S3 buckets. The intention is that the
      * community-run versions of these will keep the original data and structure, and any new additions will be made to 
@@ -56,7 +56,7 @@ public:
      * @property {Script.ResourceBucket} HF_Marketplace - Assets that used to be in the High Fidelity's <code>mpassets</code>
      *     Amazon S3 bucket. (High Fidelity marketplace.)
      */
-    /**jsdoc
+    /*@jsdoc
      * <p>An external resource bucket.</p>
      * <table>
      *   <thead>

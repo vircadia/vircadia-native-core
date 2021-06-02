@@ -91,8 +91,8 @@ static const float azimuthTable[NAZIMUTH][3] = {
 // A first-order shelving filter is used to minimize the disturbance in ITD.
 //
 // Loosely based on data from S. Spagnol, "Distance rendering and perception of nearby virtual sound sources
-// with a near-field filter model,” Applied Acoustics (2017)
-// 
+// with a near-field filter model," Applied Acoustics (2017)
+//
 static const int NNEARFIELD = 9;
 static const float nearFieldTable[NNEARFIELD][3] = {    // { b0, b1, a1 }
     { 0.008410604f, -0.000262748f, -0.991852144f },     // gain = 1/256
@@ -388,7 +388,12 @@ void crossfade_4x2_AVX2(float* src, float* dst, const float* win, int numFrames)
 void interpolate_AVX2(const float* src0, const float* src1, float* dst, float frac, float gain);
 
 static void FIR_1x4(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames) {
+#ifndef STACK_PROTECTOR
+    // Enabling -fstack-protector on gcc causes an undefined reference to FIR_1x4_AVX512 here
     static auto f = cpuSupportsAVX512() ? FIR_1x4_AVX512 : (cpuSupportsAVX2() ? FIR_1x4_AVX2 : FIR_1x4_SSE);
+#else
+    static auto f = cpuSupportsAVX2() ? FIR_1x4_AVX2 : FIR_1x4_SSE;
+#endif
     (*f)(src, dst0, dst1, dst2, dst3, coef, numFrames); // dispatch
 }
 

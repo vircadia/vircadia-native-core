@@ -35,7 +35,7 @@ jobs:
         include:
           - os: ubuntu-18.04
             build_type: full
-            apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
+            apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0 libsnappy1v5 libwebpdemux2 libwebpmux3
       fail-fast: false
     runs-on: ${{matrix.os}}
     steps:
@@ -50,6 +50,7 @@ jobs:
         echo "UPLOAD_PREFIX=master" >> $GITHUB_ENV
         echo ::set-output name=github_sha_short::`echo $GIT_COMMIT | cut -c1-7`
         echo "JOB_NAME=build (${{matrix.os}}, ${{matrix.build_type}})" >> $GITHUB_ENV
+        echo "APP_TARGET_NAME=$APP_NAME" >> $GITHUB_ENV
         # Linux build variables
         if [[ "${{ matrix.os }}" = "ubuntu-"* ]]; then
           echo "PYTHON_EXEC=python3" >> $GITHUB_ENV
@@ -65,6 +66,7 @@ jobs:
           echo "INSTALLER_EXT=dmg" >> $GITHUB_ENV
           echo "CMAKE_EXTRA=-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode" >> $GITHUB_ENV
           echo "::set-output name=symbols_archive::${BUILD_NUMBER}-${{ matrix.build_type }}-mac-symbols.zip"
+          echo "APP_TARGET_NAME=Vircadia" >> $GITHUB_ENV
         fi
         # Windows build variables
         if [ "${{ matrix.os }}" = "windows-latest" ]; then
@@ -126,7 +128,7 @@ jobs:
     - name: Build application
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME $CMAKE_BUILD_EXTRA
+      run: cmake --build . --config $BUILD_TYPE --target $APP_TARGET_NAME $CMAKE_BUILD_EXTRA
     - name: Build domain server
       working-directory: ${{runner.workspace}}/build
       shell: bash

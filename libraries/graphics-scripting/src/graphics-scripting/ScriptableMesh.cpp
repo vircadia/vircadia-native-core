@@ -127,7 +127,7 @@ int scriptable::ScriptableMesh::getSlotNumber(const QString& attributeName) cons
     return -1;
 }
 
-/**jsdoc
+/*@jsdoc
  * Details of buffer's format.
  * @typedef {object} Graphics.BufferFormat
  * @property {number} slot - Slot.
@@ -257,7 +257,7 @@ bool scriptable::ScriptableMesh::setVertexProperty(glm::uint32 vertexIndex, cons
     return buffer_helpers::setValue(bufferView, vertexIndex, value);
 }
 
-/**jsdoc
+/*@jsdoc
  * Called for each vertex when {@link GraphicsMesh.updateVertexAttributes} is called.
  * @callback GraphicsMesh~forEachVertextCallback
  * @param {Object<Graphics.BufferTypeName, Graphics.BufferType>} attributes - The attributes  of the vertex.
@@ -292,7 +292,7 @@ glm::uint32 scriptable::ScriptableMesh::forEachVertex(QScriptValue _callback) {
     return numProcessed;
 }
 
-/**jsdoc
+/*@jsdoc
  * Called for each vertex when {@link GraphicsMesh.updateVertexAttributes} is called. The value returned by the script function 
  * should be the modified attributes to update the vertex with, or <code>false</code> to not update the particular vertex.
  * @callback GraphicsMesh~updateVertexAttributesCallback

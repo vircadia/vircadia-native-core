@@ -43,6 +43,7 @@
 
 Q_DECLARE_LOGGING_CATEGORY(domain_server)
 Q_DECLARE_LOGGING_CATEGORY(domain_server_ice)
+Q_DECLARE_LOGGING_CATEGORY(domain_server_auth)
 
 typedef QSharedPointer<Assignment> SharedAssignmentPointer;
 typedef QMultiHash<QUuid, WalletTransaction*> TransactionHash;
@@ -232,6 +233,8 @@ private:
                                     std::initializer_list<QString> requiredData = { },
                                     std::initializer_list<QString> optionalData = { },
                                     bool requireAccessToken = true);
+
+    QString operationToString(const QNetworkAccessManager::Operation &op);
 
     SubnetList _acSubnetWhitelist;
 

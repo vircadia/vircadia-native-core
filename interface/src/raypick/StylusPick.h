@@ -40,7 +40,7 @@ public:
     glm::vec3 intersection { NAN };
     glm::vec3 surfaceNormal { NAN };
 
-    /**jsdoc
+    /*@jsdoc
      * An intersection result for a stylus pick.
      *
      * @typedef {object} StylusPickResult

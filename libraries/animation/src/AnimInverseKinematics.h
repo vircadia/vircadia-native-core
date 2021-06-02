@@ -59,7 +59,7 @@ public:
 
     float getMaxErrorOnLastSolve() { return _maxErrorOnLastSolve; }
 
-    /**jsdoc
+    /*@jsdoc
      * <p>Specifies the initial conditions of the IK solver.</p>
      * <table>
      *   <thead>

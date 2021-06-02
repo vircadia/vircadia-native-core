@@ -12,7 +12,7 @@ include_hifi_library_headers(image)
 include_hifi_library_headers(ktx)
 include_hifi_library_headers(gpu)
 include_hifi_library_headers(hfm)
-include_hifi_library_headers(fbx)
+include_hifi_library_headers(model-serializers)
 include_hifi_library_headers(graphics)
 
 target_bullet()

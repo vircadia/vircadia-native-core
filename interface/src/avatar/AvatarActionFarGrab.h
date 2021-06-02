@@ -15,7 +15,7 @@
 #include <EntityItem.h>
 #include <ObjectActionTractor.h>
 
-/**jsdoc
+/*@jsdoc
  * The <code>"far-grab"</code> {@link Entities.ActionType|ActionType} moves and rotates an entity to a target position and 
  * orientation, optionally relative to another entity. Collisions between the entity and the user's avatar are disabled during 
  * the far-grab.

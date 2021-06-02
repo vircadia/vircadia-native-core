@@ -107,7 +107,7 @@ public:
     //
     QString getSkeletonModelURLFromScript() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the pointing state of the hands to control where the laser emanates from. If the right index finger is pointing, the
      * laser emanates from the tip of that finger, otherwise it emanates from the palm.
      * @function ScriptAvatar.getHandState
@@ -115,7 +115,7 @@ public:
      */
     Q_INVOKABLE char getHandState() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the rotation of a joint relative to its parent. For information on the joint hierarchy used, see
      * <a href="https://docs.vircadia.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.
      * @function ScriptAvatar.getJointRotation
@@ -125,7 +125,7 @@ public:
      */
     Q_INVOKABLE glm::quat getJointRotation(int index) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the translation of a joint relative to its parent, in model coordinates.
      * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
      * <p>For information on the joint hierarchy used, see
@@ -137,7 +137,7 @@ public:
      */
     Q_INVOKABLE glm::vec3 getJointTranslation(int index) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the rotation of a joint relative to its parent. For information on the joint hierarchy used, see
      * <a href="https://docs.vircadia.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.
      * @function ScriptAvatar.getJointRotation
@@ -147,7 +147,7 @@ public:
      */
     Q_INVOKABLE glm::quat getJointRotation(const QString& name) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the translation of a joint relative to its parent, in model coordinates.
      * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
      * <p>For information on the joint hierarchy used, see
@@ -159,7 +159,7 @@ public:
      */
     Q_INVOKABLE glm::vec3 getJointTranslation(const QString& name) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the rotations of all joints in the avatar. Each joint's rotation is relative to its parent joint.
      * @function ScriptAvatar.getJointRotations
      * @returns {Quat[]} The rotations of all joints relative to each's parent, or <code>[]</code> if the avatar data aren't 
@@ -167,7 +167,7 @@ public:
      */
     Q_INVOKABLE QVector<glm::quat> getJointRotations() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the translations of all joints in the avatar. Each joint's translation is relative to its parent joint, in
      * model coordinates.
      * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
@@ -178,7 +178,7 @@ public:
      */
     Q_INVOKABLE QVector<glm::vec3> getJointTranslations() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Checks that the data for a joint are valid.
      * @function ScriptAvatar.isJointDataValid
      * @param {number} index - The index of the joint.
@@ -187,7 +187,7 @@ public:
      */
     Q_INVOKABLE bool isJointDataValid(const QString& name) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the joint index for a named joint. The joint index value is the position of the joint in the array returned by
      * {@linkScriptAvatar.getJointNames}.
      * @function ScriptAvatar.getJointIndex
@@ -196,14 +196,14 @@ public:
      */
     Q_INVOKABLE int getJointIndex(const QString& name) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the names of all the joints in the avatar.
      * @function ScriptAvatar.getJointNames
      * @returns {string[]} The joint names, or <code>[]</code> if the avatar data aren't available.
      */
     Q_INVOKABLE QStringList getJointNames() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets information about the models currently attached to the avatar.
      * @function ScriptAvatar.getAttachmentData
      * @returns {AttachmentData[]} Information about all models attached to the avatar, or <code>[]</code> if the avatar data 
@@ -233,28 +233,28 @@ public:
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the avatar's <code>displayName</code> property value changes.
      * @function ScriptAvatar.displayNameChanged
      * @returns {Signal}
      */
     void displayNameChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the avatar's <code>sessionDisplayName</code> property value changes.
      * @function ScriptAvatar.sessionDisplayNameChanged
      * @returns {Signal}
      */
     void sessionDisplayNameChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the avatar's model (i.e., <code>skeletonModelURL</code> property value) changes.
      * @function ScriptAvatar.skeletonModelURLChanged
      * @returns {Signal}
      */
     void skeletonModelURLChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the avatar's <code>lookAtSnappingEnabled</code> property value changes.
      * @function ScriptAvatar.lookAtSnappingChanged
      * @param {boolean} enabled - <code>true</code> if look-at snapping is enabled, <code>false</code> if not.
@@ -264,7 +264,7 @@ signals:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the rotation of a joint relative to the avatar.
      * @function ScriptAvatar.getAbsoluteJointRotationInObjectFrame
      * @param {number} index - The index of the joint.
@@ -273,7 +273,7 @@ public slots:
      */
     glm::quat getAbsoluteJointRotationInObjectFrame(int index) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the translation of a joint relative to the avatar.
      * @function ScriptAvatar.getAbsoluteJointTranslationInObjectFrame
      * @param {number} index - The index of the joint.

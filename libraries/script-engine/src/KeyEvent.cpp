@@ -150,7 +150,7 @@ KeyEvent::operator QKeySequence() const {
     return QKeySequence(resultCode);
 }
 
-/**jsdoc
+/*@jsdoc
  * A keyboard key event.
  * @typedef {object} KeyEvent
  * @property {number} key - The Qt keyboard code of the key pressed. For a list of keyboard codes, see 

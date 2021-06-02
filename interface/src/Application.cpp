@@ -657,7 +657,7 @@ private:
     }
 };
 
-/**jsdoc
+/*@jsdoc
  * <p>The <code>Controller.Hardware.Application</code> object has properties representing Interface's state. The property
  * values are integer IDs, uniquely identifying each output. <em>Read-only.</em></p>
  * <p>These states can be mapped to actions or functions or <code>Controller.Standard</code> items in a {@link RouteObject}
@@ -1011,7 +1011,7 @@ const bool DEFAULT_HMD_TABLET_BECOMES_TOOLBAR = false;
 const bool DEFAULT_PREFER_STYLUS_OVER_LASER = false;
 const bool DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS = false;
 const QString DEFAULT_CURSOR_NAME = "DEFAULT";
-const bool DEFAULT_MINI_TABLET_ENABLED = true;
+const bool DEFAULT_MINI_TABLET_ENABLED = false;
 const bool DEFAULT_AWAY_STATE_WHEN_FOCUS_LOST_IN_VR_ENABLED = true;
 
 QSharedPointer<OffscreenUi> getOffscreenUI() {
@@ -1305,6 +1305,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     _entityServerConnectionTimer.setSingleShot(true);
     connect(&_entityServerConnectionTimer, &QTimer::timeout, this, &Application::setFailedToConnectToEntityServer);
+
+    connect(&domainHandler, &DomainHandler::confirmConnectWithoutAvatarEntities,
+        this, &Application::confirmConnectWithoutAvatarEntities);
 
     connect(&domainHandler, &DomainHandler::connectedToDomain, this, [this]() {
         if (!isServerlessMode()) {
@@ -2493,7 +2496,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return viewFrustum.getPosition();
     });
 
-    DependencyManager::get<UsersScriptingInterface>()->setKickConfirmationOperator([this] (const QUuid& nodeID) { userKickConfirmation(nodeID); });
+    DependencyManager::get<UsersScriptingInterface>()->setKickConfirmationOperator([this] (const QUuid& nodeID, unsigned int banFlags) { userKickConfirmation(nodeID, banFlags); });
 
     render::entities::WebEntityRenderer::setAcquireWebSurfaceOperator([=](const QString& url, bool htmlContent, QSharedPointer<OffscreenQmlSurface>& webSurface, bool& cachedWebSurface) {
         bool isTablet = url == TabletScriptingInterface::QML;
@@ -3575,7 +3578,7 @@ void Application::onDesktopRootItemCreated(QQuickItem* rootItem) {
     _desktopRootItemCreated = true;
 }
 
-void Application::userKickConfirmation(const QUuid& nodeID) {
+void Application::userKickConfirmation(const QUuid& nodeID, unsigned int banFlags) {
     auto avatarHashMap = DependencyManager::get<AvatarHashMap>();
     auto avatar = avatarHashMap->getAvatarBySessionID(nodeID);
 
@@ -3600,7 +3603,7 @@ void Application::userKickConfirmation(const QUuid& nodeID) {
             // ask the NodeList to kick the user with the given session ID
 
             if (yes) {
-                DependencyManager::get<NodeList>()->kickNodeBySessionID(nodeID);
+                DependencyManager::get<NodeList>()->kickNodeBySessionID(nodeID, banFlags);
             }
 
             DependencyManager::get<UsersScriptingInterface>()->setWaitForKickResponse(false);
@@ -9172,6 +9175,32 @@ void Application::setShowBulletConstraints(bool value) {
 
 void Application::setShowBulletConstraintLimits(bool value) {
     _physicsEngine->setShowBulletConstraintLimits(value);
+}
+
+void Application::confirmConnectWithoutAvatarEntities() {
+
+    if (_confirmConnectWithoutAvatarEntitiesDialog) {
+        // Dialog is already displayed.
+        return;
+    }
+
+    if (!getMyAvatar()->hasAvatarEntities()) {
+        // No avatar entities so continue with login.
+        DependencyManager::get<NodeList>()->getDomainHandler().setCanConnectWithoutAvatarEntities(true);
+        return;
+    }
+
+    QString continueMessage = "Your wearables will not display on this domain. Continue?";
+    _confirmConnectWithoutAvatarEntitiesDialog = OffscreenUi::asyncQuestion("Continue Without Wearables", continueMessage,
+        QMessageBox::Yes | QMessageBox::No);
+    if (_confirmConnectWithoutAvatarEntitiesDialog->getDialogItem()) {
+        QObject::connect(_confirmConnectWithoutAvatarEntitiesDialog, &ModalDialogListener::response, this, [=](QVariant answer) {
+            QObject::disconnect(_confirmConnectWithoutAvatarEntitiesDialog, &ModalDialogListener::response, this, nullptr);
+            _confirmConnectWithoutAvatarEntitiesDialog = nullptr;
+            bool shouldConnect = (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes);
+            DependencyManager::get<NodeList>()->getDomainHandler().setCanConnectWithoutAvatarEntities(shouldConnect);
+        });
+    }
 }
 
 void Application::createLoginDialog() {

@@ -14,7 +14,7 @@
 
 class QScriptValue;
 
-/**jsdoc
+/*@jsdoc
  * The <code>PlatformInfo</code> API provides information about the hardware platform being used.
  *
  * @namespace PlatformInfo
@@ -31,7 +31,7 @@ public:
     PlatformInfoScriptingInterface();
     virtual ~PlatformInfoScriptingInterface();
 
-    /**jsdoc
+    /*@jsdoc
      * <p>The platform tier of a computer is an indication of its rendering capability.</p>
      * <table>
      *   <thead>
@@ -56,13 +56,13 @@ public:
     Q_ENUM(PlatformTier);
 
 public slots:
-    /**jsdoc
+    /*@jsdoc
      * @function PlatformInfo.getInstance
      * @deprecated This function is deprecated and will be removed.
      */
     static PlatformInfoScriptingInterface* getInstance();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the operating system type.
      * @function PlatformInfo.getOperatingSystemType
      * @returns {string} The operating system type: <code>"WINDOWS"</code>, <code>"MACOS"</code>, or <code>"UNKNOWN"</code>.
@@ -71,7 +71,7 @@ public slots:
      */
     QString getOperatingSystemType();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets information on the CPU model.
      * @function PlatformInfo.getCPUBrand
      * @returns {string} Information on the CPU.
@@ -80,7 +80,7 @@ public slots:
      */
     QString getCPUBrand();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the number of logical CPU cores.
      * @function PlatformInfo.getNumLogicalCores
      * @returns {number} The number of logical CPU cores.
@@ -89,7 +89,7 @@ public slots:
      */
     unsigned int getNumLogicalCores();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the total amount of usable physical memory, in MB.
      * @function PlatformInfo.getTotalSystemMemoryMB
      * @returns {number} The total system memory in megabytes.
@@ -98,7 +98,7 @@ public slots:
      */
     int getTotalSystemMemoryMB();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the model of the graphics card currently being used.
      * @function PlatformInfo.getGraphicsCardType
      * @returns {string} The model of the graphics card currently being used.
@@ -109,21 +109,21 @@ public slots:
      */
     QString getGraphicsCardType();
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether Oculus Touch controllers are connected.
      * @function PlatformInfo.hasRiftControllers
      * @returns {boolean} <code>true</code> if Oculus Touch controllers are connected, <code>false</code> if they aren't.
      */
     bool hasRiftControllers();
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether Vive controllers are connected.
      * @function PlatformInfo.hasViveControllers
      * @returns {boolean} <code>true</code> if Vive controllers are connected, <code>false</code> if they aren't.
      */
     bool hasViveControllers();
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether HTML on 3D surfaces (e.g., Web entities) is supported.
      * @function PlatformInfo.has3DHTML
      * @returns {boolean} <code>true</code> if the current display supports HTML on 3D surfaces, <code>false</code> if it 
@@ -131,28 +131,28 @@ public slots:
      */
     bool has3DHTML();
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether Interface is running on a stand-alone HMD device (CPU incorporated into the HMD display).
      * @function PlatformInfo.isStandalone
      * @returns {boolean} <code>true</code> if Interface is running on a stand-alone HMD device, <code>false</code> if it isn't.
      */
     bool isStandalone();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the number of CPUs.
      * @function PlatformInfo.getNumCPUs
      * @returns {number} The number of CPUs.
      */
     int getNumCPUs();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the index number of the master CPU.
      * @function PlatformInfo.getMasterCPU
      * @returns {number} The index of the master CPU.
      */
     int getMasterCPU();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the platform description of a CPU.
      * @function PlatformInfo.getCPU
      * @param {number} index - The index number of the CPU.
@@ -167,21 +167,21 @@ public slots:
      */
     QString getCPU(int index);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the number of GPUs.
      * @function PlatformInfo.getNumGPUs
      * @returns {number} The number of GPUs.
      */
     int getNumGPUs();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the index number of the master GPU.
      * @function PlatformInfo.getMasterGPU
      * @returns {number} The index of the master GPU.
      */
     int getMasterGPU();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the platform description of a GPU.
      * @param {number} index - The index number of the GPU.
      * @function PlatformInfo.getGPU
@@ -196,21 +196,21 @@ public slots:
      */
     QString getGPU(int index);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the number of displays.
      * @function PlatformInfo.getNumDisplays
      * @returns {number} The number of displays.
      */
     int getNumDisplays();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the index number of the master display.
      * @function PlatformInfo.getMasterDisplay
      * @returns {number} The index of the master display.
      */
     int getMasterDisplay();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the platform description of a display.
      * @param {number} index - The index number of the display.
      * @function PlatformInfo.getDisplay
@@ -225,7 +225,7 @@ public slots:
      */
     QString getDisplay(int index);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the platform description of computer memory.
      * @function PlatformInfo.getMemory
      * @returns {string} The computer's {@link PlatformInfo.MemoryDescription|MemoryDescription} information as a JSON string.
@@ -234,21 +234,21 @@ public slots:
      */
     QString getMemory();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the platform description of the computer.
      * @function PlatformInfo.getComputer
      * @returns {string} The {@link PlatformInfo.ComputerDescription|ComputerDescription} information as a JSON string.
      */
     QString getComputer();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the complete description of the computer as a whole.
      * @function PlatformInfo.getPlatform
      * @returns {string} The {@link PlatformInfo.PlatformDescription|PlatformDescription} information as a JSON string.
      */
     QString getPlatform();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the platform tier of the computer, profiled at Interface start-up.
      * @function PlatformInfo.getTierProfiled
      * @returns {PlatformInfo.PlatformTier} The platform tier of the computer.
@@ -259,14 +259,14 @@ public slots:
      */
     PlatformTier getTierProfiled();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the names of the possible platform tiers, per {@link PlatformInfo.PlatformTier}.
      * @function PlatformInfo.getPlatformTierNames
      * @returns {string[]} The names of the possible platform tiers.
      */
     QStringList getPlatformTierNames();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether the current hardware can use deferred rendering.
      * @function PlatformInfo.isRenderMethodDeferredCapable
      * @returns {boolean} <code>true</code> if the current hardware can use deferred rendering, <code>false</code> if it can't. 

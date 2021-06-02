@@ -10,7 +10,7 @@
 
 #include "Camera.h"
 
-/**jsdoc
+/*@jsdoc
  * <p>Camera modes affect the position of the camera and the controls for camera movement. The camera can be in one of the
  * following modes:</p>
  * <table>
@@ -215,7 +215,7 @@ void Camera::loadViewFrustum(ViewFrustum& frustum) const {
     frustum.calculate();
 }
 
-/**jsdoc
+/*@jsdoc
  * A ViewFrustum has a "keyhole" shape: a regular frustum for stuff that is visible plus a central sphere for stuff that is
  * nearby (for physics simulation).
  *

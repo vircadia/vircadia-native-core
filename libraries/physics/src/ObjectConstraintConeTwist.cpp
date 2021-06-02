@@ -261,7 +261,7 @@ bool ObjectConstraintConeTwist::updateArguments(QVariantMap arguments) {
     return true;
 }
 
-/**jsdoc
+/*@jsdoc
  * The <code>"cone-twist"</code> {@link Entities.ActionType|ActionType} connects two entities with a joint that can move 
  * through a cone and can twist.
  * It has arguments in addition to the common {@link Entities.ActionArguments|ActionArguments}:

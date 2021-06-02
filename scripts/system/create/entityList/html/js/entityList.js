@@ -273,6 +273,7 @@ let elEntityTable,
     elSnapToGridActivatorCaption,
     elAlignGridToSelection,
     elAlignGridToAvatar,
+    elBrokenURLReport,
     elFilterTypeMultiselectBox,
     elFilterTypeText,
     elFilterTypeOptions,
@@ -359,7 +360,8 @@ function loaded() {
         elSnapToGridActivator = document.getElementById("snapToGridActivator");
         elSnapToGridActivatorCaption = document.getElementById("snapToGridActivatorCaption");
         elAlignGridToSelection = document.getElementById("alignGridToSelection");
-        elAlignGridToAvatar = document.getElementById("alignGridToAvatar");       
+        elAlignGridToAvatar = document.getElementById("alignGridToAvatar");
+        elBrokenURLReport = document.getElementById("brokenURLReport");
         elFilterTypeMultiselectBox = document.getElementById("filter-type-multiselect-box");
         elFilterTypeText = document.getElementById("filter-type-text");
         elFilterTypeOptions = document.getElementById("filter-type-options");
@@ -597,7 +599,11 @@ function loaded() {
         elAlignGridToAvatar.onclick = function () {
             EventBridge.emitWebEvent(JSON.stringify({ type: "alignGridToAvatar" }));
             closeAllEntityListMenu();
-        };        
+        };
+        elBrokenURLReport.onclick = function () {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "brokenURLReport" }));
+            closeAllEntityListMenu();
+        };
         elToggleSpaceMode.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: "toggleSpaceMode" }));
         };

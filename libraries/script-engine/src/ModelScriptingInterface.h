@@ -17,7 +17,7 @@
 #include <RegisteredMetaTypes.h>
 class QScriptEngine;
 
-/**jsdoc
+/*@jsdoc
  * The <code>Model</code> API provides the ability to manipulate meshes. You can get the meshes for an entity using 
  * {@link Entities.getMeshes}, or create a new mesh using {@link Model.newMesh}.
  * <p>See also, the {@link Graphics} API.</p>
@@ -38,7 +38,7 @@ class ModelScriptingInterface : public QObject {
 public:
     ModelScriptingInterface(QObject* parent);
 
-    /**jsdoc
+    /*@jsdoc
      * Exports meshes to an OBJ format model.
      * @function Model.meshToOBJ
      * @param {MeshProxy[]} meshes - The meshes to export.
@@ -46,7 +46,7 @@ public:
      */
     Q_INVOKABLE QString meshToOBJ(MeshProxyList in);
 
-    /**jsdoc
+    /*@jsdoc
      * Combines multiple meshes into one.
      * @function Model.appendMeshes
      * @param {MeshProxy[]} meshes - The meshes to combine.
@@ -54,7 +54,7 @@ public:
      */
     Q_INVOKABLE QScriptValue appendMeshes(MeshProxyList in);
 
-    /**jsdoc
+    /*@jsdoc
      * Transforms the vertices in a mesh.
      * @function Model.transformMesh
      * @param {Mat4} transform - The transform to apply.
@@ -63,7 +63,7 @@ public:
      */
     Q_INVOKABLE QScriptValue transformMesh(glm::mat4 transform, MeshProxy* meshProxy);
 
-    /**jsdoc
+    /*@jsdoc
      * Creates a new mesh.
      * @function Model.newMesh
      * @param {Vec3[]} vertices - The vertices in the mesh.
@@ -75,7 +75,7 @@ public:
                                      const QVector<glm::vec3>& normals,
                                      const QVector<MeshFace>& faces);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the number of vertices in a mesh.
      * @function Model.getVertexCount
      * @param {MeshProxy} mesh - The mesh to count the vertices in.
@@ -83,7 +83,7 @@ public:
      */
     Q_INVOKABLE QScriptValue getVertexCount(MeshProxy* meshProxy);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the position of a vertex in a mesh.
      * @function Model.getVertex
      * @param {MeshProxy} mesh - The mesh.

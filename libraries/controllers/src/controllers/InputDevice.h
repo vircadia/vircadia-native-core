@@ -32,7 +32,7 @@ namespace controller {
 class Endpoint;
 using EndpointPointer = std::shared_ptr<Endpoint>;
 
-/**jsdoc
+/*@jsdoc
  * <p>Some controller actions may be associated with one or both hands:</p>
  * <table>
  *   <thead>
@@ -52,7 +52,7 @@ enum Hand {
     BOTH
 };
 
-/**jsdoc
+/*@jsdoc
  * <p>The <code>Controller.Hardware</code> object has properties representing standard and hardware-specific controller and 
  * computer outputs, plus predefined actions on Interface and the user's avatar. <em>Read-only.</em></p>
  * <p>The outputs can be mapped to actions or functions in a {@link RouteObject} mapping. Additionally, hardware-specific 
