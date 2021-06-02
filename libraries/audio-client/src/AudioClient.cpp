@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 1/22/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -363,7 +364,7 @@ AudioClient::AudioClient() {
 
     configureReverb();
 
-#if defined(WEBRTC_ENABLED)
+#if defined(WEBRTC_AUDIO)
     configureWebrtc();
 #endif
 
@@ -1142,7 +1143,7 @@ void AudioClient::setReverbOptions(const AudioEffectOptions* options) {
     }
 }
 
-#if defined(WEBRTC_ENABLED)
+#if defined(WEBRTC_AUDIO)
 
 static void deinterleaveToFloat(const int16_t* src, float* const* dst, int numFrames, int numChannels) {
     for (int i = 0; i < numFrames; i++) {
@@ -1261,7 +1262,7 @@ void AudioClient::processWebrtcNearEnd(int16_t* samples, int numFrames, int numC
     }
 }
 
-#endif // WEBRTC_ENABLED
+#endif // WEBRTC_AUDIO
 
 void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     // If there is server echo, reverb will be applied to the recieved audio stream so no need to have it here.
@@ -1462,7 +1463,7 @@ void AudioClient::handleMicAudioInput() {
         }
         isClipping = (_timeSinceLastClip >= 0.0f) && (_timeSinceLastClip < 2.0f);  // 2 second hold time
 
-#if defined(WEBRTC_ENABLED)
+#if defined(WEBRTC_AUDIO)
         if (_isAECEnabled) {
             processWebrtcNearEnd(inputAudioSamples.get(), inputSamplesRequired / _inputFormat.channelCount(),
                                  _inputFormat.channelCount(), _inputFormat.sampleRate());
@@ -2420,7 +2421,7 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     // limit the audio
     _audio->_audioLimiter.render(mixBuffer, scratchBuffer, framesPopped);
 
-#if defined(WEBRTC_ENABLED)
+#if defined(WEBRTC_AUDIO)
     if (_audio->_isAECEnabled) {
         _audio->processWebrtcFarEnd(scratchBuffer, framesPopped, OUTPUT_CHANNEL_COUNT, _audio->_outputFormat.sampleRate());
     }

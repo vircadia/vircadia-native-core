@@ -12,6 +12,11 @@ Make a `/build/doxygen/` directory.
 If you want to run Doxygen from a command prompt, add the Doxygen install's `/bin` directory to your system PATH.
 
 
+## Documenting
+
+See section 4.3.6 of the [*Coding Standard*](../../CODING_STANDARD.md).
+
+
 ## Running
 
 ### Using the Doxywizard GUI

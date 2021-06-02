@@ -27,6 +27,8 @@
 #include <Assignment.h>
 #include <HTTPSConnection.h>
 #include <LimitedNodeList.h>
+#include <shared/WebRTC.h>
+#include <webrtc/WebRTCSignalingServer.h>
 
 #include "AssetsBackupHandler.h"
 #include "DomainGatekeeper.h"
@@ -311,6 +313,10 @@ private:
     std::unordered_map<int, std::unique_ptr<QTemporaryFile>> _pendingContentFiles;
 
     QThread _assetClientThread;
+
+#ifdef WEBRTC_DATA_CHANNEL
+    WebRTCSignalingServer _webrtcSignalingServer;
+#endif
 };
 
 

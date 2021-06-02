@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 1/22/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -55,6 +56,11 @@
 #include "AudioIOStats.h"
 #include "AudioFileWav.h"
 #include "HifiAudioDeviceInfo.h"
+
+#if defined(WEBRTC_AUDIO)
+#  include <modules/audio_processing/include/audio_processing.h>
+#  include "modules/audio_processing/audio_processing_impl.h"
+#endif
 
 #ifdef _WIN32
 #pragma warning( push )
@@ -450,7 +456,7 @@ private:
     void updateReverbOptions();
     void handleLocalEchoAndReverb(QByteArray& inputByteArray);
 
-#if defined(WEBRTC_ENABLED)
+#if defined(WEBRTC_AUDIO)
     static const int WEBRTC_SAMPLE_RATE_MAX = 96000;
     static const int WEBRTC_CHANNELS_MAX = 2;
     static const int WEBRTC_FRAMES_MAX = webrtc::AudioProcessing::kChunkSizeMs * WEBRTC_SAMPLE_RATE_MAX / 1000;

@@ -40,7 +40,15 @@ const unsigned short DEFAULT_DOMAIN_SERVER_PORT =
         ? QProcessEnvironment::systemEnvironment()
             .value("HIFI_DOMAIN_SERVER_PORT")
             .toUShort()
-        : 40102;
+        : 40102;  // UDP
+
+const unsigned short DEFAULT_DOMAIN_SERVER_WS_PORT =
+    QProcessEnvironment::systemEnvironment()
+    .contains("VIRCADIA_DOMAIN_SERVER_WS_PORT")
+        ? QProcessEnvironment::systemEnvironment()
+            .value("VIRCADIA_DOMAIN_SERVER_WS_PORT")
+            .toUShort()
+        : 40102;  // TCP
 
 const unsigned short DEFAULT_DOMAIN_SERVER_DTLS_PORT =
     QProcessEnvironment::systemEnvironment()
