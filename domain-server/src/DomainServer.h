@@ -28,8 +28,10 @@
 #include <HTTPSConnection.h>
 #include <LimitedNodeList.h>
 #include <shared/WebRTC.h>
+#if defined(WEBRTC_DATA_CHANNEL)
 #include <webrtc/WebRTCDataChannels.h>
 #include <webrtc/WebRTCSignalingServer.h>
+#endif
 
 #include "AssetsBackupHandler.h"
 #include "DomainGatekeeper.h"
