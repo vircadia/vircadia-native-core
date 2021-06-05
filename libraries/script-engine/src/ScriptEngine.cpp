@@ -36,8 +36,6 @@
 #include <QtScript/QScriptValue>
 #include <QtScript/QScriptValueIterator>
 
-#include <QtScriptTools/QScriptEngineDebugger>
-
 #include <shared/LocalFileAccessGate.h>
 #include <shared/QtHelpers.h>
 #include <shared/AbstractLoggerInterface.h>
@@ -327,96 +325,6 @@ void ScriptEngine::disconnectNonEssentialSignals() {
     }
 }
 
-void ScriptEngine::runDebuggable() {
-    static QMenuBar* menuBar { nullptr };
-    static QMenu* scriptDebugMenu { nullptr };
-    static size_t scriptMenuCount { 0 };
-    if (!scriptDebugMenu) {
-        for (auto window : qApp->topLevelWidgets()) {
-            auto mainWindow = qobject_cast<QMainWindow*>(window);
-            if (mainWindow) {
-                menuBar = mainWindow->menuBar();
-                break;
-            }
-        }
-        if (menuBar) {
-            scriptDebugMenu = menuBar->addMenu("Script Debug");
-        }
-    }
-
-    init();
-    _isRunning = true;
-    _debuggable = true;
-    _debugger = new QScriptEngineDebugger(this);
-    _debugger->attachTo(this);
-
-    QMenu* parentMenu = scriptDebugMenu;
-    QMenu* scriptMenu { nullptr };
-    if (parentMenu) {
-        ++scriptMenuCount;
-        scriptMenu = parentMenu->addMenu(_fileNameString);
-        scriptMenu->addMenu(_debugger->createStandardMenu(qApp->activeWindow()));
-    } else {
-        qWarning() << "Unable to add script debug menu";
-    }
-
-    QScriptValue result = evaluate(_scriptContents, _fileNameString);
-
-    _lastUpdate = usecTimestampNow();
-    QTimer* timer = new QTimer(this);
-    connect(this, &ScriptEngine::finished, [this, timer, parentMenu, scriptMenu] {
-        if (scriptMenu) {
-            parentMenu->removeAction(scriptMenu->menuAction());
-            --scriptMenuCount;
-            if (0 == scriptMenuCount) {
-                menuBar->removeAction(scriptDebugMenu->menuAction());
-                scriptDebugMenu = nullptr;
-            }
-        }
-        disconnect(timer);
-    });
-
-    connect(timer, &QTimer::timeout, [this, timer] {
-        if (_isFinished) {
-            if (!_isRunning) {
-                return;
-            }
-            stopAllTimers(); // make sure all our timers are stopped if the script is ending
-
-            emit scriptEnding();
-            emit finished(_fileNameString, qSharedPointerCast<ScriptEngine>(sharedFromThis()));
-            _isRunning = false;
-
-            emit runningStateChanged();
-            emit doneRunning();
-
-            timer->deleteLater();
-            return;
-        }
-
-        qint64 now = usecTimestampNow();
-        // we check for 'now' in the past in case people set their clock back
-        if (_lastUpdate < now) {
-            float deltaTime = (float)(now - _lastUpdate) / (float)USECS_PER_SECOND;
-            if (!(_isFinished || _isStopping)) {
-                emit update(deltaTime);
-            }
-        }
-        _lastUpdate = now;
-
-        // only clear exceptions if we are not in the middle of evaluating
-        if (!isEvaluating() && hasUncaughtException()) {
-            qCWarning(scriptengine) << __FUNCTION__ << "---------- UNCAUGHT EXCEPTION --------";
-            qCWarning(scriptengine) << "runDebuggable" << uncaughtException().toString();
-            logException(__FUNCTION__);
-            clearExceptions();
-        }
-    });
-
-    timer->start(10);
-}
-
-
 void ScriptEngine::runInThread() {
     Q_ASSERT_X(!_isThreaded, "ScriptEngine::runInThread()", "runInThread should not be called more than once");
 
@@ -588,12 +496,6 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
 
         _scriptContents = scriptContents;
 
-        {
-            static const QString DEBUG_FLAG("#debug");
-            if (QRegularExpression(DEBUG_FLAG).match(scriptContents).hasMatch()) {
-                _debuggable = true;
-            }
-        }
         emit scriptLoaded(url);
     }, reload, maxRetries);
 }
