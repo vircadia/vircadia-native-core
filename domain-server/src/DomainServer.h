@@ -28,7 +28,7 @@
 #include <HTTPSConnection.h>
 #include <LimitedNodeList.h>
 #include <shared/WebRTC.h>
-#if defined(WEBRTC_DATA_CHANNEL)
+#if defined(WEBRTC_DATA_CHANNELS)
 #include <webrtc/WebRTCDataChannels.h>
 #include <webrtc/WebRTCSignalingServer.h>
 #endif
