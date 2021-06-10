@@ -139,6 +139,7 @@ endif()
             self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.15.2-macos.tar.gz'
         elif 'Linux' == system:
             import distro
+            cpu_architecture = platform.machine()
 
             if 'x86_64' == cpu_architecture:
                 if distro.id() == 'ubuntu':
