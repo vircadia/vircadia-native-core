@@ -97,12 +97,12 @@ Qt binaries are only provided for Ubuntu. In order to build on other distributio
  needs to be provided by setting the `VIRCADIA_QT_PATH` environment variable to a directory containing
  a Qt install.
 
- ### Using the system's Qt
+### Using the system's Qt
 
  The system's Qt can be used, if the development packages are installed, by setting the
  `VIRCADIA_USE_SYSTEM_QT` environment variable. The minimum recommended version is Qt 5.15.0.
 
- ### Compiling
+### Compiling
 
 Create the build directory:
 ```bash
