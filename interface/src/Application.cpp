@@ -4004,7 +4004,7 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     parser.parse(arguments());
     if (parser.isSet(urlOption)) {
         QUrl url = QUrl(parser.value(urlOption));
-        if (url.scheme() == URL_SCHEME_HIFIAPP) {
+        if (url.scheme() == URL_SCHEME_VIRCADIAAPP) {
             Setting::Handle<QVariant>("startUpApp").set(url.path());
         } else {
             addressLookupString = url.toString();
@@ -7285,7 +7285,7 @@ void Application::clearDomainOctreeDetails(bool clearAll) {
 
 void Application::domainURLChanged(QUrl domainURL) {
     // disable physics until we have enough information about our new location to not cause craziness.
-    setIsServerlessMode(domainURL.scheme() != URL_SCHEME_HIFI);
+    setIsServerlessMode(domainURL.scheme() != URL_SCHEME_VIRCADIA);
     if (isServerlessMode()) {
         loadServerlessDomain(domainURL);
     }
@@ -7294,7 +7294,7 @@ void Application::domainURLChanged(QUrl domainURL) {
 
 void Application::goToErrorDomainURL(QUrl errorDomainURL) {
     // disable physics until we have enough information about our new location to not cause craziness.
-    setIsServerlessMode(errorDomainURL.scheme() != URL_SCHEME_HIFI);
+    setIsServerlessMode(errorDomainURL.scheme() != URL_SCHEME_VIRCADIA);
     if (isServerlessMode()) {
         loadErrorDomain(errorDomainURL);
     }
@@ -7658,7 +7658,7 @@ bool Application::canAcceptURL(const QString& urlString) const {
     QUrl url(urlString);
     if (url.query().contains(WEB_VIEW_TAG)) {
         return false;
-    } else if (urlString.startsWith(URL_SCHEME_HIFI)) {
+    } else if (urlString.startsWith(URL_SCHEME_VIRCADIA)) {
         return true;
     }
     QString lowerPath = url.path().toLower();
@@ -7673,7 +7673,7 @@ bool Application::canAcceptURL(const QString& urlString) const {
 bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
     QUrl url(urlString);
 
-    if (url.scheme() == URL_SCHEME_HIFI) {
+    if (url.scheme() == URL_SCHEME_VIRCADIA) {
         // this is a hifi URL - have the AddressManager handle it
         QMetaObject::invokeMethod(DependencyManager::get<AddressManager>().data(), "handleLookupString",
                                   Qt::AutoConnection, Q_ARG(const QString&, urlString));
