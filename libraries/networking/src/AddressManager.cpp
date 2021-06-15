@@ -359,7 +359,6 @@ bool AddressManager::handleUrl(const QUrl& lookupUrlIn, LookupTrigger trigger, c
                 _previousAPILookup = lookupUrl;
 
                 // Let's convert this to a QString for processing in case there are spaces in it.
-
                 if (lookupUrlString.contains(URL_SCHEME_VIRCADIA + "://", Qt::CaseInsensitive)) {
                     lookupUrlString = lookupUrlString.replace((URL_SCHEME_VIRCADIA + "://"), "");
                 } else if (lookupUrlString.contains(URL_SCHEME_VIRCADIA + ":/", Qt::CaseInsensitive)) {
@@ -377,7 +376,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrlIn, LookupTrigger trigger, c
                     lookupUrlString.replace(lookupUrlStringPath, "");
                 }
 
-                if (!lookupUrlString.isNull() && !lookupUrlString.isEmpty()) {
+                if (!lookupUrlString.isEmpty()) {
                     attemptPlaceNameLookup(lookupUrlString, lookupUrlStringPath, trigger);
                 }
             }
@@ -633,8 +632,6 @@ void AddressManager::handleAPIError(QNetworkReply* errorReply) {
 
 void AddressManager::attemptPlaceNameLookup(const QString& lookupString, const QString& overridePath, LookupTrigger trigger) {
     // assume this is a place name and see if we can get any info on it
-    //QString placeName = QUrl::toPercentEncoding(lookupString);
-
     QVariantMap requestParams;
 
     // if the user asked for a specific path with this lookup then keep it with the request so we can use it later
