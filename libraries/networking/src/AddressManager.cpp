@@ -242,7 +242,7 @@ const JSONCallbackParameters& AddressManager::apiCallbackParameters() {
     return callbackParams;
 }
 
-bool AddressManager::handleUrl(const QUrl& lookupUrlIn, LookupTrigger trigger) {
+bool AddressManager::handleUrl(const QUrl& lookupUrlIn, LookupTrigger trigger, const QString& lookupUrlInString) {
     static QString URL_TYPE_USER = "user";
     static QString URL_TYPE_DOMAIN_ID = "domain_id";
     static QString URL_TYPE_PLACE = "place";
@@ -271,7 +271,15 @@ bool AddressManager::handleUrl(const QUrl& lookupUrlIn, LookupTrigger trigger) {
     // would indicate that the scheme is 'somewhere'
     // use hifi://somewhere:<port> instead
 
-    if (lookupUrl.scheme() == URL_SCHEME_VIRCADIA) {
+    if (lookupUrl.scheme() == URL_SCHEME_VIRCADIA || lookupUrlInString.startsWith(URL_SCHEME_VIRCADIA + "://")) {
+        QString lookupUrlString;
+
+        if (lookupUrlInString.startsWith(URL_SCHEME_VIRCADIA + "://")) {
+            lookupUrlString = lookupUrlInString;
+        } else {
+            lookupUrlString = lookupUrl.toString(QUrl::FullyEncoded);
+        }
+
         if (lookupUrl.host().isEmpty()) {
             // this was in the form hifi:/somewhere or hifi:somewhere.  Fix it by making it hifi://somewhere
             static const QRegExp HIFI_SCHEME_REGEX = QRegExp(URL_SCHEME_VIRCADIA + ":\\/{0,2}", Qt::CaseInsensitive);
@@ -340,6 +348,8 @@ bool AddressManager::handleUrl(const QUrl& lookupUrlIn, LookupTrigger trigger) {
                 // try to look up the domain ID on the metaverse API
                 attemptDomainIDLookup(lookupUrl.host(), lookupUrl.path(), trigger);
             } else {
+                // wasn't an address - lookup the place name
+                // we may have a path that defines a relative viewpoint - pass that through the lookup so we can go to it after
                 UserActivityLogger::getInstance().wentTo(trigger, URL_TYPE_PLACE, lookupUrl.toString());
 
                 // save the last visited domain URL.
@@ -348,10 +358,27 @@ bool AddressManager::handleUrl(const QUrl& lookupUrlIn, LookupTrigger trigger) {
                 // store this place name as the previous lookup in case we fail to connect and want to refresh API info
                 _previousAPILookup = lookupUrl;
 
-                // wasn't an address - lookup the place name
-                // we may have a path that defines a relative viewpoint - pass that through the lookup so we can go to it after
-                if (!lookupUrl.host().isNull() && !lookupUrl.host().isEmpty()) {
-                    attemptPlaceNameLookup(lookupUrl.host(), lookupUrl.path(), trigger);
+                // Let's convert this to a QString for processing in case there are spaces in it.
+
+                if (lookupUrlString.contains(URL_SCHEME_VIRCADIA + "://", Qt::CaseInsensitive)) {
+                    lookupUrlString = lookupUrlString.replace((URL_SCHEME_VIRCADIA + "://"), "");
+                } else if (lookupUrlString.contains(URL_SCHEME_VIRCADIA + ":/", Qt::CaseInsensitive)) {
+                    lookupUrlString = lookupUrlString.replace((URL_SCHEME_VIRCADIA + ":/"), "");
+                } else if (lookupUrlString.contains(URL_SCHEME_VIRCADIA + ":", Qt::CaseInsensitive)) {
+                    lookupUrlString = lookupUrlString.replace((URL_SCHEME_VIRCADIA + ":"), "");
+                }
+
+                // Get the path and then strip it out.
+                QString lookupUrlStringPath;
+
+                int index = lookupUrlString.indexOf('/');
+                if (index != -1) {
+                    lookupUrlStringPath = lookupUrlString.mid(index);
+                    lookupUrlString.replace(lookupUrlStringPath, "");
+                }
+
+                if (!lookupUrlString.isNull() && !lookupUrlString.isEmpty()) {
+                    attemptPlaceNameLookup(lookupUrlString, lookupUrlStringPath, trigger);
                 }
             }
         }
@@ -412,13 +439,13 @@ bool isPossiblePlaceName(QString possiblePlaceName) {
 }
 
 void AddressManager::handleLookupString(const QString& lookupString, bool fromSuggestions) {
+    QString trimmedString = lookupString.trimmed();
 
-    QString sanitizedString = lookupString.trimmed();
-    if (!sanitizedString.isEmpty()) {
+    if (!trimmedString.isEmpty()) {
         resetConfirmConnectWithoutAvatarEntities();
 
         // make this a valid hifi URL and handle it off to handleUrl
-        handleUrl(sanitizedString, fromSuggestions ? Suggestions : UserInput);
+        handleUrl(trimmedString, fromSuggestions ? Suggestions : UserInput, trimmedString);
     }
 }
 
@@ -606,7 +633,7 @@ void AddressManager::handleAPIError(QNetworkReply* errorReply) {
 
 void AddressManager::attemptPlaceNameLookup(const QString& lookupString, const QString& overridePath, LookupTrigger trigger) {
     // assume this is a place name and see if we can get any info on it
-    QString placeName = QUrl::toPercentEncoding(lookupString);
+    //QString placeName = QUrl::toPercentEncoding(lookupString);
 
     QVariantMap requestParams;
 
@@ -618,7 +645,7 @@ void AddressManager::attemptPlaceNameLookup(const QString& lookupString, const Q
     // remember how this lookup was triggered for history storage handling later
     requestParams.insert(LOOKUP_TRIGGER_KEY, static_cast<int>(trigger));
 
-    DependencyManager::get<AccountManager>()->sendRequest(GET_PLACE.arg(placeName),
+    DependencyManager::get<AccountManager>()->sendRequest(GET_PLACE.arg(lookupString),
                                               AccountManagerAuth::None,
                                               QNetworkAccessManager::GetOperation,
                                               apiCallbackParameters(),
