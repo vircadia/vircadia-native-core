@@ -1,6 +1,6 @@
 # Creating an Installer
 
-*Last Updated on May 25, 2021*
+*Last Updated on June 16, 2021*
 
 Follow the [build guide](BUILD.md) to figure out how to build Vircadia for your platform.
 
@@ -78,6 +78,15 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
     `server-console-win32-x64` and `x64`
 1.  Build CMakeTargets->PACKAGE   
     The installer is now available in `build\_CPack_Packages\win64\NSIS`
+
+#### Create an MSIX Package
+
+1. Get the 'MSIX Packaging Tool' from the Windows Store.
+2. Run the process to create a new MSIX package from an existing .exe or .msi installer. This process will allow you to install Vircadia with the usual installer, however it will monitor changes to the computer to replicate the functionality in the MSIX Package. Therefore, you will want to avoid doing anything else on your computer during this process.
+3. Be sure to select no shortcuts and install only the Vircadia Interface.
+4. When asked for "Entry" points, select only the Interface entry and not the uninstaller. This is because the MSIX package is uninstalled by Windows itself. If for some reason the uninstaller shows up anyway, you can edit the manifest to manually remove it from view even if the uninstaller is present in the package. This is necessary to uplaod to the Windows Store.
+5. Once completed, you can sign the package with this application or with other tools such as 'MSIX Hero'. It must be signed with a local certificate to test, and with a proper certificate to distribute.
+6. If uploading to the Windows Store, you will have to ensure all your manifest info including publisher information matches what is registered with your Microsoft Developer account for Windows. You will see these errors and the expected values when validating it.
 
 #### FAQ
 
