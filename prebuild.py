@@ -139,7 +139,7 @@ def main():
         if qtInstallPath is not None:
             # qtInstallPath is None when we're doing a system Qt build
             print("cmake path: " + qtInstallPath)
-            
+
             with hifi_singleton.Singleton(qt.lockFile) as lock:
                 with timer('Qt'):
                     qt.installQt()

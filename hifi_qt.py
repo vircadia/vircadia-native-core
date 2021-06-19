@@ -119,7 +119,7 @@ endif()
                     raise Exception("Failed to find Qt5 directory under " + self.cmakePath + ". There should be a " + qt5_dir)
                 else:
                     print("Qt5 check passed, found " + qt5_dir)
-                    
+
             # I'm not sure why this is needed. It's used by hifi_singleton.
             # Perhaps it stops multiple build processes from interferring?
             lockDir, lockName = os.path.split(self.path)

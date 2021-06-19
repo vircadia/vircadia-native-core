@@ -198,7 +198,7 @@ if (BUILD_TOOLS AND NPM_EXECUTABLE)
 endif()
 
 if (WIN32 OR APPLE)
-    add_dependencies(${TARGET_NAME} resources)
+  add_dependencies(${TARGET_NAME} resources)
 endif()
 
 if (SCREENSHARE)
