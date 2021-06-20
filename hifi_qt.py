@@ -37,29 +37,6 @@ import functools
 
 print = functools.partial(print, flush=True)
 
-def unsupported_error():
-    import distro
-    cpu_architecture = platform.machine()
-
-    print('')
-    hifi_utils.color('red')
-    print("Sorry, we don't have a prebuilt Qt package for " + distro.name(pretty=True) + " on " + cpu_architecture + ".")
-    hifi_utils.color('white')
-    print('')
-    print("If this is a recent distribution, dating from 2021 or so, you can try building")
-    print("against the system Qt by running this command, and trying again:")
-    print("    export VIRCADIA_USE_SYSTEM_QT=1")
-    print("")
-    hifi_utils.color('clear')
-    print("If you'd like to try to build Qt from source either for building Vircadia, or")
-    print("to contribute a prebuilt package for your distribution, please see the")
-    print("documentation at: ", end='')
-    hifi_utils.color('blue')
-    print("https://github.com/vircadia/vircadia/tree/master/tools/qt-builder")
-    hifi_utils.color('clear')
-    print('')
-
-    raise hifi_utils.SilentFatalError(2)
 # Encapsulates the vcpkg system
 class QtDownloader:
     CMAKE_TEMPLATE = """
@@ -172,17 +149,12 @@ endif()
                     if u_major == 18:
                         self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.15.2-ubuntu-18.04-amd64.tar.xz'
                     elif u_major > 19:
-                        print("We don't support " + distro.name(pretty=True) + " yet. Perhaps consider helping us out?")
-                        raise Exception('LINUX DISTRO IS NOT SUPPORTED YET!!!')
+                        self.__no_qt_package_error()
                     else:
-                        print("Sorry, " + distro.name(pretty=True) + " is old and won't be officially supported. Please consider upgrading.");
-                        raise Exception('UNKNOWN LINUX DISTRO VERSION!!!')
+                        self.__unsupported_error()
                 else:
-                    unsupported_error()
-#                    print("Sorry, " + distro.name(pretty=True) + " is not supported on x86_64. Please consider helping us out.")
-#                    print("It's also possible to build Qt for your distribution, please see the documentation at:")
-#                    print("https://github.com/vircadia/vircadia/tree/master/tools/qt-builder")
-#                    raise Exception('UNKNOWN LINUX VERSION!!!')
+                    self.__no_qt_package_error()
+
             elif 'aarch64' == cpu_architecture:
                 if distro.id() == 'ubuntu':
                     u_major = int( distro.major_version() )
@@ -191,11 +163,9 @@ endif()
                     if u_major == 18:
                         self.qtUrl = 'http://motofckr9k.ddns.net/vircadia_packages/qt5-install-5.15.2-ubuntu-18.04-aarch64_test.tar.xz'
                     elif u_major > 19:
-                        print("We don't support " + distro.name(pretty=True) + " on aarch64 yet. Perhaps consider helping us out?")
-                        raise Exception('LINUX DISTRO IS NOT SUPPORTED YET!!!')
+                        self.__no_qt_package_error()
                     else:
-                        print("Sorry, " + distro.name(pretty=True) + " is old and won't be officially supported. Please consider upgrading.");
-                        raise Exception('UNKNOWN LINUX DISTRO VERSION!!!')
+                        self.__unsupported_error()
 
                 elif distro.id() == 'debian':
                     u_major = int( distro.major_version() )
@@ -203,20 +173,14 @@ endif()
 
                     if u_major == 10:
                         #self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04-with-symbols.tar.gz'
-                        print("We don't support " + distro.name(pretty=True) + " on aarch64 yet. Perhaps consider helping us out?")
-                        raise Exception('LINUX DISTRO IS NOT SUPPORTED YET!!!')
+                        self.__no_qt_package_error()
                     elif u_major > 10:
-                        print("We don't support " + distro.name(pretty=True) + " on aarch64 yet. Perhaps consider helping us out?")
-                        raise Exception('LINUX DISTRO IS NOT SUPPORTED YET!!!')
+                        self.__no_qt_package_error()
                     else:
-                        print("Sorry, " + distro.name(pretty=True) + " is old and won't be officially supported. Please consider upgrading.");
-                        raise Exception('UNKNOWN LINUX DISTRO VERSION!!!')
+                        self.__unsupported_error()
 
                 else:
-                    print("Sorry, " + distro.name(pretty=True) + " is not supported on aarch64. Please consider helping us out.")
-                    print("It's also possible to build Qt for your distribution, please see the documentation at:")
-                    print("https://github.com/vircadia/vircadia/tree/master/tools/qt-builder")
-                    raise Exception('UNKNOWN LINUX VERSION!!!')
+                    self.__no_qt_package_error()
             else:
                 raise Exception('UNKNOWN CPU ARCHITECTURE!!!')
 
@@ -248,3 +212,40 @@ endif()
             hifi_utils.downloadAndExtract(self.qtUrl, self.path)
         else:
             print ('Qt has already been downloaded')
+
+
+    def __unsupported_error(self):
+        import distro
+        cpu_architecture = platform.machine()
+
+        print('')
+        hifi_utils.color('red')
+        print("Sorry, " + distro.name(pretty=True) + " on " + cpu_architecture + " is too old and won't be officially supported.")
+        hifi_utils.color('white')
+        print("Please upgrade to a more recent Linux distribution.")
+        hifi_utils.color('clear')
+        print('')
+        raise hifi_utils.SilentFatalError(3)
+
+    def __no_qt_package_error(self):
+        import distro
+        cpu_architecture = platform.machine()
+
+        print('')
+        hifi_utils.color('red')
+        print("Sorry, we don't have a prebuilt Qt package for " + distro.name(pretty=True) + " on " + cpu_architecture + ".")
+        hifi_utils.color('white')
+        print('')
+        print("If this is a recent distribution, dating from 2021 or so, you can try building")
+        print("against the system Qt by running this command, and trying again:")
+        print("    export VIRCADIA_USE_SYSTEM_QT=1")
+        print("")
+        hifi_utils.color('clear')
+        print("If you'd like to try to build Qt from source either for building Vircadia, or")
+        print("to contribute a prebuilt package for your distribution, please see the")
+        print("documentation at: ", end='')
+        hifi_utils.color('blue')
+        print("https://github.com/vircadia/vircadia/tree/master/tools/qt-builder")
+        hifi_utils.color('clear')
+        print('')
+        raise hifi_utils.SilentFatalError(2)
