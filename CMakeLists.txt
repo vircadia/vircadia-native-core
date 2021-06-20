@@ -94,7 +94,7 @@ else()
     endif()
 endif()
 
-if ("${PREBUILD_RET}" GREATER 0)
+if (PREBUILD_RET GREATER 0)
   message(FATAL_ERROR "prebuild.py failed with error ${PREBUILD_RET}")
 endif()
 if(NOT EXISTS "${CMAKE_BINARY_DIR}/vcpkg.cmake")
