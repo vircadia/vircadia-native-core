@@ -207,4 +207,7 @@ def main():
     logger.info('end')
 
 print(sys.argv)
-main()
+try:
+    main()
+except hifi_utils.SilentFatalError as fatal_ex:
+    sys.exit(fatal_ex.exit_code)

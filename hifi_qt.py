@@ -37,6 +37,29 @@ import functools
 
 print = functools.partial(print, flush=True)
 
+def unsupported_error():
+    import distro
+    cpu_architecture = platform.machine()
+
+    print('')
+    hifi_utils.color('red')
+    print("Sorry, we don't have a prebuilt Qt package for " + distro.name(pretty=True) + " on " + cpu_architecture + ".")
+    hifi_utils.color('white')
+    print('')
+    print("If this is a recent distribution, dating from 2021 or so, you can try building")
+    print("against the system Qt by running this command, and trying again:")
+    print("    export VIRCADIA_USE_SYSTEM_QT=1")
+    print("")
+    hifi_utils.color('clear')
+    print("If you'd like to try to build Qt from source either for building Vircadia, or")
+    print("to contribute a prebuilt package for your distribution, please see the")
+    print("documentation at: ", end='')
+    hifi_utils.color('blue')
+    print("https://github.com/vircadia/vircadia/tree/master/tools/qt-builder")
+    hifi_utils.color('clear')
+    print('')
+
+    raise hifi_utils.SilentFatalError(2)
 # Encapsulates the vcpkg system
 class QtDownloader:
     CMAKE_TEMPLATE = """
@@ -155,10 +178,11 @@ endif()
                         print("Sorry, " + distro.name(pretty=True) + " is old and won't be officially supported. Please consider upgrading.");
                         raise Exception('UNKNOWN LINUX DISTRO VERSION!!!')
                 else:
-                    print("Sorry, " + distro.name(pretty=True) + " is not supported on x86_64. Please consider helping us out.")
-                    print("It's also possible to build Qt for your distribution, please see the documentation at:")
-                    print("https://github.com/vircadia/vircadia/tree/master/tools/qt-builder")
-                    raise Exception('UNKNOWN LINUX VERSION!!!')
+                    unsupported_error()
+#                    print("Sorry, " + distro.name(pretty=True) + " is not supported on x86_64. Please consider helping us out.")
+#                    print("It's also possible to build Qt for your distribution, please see the documentation at:")
+#                    print("https://github.com/vircadia/vircadia/tree/master/tools/qt-builder")
+#                    raise Exception('UNKNOWN LINUX VERSION!!!')
             elif 'aarch64' == cpu_architecture:
                 if distro.id() == 'ubuntu':
                     u_major = int( distro.major_version() )

@@ -100,7 +100,9 @@ a Qt install.
 ### Using the system's Qt
 
 The system's Qt can be used, if the development packages are installed, by setting the
-`VIRCADIA_USE_SYSTEM_QT` environment variable. The minimum recommended version is Qt 5.15.0.
+`VIRCADIA_USE_SYSTEM_QT` environment variable. The minimum recommended version is Qt 5.15.2, which is
+also the last version available in the Qt 5 branch. It is expected that Linux distributions will have
+Qt 5.15.2 available for a long time.
 
 ### Compiling
 
