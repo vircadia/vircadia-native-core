@@ -196,7 +196,7 @@ Rectangle {
         root.availableUpdatesReceived = false;
         root.currentUpdatesPage = 1;
         Commerce.getAvailableUpdates(root.itemId);
-        
+
         var MARKETPLACE_API_URL = Account.metaverseServerURL + "/api/v1/marketplace/items/";
         http.request({uri: MARKETPLACE_API_URL + root.itemId}, updateCheckoutQMLFromHTTP);
     }
@@ -327,7 +327,7 @@ Rectangle {
                 }
             }
         }
-    }    
+    }
 
     HifiCommerceCommon.FirstUseTutorial {
         id: firstUseTutorial;
@@ -374,7 +374,7 @@ Rectangle {
                 hoverEnabled: true;
                 propagateComposedEvents: false;
             }
-                
+
             AnimatedImage {
                 id: loadingImage;
                 source: "../common/images/loader-blue.gif"
@@ -397,7 +397,7 @@ Rectangle {
             color: hifi.colors.black;
             size: 28;
         }
-        
+
         HifiControlsUit.Separator {
             id: separator;
             colorScheme: 1;
@@ -475,7 +475,7 @@ Rectangle {
                 }
                 FiraSansSemiBold {
                     id: itemPriceText;
-                    text: isTradingIn ? "FREE\nUPDATE" : 
+                    text: isTradingIn ? "FREE\nUPDATE" :
                        (isStocking ? "Free for creator" :
                             ((root.itemPrice === -1) ? "--" : ((root.itemPrice > 0) ? root.itemPrice : "FREE")));
                     // Text size
@@ -491,7 +491,7 @@ Rectangle {
                 }
             }
         }
-        
+
         HifiControlsUit.Separator {
             id: separator2;
             colorScheme: 1;
@@ -728,7 +728,7 @@ Rectangle {
                 sendToScript({method: 'checkout_itemLinkClicked', itemId: itemId});
             }
         }
-        
+
         Rectangle {
             id: rezzedNotifContainer;
             z: 997;
@@ -778,7 +778,7 @@ Rectangle {
                     lightboxPopup.bodyText = "Rezzing this content set will replace the existing environment and all of the items in this domain. " +
                         "If you want to save the state of the content in this domain, create a backup before proceeding.<br><br>" +
                         "For more information about backing up and restoring content, " +
-                        "<a href='https://docs.vircadia.dev/host/maintain-domain/backup-domain.html'>" +
+                        "<a href='https://docs.vircadia.com/host/maintain-domain/backup-domain.html'>" +
                         "click here to open info on your desktop browser.";
                     lightboxPopup.button1text = "CANCEL";
                     lightboxPopup.button1method = function() {
@@ -1069,7 +1069,7 @@ Rectangle {
                 buyButton.color = hifi.buttons.red;
                 root.shouldBuyWithControlledFailure = true;
             } else {
-                buyButton.text = (root.isCertified ? 
+                buyButton.text = (root.isCertified ?
                     (dataReady ?
                         (root.alreadyOwned ? "Buy Another" : "Buy") :
                         "--") :
@@ -1079,7 +1079,7 @@ Rectangle {
             }
         }
     }
-    
+
 
     HifiCommon.RootHttpRequest {
         id: http;
@@ -1211,7 +1211,7 @@ Rectangle {
                     // Else if the user HAS NOT selected a specific edition to update...
                     } else {
                         handleBuyAgainLogic();
-                    }     
+                    }
                 // If the user IS NOT on the checkout page for the updated verison of an owned item...
                 // (i.e. they are checking out an item "normally")
                 } else {
