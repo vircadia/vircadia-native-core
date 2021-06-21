@@ -70,6 +70,8 @@ public:
     void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
 
+    void setDomainPortAutoDiscovery(bool enabled = true) { _domainPortAutoDiscovery = enabled; };
+
     void setIsShuttingDown(bool isShuttingDown) { _isShuttingDown = isShuttingDown; }
 
     void ignoreNodesInRadius(bool enabled = true);
@@ -105,7 +107,7 @@ public:
 public slots:
     void reset(QString reason, bool skipDomainHandlerReset = false);
     void resetFromDomainHandler() { reset("Reset from Domain Handler", true); }
-    
+
     void sendDomainServerCheckIn();
     void handleDSPathQuery(const QString& newPath);
 
@@ -180,6 +182,7 @@ private:
     bool _requestsDomainListData { false };
 
     bool _sendDomainServerCheckInEnabled { true };
+    bool _domainPortAutoDiscovery { true };
 
     mutable QReadWriteLock _ignoredSetLock;
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDs;
