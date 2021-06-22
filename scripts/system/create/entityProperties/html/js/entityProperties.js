@@ -3799,7 +3799,7 @@ function createZonesSelection(property, elProperty) {
 function setZonesSelectionData(element, isEditable) {
     let zoneSelectorContainer = document.getElementById("zones-selector-" + element.id);
     let zoneSelector = "<div class='multiZoneSelToolbar' id='multiZoneSelTools-" + element.id + "'>";
-    zoneSelector += "<input type='button' value = 'Add a zone' class='secondary' id='zones-select-add-" + element.id + "' onClick='document.getElementById(";
+    zoneSelector += "<input type='button' value = 'Add a Zone' id='zones-select-add-" + element.id + "' onClick='document.getElementById(";
     zoneSelector += '"' + "zones-select-selector-list-panel-" + element.id + '"' + ").style.display = " + '"' + "block" + '"' + ";'>";
     zoneSelector += "<div class = 'zoneSelectorListPanel' id='zones-select-selector-list-panel-" + element.id + "'>";
     zoneSelector += "<div class='zoneSelectListHeader'>Select the Zone to add: </div>";
@@ -3816,7 +3816,7 @@ function setZonesSelectionData(element, isEditable) {
     }   
     zoneSelector += "</div>";
     zoneSelector += "<div class='zoneSelectListFooter'>";
-    zoneSelector += "<input type='button' value = 'Cancel' class='normal' id='zones-select-cancel-" + element.id + "' onClick='document.getElementById(";
+    zoneSelector += "<input type='button' value = 'Cancel' id='zones-select-cancel-" + element.id + "' onClick='document.getElementById(";
     zoneSelector += '"' + "zones-select-selector-list-panel-" + element.id + '"' + ").style.display = " + '"' + "none" + '"' + ";'>";
     zoneSelector += "</div></div></div>";
     zoneSelector += "<div class='selected-zone-container' id='selected-zones-" + element.id + "'></div>";
