@@ -5,7 +5,7 @@
 
 ## Prerequisites
 
-**Doxygen** &ge; 3.9.1 - https://www.doxygen.nl/
+**Doxygen** &ge; 1.9.1 - https://www.doxygen.nl/
 
 Make a `/build/doxygen/` directory.
 
