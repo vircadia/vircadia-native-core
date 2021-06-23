@@ -4511,6 +4511,7 @@ function loaded() {
         });
 
         updateVisibleSpaceModeProperties();
+        requestZoneList();
 
         if (window.EventBridge !== undefined) {
             EventBridge.scriptEventReceived.connect(function(data) {
