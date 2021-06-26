@@ -731,10 +731,11 @@ void DomainServer::setupNodeListAndAssignments() {
     // check for scripts the user wants to persist from their domain-server config
     populateStaticScriptedAssignmentsFromSettings();
 
-    auto nodeList = DependencyManager::set<LimitedNodeList>(domainServerPort, domainServerDTLSPort);
+    auto nodeList = DependencyManager::set<LimitedNodeList>(NodeType::DomainServer, domainServerPort, domainServerDTLSPort);
 
     // no matter the local port, save it to shared mem so that local assignment clients can ask what it is
-    nodeList->putLocalPortIntoSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this, nodeList->getSocketLocalPort());
+    nodeList->putLocalPortIntoSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this,
+        nodeList->getSocketLocalPort(SocketType::UDP));
 
     // store our local http ports in shared memory
     quint16 localHttpPort = DOMAIN_SERVER_HTTP_PORT;
@@ -3041,6 +3042,7 @@ ReplicationServerInfo serverInformationFromSettings(QVariantMap serverMap, Repli
 
         // read the address and port and construct a HifiSockAddr from them
         serverInfo.sockAddr = {
+            SocketType::UDP,
             serverMap[REPLICATION_SERVER_ADDRESS].toString(),
             (quint16) serverMap[REPLICATION_SERVER_PORT].toString().toInt()
         };
@@ -3621,7 +3623,7 @@ void DomainServer::randomizeICEServerAddress(bool shouldTriggerHostLookup) {
         indexToTry = distribution(generator);
     }
 
-    _iceServerSocket = HifiSockAddr { candidateICEAddresses[indexToTry], ICE_SERVER_DEFAULT_PORT };
+    _iceServerSocket = HifiSockAddr { SocketType::UDP, candidateICEAddresses[indexToTry], ICE_SERVER_DEFAULT_PORT };
     qCInfo(domain_server_ice) << "Set candidate ice-server socket to" << _iceServerSocket;
 
     // clear our number of hearbeat denials, this should be re-set on ice-server change

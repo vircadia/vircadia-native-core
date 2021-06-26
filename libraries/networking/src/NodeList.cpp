@@ -50,7 +50,7 @@ const int KEEPALIVE_PING_INTERVAL_MS = 1000;
 const int MAX_SYSTEM_INFO_SIZE = 1000;
 
 NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) :
-    LimitedNodeList(socketListenPort, dtlsListenPort),
+    LimitedNodeList(newOwnerType, socketListenPort, dtlsListenPort),
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(),
     _domainHandler(this),
@@ -889,6 +889,10 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
     if (info.publicSocket.getAddress().isNull()) {
         info.publicSocket.setAddress(_domainHandler.getIP());
     }
+
+    // WEBRTC TODO: Handle WebRTC-connected nodes. Probably need to include SocketType in HifiSockAddr << and >>
+    info.publicSocket.setSocketType(SocketType::UDP);
+    info.localSocket.setSocketType(SocketType::UDP);
 
     addNewNode(info);
 }

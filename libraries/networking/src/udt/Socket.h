@@ -21,11 +21,11 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QTimer>
-#include <QtNetwork/QUdpSocket>
 
 #include "../HifiSockAddr.h"
 #include "TCPVegasCC.h"
 #include "Connection.h"
+#include "NetworkSocket.h"
 
 //#define UDT_CONNECTION_DEBUG
 
@@ -55,9 +55,9 @@ class Socket : public QObject {
 public:
     using StatsVector = std::vector<std::pair<HifiSockAddr, ConnectionStats::Stats>>;
     
-    Socket(QObject* object = 0, bool shouldChangeSocketOptions = true);
+    Socket(QObject* object = 0, bool shouldChangeSocketOptions = true, NodeType_t nodeType = NodeType::Unassigned);
     
-    quint16 localPort() const { return _udpSocket.localPort(); }
+    quint16 localPort(SocketType socketType) const { return _networkSocket.localPort(socketType); }
     
     // Simple functions writing to the socket with no processing
     qint64 writeBasePacket(const BasePacket& packet, const HifiSockAddr& sockAddr);
@@ -67,9 +67,9 @@ public:
     qint64 writeDatagram(const char* data, qint64 size, const HifiSockAddr& sockAddr);
     qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& sockAddr);
     
-    void bind(const QHostAddress& address, quint16 port = 0);
-    void rebind(quint16 port);
-    void rebind();
+    void bind(SocketType socketType, const QHostAddress& address, quint16 port = 0);
+    void rebind(SocketType socketType, quint16 port);
+    void rebind(SocketType socketType);
 
     void setPacketFilterOperator(PacketFilterOperator filterOperator) { _packetFilterOperator = filterOperator; }
     void setPacketHandler(PacketHandler handler) { _packetHandler = handler; }
@@ -105,11 +105,11 @@ private slots:
     void readPendingDatagrams();
     void checkForReadyReadBackup();
 
-    void handleSocketError(QAbstractSocket::SocketError socketError);
-    void handleStateChanged(QAbstractSocket::SocketState socketState);
+    void handleSocketError(SocketType socketType, QAbstractSocket::SocketError socketError);
+    void handleStateChanged(SocketType socketType, QAbstractSocket::SocketState socketState);
 
 private:
-    void setSystemBufferSizes();
+    void setSystemBufferSizes(SocketType socketType);
     Connection* findOrCreateConnection(const HifiSockAddr& sockAddr, bool filterCreation = false);
    
     // privatized methods used by UDTTest - they are private since they must be called on the Socket thread
@@ -121,7 +121,7 @@ private:
     Q_INVOKABLE void writeReliablePacket(Packet* packet, const HifiSockAddr& sockAddr);
     Q_INVOKABLE void writeReliablePacketList(PacketList* packetList, const HifiSockAddr& sockAddr);
     
-    QUdpSocket _udpSocket { this };
+    NetworkSocket _networkSocket;
     PacketFilterOperator _packetFilterOperator;
     PacketHandler _packetHandler;
     MessageHandler _messageHandler;

@@ -19,13 +19,16 @@ struct sockaddr;
 
 #include <QtNetwork/QHostInfo>
 
+#include "SocketType.h"
+
+
 class HifiSockAddr : public QObject {
     Q_OBJECT
 public:
     HifiSockAddr();
-    HifiSockAddr(const QHostAddress& address, quint16 port);
+    HifiSockAddr(SocketType socketType, const QHostAddress& address, quint16 port);
     HifiSockAddr(const HifiSockAddr& otherSockAddr);
-    HifiSockAddr(const QString& hostname, quint16 hostOrderPort, bool shouldBlockForLookup = false);
+    HifiSockAddr(SocketType socketType, const QString& hostname, quint16 hostOrderPort, bool shouldBlockForLookup = false);
 
     bool isNull() const { return _address.isNull() && _port == 0; }
     void clear() { _address.clear(); _port = 0;}
@@ -35,6 +38,10 @@ public:
 
     bool operator==(const HifiSockAddr& rhsSockAddr) const;
     bool operator!=(const HifiSockAddr& rhsSockAddr) const { return !(*this == rhsSockAddr); }
+
+    SocketType getSocketType() const { return _socketType; }
+    SocketType* getSocketTypePointer() { return &_socketType; }
+    void setSocketType(const SocketType socketType) { _socketType = socketType; }
 
     const QHostAddress& getAddress() const { return _address; }
     QHostAddress* getAddressPointer() { return &_address; }
@@ -52,6 +59,7 @@ public:
     bool hasPrivateAddress() const; // checks if the address behind this sock addr is private per RFC 1918
 
     friend QDebug operator<<(QDebug debug, const HifiSockAddr& sockAddr);
+
     friend QDataStream& operator<<(QDataStream& dataStream, const HifiSockAddr& sockAddr);
     friend QDataStream& operator>>(QDataStream& dataStream, HifiSockAddr& sockAddr);
     
@@ -61,6 +69,7 @@ signals:
     void lookupCompleted();
     void lookupFailed();
 private:
+    SocketType _socketType { SocketType::Unknown };
     QHostAddress _address;
     quint16 _port;
 };

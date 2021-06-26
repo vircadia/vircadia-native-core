@@ -27,21 +27,22 @@
 int hifiSockAddrMetaTypeId = qRegisterMetaType<HifiSockAddr>();
 
 HifiSockAddr::HifiSockAddr() :
+    _socketType(SocketType::Unknown),
     _address(),
     _port(0)
 {
-
 }
 
-HifiSockAddr::HifiSockAddr(const QHostAddress& address, quint16 port) :
+HifiSockAddr::HifiSockAddr(SocketType socketType, const QHostAddress& address, quint16 port) :
+    _socketType(socketType),
     _address(address),
     _port(port)
 {
-
 }
 
 HifiSockAddr::HifiSockAddr(const HifiSockAddr& otherSockAddr) :
     QObject(),
+    _socketType(otherSockAddr._socketType),
     _address(otherSockAddr._address),
     _port(otherSockAddr._port)
 {
@@ -50,12 +51,14 @@ HifiSockAddr::HifiSockAddr(const HifiSockAddr& otherSockAddr) :
 
 HifiSockAddr& HifiSockAddr::operator=(const HifiSockAddr& rhsSockAddr) {
     setObjectName(rhsSockAddr.objectName());
+    _socketType = rhsSockAddr._socketType;
     _address = rhsSockAddr._address;
     _port = rhsSockAddr._port;
     return *this;
 }
 
-HifiSockAddr::HifiSockAddr(const QString& hostname, quint16 hostOrderPort, bool shouldBlockForLookup) :
+HifiSockAddr::HifiSockAddr(SocketType socketType, const QString& hostname, quint16 hostOrderPort, bool shouldBlockForLookup) :
+    _socketType(socketType),
     _address(hostname),
     _port(hostOrderPort)
 {
@@ -75,7 +78,8 @@ HifiSockAddr::HifiSockAddr(const QString& hostname, quint16 hostOrderPort, bool 
 
 void HifiSockAddr::swap(HifiSockAddr& otherSockAddr) {
     using std::swap;
-    
+
+    swap(_socketType, otherSockAddr._socketType);
     swap(_address, otherSockAddr._address);
     swap(_port, otherSockAddr._port);
     
@@ -86,7 +90,7 @@ void HifiSockAddr::swap(HifiSockAddr& otherSockAddr) {
 }
 
 bool HifiSockAddr::operator==(const HifiSockAddr& rhsSockAddr) const {
-    return _address == rhsSockAddr._address && _port == rhsSockAddr._port;
+    return _socketType == rhsSockAddr._socketType && _address == rhsSockAddr._address && _port == rhsSockAddr._port;
 }
 
 void HifiSockAddr::handleLookupResult(const QHostInfo& hostInfo) {
@@ -108,7 +112,7 @@ void HifiSockAddr::handleLookupResult(const QHostInfo& hostInfo) {
 }
 
 QString HifiSockAddr::toString() const {
-    return _address.toString() + ":" + QString::number(_port);
+    return socketTypeToString(_socketType) + " " + _address.toString() + ":" + QString::number(_port);
 }
 
 bool HifiSockAddr::hasPrivateAddress() const {
@@ -124,17 +128,27 @@ bool HifiSockAddr::hasPrivateAddress() const {
 }
 
 QDebug operator<<(QDebug debug, const HifiSockAddr& sockAddr) {
-    debug.nospace() << sockAddr._address.toString().toLocal8Bit().constData() << ":" << sockAddr._port;
+    debug.nospace() << socketTypeToString(sockAddr._socketType).toLocal8Bit().constData() << " " 
+        << sockAddr._address.toString().toLocal8Bit().constData() << ":" << sockAddr._port;
     return debug.space();
 }
 
 QDataStream& operator<<(QDataStream& dataStream, const HifiSockAddr& sockAddr) {
+    // Don't include socketType because it can be implied from the type of connection used.
+    // WEBRTC TODO: Reconsider this.
     dataStream << sockAddr._address << sockAddr._port;
     return dataStream;
 }
 
 QDataStream& operator>>(QDataStream& dataStream, HifiSockAddr& sockAddr) {
+    // Don't include socketType because it can be implied from the type of connection used.
+    // WEBRTC TODO: Reconsider this.
     dataStream >> sockAddr._address >> sockAddr._port;
+
+    // Set default for non-WebRTC code.
+    // WEBRTC TODO: Reconsider this.
+    sockAddr.setSocketType(SocketType::UDP);
+
     return dataStream;
 }
 
