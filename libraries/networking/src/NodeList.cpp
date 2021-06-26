@@ -147,7 +147,7 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
 
     auto& packetReceiver = getPacketReceiver();
     packetReceiver.registerListener(PacketType::DomainList,
-        PacketReceiver::makeUnsourcedListenerReference<NodeList>(this, &NodeList::processDomainServerList));
+        PacketReceiver::makeUnsourcedListenerReference<NodeList>(this, &NodeList::processDomainList));
     packetReceiver.registerListener(PacketType::Ping,
         PacketReceiver::makeSourcedListenerReference<NodeList>(this, &NodeList::processPingPacket));
     packetReceiver.registerListener(PacketType::PingReply,
@@ -357,7 +357,7 @@ void NodeList::sendDomainServerCheckIn() {
 
     if (publicSockAddr.isNull()) {
         // we don't know our public socket and we need to send it to the domain server
-        qCDebug(networking_ice) << "Waiting for inital public socket from STUN. Will not send domain-server check in.";
+        qCDebug(networking_ice) << "Waiting for initial public socket from STUN. Will not send domain-server check in.";
     } else if (domainHandlerIp.isNull() && _domainHandler.requiresICE()) {
         qCDebug(networking_ice) << "Waiting for ICE discovered domain-server socket. Will not send domain-server check in.";
         handleICEConnectionToDomainServer();
@@ -400,6 +400,8 @@ void NodeList::sendDomainServerCheckIn() {
             // don't send the check in packet - wait for the new public key to be available to the domain-server first
             return;
         }
+
+        // WEBRTC TODO: Move code into packet library. And update reference in DomainConnectRequest.js.
 
         auto domainPacket = NLPacket::create(domainPacketType);
 
@@ -709,7 +711,9 @@ void NodeList::processDomainServerConnectionTokenPacket(QSharedPointer<ReceivedM
     sendDomainServerCheckIn();
 }
 
-void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) {
+void NodeList::processDomainList(QSharedPointer<ReceivedMessage> message) {
+
+    // WEBRTC TODO: Move code into packet library.  And update reference in DomainServerList.js.
 
     // parse header information 
     QDataStream packetStream(message->getMessage());

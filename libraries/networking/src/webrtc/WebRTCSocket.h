@@ -124,9 +124,9 @@ public:
 public slots:
 
     /// @brief Handles the WebRTC data channel receiving a message.
+    /// @details Queues the message to be read via readDatagram.
     /// @param dataChannelID The data channel that the message was received on.
     /// @param message The message that was received.
-    /// @detail Queues the message to be read via readDatagram.
     void onDataChannelReceivedMessage(int dataChannelID, const QByteArray& message);
 
 signals:

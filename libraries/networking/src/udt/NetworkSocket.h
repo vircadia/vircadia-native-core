@@ -79,7 +79,7 @@ public:
     qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& sockAddr);
 
     /// @brief Gets the number of bytes waiting to be written.
-    /// @detail For UDP, there's a single buffer used for all destinations. For WebRTC, each destination has its own buffer.
+    /// @details For UDP, there's a single buffer used for all destinations. For WebRTC, each destination has its own buffer.
     /// @param socketType The type of socket for which to get the number of bytes waiting to be written.
     /// @param port If a WebRTC socket, the data channel for which to get the number of bytes waiting.
     /// @return The number of bytes waiting to be written.

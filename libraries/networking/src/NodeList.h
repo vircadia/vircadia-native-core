@@ -109,7 +109,7 @@ public slots:
     void sendDomainServerCheckIn();
     void handleDSPathQuery(const QString& newPath);
 
-    void processDomainServerList(QSharedPointer<ReceivedMessage> message);
+    void processDomainList(QSharedPointer<ReceivedMessage> message);
     void processDomainServerAddedNode(QSharedPointer<ReceivedMessage> message);
     void processDomainServerRemovedNode(QSharedPointer<ReceivedMessage> message);
     void processDomainServerPathResponse(QSharedPointer<ReceivedMessage> message);
