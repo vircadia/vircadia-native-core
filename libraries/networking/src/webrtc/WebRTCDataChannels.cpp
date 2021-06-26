@@ -24,6 +24,8 @@ const std::string ICE_SERVER_URI = "stun://ice.vircadia.com:7337";
 
 #define WEBRTC_DEBUG
 
+using namespace webrtc;
+
 
 void WDCSetSessionDescriptionObserver::OnSuccess() {
 #ifdef WEBRTC_DEBUG
@@ -308,6 +310,13 @@ void WDCConnection::onDataChannelMessageReceived(const DataBuffer& buffer) {
     _parent->emitDataMessage(_dataChannelID, byteArray);
 }
 
+qint64 WDCConnection::getBufferedAmount() const {
+#ifdef WEBRTC_DEBUG
+    qCDebug(networking_webrtc) << "WDCConnection::getBufferedAmount()";
+#endif
+    return _dataChannel->buffered_amount();
+}
+
 bool WDCConnection::sendDataMessage(const DataBuffer& buffer) {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WDCConnection::sendDataMessage()";
@@ -321,12 +330,13 @@ bool WDCConnection::sendDataMessage(const DataBuffer& buffer) {
 }
 
 
-WebRTCDataChannels::WebRTCDataChannels(NodeType_t nodeType, QObject* parent) :
-    _nodeType(nodeType),
-    _parent(parent)
+WebRTCDataChannels::WebRTCDataChannels(QObject* parent, NodeType_t nodeType) :
+    QObject(parent),
+    _parent(parent),
+    _nodeType(nodeType)
 {
 #ifdef WEBRTC_DEBUG
-    qCDebug(networking_webrtc) << "WebRTCDataChannels::WebRTCDataChannels()";
+    qCDebug(networking_webrtc) << "WebRTCDataChannels::WebRTCDataChannels()" << nodeType << NodeType::getNodeTypeName(nodeType);
 #endif
 
     // Create a peer connection factory.
@@ -354,14 +364,7 @@ WebRTCDataChannels::~WebRTCDataChannels() {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WebRTCDataChannels::~WebRTCDataChannels()";
 #endif
-    QHashIterator<quint16, WDCConnection*> i(_connectionsByDataChannel);
-    while (i.hasNext()) {
-        i.next();
-        delete i.value();
-    }
-    _connectionsByWebSocket.clear();
-    _connectionsByDataChannel.clear();
-
+    reset();
     _peerConnectionFactory = nullptr;
     _rtcSignalingThread->Stop();
     _rtcSignalingThread = nullptr;
@@ -369,6 +372,16 @@ WebRTCDataChannels::~WebRTCDataChannels() {
     _rtcWorkerThread = nullptr;
     _rtcNetworkThread->Stop();
     _rtcNetworkThread = nullptr;
+}
+
+void WebRTCDataChannels::reset() {
+    QHashIterator<quint16, WDCConnection*> i(_connectionsByDataChannel);
+    while (i.hasNext()) {
+        i.next();
+        delete i.value();
+    }
+    _connectionsByWebSocket.clear();
+    _connectionsByDataChannel.clear();
 }
 
 quint16 WebRTCDataChannels::getNewDataChannelID() {
@@ -448,7 +461,7 @@ void WebRTCDataChannels::sendSignalingMessage(const QJsonObject& message) {
 
 void WebRTCDataChannels::emitDataMessage(int dataChannelID, const QByteArray& byteArray) {
 #ifdef WEBRTC_DEBUG
-    qCDebug(networking_webrtc) << "WebRTCDataChannels::emitDataMessage() :" << dataChannelID;
+    qCDebug(networking_webrtc) << "WebRTCDataChannels::emitDataMessage() :" << dataChannelID << byteArray;
 #endif
     emit dataMessage(dataChannelID, byteArray);
 }
@@ -467,6 +480,14 @@ bool WebRTCDataChannels::sendDataMessage(int dataChannelID, const QByteArray& by
     auto connection = _connectionsByDataChannel.value(dataChannelID);
     DataBuffer buffer(byteArray.toStdString(), true);
     return connection->sendDataMessage(buffer);
+}
+
+/// @brief Gets the number of bytes waiting to be written on a data channel.
+/// @param port The data channel ID.
+/// @return The number of bytes waiting to be written on the data channel.
+qint64 WebRTCDataChannels::getBufferedAmount(int dataChannelID) const {
+    auto connection = _connectionsByDataChannel.value(dataChannelID);
+    return connection->getBufferedAmount();
 }
 
 rtc::scoped_refptr<PeerConnectionInterface> WebRTCDataChannels::createPeerConnection(

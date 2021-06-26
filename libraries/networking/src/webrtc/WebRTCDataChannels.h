@@ -23,8 +23,6 @@
 
 #include "../NodeType.h"
 
-using namespace webrtc;
-
 class WebRTCDataChannels;
 class WDCConnection;
 
@@ -33,7 +31,7 @@ class WDCConnection;
 /// @{
 
 /// @brief A WebRTC session description observer.
-class WDCSetSessionDescriptionObserver : public SetSessionDescriptionObserver {
+class WDCSetSessionDescriptionObserver : public webrtc::SetSessionDescriptionObserver {
 public:
 
     /// @brief The call to SetLocalDescription or SetRemoteDescription succeeded.
@@ -41,22 +39,22 @@ public:
 
     /// @brief The call to SetLocalDescription or SetRemoteDescription failed.
     /// @param error Error information.
-    void OnFailure(RTCError error) override;
+    void OnFailure(webrtc::RTCError error) override;
 };
 
 
 /// @brief A WebRTC create session description observer.
-class WDCCreateSessionDescriptionObserver : public CreateSessionDescriptionObserver {
+class WDCCreateSessionDescriptionObserver : public webrtc::CreateSessionDescriptionObserver {
 public:
     WDCCreateSessionDescriptionObserver(WDCConnection* parent);
 
     /// @brief The call to CreateAnswer succeeded.
     /// @param The session description.
-    void OnSuccess(SessionDescriptionInterface* desc) override;
+    void OnSuccess(webrtc::SessionDescriptionInterface* desc) override;
 
     //@ @brief The call to CreateAnswer failed.
     /// @param error Error information.
-    void OnFailure(RTCError error) override;
+    void OnFailure(webrtc::RTCError error) override;
 
 private:
     WDCConnection* _parent;
@@ -64,32 +62,32 @@ private:
 
 
 /// @brief A WebRTC peer connection observer.
-class WDCPeerConnectionObserver : public PeerConnectionObserver {
+class WDCPeerConnectionObserver : public webrtc::PeerConnectionObserver {
 public:
     WDCPeerConnectionObserver(WDCConnection* parent);
 
     /// @brief Called when the SignalingState changes.
     /// @param newState The new signaling state.
-    void OnSignalingChange(PeerConnectionInterface::SignalingState newState) override;
+    void OnSignalingChange(webrtc::PeerConnectionInterface::SignalingState newState) override;
 
     /// @brief Called when renegotiation is needed. For example, an ICE restart has begun.
     void OnRenegotiationNeeded() override;
 
     /// @brief Called when the ICE gather state changes.
     /// @param newState The new ICE gathering state.
-    void OnIceGatheringChange(PeerConnectionInterface::IceGatheringState newState) override;
+    void OnIceGatheringChange(webrtc::PeerConnectionInterface::IceGatheringState newState) override;
 
     /// @brief Called when a new ICE candidate has been gathered.
     /// @param candidate The new ICE candidate.
-    void OnIceCandidate(const IceCandidateInterface* candidate) override;
+    void OnIceCandidate(const webrtc::IceCandidateInterface* candidate) override;
 
     /// @brief Called when a remote peer opens a data channel.
     /// @param dataChannel The data channel.
-    void OnDataChannel(rtc::scoped_refptr<DataChannelInterface> dataChannel) override;
+    void OnDataChannel(rtc::scoped_refptr<webrtc::DataChannelInterface> dataChannel) override;
 
     /// @brief Called when the peer connection state changes.
     /// @param newState The new peer connection state.
-    void OnConnectionChange(PeerConnectionInterface::PeerConnectionState newState) override;
+    void OnConnectionChange(webrtc::PeerConnectionInterface::PeerConnectionState newState) override;
 
 private:
     WDCConnection* _parent;
@@ -97,7 +95,7 @@ private:
 
 
 /// @brief A WebRTC data channel observer.
-class WDCDataChannelObserver : public DataChannelObserver {
+class WDCDataChannelObserver : public webrtc::DataChannelObserver {
 public:
     WDCDataChannelObserver(WDCConnection* parent);
 
@@ -106,7 +104,7 @@ public:
 
     /// @brief A data channel message was received.
     /// @param The message received.
-    void OnMessage(const DataBuffer& buffer) override;
+    void OnMessage(const webrtc::DataBuffer& buffer) override;
 
 private:
     WDCConnection* _parent;
@@ -125,11 +123,11 @@ public:
 
     /// @brief Gets the WebSocket ID.
     /// @return The ID of the WebSocket.
-    quint16 getWebSocketID() { return _webSocketID; }
+    quint16 getWebSocketID() const { return _webSocketID; }
 
     /// @brief Gets the WebRTC data channel ID.
     /// @return The WebRTC data channel ID. `-1` if not open yet.
-    int getDataChannelID() { return _dataChannelID; }
+    int getDataChannelID() const { return _dataChannelID; }
 
 
     /// @brief Sets the remote session description received from the remote client via the signaling channel.
@@ -141,11 +139,11 @@ public:
 
     /// @brief Sends an answer to the remote client via the signaling channel.
     /// @param description The answer.
-    void sendAnswer(SessionDescriptionInterface* description);
+    void sendAnswer(webrtc::SessionDescriptionInterface* description);
     
     /// @brief Sets the local session description on the WebRTC data channel being connected.
     /// @param description The local session description.
-    void setLocalDescription(SessionDescriptionInterface* description);
+    void setLocalDescription(webrtc::SessionDescriptionInterface* description);
     
     /// @brief Adds an ICE candidate received from the remote client via the signaling channel.
     /// @param data The ICE candidate.
@@ -153,11 +151,11 @@ public:
 
     /// @brief Sends an ICE candidate to the remote vlient via the signaling channel.
     /// @param candidate The ICE candidate.
-    void sendIceCandidate(const IceCandidateInterface* candidate);
+    void sendIceCandidate(const webrtc::IceCandidateInterface* candidate);
 
     /// @brief Handles the WebRTC data channel being opened.
     /// @param dataChannel The WebRTC data channel.
-    void onDataChannelOpened(rtc::scoped_refptr<DataChannelInterface> dataChannel);
+    void onDataChannelOpened(rtc::scoped_refptr<webrtc::DataChannelInterface> dataChannel);
 
     /// @brief Handles a change in the state of the WebRTC data channel.
     void onDataChannelStateChanged();
@@ -165,12 +163,17 @@ public:
 
     /// @brief Handles a message being received on the WebRTC data channel.
     /// @param buffer The message received.
-    void onDataChannelMessageReceived(const DataBuffer& buffer);
+    void onDataChannelMessageReceived(const webrtc::DataBuffer& buffer);
+
+    /// @brief Gets the number of bytes waiting to be sent on the WebRTC data channel.
+    /// @return The number of bytes waiting to be sent on the WebRTC data channel.
+    qint64 getBufferedAmount() const;
+
 
     /// @brief Sends a message on the WebRTC data channel.
     /// @param buffer The message to send.
     /// @return `true` if the message was sent, otherwise `false`.
-    bool sendDataMessage(const DataBuffer& buffer);
+    bool sendDataMessage(const webrtc::DataBuffer& buffer);
     
 private:
     WebRTCDataChannels* _parent;
@@ -181,10 +184,10 @@ private:
     rtc::scoped_refptr<WDCCreateSessionDescriptionObserver> _createSessionDescriptionObserver { nullptr };
 
     std::shared_ptr<WDCDataChannelObserver> _dataChannelObserver { nullptr };
-    rtc::scoped_refptr<DataChannelInterface> _dataChannel { nullptr };
+    rtc::scoped_refptr<webrtc::DataChannelInterface> _dataChannel { nullptr };
 
     std::shared_ptr<WDCPeerConnectionObserver> _peerConnectionObserver { nullptr };
-    rtc::scoped_refptr<PeerConnectionInterface> _peerConnection { nullptr };
+    rtc::scoped_refptr<webrtc::PeerConnectionInterface> _peerConnection { nullptr };
 };
 
 
@@ -206,20 +209,25 @@ class WebRTCDataChannels : public QObject {
 public:
 
     /// @brief Constructs a new WebRTCDataChannels object.
-    /// @param nodeType The type of node that the WebRTCDataChannels object is being used in.
     /// @param parent The parent Qt object.
-    WebRTCDataChannels(NodeType_t nodeType, QObject* parent);
+    /// @param nodeType The type of node that the WebRTCDataChannels object is being used in.
+    WebRTCDataChannels(QObject* parent, NodeType_t nodeType);
 
     /// @brief Destroys a WebRTCDataChannels object.
     ~WebRTCDataChannels();
 
-    /// @brief Returns the type of node that the WebRTCDataChannels object is being used in.
+    /// @brief Gets the type of node that the WebRTCDataChannels object is being used in.
     /// @return The type of node.
     NodeType_t getNodeType() {
         return _nodeType;
     }
 
+    /// @brief Immediately closes all connections and resets the socket.
+    void reset();
+    
     /// @brief Get a new data channel ID to uniquely identify a WDCConnection.
+    /// @details This ID is assigned by WebRTCDataChannels; it is <em>not</em> the WebRTC data channel ID because that is only
+    ///     unique within a peer connection.
     /// @return A new data channel ID.
     quint16 getNewDataChannelID();
 
@@ -248,10 +256,15 @@ public:
     /// @return `true` if the data message was sent, otherwise `false`.
     bool sendDataMessage(int dataChannelID, const QByteArray& message);
 
+    /// @brief Gets the number of bytes waiting to be sent on a data channel.
+    /// @param dataChannelID The data channel ID.
+    /// @return The number of bytes waiting to be sent on the data channel.
+    qint64 getBufferedAmount(int dataChannelID) const;
+
     /// @brief Creates a new WebRTC peer connection for connecting to an Interface client.
     /// @param peerConnectionObserver An observer to monitor the WebRTC peer connection.
     /// @return The new WebRTC peer connection.
-    rtc::scoped_refptr<PeerConnectionInterface> createPeerConnection(
+    rtc::scoped_refptr<webrtc::PeerConnectionInterface> createPeerConnection(
         const std::shared_ptr<WDCPeerConnectionObserver> peerConnectionObserver);
 
 public slots:
@@ -283,9 +296,9 @@ private:
     std::unique_ptr<rtc::Thread> _rtcWorkerThread { nullptr };
     std::unique_ptr<rtc::Thread> _rtcSignalingThread { nullptr };
 
-    rtc::scoped_refptr<PeerConnectionFactoryInterface> _peerConnectionFactory { nullptr };
+    rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> _peerConnectionFactory { nullptr };
 
-    quint16 _lastDataChannelID { 0 };
+    quint16 _lastDataChannelID { 0 };  // First data channel ID is 1.
 
     QHash<quint16, WDCConnection*> _connectionsByWebSocket;
     QHash<quint16, WDCConnection*> _connectionsByDataChannel;
