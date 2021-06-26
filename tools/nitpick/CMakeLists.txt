@@ -12,7 +12,7 @@ generate_qrc(OUTPUT ${RESOURCES_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources 
 add_custom_command(
     OUTPUT ${RESOURCES_RCC}
     DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
-    COMMAND "${QT_DIR}/bin/rcc"
+    COMMAND "${RCC_BINARY}"
     ARGS ${RESOURCES_QRC} -binary -o ${RESOURCES_RCC}
 )
 
