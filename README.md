@@ -13,7 +13,7 @@ Vircadia™ is a 3D social software project seeking to incrementally bring about
 * Full-body avatars
 * FBX, glTF, and OBJ support
 * JavaScript scripting engine
-* 16km^3 world space in a server
+* 16km³ world space in a server
 * Fully self-hosted
 * Apache 2.0
 
@@ -66,7 +66,8 @@ Vircadia consists of many projects and codebases with its unifying structure's g
 
 #### Child Projects
 - [Vircadia Builder for Linux](https://github.com/vircadia/vircadia-builder/)
-- [General Documentation](https://github.com/vircadia/vircadia-docs-sphinx/)
+- [User Documentation](https://github.com/vircadia/vircadia-docs-sphinx/)
+- [Developer Documentation](https://github.com/vircadia/vircadia-dev-docs/)
 
 ### Contribution
 
