@@ -452,7 +452,6 @@ void NodeList::sendDomainServerCheckIn() {
             packetStream << hardwareAddress;
 
             // now add the machine fingerprint
-            auto accountManager = DependencyManager::get<AccountManager>();
             packetStream << FingerprintUtils::getMachineFingerprint();
 
             platform::json all = platform::getAll();

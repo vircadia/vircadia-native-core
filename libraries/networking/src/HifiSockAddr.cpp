@@ -73,16 +73,6 @@ HifiSockAddr::HifiSockAddr(const QString& hostname, quint16 hostOrderPort, bool 
     }
 }
 
-HifiSockAddr::HifiSockAddr(const sockaddr* sockaddr) {
-    _address = QHostAddress(sockaddr);
-
-    if (sockaddr->sa_family == AF_INET) {
-        _port = ntohs(reinterpret_cast<const sockaddr_in*>(sockaddr)->sin_port);
-    } else {
-        _port = ntohs(reinterpret_cast<const sockaddr_in6*>(sockaddr)->sin6_port);
-    }
-}
-
 void HifiSockAddr::swap(HifiSockAddr& otherSockAddr) {
     using std::swap;
     

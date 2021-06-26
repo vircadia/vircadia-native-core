@@ -26,7 +26,6 @@ public:
     HifiSockAddr(const QHostAddress& address, quint16 port);
     HifiSockAddr(const HifiSockAddr& otherSockAddr);
     HifiSockAddr(const QString& hostname, quint16 hostOrderPort, bool shouldBlockForLookup = false);
-    HifiSockAddr(const sockaddr* sockaddr);
 
     bool isNull() const { return _address.isNull() && _port == 0; }
     void clear() { _address.clear(); _port = 0;}
