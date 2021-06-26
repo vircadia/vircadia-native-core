@@ -22,6 +22,7 @@
 #if defined(Q_OS_MAC)
 #  define WEBRTC_AUDIO 1
 #  define WEBRTC_POSIX 1
+#  define WEBRTC_LEGACY 1
 #elif defined(Q_OS_WIN)
 #  define WEBRTC_AUDIO 1
 #  define WEBRTC_DATA_CHANNEL 1
@@ -32,9 +33,11 @@
 // I don't yet have a working libwebrtc for android
 // #  define WEBRTC_AUDIO 1
 // #  define WEBRTC_POSIX 1
+// #  define WEBRTC_LEGACY 1
 #elif defined(Q_OS_LINUX)
 #  define WEBRTC_AUDIO 1
 #  define WEBRTC_POSIX 1
+#  define WEBRTC_LEGACY 1
 #endif
 
 #endif // hifi_WebRTC_h
