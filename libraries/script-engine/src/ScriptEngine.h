@@ -50,8 +50,6 @@
 #include "SettingHandle.h"
 #include "Profile.h"
 
-class QScriptEngineDebugger;
-
 static const QString NO_SCRIPT("");
 
 static const int SCRIPT_FPS = 60;
@@ -166,8 +164,6 @@ public:
     /// the current script contents and calling run(). Callers will likely want to register the script with external
     /// services before calling this.
     void runInThread();
-
-    void runDebuggable();
 
     /// run the script in the callers thread, exit when stop() is called.
     void run();
@@ -667,8 +663,6 @@ public:
     // this is used by code in ScriptEngines.cpp during the "reload all" operation
     bool isStopping() const { return _isStopping; }
 
-    bool isDebuggable() const { return _debuggable; }
-
     void disconnectNonEssentialSignals();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -982,8 +976,6 @@ protected:
     EntityScriptContentAvailableMap _contentAvailableQueue;
 
     bool _isThreaded { false };
-    QScriptEngineDebugger* _debugger { nullptr };
-    bool _debuggable { false };
     qint64 _lastUpdate;
 
     QString _fileNameString;
