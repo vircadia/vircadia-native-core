@@ -377,7 +377,7 @@ void NodeList::sendDomainServerCheckIn() {
             // if so we need to make sure we have an up-to-date local port in case it restarted
 
             if ((domainSockAddr.getAddress() == QHostAddress::LocalHost || hostname == "localhost")
-                && _domainPortAutoDiscovery == true) {
+                && _domainPortAutoDiscovery == false) {
 
                 quint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
                 getLocalServerPortFromSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, domainPort);

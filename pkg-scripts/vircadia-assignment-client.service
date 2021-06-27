@@ -12,7 +12,7 @@ User=vircadia
 Group=vircadia
 #LimitCORE=infinity
 #ExecStart=/opt/vircadia/assignment-client -n 6
-ExecStart=/opt/vircadia/assignment-client --min 6 --max 20 --disable-domain-port-auto-discovery
+ExecStart=/opt/vircadia/assignment-client --min 6 --max 20
 
 [Install]
 WantedBy=multi-user.target
