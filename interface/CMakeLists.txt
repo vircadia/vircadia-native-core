@@ -21,6 +21,14 @@ set(CUSTOM_INTERFACE_QRC_PATHS "")
 
 find_npm()
 
+find_package(
+  Qt5 COMPONENTS
+  Gui Widgets Multimedia Network Qml Quick Script Svg
+  ${PLATFORM_QT_COMPONENTS}
+  WebChannel WebSockets
+)
+
+
 if (BUILD_TOOLS AND NPM_EXECUTABLE)
   add_custom_qrc_path(CUSTOM_INTERFACE_QRC_PATHS "${CMAKE_BINARY_DIR}/tools/jsdoc/out/hifiJSDoc.json" "auto-complete/hifiJSDoc.json")
 endif ()
@@ -31,23 +39,12 @@ generate_qrc(OUTPUT ${RESOURCES_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources 
 
 if (ANDROID)
   # on Android, don't compress the rcc binary
-  add_custom_command(
-    OUTPUT ${RESOURCES_RCC}
-    DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
-    COMMAND "${RCC_BINARY}"
-    ARGS ${RESOURCES_QRC} -no-compress -binary -o ${RESOURCES_RCC}
-  )
+  qt5_add_binary_resources(resources "${RESOURCES_QRC}" DESTINATION "${RESOURCES_RCC}" OPTIONS -no-compress)
 else ()
-  add_custom_command(
-    OUTPUT ${RESOURCES_RCC}
-    DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
-    COMMAND "${RCC_BINARY}"
-    ARGS ${RESOURCES_QRC} -binary -o ${RESOURCES_RCC}
-  )
+  qt5_add_binary_resources(resources "${RESOURCES_QRC}" DESTINATION "${RESOURCES_RCC}")
 endif()
 
 list(APPEND GENERATE_QRC_DEPENDS ${RESOURCES_RCC})
-add_custom_target(resources ALL DEPENDS ${GENERATE_QRC_DEPENDS})
 
 # set a default root dir for each of our optional externals if it was not passed
 set(OPTIONAL_EXTERNALS "LeapMotion")
@@ -95,13 +92,6 @@ else ()
   get_filename_component(SPEECHRECOGNIZER_CPP "src/SpeechRecognizer.cpp" ABSOLUTE)
   list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_CPP})
 endif ()
-
-find_package(
-  Qt5 COMPONENTS
-  Gui Widgets Multimedia Network Qml Quick Script Svg
-  ${PLATFORM_QT_COMPONENTS}
-  WebChannel WebSockets
-)
 
 # grab the ui files in resources/ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
