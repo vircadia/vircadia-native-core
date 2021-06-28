@@ -6,8 +6,8 @@ string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 if (WIN32)
     ExternalProject_Add(
       ${EXTERNAL_NAME}
-      URL "${EXTERNAL_BUILD_ASSETS}/dependencies/crashpad_062317.1.zip"
-      URL_MD5 9c84b77f5f23daf939da1371825ed2b1
+      URL "${EXTERNAL_BUILD_ASSETS}/dependencies/crashpad_linux_20210628_cdee8004.tar.bz2"
+      URL_SHA256 2e84b253b27f37224f5f9f86f955b23befcf00cd3300e66de42a863c82ec2787
       CONFIGURE_COMMAND ""
       BUILD_COMMAND ""
       INSTALL_COMMAND ""
