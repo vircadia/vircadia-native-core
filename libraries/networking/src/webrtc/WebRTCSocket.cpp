@@ -16,7 +16,6 @@
 
 WebRTCSocket::WebRTCSocket(QObject* parent, NodeType_t nodeType) :
     QObject(parent),
-    _parent(parent),
     _signalingServer(this /*, QHostAddress::AnyIPv4, DEFAULT_DOMAIN_SERVER_WS_PORT*/),
     _dataChannels(this, nodeType)
 {

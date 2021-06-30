@@ -142,7 +142,6 @@ private:
     void setError(QAbstractSocket::SocketError errorType, QString errorString);
     void clearError();
 
-    QObject* _parent;
     WebRTCSignalingServer _signalingServer;
     WebRTCDataChannels _dataChannels;
 

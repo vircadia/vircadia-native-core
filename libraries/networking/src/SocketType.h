@@ -18,16 +18,16 @@
 /// @{
 
 
-/// @brief The network socket type.
+/// @brief The types of network socket.
 enum class SocketType {
     Unknown,    ///< Unknown socket type.
     UDP,        ///< UDP socket.
-    WebRTC      ///< WebRTC socket.
+    WebRTC      ///< WebRTC socket. A WebRTC data channel presented as a UDP-style socket.
 };
 
-/// @brief Returns the name of a SocketType value as a string.
+/// @brief Returns the name of a SocketType value, e.g., <code>"WebRTC"</code>.
 /// @param socketType The SocketType value.
-/// @return The name of the SocketType value as a string.
+/// @return The name of the SocketType value.
 static QString socketTypeToString(SocketType socketType) {
     static QStringList SOCKET_TYPE_STRINGS { "Unknown", "UDP", "WebRTC" };
     return SOCKET_TYPE_STRINGS[(int)socketType];
