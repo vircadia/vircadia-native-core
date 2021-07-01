@@ -5,7 +5,7 @@ exports.handlers = {
         var doclets = e.doclets.map(doclet => Object.assign({}, doclet));
 
         var argv = process.argv;
-        for(var i=0; i<argv.length; i++) {
+        for (var i = 0; i < argv.length; i++) {
             if (argv[i] === '-d') {
                 outputFolder = argv[i+1];
                 break;
