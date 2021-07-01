@@ -335,7 +335,7 @@ if (APPLE)
       "${RESOURCES_DEV_DIR}/scripts"
     # copy JSDoc files beside the executable
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
-      "${CMAKE_CURRENT_BINARY_DIR}/tools/jsdoc"
+      "${JSDOC_OUTPUT_PATH}"
       "${RESOURCES_DEV_DIR}/jsdoc"
     # copy the resources files beside the executable
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
@@ -395,9 +395,9 @@ else()
       "${PROJECT_SOURCE_DIR}/resources/serverless/redirect.json"
       "${RESOURCES_DEV_DIR}/serverless/redirect.json"
     # copy JSDoc files beside the executable
-#    COMMAND "${CMAKE_COMMAND}" -E copy_directory
-#      "${CMAKE_CURRENT_BINARY_DIR}/tools/jsdoc/out"
-#      "${INTERFACE_EXEC_DIR}/jsdoc"
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+      "${JSDOC_OUTPUT_PATH}"
+      "${INTERFACE_EXEC_DIR}/jsdoc"
   )
 
   # link target to external libraries
