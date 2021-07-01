@@ -6,7 +6,12 @@
 #  See the accompanying file LICENSE or http:#www.apache.org/licenses/LICENSE-2.0.html
 #
 
-find_package(LEAPMOTION)
+if (USE_LEAPMOTION)
+    find_package(LEAPMOTION)
+else()
+    message(STATUS "Use of Leap Motion SDK not enabled. Run cmake with -DUSE_LEAPMOTION=1 to use it.")
+endif()
+
 if (LEAPMOTION_FOUND) 
     set(TARGET_NAME hifiLeapMotion)
     setup_hifi_plugin(Qml)
