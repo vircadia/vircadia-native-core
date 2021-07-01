@@ -334,7 +334,7 @@ static QString findBinaryDir() {
 
     QFileInfo exeLinkInfo(exeLink);
     if (exeLinkInfo.isSymLink()) {
-        QFileInfo exeInfo( exeLinkInfo.symLinkTarget() );
+        QFileInfo exeInfo(exeLinkInfo.symLinkTarget());
         qCDebug(crash_handler) << "exe symlink points at" << exeInfo;
         return exeInfo.absoluteDir().absolutePath();
     } else {
