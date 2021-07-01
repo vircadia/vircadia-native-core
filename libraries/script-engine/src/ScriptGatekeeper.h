@@ -8,9 +8,10 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/** @addtogroup ScriptEngine
- *  @{
-*/
+
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef vircadia_ScriptGatekeeper_h
 #define vircadia_ScriptGatekeeper_h
 
@@ -30,4 +31,5 @@ private:
 };
 
 #endif // vircadia_ScriptGatekeeper_h
-/** @}*/
+
+/// @}

@@ -8,9 +8,10 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/** @addtogroup ScriptEngine
- *  @{
-*/
+
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_KeyEvent_h
 #define hifi_KeyEvent_h
 
@@ -42,4 +43,5 @@ public:
 Q_DECLARE_METATYPE(KeyEvent)
 
 #endif // hifi_KeyEvent_h
-/** @}*/
+
+/// @}

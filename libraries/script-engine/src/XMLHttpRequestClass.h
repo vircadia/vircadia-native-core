@@ -8,9 +8,10 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/** @addtogroup ScriptEngine
- *  @{
-*/
+
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_XMLHttpRequestClass_h
 #define hifi_XMLHttpRequestClass_h
 
@@ -377,4 +378,5 @@ private slots:
 };
 
 #endif // hifi_XMLHttpRequestClass_h
-/** @}*/
+
+/// @}
