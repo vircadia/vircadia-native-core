@@ -7,8 +7,6 @@
 
 **Doxygen** &ge; 1.9.1 - https://www.doxygen.nl/
 
-Make a `/build/doxygen/` directory.
-
 If you want to run Doxygen from a command prompt, add the Doxygen install's `/bin` directory to your system PATH.
 
 
