@@ -377,7 +377,7 @@ bool startCrashHandler(std::string appPath) {
     QString binaryDir = findBinaryDir();
     QDir interfaceDir;
 
-    if ( !binaryDir.isEmpty() ) {
+    if (!binaryDir.isEmpty()) {
         // Locating ourselves by argv[0] fails in the case of AppImage on Linux, as we get the AppImage
         // itself in there. If we have a platform-specific method, and it succeeds, we use that instead
         // of argv.
