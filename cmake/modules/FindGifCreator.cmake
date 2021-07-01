@@ -21,6 +21,6 @@ hifi_library_search_hints("GIFCREATOR")
 find_path(GIFCREATOR_INCLUDE_DIRS "GifCreator/GifCreator.h" HINTS ${GIFCREATOR_SEARCH_DIRS})
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(GIFCREATOR DEFAULT_MSG GIFCREATOR_INCLUDE_DIRS)
+find_package_handle_standard_args(GifCreator DEFAULT_MSG GIFCREATOR_INCLUDE_DIRS)
 
 mark_as_advanced(GIFCREATOR_INCLUDE_DIRS GIFCREATOR_SEARCH_DIRS)
