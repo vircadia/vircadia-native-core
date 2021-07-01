@@ -77,7 +77,7 @@ endif()
 if (HIFI_ANDROID)
     execute_process(
         COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_CURRENT_SOURCE_DIR}/prebuild.py --release-type ${RELEASE_TYPE} --android ${HIFI_ANDROID_APP} --build-root ${CMAKE_BINARY_DIR}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} RESULTS_VARIABLE PREBUILD_RET
     )
 else()
     set(VCPKG_BUILD_TYPE_PARAM "")
@@ -86,7 +86,7 @@ else()
     endif()
     execute_process(
         COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_CURRENT_SOURCE_DIR}/prebuild.py --release-type ${RELEASE_TYPE} --build-root ${CMAKE_BINARY_DIR} ${VCPKG_BUILD_TYPE_PARAM}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} RESULTS_VARIABLE PREBUILD_RET
     )
     # squelch the Policy CMP0074 warning without requiring an update to cmake 3.12.
     if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.12)
@@ -94,6 +94,9 @@ else()
     endif()
 endif()
 
+if (PREBUILD_RET GREATER 0)
+  message(FATAL_ERROR "prebuild.py failed with error ${PREBUILD_RET}")
+endif()
 if(NOT EXISTS "${CMAKE_BINARY_DIR}/vcpkg.cmake")
     message(FATAL_ERROR "vcpkg configuration missing.")
 endif()
@@ -101,11 +104,16 @@ include("${CMAKE_BINARY_DIR}/vcpkg.cmake")
 
 if (HIFI_ANDROID)
   set(QT_CMAKE_PREFIX_PATH "$ENV{HIFI_ANDROID_PRECOMPILED}/qt/lib/cmake")
-else() 
-  if(NOT EXISTS "${CMAKE_BINARY_DIR}/qt.cmake")
-      message(FATAL_ERROR "qt configuration missing.")
+else()
+  if ("$ENV{VIRCADIA_USE_SYSTEM_QT}" STREQUAL "")
+     if(NOT EXISTS "${CMAKE_BINARY_DIR}/qt.cmake")
+        message(FATAL_ERROR "qt configuration missing.")
+    endif()
+    include("${CMAKE_BINARY_DIR}/qt.cmake")
+    message(STATUS "${CMAKE_BINARY_DIR}/qt.cmake included!")
+  else()
+    message(STATUS "System Qt in use, not including qt.cmake!")
   endif()
-  include("${CMAKE_BINARY_DIR}/qt.cmake")
 endif()
 
 option(VCPKG_APPLOCAL_DEPS OFF)
@@ -290,7 +298,10 @@ set_packaging_parameters()
 
 # Locate the required Qt build on the filesystem
 setup_qt()
-list(APPEND CMAKE_PREFIX_PATH "${QT_CMAKE_PREFIX_PATH}")
+
+if ("$ENV{VIRCADIA_USE_SYSTEM_QT}" STREQUAL "")
+  list(APPEND CMAKE_PREFIX_PATH "${QT_CMAKE_PREFIX_PATH}")
+endif()
 
 find_package( Threads )
 
