@@ -22,7 +22,10 @@ NetworkSocket::NetworkSocket(QObject* parent, NodeType_t nodeType) :
 {
     connect(&_udpSocket, &QUdpSocket::readyRead, this, &NetworkSocket::readyRead);
     connect(&_udpSocket, &QAbstractSocket::stateChanged, this, &NetworkSocket::onUDPStateChanged);
-    connect(&_udpSocket, &QAbstractSocket::errorOccurred, this, &NetworkSocket::onUDPSocketError);
+    // Use old SIGNAL/SLOT mechanism for Android builds.
+    connect(&_udpSocket, SIGNAL(error(QAbstractSocket::SocketError)),
+        this, SLOT(onUDPSocketError(QAbstractSocket::SocketError)));
+
 #if defined(WEBRTC_DATA_CHANNELS)
     connect(&_webrtcSocket, &WebRTCSocket::readyRead, this, &NetworkSocket::readyRead);
     connect(&_webrtcSocket, &WebRTCSocket::stateChanged, this, &NetworkSocket::onWebRTCStateChanged);
