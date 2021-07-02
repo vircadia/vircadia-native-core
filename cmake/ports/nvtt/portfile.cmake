@@ -10,17 +10,10 @@ include(vcpkg_common_functions)
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO vircadia/nvidia-texture-tools
-    REF 330c4d56274a0f602a5c70596e2eb670a4ed56c2
-    SHA512 4c0bc2f369120d696cc27710b6d33086b27eef55f537ec66b9a5c8b1839bc2426c0413670b0f65be52c5d353468f0126dfe024be1f0690611d4d7e33ac530127
+    REF 26b65cd105f0d2f425b5152b460a8d5eaa44b514
+    SHA512 27c68e2b4cfbc78c11903ecb47a58dde99ecbbed0447817b9463fb80835ce9e502a0c93c12d82c0dbf02d6592e0e5adb805b9acc03b53c9a1cb118ed147a7706
     HEAD_REF master
 )
-
-if(VCPKG_TARGET_ARCHITECTURE STREQUAL arm64)
-    vcpkg_apply_patches(
-        SOURCE_PATH ${SOURCE_PATH}
-        PATCHES "${CMAKE_CURRENT_LIST_DIR}/0001-Build-on-aarch64.patch" "${CMAKE_CURRENT_LIST_DIR}/0002-Hack-remove-include-sysctl.h-to-build-on-linux-a.patch"
-    )
-endif()
 
 vcpkg_configure_cmake(
     SOURCE_PATH ${SOURCE_PATH}
