@@ -30,6 +30,7 @@ find_package(
 
 
 if (BUILD_TOOLS AND NPM_EXECUTABLE)
+  set(JSDOC_ENABLED 1)
   add_custom_qrc_path(CUSTOM_INTERFACE_QRC_PATHS "${CMAKE_BINARY_DIR}/tools/jsdoc/out/hifiJSDoc.json" "auto-complete/hifiJSDoc.json")
 endif ()
 
@@ -42,6 +43,10 @@ if (ANDROID)
   qt5_add_binary_resources(resources "${RESOURCES_QRC}" DESTINATION "${RESOURCES_RCC}" OPTIONS -no-compress)
 else ()
   qt5_add_binary_resources(resources "${RESOURCES_QRC}" DESTINATION "${RESOURCES_RCC}")
+endif()
+
+if (JSDOC_ENABLED)
+  add_dependencies(resources jsdoc)
 endif()
 
 list(APPEND GENERATE_QRC_DEPENDS ${RESOURCES_RCC})
@@ -187,7 +192,7 @@ if (BUILD_TOOLS AND NPM_EXECUTABLE)
   add_dependencies(resources jsdoc)
 endif()
 
-if (WIN32 OR APPLE)
+if (NOT ANDROID)
   add_dependencies(${TARGET_NAME} resources)
 endif()
 
