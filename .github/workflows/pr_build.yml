@@ -25,6 +25,8 @@ env:
   # WIN32 specific variables
   PreferredToolArchitecture: X64
 
+  # Ensure XZ always runs with muticore support
+  XZ_OPT: -T0
 
 jobs:
   build:
@@ -140,6 +142,18 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DVCPKG_BUILD_TYPE=release $CMAKE_EXTRA
+    - name: Compress cmake logs
+      if: always()
+      shell: bash
+      run: |
+        find "$HOME/vircadia-files/vcpkg" -name '*log' -type f -print0 | tar --null --force-local -T - -c --xz -v -f "${{ runner.workspace }}/cmake-logs.tar.xz"
+    - name: Archive cmake logs
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: cmake-logs
+        path: ${{ runner.workspace }}/cmake-logs.tar.xz
+        if-no-files-found: error
     - name: Build Application
       if: matrix.build_type == 'full' || matrix.build_type == 'client'
       working-directory: ${{runner.workspace}}/build
