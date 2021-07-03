@@ -149,7 +149,6 @@ jobs:
         if [[ "${{ matrix.build_type }}" == "android" ]]; then
           echo "Nuke CMake 3.18.1-g262b901"
           /usr/local/lib/android/sdk/tools/bin/sdkmanager --uninstall 'cmake;3.18.1'
-          cd android
         fi
         cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DVCPKG_BUILD_TYPE=release $CMAKE_EXTRA
     - name: Build Application
