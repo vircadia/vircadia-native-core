@@ -101,8 +101,8 @@ jobs:
       working-directory: ${{runner.workspace}}
       run: rm -rf ./*
     - uses: actions/checkout@v1
-      with: 
-        submodules: true
+      with:
+        submodules: false
         fetch-depth: 1
     - name: Install dependencies
       if: startsWith(matrix.os, 'ubuntu')
