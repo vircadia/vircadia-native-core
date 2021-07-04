@@ -252,8 +252,8 @@ public slots:
      *     <code>"127.0.0.1"</code> or <code>"localhost"</code>), a <code>file:///</code> address, a domain name, a named path 
      *     on a domain (starts with <code>"/"</code>), a position or position and orientation, or a user (starts with 
      *     <code>"@"</code>).
-     * @param {boolean} [fromSuggestions=false] - Set to <code>true</code> if the address is obtained from the "Goto" dialog.
-     *     Helps ensure that user's location history is correctly maintained.
+     * @param {boolean} [fromSuggestions=false] - Set to <code>true</code> if the address is obtained from the "Explore" app.
+     *     Helps ensure that the user's location history is correctly maintained.
      */
     void handleLookupString(const QString& lookupString, bool fromSuggestions = false);
 
@@ -390,10 +390,10 @@ signals:
     void lookupResultIsNotFound();
 
     /*@jsdoc
-     * Triggered when a request is made to go to an IP address.
+     * Triggered when a request is made to go to a URL or IP address.
      * @function location.possibleDomainChangeRequired
-     * @param {Url} domainURL - URL for domain
-     * @param {Uuid} domainID - The UUID of the domain to go to.
+     * @param {string} domainURL - The URL of the domain.
+     * @param {Uuid} domainID - The UUID of the domain to go to. May be "{@link Uuid|Uuid.NULL} if not yet known.
      * @returns {Signal}
      */
     // No example because this function isn't typically used in scripts.
