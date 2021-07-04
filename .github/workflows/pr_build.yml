@@ -157,7 +157,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v2
       with:
-        name: cmake-logs
+        name: cmake-logs-${{ matrix.os }}-${{ github.event.number }}.tar.xz
         path: ${{ runner.workspace }}/cmake-logs-${{ matrix.os }}-${{ github.event.number }}.tar.xz
         if-no-files-found: error
     - name: Build Application
