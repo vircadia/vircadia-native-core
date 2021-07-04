@@ -48,6 +48,7 @@ public:
 /// @brief A WebRTC create session description observer.
 class WDCCreateSessionDescriptionObserver : public CreateSessionDescriptionObserver {
 public:
+
     WDCCreateSessionDescriptionObserver(WDCConnection* parent);
 
     /// @brief The call to CreateAnswer succeeded.
@@ -118,6 +119,7 @@ private:
 class WDCConnection {
 
 public:
+
     /// @brief Constructs a new WDCConnection and opens a WebRTC data connection.
     /// @param webSocketID The signaling channel that initiated the opening of the WebRTC data channel.
     /// @param parent The parent WebRTCDataChannels object.
@@ -155,6 +157,10 @@ public:
     /// @param candidate The ICE candidate.
     void sendIceCandidate(const IceCandidateInterface* candidate);
 
+    /// @brief Monitors the peer connection state.
+    /// @param state The new peer connection state.
+    void onPeerConnectionStateChanged(PeerConnectionInterface::PeerConnectionState state);
+
     /// @brief Handles the WebRTC data channel being opened.
     /// @param dataChannel The WebRTC data channel.
     void onDataChannelOpened(rtc::scoped_refptr<DataChannelInterface> dataChannel);
@@ -171,6 +177,9 @@ public:
     /// @param buffer The message to send.
     /// @return `true` if the message was sent, otherwise `false`.
     bool sendDataMessage(const DataBuffer& buffer);
+
+    /// @brief Closes the WebRTC peer connection.
+    void closePeerConnection();
     
 private:
     WebRTCDataChannels* _parent;
@@ -228,11 +237,6 @@ public:
     /// @param dataChannelID The WebRTC data channel ID.
     void onDataChannelOpened(WDCConnection* connection, quint16 dataChannelID);
 
-    /// @brief Handles a WebRTC data channel closing.
-    /// @param connection The WebRTC data channel connection.
-    /// @param dataChannelID The WebRTC data channel ID.
-    void onDataChannelClosed(WDCConnection* connection, quint16 dataChannelID);
-
     /// @brief Emits a signalingMessage to be sent to the Interface client.
     /// @param message The WebRTC signaling message to send.
     void sendSignalingMessage(const QJsonObject& message);
@@ -254,11 +258,23 @@ public:
     rtc::scoped_refptr<PeerConnectionInterface> createPeerConnection(
         const std::shared_ptr<WDCPeerConnectionObserver> peerConnectionObserver);
 
+    /// @brief Initiates closing the peer connection for a WebRTC data channel.
+    /// @details Emits a {@link WebRTCDataChannels.closePeerConnectionSoon} signal which is connected to
+    ///     {@link WebRTCDataChannels.closePeerConnectionNow} in order to close the peer connection on a new call stack. This is
+    ///     necessary to work around a WebRTC library limitation.
+    /// @param connection The WebRTC data channel connection.
+    void closePeerConnection(WDCConnection* connection);
+
 public slots:
 
     /// @brief Handles a WebRTC signaling message received from the Interface client.
     /// @param message The WebRTC signaling message.
     void onSignalingMessage(const QJsonObject& message);
+
+    /// @brief Closes the peer connection for a WebRTC data channel.
+    /// @details Used by {@link WebRTCDataChannels.closePeerConnection}.
+    /// @param connection The WebRTC data channel connection.
+    void closePeerConnectionNow(WDCConnection* connection);
 
 signals:
 
@@ -272,6 +288,11 @@ signals:
     /// @param dataChannelID The WebRTC data channel ID.
     /// @param byteArray The Vircadia protocol message.
     void dataMessage(int dataChannelID, const QByteArray& byteArray);
+
+    /// @brief Signals that the peer connection for a WebRTC data channel should be closed.
+    /// @details Used by {@link WebRTCDataChannels.closePeerConnection}.
+    /// @param connection The WebRTC data channel connection.
+    void closePeerConnectionSoon(WDCConnection* connection);
 
 private:
 
