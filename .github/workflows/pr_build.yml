@@ -146,7 +146,13 @@ jobs:
       if: always()
       shell: bash
       run: |
-        find "$HOME/vircadia-files/vcpkg" -name '*log' -type f -print0 | gtar --null --force-local -T - -c --xz -v -f "${{ runner.workspace }}/cmake-logs.tar.xz"
+        if [ "${{ matrix.os }}" == "macOS-latest" ]; then
+          TAR=gtar
+        else
+          TAR=tar
+        fi
+
+        find "$HOME/vircadia-files/vcpkg" -name '*log' -type f -print0 | $TAR --null --force-local -T - -c --xz -v -f "${{ runner.workspace }}/cmake-logs.tar.xz"
     - name: Archive cmake logs
       if: always()
       uses: actions/upload-artifact@v2
