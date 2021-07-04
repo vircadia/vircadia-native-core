@@ -49,6 +49,8 @@ public:
 class WDCCreateSessionDescriptionObserver : public CreateSessionDescriptionObserver {
 public:
 
+    /// @brief Constructs a session description observer.
+    /// @param parent The parent connection object.
     WDCCreateSessionDescriptionObserver(WDCConnection* parent);
 
     /// @brief The call to CreateAnswer succeeded.
@@ -67,6 +69,9 @@ private:
 /// @brief A WebRTC peer connection observer.
 class WDCPeerConnectionObserver : public PeerConnectionObserver {
 public:
+
+    /// @brief Constructs a peer connection observer.
+    /// @param parent The parent connection object.
     WDCPeerConnectionObserver(WDCConnection* parent);
 
     /// @brief Called when the SignalingState changes.
@@ -100,6 +105,9 @@ private:
 /// @brief A WebRTC data channel observer.
 class WDCDataChannelObserver : public DataChannelObserver {
 public:
+
+    /// @brief Constructs a data channel observer.
+    /// @param parent The parent connection object.
     WDCDataChannelObserver(WDCConnection* parent);
 
     /// @brief The data channel state changed.
