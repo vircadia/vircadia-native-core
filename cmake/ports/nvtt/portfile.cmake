@@ -10,8 +10,8 @@ include(vcpkg_common_functions)
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO vircadia/nvidia-texture-tools
-    REF 26b65cd105f0d2f425b5152b460a8d5eaa44b514
-    SHA512 27c68e2b4cfbc78c11903ecb47a58dde99ecbbed0447817b9463fb80835ce9e502a0c93c12d82c0dbf02d6592e0e5adb805b9acc03b53c9a1cb118ed147a7706
+    REF d8b7a98aeb177b5eddb76571183bbd2f95d54e6c
+    SHA512 ea15ffd19eb1e14c8ebd62f8d7de3df1ecf6c18a339025f4a0e13419717d510903fc126ec6d1bdfbb5a2f4525a922412b72318bc8dd55dd000481a3924fbfcd4
     HEAD_REF master
 )
 
