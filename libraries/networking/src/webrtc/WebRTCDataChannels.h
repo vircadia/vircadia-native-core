@@ -129,9 +129,9 @@ class WDCConnection {
 public:
 
     /// @brief Constructs a new WDCConnection and opens a WebRTC data connection.
-    /// @param webSocketID The signaling channel that initiated the opening of the WebRTC data channel.
     /// @param parent The parent WebRTCDataChannels object.
-    WDCConnection(quint16 webSocketID, WebRTCDataChannels* parent);
+    /// @param webSocketID The signaling channel that initiated the opening of the WebRTC data channel.
+    WDCConnection(WebRTCDataChannels* parent, quint16 webSocketID);
 
     /// @brief Gets the WebSocket ID.
     /// @return The ID of the WebSocket.

@@ -21,6 +21,7 @@
 // - https://webrtc.googlesource.com/src/+/master/api/peer_connection_interface.h
 
 const std::string ICE_SERVER_URI = "stun://ice.vircadia.com:7337";
+const int MAX_WEBRTC_BUFFER_SIZE = 16777216;  // 16MB
 
 // #define WEBRTC_DEBUG
 
@@ -128,9 +129,9 @@ void WDCDataChannelObserver::OnMessage(const DataBuffer& buffer) {
 }
 
 
-WDCConnection::WDCConnection(quint16 webSocketID, WebRTCDataChannels* parent) :
-    _webSocketID(webSocketID),
-    _parent(parent)
+WDCConnection::WDCConnection(WebRTCDataChannels* parent, quint16 webSocketID) :
+    _parent(parent),
+    _webSocketID(webSocketID)
 {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WDCConnection::WDCConnection() :" << webSocketID;
@@ -333,10 +334,11 @@ bool WDCConnection::sendDataMessage(const DataBuffer& buffer) {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WDCConnection::sendDataMessage()";
 #endif
-    const int MAX_WEBRTC_BUFFER_SIZE = 16 * 1024 * 1024;  // 16MB
     if (_dataChannel->buffered_amount() + buffer.size() > MAX_WEBRTC_BUFFER_SIZE) {
         // Don't send, otherwise the data channel will be closed.
         return false;
+    } else {
+        qCDebug(networking_webrtc) << "WebRTC send buffer overflow";
     }
     return _dataChannel->Send(buffer);
 }
@@ -440,7 +442,7 @@ void WebRTCDataChannels::onSignalingMessage(const QJsonObject& message) {
     if (_connectionsByWebSocket.contains(from)) {
         connection = _connectionsByWebSocket.value(from);
     } else {
-        connection = new WDCConnection(from, this);
+        connection = new WDCConnection(this, from);
         _connectionsByWebSocket.insert(from, connection);
     }
 
