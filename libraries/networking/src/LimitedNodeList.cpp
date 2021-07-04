@@ -218,6 +218,7 @@ void LimitedNodeList::setSocketLocalPort(SocketType socketType, quint16 socketLo
             LIMITED_NODELIST_LOCAL_PORT.set(socketLocalPort);
         } else {
             // WEBRTC TODO: Add WebRTC equivalent?
+            qCWarning(networking_webrtc) << "LIMITED_NODELIST_LOCAL_PORT not set for WebRTC socket";
         }
     }
 }
