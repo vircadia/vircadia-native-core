@@ -146,7 +146,7 @@ jobs:
       if: always()
       shell: bash
       run: |
-        find "$HOME/vircadia-files/vcpkg" -name '*log' -type f -print0 | tar --null --force-local -T - -c --xz -v -f "${{ runner.workspace }}/cmake-logs.tar.xz"
+        find "$HOME/vircadia-files/vcpkg" -name '*log' -type f -print0 | gtar --null --force-local -T - -c --xz -v -f "${{ runner.workspace }}/cmake-logs.tar.xz"
     - name: Archive cmake logs
       if: always()
       uses: actions/upload-artifact@v2
