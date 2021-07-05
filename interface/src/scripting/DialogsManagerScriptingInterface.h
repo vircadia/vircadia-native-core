@@ -14,7 +14,7 @@
 
 #include <QObject>
 
-/**jsdoc
+/*@jsdoc
  * The <code>DialogsMamnager</code> API provides facilities to work with some key dialogs.
  *
  * @namespace DialogsManager
@@ -30,33 +30,33 @@ public:
     DialogsManagerScriptingInterface();
     static DialogsManagerScriptingInterface* getInstance();
 
-    /**jsdoc
+    /*@jsdoc
      * <em>Currently performs no action.</em>
      * @function DialogsManager.showFeed
      */
     Q_INVOKABLE void showFeed();
 
 public slots:
-    /**jsdoc
+    /*@jsdoc
      * Shows the "Goto" dialog.
      * @function DialogsManager.showAddressBar
      */
     void showAddressBar();
 
-    /**jsdoc
+    /*@jsdoc
      * Hides the "Goto" dialog.
      * @function DialogsManager.hideAddressBar
      */
     void hideAddressBar();
 
-    /**jsdoc
+    /*@jsdoc
      * Shows the login dialog.
      * @function DialogsManager.showLoginDialog
      */
     void showLoginDialog();
 
 signals:
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the "Goto" dialog is opened or closed.
      * <p><strong>Warning:</strong> Currently isn't always triggered.</p>
      * @function DialogsManager.addressBarShown

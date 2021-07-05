@@ -11,6 +11,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #pragma once
 #ifndef hifi_Vec3_h
 #define hifi_Vec3_h
@@ -21,7 +24,7 @@
 
 #include "GLMHelpers.h"
 
-/**jsdoc
+/*@jsdoc
  * The <code>Vec3</code> API provides facilities for generating and manipulating 3-dimensional vectors. Vircadia uses a 
  * right-handed Cartesian coordinate system where the y-axis is the "up" and the negative z-axis is the "front" direction.
  * <img alt="Vircadia coordinate system" src="https://apidocs.vircadia.dev/images/opengl-coord-system.jpg" />
@@ -71,8 +74,7 @@
  * @property {Vec3} FRONT - <code>{ x: 0, y: 0, z: -1 }</code> : Unit vector in the "front" direction. Synonym for 
  *     <code>UNIT_NEG_Z</code>. <em>Read-only.</em>
  */
-
-/// Scriptable interface a Vec3ernion helper class object. Used exclusively in the JavaScript API
+/// Provides the <code><a href="https://apidocs.vircadia.dev/Vec3.html">Vec3</a></code> scripting interface
 class Vec3 : public QObject, protected QScriptable {
     Q_OBJECT
     Q_PROPERTY(glm::vec3 UNIT_X READ UNIT_X CONSTANT)
@@ -97,7 +99,7 @@ class Vec3 : public QObject, protected QScriptable {
 
 public slots:
     
-    /**jsdoc
+    /*@jsdoc
      * Calculates the reflection of a vector in a plane.
      * @function Vec3(0).reflect
      * @param {Vec3} v - The vector to reflect.
@@ -111,7 +113,7 @@ public slots:
      */
     glm::vec3 reflect(const glm::vec3& v1, const glm::vec3& v2) { return glm::reflect(v1, v2); }
     
-    /**jsdoc
+    /*@jsdoc
      * Calculates the cross product of two vectors.
      * @function Vec3(0).cross
      * @param {Vec3} v1 - The first vector.
@@ -125,7 +127,7 @@ public slots:
      */
     glm::vec3 cross(const glm::vec3& v1, const glm::vec3& v2) { return glm::cross(v1, v2); }
     
-    /**jsdoc
+    /*@jsdoc
      * Calculates the dot product of two vectors.
      * @function Vec3(0).dot
      * @param {Vec3} v1 - The first vector.
@@ -139,7 +141,7 @@ public slots:
      */
     float dot(const glm::vec3& v1, const glm::vec3& v2) { return glm::dot(v1, v2); }
     
-    /**jsdoc
+    /*@jsdoc
      * Multiplies a vector by a scale factor.
      * @function Vec3(0).multiply
      * @param {Vec3} v - The vector.
@@ -148,7 +150,7 @@ public slots:
      */
     glm::vec3 multiply(const glm::vec3& v1, float f) { return v1 * f; }
     
-    /**jsdoc
+    /*@jsdoc
      * Multiplies a vector by a scale factor.
      * @function Vec3(0).multiply
      * @param {number} scale - The scale factor.
@@ -157,7 +159,7 @@ public slots:
      */
     glm::vec3 multiply(float f, const glm::vec3& v1) { return v1 * f; }
     
-    /**jsdoc
+    /*@jsdoc
      * Multiplies two vectors.
      * @function Vec3(0).multiplyVbyV
      * @param {Vec3} v1 - The first vector.
@@ -172,7 +174,7 @@ public slots:
      */
     glm::vec3 multiplyVbyV(const glm::vec3& v1, const glm::vec3& v2) { return v1 * v2; }
     
-    /**jsdoc
+    /*@jsdoc
      * Rotates a vector.
      * @function Vec3(0).multiplyQbyV
      * @param {Quat} q - The rotation to apply.
@@ -186,7 +188,7 @@ public slots:
      */
     glm::vec3 multiplyQbyV(const glm::quat& q, const glm::vec3& v) { return q * v; }
     
-    /**jsdoc
+    /*@jsdoc
      * Calculates the sum of two vectors.
      * @function Vec3(0).sum
      * @param {Vec3} v1 - The first vector.
@@ -195,7 +197,7 @@ public slots:
      */
     glm::vec3 sum(const glm::vec3& v1, const glm::vec3& v2) { return v1 + v2; }
     
-    /**jsdoc
+    /*@jsdoc
      * Calculates one vector subtracted from another.
      * @function Vec3(0).subtract
      * @param {Vec3} v1 - The first vector.
@@ -204,7 +206,7 @@ public slots:
      */
     glm::vec3 subtract(const glm::vec3& v1, const glm::vec3& v2) { return v1 - v2; }
     
-    /**jsdoc
+    /*@jsdoc
      * Calculates the length of a vector
      * @function Vec3(0).length
      * @param {Vec3} v - The vector.
@@ -212,7 +214,7 @@ public slots:
      */
     float length(const glm::vec3& v) { return glm::length(v); }
     
-    /**jsdoc
+    /*@jsdoc
      * Calculates the distance between two points.
      * @function Vec3(0).distance
      * @param {Vec3} p1 - The first point.
@@ -230,7 +232,7 @@ public slots:
      */
     float distance(const glm::vec3& v1, const glm::vec3& v2) { return glm::distance(v1, v2); }
     
-    /**jsdoc
+    /*@jsdoc
      * Calculates the angle of rotation from one vector onto another, with the sign depending on a reference vector.
      * @function Vec3(0).orientedAngle
      * @param {Vec3} v1 - The first vector.
@@ -252,7 +254,7 @@ public slots:
      */
     float orientedAngle(const glm::vec3& v1, const glm::vec3& v2, const glm::vec3& v3);
     
-    /**jsdoc
+    /*@jsdoc
      * Normalizes a vector so that its length is <code>1</code>.
      * @function Vec3(0).normalize
      * @param {Vec3} v - The vector to normalize.
@@ -265,7 +267,7 @@ public slots:
      */
     glm::vec3 normalize(const glm::vec3& v) { return glm::normalize(v); };
     
-    /**jsdoc
+    /*@jsdoc
      * Calculates a linear interpolation between two vectors.
      * @function Vec3(0).mix
      * @param {Vec3} v1 - The first vector.
@@ -280,7 +282,7 @@ public slots:
      */
     glm::vec3 mix(const glm::vec3& v1, const glm::vec3& v2, float m) { return glm::mix(v1, v2, m); }
     
-    /**jsdoc
+    /*@jsdoc
      * Prints the vector to the program log, as a text label followed by the vector value.
      * @function Vec3(0).print
      * @param {string} label - The label to print.
@@ -292,7 +294,7 @@ public slots:
      */
     void print(const QString& label, const glm::vec3& v);
     
-    /**jsdoc
+    /*@jsdoc
      * Tests whether two vectors are equal.
      * <p><strong>Note:</strong> The vectors must be exactly equal in order for <code>true</code> to be returned; it is often 
      * better to use {@link Vec3(0).withinEpsilon|withinEpsilon}.</p>
@@ -313,7 +315,7 @@ public slots:
      */
     bool equal(const glm::vec3& v1, const glm::vec3& v2) { return v1 == v2; }
     
-    /**jsdoc
+    /*@jsdoc
      * Tests whether two vectors are equal within a tolerance.
      * <p><strong>Note:</strong> It is often better to use this function than {@link Vec3(0).equal|equal}.</p>
      * @function Vec3(0).withinEpsilon
@@ -334,7 +336,7 @@ public slots:
      */
     bool withinEpsilon(const glm::vec3& v1, const glm::vec3& v2, float epsilon);
     
-    /**jsdoc
+    /*@jsdoc
      * Calculates polar coordinates (elevation, azimuth, radius) that transform the unit z-axis vector onto a point.
      * @function Vec3(0).toPolar
      * @param {Vec3} p - The point to calculate the polar coordinates for.
@@ -350,7 +352,7 @@ public slots:
     // FIXME misnamed, should be 'spherical' or 'euler' depending on the implementation
     glm::vec3 toPolar(const glm::vec3& v);
     
-    /**jsdoc
+    /*@jsdoc
      * Calculates the coordinates of a point from polar coordinate transformation of the unit z-axis vector.
      * @function Vec3(0).fromPolar
      * @param {Vec3} polar - The polar coordinates of a point: <code>x</code> elevation rotation about the x-axis in radians, 
@@ -364,7 +366,7 @@ public slots:
     // FIXME misnamed, should be 'spherical' or 'euler' depending on the implementation
     glm::vec3 fromPolar(const glm::vec3& polar);
     
-    /**jsdoc
+    /*@jsdoc
      * Calculates the unit vector corresponding to polar coordinates elevation and azimuth transformation of the unit z-axis 
      * vector.
      * @function Vec3(0).fromPolar
@@ -382,7 +384,7 @@ public slots:
     // FIXME misnamed, should be 'spherical' or 'euler' depending on the implementation
     glm::vec3 fromPolar(float elevation, float azimuth);
     
-    /**jsdoc
+    /*@jsdoc
      * Calculates the angle between two vectors.
      * @function Vec3(0).getAngle
      * @param {Vec3} v1 - The first vector.
@@ -419,3 +421,5 @@ private:
 };
 
 #endif // hifi_Vec3_h
+
+/// @}

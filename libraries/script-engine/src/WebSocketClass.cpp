@@ -76,12 +76,12 @@ void WebSocketClass::close(QWebSocketProtocol::CloseCode closeCode, QString reas
     _webSocket->close(closeCode, reason);
 }
 
-/**jsdoc
+/*@jsdoc
  * Called when the connection closes.
  * @callback WebSocket~onCloseCallback
  * @param {WebSocket.CloseData} data - Information on the connection closure.
  */
-/**jsdoc
+/*@jsdoc
  * Information on a connection being closed.
  * @typedef {object} WebSocket.CloseData
  * @property {WebSocket.CloseCode} code - The reason why the connection was closed.
@@ -101,12 +101,12 @@ void WebSocketClass::handleOnClose() {
     }
 }
 
-/**jsdoc
+/*@jsdoc
  * Called when an error occurs.
  * @callback WebSocket~onErrorCallback
  * @param {WebSocket.SocketError} error - The error.
  */
-/**jsdoc
+/*@jsdoc
  * <p>The type of socket error.</p>
  * <table>
  *   <thead>
@@ -158,12 +158,12 @@ void WebSocketClass::handleOnError(QAbstractSocket::SocketError error) {
     }
 }
 
-/**jsdoc
- * Triggered when a message is received.
+/*@jsdoc
+ * Called when a message is received.
  * @callback WebSocket~onMessageCallback
  * @param {WebSocket.MessageData} message - The message received.
  */
-/**jsdoc
+/*@jsdoc
  * A message received on a WebSocket connection.
  * @typedef {object} WebSocket.MessageData
  * @property {string} data - The message content.
@@ -197,7 +197,7 @@ void WebSocketClass::handleOnBinaryMessage(const QByteArray& message) {
     }
 }
 
-/**jsdoc
+/*@jsdoc
  * Called when the connection opens.
  * @callback WebSocket~onOpenCallback
  */

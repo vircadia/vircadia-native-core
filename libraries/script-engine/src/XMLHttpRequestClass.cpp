@@ -109,7 +109,7 @@ QScriptValue XMLHttpRequestClass::getResponseHeader(const QString& name) const {
     return QScriptValue::NullValue;
 }
 
-/**jsdoc
+/*@jsdoc
  * Called when the request's ready state changes.
  * @callback XMLHttpRequest~onReadyStateChangeCallback
  */
@@ -188,7 +188,7 @@ void XMLHttpRequestClass::doSend() {
     }
 }
 
-/**jsdoc
+/*@jsdoc
  * Called when the request times out.
  * @callback XMLHttpRequest~onTimeoutCallback 
  */

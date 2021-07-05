@@ -148,7 +148,7 @@ protected:
     RenderLayer _renderLayer { RenderLayer::WORLD };
     PrimitiveMode _primitiveMode { PrimitiveMode::SOLID };
     QVector<QUuid> _renderWithZones;
-    BillboardMode _billboardMode;
+    BillboardMode _billboardMode { BillboardMode::NONE };
     bool _cauterized { false };
     bool _moving { false };
     Transform _renderTransform;

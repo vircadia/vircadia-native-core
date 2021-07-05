@@ -658,7 +658,7 @@ private:
     }
 };
 
-/**jsdoc
+/*@jsdoc
  * <p>The <code>Controller.Hardware.Application</code> object has properties representing Interface's state. The property
  * values are integer IDs, uniquely identifying each output. <em>Read-only.</em></p>
  * <p>These states can be mapped to actions or functions or <code>Controller.Standard</code> items in a {@link RouteObject}
@@ -1012,7 +1012,7 @@ const bool DEFAULT_HMD_TABLET_BECOMES_TOOLBAR = false;
 const bool DEFAULT_PREFER_STYLUS_OVER_LASER = false;
 const bool DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS = false;
 const QString DEFAULT_CURSOR_NAME = "DEFAULT";
-const bool DEFAULT_MINI_TABLET_ENABLED = true;
+const bool DEFAULT_MINI_TABLET_ENABLED = false;
 const bool DEFAULT_AWAY_STATE_WHEN_FOCUS_LOST_IN_VR_ENABLED = true;
 
 QSharedPointer<OffscreenUi> getOffscreenUI() {
@@ -1306,6 +1306,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     _entityServerConnectionTimer.setSingleShot(true);
     connect(&_entityServerConnectionTimer, &QTimer::timeout, this, &Application::setFailedToConnectToEntityServer);
+
+    connect(&domainHandler, &DomainHandler::confirmConnectWithoutAvatarEntities,
+        this, &Application::confirmConnectWithoutAvatarEntities);
 
     connect(&domainHandler, &DomainHandler::connectedToDomain, this, [this]() {
         if (!isServerlessMode()) {
@@ -1970,7 +1973,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     loadSettings();
 
     updateVerboseLogging();
-    
+
     setCachebustRequire();
 
     // Make sure we don't time out during slow operations at startup
@@ -2520,7 +2523,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return viewFrustum.getPosition();
     });
 
-    DependencyManager::get<UsersScriptingInterface>()->setKickConfirmationOperator([this] (const QUuid& nodeID) { userKickConfirmation(nodeID); });
+    DependencyManager::get<UsersScriptingInterface>()->setKickConfirmationOperator([this] (const QUuid& nodeID, unsigned int banFlags) { userKickConfirmation(nodeID, banFlags); });
 
     render::entities::WebEntityRenderer::setAcquireWebSurfaceOperator([=](const QString& url, bool htmlContent, QSharedPointer<OffscreenQmlSurface>& webSurface, bool& cachedWebSurface) {
         bool isTablet = url == TabletScriptingInterface::QML;
@@ -2648,7 +2651,7 @@ void Application::setCachebustRequire() {
         return;
     }
     bool enable = menu->isOptionChecked(MenuOption::CachebustRequire);
-    
+
     Setting::Handle<bool>{ CACHEBUST_SCRIPT_REQUIRE_SETTING_NAME, false }.set(enable);
 }
 
@@ -3016,6 +3019,8 @@ Application::~Application() {
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
 
 #ifdef Q_OS_MAC
+    // 26 Feb 2021 - Tried re-enabling this call but OSX still crashes on exit.
+    //
     // 10/16/2019 - Disabling this call. This causes known crashes (A), and it is not
     // fully understood whether it might cause other unknown crashes (B).
     //
@@ -3268,7 +3273,7 @@ void Application::initializeUi() {
             safeURLS += settingsSafeURLS;
 
             // END PULL SAFEURLS FROM INTERFACE.JSON Settings
-            
+
             if (AUTHORIZED_EXTERNAL_QML_SOURCE.isParentOf(url)) {
                 return true;
             } else {
@@ -3600,7 +3605,7 @@ void Application::onDesktopRootItemCreated(QQuickItem* rootItem) {
     _desktopRootItemCreated = true;
 }
 
-void Application::userKickConfirmation(const QUuid& nodeID) {
+void Application::userKickConfirmation(const QUuid& nodeID, unsigned int banFlags) {
     auto avatarHashMap = DependencyManager::get<AvatarHashMap>();
     auto avatar = avatarHashMap->getAvatarBySessionID(nodeID);
 
@@ -3625,7 +3630,7 @@ void Application::userKickConfirmation(const QUuid& nodeID) {
             // ask the NodeList to kick the user with the given session ID
 
             if (yes) {
-                DependencyManager::get<NodeList>()->kickNodeBySessionID(nodeID);
+                DependencyManager::get<NodeList>()->kickNodeBySessionID(nodeID, banFlags);
             }
 
             DependencyManager::get<UsersScriptingInterface>()->setWaitForKickResponse(false);
@@ -4040,11 +4045,11 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     // If this is a first run we short-circuit the address passed in
     if (_firstRun.get()) {
-        if (!BuildInfo::INITIAL_STARTUP_LOCATION.isEmpty()) {
+        if (!BuildInfo::PRELOADED_STARTUP_LOCATION.isEmpty()) {
             DependencyManager::get<LocationBookmarks>()->setHomeLocationToAddress(NetworkingConstants::DEFAULT_VIRCADIA_ADDRESS);
             Menu::getInstance()->triggerOption(MenuOption::HomeLocation);
         }
-        
+
         if (!_overrideEntry) {
             DependencyManager::get<AddressManager>()->goToEntry();
             sentTo = SENT_TO_ENTRY;
@@ -7220,7 +7225,7 @@ void Application::updateWindowTitle() const {
     QString buildVersion = " - Vircadia - "
         + (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable ? QString("Version") : QString("Build"))
         + " " + applicationVersion();
-        
+
     if (BuildInfo::RELEASE_NAME != "") {
         buildVersion += " - " + BuildInfo::RELEASE_NAME;
     }
@@ -7923,7 +7928,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
             static const QString infoText = simpleWordWrap("Your domain's content will be replaced with a new content set. "
                 "If you want to save what you have now, create a backup before proceeding. For more information about backing up "
                 "and restoring content, visit the documentation page at: ", MAX_CHARACTERS_PER_LINE) +
-                "\nhttps://docs.vircadia.dev/host/maintain-domain/backup-domain.html";
+                "\nhttps://docs.vircadia.com/host/maintain-domain/backup-domain.html";
 
             ModalDialogListener* dig = OffscreenUi::asyncQuestion("Are you sure you want to replace this domain's content set?",
                                                                   infoText, QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
@@ -9197,6 +9202,32 @@ void Application::setShowBulletConstraints(bool value) {
 
 void Application::setShowBulletConstraintLimits(bool value) {
     _physicsEngine->setShowBulletConstraintLimits(value);
+}
+
+void Application::confirmConnectWithoutAvatarEntities() {
+
+    if (_confirmConnectWithoutAvatarEntitiesDialog) {
+        // Dialog is already displayed.
+        return;
+    }
+
+    if (!getMyAvatar()->hasAvatarEntities()) {
+        // No avatar entities so continue with login.
+        DependencyManager::get<NodeList>()->getDomainHandler().setCanConnectWithoutAvatarEntities(true);
+        return;
+    }
+
+    QString continueMessage = "Your wearables will not display on this domain. Continue?";
+    _confirmConnectWithoutAvatarEntitiesDialog = OffscreenUi::asyncQuestion("Continue Without Wearables", continueMessage,
+        QMessageBox::Yes | QMessageBox::No);
+    if (_confirmConnectWithoutAvatarEntitiesDialog->getDialogItem()) {
+        QObject::connect(_confirmConnectWithoutAvatarEntitiesDialog, &ModalDialogListener::response, this, [=](QVariant answer) {
+            QObject::disconnect(_confirmConnectWithoutAvatarEntitiesDialog, &ModalDialogListener::response, this, nullptr);
+            _confirmConnectWithoutAvatarEntitiesDialog = nullptr;
+            bool shouldConnect = (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes);
+            DependencyManager::get<NodeList>()->getDomainHandler().setCanConnectWithoutAvatarEntities(shouldConnect);
+        });
+    }
 }
 
 void Application::createLoginDialog() {

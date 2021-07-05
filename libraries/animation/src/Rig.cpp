@@ -89,7 +89,7 @@ static const QString MAIN_STATE_MACHINE_RIGHT_HAND_ROTATION("mainStateMachineRig
 static const QString MAIN_STATE_MACHINE_RIGHT_HAND_POSITION("mainStateMachineRightHandPosition");
 
 
-/**jsdoc
+/*@jsdoc
  * <p>An <code>AnimStateDictionary</code> object may have the following properties. It may also have other properties, set by 
  * scripts.</p>
  * <p><strong>Warning:</strong> These properties are subject to change.

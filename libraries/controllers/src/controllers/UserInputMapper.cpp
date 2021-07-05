@@ -365,19 +365,19 @@ Pose UserInputMapper::getPoseState(Action action) const {
 }
 
 
-bool UserInputMapper::triggerHapticPulse(float strength, float duration, controller::Hand hand) {
+bool UserInputMapper::triggerHapticPulse(float strength, float duration, uint16_t index) {
     Locker locker(_lock);
     bool toReturn = false;
     for (const auto& device : _registeredDevices) {
-        toReturn = device.second->triggerHapticPulse(strength, duration, hand) || toReturn;
+        toReturn = device.second->triggerHapticPulse(strength, duration, index) || toReturn;
     }
     return toReturn;
 }
 
-bool UserInputMapper::triggerHapticPulseOnDevice(uint16 deviceID, float strength, float duration, controller::Hand hand) {
+bool UserInputMapper::triggerHapticPulseOnDevice(uint16 deviceID, float strength, float duration, uint16_t index) {
     Locker locker(_lock);
     if (_registeredDevices.find(deviceID) != _registeredDevices.end()) {
-        return _registeredDevices[deviceID]->triggerHapticPulse(strength, duration, hand);
+        return _registeredDevices[deviceID]->triggerHapticPulse(strength, duration, index);
     }
     return false;
 }

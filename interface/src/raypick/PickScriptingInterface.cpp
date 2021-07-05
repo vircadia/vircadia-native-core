@@ -71,7 +71,7 @@ PickFilter getPickFilter(unsigned int filter) {
     return PickFilter(filter);
 }
 
-/**jsdoc
+/*@jsdoc
  * The properties of a ray pick.
  *
  * @typedef {object} Picks.RayPickProperties
@@ -157,7 +157,7 @@ std::shared_ptr<PickQuery> PickScriptingInterface::buildRayPick(const QVariantMa
     return rayPick;
 }
 
-/**jsdoc
+/*@jsdoc
  * The properties of a stylus pick.
  *
  * @typedef {object} Picks.StylusPickProperties
@@ -209,7 +209,7 @@ std::shared_ptr<PickQuery> PickScriptingInterface::buildStylusPick(const QVarian
 
 // NOTE: Laser pointer still uses scaleWithAvatar. Until scaleWithAvatar is also deprecated for pointers, scaleWithAvatar 
 // should not be removed from the pick API.
-/**jsdoc
+/*@jsdoc
  * The properties of a parabola pick.
  *
  * @typedef {object} Picks.ParabolaPickProperties
@@ -320,7 +320,7 @@ std::shared_ptr<PickQuery> PickScriptingInterface::buildParabolaPick(const QVari
 }
 
 
-/**jsdoc
+/*@jsdoc
  * The properties of a collision pick.
  *
  * @typedef {object} Picks.CollisionPickProperties

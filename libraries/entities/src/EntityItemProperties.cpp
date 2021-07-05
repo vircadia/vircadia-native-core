@@ -664,7 +664,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     return changedProperties;
 }
 
-/**jsdoc
+/*@jsdoc
  * Different entity types have different properties: some common to all entities (listed in the table) and some specific to
  * each {@link Entities.EntityType|EntityType} (linked to below).
  *
@@ -723,7 +723,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *
  * @property {Vec3} naturalPosition=0,0,0 - The center of the entity's unscaled mesh model if it has one, otherwise
  *     {@link Vec3(0)|Vec3.ZERO}. <em>Read-only.</em>
- * @property {Vec3} naturalDimensions - The dimensions of the entity's unscaled mesh model if it has one, otherwise
+ * @property {Vec3} naturalDimensions - The dimensions of the entity's unscaled mesh model or image if it has one, otherwise
  *     {@link Vec3(0)|Vec3.ONE}. <em>Read-only.</em>
  *
  * @property {Vec3} velocity=0,0,0 - The linear velocity of the entity in m/s with respect to world coordinates.
@@ -871,7 +871,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @see {@link Entities.EntityProperties-Zone|EntityProperties-Zone}
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Box"</code> {@link Entities.EntityType|EntityType} is the same as the <code>"Shape"</code>
  * {@link Entities.EntityType|EntityType} except that its <code>shape</code> value is always set to <code>"Cube"</code>
  * when the entity is created. If its <code>shape</code> property value is subsequently changed then the entity's
@@ -882,7 +882,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @see {@link Entities.EntityProperties-Shape|EntityProperties-Shape}
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Light"</code> {@link Entities.EntityType|EntityType} adds local lighting effects. It has properties in addition
  * to the common {@link Entities.EntityProperties|EntityProperties}.
  *
@@ -911,7 +911,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * });
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Line"</code> {@link Entities.EntityType|EntityType} draws thin, straight lines between a sequence of two or more
  * points. It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
  * <p class=important>Deprecated: Use {@link Entities.EntityProperties-PolyLine|PolyLine} entities instead.</p>
@@ -939,7 +939,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * });
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Material"</code> {@link Entities.EntityType|EntityType} modifies existing materials on entities and avatars. It
  * has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
  * <p>To apply a material to an entity, set the material entity's <code>parentID</code> property to the entity ID.
@@ -1006,7 +1006,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * });
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Model"</code> {@link Entities.EntityType|EntityType} displays a glTF, FBX, or OBJ model. When adding an entity,
  * if no <code>dimensions</code> value is specified then the model is automatically sized to its
  * <code>{@link Entities.EntityProperties|naturalDimensions}</code>. It has properties in addition to the common
@@ -1078,7 +1078,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * });
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"ParticleEffect"</code> {@link Entities.EntityType|EntityType} displays a particle system that can be used to
  * simulate things such as fire, smoke, snow, magic spells, etc. The particles emanate from an ellipsoid or part thereof.
  * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
@@ -1195,7 +1195,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * });
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"PolyLine"</code> {@link Entities.EntityType|EntityType} draws textured, straight lines between a sequence of
  * points. It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
  *
@@ -1245,7 +1245,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * });
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"PolyVox"</code> {@link Entities.EntityType|EntityType} displays a set of textured voxels.
  * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
  * If you have two or more neighboring PolyVox entities of the same size abutting each other, you can display them as joined by
@@ -1299,7 +1299,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * Entities.setVoxelSphere(polyVox, position, 0.8, 255);
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Shape"</code> {@link Entities.EntityType|EntityType} displays an entity of a specified <code>shape</code>.
  * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
  *
@@ -1320,7 +1320,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * });
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Sphere"</code> {@link Entities.EntityType|EntityType} is the same as the <code>"Shape"</code>
  * {@link Entities.EntityType|EntityType} except that its <code>shape</code> value is always set to <code>"Sphere"</code>
  * when the entity is created. If its <code>shape</code> property value is subsequently changed then the entity's
@@ -1331,7 +1331,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @see {@link Entities.EntityProperties-Shape|EntityProperties-Shape}
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Text"</code> {@link Entities.EntityType|EntityType} displays a 2D rectangle of text in the domain.
  * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
  *
@@ -1377,7 +1377,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * });
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Web"</code> {@link Entities.EntityType|EntityType} displays a browsable web page. Each user views their own copy
  * of the web page: if one user navigates to another page on the entity, other users do not see the change; if a video is being
  * played, users don't see it in sync. It has properties in addition to the common
@@ -1431,7 +1431,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * });
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Zone"</code> {@link Entities.EntityType|EntityType} is a volume of lighting effects and avatar permissions.
  * Avatar interaction events such as {@link Entities.enterEntity} are also often used with a Zone entity. It has properties in
  * addition to the common {@link Entities.EntityProperties|EntityProperties}.
@@ -1497,7 +1497,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * });
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Image"</code> {@link Entities.EntityType|EntityType} displays an image on a 2D rectangle in the domain.
  * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
  *
@@ -1532,7 +1532,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * });
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Grid"</code> {@link Entities.EntityType|EntityType} displays a grid on a 2D plane.
  * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
  *
@@ -1560,7 +1560,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * });
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Gizmo"</code> {@link Entities.EntityType|EntityType} displays an entity that could be used as UI.
  * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
  *
@@ -1944,7 +1944,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         _ring.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
     }
 
-    /**jsdoc
+    /*@jsdoc
      * The axis-aligned bounding box of an entity.
      * @typedef {object} Entities.BoundingBox
      * @property {Vec3} brn - The bottom right near (minimum axes values) corner of the AA box.
@@ -1979,7 +1979,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
         QScriptValue renderInfo = engine->newObject();
 
-        /**jsdoc
+        /*@jsdoc
          * Information on how an entity is rendered. Properties are only filled in for <code>Model</code> entities; other
          * entity types have an empty object, <code>{}</code>.
          * @typedef {object} Entities.RenderInfo
@@ -3006,7 +3006,7 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
     return false;
 }
 
-/**jsdoc
+/*@jsdoc
  * Information about an entity property.
  * @typedef {object} Entities.EntityPropertyInfo
  * @property {number} propertyEnum - The internal number of the property.

@@ -37,7 +37,7 @@ QVariant toVariant(const Extents& box) {
     };
 }
 
-/**jsdoc
+/*@jsdoc
  * The extents of a mesh.
  * @typedef {object} Graphics.MeshExtents
  * @property {Vec3} brn - The bottom right near (minimum axes values) corner of the enclosing box.
@@ -56,7 +56,7 @@ QVariant toVariant(const AABox& box) {
     };
 }
 
-/**jsdoc
+/*@jsdoc
  * Details of a buffer element's format.
  * @typedef {object} Graphics.BufferElementFormat
  * @property {string} type - Type.

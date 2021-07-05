@@ -1,4 +1,10 @@
-set(TARGET_NAME interface)
+if (APPLE)
+  # Make the OSX DMG app be Vircadia.app.
+  set(TARGET_NAME Vircadia)
+else()
+  set(TARGET_NAME interface)
+endif()
+
 project(${TARGET_NAME})
 
 file(GLOB_RECURSE QML_SRC resources/qml/*.qml resources/qml/*.js)
@@ -28,14 +34,14 @@ if (ANDROID)
   add_custom_command(
     OUTPUT ${RESOURCES_RCC}
     DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
-    COMMAND "${QT_DIR}/bin/rcc"
+    COMMAND "${RCC_BINARY}"
     ARGS ${RESOURCES_QRC} -no-compress -binary -o ${RESOURCES_RCC}
   )
 else ()
   add_custom_command(
     OUTPUT ${RESOURCES_RCC}
     DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
-    COMMAND "${QT_DIR}/bin/rcc"
+    COMMAND "${RCC_BINARY}"
     ARGS ${RESOURCES_QRC} -binary -o ${RESOURCES_RCC}
   )
 endif()
@@ -47,6 +53,7 @@ add_custom_target(resources ALL DEPENDS ${GENERATE_QRC_DEPENDS})
 set(OPTIONAL_EXTERNALS "LeapMotion")
 
 setup_memory_debugger()
+setup_thread_debugger()
 
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
@@ -191,9 +198,12 @@ if (BUILD_TOOLS AND NPM_EXECUTABLE)
 endif()
 
 if (WIN32 OR APPLE)
-    add_dependencies(${TARGET_NAME} resources screenshare)
+  add_dependencies(${TARGET_NAME} resources)
 endif()
 
+if (SCREENSHARE)
+  add_dependencies(${TARGET_NAME} screenshare)
+endif()
 
 if (WIN32)
   # These are external plugins, but we need to do the 'add dependency' here so that their
@@ -218,7 +228,7 @@ endif()
 # link required hifi libraries
 link_hifi_libraries(
   shared workload task octree ktx gpu gl procedural graphics graphics-scripting render
-  pointers recording hfm fbx networking material-networking
+  pointers recording hfm model-serializers networking material-networking
   model-networking model-baker entities avatars
   audio audio-client animation script-engine physics
   render-utils entities-renderer avatars-renderer ui qml auto-updater midi
@@ -299,7 +309,7 @@ target_link_libraries(
   ${PLATFORM_QT_LIBRARIES}
 )
 
-if (UNIX AND NOT ANDROID)
+if (UNIX AND NOT ANDROID AND NOT VIRCADIA_THREAD_DEBUGGING)
     if (CMAKE_SYSTEM_NAME MATCHES "Linux")
         # Linux
         target_link_libraries(${TARGET_NAME} pthread atomic)
@@ -333,10 +343,6 @@ if (APPLE)
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${CMAKE_SOURCE_DIR}/scripts"
       "${RESOURCES_DEV_DIR}/scripts"
-    # copy screenshare app to the resource folder
-    COMMAND "${CMAKE_COMMAND}" -E copy_directory
-      "${CMAKE_CURRENT_BINARY_DIR}/../screenshare/hifi-screenshare-darwin-x64/hifi-screenshare.app"
-      "${RESOURCES_DEV_DIR}/hifi-screenshare.app"
     # copy JSDoc files beside the executable
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${CMAKE_SOURCE_DIR}/tools/jsdoc/out"
@@ -362,6 +368,15 @@ if (APPLE)
       "${PROJECT_SOURCE_DIR}/resources/serverless/redirect.json"
       "${RESOURCES_DEV_DIR}/serverless/redirect.json"
     )
+
+  if (SCREENSHARE)
+    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+      # copy screenshare app to the resource folder
+      COMMAND "${CMAKE_COMMAND}" -E copy_directory
+        "${CMAKE_CURRENT_BINARY_DIR}/../screenshare/hifi-screenshare-darwin-x64/hifi-screenshare.app"
+        "${RESOURCES_DEV_DIR}/hifi-screenshare.app"
+      )
+  endif()
 
   # call the fixup_interface macro to add required bundling commands for installation
   fixup_interface()
@@ -420,18 +435,20 @@ else()
   endif()
 endif()
 
-if (DEV_BUILD AND (APPLE OR UNIX))
-  # create a qt.conf file to override hard-coded search paths in Qt libs
-  set(QT_LIB_PATH "${QT_CMAKE_PREFIX_PATH}/../..")
-  if (APPLE)
-    set(QT_CONF_FILE "${RESOURCES_DEV_DIR}/../Resources/qt.conf")
-  else ()
-    set(QT_CONF_FILE "${INTERFACE_EXEC_DIR}/qt.conf")
-  endif ()
-  file(GENERATE
-    OUTPUT "${QT_CONF_FILE}"
-    CONTENT "[Paths]\nPrefix=${QT_LIB_PATH}\n"
-  )
+if ("$ENV{VIRCADIA_USE_SYSTEM_QT}" STREQUAL "")
+  if (DEV_BUILD AND (APPLE OR UNIX))
+    # create a qt.conf file to override hard-coded search paths in Qt libs
+    set(QT_LIB_PATH "${QT_CMAKE_PREFIX_PATH}/../..")
+    if (APPLE)
+      set(QT_CONF_FILE "${RESOURCES_DEV_DIR}/../Resources/qt.conf")
+    else ()
+      set(QT_CONF_FILE "${INTERFACE_EXEC_DIR}/qt.conf")
+    endif ()
+    file(GENERATE
+      OUTPUT "${QT_CONF_FILE}"
+      CONTENT "[Paths]\nPrefix=${QT_LIB_PATH}\n"
+    )
+  endif()
 endif()
 
 if (SCRIPTS_INSTALL_DIR)

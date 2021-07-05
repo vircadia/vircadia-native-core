@@ -11,7 +11,7 @@
 
 #include "QString"
 
-/**jsdoc
+/*@jsdoc
  * <p>How the geometry of an entity is rendered.</p>
  * <table>
  *   <thead>

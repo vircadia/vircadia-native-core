@@ -17,7 +17,7 @@
 
 #include "Agent.h"
 
-/**jsdoc
+/*@jsdoc
  * The <code>Agent</code> API enables an assignment client to emulate an avatar. Setting <code>isAvatar = true</code> connects 
  * the assignment client to the avatar and audio mixers, and enables the {@link Avatar} API to be used.
  *
@@ -62,7 +62,7 @@ public:
     QUuid getSessionUUID() const { return _agent->getSessionUUID(); }
 
 public slots:
-    /**jsdoc
+    /*@jsdoc
      * Sets whether the script should emulate an avatar.
      * @function Agent.setIsAvatar
      * @param {boolean} isAvatar - <code>true</code> if the script emulates an avatar, otherwise <code>false</code>.
@@ -75,7 +75,7 @@ public slots:
      */
     void setIsAvatar(bool isAvatar) const { _agent->setIsAvatar(isAvatar); }
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether the script is emulating an avatar.
      * @function Agent.isAvatar
      * @returns {boolean} <code>true</code> if the script is emulating an avatar, otherwise <code>false</code>.
@@ -87,7 +87,7 @@ public slots:
      */
     bool isAvatar() const { return _agent->isAvatar(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Plays a sound from the position and with the orientation of the emulated avatar's head. No sound is played unless 
      * <code>isAvatar == true</code>.
      * @function Agent.playAvatarSound

@@ -134,13 +134,13 @@ namespace controller {
         return DependencyManager::get<UserInputMapper>()->getActionNames();
     }
 
-    bool ScriptingInterface::triggerHapticPulse(float strength, float duration, controller::Hand hand) const {
-        return DependencyManager::get<UserInputMapper>()->triggerHapticPulse(strength, duration, hand);
+    bool ScriptingInterface::triggerHapticPulse(float strength, float duration, uint16_t index) const {
+        return DependencyManager::get<UserInputMapper>()->triggerHapticPulse(strength, duration, index);
     }
 
-    bool ScriptingInterface::triggerShortHapticPulse(float strength, controller::Hand hand) const {
+    bool ScriptingInterface::triggerShortHapticPulse(float strength, uint16_t index) const {
         const float SHORT_HAPTIC_DURATION_MS = 250.0f;
-        return DependencyManager::get<UserInputMapper>()->triggerHapticPulse(strength, SHORT_HAPTIC_DURATION_MS, hand);
+        return DependencyManager::get<UserInputMapper>()->triggerHapticPulse(strength, SHORT_HAPTIC_DURATION_MS, index);
     }
 
     void ScriptingInterface::startInputRecording() {
@@ -189,13 +189,13 @@ namespace controller {
         emit inputDeviceRunningChanged(deviceName, isRunning);
     }
 
-    bool ScriptingInterface::triggerHapticPulseOnDevice(unsigned int device, float strength, float duration, controller::Hand hand) const {
-        return DependencyManager::get<UserInputMapper>()->triggerHapticPulseOnDevice(device, strength, duration, hand);
+    bool ScriptingInterface::triggerHapticPulseOnDevice(unsigned int device, float strength, float duration, uint16_t index) const {
+        return DependencyManager::get<UserInputMapper>()->triggerHapticPulseOnDevice(device, strength, duration, index);
     }
 
-    bool ScriptingInterface::triggerShortHapticPulseOnDevice(unsigned int device, float strength, controller::Hand hand) const {
+    bool ScriptingInterface::triggerShortHapticPulseOnDevice(unsigned int device, float strength, uint16_t index) const {
         const float SHORT_HAPTIC_DURATION_MS = 250.0f;
-        return DependencyManager::get<UserInputMapper>()->triggerHapticPulseOnDevice(device, strength, SHORT_HAPTIC_DURATION_MS, hand);
+        return DependencyManager::get<UserInputMapper>()->triggerHapticPulseOnDevice(device, strength, SHORT_HAPTIC_DURATION_MS, index);
     }
 
     void ScriptingInterface::updateMaps() {

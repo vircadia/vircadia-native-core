@@ -91,8 +91,8 @@ namespace controller {
         void setActionState(Action action, float value, bool valid = true);
         void deltaActionState(Action action, float delta, bool valid = true);
         void setActionState(Action action, const Pose& value) { _poseStates[toInt(action)] = value; }
-        bool triggerHapticPulse(float strength, float duration, controller::Hand hand);
-        bool triggerHapticPulseOnDevice(uint16 deviceID, float strength, float duration, controller::Hand hand);
+        bool triggerHapticPulse(float strength, float duration, uint16_t index);
+        bool triggerHapticPulseOnDevice(uint16 deviceID, float strength, float duration, uint16_t index);
 
         static Input makeStandardInput(controller::StandardButtonChannel button);
         static Input makeStandardInput(controller::StandardAxisChannel axis);

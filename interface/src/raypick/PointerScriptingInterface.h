@@ -15,7 +15,7 @@
 #include <PointerManager.h>
 #include <Pick.h>
 
-/**jsdoc
+/*@jsdoc
  * The <code>Pointers</code> API lets you create, manage, and visually represent objects for repeatedly calculating 
  * intersections with avatars, entities, and overlays. Pointers can also be configured to generate events on entities and 
  * overlays intersected.
@@ -33,7 +33,7 @@ class PointerScriptingInterface : public QObject, public Dependency {
 
 public:
 
-    /**jsdoc
+    /*@jsdoc
      * Specifies that a {@link Controller} action or function should trigger events on the entity or overlay currently 
      * intersected by a {@link Pointers.RayPointerProperties|Ray} or {@link Pointers.ParabolaPointerProperties|Parabola} 
      * pointer.
@@ -50,7 +50,7 @@ public:
      *    </ul>
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Creates a new ray, parabola, or stylus pointer. The pointer can have a wide range of behaviors depending on the 
      * properties specified. For example, a ray pointer may be a static ray pointer, a mouse ray pointer, or joint ray 
      * pointer.
@@ -131,21 +131,21 @@ public:
     // TODO: expand Pointers to be able to be fully configurable with PickFilters
     Q_INVOKABLE unsigned int createPointer(const PickQuery::PickType& type, const QVariant& properties);
 
-    /**jsdoc
+    /*@jsdoc
      * Enables and shows a pointer. Enabled pointers update their pick results and generate events.
      * @function Pointers.enablePointer
      * @param {number} id - The ID of the pointer.
      */
     Q_INVOKABLE void enablePointer(unsigned int uid) const { DependencyManager::get<PointerManager>()->enablePointer(uid); }
 
-    /**jsdoc
+    /*@jsdoc
      * Disables and hides a pointer. Disabled pointers do not update their pick results or generate events.
      * @function Pointers.disablePointer
      * @param {number} id - The ID of the pointer.
      */
     Q_INVOKABLE void disablePointer(unsigned int uid) const { DependencyManager::get<PointerManager>()->disablePointer(uid); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the enabled status of a pointer. Enabled pointers update their pick results and generate events.
      * @function Pointers.isPointerEnabled
      * @param {number} id - The ID of the pointer.
@@ -153,14 +153,14 @@ public:
      */
     Q_INVOKABLE bool isPointerEnabled(unsigned int uid) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Removes (deletes) a pointer.
      * @function Pointers.removePointer
      * @param {number} id - The ID of the pointer.
      */
     Q_INVOKABLE void removePointer(unsigned int uid) const { DependencyManager::get<PointerManager>()->removePointer(uid); }
 
-    /**jsdoc
+    /*@jsdoc
     * Gets the parameters that were passed in to {@link Pointers.createPointer} to create the pointer when the pointer was 
     * created through a script. 
     * <p><strong>Note:</strong> These properties do not reflect the current state of the pointer. To get the current state 
@@ -172,14 +172,14 @@ public:
     */
     Q_INVOKABLE QVariantMap getPointerScriptParameters(unsigned int uid) const;
 
-    /**jsdoc
+    /*@jsdoc
     * Gets all pointers which currently exist, including disabled pointers.
     * @function Pointers.getPointers
     * @returns {number[]} pointers - The IDs of the pointers.
     */
     Q_INVOKABLE QVector<unsigned int> getPointers() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Edits a render state of a {@link Pointers.RayPointerProperties|ray} or 
      * {@link Pointers.ParabolaPointerProperties|parabola} pointer, to change its visual appearance for the state when the 
      * pointer is intersecting something.
@@ -251,7 +251,7 @@ public:
      */
     Q_INVOKABLE void editRenderState(unsigned int uid, const QString& renderState, const QVariant& properties) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the render state of a pointer, to change its visual appearance and possibly disable or enable it.  
      * @function Pointers.setRenderState
      * @param {number} id - The ID of the pointer.
@@ -330,7 +330,7 @@ public:
     Q_INVOKABLE void setRenderState(unsigned int uid, const QString& renderState) const { DependencyManager::get<PointerManager>()->setRenderState(uid, renderState.toStdString()); }
 
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the most recent intersection of a pointer. A pointer continues to be updated ready to return a result, as long as  
      * it is enabled, regardless of the render state.
      * @function Pointers.getPrevPickResult
@@ -340,7 +340,7 @@ public:
     Q_INVOKABLE QVariantMap getPrevPickResult(unsigned int uid) const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether or not a pointer should use precision picking, i.e., whether it should pick against precise meshes or 
      * coarse meshes. This has the same effect as using the <code>PICK_PRECISE</code> or <code>PICK_COARSE</code> filter flags. 
      * @function Pointers.setPrecisionPicking
@@ -349,7 +349,7 @@ public:
      */
     Q_INVOKABLE void setPrecisionPicking(unsigned int uid, bool precisionPicking) const { DependencyManager::get<PointerManager>()->setPrecisionPicking(uid, precisionPicking); }
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the length of a pointer.
      * <p><strong>Note:</strong> Not used by stylus pointers.</p>
      * @function Pointers.setLength
@@ -358,7 +358,7 @@ public:
      */
     Q_INVOKABLE void setLength(unsigned int uid, float length) const { DependencyManager::get<PointerManager>()->setLength(uid, length); }
 
-    /**jsdoc
+    /*@jsdoc
      * Sets a list of entity and avatar IDs that a pointer should ignore during intersection.
      * <p><strong>Note:</strong> Not used by stylus pointers.</p>
      * @function Pointers.setIgnoreItems
@@ -367,7 +367,7 @@ public:
      */
     Q_INVOKABLE void setIgnoreItems(unsigned int uid, const QScriptValue& ignoreEntities) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Sets a list of entity and avatar IDs that a pointer should include during intersection, instead of intersecting with 
      * everything.  
      * <p><strong>Note:</strong> Stylus pointers only intersect with items in their include list.</p>
@@ -378,7 +378,7 @@ public:
     Q_INVOKABLE void setIncludeItems(unsigned int uid, const QScriptValue& includeEntities) const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * Locks a pointer onto a specific entity or avatar.
      * <p><strong>Note:</strong> Not used by stylus pointers.</p>
      * @function Pointers.setLockEndUUID
@@ -391,7 +391,7 @@ public:
     Q_INVOKABLE void setLockEndUUID(unsigned int uid, const QUuid& objectID, bool isAvatar, const glm::mat4& offsetMat = glm::mat4()) const { DependencyManager::get<PointerManager>()->setLockEndUUID(uid, objectID, isAvatar, offsetMat); }
 
 
-    /**jsdoc
+    /*@jsdoc
      * Checks if a pointer is associated with the left hand: a ray or parabola pointer with <code>joint</code> property set to
      * <code>"_CONTROLLER_LEFTHAND"</code> or <code>"_CAMERA_RELATIVE_CONTROLLER_LEFTHAND"</code>, or a stylus pointer with 
      * <code>hand</code> property set to <code>0</code>.
@@ -401,7 +401,7 @@ public:
      */
     Q_INVOKABLE bool isLeftHand(unsigned int uid) { return DependencyManager::get<PointerManager>()->isLeftHand(uid); }
 
-    /**jsdoc
+    /*@jsdoc
      * Checks if a pointer is associated with the right hand: a ray or parabola pointer with <code>joint</code> property set to
      * <code>"_CONTROLLER_RIGHTHAND"</code> or <code>"_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND"</code>, or a stylus pointer with 
      * <code>hand</code> property set to <code>1</code>.
@@ -411,7 +411,7 @@ public:
      */
     Q_INVOKABLE bool isRightHand(unsigned int uid) { return DependencyManager::get<PointerManager>()->isRightHand(uid); }
 
-    /**jsdoc
+    /*@jsdoc
      * Checks if a pointer is associated with the system mouse: a ray or parabola pointer with <code>joint</code> property set 
      * to <code>"Mouse"</code>.
      * @function Pointers.isMouse
@@ -420,7 +420,7 @@ public:
      */
     Q_INVOKABLE bool isMouse(unsigned int uid) { return DependencyManager::get<PointerManager>()->isMouse(uid); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets information about a pointer.
      * @function Pointers.getPointerProperties
      * @param {number} id - The ID of the pointer.

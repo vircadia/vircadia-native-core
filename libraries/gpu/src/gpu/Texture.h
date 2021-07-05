@@ -584,11 +584,11 @@ public:
     ExternalUpdates getUpdates() const;
 
     // Serialize a texture into a KTX file
-    static ktx::KTXUniquePointer serialize(const Texture& texture);
+    static ktx::KTXUniquePointer serialize(const Texture& texture, const glm::ivec2& originalSize);
 
-    static TexturePointer build(const ktx::KTXDescriptor& descriptor);
-    static TexturePointer unserialize(const std::string& ktxFile);
-    static TexturePointer unserialize(const cache::FilePointer& cacheEntry, const std::string& source = std::string());
+    static std::pair<TexturePointer, glm::ivec2> build(const ktx::KTXDescriptor& descriptor);
+    static std::pair<TexturePointer, glm::ivec2> unserialize(const std::string& ktxFile);
+    static std::pair<TexturePointer, glm::ivec2> unserialize(const cache::FilePointer& cacheEntry, const std::string& source = std::string());
 
     static bool evalKTXFormat(const Element& mipFormat, const Element& texelFormat, ktx::Header& header);
     static bool evalTextureFormat(const ktx::Header& header, Element& mipFormat, Element& texelFormat);

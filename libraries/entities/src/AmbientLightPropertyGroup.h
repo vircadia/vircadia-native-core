@@ -27,7 +27,7 @@ class OctreePacketData;
 class EntityTreeElementExtraEncodeData;
 class ReadBitstreamToTreeParams;
 
-/**jsdoc
+/*@jsdoc
  * Ambient light is defined by the following properties:
  * @typedef {object} Entities.AmbientLight
  * @property {number} ambientIntensity=0.5 - The intensity of the light.

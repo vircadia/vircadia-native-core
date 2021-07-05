@@ -21,9 +21,9 @@ macro(GENERATE_INSTALLERS)
     set(INSTALLER_TYPE "client_only")
     string(REGEX REPLACE "Vircadia" "Vircadia Interface" _DISPLAY_NAME ${BUILD_ORGANIZATION})
   elseif (SERVER_ONLY)
-    set(_PACKAGE_NAME_EXTRA "-Sandbox")
+    set(_PACKAGE_NAME_EXTRA "-Server")
     set(INSTALLER_TYPE "server_only")
-    string(REGEX REPLACE "Vircadia" "Vircadia Sandbox" _DISPLAY_NAME ${BUILD_ORGANIZATION})
+    string(REGEX REPLACE "Vircadia" "Vircadia Server" _DISPLAY_NAME ${BUILD_ORGANIZATION})
   else ()
     set(_DISPLAY_NAME ${BUILD_ORGANIZATION})
     set(INSTALLER_TYPE "full")
@@ -96,19 +96,23 @@ macro(GENERATE_INSTALLERS)
     set(CPACK_PACKAGING_INSTALL_PREFIX /)
     set(CPACK_OSX_PACKAGE_VERSION ${CMAKE_OSX_DEPLOYMENT_TARGET})
 
-    # make sure a High Fidelity directory exists, in case this hits prior to other installs
-    install(CODE "file(MAKE_DIRECTORY \"\${CMAKE_INSTALL_PREFIX}/${DMG_SUBFOLDER_NAME}\")")
+    # Create folder if used.
+    if (NOT INTERFACE_INSTALL_DIR STREQUAL ".")
+      # make sure a High Fidelity directory exists, in case this hits prior to other installs
+      install(CODE "file(MAKE_DIRECTORY \"\${CMAKE_INSTALL_PREFIX}/${DMG_SUBFOLDER_NAME}\")")
 
-    # add the resource file to the Icon file inside the folder
-    install(CODE
-      "execute_process(COMMAND Rez -append ${DMG_SUBFOLDER_ICON} -o \${CMAKE_INSTALL_PREFIX}/${ESCAPED_DMG_SUBFOLDER_NAME}/Icon\\r)"
-    )
+      # add the resource file to the Icon file inside the folder
+      install(CODE
+        "execute_process(COMMAND Rez -append ${DMG_SUBFOLDER_ICON} -o \${CMAKE_INSTALL_PREFIX}/${ESCAPED_DMG_SUBFOLDER_NAME}/Icon\\r)"
+      )
 
-    # modify the folder to use that custom icon
-    install(CODE "execute_process(COMMAND SetFile -a C \${CMAKE_INSTALL_PREFIX}/${ESCAPED_DMG_SUBFOLDER_NAME})")
+      # modify the folder to use that custom icon
+      install(CODE "execute_process(COMMAND SetFile -a C \${CMAKE_INSTALL_PREFIX}/${ESCAPED_DMG_SUBFOLDER_NAME})")
 
-    # hide the special Icon? file
-    install(CODE "execute_process(COMMAND SetFile -a V \${CMAKE_INSTALL_PREFIX}/${ESCAPED_DMG_SUBFOLDER_NAME}/Icon\\r)")
+      # hide the special Icon? file
+      install(CODE "execute_process(COMMAND SetFile -a V \${CMAKE_INSTALL_PREFIX}/${ESCAPED_DMG_SUBFOLDER_NAME}/Icon\\r)")
+    endif ()
+
   endif ()
 
   # configure a cpack properties file for custom variables in template
@@ -123,7 +127,7 @@ macro(GENERATE_INSTALLERS)
   endif ()
 
   if (BUILD_SERVER)
-    cpack_add_component(${SERVER_COMPONENT} DISPLAY_NAME "Vircadia Sandbox")
+    cpack_add_component(${SERVER_COMPONENT} DISPLAY_NAME "Vircadia Server")
   endif ()
 
   include(CPack)

@@ -65,7 +65,7 @@ const std::string TextureCache::KTX_DIRNAME{ "ktx_cache" };
 #endif
 const std::string TextureCache::KTX_EXT { "ktx" };
 
-/**jsdoc
+/*@jsdoc
  * <p>The views that may be visible on the PC display.</p>
  * <table>
  *   <thead>
@@ -272,23 +272,24 @@ NetworkTexturePointer TextureCache::getTexture(const QUrl& url, image::TextureUs
     return ResourceCache::getResource(modifiedUrl, QUrl(), &extra, std::hash<TextureExtra>()(extra)).staticCast<NetworkTexture>();
 }
 
-gpu::TexturePointer TextureCache::getTextureByHash(const std::string& hash) {
-    std::weak_ptr<gpu::Texture> weakPointer;
+std::pair<gpu::TexturePointer, glm::ivec2> TextureCache::getTextureByHash(const std::string& hash) {
+    std::pair<gpu::TextureWeakPointer, glm::ivec2> weakPointer;
     {
         std::unique_lock<std::mutex> lock(_texturesByHashesMutex);
         weakPointer = _texturesByHashes[hash];
     }
-    return weakPointer.lock();
+    return { weakPointer.first.lock(), weakPointer.second };
 }
 
-gpu::TexturePointer TextureCache::cacheTextureByHash(const std::string& hash, const gpu::TexturePointer& texture) {
-    gpu::TexturePointer result;
+std::pair<gpu::TexturePointer, glm::ivec2> TextureCache::cacheTextureByHash(const std::string& hash, const std::pair<gpu::TexturePointer, glm::ivec2>& textureAndSize) {
+    std::pair<gpu::TexturePointer, glm::ivec2> result;
     {
         std::unique_lock<std::mutex> lock(_texturesByHashesMutex);
-        result = _texturesByHashes[hash].lock();
-        if (!result) {
-            _texturesByHashes[hash] = texture;
-            result = texture;
+        auto& value = _texturesByHashes[hash];
+        result = { value.first.lock(), value.second };
+        if (!result.first) {
+            _texturesByHashes[hash] = textureAndSize;
+            result = textureAndSize;
         }
     }
     return result;
@@ -625,7 +626,7 @@ void NetworkTexture::makeLocalRequest() {
         ktxDescriptor = std::make_shared<ktx::KTXDescriptor>(ktxFile->toDescriptor());
     }
 
-    gpu::TexturePointer texture;
+    std::pair<gpu::TexturePointer, glm::ivec2> textureAndSize;
     if (ktxDescriptor) {
         std::string hash;
         // Create bare ktx in memory
@@ -643,18 +644,18 @@ void NetworkTexture::makeLocalRequest() {
         }
 
         auto textureCache = DependencyManager::get<TextureCache>();
-        texture = textureCache->getTextureByHash(hash);
-        if (!texture) {
-            texture = gpu::Texture::build(*ktxDescriptor);
-            if (texture) {
-                texture->setKtxBacking(path.toStdString());
-                texture->setSource(path.toStdString());
-                texture = textureCache->cacheTextureByHash(hash, texture);
+        textureAndSize = textureCache->getTextureByHash(hash);
+        if (!textureAndSize.first) {
+            textureAndSize = gpu::Texture::build(*ktxDescriptor);
+            if (textureAndSize.first) {
+                textureAndSize.first->setKtxBacking(path.toStdString());
+                textureAndSize.first->setSource(path.toStdString());
+                textureAndSize = textureCache->cacheTextureByHash(hash, textureAndSize);
             }
         }
     }
 
-    if (!texture) {
+    if (!textureAndSize.first) {
         qCDebug(networking).noquote() << "Failed load local KTX from" << path;
         QMetaObject::invokeMethod(this, "setImage",
             Q_ARG(gpu::TexturePointer, nullptr),
@@ -664,11 +665,11 @@ void NetworkTexture::makeLocalRequest() {
     }
 
     _ktxResourceState = PENDING_MIP_REQUEST;
-    _lowestKnownPopulatedMip = texture->minAvailableMipLevel();
+    _lowestKnownPopulatedMip = textureAndSize.first->minAvailableMipLevel();
     QMetaObject::invokeMethod(this, "setImage",
-        Q_ARG(gpu::TexturePointer, texture),
-        Q_ARG(int, texture->getWidth()),
-        Q_ARG(int, texture->getHeight()));
+        Q_ARG(gpu::TexturePointer, textureAndSize.first),
+        Q_ARG(int, textureAndSize.second.x),
+        Q_ARG(int, textureAndSize.second.y));
 
 }
 
@@ -977,22 +978,22 @@ void NetworkTexture::handleFinishedInitialLoad() {
 
         auto textureCache = DependencyManager::get<TextureCache>();
 
-        gpu::TexturePointer texture = textureCache->getTextureByHash(hash);
+        std::pair<gpu::TexturePointer, glm::ivec2> textureAndSize = textureCache->getTextureByHash(hash);
 
-        if (!texture) {
+        if (!textureAndSize.first) {
             auto ktxFile = textureCache->_ktxCache->getFile(hash);
             if (ktxFile) {
-                texture = gpu::Texture::unserialize(ktxFile);
-                if (texture) {
-                    texture = textureCache->cacheTextureByHash(hash, texture);
-                    if (texture->source().empty()) {
-                        texture->setSource(url.toString().toStdString());
+                textureAndSize = gpu::Texture::unserialize(ktxFile);
+                if (textureAndSize.first) {
+                    textureAndSize = textureCache->cacheTextureByHash(hash, textureAndSize);
+                    if (textureAndSize.first->source().empty()) {
+                        textureAndSize.first->setSource(url.toString().toStdString());
                     }
                 }
             }
         }
 
-        if (!texture) {
+        if (!textureAndSize.first) {
             auto memKtx = ktx::KTX::createBare(*header, keyValues);
             if (!memKtx) {
                 qWarning() << " Ktx could not be created, bailing";
@@ -1019,9 +1020,9 @@ void NetworkTexture::handleFinishedInitialLoad() {
 
             auto newKtxDescriptor = memKtx->toDescriptor();
 
-            texture = gpu::Texture::build(newKtxDescriptor);
-            texture->setKtxBacking(file);
-            texture->setSource(filename);
+            textureAndSize = gpu::Texture::build(newKtxDescriptor);
+            textureAndSize.first->setKtxBacking(file);
+            textureAndSize.first->setSource(filename);
 
             auto& images = originalKtxDescriptor->images;
             size_t imageSizeRemaining = ktxHighMipData.size();
@@ -1034,7 +1035,7 @@ void NetworkTexture::handleFinishedInitialLoad() {
                     break;
                 }
                 ktxData -= image._imageSize;
-                texture->assignStoredMip(static_cast<gpu::uint16>(level), image._imageSize, ktxData);
+                textureAndSize.first->assignStoredMip(static_cast<gpu::uint16>(level), image._imageSize, ktxData);
                 ktxData -= ktx::IMAGE_SIZE_WIDTH;
                 imageSizeRemaining -= (image._imageSize + ktx::IMAGE_SIZE_WIDTH);
             }
@@ -1042,13 +1043,13 @@ void NetworkTexture::handleFinishedInitialLoad() {
             // We replace the texture with the one stored in the cache.  This deals with the possible race condition of two different
             // images with the same hash being loaded concurrently.  Only one of them will make it into the cache by hash first and will
             // be the winner
-            texture = textureCache->cacheTextureByHash(filename, texture);
+            textureAndSize = textureCache->cacheTextureByHash(filename, textureAndSize);
         }
 
         QMetaObject::invokeMethod(resource.data(), "setImage",
-            Q_ARG(gpu::TexturePointer, texture),
-            Q_ARG(int, texture->getWidth()),
-            Q_ARG(int, texture->getHeight()));
+            Q_ARG(gpu::TexturePointer, textureAndSize.first),
+            Q_ARG(int, textureAndSize.second.x),
+            Q_ARG(int, textureAndSize.second.y));
 
         QMetaObject::invokeMethod(resource.data(), "startRequestForNextMipLevel");
     });
@@ -1238,15 +1239,15 @@ void ImageReader::read() {
     auto textureCache = DependencyManager::get<TextureCache>();
     if (textureCache) {
         // If we already have a live texture with the same hash, use it
-        auto texture = textureCache->getTextureByHash(hash);
+        auto textureAndSize = textureCache->getTextureByHash(hash);
 
         // If there is no live texture, check if there's an existing KTX file
-        if (!texture) {
+        if (!textureAndSize.first) {
             auto ktxFile = textureCache->_ktxCache->getFile(hash);
             if (ktxFile) {
-                texture = gpu::Texture::unserialize(ktxFile, _url.toString().toStdString());
-                if (texture) {
-                    texture = textureCache->cacheTextureByHash(hash, texture);
+                textureAndSize = gpu::Texture::unserialize(ktxFile, _url.toString().toStdString());
+                if (textureAndSize.first) {
+                    textureAndSize = textureCache->cacheTextureByHash(hash, textureAndSize);
                 } else {
                     qCWarning(materialnetworking) << "Invalid cached KTX " << _url << " under hash " << hash.c_str() << ", recreating...";
                 }
@@ -1255,17 +1256,17 @@ void ImageReader::read() {
 
         // If we found the texture either because it's in use or via KTX deserialization,
         // set the image and return immediately.
-        if (texture) {
+        if (textureAndSize.first) {
             QMetaObject::invokeMethod(resource.data(), "setImage",
-                                      Q_ARG(gpu::TexturePointer, texture),
-                                      Q_ARG(int, texture->getWidth()),
-                                      Q_ARG(int, texture->getHeight()));
+                                      Q_ARG(gpu::TexturePointer, textureAndSize.first),
+                                      Q_ARG(int, textureAndSize.second.x),
+                                      Q_ARG(int, textureAndSize.second.y));
             return;
         }
     }
 
     // Proccess new texture
-    gpu::TexturePointer texture;
+    std::pair<gpu::TexturePointer, ivec2> textureAndSize;
     {
         PROFILE_RANGE_EX(resource_parse_image_raw, __FUNCTION__, 0xffff0000, 0);
 
@@ -1278,23 +1279,23 @@ void ImageReader::read() {
         constexpr bool shouldCompress = false;
 #endif
         auto target = getBackendTarget();
-        texture = image::processImage(std::move(buffer), _url.toString().toStdString(), _sourceChannel, _maxNumPixels, networkTexture->getTextureType(), shouldCompress, target);
+        textureAndSize = image::processImage(std::move(buffer), _url.toString().toStdString(), _sourceChannel, _maxNumPixels, networkTexture->getTextureType(), shouldCompress, target);
 
-        if (!texture) {
+        if (!textureAndSize.first) {
             QMetaObject::invokeMethod(resource.data(), "setImage",
-                                      Q_ARG(gpu::TexturePointer, texture),
+                                      Q_ARG(gpu::TexturePointer, textureAndSize.first),
                                       Q_ARG(int, 0),
                                       Q_ARG(int, 0));
             return;
         }
 
-        texture->setSourceHash(hash);
-        texture->setFallbackTexture(networkTexture->getFallbackTexture());
+        textureAndSize.first->setSourceHash(hash);
+        textureAndSize.first->setFallbackTexture(networkTexture->getFallbackTexture());
     }
 
     // Save the image into a KTXFile
-    if (texture && textureCache) {
-        auto memKtx = gpu::Texture::serialize(*texture);
+    if (textureAndSize.first && textureCache) {
+        auto memKtx = gpu::Texture::serialize(*textureAndSize.first, textureAndSize.second);
 
         // Move the texture into a memory mapped file
         if (memKtx) {
@@ -1303,20 +1304,20 @@ void ImageReader::read() {
             auto& ktxCache = textureCache->_ktxCache;
             auto file = ktxCache->writeFile(data, KTXCache::Metadata(hash, length));
             if (file) {
-                texture->setKtxBacking(file);
+                textureAndSize.first->setKtxBacking(file);
             }
         }
 
         // We replace the texture with the one stored in the cache.  This deals with the possible race condition of two different
         // images with the same hash being loaded concurrently.  Only one of them will make it into the cache by hash first and will
         // be the winner
-        texture = textureCache->cacheTextureByHash(hash, texture);
+        textureAndSize = textureCache->cacheTextureByHash(hash, textureAndSize);
     }
 
     QMetaObject::invokeMethod(resource.data(), "setImage",
-                                Q_ARG(gpu::TexturePointer, texture),
-                                Q_ARG(int, texture->getWidth()),
-                                Q_ARG(int, texture->getHeight()));
+                                Q_ARG(gpu::TexturePointer, textureAndSize.first),
+                                Q_ARG(int, textureAndSize.second.x),
+                                Q_ARG(int, textureAndSize.second.y));
 }
 
 NetworkTexturePointer TextureCache::getResourceTexture(const QUrl& resourceTextureUrl) {

@@ -36,8 +36,6 @@
 #include <QtScript/QScriptValue>
 #include <QtScript/QScriptValueIterator>
 
-#include <QtScriptTools/QScriptEngineDebugger>
-
 #include <shared/LocalFileAccessGate.h>
 #include <shared/QtHelpers.h>
 #include <shared/AbstractLoggerInterface.h>
@@ -327,96 +325,6 @@ void ScriptEngine::disconnectNonEssentialSignals() {
     }
 }
 
-void ScriptEngine::runDebuggable() {
-    static QMenuBar* menuBar { nullptr };
-    static QMenu* scriptDebugMenu { nullptr };
-    static size_t scriptMenuCount { 0 };
-    if (!scriptDebugMenu) {
-        for (auto window : qApp->topLevelWidgets()) {
-            auto mainWindow = qobject_cast<QMainWindow*>(window);
-            if (mainWindow) {
-                menuBar = mainWindow->menuBar();
-                break;
-            }
-        }
-        if (menuBar) {
-            scriptDebugMenu = menuBar->addMenu("Script Debug");
-        }
-    }
-
-    init();
-    _isRunning = true;
-    _debuggable = true;
-    _debugger = new QScriptEngineDebugger(this);
-    _debugger->attachTo(this);
-
-    QMenu* parentMenu = scriptDebugMenu;
-    QMenu* scriptMenu { nullptr };
-    if (parentMenu) {
-        ++scriptMenuCount;
-        scriptMenu = parentMenu->addMenu(_fileNameString);
-        scriptMenu->addMenu(_debugger->createStandardMenu(qApp->activeWindow()));
-    } else {
-        qWarning() << "Unable to add script debug menu";
-    }
-
-    QScriptValue result = evaluate(_scriptContents, _fileNameString);
-
-    _lastUpdate = usecTimestampNow();
-    QTimer* timer = new QTimer(this);
-    connect(this, &ScriptEngine::finished, [this, timer, parentMenu, scriptMenu] {
-        if (scriptMenu) {
-            parentMenu->removeAction(scriptMenu->menuAction());
-            --scriptMenuCount;
-            if (0 == scriptMenuCount) {
-                menuBar->removeAction(scriptDebugMenu->menuAction());
-                scriptDebugMenu = nullptr;
-            }
-        }
-        disconnect(timer);
-    });
-
-    connect(timer, &QTimer::timeout, [this, timer] {
-        if (_isFinished) {
-            if (!_isRunning) {
-                return;
-            }
-            stopAllTimers(); // make sure all our timers are stopped if the script is ending
-
-            emit scriptEnding();
-            emit finished(_fileNameString, qSharedPointerCast<ScriptEngine>(sharedFromThis()));
-            _isRunning = false;
-
-            emit runningStateChanged();
-            emit doneRunning();
-
-            timer->deleteLater();
-            return;
-        }
-
-        qint64 now = usecTimestampNow();
-        // we check for 'now' in the past in case people set their clock back
-        if (_lastUpdate < now) {
-            float deltaTime = (float)(now - _lastUpdate) / (float)USECS_PER_SECOND;
-            if (!(_isFinished || _isStopping)) {
-                emit update(deltaTime);
-            }
-        }
-        _lastUpdate = now;
-
-        // only clear exceptions if we are not in the middle of evaluating
-        if (!isEvaluating() && hasUncaughtException()) {
-            qCWarning(scriptengine) << __FUNCTION__ << "---------- UNCAUGHT EXCEPTION --------";
-            qCWarning(scriptengine) << "runDebuggable" << uncaughtException().toString();
-            logException(__FUNCTION__);
-            clearExceptions();
-        }
-    });
-
-    timer->start(10);
-}
-
-
 void ScriptEngine::runInThread() {
     Q_ASSERT_X(!_isThreaded, "ScriptEngine::runInThread()", "runInThread should not be called more than once");
 
@@ -470,7 +378,10 @@ void ScriptEngine::waitTillDoneRunning(bool shutdown) {
         // We should never be waiting (blocking) on our own thread
         assert(workerThread != QThread::currentThread());
 
-#ifdef Q_OS_MAC
+#if 0
+        // 26 Feb 2021 - Disabled this OSX-specific code because it causes OSX to crash on shutdown; without this code, OSX 
+        // doesn't crash on shutdown. Qt 5.12.3 and Qt 5.15.2.
+        //
         // On mac, don't call QCoreApplication::processEvents() here. This is to prevent
         // [NSApplication terminate:] from prematurely destroying the static destructors
         // while we are waiting for the scripts to shutdown. We will pump the message
@@ -585,12 +496,6 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
 
         _scriptContents = scriptContents;
 
-        {
-            static const QString DEBUG_FLAG("#debug");
-            if (QRegularExpression(DEBUG_FLAG).match(scriptContents).hasMatch()) {
-                _debuggable = true;
-            }
-        }
         emit scriptLoaded(url);
     }, reload, maxRetries);
 }
@@ -672,7 +577,7 @@ static void scriptableResourceFromScriptValue(const QScriptValue& value, Scripta
     resource = static_cast<ScriptableResourceRawPtr>(value.toQObject());
 }
 
-/**jsdoc
+/*@jsdoc
  * The <code>Resource</code> API provides values that define the possible loading states of a resource.
  *
  * @namespace Resource
@@ -794,7 +699,7 @@ void ScriptEngine::init() {
     QScriptValue webSocketConstructorValue = newFunction(WebSocketClass::constructor);
     globalObject().setProperty("WebSocket", webSocketConstructorValue);
 
-    /**jsdoc
+    /*@jsdoc
      * Prints a message to the program log and emits {@link Script.printedMessage}.
      * The message logged is the message values separated by spaces.
      * <p>Alternatively, you can use {@link Script.print} or one of the {@link console} API methods.</p>
@@ -1094,7 +999,7 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
 
         // Two common cases of event handler, differing only in argument signature.
 
-        /**jsdoc
+        /*@jsdoc
          * Called when an entity event occurs on an entity as registered with {@link Script.addEventHandler}.
          * @callback Script~entityEventCallback
          * @param {Uuid} entityID - The ID of the entity the event has occured on.
@@ -1106,7 +1011,7 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
             };
         };
 
-        /**jsdoc
+        /*@jsdoc
          * Called when a pointer event occurs on an entity as registered with {@link Script.addEventHandler}.
          * @callback Script~pointerEventCallback
          * @param {Uuid} entityID - The ID of the entity the event has occurred on.
@@ -1121,7 +1026,7 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
             };
         };
 
-        /**jsdoc
+        /*@jsdoc
          * Called when a collision event occurs on an entity as registered with {@link Script.addEventHandler}.
          * @callback Script~collisionEventCallback
          * @param {Uuid} entityA - The ID of one entity in the collision.
@@ -1136,7 +1041,7 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
             };
         };
 
-        /**jsdoc
+        /*@jsdoc
          * <p>The name of an entity event. When the entity event occurs, any function that has been registered for that event 
          * via {@link Script.addEventHandler} is called with parameters per the entity event.</p>
          * <table>
@@ -2346,7 +2251,7 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
     }, forceRedownload);
 }
 
-/**jsdoc
+/*@jsdoc
  * Triggered when the script starts for a user. See also, {@link Script.entityScriptPreloadFinished}.
  * <p>Note: Can only be connected to via <code>this.preload = function (...) { ... }</code> in the entity script.</p>
  * <p class="availableIn"><strong>Supported Script Types:</strong> Client Entity Scripts &bull; Server Entity Scripts</p>
@@ -2633,7 +2538,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     emit entityScriptPreloadFinished(entityID);
 }
 
-/**jsdoc
+/*@jsdoc
  * Triggered when the script terminates for a user.
  * <p>Note: Can only be connected to via <code>this.unoad = function () { ... }</code> in the entity script.</p>
  * <p class="availableIn"><strong>Supported Script Types:</strong> Client Entity Scripts &bull; Server Entity Scripts</p>

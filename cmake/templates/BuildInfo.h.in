@@ -29,7 +29,8 @@ namespace BuildInfo {
     const QString BUILD_NUMBER = "@BUILD_NUMBER@";
     const QString BUILD_GLOBAL_SERVICES = "@BUILD_GLOBAL_SERVICES@";
     const QString BUILD_TIME = "@BUILD_TIME@";
-    const QString INITIAL_STARTUP_LOCATION = "@INITIAL_STARTUP_LOCATION@";
+    const QString PRELOADED_STARTUP_LOCATION = "@PRELOADED_STARTUP_LOCATION@";
+    const QString PRELOADED_SCRIPT_WHITELIST = "@PRELOADED_SCRIPT_WHITELIST@";
 
     enum BuildType {
         Dev,

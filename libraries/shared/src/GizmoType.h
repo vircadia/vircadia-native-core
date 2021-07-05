@@ -11,7 +11,7 @@
 
 #include "QString"
 
-/**jsdoc
+/*@jsdoc
  * <p>A {@link Entities.EntityProperties-Gizmo|Gizmo} entity may be one of the following types:</p>
  * <table>
  *   <thead>

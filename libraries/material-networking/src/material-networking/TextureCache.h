@@ -188,8 +188,8 @@ public:
         const QByteArray& content = QByteArray(), int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS,
         image::ColorChannel sourceChannel = image::ColorChannel::NONE);
 
-    gpu::TexturePointer getTextureByHash(const std::string& hash);
-    gpu::TexturePointer cacheTextureByHash(const std::string& hash, const gpu::TexturePointer& texture);
+    std::pair<gpu::TexturePointer, glm::ivec2> getTextureByHash(const std::string& hash);
+    std::pair<gpu::TexturePointer, glm::ivec2> cacheTextureByHash(const std::string& hash, const std::pair<gpu::TexturePointer, glm::ivec2>& textureAndSize);
 
     NetworkTexturePointer getResourceTexture(const QUrl& resourceTextureUrl);
     const gpu::FramebufferPointer& getHmdPreviewFramebuffer(int width, int height);
@@ -233,7 +233,7 @@ private:
     std::shared_ptr<cache::FileCache> _ktxCache { std::make_shared<KTXCache>(KTX_DIRNAME, KTX_EXT) };
 
     // Map from image hashes to texture weak pointers
-    std::unordered_map<std::string, std::weak_ptr<gpu::Texture>> _texturesByHashes;
+    std::unordered_map<std::string, std::pair<std::weak_ptr<gpu::Texture>, glm::ivec2>> _texturesByHashes;
     std::mutex _texturesByHashesMutex;
 
     gpu::TexturePointer _permutationNormalTexture;

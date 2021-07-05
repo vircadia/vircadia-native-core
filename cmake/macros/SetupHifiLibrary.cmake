@@ -30,7 +30,7 @@ macro(SETUP_HIFI_LIBRARY)
   foreach(SRC ${AVX2_SRCS})
     if (WIN32)
       set_source_files_properties(${SRC} PROPERTIES COMPILE_FLAGS /arch:AVX2)
-    elseif (APPLE OR (UNIX AND NOT ANDROID))
+    elseif (APPLE OR (UNIX AND NOT ANDROID AND NOT CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64"))
       set_source_files_properties(${SRC} PROPERTIES COMPILE_FLAGS "-mavx2 -mfma")
     endif()
   endforeach()
@@ -53,6 +53,7 @@ macro(SETUP_HIFI_LIBRARY)
   endforeach()
 
   setup_memory_debugger()
+  setup_thread_debugger()
 
   # create a library and set the property so it can be referenced later
   if (${${TARGET_NAME}_SHARED})

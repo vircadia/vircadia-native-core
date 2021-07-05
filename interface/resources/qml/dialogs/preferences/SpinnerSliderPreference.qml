@@ -76,6 +76,7 @@ Preference {
             realValue: preference.value
             minimumValue: preference.min
             maximumValue: preference.max
+            realStepSize: preference.step
             width: 100
             onValueChanged: {
                 slider.value = realValue;

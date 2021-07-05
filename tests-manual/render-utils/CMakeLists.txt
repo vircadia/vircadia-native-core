@@ -6,6 +6,7 @@ setup_hifi_project(Quick Gui)
 set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Tests/manual-tests/")
 
 setup_memory_debugger()
+setup_thread_debugger()
 
 # link in the shared libraries
 link_hifi_libraries(render-utils shaders gl gpu shared ${PLATFORM_GL_BACKEND})

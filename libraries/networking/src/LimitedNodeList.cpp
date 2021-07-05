@@ -198,6 +198,10 @@ void LimitedNodeList::setPermissions(const NodePermissions& newPermissions) {
         newPermissions.can(NodePermissions::Permission::canGetAndSetPrivateUserData)) {
         emit canGetAndSetPrivateUserDataChanged(_permissions.can(NodePermissions::Permission::canGetAndSetPrivateUserData));
     }
+    if (originalPermissions.can(NodePermissions::Permission::canRezAvatarEntities) !=
+        newPermissions.can(NodePermissions::Permission::canRezAvatarEntities)) {
+        emit canRezAvatarEntitiesChanged(_permissions.can(NodePermissions::Permission::canRezAvatarEntities));
+    }
 }
 
 void LimitedNodeList::setSocketLocalPort(quint16 socketLocalPort) {

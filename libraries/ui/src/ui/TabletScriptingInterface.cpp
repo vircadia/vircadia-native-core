@@ -1013,7 +1013,7 @@ const QString OBJECT_NAME_KEY = "objectName";
 const QString STABLE_ORDER_KEY = "stableOrder";
 static int s_stableOrder = 1;
 
-/**jsdoc
+/*@jsdoc
  * Properties of a tablet button.
  *
  * @typedef {object} TabletButtonProxy.ButtonProperties

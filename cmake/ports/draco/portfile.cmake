@@ -19,9 +19,9 @@ include(vcpkg_common_functions)
 
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
-    REPO google/draco
-    REF 1.3.3
-    SHA512 80ed5a623046822f5bb26b2454c8ee8cc93ffe9eb3012e8461cefdfc577b26d69a92ea0f0c5e14f5f48c1ef99f9a7263b01710df376792e74358ae14e49c3897
+    REPO vircadia/draco
+    REF 1.3.5-fixed
+    SHA512 68bb15de013093077946d431ab1f4080b84a66d45d20873f2c0dc44aa28034fb4ec1f6e24f9300fde563da53943b73d47163b9c6acf2667312128c50c6d075bd
     HEAD_REF master
 )
 

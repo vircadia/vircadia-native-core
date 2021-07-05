@@ -43,7 +43,7 @@ bool GameplayObjects::removeFromGameplayObjects(const EntityItemID& entityID) {
 SelectionScriptingInterface::SelectionScriptingInterface() {
 }
 
-/**jsdoc
+/*@jsdoc
  * <p>The type of a specific item in a selection list.</p>
  * <table>
  *   <thead>
@@ -245,7 +245,7 @@ void SelectionScriptingInterface::printList(const QString& listName) {
     }
 }
 
-/**jsdoc
+/*@jsdoc
  * A selection list.
  * @typedef {object} Selection.SelectedItemsList
  * @property {Uuid[]} avatars - The IDs of the avatars in the selection list.
@@ -439,7 +439,7 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
     return true;
 }
 
-/**jsdoc
+/*@jsdoc
  * The highlighting style of a selection list.
  * @typedef {object} Selection.HighlightStyle
  * @property {Color} outlineUnoccludedColor=255,178,51 - Unoccluded outline color.
