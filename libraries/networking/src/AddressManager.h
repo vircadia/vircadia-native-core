@@ -393,7 +393,7 @@ signals:
      * Triggered when a request is made to go to a URL or IP address.
      * @function location.possibleDomainChangeRequired
      * @param {string} domainURL - The URL of the domain.
-     * @param {Uuid} domainID - The UUID of the domain to go to. May be "{@link Uuid|Uuid.NULL} if not yet known.
+     * @param {Uuid} domainID - The UUID of the domain to go to. May be {@link Uuid|Uuid.NULL} if not yet known.
      * @returns {Signal}
      */
     // No example because this function isn't typically used in scripts.
