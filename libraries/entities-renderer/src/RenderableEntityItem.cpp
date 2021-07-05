@@ -635,6 +635,7 @@ void EntityRenderer::updateShapeKeyBuilderFromMaterials(ShapeKey::Builder& build
     {
         std::lock_guard<std::mutex> lock(_materialsLock);
         materials = _materials.find("0");
+
         if (materials != _materials.end()) {
             if (materials->second.shouldUpdate()) {
                 RenderPipelines::updateMultiMaterial(materials->second);
@@ -662,7 +663,6 @@ void EntityRenderer::updateShapeKeyBuilderFromMaterials(ShapeKey::Builder& build
     auto pipelineType = getPipelineType(materials->second);
     if (pipelineType == Pipeline::MATERIAL) {
         builder.withMaterial();
-
         if (drawMaterialKey.isNormalMap()) {
             builder.withTangents();
         }

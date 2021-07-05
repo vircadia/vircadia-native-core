@@ -898,8 +898,11 @@ void SphericalHarmonics::evalFromTexture(const Texture& texture, gpu::BackendTar
 
 // TextureSource
 const gpu::TexturePointer TextureSource::getGPUTexture() const {
-    if (_gpuTextureOperator) {
-        return _gpuTextureOperator();
+    if (_gpuTextureOperator && !_locked) {
+        _locked = true;
+        auto gpuTexture = _gpuTextureOperator();
+        _locked = false;
+        return gpuTexture;
     }
     return _gpuTexture;
 }
@@ -915,8 +918,10 @@ void TextureSource::resetTextureOperator(const std::function<gpu::TexturePointer
 }
 
 bool TextureSource::isDefined() const {
-    if (_gpuTextureOperator) {
+    if (_gpuTextureOperator && !_locked) {
+        _locked = true;
         auto gpuTexture = _gpuTextureOperator();
+        _locked = false;
         return gpuTexture && gpuTexture->isDefined();
     }
     return _gpuTexture && _gpuTexture->isDefined();

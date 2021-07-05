@@ -1403,3 +1403,8 @@ std::function<gpu::TexturePointer()> Texture::getTextureForUUIDOperator(const QU
     }
     return nullptr;
 }
+
+
+void Texture::setUnboundTextureForUUIDOperator(std::function<gpu::TexturePointer(const QUuid&)> textureForUUIDOperator) {
+    _unboundTextureForUUIDOperator = textureForUUIDOperator;
+}

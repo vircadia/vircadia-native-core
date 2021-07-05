@@ -18,7 +18,7 @@ public:
     ReferenceMaterial(QUuid uuid);
 
     // Material
-    const graphics::MaterialKey& getKey() const override;
+    graphics::MaterialKey getKey() const override;
     glm::vec3 getEmissive(bool SRGB = true) const override;
     float getOpacity() const override;
     graphics::MaterialKey::OpacityMapMode getOpacityMapMode() const override;
@@ -30,10 +30,8 @@ public:
     float getRoughness() const override;
     float getScattering() const override;
     bool resetOpacityMap() const override;
-    const graphics::Material::TextureMaps& getTextureMaps() const override;
-    //glm::mat4 getTexCoordTransform(uint i) const override; // use my actual transform, instead of the original
+    graphics::Material::TextureMaps getTextureMaps() const override;
     glm::vec2 getLightmapParams() const override;
-    //glm::vec2 getMaterialParams() const override; // use my actual params, instead of the original
     bool getDefaultFallthrough() const override;
 
     // NetworkMaterial
@@ -57,13 +55,20 @@ public:
     bool isReference() const override { return true; }
     std::function<graphics::MaterialPointer()> getReferenceOperator() const { return _materialForUUIDOperator; }
 
-    static void setMaterialForUUIDOperator(std::function<graphics::MaterialPointer(QUuid)> materialForUUIDOperator) { _unboundMaterialForUUIDOperator = materialForUUIDOperator; }
+    static void setMaterialForUUIDOperator(std::function<graphics::MaterialPointer(QUuid)> materialForUUIDOperator);
 
 private:
     static std::function<graphics::MaterialPointer(QUuid)> _unboundMaterialForUUIDOperator;
     std::function<graphics::MaterialPointer()> _materialForUUIDOperator;
+    mutable bool _locked { false };
 
     graphics::MaterialPointer getMaterial() const;
     std::shared_ptr<NetworkMaterial> getNetworkMaterial() const;
     graphics::ProceduralMaterialPointer getProceduralMaterial() const;
+
+    template <typename T, typename F>
+    T resultWithLock(F&& f) const;
+
+    template <typename F>
+    void withLock(F&& f) const;
 };

@@ -41,7 +41,7 @@ public:
     gpu::TextureSourcePointer _textureSource;
 
     static std::function<gpu::TexturePointer()> getTextureForUUIDOperator(const QUuid& uuid);
-    static void setUnboundTextureForUUIDOperator(std::function<gpu::TexturePointer(const QUuid&)> textureForUUIDOperator) { _unboundTextureForUUIDOperator = textureForUUIDOperator; }
+    static void setUnboundTextureForUUIDOperator(std::function<gpu::TexturePointer(const QUuid&)> textureForUUIDOperator);
 
 private:
     static std::function<gpu::TexturePointer(const QUuid&)> _unboundTextureForUUIDOperator;

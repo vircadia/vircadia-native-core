@@ -40,7 +40,7 @@ const size_t MAX_PROCEDURAL_TEXTURE_CHANNELS{ 4 };
  *     If a procedural material contains a vertex shader, the bounding box of the material entity is used to cull the object to which the material is applied.
  * @property {string} fragmentShaderURL - A link to a fragment shader.  Currently, only GLSL shaders are supported.  The shader must implement a different method depending on the version.
  *     <code>shaderUrl</code> is an alias.
- * @property {string[]} channels=[] - An array of input texture URLs or entity IDs.  Currently, up to 4 are supported.
+ * @property {string[]} channels=[] - An array of input texture URLs or entity IDs.  Currently, up to 4 are supported.  An entity ID may be that of an Image or a Web entity.
  * @property {ProceduralUniforms} uniforms={} - A {@link ProceduralUniforms} object containing all the custom uniforms to be passed to the shader.
  */
 

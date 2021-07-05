@@ -415,8 +415,8 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
         }
 
         bool defaultFallthrough = material->getDefaultFallthrough();
-        const auto& materialKey = material->getKey();
-        const auto& textureMaps = material->getTextureMaps();
+        const auto materialKey = material->getKey();
+        const auto textureMaps = material->getTextureMaps();
 
         auto it = flagsToCheck.begin();
         while (it != flagsToCheck.end()) {

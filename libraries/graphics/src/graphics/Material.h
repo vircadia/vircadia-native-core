@@ -341,7 +341,7 @@ public:
     virtual ~Material() = default;
     Material& operator= (const Material& material);
 
-    virtual const MaterialKey& getKey() const { return _key; }
+    virtual MaterialKey getKey() const { return _key; }
 
     static const float DEFAULT_EMISSIVE;
     void setEmissive(const glm::vec3& emissive, bool isSRGB = true);
@@ -385,7 +385,7 @@ public:
     // The texture map to channel association
     static const int NUM_TEXCOORD_TRANSFORMS { 2 };
     void setTextureMap(MapChannel channel, const TextureMapPointer& textureMap);
-    virtual const TextureMaps& getTextureMaps() const { return _textureMaps; } // FIXME - not thread safe...
+    virtual TextureMaps getTextureMaps() const { return _textureMaps; } // FIXME - not thread safe...
     const TextureMapPointer getTextureMap(MapChannel channel) const;
 
     // Albedo maps cannot have opacity detected until they are loaded
