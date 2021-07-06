@@ -1,15 +1,16 @@
 //
-//  HifiSockAddr.cpp
+//  SockAddr.cpp
 //  libraries/networking/src
 //
 //  Created by Stephen Birarda on 11/26/2013.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "HifiSockAddr.h"
+#include "SockAddr.h"
 
 #include <qdatastream.h>
 #include <qhostinfo.h>
@@ -24,23 +25,23 @@
 #include <netinet/in.h>
 #endif
 
-int hifiSockAddrMetaTypeId = qRegisterMetaType<HifiSockAddr>();
+int sockAddrMetaTypeId = qRegisterMetaType<SockAddr>();
 
-HifiSockAddr::HifiSockAddr() :
+SockAddr::SockAddr() :
     _address(),
     _port(0)
 {
 
 }
 
-HifiSockAddr::HifiSockAddr(const QHostAddress& address, quint16 port) :
+SockAddr::SockAddr(const QHostAddress& address, quint16 port) :
     _address(address),
     _port(port)
 {
 
 }
 
-HifiSockAddr::HifiSockAddr(const HifiSockAddr& otherSockAddr) :
+SockAddr::SockAddr(const SockAddr& otherSockAddr) :
     QObject(),
     _address(otherSockAddr._address),
     _port(otherSockAddr._port)
@@ -48,14 +49,14 @@ HifiSockAddr::HifiSockAddr(const HifiSockAddr& otherSockAddr) :
     setObjectName(otherSockAddr.objectName());
 }
 
-HifiSockAddr& HifiSockAddr::operator=(const HifiSockAddr& rhsSockAddr) {
+SockAddr& SockAddr::operator=(const SockAddr& rhsSockAddr) {
     setObjectName(rhsSockAddr.objectName());
     _address = rhsSockAddr._address;
     _port = rhsSockAddr._port;
     return *this;
 }
 
-HifiSockAddr::HifiSockAddr(const QString& hostname, quint16 hostOrderPort, bool shouldBlockForLookup) :
+SockAddr::SockAddr(const QString& hostname, quint16 hostOrderPort, bool shouldBlockForLookup) :
     _address(hostname),
     _port(hostOrderPort)
 {
@@ -73,7 +74,7 @@ HifiSockAddr::HifiSockAddr(const QString& hostname, quint16 hostOrderPort, bool 
     }
 }
 
-HifiSockAddr::HifiSockAddr(const sockaddr* sockaddr) {
+SockAddr::SockAddr(const sockaddr* sockaddr) {
     _address = QHostAddress(sockaddr);
 
     if (sockaddr->sa_family == AF_INET) {
@@ -83,7 +84,7 @@ HifiSockAddr::HifiSockAddr(const sockaddr* sockaddr) {
     }
 }
 
-void HifiSockAddr::swap(HifiSockAddr& otherSockAddr) {
+void SockAddr::swap(SockAddr& otherSockAddr) {
     using std::swap;
     
     swap(_address, otherSockAddr._address);
@@ -95,11 +96,11 @@ void HifiSockAddr::swap(HifiSockAddr& otherSockAddr) {
     setObjectName(temp);
 }
 
-bool HifiSockAddr::operator==(const HifiSockAddr& rhsSockAddr) const {
+bool SockAddr::operator==(const SockAddr& rhsSockAddr) const {
     return _address == rhsSockAddr._address && _port == rhsSockAddr._port;
 }
 
-void HifiSockAddr::handleLookupResult(const QHostInfo& hostInfo) {
+void SockAddr::handleLookupResult(const QHostInfo& hostInfo) {
     if (hostInfo.error() != QHostInfo::NoError) {
         qCDebug(networking) << "Lookup failed for" << hostInfo.lookupId() << ":" << hostInfo.errorString();
         emit lookupFailed();
@@ -117,11 +118,11 @@ void HifiSockAddr::handleLookupResult(const QHostInfo& hostInfo) {
     }
 }
 
-QString HifiSockAddr::toString() const {
+QString SockAddr::toString() const {
     return _address.toString() + ":" + QString::number(_port);
 }
 
-bool HifiSockAddr::hasPrivateAddress() const {
+bool SockAddr::hasPrivateAddress() const {
     // an address is private if it is loopback or falls in any of the RFC1918 address spaces
     const QPair<QHostAddress, int> TWENTY_FOUR_BIT_BLOCK = { QHostAddress("10.0.0.0"), 8 };
     const QPair<QHostAddress, int> TWENTY_BIT_BLOCK = { QHostAddress("172.16.0.0") , 12 };
@@ -133,22 +134,22 @@ bool HifiSockAddr::hasPrivateAddress() const {
         || _address.isInSubnet(SIXTEEN_BIT_BLOCK);
 }
 
-QDebug operator<<(QDebug debug, const HifiSockAddr& sockAddr) {
+QDebug operator<<(QDebug debug, const SockAddr& sockAddr) {
     debug.nospace() << sockAddr._address.toString().toLocal8Bit().constData() << ":" << sockAddr._port;
     return debug.space();
 }
 
-QDataStream& operator<<(QDataStream& dataStream, const HifiSockAddr& sockAddr) {
+QDataStream& operator<<(QDataStream& dataStream, const SockAddr& sockAddr) {
     dataStream << sockAddr._address << sockAddr._port;
     return dataStream;
 }
 
-QDataStream& operator>>(QDataStream& dataStream, HifiSockAddr& sockAddr) {
+QDataStream& operator>>(QDataStream& dataStream, SockAddr& sockAddr) {
     dataStream >> sockAddr._address >> sockAddr._port;
     return dataStream;
 }
 
-uint qHash(const HifiSockAddr& key, uint seed) {
+uint qHash(const SockAddr& key, uint seed) {
     // use the existing QHostAddress and quint16 hash functions to get our hash
     return qHash(key.getAddress(), seed) ^ qHash(key.getPort(), seed);
 }

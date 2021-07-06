@@ -777,7 +777,7 @@ void DomainServer::setupNodeListAndAssignments() {
     connect(nodeList.data(), &LimitedNodeList::nodeAdded, this, &DomainServer::nodeAdded);
     connect(nodeList.data(), &LimitedNodeList::nodeKilled, this, &DomainServer::nodeKilled);
     connect(nodeList.data(), &LimitedNodeList::localSockAddrChanged, this,
-        [this](const HifiSockAddr& localSockAddr) {
+        [this](const SockAddr& localSockAddr) {
         DependencyManager::get<LimitedNodeList>()->putLocalPortIntoSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this, localSockAddr.getPort());
     });
 
@@ -1225,7 +1225,7 @@ void DomainServer::handleConnectedNode(SharedNodePointer newNode, quint64 reques
     broadcastNewNode(newNode);
 }
 
-void DomainServer::sendDomainListToNode(const SharedNodePointer& node, quint64 requestPacketReceiveTime, const HifiSockAddr &senderSockAddr, bool newConnection) {
+void DomainServer::sendDomainListToNode(const SharedNodePointer& node, quint64 requestPacketReceiveTime, const SockAddr &senderSockAddr, bool newConnection) {
     const int NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES = NUM_BYTES_RFC4122_UUID + NLPacket::NUM_BYTES_LOCALID +
         NUM_BYTES_RFC4122_UUID + NLPacket::NUM_BYTES_LOCALID + 4;
 
@@ -1501,7 +1501,7 @@ void DomainServer::transactionJSONCallback(const QJsonObject& data) {
     }
 }
 
-QJsonObject jsonForDomainSocketUpdate(const HifiSockAddr& socket) {
+QJsonObject jsonForDomainSocketUpdate(const SockAddr& socket) {
     const QString SOCKET_NETWORK_ADDRESS_KEY = "network_address";
     const QString SOCKET_PORT_KEY = "port";
 
@@ -1512,7 +1512,7 @@ QJsonObject jsonForDomainSocketUpdate(const HifiSockAddr& socket) {
     return socketObject;
 }
 
-void DomainServer::performIPAddressPortUpdate(const HifiSockAddr& newPublicSockAddr) {
+void DomainServer::performIPAddressPortUpdate(const SockAddr& newPublicSockAddr) {
     const QString& DOMAIN_SERVER_SETTINGS_KEY = "domain_server";
     const QString& publicSocketAddress = newPublicSockAddr.getAddress().toString();
     const int publicSocketPort = newPublicSockAddr.getPort();
@@ -1770,7 +1770,7 @@ void DomainServer::sendHeartbeatToIceServer() {
             QDataStream heartbeatStream(_iceServerHeartbeatPacket.get());
 
             QUuid senderUUID;
-            HifiSockAddr publicSocket, localSocket;
+            SockAddr publicSocket, localSocket;
             heartbeatStream >> senderUUID >> publicSocket >> localSocket;
 
             if (senderUUID != limitedNodeList->getSessionUUID()
@@ -1928,7 +1928,7 @@ void DomainServer::processNodeJSONStatsPacket(QSharedPointer<ReceivedMessage> pa
     }
 }
 
-QJsonObject DomainServer::jsonForSocket(const HifiSockAddr& socket) {
+QJsonObject DomainServer::jsonForSocket(const SockAddr& socket) {
     QJsonObject socketJSON;
 
     socketJSON["ip"] = socket.getAddress().toString();
@@ -3017,7 +3017,7 @@ static const QString BROADCASTING_SETTINGS_KEY = "broadcasting";
 
 struct ReplicationServerInfo {
     NodeType_t nodeType;
-    HifiSockAddr sockAddr;
+    SockAddr sockAddr;
 };
 
 ReplicationServerInfo serverInformationFromSettings(QVariantMap serverMap, ReplicationServerDirection direction) {
@@ -3038,7 +3038,7 @@ ReplicationServerInfo serverInformationFromSettings(QVariantMap serverMap, Repli
             serverInfo.nodeType = NodeType::downstreamType(nodeType);
         }
 
-        // read the address and port and construct a HifiSockAddr from them
+        // read the address and port and construct a SockAddr from them
         serverInfo.sockAddr = {
             serverMap[REPLICATION_SERVER_ADDRESS].toString(),
             (quint16) serverMap[REPLICATION_SERVER_PORT].toString().toInt()
@@ -3047,7 +3047,7 @@ ReplicationServerInfo serverInformationFromSettings(QVariantMap serverMap, Repli
         return serverInfo;
     }
 
-    return { NodeType::Unassigned, HifiSockAddr() };
+    return { NodeType::Unassigned, SockAddr() };
 }
 
 void DomainServer::updateReplicationNodes(ReplicationServerDirection direction) {
@@ -3056,7 +3056,7 @@ void DomainServer::updateReplicationNodes(ReplicationServerDirection direction) 
 
     if (broadcastSettingsVariant.isValid()) {
         auto nodeList = DependencyManager::get<LimitedNodeList>();
-        std::vector<HifiSockAddr> replicationNodesInSettings;
+        std::vector<SockAddr> replicationNodesInSettings;
 
         auto replicationSettings = broadcastSettingsVariant.toMap();
 
@@ -3066,7 +3066,7 @@ void DomainServer::updateReplicationNodes(ReplicationServerDirection direction) 
         if (replicationSettings.contains(serversKey)) {
             auto serversSettings = replicationSettings.value(serversKey).toList();
 
-            std::vector<HifiSockAddr> knownReplicationNodes;
+            std::vector<SockAddr> knownReplicationNodes;
             nodeList->eachNode([direction, &knownReplicationNodes](const SharedNodePointer& otherNode) {
                 if ((direction == Upstream && NodeType::isUpstream(otherNode->getType()))
                     || (direction == Downstream && NodeType::isDownstream(otherNode->getType()))) {
@@ -3620,7 +3620,7 @@ void DomainServer::randomizeICEServerAddress(bool shouldTriggerHostLookup) {
         indexToTry = distribution(generator);
     }
 
-    _iceServerSocket = HifiSockAddr { candidateICEAddresses[indexToTry], ICE_SERVER_DEFAULT_PORT };
+    _iceServerSocket = SockAddr { candidateICEAddresses[indexToTry], ICE_SERVER_DEFAULT_PORT };
     qCInfo(domain_server_ice) << "Set candidate ice-server socket to" << _iceServerSocket;
 
     // clear our number of hearbeat denials, this should be re-set on ice-server change

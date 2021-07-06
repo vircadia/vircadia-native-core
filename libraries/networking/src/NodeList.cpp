@@ -35,7 +35,7 @@
 #include "Assignment.h"
 #include "AudioHelpers.h"
 #include "DomainAccountManager.h"
-#include "HifiSockAddr.h"
+#include "SockAddr.h"
 #include "FingerprintUtils.h"
 
 #include "NetworkLogging.h"
@@ -176,11 +176,11 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
         PacketReceiver::makeUnsourcedListenerReference<NodeList>(this, &NodeList::processUsernameFromIDReply));
 }
 
-qint64 NodeList::sendStats(QJsonObject statsObject, HifiSockAddr destination) {
+qint64 NodeList::sendStats(QJsonObject statsObject, SockAddr destination) {
     if (thread() != QThread::currentThread()) {
         QMetaObject::invokeMethod(this, "sendStats", Qt::QueuedConnection,
                                   Q_ARG(QJsonObject, statsObject),
-                                  Q_ARG(HifiSockAddr, destination));
+                                  Q_ARG(SockAddr, destination));
         return 0;
     }
 
@@ -245,7 +245,7 @@ void NodeList::timePingReply(ReceivedMessage& message, const SharedNodePointer& 
 void NodeList::processPingPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     // send back a reply
     auto replyPacket = constructPingReplyPacket(*message);
-    const HifiSockAddr& senderSockAddr = message->getSenderSockAddr();
+    const SockAddr& senderSockAddr = message->getSenderSockAddr();
     sendPacket(std::move(replyPacket), *sendingNode, senderSockAddr);
 
     // If we don't have a symmetric socket for this node and this socket doesn't match
@@ -364,7 +364,7 @@ void NodeList::sendDomainServerCheckIn() {
         // let the domain handler know we are due to send a checkin packet
     } else if (!domainHandlerIp.isNull() && !_domainHandler.checkInPacketTimeout()) {
         bool domainIsConnected = _domainHandler.isConnected();
-        HifiSockAddr domainSockAddr = _domainHandler.getSockAddr();
+        SockAddr domainSockAddr = _domainHandler.getSockAddr();
         PacketType domainPacketType = !domainIsConnected
             ? PacketType::DomainConnectRequest : PacketType::DomainListRequest;
 
@@ -405,7 +405,7 @@ void NodeList::sendDomainServerCheckIn() {
 
         QDataStream packetStream(domainPacket.get());
 
-        HifiSockAddr localSockAddr = _localSockAddr;
+        SockAddr localSockAddr = _localSockAddr;
         if (domainPacketType == PacketType::DomainConnectRequest) {
 
 #if (PR_BUILD || DEV_BUILD)
@@ -1012,7 +1012,7 @@ void NodeList::sendKeepAlivePings() {
     });
 }
 
-bool NodeList::sockAddrBelongsToDomainOrNode(const HifiSockAddr& sockAddr) {
+bool NodeList::sockAddrBelongsToDomainOrNode(const SockAddr& sockAddr) {
     return _domainHandler.getSockAddr() == sockAddr || LimitedNodeList::sockAddrBelongsToNode(sockAddr);
 }
 
