@@ -17,7 +17,7 @@
 #endif
 
 // WEBRTC_AUDIO: WebRTC audio features, e.g., echo canceling.
-// WEBRTC_DATA_CHANNEL: WebRTC client-server connections in parallel with UDP.
+// WEBRTC_DATA_CHANNELS: WebRTC client-server connections in parallel with UDP.
 
 #if defined(Q_OS_MAC)
 #  define WEBRTC_AUDIO 1
@@ -25,7 +25,7 @@
 #  define WEBRTC_LEGACY 1
 #elif defined(Q_OS_WIN)
 #  define WEBRTC_AUDIO 1
-#  define WEBRTC_DATA_CHANNEL 1
+#  define WEBRTC_DATA_CHANNELS 1
 #  define WEBRTC_WIN 1
 #  define NOMINMAX 1
 #  define WIN32_LEAN_AND_MEAN 1

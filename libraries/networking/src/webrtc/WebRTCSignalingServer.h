@@ -2,18 +2,16 @@
 //  WebRTCSignalingServer.h
 //  libraries/networking/src/webrtc
 //
-//  Provides a signaling channel for setting up WebRTC connections between the Web app and the domain servers and mixers.
-//
 //  Created by David Rowe on 16 May 2021.
 //  Copyright 2021 Vircadia contributors.
 //
 
-#ifndef vircadia_SignalingServer_h
-#define vircadia_SignalingServer_h
+#ifndef vircadia_WebRTCSignalingServer_h
+#define vircadia_WebRTCSignalingServer_h
 
 #include <shared/WebRTC.h>
 
-#if defined(WEBRTC_DATA_CHANNEL)
+#if defined(WEBRTC_DATA_CHANNELS)
 
 #include <QObject>
 #include <QtCore/QTimer>
@@ -21,8 +19,11 @@
 
 #include "../HifiSockAddr.h"
 
-/// @brief WebRTC signaling server that Interface clients can use to initiate WebRTC connections to the domain server and
-/// assignment clients.
+/// @addtogroup Networking
+/// @{
+
+/// @brief Provides a WebRTC signaling server that Interface clients can use to initiate WebRTC connections to the domain server
+/// and its assignment clients.
 /// 
 /// @details The signaling server is expected to be hosted in the domain server. It provides a WebSocket for Interface clients
 /// to use in the WebRTC signaling handshake process to establish WebRTC data channel connections to each of the domain server
@@ -50,14 +51,14 @@
 /// | `to`     | WebSocket port number  |
 /// | `from`   | NodeType               |
 /// | [`data`] | WebRTC payload         |
-/// | [`echo`] | Echo request           |
+/// | [`echo`] | Echo response          |
 ///
 class WebRTCSignalingServer : public QObject {
     Q_OBJECT
 
 public:
 
-    /// @brief Constructs a new WebRTCSignalingServer.
+    /// @brief Constructs a new WebRTCSignalingServer object.
     /// @param address The IP address to use for the WebSocket.
     /// @param port The port to use for the WebSocket.
     /// @param parent Qt parent object.
@@ -98,7 +99,8 @@ private:
     QTimer* _isWebSocketServerListeningTimer;
 };
 
+/// @}
 
-#endif // WEBRTC_DATA_CHANNEL
+#endif // WEBRTC_DATA_CHANNELS
 
-#endif // vircadia_SignalingServer_h
+#endif // vircadia_WebRTCSignalingServer_h
