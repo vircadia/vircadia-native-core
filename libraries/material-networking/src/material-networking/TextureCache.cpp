@@ -254,7 +254,7 @@ NetworkTexturePointer TextureCache::getTexture(const QUrl& url, image::TextureUs
     if (url.scheme() == RESOURCE_SCHEME) {
         return getResourceTexture(url);
     }
-    QString decodedURL = url.toDisplayString(QUrl::FullyDecoded);
+    QString decodedURL = QUrl::fromPercentEncoding(url.toEncoded());
     if (decodedURL.startsWith("{")) {
         return getTextureByUUID(decodedURL);
     }

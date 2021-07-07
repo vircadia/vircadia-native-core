@@ -1380,8 +1380,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
 /*@jsdoc
  * The <code>"Web"</code> {@link Entities.EntityType|EntityType} displays a browsable web page. Each user views their own copy
  * of the web page: if one user navigates to another page on the entity, other users do not see the change; if a video is being
- * played, users don't see it in sync. Internally, a Web Entity is rendered as a non-repeating, upside down texture, so additional
- * transformations may be necessary if you reference a web entity texture by UUID. It has properties in addition to the common
+ * played, users don't see it in sync. Internally, a Web entity is rendered as a non-repeating, upside down texture, so additional
+ * transformations may be necessary if you reference a Web entity texture by UUID. It has properties in addition to the common
  * {@link Entities.EntityProperties|EntityProperties}.
  *
  * @typedef {object} Entities.EntityProperties-Web

@@ -150,13 +150,13 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseMaterialF
  * @property {number|string} scattering - The scattering, range <code>0.0</code> &ndash; <code>1.0</code>. 
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
  * @property {string} emissiveMap - The URL of the emissive texture image, or an entity ID.  An entity ID may be that of an
- *     Image or a Web entity.  Set to <code>"fallthrough"</code> to fall through to the material below.
+ *     Image or Web entity.  Set to <code>"fallthrough"</code> to fall through to the material below.
  *     <code>"hifi_pbr"</code> model only.
  * @property {string} albedoMap - The URL of the albedo texture image, or an entity ID.  An entity ID may be that of an Image
- *     or a Web entity.  Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code>
+ *     or Web entity.  Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code>
  *     model only.
  * @property {string} opacityMap - The URL of the opacity texture image, or an entity ID.  An entity ID may be that of an Image
- *     or a Web entity.  Set the value the same as the <code>albedoMap</code> value for transparency.
+ *     or Web entity.  Set the value the same as the <code>albedoMap</code> value for transparency.
  *     <code>"hifi_pbr"</code> model only.
  * @property {string} opacityMapMode - The mode defining the interpretation of the opacity map. Values can be:
  *     <ul>
@@ -192,25 +192,25 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseMaterialF
  *     both. 
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
  * @property {string} metallicMap - The URL of the metallic texture image, or an entity ID.  An entity ID may be that of an
- *     Image or a Web entity.  You can use this or <code>specularMap</code>, but not both.
+ *     Image or Web entity.  You can use this or <code>specularMap</code>, but not both.
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
  * @property {string} specularMap - The URL of the specular texture image, or an entity ID.  An entity ID may be that of an
- *     Image or a Web entity.  You can use this or <code>metallicMap</code>, but not both.
+ *     Image or Web entity.  You can use this or <code>metallicMap</code>, but not both.
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
  * @property {string} normalMap - The URL of the normal texture image, or an entity ID.  An entity ID may be that of an Image
- *     or a Web entity.  You can use this or <code>bumpMap</code>, but not both. Set to <code>"fallthrough"</code> to fall
+ *     or Web entity.  You can use this or <code>bumpMap</code>, but not both. Set to <code>"fallthrough"</code> to fall
  *     through to the material below. <code>"hifi_pbr"</code> model only.
  * @property {string} bumpMap - The URL of the bump texture image, or an entity ID.  An entity ID may be that of an Image
- *     or a Web entity.  You can use this or <code>normalMap</code>, but not both. Set to <code>"fallthrough"</code> to
+ *     or Web entity.  You can use this or <code>normalMap</code>, but not both. Set to <code>"fallthrough"</code> to
  *     fall through to the material below. <code>"hifi_pbr"</code> model only.
  * @property {string} occlusionMap - The URL of the occlusion texture image, or an entity ID.  An entity ID may be that of
- *     an Image or a Web entity.  Set to <code>"fallthrough"</code> to fall through to the material below.
+ *     an Image or Web entity.  Set to <code>"fallthrough"</code> to fall through to the material below.
  *     <code>"hifi_pbr"</code> model only.
  * @property {string} scatteringMap - The URL of the scattering texture image, or an entity ID.  An entity ID may be that of an
- *     Image or a Web entity.  Only used if <code>normalMap</code> or <code>bumpMap</code> is specified.
+ *     Image or Web entity.  Only used if <code>normalMap</code> or <code>bumpMap</code> is specified.
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
  * @property {string} lightMap - The URL of the light map texture image, or an entity ID.  An entity ID may be that of an Image
- *     or a Web entity.  Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code>
+ *     or Web entity.  Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code>
  *     model only.
  * @property {Mat4|string} texCoordTransform0 - The transform to use for all of the maps apart from <code>occlusionMap</code> 
  *     and <code>lightMap</code>. 
