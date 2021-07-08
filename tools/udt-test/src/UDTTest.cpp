@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2015-07-30.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -90,7 +91,7 @@ UDTTest::UDTTest(int& argc, char** argv) :
             
             QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
         } else {
-            _target = HifiSockAddr(address, port);
+            _target = SockAddr(address, port);
             qDebug() << "Packets will be sent to" << _target;
         }
     }
@@ -198,7 +199,7 @@ UDTTest::UDTTest(int& argc, char** argv) :
         });
     }
     _socket.setMessageFailureHandler(
-        [this](HifiSockAddr from, udt::Packet::MessageNumber messageNumber) {
+        [this](SockAddr from, udt::Packet::MessageNumber messageNumber) {
             _pendingMessages.erase(messageNumber);
         }
     );

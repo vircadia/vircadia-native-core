@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2015-07-20.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -23,7 +24,7 @@
 #include <QtCore/QTimer>
 #include <QtNetwork/QUdpSocket>
 
-#include "../HifiSockAddr.h"
+#include "../SockAddr.h"
 #include "TCPVegasCC.h"
 #include "Connection.h"
 
@@ -39,12 +40,12 @@ class PacketList;
 class SequenceNumber;
 
 using PacketFilterOperator = std::function<bool(const Packet&)>;
-using ConnectionCreationFilterOperator = std::function<bool(const HifiSockAddr&)>;
+using ConnectionCreationFilterOperator = std::function<bool(const SockAddr&)>;
 
 using BasePacketHandler = std::function<void(std::unique_ptr<BasePacket>)>;
 using PacketHandler = std::function<void(std::unique_ptr<Packet>)>;
 using MessageHandler = std::function<void(std::unique_ptr<Packet>)>;
-using MessageFailureHandler = std::function<void(HifiSockAddr, udt::Packet::MessageNumber)>;
+using MessageFailureHandler = std::function<void(SockAddr, udt::Packet::MessageNumber)>;
 
 class Socket : public QObject {
     Q_OBJECT
@@ -53,19 +54,19 @@ class Socket : public QObject {
     using Lock = std::unique_lock<Mutex>;
 
 public:
-    using StatsVector = std::vector<std::pair<HifiSockAddr, ConnectionStats::Stats>>;
+    using StatsVector = std::vector<std::pair<SockAddr, ConnectionStats::Stats>>;
     
     Socket(QObject* object = 0, bool shouldChangeSocketOptions = true);
     
     quint16 localPort() const { return _udpSocket.localPort(); }
     
     // Simple functions writing to the socket with no processing
-    qint64 writeBasePacket(const BasePacket& packet, const HifiSockAddr& sockAddr);
-    qint64 writePacket(const Packet& packet, const HifiSockAddr& sockAddr);
-    qint64 writePacket(std::unique_ptr<Packet> packet, const HifiSockAddr& sockAddr);
-    qint64 writePacketList(std::unique_ptr<PacketList> packetList, const HifiSockAddr& sockAddr);
-    qint64 writeDatagram(const char* data, qint64 size, const HifiSockAddr& sockAddr);
-    qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& sockAddr);
+    qint64 writeBasePacket(const BasePacket& packet, const SockAddr& sockAddr);
+    qint64 writePacket(const Packet& packet, const SockAddr& sockAddr);
+    qint64 writePacket(std::unique_ptr<Packet> packet, const SockAddr& sockAddr);
+    qint64 writePacketList(std::unique_ptr<PacketList> packetList, const SockAddr& sockAddr);
+    qint64 writeDatagram(const char* data, qint64 size, const SockAddr& sockAddr);
+    qint64 writeDatagram(const QByteArray& datagram, const SockAddr& sockAddr);
     
     void bind(const QHostAddress& address, quint16 port = 0);
     void rebind(quint16 port);
@@ -78,7 +79,7 @@ public:
     void setConnectionCreationFilterOperator(ConnectionCreationFilterOperator filterOperator)
         { _connectionCreationFilterOperator = filterOperator; }
     
-    void addUnfilteredHandler(const HifiSockAddr& senderSockAddr, BasePacketHandler handler)
+    void addUnfilteredHandler(const SockAddr& senderSockAddr, BasePacketHandler handler)
         { _unfilteredHandlers[senderSockAddr] = handler; }
     
     void setCongestionControlFactory(std::unique_ptr<CongestionControlVirtualFactory> ccFactory);
@@ -90,16 +91,16 @@ public:
     StatsVector sampleStatsForAllConnections();
 
 #if (PR_BUILD || DEV_BUILD)
-    void sendFakedHandshakeRequest(const HifiSockAddr& sockAddr);
+    void sendFakedHandshakeRequest(const SockAddr& sockAddr);
 #endif
 
 signals:
-    void clientHandshakeRequestComplete(const HifiSockAddr& sockAddr);
+    void clientHandshakeRequestComplete(const SockAddr& sockAddr);
 
 public slots:
-    void cleanupConnection(HifiSockAddr sockAddr);
+    void cleanupConnection(SockAddr sockAddr);
     void clearConnections();
-    void handleRemoteAddressChange(HifiSockAddr previousAddress, HifiSockAddr currentAddress);
+    void handleRemoteAddressChange(SockAddr previousAddress, SockAddr currentAddress);
 
 private slots:
     void readPendingDatagrams();
@@ -110,16 +111,16 @@ private slots:
 
 private:
     void setSystemBufferSizes();
-    Connection* findOrCreateConnection(const HifiSockAddr& sockAddr, bool filterCreation = false);
+    Connection* findOrCreateConnection(const SockAddr& sockAddr, bool filterCreation = false);
    
     // privatized methods used by UDTTest - they are private since they must be called on the Socket thread
-    ConnectionStats::Stats sampleStatsForConnection(const HifiSockAddr& destination);
+    ConnectionStats::Stats sampleStatsForConnection(const SockAddr& destination);
     
-    std::vector<HifiSockAddr> getConnectionSockAddrs();
-    void connectToSendSignal(const HifiSockAddr& destinationAddr, QObject* receiver, const char* slot);
+    std::vector<SockAddr> getConnectionSockAddrs();
+    void connectToSendSignal(const SockAddr& destinationAddr, QObject* receiver, const char* slot);
     
-    Q_INVOKABLE void writeReliablePacket(Packet* packet, const HifiSockAddr& sockAddr);
-    Q_INVOKABLE void writeReliablePacketList(PacketList* packetList, const HifiSockAddr& sockAddr);
+    Q_INVOKABLE void writeReliablePacket(Packet* packet, const SockAddr& sockAddr);
+    Q_INVOKABLE void writeReliablePacketList(PacketList* packetList, const SockAddr& sockAddr);
     
     QUdpSocket _udpSocket { this };
     PacketFilterOperator _packetFilterOperator;
@@ -131,9 +132,9 @@ private:
     Mutex _unreliableSequenceNumbersMutex;
     Mutex _connectionsHashMutex;
 
-    std::unordered_map<HifiSockAddr, BasePacketHandler> _unfilteredHandlers;
-    std::unordered_map<HifiSockAddr, SequenceNumber> _unreliableSequenceNumbers;
-    std::unordered_map<HifiSockAddr, std::unique_ptr<Connection>> _connectionsHash;
+    std::unordered_map<SockAddr, BasePacketHandler> _unfilteredHandlers;
+    std::unordered_map<SockAddr, SequenceNumber> _unreliableSequenceNumbers;
+    std::unordered_map<SockAddr, std::unique_ptr<Connection>> _connectionsHash;
 
     QTimer* _readyReadBackupTimer { nullptr };
 
@@ -145,7 +146,7 @@ private:
 
     int _lastPacketSizeRead { 0 };
     SequenceNumber _lastReceivedSequenceNumber;
-    HifiSockAddr _lastPacketSockAddr;
+    SockAddr _lastPacketSockAddr;
     
     friend UDTTest;
 };

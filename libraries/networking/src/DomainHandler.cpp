@@ -26,7 +26,7 @@
 #include "AddressManager.h"
 #include "Assignment.h"
 #include "DomainAccountManager.h"
-#include "HifiSockAddr.h"
+#include "SockAddr.h"
 #include "NodeList.h"
 #include "udt/Packet.h"
 #include "udt/PacketHeaders.h"
@@ -37,7 +37,7 @@
 
 DomainHandler::DomainHandler(QObject* parent) :
     QObject(parent),
-    _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
+    _sockAddr(SockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _icePeer(this),
     _settingsTimer(this),
     _apiRefreshTimer(this)
@@ -133,7 +133,7 @@ void DomainHandler::hardReset(QString reason) {
 
     qCDebug(networking) << "Hard reset in NodeList DomainHandler.";
     _pendingDomainID = QUuid();
-    _iceServerSockAddr = HifiSockAddr();
+    _iceServerSockAddr = SockAddr();
     _sockAddr.clear();
     _domainURL = QUrl();
 
@@ -170,7 +170,7 @@ void DomainHandler::setErrorDomainURL(const QUrl& url) {
     return;
 }
 
-void DomainHandler::setSockAddr(const HifiSockAddr& sockAddr, const QString& hostname) {
+void DomainHandler::setSockAddr(const SockAddr& sockAddr, const QString& hostname) {
     if (_sockAddr != sockAddr) {
         // we should reset on a sockAddr change
         hardReset("Changing domain sockAddr");
@@ -280,9 +280,9 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
 
         _pendingDomainID = id;
 
-        HifiSockAddr* replaceableSockAddr = &_iceServerSockAddr;
-        replaceableSockAddr->~HifiSockAddr();
-        replaceableSockAddr = new (replaceableSockAddr) HifiSockAddr(iceServerHostname, ICE_SERVER_DEFAULT_PORT);
+        SockAddr* replaceableSockAddr = &_iceServerSockAddr;
+        replaceableSockAddr->~SockAddr();
+        replaceableSockAddr = new (replaceableSockAddr) SockAddr(iceServerHostname, ICE_SERVER_DEFAULT_PORT);
         _iceServerSockAddr.setObjectName("IceServer");
 
         auto nodeList = DependencyManager::get<NodeList>();
@@ -291,7 +291,7 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
 
         if (_iceServerSockAddr.getAddress().isNull()) {
             // connect to lookup completed for ice-server socket so we can request a heartbeat once hostname is looked up
-            connect(&_iceServerSockAddr, &HifiSockAddr::lookupCompleted, this, &DomainHandler::completedIceServerHostnameLookup);
+            connect(&_iceServerSockAddr, &SockAddr::lookupCompleted, this, &DomainHandler::completedIceServerHostnameLookup);
         } else {
             completedIceServerHostnameLookup();
         }
@@ -458,7 +458,7 @@ void DomainHandler::processSettingsPacketList(QSharedPointer<ReceivedMessage> pa
 }
 
 void DomainHandler::processICEPingReplyPacket(QSharedPointer<ReceivedMessage> message) {
-    const HifiSockAddr& senderSockAddr = message->getSenderSockAddr();
+    const SockAddr& senderSockAddr = message->getSenderSockAddr();
     qCDebug(networking_ice) << "Received reply from domain-server on" << senderSockAddr;
 
     if (getIP().isNull()) {

@@ -4,6 +4,7 @@
 //
 //  Created by Clement on 7/21/15.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -65,7 +66,7 @@ private:
 const microseconds SendQueue::MAXIMUM_ESTIMATED_TIMEOUT = seconds(5);
 const microseconds SendQueue::MINIMUM_ESTIMATED_TIMEOUT = milliseconds(10);
 
-std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destination, SequenceNumber currentSequenceNumber,
+std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, SockAddr destination, SequenceNumber currentSequenceNumber,
                                              MessageNumber currentMessageNumber, bool hasReceivedHandshakeACK) {
     Q_ASSERT_X(socket, "SendQueue::create", "Must be called with a valid Socket*");
 
@@ -91,7 +92,7 @@ std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destin
     return queue;
 }
     
-SendQueue::SendQueue(Socket* socket, HifiSockAddr dest, SequenceNumber currentSequenceNumber,
+SendQueue::SendQueue(Socket* socket, SockAddr dest, SequenceNumber currentSequenceNumber,
                      MessageNumber currentMessageNumber, bool hasReceivedHandshakeACK) :
     _packets(currentMessageNumber),
     _socket(socket),
@@ -561,6 +562,6 @@ bool SendQueue::isFlowWindowFull() const {
     return seqlen(SequenceNumber { (uint32_t) _lastACKSequenceNumber }, _currentSequenceNumber)  > _flowWindowSize;
 }
 
-void SendQueue::updateDestinationAddress(HifiSockAddr newAddress) {
+void SendQueue::updateDestinationAddress(SockAddr newAddress) {
     _destination = newAddress;
 }

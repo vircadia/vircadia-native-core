@@ -25,7 +25,7 @@
 #include <shared/ReadWriteLockable.h>
 #include <SettingHandle.h>
 
-#include "HifiSockAddr.h"
+#include "SockAddr.h"
 #include "NetworkPeer.h"
 #include "NLPacket.h"
 #include "NLPacketList.h"
@@ -109,8 +109,8 @@ public:
     const QHostAddress& getIP() const { return _sockAddr.getAddress(); }
     void setIPToLocalhost() { _sockAddr.setAddress(QHostAddress(QHostAddress::LocalHost)); }
 
-    const HifiSockAddr& getSockAddr() const { return _sockAddr; }
-    void setSockAddr(const HifiSockAddr& sockAddr, const QString& hostname);
+    const SockAddr& getSockAddr() const { return _sockAddr; }
+    void setSockAddr(const SockAddr& sockAddr, const QString& hostname);
 
     unsigned short getPort() const { return _sockAddr.getPort(); }
     void setPort(quint16 port) { _sockAddr.setPort(port); }
@@ -126,7 +126,7 @@ public:
     const QUuid& getICEClientID() const { return _iceClientID; }
 
     bool requiresICE() const { return !_iceServerSockAddr.isNull(); }
-    const HifiSockAddr& getICEServerSockAddr() const { return _iceServerSockAddr; }
+    const SockAddr& getICEServerSockAddr() const { return _iceServerSockAddr; }
     NetworkPeer& getICEPeer() { return _icePeer; }
     void activateICELocalSocket();
     void activateICEPublicSocket();
@@ -288,12 +288,12 @@ private:
     Node::LocalID _localID;
     QUrl _domainURL;
     QUrl _errorDomainURL;
-    HifiSockAddr _sockAddr;
+    SockAddr _sockAddr;
     QUuid _assignmentUUID;
     QUuid _connectionToken;
     QUuid _pendingDomainID; // ID of domain being connected to, via ICE or direct connection
     QUuid _iceClientID;
-    HifiSockAddr _iceServerSockAddr;
+    SockAddr _iceServerSockAddr;
     NetworkPeer _icePeer;
     bool _isConnected { false };
     bool _haveAskedConnectWithoutAvatarEntities { false };

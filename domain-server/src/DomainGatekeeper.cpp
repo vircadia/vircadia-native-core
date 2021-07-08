@@ -357,7 +357,7 @@ void DomainGatekeeper::updateNodePermissions() {
         } else {
             // at this point we don't have a sending socket for packets from this node - assume it is the active socket
             // or the public socket if we haven't activated a socket for the node yet
-            HifiSockAddr connectingAddr = node->getActiveSocket() ? *node->getActiveSocket() : node->getPublicSocket();
+            SockAddr connectingAddr = node->getActiveSocket() ? *node->getActiveSocket() : node->getPublicSocket();
 
             QString hardwareAddress;
             QUuid machineFingerprint;
@@ -651,7 +651,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
 }
 
 SharedNodePointer DomainGatekeeper::addVerifiedNodeFromConnectRequest(const NodeConnectionData& nodeConnection) {
-    HifiSockAddr discoveredSocket = nodeConnection.senderSockAddr;
+    SockAddr discoveredSocket = nodeConnection.senderSockAddr;
     SharedNetworkPeer connectedPeer = _icePeers.value(nodeConnection.connectUUID);
 
     if (connectedPeer && connectedPeer->getActiveSocket()) {
@@ -690,7 +690,7 @@ void DomainGatekeeper::cleanupICEPeerForNode(const QUuid& nodeID) {
 
 bool DomainGatekeeper::verifyUserSignature(const QString& username,
                                            const QByteArray& usernameSignature,
-                                           const HifiSockAddr& senderSockAddr) {
+                                           const SockAddr& senderSockAddr) {
     // it's possible this user can be allowed to connect, but we need to check their username signature
     auto lowerUsername = username.toLower();
     KeyFlagPair publicKeyPair = _userPublicKeys.value(lowerUsername);
@@ -773,7 +773,7 @@ bool DomainGatekeeper::needToVerifyDomainUserIdentity(const QString& username, c
 }
 
 bool DomainGatekeeper::verifyDomainUserIdentity(const QString& username, const QString& accessToken,
-                                                const QString& refreshToken, const HifiSockAddr& senderSockAddr) {
+                                                const QString& refreshToken, const SockAddr& senderSockAddr) {
     if (_verifiedDomainUserIdentities.contains(username)
             && _verifiedDomainUserIdentities.value(username) == QPair<QString, QString>(accessToken, refreshToken)) {
         return true;
@@ -871,7 +871,7 @@ void DomainGatekeeper::publicKeyJSONErrorCallback(QNetworkReply* requestReply) {
     _inFlightPublicKeyRequests.remove(username);
 }
 
-void DomainGatekeeper::sendProtocolMismatchConnectionDenial(const HifiSockAddr& senderSockAddr) {
+void DomainGatekeeper::sendProtocolMismatchConnectionDenial(const SockAddr& senderSockAddr) {
     QString protocolVersionError = "Protocol version mismatch - Domain version: " + QCoreApplication::applicationVersion();
 
     qDebug() << "Protocol Version mismatch - denying connection.";
@@ -880,7 +880,7 @@ void DomainGatekeeper::sendProtocolMismatchConnectionDenial(const HifiSockAddr& 
                                DomainHandler::ConnectionRefusedReason::ProtocolMismatch);
 }
 
-void DomainGatekeeper::sendConnectionDeniedPacket(const QString& reason, const HifiSockAddr& senderSockAddr,
+void DomainGatekeeper::sendConnectionDeniedPacket(const QString& reason, const SockAddr& senderSockAddr,
                                                   DomainHandler::ConnectionRefusedReason reasonCode,
                                                   QString extraInfo) {
     // this is an agent and we've decided we won't let them connect - send them a packet to deny connection
@@ -910,7 +910,7 @@ void DomainGatekeeper::sendConnectionDeniedPacket(const QString& reason, const H
     DependencyManager::get<LimitedNodeList>()->sendPacket(std::move(connectionDeniedPacket), senderSockAddr);
 }
 
-void DomainGatekeeper::sendConnectionTokenPacket(const QString& username, const HifiSockAddr& senderSockAddr) {
+void DomainGatekeeper::sendConnectionTokenPacket(const QString& username, const SockAddr& senderSockAddr) {
     // get the existing connection token or create a new one
     QUuid& connectionToken = _connectionTokenHash[username.toLower()];
 

@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2/15/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -57,7 +58,7 @@ public:
     NodeType_t getOwnerType() const { return _ownerType.load(); }
     void setOwnerType(NodeType_t ownerType) { _ownerType.store(ownerType); }
 
-    Q_INVOKABLE qint64 sendStats(QJsonObject statsObject, HifiSockAddr destination);
+    Q_INVOKABLE qint64 sendStats(QJsonObject statsObject, SockAddr destination);
     Q_INVOKABLE qint64 sendStatsToDomainServer(QJsonObject statsObject);
 
     DomainHandler& getDomainHandler() { return _domainHandler; }
@@ -67,7 +68,7 @@ public:
     void addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes);
     void resetNodeInterestSet() { _nodeTypesOfInterest.clear(); }
 
-    void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
+    void setAssignmentServerSocket(const SockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
 
     void setIsShuttingDown(bool isShuttingDown) { _isShuttingDown = isShuttingDown; }
@@ -100,7 +101,7 @@ public:
     virtual bool isDomainServer() const override { return false; }
     virtual QUuid getDomainUUID() const override { return _domainHandler.getUUID(); }
     virtual Node::LocalID getDomainLocalID() const override { return _domainHandler.getLocalID(); }
-    virtual HifiSockAddr getDomainSockAddr() const override { return _domainHandler.getSockAddr(); }
+    virtual SockAddr getDomainSockAddr() const override { return _domainHandler.getSockAddr(); }
 
 public slots:
     void reset(QString reason, bool skipDomainHandlerReset = false);
@@ -169,12 +170,12 @@ private:
 
     void pingPunchForInactiveNode(const SharedNodePointer& node);
 
-    bool sockAddrBelongsToDomainOrNode(const HifiSockAddr& sockAddr);
+    bool sockAddrBelongsToDomainOrNode(const SockAddr& sockAddr);
 
     std::atomic<NodeType_t> _ownerType;
     NodeSet _nodeTypesOfInterest;
     DomainHandler _domainHandler;
-    HifiSockAddr _assignmentServerSocket;
+    SockAddr _assignmentServerSocket;
     bool _isShuttingDown { false };
     QTimer _keepAlivePingTimer;
     bool _requestsDomainListData { false };
