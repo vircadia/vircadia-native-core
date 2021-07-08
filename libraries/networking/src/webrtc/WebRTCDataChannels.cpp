@@ -21,8 +21,9 @@
 // - https://webrtc.googlesource.com/src/+/master/api/peer_connection_interface.h
 
 const std::string ICE_SERVER_URI = "stun://ice.vircadia.com:7337";
+const int MAX_WEBRTC_BUFFER_SIZE = 16777216;  // 16MB
 
-#define WEBRTC_DEBUG
+// #define WEBRTC_DEBUG
 
 using namespace webrtc;
 
@@ -104,6 +105,10 @@ void WDCPeerConnectionObserver::OnDataChannel(rtc::scoped_refptr<DataChannelInte
 }
 
 void WDCPeerConnectionObserver::OnConnectionChange(PeerConnectionInterface::PeerConnectionState newState) {
+#ifdef WEBRTC_DEBUG
+    qCDebug(networking_webrtc) << "WDCPeerConnectionObserver::OnConnectionChange()" << (uint)newState;
+#endif
+    _parent->onPeerConnectionStateChanged(newState);
 }
 
 
@@ -126,9 +131,9 @@ void WDCDataChannelObserver::OnMessage(const DataBuffer& buffer) {
 }
 
 
-WDCConnection::WDCConnection(quint16 webSocketID, WebRTCDataChannels* parent) :
-    _webSocketID(webSocketID),
-    _parent(parent)
+WDCConnection::WDCConnection(WebRTCDataChannels* parent, quint16 webSocketID) :
+    _parent(parent),
+    _webSocketID(webSocketID)
 {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WDCConnection::WDCConnection() :" << webSocketID;
@@ -255,6 +260,20 @@ void WDCConnection::sendIceCandidate(const IceCandidateInterface* candidate) {
     _parent->sendSignalingMessage(jsonObject);
 }
 
+void WDCConnection::onPeerConnectionStateChanged(PeerConnectionInterface::PeerConnectionState state) {
+#ifdef WEBRTC_DEBUG
+    const char* STATES[] = {
+        "New",
+        "Connecting",
+        "Connected",
+        "Disconnected",
+        "Failed",
+        "Closed"
+    };
+    qCDebug(networking_webrtc) << "WDCConnection::onPeerConnectionStateChanged() :" << (int)state << STATES[(int)state];
+#endif
+}
+
 void WDCConnection::onDataChannelOpened(rtc::scoped_refptr<DataChannelInterface> dataChannel) {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WDCConnection::onDataChannelOpened() :"
@@ -278,16 +297,19 @@ void WDCConnection::onDataChannelOpened(rtc::scoped_refptr<DataChannelInterface>
 void WDCConnection::onDataChannelStateChanged() {
     auto state = _dataChannel->state();
 #ifdef WEBRTC_DEBUG
-    qCDebug(networking_webrtc) << "WDCConnection::dataChannelStateChanged() :" << (int)state
+    qCDebug(networking_webrtc) << "WDCConnection::onDataChannelStateChanged() :" << (int)state
         << DataChannelInterface::DataStateString(state);
 #endif
     if (state == DataChannelInterface::kClosed) {
-        _dataChannel->Close();
+        // Close data channel.
+        _dataChannel->UnregisterObserver();
+        _dataChannelObserver = nullptr;
         _dataChannel = nullptr;
-        // WEBRTC FIXME: The following line causes the _peerConnectionFactory to fail.
-        //_peerConnection->Close();
-        //_peerConnection = nullptr;
-        _parent->onDataChannelClosed(this, _dataChannelID);
+#ifdef WEBRTC_DEBUG
+        qCDebug(networking_webrtc) << "Disposed of data channel";
+#endif
+        // Close peer connection.
+        _parent->closePeerConnection(this);
     }
 }
 
@@ -321,12 +343,25 @@ bool WDCConnection::sendDataMessage(const DataBuffer& buffer) {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WDCConnection::sendDataMessage()";
 #endif
-    const int MAX_WEBRTC_BUFFER_SIZE = 16 * 1024 * 1024;  // 16MB
     if (_dataChannel->buffered_amount() + buffer.size() > MAX_WEBRTC_BUFFER_SIZE) {
         // Don't send, otherwise the data channel will be closed.
         return false;
+    } else {
+        qCDebug(networking_webrtc) << "WebRTC send buffer overflow";
     }
     return _dataChannel->Send(buffer);
+}
+
+void WDCConnection::closePeerConnection() {
+#ifdef WEBRTC_DEBUG
+    qCDebug(networking_webrtc) << "WDCConnection::closePeerConnection()";
+#endif
+    _peerConnection->Close();
+    _peerConnection = nullptr;
+    _peerConnectionObserver = nullptr;
+#ifdef WEBRTC_DEBUG
+    qCDebug(networking_webrtc) << "Disposed of peer connection";
+#endif
 }
 
 
@@ -358,6 +393,9 @@ WebRTCDataChannels::WebRTCDataChannels(QObject* parent, NodeType_t nodeType) :
     if (!_peerConnectionFactory) {
         qCWarning(networking_webrtc) << "Failed to create WebRTC peer connection factory";
     }
+
+    // Set up mechanism for closing peer connections.
+    connect(this, &WebRTCDataChannels::closePeerConnectionSoon, this, &WebRTCDataChannels::closePeerConnectionNow);
 }
 
 WebRTCDataChannels::~WebRTCDataChannels() {
@@ -397,18 +435,6 @@ void WebRTCDataChannels::onDataChannelOpened(WDCConnection* connection, quint16 
     _connectionsByDataChannel.insert(dataChannelID, connection);
 }
 
-void WebRTCDataChannels::onDataChannelClosed(WDCConnection* connection, quint16 dataChannelID) {
-#ifdef WEBRTC_DEBUG
-    qCDebug(networking_webrtc) << "WebRTCDataChannels::onDataChannelClosed() :" << dataChannelID;
-#endif
-
-    // Delete WDCConnection.
-    _connectionsByWebSocket.remove(connection->getWebSocketID());
-    _connectionsByDataChannel.remove(dataChannelID);
-    // WEBRTC FIXME: The following line causes the _peerConnectionFactory to fail.
-    //delete connection;
-}
-
 void WebRTCDataChannels::onSignalingMessage(const QJsonObject& message) {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WebRTCDataChannel::onSignalingMessage()" << message;
@@ -429,7 +455,7 @@ void WebRTCDataChannels::onSignalingMessage(const QJsonObject& message) {
     if (_connectionsByWebSocket.contains(from)) {
         connection = _connectionsByWebSocket.value(from);
     } else {
-        connection = new WDCConnection(from, this);
+        connection = new WDCConnection(this, from);
         _connectionsByWebSocket.insert(from, connection);
     }
 
@@ -502,12 +528,42 @@ rtc::scoped_refptr<PeerConnectionInterface> WebRTCDataChannels::createPeerConnec
     configuration.servers.push_back(iceServer);
 
 #ifdef WEBRTC_DEBUG
-    qCDebug(networking_webrtc) << "2. Create a new PeerConnection";
+    qCDebug(networking_webrtc) << "2. Create a new peer connection";
 #endif
     PeerConnectionDependencies dependencies(peerConnectionObserver.get());
     auto result = _peerConnectionFactory->CreatePeerConnection(configuration, std::move(dependencies));
+#ifdef WEBRTC_DEBUG
+    qCDebug(networking_webrtc) << "Created peer connection";
+#endif
     return result;
 }
 
+
+void WebRTCDataChannels::closePeerConnection(WDCConnection* connection) {
+#ifdef WEBRTC_DEBUG
+    qCDebug(networking_webrtc) << "WebRTCDataChannels::closePeerConnection()";
+#endif
+    // Use Qt's signals/slots mechanism to close the peer connection on its own call stack, separate from the DataChannel 
+    // callback that initiated the peer connection.
+    // https://bugs.chromium.org/p/webrtc/issues/detail?id=3721
+    emit closePeerConnectionSoon(connection);
+}
+
+
+void WebRTCDataChannels::closePeerConnectionNow(WDCConnection* connection) {
+#ifdef WEBRTC_DEBUG
+    qCDebug(networking_webrtc) << "WebRTCDataChannels::closePeerConnectionNow()";
+#endif
+    // Close the peer connection.
+    connection->closePeerConnection();
+
+    // Delete the WDCConnection.
+    _connectionsByWebSocket.remove(connection->getWebSocketID());
+    _connectionsByDataChannel.remove(connection->getDataChannelID());
+    delete connection;
+#ifdef WEBRTC_DEBUG
+    qCDebug(networking_webrtc) << "Disposed of connection";
+#endif
+}
 
 #endif // WEBRTC_DATA_CHANNELS
