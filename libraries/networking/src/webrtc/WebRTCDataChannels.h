@@ -165,7 +165,7 @@ public:
 
     /// @brief Monitors the peer connection state.
     /// @param state The new peer connection state.
-    void onPeerConnectionStateChanged(PeerConnectionInterface::PeerConnectionState state);
+    void onPeerConnectionStateChanged(webrtc::PeerConnectionInterface::PeerConnectionState state);
 
     /// @brief Handles the WebRTC data channel being opened.
     /// @param dataChannel The WebRTC data channel.
