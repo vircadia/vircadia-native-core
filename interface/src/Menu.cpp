@@ -10,7 +10,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 //  For happ(ier) development of QML, use these two things:
-//  This forces QML files to be pulled from the source as you edit it: set environment variable HIFI_USE_SOURCE_TREE_RESOURCES=1
+//  This forces QML files to be pulled from the source as you edit it: set environment variable VIRCADIA_USE_SOURCE_TREE_RESOURCES=1
 //  Use this to live reload: DependencyManager::get<OffscreenUi>()->clearCache();
 
 #include "Menu.h"
@@ -723,8 +723,8 @@ Menu::Menu() {
 
     // Developer > Crash >>>
     bool result = false;
-    const QString HIFI_SHOW_DEVELOPER_CRASH_MENU("HIFI_SHOW_DEVELOPER_CRASH_MENU");
-    result = true;//QProcessEnvironment::systemEnvironment().contains(HIFI_SHOW_DEVELOPER_CRASH_MENU);
+    const QString VIRCADIA_SHOW_DEVELOPER_CRASH_MENU("VIRCADIA_SHOW_DEVELOPER_CRASH_MENU");
+    result = true;//QProcessEnvironment::systemEnvironment().contains(VIRCADIA_SHOW_DEVELOPER_CRASH_MENU);
     if (result) {
         MenuWrapper* crashMenu = developerMenu->addMenu("Crash");
 

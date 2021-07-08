@@ -239,7 +239,7 @@ int main(int argc, const char* argv[]) {
 
     // allow multiple interfaces to run if this environment variable is set.
     bool allowMultipleInstances = parser.isSet(allowMultipleInstancesOption) ||
-                                  QProcessEnvironment::systemEnvironment().contains("HIFI_ALLOW_MULTIPLE_INSTANCES");
+                                  QProcessEnvironment::systemEnvironment().contains("VIRCADIA_ALLOW_MULTIPLE_INSTANCES");
     if (allowMultipleInstances) {
         instanceMightBeRunning = false;
     }

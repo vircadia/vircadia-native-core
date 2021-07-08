@@ -16,7 +16,7 @@
 // This isn't necessary since android forces the forward renderer, but just in case
 static bool RENDER_FORWARD = true;
 #else
-static const QString RENDER_FORWARD_STRING { "HIFI_RENDER_FORWARD" };
+static const QString RENDER_FORWARD_STRING { "VIRCADIA_RENDER_FORWARD" };
 static bool RENDER_FORWARD = QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD_STRING);
 #endif
 

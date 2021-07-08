@@ -10,8 +10,8 @@
 
 const char* OculusDebugDisplayPlugin::NAME { "Oculus Rift (Simulator)" };
 
-static const QString DEBUG_FLAG("HIFI_DEBUG_OCULUS");
-static bool enableDebugOculus = true || QProcessEnvironment::systemEnvironment().contains("HIFI_DEBUG_OCULUS");
+static const QString DEBUG_FLAG("VIRCADIA_DEBUG_OCULUS");
+static bool enableDebugOculus = true || QProcessEnvironment::systemEnvironment().contains("VIRCADIA_DEBUG_OCULUS");
 
 bool OculusDebugDisplayPlugin::isSupported() const {
     if (!enableDebugOculus) {

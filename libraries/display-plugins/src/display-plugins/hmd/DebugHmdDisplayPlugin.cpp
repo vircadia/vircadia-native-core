@@ -16,7 +16,7 @@
 
 const QString DebugHmdDisplayPlugin::NAME("HMD Simulator");
 
-static const QString DEBUG_FLAG("HIFI_DEBUG_HMD");
+static const QString DEBUG_FLAG("VIRCADIA_DEBUG_HMD");
 static bool enableDebugHmd = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
 
 

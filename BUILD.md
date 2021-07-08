@@ -120,8 +120,8 @@ PRELOADED_STARTUP_LOCATION=Location/IP/URL
 PRELOADED_SCRIPT_WHITELIST=ListOfEntries
 
 // Code-signing environment variables must be set during runtime of CMake AND globally when the signing takes place.
-HF_PFX_FILE=Path to certificate
-HF_PFX_PASSPHRASE=Passphrase for certificate
+VIRCADIA_PFX_FILE=Path to certificate
+VIRCADIA_PFX_PASSPHRASE=Passphrase for certificate
 
 // Determine the build type
 PRODUCTION_BUILD=0|1

@@ -83,8 +83,8 @@ namespace NetworkingConstants {
 }
 
 const QString HIFI_URL_SCHEME_ABOUT = "about";
-const QString URL_SCHEME_HIFI = "hifi";
-const QString URL_SCHEME_HIFIAPP = "hifiapp";
+const QString URL_SCHEME_HIFI = "vw";
+const QString URL_SCHEME_HIFIAPP = "vwapp";
 const QString URL_SCHEME_DATA = "data";
 const QString URL_SCHEME_QRC = "qrc";
 const QString HIFI_URL_SCHEME_FILE = "file";

@@ -42,7 +42,7 @@ static bool USE_SOURCE_TREE_RESOURCES() {
     static bool result = false;
     static std::once_flag once;
     std::call_once(once, [&] {
-        const QString USE_SOURCE_TREE_RESOURCES_FLAG("HIFI_USE_SOURCE_TREE_RESOURCES");
+        const QString USE_SOURCE_TREE_RESOURCES_FLAG("VIRCADIA_USE_SOURCE_TREE_RESOURCES");
         result = QProcessEnvironment::systemEnvironment().contains(USE_SOURCE_TREE_RESOURCES_FLAG);
     });
     return result;

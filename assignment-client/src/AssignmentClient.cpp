@@ -283,8 +283,8 @@ void AssignmentClient::handleStopNodePacket(QSharedPointer<ReceivedMessage> mess
 }
 
 void AssignmentClient::handleAuthenticationRequest() {
-    const QString DATA_SERVER_USERNAME_ENV = "HIFI_AC_USERNAME";
-    const QString DATA_SERVER_PASSWORD_ENV = "HIFI_AC_PASSWORD";
+    const QString DATA_SERVER_USERNAME_ENV = "VIRCADIA_AC_USERNAME";
+    const QString DATA_SERVER_PASSWORD_ENV = "VIRCADIA_AC_PASSWORD";
 
     // this node will be using an authentication server, let's make sure we have a username/password
     QProcessEnvironment sysEnvironment = QProcessEnvironment::systemEnvironment();

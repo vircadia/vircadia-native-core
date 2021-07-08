@@ -77,13 +77,13 @@ To create this variable:
 * Set "Variable name" to `HIFI_VCPKG_BASE`
 * Set "Variable value" to any directory that you have control over.
 
-Additionally, if you have Visual Studio 2019 installed and _only_ Visual Studio 2019 (i.e., you do not have Visual Studio 2017 installed) you must add an additional environment variable `HIFI_VCPKG_BOOTSTRAP` that will fix a bug in our `vcpkg` pre-build step.
+Additionally, if you have Visual Studio 2019 installed and _only_ Visual Studio 2019 (i.e. you do not have Visual Studio 2017 installed) you must add an additional environment variable `VIRCADIA_VCPKG_BOOTSTRAP` that will fix a bug in our `vcpkg` pre-build step.
 
 To create this variable:
 * Navigate to 'Edit the System Environment Variables' through the Start menu.
 * Click on 'Environment Variables'
 * Select 'New'
-* Set "Variable name" to `HIFI_VCPKG_BOOTSTRAP`
+* Set "Variable name" to `VIRCADIA_VCPKG_BOOTSTRAP`
 * Set "Variable value" to `1`
 
 ## Step 7. Running CMake to Generate Build Files

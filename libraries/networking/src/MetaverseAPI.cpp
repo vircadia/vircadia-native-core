@@ -16,7 +16,6 @@
 #include "NetworkingConstants.h"
 #include <SettingHandle.h>
 
-
 namespace MetaverseAPI {
     // You can change the return of this function if you want to use a custom metaverse URL at compile time
     // or you can pass a custom URL via the env variable
@@ -27,10 +26,10 @@ namespace MetaverseAPI {
 
         selectedMetaverseURL = selectedMetaverseURLSetting.get();
 
-        const QString HIFI_METAVERSE_URL_ENV = "HIFI_METAVERSE_URL";
+        const QString VIRCADIA_METAVERSE_URL_ENV = "VIRCADIA_METAVERSE_URL";
 
-        if (QProcessEnvironment::systemEnvironment().contains(HIFI_METAVERSE_URL_ENV)) {
-            return QUrl(QProcessEnvironment::systemEnvironment().value(HIFI_METAVERSE_URL_ENV));
+        if (QProcessEnvironment::systemEnvironment().contains(VIRCADIA_METAVERSE_URL_ENV)) {
+            return QUrl(QProcessEnvironment::systemEnvironment().value(VIRCADIA_METAVERSE_URL_ENV));
         }
 
         return selectedMetaverseURL;

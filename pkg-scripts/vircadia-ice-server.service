@@ -6,7 +6,7 @@ PartOf=vircadia-server.target
 [Service]
 Restart=on-failure
 
-Environment="HIFI_ENVIRONMENT=production" "LD_LIBRARY_PATH=/opt/vircadia/lib" 
+Environment="VIRCADIA_ENVIRONMENT=production" "LD_LIBRARY_PATH=/opt/vircadia/lib" 
 WorkingDirectory=/opt/vircadia
 User=vircadia
 Group=vircadia
