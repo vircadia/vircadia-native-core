@@ -11,19 +11,24 @@
 
 macro(add_crashpad)
   set (USE_CRASHPAD TRUE)
+  message(STATUS "Checking crashpad config")
+
   if ("$ENV{CMAKE_BACKTRACE_URL}" STREQUAL "")
+    message(STATUS "Checking crashpad config - CMAKE_BACKTRACE_URL is not set, disabled.")
     set(USE_CRASHPAD FALSE)
   else()
     set(CMAKE_BACKTRACE_URL $ENV{CMAKE_BACKTRACE_URL})
   endif()
 
   if ("$ENV{CMAKE_BACKTRACE_TOKEN}" STREQUAL "")
+    message(STATUS "Checking crashpad config - CMAKE_BACKTRACE_TOKEN is not set, disabled.")
     set(USE_CRASHPAD FALSE)
   else()
     set(CMAKE_BACKTRACE_TOKEN $ENV{CMAKE_BACKTRACE_TOKEN})
   endif()
 
   if (USE_CRASHPAD)
+    message(STATUS "Checking crashpad config - enabled.")
     get_property(CRASHPAD_CHECKED GLOBAL PROPERTY CHECKED_FOR_CRASHPAD_ONCE)
     if (NOT CRASHPAD_CHECKED)
 
