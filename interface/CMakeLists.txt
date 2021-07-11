@@ -186,12 +186,6 @@ else ()
   add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
 endif ()
 
-
-if (BUILD_TOOLS AND NPM_EXECUTABLE)
-  # require JSDoc to be build before interface is deployed
-  add_dependencies(resources jsdoc)
-endif()
-
 if (NOT ANDROID)
   add_dependencies(${TARGET_NAME} resources)
 endif()
