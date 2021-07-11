@@ -19,8 +19,6 @@ endfunction()
 
 set(CUSTOM_INTERFACE_QRC_PATHS "")
 
-find_npm()
-
 find_package(
   Qt5 COMPONENTS
   Gui Widgets Multimedia Network Qml Quick Script Svg
@@ -29,8 +27,8 @@ find_package(
 )
 
 
-if (BUILD_TOOLS AND NPM_EXECUTABLE)
-  set(JSDOC_ENABLED 1)
+if (BUILD_TOOLS AND JSDOC_ENABLED)
+  message(STATUS "JSDoc enabled, depending on jsdoc")
   add_custom_qrc_path(CUSTOM_INTERFACE_QRC_PATHS "${CMAKE_BINARY_DIR}/tools/jsdoc/out/hifiJSDoc.json" "auto-complete/hifiJSDoc.json")
 endif ()
 
@@ -45,7 +43,7 @@ else ()
   qt5_add_binary_resources(resources "${RESOURCES_QRC}" DESTINATION "${RESOURCES_RCC}")
 endif()
 
-if (JSDOC_ENABLED)
+if (BUILD_TOOLS AND JSDOC_ENABLED)
   add_dependencies(resources jsdoc)
 endif()
 
@@ -332,10 +330,6 @@ if (APPLE)
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${CMAKE_SOURCE_DIR}/scripts"
       "${RESOURCES_DEV_DIR}/scripts"
-    # copy JSDoc files beside the executable
-    COMMAND "${CMAKE_COMMAND}" -E copy_directory
-      "${JSDOC_OUTPUT_PATH}"
-      "${RESOURCES_DEV_DIR}/jsdoc"
     # copy the resources files beside the executable
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
       "${RESOURCES_RCC}"
@@ -367,6 +361,13 @@ if (APPLE)
       )
   endif()
 
+  if (JSDOC_ENABLED)
+    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+      # copy JSDoc files beside the executable
+      COMMAND "${CMAKE_COMMAND}" -E copy_directory
+      "${JSDOC_OUTPUT_PATH}"
+      "${RESOURCES_DEV_DIR}/jsdoc")
+  endif()
   # call the fixup_interface macro to add required bundling commands for installation
   fixup_interface()
 
@@ -393,11 +394,15 @@ else()
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
       "${PROJECT_SOURCE_DIR}/resources/serverless/redirect.json"
       "${RESOURCES_DEV_DIR}/serverless/redirect.json"
+  )
+
+  if (JSDOC_ENABLED)
+    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
     # copy JSDoc files beside the executable
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${JSDOC_OUTPUT_PATH}"
-      "${INTERFACE_EXEC_DIR}/jsdoc"
-  )
+      "${INTERFACE_EXEC_DIR}/jsdoc")
+  endif()
 
   # link target to external libraries
   if (WIN32)
