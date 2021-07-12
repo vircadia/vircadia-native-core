@@ -184,7 +184,7 @@ void DomainHandler::setSockAddr(const SockAddr& sockAddr, const QString& hostnam
 
     // some callers may pass a hostname, this is not to be used for lookup but for DTLS certificate verification
     _domainURL = QUrl();
-    _domainURL.setScheme(URL_SCHEME_HIFI);
+    _domainURL.setScheme(URL_SCHEME_VIRCADIA);
     _domainURL.setHost(hostname);
     _domainURL.setPort(_sockAddr.getPort());
 }
@@ -199,7 +199,7 @@ void DomainHandler::setUUID(const QUuid& uuid) {
 void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
     _pendingDomainID = domainID;
 
-    if (domainURL.scheme() != URL_SCHEME_HIFI) {
+    if (domainURL.scheme() != URL_SCHEME_VIRCADIA) {
         _sockAddr.clear();
 
         // if this is a file URL we need to see if it has a ~ for us to expand
@@ -215,7 +215,7 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
 
     // if it's in the error state, reset and try again.
     if (_domainURL != domainURL 
-        || (_sockAddr.getPort() != domainPort && domainURL.scheme() == URL_SCHEME_HIFI)
+        || (_sockAddr.getPort() != domainPort && domainURL.scheme() == URL_SCHEME_VIRCADIA)
         || isServerless() // For reloading content in serverless domain.
         || _isInErrorState) {
         // re-set the domain info so that auth information is reloaded
@@ -230,7 +230,7 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
             qCDebug(networking) << "Updated domain hostname to" << domainURL.host();
 
             if (!domainURL.host().isEmpty()) {
-                if (domainURL.scheme() == URL_SCHEME_HIFI) {
+                if (domainURL.scheme() == URL_SCHEME_VIRCADIA) {
                     // re-set the sock addr to null and fire off a lookup of the IP address for this domain-server's hostname
                     qCDebug(networking, "Looking up DS hostname %s.", domainURL.host().toLocal8Bit().constData());
                     QHostInfo::lookupHost(domainURL.host(), this, SLOT(completedHostnameLookup(const QHostInfo&)));
@@ -303,7 +303,7 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
 void DomainHandler::activateICELocalSocket() {
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SetDomainSocket);
     _sockAddr = _icePeer.getLocalSocket();
-    _domainURL.setScheme(URL_SCHEME_HIFI);
+    _domainURL.setScheme(URL_SCHEME_VIRCADIA);
     _domainURL.setHost(_sockAddr.getAddress().toString());
     emit domainURLChanged(_domainURL);
     emit completedSocketDiscovery();
@@ -312,7 +312,7 @@ void DomainHandler::activateICELocalSocket() {
 void DomainHandler::activateICEPublicSocket() {
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SetDomainSocket);
     _sockAddr = _icePeer.getPublicSocket();
-    _domainURL.setScheme(URL_SCHEME_HIFI);
+    _domainURL.setScheme(URL_SCHEME_VIRCADIA);
     _domainURL.setHost(_sockAddr.getAddress().toString());
     emit domainURLChanged(_domainURL);
     emit completedSocketDiscovery();
@@ -369,7 +369,7 @@ void DomainHandler::setIsConnected(bool isConnected) {
             // FIXME: Reinstate the requestDomainSettings() call here in version 2021.2.0 instead of having it in 
             // NodeList::processDomainServerList().
             /*
-            if (_domainURL.scheme() == URL_SCHEME_HIFI && !_domainURL.host().isEmpty()) {
+            if (_domainURL.scheme() == URL_SCHEME_VIRCADIA && !_domainURL.host().isEmpty()) {
                 // we've connected to new domain - time to ask it for global settings
                 requestDomainSettings();
             }
