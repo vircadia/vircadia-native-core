@@ -164,6 +164,7 @@
 #include <RenderableWebEntityItem.h>
 #include <StencilMaskPass.h>
 #include <procedural/ProceduralMaterialCache.h>
+#include <procedural/ReferenceMaterial.h>
 #include "recording/ClipCache.h"
 
 #include "AudioClient.h"
@@ -2156,6 +2157,32 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             }
         }
         return QSizeF(0.0f, 0.0f);
+    });
+
+    Texture::setUnboundTextureForUUIDOperator([this](const QUuid& entityID) -> gpu::TexturePointer {
+        if (_aboutToQuit) {
+            return nullptr;
+        }
+
+        auto renderable = getEntities()->renderableForEntityId(entityID);
+        if (renderable) {
+            return renderable->getTexture();
+        }
+
+        return nullptr;
+    });
+
+    ReferenceMaterial::setMaterialForUUIDOperator([this](const QUuid& entityID) -> graphics::MaterialPointer {
+        if (_aboutToQuit) {
+            return nullptr;
+        }
+
+        auto renderable = getEntities()->renderableForEntityId(entityID);
+        if (renderable) {
+            return renderable->getTopMaterial();
+        }
+
+        return nullptr;
     });
 
     connect(this, &Application::aboutToQuit, [this]() {

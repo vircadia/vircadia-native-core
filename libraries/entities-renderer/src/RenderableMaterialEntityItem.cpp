@@ -79,26 +79,42 @@ void MaterialEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
         }
     }
 
+    bool usingMaterialData = _materialURL.startsWith("materialData");
+    bool usingEntityID = _materialURL.startsWith("{");
+    bool materialDataChanged = false;
     bool urlChanged = false;
     std::string newCurrentMaterialName = _currentMaterialName;
+    QString targetEntityID = _materialURL;
     {
         QString materialURL = entity->getMaterialURL();
         if (materialURL != _materialURL) {
             _materialURL = materialURL;
+            usingMaterialData = _materialURL.startsWith("materialData");
+            usingEntityID = _materialURL.startsWith("{");
+            targetEntityID = _materialURL;
             if (_materialURL.contains("#")) {
                 auto split = _materialURL.split("#");
                 newCurrentMaterialName = split.last().toStdString();
+                if (usingEntityID) {
+                    targetEntityID = split.first();
+                }
             } else if (_materialURL.contains("?")) {
                 qDebug() << "DEPRECATED: Use # instead of ? for material URLS:" << _materialURL;
                 auto split = _materialURL.split("?");
                 newCurrentMaterialName = split.last().toStdString();
+                if (usingEntityID) {
+                    targetEntityID = split.first();
+                }
             }
-            urlChanged = true;
+
+            if (usingMaterialData) {
+                materialDataChanged = true;
+            } else {
+                urlChanged = true;
+            }
         }
     }
 
-    bool usingMaterialData = _materialURL.startsWith("materialData");
-    bool materialDataChanged = false;
     QUuid oldParentID = _parentID;
     QString oldParentMaterialName = _parentMaterialName;
     {
@@ -135,7 +151,7 @@ void MaterialEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
         }
     }
 
-    if (urlChanged && !usingMaterialData) {
+    if (urlChanged && !usingMaterialData && !usingEntityID) {
         _networkMaterial = DependencyManager::get<MaterialCache>()->getMaterial(_materialURL);
         auto onMaterialRequestFinished = [this, entity, oldParentID, oldParentMaterialName, newCurrentMaterialName](bool success) {
             deleteMaterial(oldParentID, oldParentMaterialName);
@@ -159,6 +175,13 @@ void MaterialEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
                 });
             }
         }
+    } else if (urlChanged && usingEntityID) {
+        deleteMaterial(oldParentID, oldParentMaterialName);
+        _texturesLoaded = true;
+        _parsedMaterials = NetworkMaterialResource::parseMaterialForUUID(QJsonValue(targetEntityID));
+        // Since our material changed, the current name might not be valid anymore, so we need to update
+        setCurrentMaterialName(newCurrentMaterialName);
+        applyMaterial(entity);
     } else if (materialDataChanged && usingMaterialData) {
         deleteMaterial(oldParentID, oldParentMaterialName);
         _texturesLoaded = false;
@@ -167,6 +190,10 @@ void MaterialEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
         setCurrentMaterialName(newCurrentMaterialName);
         applyMaterial(entity);
     } else {
+        if (newCurrentMaterialName != _currentMaterialName) {
+            setCurrentMaterialName(newCurrentMaterialName);
+        }
+
         if (deleteNeeded) {
             deleteMaterial(oldParentID, oldParentMaterialName);
         }
