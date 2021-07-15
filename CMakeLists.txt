@@ -57,7 +57,7 @@ MESSAGE(STATUS "GLES_OPTION: ${GLES_OPTION}")
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/macros/TargetPython.cmake")
 target_python()
 
-if (WIN32 AND NOT HIFI_ANDROID)
+if (WIN32 AND NOT HIFI_ANDROID AND NOT (CMAKE_GENERATOR STREQUAL "Ninja"))
     # Force x64 toolset
     set(CMAKE_GENERATOR_TOOLSET "host=x64" CACHE STRING "64-bit toolset" FORCE)
 endif()

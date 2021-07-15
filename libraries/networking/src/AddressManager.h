@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2014-09-10.
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -35,7 +36,7 @@ const QString GET_PLACE = "/api/v1/places/%1";
  * The <code>location</code> API provides facilities related to your current location in the metaverse.
  *
  * <h3>Getter/Setter</h3>
- * <p>You can get and set your current metaverse address by directly reading a string value from and writing a string value to 
+ * <p>You can get and set your current metaverse address by directly reading a string value from and writing a string value to
  * the <code>location</code> object. This is an alternative to using the <code>location.href</code> property or other object
  * functions.</p>
  *
@@ -53,12 +54,12 @@ const QString GET_PLACE = "/api/v1/places/%1";
  *     <code>localhost</code>, or an IP address). Is blank if you're in a serverless domain.
  *     <em>Read-only.</em>
  * @property {string} href - Your current metaverse address (e.g., <code>"hifi://domainname/15,-10,26/0,0,0,1"</code>)
- *     regardless of whether or not you're connected to the domain. Starts with <code>"file:///"</code> if you're in a 
+ *     regardless of whether or not you're connected to the domain. Starts with <code>"file:///"</code> if you're in a
  *     serverless domain.
  *     <em>Read-only.</em>
  * @property {boolean} isConnected - <code>true</code> if you're connected to the domain in your current <code>href</code>
  *     metaverse address, otherwise <code>false</code>.
- * @property {string} pathname - The location and orientation in your current <code>href</code> metaverse address 
+ * @property {string} pathname - The location and orientation in your current <code>href</code> metaverse address
  *     (e.g., <code>"/15,-10,26/0,0,0,1"</code>).
  *     <em>Read-only.</em>
  * @property {string} placename - The place name in your current <code>href</code> metaverse address
@@ -77,7 +78,7 @@ const QString GET_PLACE = "/api/v1/places/%1";
  * @hifi-client-entity
  * @hifi-avatar
  *
- * @deprecated This API is deprecated and will be removed. Use the {@link location} or {@link Window|Window.location} APIs 
+ * @deprecated This API is deprecated and will be removed. Use the {@link location} or {@link Window|Window.location} APIs
  * instead.
  *
  * @property {Uuid} domainID - A UUID uniquely identifying the domain you're visiting. Is {@link Uuid(0)|Uuid.NULL} if you're not
@@ -248,9 +249,9 @@ public slots:
     /*@jsdoc
      * Takes you to a specified metaverse address.
      * @function location.handleLookupString
-     * @param {string} address - The address to go to: a <code>"hifi://"</code> address, an IP address (e.g., 
-     *     <code>"127.0.0.1"</code> or <code>"localhost"</code>), a <code>file:///</code> address, a domain name, a named path 
-     *     on a domain (starts with <code>"/"</code>), a position or position and orientation, or a user (starts with 
+     * @param {string} address - The address to go to: a <code>"hifi://"</code> address, an IP address (e.g.,
+     *     <code>"127.0.0.1"</code> or <code>"localhost"</code>), a <code>file:///</code> address, a domain name, a named path
+     *     on a domain (starts with <code>"/"</code>), a position or position and orientation, or a user (starts with
      *     <code>"@"</code>).
      * @param {boolean} [fromSuggestions=false] - Set to <code>true</code> if the address is obtained from the "Explore" app.
      *     Helps ensure that the user's location history is correctly maintained.
@@ -258,7 +259,7 @@ public slots:
     void handleLookupString(const QString& lookupString, bool fromSuggestions = false);
 
     /*@jsdoc
-     * Takes you to a position and orientation resulting from a lookup for a named path in the domain (set in the domain 
+     * Takes you to a position and orientation resulting from a lookup for a named path in the domain (set in the domain
      * server's settings).
      * @function location.goToViewpointForPath
      * @param {string} path - The position and orientation corresponding to the named path.
@@ -292,7 +293,7 @@ public slots:
      *     location history is correctly maintained.
      */
     void goToLocalSandbox(QString path = "", LookupTrigger trigger = LookupTrigger::StartupFromSettings) {
-        handleUrl(SANDBOX_HIFI_ADDRESS + path, trigger); 
+        handleUrl(SANDBOX_HIFI_ADDRESS + path, trigger);
     }
 
     /*@jsdoc
@@ -307,7 +308,7 @@ public slots:
      * Takes you to the specified user's location.
      * @function location.goToUser
      * @param {string} username - The user's username.
-     * @param {boolean} [matchOrientation=true] - If <code>true</code> then go to a location just in front of the user and turn 
+     * @param {boolean} [matchOrientation=true] - If <code>true</code> then go to a location just in front of the user and turn
      *     to face them, otherwise go to the user's exact location and orientation.
      */
     void goToUser(const QString& username, bool shouldMatchOrientation = true);
@@ -348,7 +349,7 @@ public slots:
     void copyAddress();
 
     /*@jsdoc
-     * Copies your current metaverse location and orientation (i.e., <code>location.pathname</code> property value) to the OS 
+     * Copies your current metaverse location and orientation (i.e., <code>location.pathname</code> property value) to the OS
      * clipboard.
      * @function location.copyPath
      */
@@ -374,7 +375,7 @@ signals:
     void lookupResultsFinished();
 
     /*@jsdoc
-     * Triggered when looking up the details of a metaverse user or location to go to has completed and the domain or user is 
+     * Triggered when looking up the details of a metaverse user or location to go to has completed and the domain or user is
      * offline.
      * @function location.lookupResultIsOffline
      * @returns {Signal}
@@ -415,9 +416,9 @@ signals:
      * @function location.locationChangeRequired
      * @param {Vec3} position - The position to go to.
      * @param {boolean} hasOrientationChange - If <code>true</code> then a new <code>orientation</code> has been requested.
-     * @param {Quat} orientation - The orientation to change to. Is {@link Quat(0)|Quat.IDENTITY} if 
+     * @param {Quat} orientation - The orientation to change to. Is {@link Quat(0)|Quat.IDENTITY} if
      *     <code>hasOrientationChange</code> is <code>false</code>.
-     * @param {boolean} shouldFaceLocation - If <code>true</code> then the request is to go to a position near that specified 
+     * @param {boolean} shouldFaceLocation - If <code>true</code> then the request is to go to a position near that specified
      *     and orient your avatar to face it. For example when you visit someone from the "People" dialog.
      * @returns {Signal}
      * @example <caption>Report location change requests.</caption>
@@ -468,7 +469,7 @@ signals:
      * Triggered when there's a change in whether or not there's a previous location that can be navigated to using
      * {@link location.goBack|goBack}. (Reflects changes in the state of the "Goto" dialog's back arrow.)
      * @function location.goBackPossible
-     * @param {boolean} isPossible - <code>true</code> if there's a previous location to navigate to, otherwise 
+     * @param {boolean} isPossible - <code>true</code> if there's a previous location to navigate to, otherwise
      *     <code>false</code>.
      * @returns {Signal}
      * @example <caption>Report when ability to navigate back changes.</caption>
@@ -511,7 +512,7 @@ private:
 
     const JSONCallbackParameters& apiCallbackParameters();
 
-    bool handleUrl(const QUrl& lookupUrl, LookupTrigger trigger = UserInput);
+    bool handleUrl(const QUrl& lookupUrl, LookupTrigger trigger = UserInput, const QString& lookupUrlInString = "");
 
     bool handleNetworkAddress(const QString& lookupString, LookupTrigger trigger, bool& hostChanged);
     void handlePath(const QString& path, LookupTrigger trigger, bool wasPathOnly = false);

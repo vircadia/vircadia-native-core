@@ -2405,7 +2405,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         QString currentDomain = DependencyManager::get<AddressManager>()->getDomainURL().host();
         
         QString domainSafeIP = nodeList->getDomainHandler().getHostname();
-        QString domainSafeURL = URL_SCHEME_HIFI + "://" + currentDomain;
+        QString domainSafeURL = URL_SCHEME_VIRCADIA + "://" + currentDomain;
         for (const auto& str : safeURLPrefixes) {
             if (domainSafeURL.startsWith(str) || domainSafeIP.startsWith(str)) {
                 qCDebug(scriptengine) << whitelistPrefix << "Whitelist Bypassed, entire domain is whitelisted. Current Domain Host: " 

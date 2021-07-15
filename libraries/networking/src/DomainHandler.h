@@ -137,7 +137,7 @@ public:
     void setCanConnectWithoutAvatarEntities(bool canConnect);
     bool canConnectWithoutAvatarEntities();
 
-    bool isServerless() const { return _domainURL.scheme() != URL_SCHEME_HIFI; }
+    bool isServerless() const { return _domainURL.scheme() != URL_SCHEME_VIRCADIA; }
     bool getInterstitialModeEnabled() const;
     void setInterstitialModeEnabled(bool enableInterstitialMode);
 
