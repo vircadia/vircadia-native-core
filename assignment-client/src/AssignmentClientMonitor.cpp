@@ -201,7 +201,7 @@ void AssignmentClientMonitor::spawnChildClient() {
         _childArguments.append("--" + ASSIGNMENT_TYPE_OVERRIDE_OPTION);
         _childArguments.append(QString::number(_requestAssignmentType));
     }
-    if (_disableDomainPortAutoDiscovery != false) {
+    if (_disableDomainPortAutoDiscovery) {
         _childArguments.append("--" + ASSIGNMENT_DISABLE_DOMAIN_AUTO_PORT_DISCOVERY);
     }
 

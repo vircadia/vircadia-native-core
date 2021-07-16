@@ -193,7 +193,7 @@ void AssignmentClient::sendAssignmentRequest() {
 
         auto nodeList = DependencyManager::get<NodeList>();
 
-        if (_assignmentServerHostname == "localhost" && _disableDomainPortAutoDiscovery == false) {
+        if (_assignmentServerHostname == "localhost" && !_disableDomainPortAutoDiscovery) {
             // we want to check again for the local domain-server port in case the DS has restarted
             quint16 localAssignmentServerPort;
             if (nodeList->getLocalServerPortFromSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, localAssignmentServerPort)) {
