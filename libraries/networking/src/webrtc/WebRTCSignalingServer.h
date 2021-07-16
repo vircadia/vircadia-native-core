@@ -59,10 +59,14 @@ class WebRTCSignalingServer : public QObject {
 public:
 
     /// @brief Constructs a new WebRTCSignalingServer object.
-    /// @param address The IP address to use for the WebSocket.
-    /// @param port The port to use for the WebSocket.
     /// @param parent Qt parent object.
-    WebRTCSignalingServer(const QHostAddress& address, quint16 port, QObject* parent = nullptr);
+    WebRTCSignalingServer(QObject* parent);
+
+    /// @brief Binds the WebRTC signaling server's WebSocket to an address and port.
+    /// @param address The address to use for the WebSocket.
+    /// @param port The port to use for the WebSocket.
+    /// @return <code>true</code> if the WebSocket was successfully bound, <code>false</code> if it wasn't.
+    bool bind(const QHostAddress& address, quint16 port);
 
 public slots:
 
@@ -88,11 +92,10 @@ private slots:
 private:
 
     void checkWebSocketServerIsListening();
-    void bindSocket();
 
     QWebSocketServer* _webSocketServer;
     QHostAddress _address;
-    const quint16 _port;
+    quint16 _port { 0 };
 
     QHash<quint16, QWebSocket*> _webSockets;  // client WebSocket port, client WebSocket object
 

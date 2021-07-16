@@ -62,7 +62,7 @@ ICEClientApp::ICEClientApp(int argc, char* argv[]) :
         const_cast<QLoggingCategory*>(&networking())->setEnabled(QtWarningMsg, false);
     }
 
-    _stunSockAddr = HifiSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT, true);
+    _stunSockAddr = HifiSockAddr(SocketType::UDP, STUN_SERVER_HOSTNAME, STUN_SERVER_PORT, true);
 
     _cacheSTUNResult = parser.isSet(cacheSTUNOption);
 
@@ -79,7 +79,7 @@ ICEClientApp::ICEClientApp(int argc, char* argv[]) :
         }
     }
 
-    _iceServerAddr = HifiSockAddr("127.0.0.1", ICE_SERVER_DEFAULT_PORT);
+    _iceServerAddr = HifiSockAddr(SocketType::UDP, "127.0.0.1", ICE_SERVER_DEFAULT_PORT);
     if (parser.isSet(iceServerAddressOption)) {
         // parse the IP and port combination for this target
         QString hostnamePortString = parser.value(iceServerAddressOption);
@@ -96,7 +96,7 @@ ICEClientApp::ICEClientApp(int argc, char* argv[]) :
 
             QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
         } else {
-            _iceServerAddr = HifiSockAddr(address, port);
+            _iceServerAddr = HifiSockAddr(SocketType::UDP, address, port);
         }
     }
 
@@ -132,7 +132,7 @@ void ICEClientApp::openSocket() {
 
     _socket = new udt::Socket();
     unsigned int localPort = 0;
-    _socket->bind(QHostAddress::AnyIPv4, localPort);
+    _socket->bind(SocketType::UDP, QHostAddress::AnyIPv4, localPort);
     _socket->setPacketHandler([this](std::unique_ptr<udt::Packet> packet) { processPacket(std::move(packet)); });
     _socket->addUnfilteredHandler(_stunSockAddr,
                                   [this](std::unique_ptr<udt::BasePacket> packet) {
@@ -140,10 +140,10 @@ void ICEClientApp::openSocket() {
                                   });
 
     if (_verbose) {
-        qDebug() << "local port is" << _socket->localPort();
+        qDebug() << "local port is" << _socket->localPort(SocketType::UDP);
     }
-    _localSockAddr = HifiSockAddr("127.0.0.1", _socket->localPort());
-    _publicSockAddr = HifiSockAddr("127.0.0.1", _socket->localPort());
+    _localSockAddr = HifiSockAddr(SocketType::UDP, "127.0.0.1", _socket->localPort(SocketType::UDP));
+    _publicSockAddr = HifiSockAddr(SocketType::UDP, "127.0.0.1", _socket->localPort(SocketType::UDP));
     _domainPingCount = 0;
 }
 
@@ -188,7 +188,7 @@ void ICEClientApp::doSomething() {
             if (_verbose) {
                 qDebug() << "using cached STUN response";
             }
-            _publicSockAddr.setPort(_socket->localPort());
+            _publicSockAddr.setPort(_socket->localPort(SocketType::UDP));
             setState(talkToIceServer);
         }
 
@@ -303,7 +303,7 @@ void ICEClientApp::processSTUNResponse(std::unique_ptr<udt::BasePacket> packet) 
     uint16_t newPublicPort;
     QHostAddress newPublicAddress;
     if (LimitedNodeList::parseSTUNResponse(packet.get(), newPublicAddress, newPublicPort)) {
-        _publicSockAddr = HifiSockAddr(newPublicAddress, newPublicPort);
+        _publicSockAddr = HifiSockAddr(SocketType::UDP, newPublicAddress, newPublicPort);
         if (_verbose) {
             qDebug() << "My public address is" << _publicSockAddr;
         }

@@ -1,0 +1,161 @@
+//
+//  WebRTCSocket.h
+//  libraries/networking/src/webrtc
+//
+//  Created by David Rowe on 21 Jun 2021.
+//  Copyright 2021 Vircadia contributors.
+//
+
+#ifndef vircadia_WebRTCSocket_h
+#define vircadia_WebRTCSocket_h
+
+#include <shared/WebRTC.h>
+
+#if defined(WEBRTC_DATA_CHANNELS)
+
+#include <QAbstractSocket>
+#include <QObject>
+#include <QQueue>
+
+#include "WebRTCDataChannels.h"
+#include "WebRTCSignalingServer.h"
+
+/// @addtogroup Networking
+/// @{
+
+
+/// @brief Provides a QUdpSocket-style interface for using WebRTCDataChannels.
+class WebRTCSocket : public QObject {
+    Q_OBJECT
+
+public:
+
+    /// @brief Constructs a new WebRTCSocket object.
+    /// @param parent Qt parent object.
+    /// @param nodeType The type of node that the WebRTCsocket object is being used in.
+    WebRTCSocket(QObject* parent, NodeType_t nodeType);
+
+
+    /// @brief Nominally sets the value of a socket option.
+    /// @details Only <code>SendBufferSizeSocketOption</code> and <code>ReceiveBufferSizeSocketOption</code> options are handled
+    /// and for these no action is taken because these buffer sizes are not configurable in WebRTC.
+    /// Included for compatibility with the QUdpSocket interface.
+    /// @param option The socket option.
+    /// @param value The value of the socket option.
+    void setSocketOption(QAbstractSocket::SocketOption option, const QVariant& value);
+
+    /// @brief Nominally gets the value of a socket option.
+    /// @details Only <code>SendBufferSizeSocketOption</code> and <code>ReceiveBufferSizeSocketOption</code> options are handled
+    /// and for these only default values are returned because these buffer sizes are not configurable in WebRTC.
+    /// Included for compatibility with the QUdpSocket interface.
+    /// @param option The socket option.
+    /// @return The value of the socket option.
+    QVariant socketOption(QAbstractSocket::SocketOption option);
+
+    /// @brief Binds the WebRTC socket's signaling server to an address and port.
+    /// @details Note: WebRTC data connections aren't bound to an address or port. Their ports are negotiated as part of the
+    /// WebRTC peer connection process.
+    /// @param address The address to use for the signaling server.
+    /// @param port The port to use for the signaling server.
+    /// @param mode The bind mode. (Not used: included for compatibility with the QUdpSocket interface.)
+    /// @return <code>true</code> if the signaling server was successfully bound, <code>false</code> if it wasn't.
+    bool bind(const QHostAddress& address, quint16 port = 0, QAbstractSocket::BindMode mode
+        = QAbstractSocket::DefaultForPlatform);
+
+    /// @brief Gets the state of the socket.
+    /// @details In particular, QAbstractSocket::BoundState is returned if the socket is bound, 
+    /// QAbstractSocket::UnconnectedState if it isn't.
+    /// @return The state of the socket.
+    QAbstractSocket::SocketState state() const;
+
+    /// @brief Immediately closes all connections and resets the socket.
+    void abort();
+
+    /// @brief Nominally gets the host port number.
+    /// @details 
+    /// Included for compatibility with the QUdpSocket interface.
+    /// @return <code>0</code> 
+    quint16 localPort() const { return 0; }
+
+    /// @brief Nominally gets the socket descriptor.
+    /// @details 
+    /// Included for compatibility with the QUdpSocket interface.
+    /// @return <code>-1</code>
+    qintptr socketDescriptor() const { return -1; }
+
+
+    /// @brief Sends a datagram to the host on a data channel.
+    /// @param datagram The datagram to send.
+    /// @param port The data channel ID.
+    /// @return The number of bytes if successfully sent, otherwise <code>-1</code>.
+    qint64 writeDatagram(const QByteArray& datagram, quint16 port);
+
+    /// @brief Gets the number of bytes waiting to be written.
+    /// @param port The data channel ID.
+    /// @return The number of bytes waiting to be written.
+    qint64 bytesToWrite(quint16 port) const;
+
+    /// @brief Gets whether there's a datagram waiting to be read.
+    /// @return <code>true</code> if there's a datagram waiting to be read, <code>false</code> if there isn't.
+    bool hasPendingDatagrams() const;
+
+    /// @brief Gets the size of the first pending datagram.
+    /// @return the size of the first pending datagram; <code>-1</code> if there is no pending datagram.
+    qint64 pendingDatagramSize() const;
+
+    /// @brief Reads the next datagram, up to a maximum number of bytes.
+    /// @details Any remaining data in the datagram is lost.
+    /// @param data The destination to read the datagram into.
+    /// @param maxSize The maximum number of bytes to read.
+    /// @param address The destination to put the IP address that the datagram was read from. (Not currently set.)
+    /// @param port The destination to put the data channel ID that the datagram was read from.
+    /// @return The number of bytes read on success; <code>-1</code> if reading unsuccessful.
+    qint64 readDatagram(char* data, qint64 maxSize, QHostAddress* address = nullptr, quint16* port = nullptr);
+
+
+    /// @brief Gets the type of error that last occurred.
+    /// @return The type of error that last occurred.
+    QAbstractSocket::SocketError error() const;
+
+    /// @brief Gets the description of the error that last occurred.
+    /// @return The description of the error that last occurred.
+    QString errorString() const;
+
+public slots:
+
+    /// @brief Handles the WebRTC data channel receiving a message.
+    /// @details Queues the message to be read via readDatagram.
+    /// @param dataChannelID The data channel that the message was received on.
+    /// @param message The message that was received.
+    void onDataChannelReceivedMessage(int dataChannelID, const QByteArray& message);
+
+signals:
+
+    /// @brief Emitted when the state of the socket changes.
+    void stateChanged(QAbstractSocket::SocketState socketState);
+
+    /// @brief Emitted each time new data becomes available for reading.
+    void readyRead();
+
+private:
+
+    void setError(QAbstractSocket::SocketError errorType, QString errorString);
+    void clearError();
+
+    WebRTCSignalingServer _signalingServer;
+    WebRTCDataChannels _dataChannels;
+
+    bool _isBound { false };
+
+    QQueue<QPair<int, QByteArray>> _receivedQueue;  // Messages received are queued for reading from the "socket".
+
+    QAbstractSocket::SocketError _lastErrorType { QAbstractSocket::UnknownSocketError };
+    QString _lastErrorString;
+};
+
+
+/// @}
+
+#endif // WEBRTC_DATA_CHANNELS
+
+#endif // vircadia_WebRTCSocket_h

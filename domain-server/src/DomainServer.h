@@ -27,11 +27,6 @@
 #include <Assignment.h>
 #include <HTTPSConnection.h>
 #include <LimitedNodeList.h>
-#include <shared/WebRTC.h>
-#if defined(WEBRTC_DATA_CHANNELS)
-#include <webrtc/WebRTCDataChannels.h>
-#include <webrtc/WebRTCSignalingServer.h>
-#endif
 
 #include "AssetsBackupHandler.h"
 #include "DomainGatekeeper.h"
@@ -146,8 +141,6 @@ private slots:
     void updateReplicatedNodes();
     void updateDownstreamNodes();
     void updateUpstreamNodes();
-
-    void setUpWebRTC();
 
     void initializeExporter();
     void initializeMetadataExporter();
@@ -319,11 +312,6 @@ private:
     std::unordered_map<int, std::unique_ptr<QTemporaryFile>> _pendingContentFiles;
 
     QThread _assetClientThread;
-
-#ifdef WEBRTC_DATA_CHANNELS
-    WebRTCSignalingServer _webrtcSignalingServer;
-    WebRTCDataChannels _webrtcDataChannels;
-#endif
 };
 
 

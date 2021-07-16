@@ -109,7 +109,7 @@ public slots:
     void sendDomainServerCheckIn();
     void handleDSPathQuery(const QString& newPath);
 
-    void processDomainServerList(QSharedPointer<ReceivedMessage> message);
+    void processDomainList(QSharedPointer<ReceivedMessage> message);
     void processDomainServerAddedNode(QSharedPointer<ReceivedMessage> message);
     void processDomainServerRemovedNode(QSharedPointer<ReceivedMessage> message);
     void processDomainServerPathResponse(QSharedPointer<ReceivedMessage> message);
@@ -153,7 +153,9 @@ private slots:
     void maybeSendIgnoreSetToNode(SharedNodePointer node);
 
 private:
-    NodeList() : LimitedNodeList(INVALID_PORT, INVALID_PORT) { assert(false); } // Not implemented, needed for DependencyManager templates compile
+    NodeList() : LimitedNodeList(NodeType::Unassigned, INVALID_PORT, INVALID_PORT) { 
+        assert(false);  // Not implemented, needed for DependencyManager templates compile
+    }
     NodeList(char ownerType, int socketListenPort = INVALID_PORT, int dtlsListenPort = INVALID_PORT);
     NodeList(NodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
     void operator=(NodeList const&) = delete; // Don't implement, needed to avoid copies of singleton

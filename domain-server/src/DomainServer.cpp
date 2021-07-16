@@ -165,10 +165,6 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _gatekeeper(this),
-#ifdef WEBRTC_DATA_CHANNELS
-    _webrtcSignalingServer(QHostAddress::AnyIPv4, DEFAULT_DOMAIN_SERVER_WS_PORT, this),
-    _webrtcDataChannels(NodeType::DomainServer, this),
-#endif
     _httpManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTP_PORT,
         QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this)
 {
@@ -251,8 +247,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     updateReplicatedNodes();
     updateDownstreamNodes();
     updateUpstreamNodes();
-
-    setUpWebRTC();
 
     if (_type != NonMetaverse) {
         // if we have a metaverse domain, we'll use an access token for API calls
@@ -737,10 +731,11 @@ void DomainServer::setupNodeListAndAssignments() {
     // check for scripts the user wants to persist from their domain-server config
     populateStaticScriptedAssignmentsFromSettings();
 
-    auto nodeList = DependencyManager::set<LimitedNodeList>(domainServerPort, domainServerDTLSPort);
+    auto nodeList = DependencyManager::set<LimitedNodeList>(NodeType::DomainServer, domainServerPort, domainServerDTLSPort);
 
     // no matter the local port, save it to shared mem so that local assignment clients can ask what it is
-    nodeList->putLocalPortIntoSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this, nodeList->getSocketLocalPort());
+    nodeList->putLocalPortIntoSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this,
+        nodeList->getSocketLocalPort(SocketType::UDP));
 
     // store our local http ports in shared memory
     quint16 localHttpPort = DOMAIN_SERVER_HTTP_PORT;
@@ -3047,6 +3042,7 @@ ReplicationServerInfo serverInformationFromSettings(QVariantMap serverMap, Repli
 
         // read the address and port and construct a HifiSockAddr from them
         serverInfo.sockAddr = {
+            SocketType::UDP,
             serverMap[REPLICATION_SERVER_ADDRESS].toString(),
             (quint16) serverMap[REPLICATION_SERVER_PORT].toString().toInt()
         };
@@ -3137,20 +3133,6 @@ void DomainServer::updateDownstreamNodes() {
 
 void DomainServer::updateUpstreamNodes() {
     updateReplicationNodes(Upstream);
-}
-
-void DomainServer::setUpWebRTC() {
-#ifdef WEBRTC_DATA_CHANNELS
-
-    // Inbound WebRTC signaling messages received from a client.
-    connect(&_webrtcSignalingServer, &WebRTCSignalingServer::messageReceived,
-        &_webrtcDataChannels, &WebRTCDataChannels::onSignalingMessage);
-
-    // Outbound WebRTC signaling messages being sent to a client.
-    connect(&_webrtcDataChannels, &WebRTCDataChannels::signalingMessage,
-        &_webrtcSignalingServer, &WebRTCSignalingServer::sendMessage);
-
-#endif
 }
 
 void DomainServer::initializeExporter() {
@@ -3641,7 +3623,7 @@ void DomainServer::randomizeICEServerAddress(bool shouldTriggerHostLookup) {
         indexToTry = distribution(generator);
     }
 
-    _iceServerSocket = HifiSockAddr { candidateICEAddresses[indexToTry], ICE_SERVER_DEFAULT_PORT };
+    _iceServerSocket = HifiSockAddr { SocketType::UDP, candidateICEAddresses[indexToTry], ICE_SERVER_DEFAULT_PORT };
     qCInfo(domain_server_ice) << "Set candidate ice-server socket to" << _iceServerSocket;
 
     // clear our number of hearbeat denials, this should be re-set on ice-server change

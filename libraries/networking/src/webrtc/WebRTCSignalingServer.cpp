@@ -19,15 +19,11 @@
 
 const int WEBRTC_SOCKET_CHECK_INTERVAL_IN_MS = 30000;
 
-WebRTCSignalingServer::WebRTCSignalingServer(const QHostAddress& address, quint16 port, QObject* parent) :
+WebRTCSignalingServer::WebRTCSignalingServer(QObject* parent) :
     QObject(parent),
-    _address(address),
-    _port(port),
     _webSocketServer(new QWebSocketServer(QStringLiteral("WebRTC Signaling Server"), QWebSocketServer::NonSecureMode, this))
 {
     connect(_webSocketServer, &QWebSocketServer::newConnection, this, &WebRTCSignalingServer::newWebSocketConnection);
-
-    bindSocket();
 
     // Automatically recover from network interruptions.
     _isWebSocketServerListeningTimer = new QTimer(this);
@@ -35,17 +31,21 @@ WebRTCSignalingServer::WebRTCSignalingServer(const QHostAddress& address, quint1
     _isWebSocketServerListeningTimer->start(WEBRTC_SOCKET_CHECK_INTERVAL_IN_MS);
 }
 
+bool WebRTCSignalingServer::bind(const QHostAddress& address, quint16 port) {
+    _address = address;
+    _port = port;
+    auto success = _webSocketServer->listen(_address, _port);
+    if (!success) {
+        qCWarning(networking_webrtc) << "Failed to open WebSocket for WebRTC signaling.";
+    }
+    return success;
+}
+
 void WebRTCSignalingServer::checkWebSocketServerIsListening() {
     if (!_webSocketServer->isListening()) {
         qCWarning(networking_webrtc) << "WebSocket on port " << QString::number(_port) << " is no longer listening";
         _webSockets.clear();
-        bindSocket();
-    }
-}
-
-void WebRTCSignalingServer::bindSocket() {
-    if (!_webSocketServer->listen(_address, _port)) {
-        qCWarning(networking_webrtc) << "Failed to open WebSocket for WebRTC signaling.";
+        _webSocketServer->listen(_address, _port);
     }
 }
 

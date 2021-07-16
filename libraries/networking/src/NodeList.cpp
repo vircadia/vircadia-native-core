@@ -50,7 +50,7 @@ const int KEEPALIVE_PING_INTERVAL_MS = 1000;
 const int MAX_SYSTEM_INFO_SIZE = 1000;
 
 NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) :
-    LimitedNodeList(socketListenPort, dtlsListenPort),
+    LimitedNodeList(newOwnerType, socketListenPort, dtlsListenPort),
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(),
     _domainHandler(this),
@@ -147,7 +147,7 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
 
     auto& packetReceiver = getPacketReceiver();
     packetReceiver.registerListener(PacketType::DomainList,
-        PacketReceiver::makeUnsourcedListenerReference<NodeList>(this, &NodeList::processDomainServerList));
+        PacketReceiver::makeUnsourcedListenerReference<NodeList>(this, &NodeList::processDomainList));
     packetReceiver.registerListener(PacketType::Ping,
         PacketReceiver::makeSourcedListenerReference<NodeList>(this, &NodeList::processPingPacket));
     packetReceiver.registerListener(PacketType::PingReply,
@@ -357,7 +357,7 @@ void NodeList::sendDomainServerCheckIn() {
 
     if (publicSockAddr.isNull()) {
         // we don't know our public socket and we need to send it to the domain server
-        qCDebug(networking_ice) << "Waiting for inital public socket from STUN. Will not send domain-server check in.";
+        qCDebug(networking_ice) << "Waiting for initial public socket from STUN. Will not send domain-server check in.";
     } else if (domainHandlerIp.isNull() && _domainHandler.requiresICE()) {
         qCDebug(networking_ice) << "Waiting for ICE discovered domain-server socket. Will not send domain-server check in.";
         handleICEConnectionToDomainServer();
@@ -400,6 +400,8 @@ void NodeList::sendDomainServerCheckIn() {
             // don't send the check in packet - wait for the new public key to be available to the domain-server first
             return;
         }
+
+        // WEBRTC TODO: Move code into packet library. And update reference in DomainConnectRequest.js.
 
         auto domainPacket = NLPacket::create(domainPacketType);
 
@@ -452,7 +454,6 @@ void NodeList::sendDomainServerCheckIn() {
             packetStream << hardwareAddress;
 
             // now add the machine fingerprint
-            auto accountManager = DependencyManager::get<AccountManager>();
             packetStream << FingerprintUtils::getMachineFingerprint();
 
             platform::json all = platform::getAll();
@@ -710,7 +711,9 @@ void NodeList::processDomainServerConnectionTokenPacket(QSharedPointer<ReceivedM
     sendDomainServerCheckIn();
 }
 
-void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) {
+void NodeList::processDomainList(QSharedPointer<ReceivedMessage> message) {
+
+    // WEBRTC TODO: Move code into packet library.  And update reference in DomainServerList.js.
 
     // parse header information 
     QDataStream packetStream(message->getMessage());
@@ -890,6 +893,10 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
     if (info.publicSocket.getAddress().isNull()) {
         info.publicSocket.setAddress(_domainHandler.getIP());
     }
+
+    // WEBRTC TODO: Handle WebRTC-connected nodes. Probably need to include SocketType in HifiSockAddr << and >>
+    info.publicSocket.setSocketType(SocketType::UDP);
+    info.localSocket.setSocketType(SocketType::UDP);
 
     addNewNode(info);
 }

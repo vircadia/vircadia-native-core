@@ -135,8 +135,8 @@ public:
     bool getThisNodeCanGetAndSetPrivateUserData() const { return _permissions.can(NodePermissions::Permission::canGetAndSetPrivateUserData); }
     bool getThisNodeCanRezAvatarEntities() const { return _permissions.can(NodePermissions::Permission::canRezAvatarEntities); }
 
-    quint16 getSocketLocalPort() const { return _nodeSocket.localPort(); }
-    Q_INVOKABLE void setSocketLocalPort(quint16 socketLocalPort);
+    quint16 getSocketLocalPort(SocketType socketType) const { return _nodeSocket.localPort(socketType); }
+    Q_INVOKABLE void setSocketLocalPort(SocketType socketType, quint16 socketLocalPort);
 
     QUdpSocket& getDTLSSocket();
 
@@ -413,7 +413,8 @@ protected:
         QUuid connectionSecretUUID;
     };
 
-    LimitedNodeList(int socketListenPort = INVALID_PORT, int dtlsListenPort = INVALID_PORT);
+    LimitedNodeList(char ownerType = NodeType::DomainServer, int socketListenPort = INVALID_PORT, 
+        int dtlsListenPort = INVALID_PORT);
     LimitedNodeList(LimitedNodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
     void operator=(LimitedNodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
 
@@ -446,7 +447,7 @@ protected:
     QUdpSocket* _dtlsSocket { nullptr };
     HifiSockAddr _localSockAddr;
     HifiSockAddr _publicSockAddr;
-    HifiSockAddr _stunSockAddr { STUN_SERVER_HOSTNAME, STUN_SERVER_PORT };
+    HifiSockAddr _stunSockAddr { SocketType::UDP, STUN_SERVER_HOSTNAME, STUN_SERVER_PORT };
     bool _hasTCPCheckedLocalSocket { false };
     bool _useAuthentication { true };
 
