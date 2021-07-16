@@ -75,8 +75,6 @@ namespace NetworkingConstants {
 
     const QUrl HELP_DOCS_URL{ "https://docs.vircadia.com" };
     const QUrl HELP_FORUM_URL{ "https://forum.vircadia.com" };
-    const QUrl HELP_DOCS_URL { "https://docs.vircadia.com" };
-    const QUrl HELP_FORUM_URL { "https://forum.vircadia.com" };
     const QUrl HELP_SCRIPTING_REFERENCE_URL{ "https://apidocs.vircadia.dev/" };
     const QUrl HELP_RELEASE_NOTES_URL{ "https://docs.vircadia.com/release-notes.html" };
     const QUrl HELP_BUG_REPORT_URL{ "https://github.com/vircadia/vircadia/issues" };
