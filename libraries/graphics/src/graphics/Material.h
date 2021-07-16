@@ -341,57 +341,57 @@ public:
     virtual ~Material() = default;
     Material& operator= (const Material& material);
 
-    const MaterialKey& getKey() const { return _key; }
+    virtual MaterialKey getKey() const { return _key; }
 
     static const float DEFAULT_EMISSIVE;
     void setEmissive(const glm::vec3& emissive, bool isSRGB = true);
-    glm::vec3 getEmissive(bool SRGB = true) const { return (SRGB ? ColorUtils::tosRGBVec3(_emissive) : _emissive); }
+    virtual glm::vec3 getEmissive(bool SRGB = true) const { return (SRGB ? ColorUtils::tosRGBVec3(_emissive) : _emissive); }
 
     static const float DEFAULT_OPACITY;
     void setOpacity(float opacity);
-    float getOpacity() const { return _opacity; }
+    virtual float getOpacity() const { return _opacity; }
 
     static const MaterialKey::OpacityMapMode DEFAULT_OPACITY_MAP_MODE;
     void setOpacityMapMode(MaterialKey::OpacityMapMode opacityMapMode);
-    MaterialKey::OpacityMapMode getOpacityMapMode() const;
+    virtual MaterialKey::OpacityMapMode getOpacityMapMode() const;
 
     static const float DEFAULT_OPACITY_CUTOFF;
     void setOpacityCutoff(float opacityCutoff);
-    float getOpacityCutoff() const { return _opacityCutoff; }
+    virtual float getOpacityCutoff() const { return _opacityCutoff; }
 
     static const MaterialKey::CullFaceMode DEFAULT_CULL_FACE_MODE;
     void setCullFaceMode(MaterialKey::CullFaceMode cullFaceMode) { _cullFaceMode = cullFaceMode; }
-    MaterialKey::CullFaceMode getCullFaceMode() const { return _cullFaceMode; }
+    virtual MaterialKey::CullFaceMode getCullFaceMode() const { return _cullFaceMode; }
 
     void setUnlit(bool value);
-    bool isUnlit() const { return _key.isUnlit(); }
+    virtual bool isUnlit() const { return _key.isUnlit(); }
 
     static const float DEFAULT_ALBEDO;
     void setAlbedo(const glm::vec3& albedo, bool isSRGB = true);
-    glm::vec3 getAlbedo(bool SRGB = true) const { return (SRGB ? ColorUtils::tosRGBVec3(_albedo) : _albedo); }
+    virtual glm::vec3 getAlbedo(bool SRGB = true) const { return (SRGB ? ColorUtils::tosRGBVec3(_albedo) : _albedo); }
 
     static const float DEFAULT_METALLIC;
     void setMetallic(float metallic);
-    float getMetallic() const { return _metallic; }
+    virtual float getMetallic() const { return _metallic; }
 
     static const float DEFAULT_ROUGHNESS;
     void setRoughness(float roughness);
-    float getRoughness() const { return _roughness; }
+    virtual float getRoughness() const { return _roughness; }
 
     static const float DEFAULT_SCATTERING;
     void setScattering(float scattering);
-    float getScattering() const { return _scattering; }
+    virtual float getScattering() const { return _scattering; }
 
     // The texture map to channel association
     static const int NUM_TEXCOORD_TRANSFORMS { 2 };
     void setTextureMap(MapChannel channel, const TextureMapPointer& textureMap);
-    const TextureMaps& getTextureMaps() const { return _textureMaps; } // FIXME - not thread safe... 
+    virtual TextureMaps getTextureMaps() const { return _textureMaps; } // FIXME - not thread safe...
     const TextureMapPointer getTextureMap(MapChannel channel) const;
 
     // Albedo maps cannot have opacity detected until they are loaded
     // This method allows const changing of the key/schemaBuffer without touching the map
     // return true if the opacity changed, flase otherwise
-    bool resetOpacityMap() const;
+    virtual bool resetOpacityMap() const;
 
     // conversion from legacy material properties to PBR equivalent
     static float shininessToRoughness(float shininess) { return 1.0f - shininess / 100.0f; }
@@ -404,12 +404,12 @@ public:
     const std::string& getModel() const { return _model; }
     void setModel(const std::string& model) { _model = model; }
 
-    glm::mat4 getTexCoordTransform(uint i) const { return _texcoordTransforms[i]; }
+    virtual glm::mat4 getTexCoordTransform(uint i) const { return _texcoordTransforms[i]; }
     void setTexCoordTransform(uint i, const glm::mat4& mat4) { _texcoordTransforms[i] = mat4; }
-    glm::vec2 getLightmapParams() const { return _lightmapParams; }
-    glm::vec2 getMaterialParams() const { return _materialParams; }
+    virtual glm::vec2 getLightmapParams() const { return _lightmapParams; }
+    virtual glm::vec2 getMaterialParams() const { return _materialParams; }
 
-    bool getDefaultFallthrough() const { return _defaultFallthrough; }
+    virtual bool getDefaultFallthrough() const { return _defaultFallthrough; }
     void setDefaultFallthrough(bool defaultFallthrough) { _defaultFallthrough = defaultFallthrough; }
 
     enum ExtraFlagBit {
@@ -429,6 +429,8 @@ public:
     virtual bool isEnabled() const { return true; }
     virtual bool isReady() const { return true; }
     virtual QString getProceduralString() const { return QString(); }
+
+    virtual bool isReference() const { return false; }
 
     static const std::string HIFI_PBR;
     static const std::string HIFI_SHADER_SIMPLE;
@@ -547,11 +549,15 @@ public:
     void setTexturesLoading(bool value) { _texturesLoading = value; }
     void setInitialized() { _initialized = true; }
 
-    bool shouldUpdate() const { return !_initialized || _needsUpdate || _texturesLoading; }
+    bool shouldUpdate() const { return !_initialized || _needsUpdate || _texturesLoading || anyReferenceMaterialsOrTexturesChanged(); }
 
     int getTextureCount() const { calculateMaterialInfo(); return _textureCount; }
     size_t getTextureSize()  const { calculateMaterialInfo(); return _textureSize; }
     bool hasTextureInfo() const { return _hasCalculatedTextureInfo; }
+
+    void resetReferenceTexturesAndMaterials();
+    void addReferenceTexture(const std::function<gpu::TexturePointer()>& textureOperator);
+    void addReferenceMaterial(const std::function<graphics::MaterialPointer()>& materialOperator);
 
 private:
     gpu::BufferView _schemaBuffer;
@@ -565,6 +571,11 @@ private:
     mutable int _textureCount { 0 };
     mutable bool _hasCalculatedTextureInfo { false };
     void calculateMaterialInfo() const;
+
+    bool anyReferenceMaterialsOrTexturesChanged() const;
+
+    std::vector<std::pair<std::function<gpu::TexturePointer()>, gpu::TexturePointer>> _referenceTextures;
+    std::vector<std::pair<std::function<graphics::MaterialPointer()>, graphics::MaterialPointer>> _referenceMaterials;
 };
 
 };

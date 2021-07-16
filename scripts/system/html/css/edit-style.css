@@ -1955,6 +1955,65 @@ div.multiZoneSelToolbar {
     padding: 0px;
 }
 
+div.zoneSelectorListPanel {
+    position: absolute;
+    display: none;
+    width: 100%;
+    height: 100%;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    border-width: 0px;
+    background-color: #666666;
+    color: #dddddd;
+    padding: 0% 2% 0% 2%;
+    z-index: 2;
+    cursor: pointer;
+}
+
+div.zoneSelectListHeader {
+    position: static;
+    width: 96%;
+    height: 6%;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;    
+    padding-top: 4px;
+    cursor: pointer;
+    border-width: 0px;    
+}
+
+div.zoneSelectList {
+    position: static;
+    width: 96%;
+    height: 86%;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;    
+    border-width: 0px;
+    background-color: #c0c0c0;
+    overflow-y: auto;
+    padding: 0px;
+    cursor: pointer;
+}
+
+div.zoneSelectListFooter {
+    position: static;
+    width: 96%;
+    height: auto;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;    
+    padding: 2px;
+    cursor: pointer;
+    border-width: 0px;
+    text-align: right;
+}
+
 #menuBackgroundOverlay{
     background-color:transparent;
     position:fixed;

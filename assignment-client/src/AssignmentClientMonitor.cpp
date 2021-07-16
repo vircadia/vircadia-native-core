@@ -337,7 +337,7 @@ void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<ReceivedMes
     auto nodeList = DependencyManager::get<NodeList>();
 
     SharedNodePointer matchingNode = nodeList->nodeWithUUID(senderID);
-    const HifiSockAddr& senderSockAddr = message->getSenderSockAddr();
+    const SockAddr& senderSockAddr = message->getSenderSockAddr();
 
     AssignmentClientChildData* childData = nullptr;
 

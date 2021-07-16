@@ -11,6 +11,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_Mat4_h
 #define hifi_Mat4_h
 
@@ -35,8 +38,7 @@
  * @hifi-server-entity
  * @hifi-assignment-client
  */
-
-/// Scriptable Mat4 object.  Used exclusively in the JavaScript API
+/// Provides the <code><a href="https://apidocs.vircadia.dev/Mat4.html">Mat4</a></code> scripting interface
 class Mat4 : public QObject, protected QScriptable {
     Q_OBJECT
 
@@ -321,3 +323,5 @@ public slots:
 };
 
 #endif // hifi_Mat4_h
+
+/// @}

@@ -24,6 +24,8 @@ public:
     ImageEntityRenderer(const EntityItemPointer& entity);
     ~ImageEntityRenderer();
 
+    gpu::TexturePointer getTexture() override { return _texture ? _texture->getGPUTexture() : nullptr; }
+
 protected:
     Item::Bound getBound(RenderArgs* args) override;
     ShapeKey getShapeKey() override;

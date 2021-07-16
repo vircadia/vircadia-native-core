@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2014-10-01.
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -40,7 +41,7 @@ private:
     void processPacket(std::unique_ptr<udt::Packet> packet);
     
     SharedNetworkPeer addOrUpdateHeartbeatingPeer(NLPacket& incomingPacket);
-    void sendPeerInformationPacket(const NetworkPeer& peer, const HifiSockAddr* destinationSockAddr);
+    void sendPeerInformationPacket(const NetworkPeer& peer, const SockAddr* destinationSockAddr);
 
     bool isVerifiedHeartbeat(const QUuid& domainID, const QByteArray& plaintext, const QByteArray& signature);
     void requestDomainPublicKey(const QUuid& domainID);

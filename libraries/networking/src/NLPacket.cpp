@@ -4,6 +4,7 @@
 //
 //  Created by Clement on 7/6/15.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -35,7 +36,7 @@ std::unique_ptr<NLPacket> NLPacket::create(PacketType type, qint64 size, bool is
 }
 
 std::unique_ptr<NLPacket> NLPacket::fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size,
-                                                       const HifiSockAddr& senderSockAddr) {
+                                                       const SockAddr& senderSockAddr) {
     // Fail with null data
     Q_ASSERT(data);
     
@@ -89,7 +90,7 @@ NLPacket::NLPacket(const NLPacket& other) : Packet(other) {
     _sourceID = other._sourceID;
 }
 
-NLPacket::NLPacket(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr) :
+NLPacket::NLPacket(std::unique_ptr<char[]> data, qint64 size, const SockAddr& senderSockAddr) :
     Packet(std::move(data), size, senderSockAddr)
 {    
     // sanity check before we decrease the payloadSize with the payloadCapacity

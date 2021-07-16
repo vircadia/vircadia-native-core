@@ -159,7 +159,7 @@ void WebSocketClass::handleOnError(QAbstractSocket::SocketError error) {
 }
 
 /*@jsdoc
- * Triggered when a message is received.
+ * Called when a message is received.
  * @callback WebSocket~onMessageCallback
  * @param {WebSocket.MessageData} message - The message received.
  */

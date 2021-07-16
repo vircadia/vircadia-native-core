@@ -9,12 +9,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_KeyEvent_h
 #define hifi_KeyEvent_h
 
 #include <QKeyEvent>
 #include <QScriptValue>
 
+/// Represents a keyboard event to the scripting engine. Exposed as <code><a href="https://apidocs.vircadia.dev/global.html#KeyEvent">KeyEvent</a></code>
 class KeyEvent {
 public:
     KeyEvent();
@@ -39,3 +43,5 @@ public:
 Q_DECLARE_METATYPE(KeyEvent)
 
 #endif // hifi_KeyEvent_h
+
+/// @}

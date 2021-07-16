@@ -72,3 +72,9 @@ Vircadia consists of many projects and codebases with its unifying structure's g
 ### Contribution
 
 There are many contributors to Vircadia. Code writers, reviewers, testers, documentation writers, modelers, and general supporters of the project are all integral to its development and success towards its goals. Find out how you can [contribute](CONTRIBUTING.md)!
+
+### [Supporters](https://github.com/sponsors/digisomni/)
+
+| [Karol Suprynowicz - 74hc595](https://github.com/ksuprynowicz) | 
+| --- |
+| <p align="center">[![ksuprynowicz](https://avatars.githubusercontent.com/u/11568651?s=64&v=4)](https://github.com/ksuprynowicz)</p>

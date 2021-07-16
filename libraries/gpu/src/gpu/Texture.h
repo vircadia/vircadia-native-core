@@ -417,10 +417,15 @@ public:
 
     Element getTexelFormat() const { return _texelFormat; }
 
+    void setSize(int width, int height);
     Vec3u getDimensions() const { return Vec3u(_width, _height, _depth); }
     uint16 getWidth() const { return _width; }
     uint16 getHeight() const { return _height; }
     uint16 getDepth() const { return _depth; }
+
+    void setOriginalSize(int width, int height);
+    int getOriginalWidth() const { return _originalWidth; }
+    int getOriginalHeight() const { return _originalHeight; }
 
     // The number of faces is mostly used for cube map, and maybe for stereo ? otherwise it's 1
     // For cube maps, this means the pixels of the different faces are supposed to be packed back to back in a mip
@@ -615,6 +620,8 @@ protected:
     uint16 _width { 1 };
     uint16 _height { 1 };
     uint16 _depth { 1 };
+    int _originalWidth { 0 };
+    int _originalHeight { 0 };
 
     uint16 _numSamples { 1 };
 
@@ -676,9 +683,10 @@ public:
         _element(element)
     {};
 
-    TextureView(const TexturePointer& texture, uint16 subresource) :
+    TextureView(const TexturePointer& texture, uint16 subresource, std::function<gpu::TexturePointer()> textureOperator = nullptr) :
         _texture(texture),
-        _subresource(subresource)
+        _subresource(subresource),
+        _textureOperator(textureOperator)
     {};
 
     ~TextureView() {}
@@ -689,6 +697,12 @@ public:
     bool operator !() const { return (!_texture); }
 
     bool isValid() const { return bool(_texture); }
+
+    bool isReference() const { return (bool)_textureOperator; }
+    std::function<gpu::TexturePointer()> getTextureOperator() const { return _textureOperator; }
+
+private:
+    std::function<gpu::TexturePointer()> _textureOperator { nullptr };
 };
 typedef std::vector<TextureView> TextureViews;
 
@@ -700,16 +714,20 @@ public:
 
     void setUrl(const QUrl& url) { _imageUrl = url; }
     const QUrl& getUrl() const { return _imageUrl; }
-    const gpu::TexturePointer getGPUTexture() const { return _gpuTexture; }
+    const gpu::TexturePointer getGPUTexture() const;
     void setType(int type) { _type = type; }
     int getType() const { return _type; }
 
-    void resetTexture(gpu::TexturePointer texture);
+    void resetTexture(const gpu::TexturePointer& texture);
+    void resetTextureOperator(const std::function<gpu::TexturePointer()>& textureOperator);
 
     bool isDefined() const;
+    std::function<gpu::TexturePointer()> getTextureOperator() const { return _gpuTextureOperator; }
 
 protected:
     gpu::TexturePointer _gpuTexture;
+    std::function<gpu::TexturePointer()> _gpuTextureOperator { nullptr };
+    mutable bool _locked { false };
     QUrl _imageUrl;
     int _type { 0 };
 };

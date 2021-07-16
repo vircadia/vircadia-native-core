@@ -9,12 +9,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_DataViewPrototype_h
 #define hifi_DataViewPrototype_h
 
 #include <QtCore/QObject>
 #include <QtScript/QScriptable>
 
+/// The javascript functions associated with a <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView">DataView</a></code> instance prototype
 class DataViewPrototype : public QObject, public QScriptable {
     Q_OBJECT
 public:
@@ -65,4 +69,6 @@ private:
     bool realOffset(qint32& offset, size_t size) const;
 };
 
-#endif // hifi_DataViewPrototype_h
+#endif // hifi_DataViewPrototype_h
+
+/// @}

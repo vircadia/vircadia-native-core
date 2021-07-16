@@ -18,16 +18,12 @@ void TextureMap::setTextureSource(TextureSourcePointer& textureSource) {
 }
 
 bool TextureMap::isDefined() const {
-    if (_textureSource) {
-        return _textureSource->isDefined();
-    } else {
-        return false;
-    }
+    return _textureSource && _textureSource->isDefined();
 }
 
 gpu::TextureView TextureMap::getTextureView() const {
     if (_textureSource) {
-        return gpu::TextureView(_textureSource->getGPUTexture(), 0);
+        return gpu::TextureView(_textureSource->getGPUTexture(), 0, _textureSource->getTextureOperator());
     } else {
         return gpu::TextureView();
     }

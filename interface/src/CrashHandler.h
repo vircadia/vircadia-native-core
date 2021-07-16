@@ -13,7 +13,10 @@
 #define hifi_CrashHandler_h
 
 #include <string>
-class QCoreApplication;
+#include <QCoreApplication>
+#include <QLoggingCategory>
+
+Q_DECLARE_LOGGING_CATEGORY(crash_handler)
 
 bool startCrashHandler(std::string appPath);
 void setCrashAnnotation(std::string name, std::string value);

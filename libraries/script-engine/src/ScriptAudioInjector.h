@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_ScriptAudioInjector_h
 #define hifi_ScriptAudioInjector_h
 
@@ -35,6 +38,7 @@
  *     <em>Read-only.</em>
  * @property {AudioInjector.AudioInjectorOptions} options - Configures how the injector plays the audio.
  */
+/// Provides the <code><a href="https://apidocs.vircadia.dev/AudioInjector.html">AudioInjector</a></code> scripting interface
 class ScriptAudioInjector : public QObject {
     Q_OBJECT
 
@@ -148,3 +152,5 @@ QScriptValue injectorToScriptValue(QScriptEngine* engine, ScriptAudioInjector* c
 void injectorFromScriptValue(const QScriptValue& object, ScriptAudioInjector*& out);
 
 #endif // hifi_ScriptAudioInjector_h
+
+/// @}

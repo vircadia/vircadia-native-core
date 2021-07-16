@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_WebSocketClass_h
 #define hifi_WebSocketClass_h
 
@@ -78,6 +81,7 @@
  *     webSocket.send("Test message");
  * };
  */
+/// Provides the <code><a href="https://apidocs.vircadia.dev/WebSocket.html">WebSocket</a></code> scripting interface
 class WebSocketClass : public QObject {
     Q_OBJECT
         Q_PROPERTY(QString binaryType READ getBinaryType WRITE setBinaryType)
@@ -254,3 +258,5 @@ QScriptValue wscReadyStateToScriptValue(QScriptEngine* engine, const WebSocketCl
 void wscReadyStateFromScriptValue(const QScriptValue& object, WebSocketClass::ReadyState& readyState);
 
 #endif // hifi_WebSocketClass_h
+
+/// @}
