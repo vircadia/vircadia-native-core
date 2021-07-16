@@ -85,4 +85,4 @@ Keep in mind that Vircadia consists of multiple smaller projects that might have
 
 | [Karol Suprynowicz - 74hc595](https://github.com/ksuprynowicz) |
 | --- |
-| <p align="center">[![ksuprynowicz](https://avatars.githubusercontent.com/u/11568651?s=64&v=4)](https://github.com/ksuprynowicz)</p>
+| <p align="center">[<img src="https://vircadia.com/wp-content/uploads/2021/07/74hc595_profile_2-1.png" width="80" alt="ksuprynowicz" />](https://github.com/ksuprynowicz)</p>
