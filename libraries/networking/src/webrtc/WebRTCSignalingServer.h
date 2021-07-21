@@ -17,7 +17,7 @@
 #include <QtCore/QTimer>
 #include <QWebSocketServer>
 
-#include "../HifiSockAddr.h"
+#include "../SockAddr.h"
 
 /// @addtogroup Networking
 /// @{

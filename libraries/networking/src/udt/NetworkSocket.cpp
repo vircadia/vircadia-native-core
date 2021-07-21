@@ -125,7 +125,7 @@ qintptr NetworkSocket::socketDescriptor(SocketType socketType) const {
 }
 
 
-qint64 NetworkSocket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& sockAddr) {
+qint64 NetworkSocket::writeDatagram(const QByteArray& datagram, const SockAddr& sockAddr) {
     switch (sockAddr.getSocketType()) {
     case SocketType::UDP:
         // WEBRTC TODO: The Qt documentation says that the following call shouldn't be used if the UDP socket is connected!!!
@@ -189,7 +189,7 @@ qint64 NetworkSocket::pendingDatagramSize() {
 #endif
 }
 
-qint64 NetworkSocket::readDatagram(char* data, qint64 maxSize, HifiSockAddr* sockAddr) {
+qint64 NetworkSocket::readDatagram(char* data, qint64 maxSize, SockAddr* sockAddr) {
 #if defined(WEBRTC_DATA_CHANNELS)
     // Read per preceding pendingDatagramSize() if any, otherwise alternate socket types.
     if (_pendingDatagramSizeSocketType == SocketType::UDP

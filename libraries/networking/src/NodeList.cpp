@@ -894,7 +894,7 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
         info.publicSocket.setAddress(_domainHandler.getIP());
     }
 
-    // WEBRTC TODO: Handle WebRTC-connected nodes. Probably need to include SocketType in HifiSockAddr << and >>
+    // WEBRTC TODO: Handle WebRTC-connected nodes. Probably need to include SocketType in SockAddr << and >>
     info.publicSocket.setSocketType(SocketType::UDP);
     info.localSocket.setSocketType(SocketType::UDP);
 

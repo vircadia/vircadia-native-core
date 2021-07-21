@@ -14,7 +14,7 @@
 
 #include <shared/WebRTC.h>
 
-#include "../HifiSockAddr.h"
+#include "../SockAddr.h"
 #include "../NodeType.h"
 #include "../SocketType.h"
 #if defined(WEBRTC_DATA_CHANNELS)
@@ -76,7 +76,7 @@ public:
     /// @param datagram The datagram to send.
     /// @param sockAddr The address to send to.
     /// @return The number of bytes if successfully sent, otherwise <code>-1</code>.
-    qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& sockAddr);
+    qint64 writeDatagram(const QByteArray& datagram, const SockAddr& sockAddr);
 
     /// @brief Gets the number of bytes waiting to be written.
     /// @details For UDP, there's a single buffer used for all destinations. For WebRTC, each destination has its own buffer.
@@ -100,7 +100,7 @@ public:
     /// @param maxSize The maximum number of bytes to read.
     /// @param sockAddr The destination to write the source network address into.
     /// @return The number of bytes if successfully read, otherwise <code>-1</code>.
-    qint64 readDatagram(char* data, qint64 maxSize, HifiSockAddr* sockAddr = nullptr);
+    qint64 readDatagram(char* data, qint64 maxSize, SockAddr* sockAddr = nullptr);
 
     
     /// @brief Gets the state of the UDP or WebRTC socket.
