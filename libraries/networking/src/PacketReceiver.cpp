@@ -5,6 +5,7 @@
 //  Created by Stephen Birarda on 1/23/2014.
 //  Update by Ryan Huffman on 7/8/2015.
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -150,7 +151,7 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
 void PacketReceiver::handleVerifiedMessagePacket(std::unique_ptr<udt::Packet> packet) {
     auto nlPacket = NLPacket::fromBase(std::move(packet));
 
-    auto key = std::pair<HifiSockAddr, udt::Packet::MessageNumber>(nlPacket->getSenderSockAddr(), nlPacket->getMessageNumber());
+    auto key = std::pair<SockAddr, udt::Packet::MessageNumber>(nlPacket->getSenderSockAddr(), nlPacket->getMessageNumber());
     auto it = _pendingMessages.find(key);
     QSharedPointer<ReceivedMessage> message;
 
@@ -172,8 +173,8 @@ void PacketReceiver::handleVerifiedMessagePacket(std::unique_ptr<udt::Packet> pa
     }
 }
 
-void PacketReceiver::handleMessageFailure(HifiSockAddr from, udt::Packet::MessageNumber messageNumber) {
-    auto key = std::pair<HifiSockAddr, udt::Packet::MessageNumber>(from, messageNumber);
+void PacketReceiver::handleMessageFailure(SockAddr from, udt::Packet::MessageNumber messageNumber) {
+    auto key = std::pair<SockAddr, udt::Packet::MessageNumber>(from, messageNumber);
     auto it = _pendingMessages.find(key);
     if (it != _pendingMessages.end()) {
         auto message = it->second;

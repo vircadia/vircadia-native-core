@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2/6/2014.
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -17,7 +18,7 @@
 #include <QtCore/QUuid>
 #include <QtCore/QJsonObject>
 
-#include <HifiSockAddr.h>
+#include <SockAddr.h>
 #include <NLPacket.h>
 #include <NodeData.h>
 #include <NodeType.h>
@@ -41,8 +42,8 @@ public:
 
     QElapsedTimer& getPaymentIntervalTimer() { return _paymentIntervalTimer; }
 
-    void setSendingSockAddr(const HifiSockAddr& sendingSockAddr) { _sendingSockAddr = sendingSockAddr; }
-    const HifiSockAddr& getSendingSockAddr() { return _sendingSockAddr; }
+    void setSendingSockAddr(const SockAddr& sendingSockAddr) { _sendingSockAddr = sendingSockAddr; }
+    const SockAddr& getSendingSockAddr() { return _sendingSockAddr; }
 
     void setIsAuthenticated(bool isAuthenticated) { _isAuthenticated = isAuthenticated; }
     bool isAuthenticated() const { return _isAuthenticated; }
@@ -90,7 +91,7 @@ private:
     QJsonObject _statsJSONObject;
     static StringPairHash _overrideHash;
     
-    HifiSockAddr _sendingSockAddr;
+    SockAddr _sendingSockAddr;
     bool _isAuthenticated = true;
     NodeSet _nodeInterestSet;
     QString _nodeVersion;

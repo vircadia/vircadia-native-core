@@ -24,7 +24,7 @@
   <div class="row">
     <div class="col-md-12">
       <span class='step-description'>
-        <a target='_blank' href='https://docs.vircadia.dev/create-and-explore/start-working-in-your-sandbox/place-names'>Place names</a> are similar to web addresses. Users who want to visit your domain can
+        <a target='_blank' href='https://docs.vircadia.com/create-and-explore/start-working-in-your-sandbox/place-names'>Place names</a> are similar to web addresses. Users who want to visit your domain can
         enter its Place Name in Vircadia's Interface. You can choose a Place Name for your domain.</br>
         Your domain may also be reachable by <b>IP address</b>.
       </span>
@@ -196,8 +196,8 @@
   <div class="row">
     <div class="col-md-12">
       <span class='step-description'>
-        Would you like use automatic threading for your server's avatars and audio? 
-        If you are hosting this server on your local computer and it is not very powerful, then consider leaving this off because the server will use more resources if it is being utilized extensively, thereby slowing down your computer. 
+        Would you like use automatic threading for your server's avatars and audio?
+        If you are hosting this server on your local computer and it is not very powerful, then consider leaving this off because the server will use more resources if it is being utilized extensively, thereby slowing down your computer.
         If you are running this server on a powerful system and intend to have a large audience, then turn this setting on.
       </span>
     </div>

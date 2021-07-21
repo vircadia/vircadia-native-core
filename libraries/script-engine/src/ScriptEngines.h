@@ -6,6 +6,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_ScriptEngines_h
 #define hifi_ScriptEngines_h
 
@@ -49,7 +52,7 @@ class ScriptEngine;
  *     scripts directory of the Interface installation.
  *     <em>Read-only.</em>
  */
-
+/// Provides the <code><a href="https://apidocs.vircadia.dev/ScriptDiscoveryService.html">ScriptDiscoveryService</a></code> scripting interface
 class ScriptEngines : public QObject, public Dependency, public ScriptInitializerMixin<ScriptEnginePointer> {
     Q_OBJECT
 
@@ -362,3 +365,5 @@ QString expandScriptPath(const QString& rawPath);
 QUrl expandScriptUrl(const QUrl& rawScriptURL);
 
 #endif // hifi_ScriptEngine_h
+
+/// @}

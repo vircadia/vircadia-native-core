@@ -4,6 +4,7 @@
 //
 //  Created by Clement on 7/27/15.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -23,7 +24,7 @@
 #include "Constants.h"
 #include "LossList.h"
 #include "SendQueue.h"
-#include "../HifiSockAddr.h"
+#include "../SockAddr.h"
 
 namespace udt {
     
@@ -52,7 +53,7 @@ class Connection : public QObject {
 public:
     using ControlPacketPointer = std::unique_ptr<ControlPacket>;
     
-    Connection(Socket* parentSocket, HifiSockAddr destination, std::unique_ptr<CongestionControl> congestionControl);
+    Connection(Socket* parentSocket, SockAddr destination, std::unique_ptr<CongestionControl> congestionControl);
     virtual ~Connection();
 
     void sendReliablePacket(std::unique_ptr<Packet> packet);
@@ -68,7 +69,7 @@ public:
     
     ConnectionStats::Stats sampleStats() { return _stats.sample(); }
 
-    HifiSockAddr getDestination() const { return _destination; }
+    SockAddr getDestination() const { return _destination; }
 
     void setMaxBandwidth(int maxBandwidth);
 
@@ -77,12 +78,12 @@ public:
     
     void recordSentUnreliablePackets(int wireSize, int payloadSize);
     void recordReceivedUnreliablePackets(int wireSize, int payloadSize);
-    void setDestinationAddress(const HifiSockAddr& destination);
+    void setDestinationAddress(const SockAddr& destination);
 
 signals:
     void packetSent();
-    void receiverHandshakeRequestComplete(const HifiSockAddr& sockAddr);
-    void destinationAddressChange(HifiSockAddr currentAddress);
+    void receiverHandshakeRequestComplete(const SockAddr& sockAddr);
+    void destinationAddressChange(SockAddr currentAddress);
 
 private slots:
     void recordSentPackets(int wireSize, int payloadSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint);
@@ -124,7 +125,7 @@ private:
     SequenceNumber _lastReceivedACK; // The last ACK received
     
     Socket* _parentSocket { nullptr };
-    HifiSockAddr _destination;
+    SockAddr _destination;
    
     std::unique_ptr<CongestionControl> _congestionControl;
    

@@ -9,11 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QtScript/QScriptEngine>
+/// @addtogroup ScriptEngine
+/// @{
 
 #ifndef hifi_MIDIEvent_h
 #define hifi_MIDIEvent_h
 
+#include <QtScript/QScriptEngine>
+
+/// Represents a MIDI protocol event to the scripting engine.
 class MIDIEvent {
 public:
     double deltaTime;
@@ -30,3 +34,5 @@ QScriptValue midiEventToScriptValue(QScriptEngine* engine, const MIDIEvent& even
 void midiEventFromScriptValue(const QScriptValue &object, MIDIEvent& event);
 
 #endif // hifi_MIDIEvent_h
+
+/// @}

@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_ScriptEngineLogging_h
 #define hifi_ScriptEngineLogging_h
 
@@ -20,3 +23,4 @@ Q_DECLARE_LOGGING_CATEGORY(scriptengine_script)
 
 #endif // hifi_ScriptEngineLogging_h
 
+/// @}

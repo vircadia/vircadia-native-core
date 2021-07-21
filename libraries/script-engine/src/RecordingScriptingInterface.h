@@ -6,6 +6,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_RecordingScriptingInterface_h
 #define hifi_RecordingScriptingInterface_h
 
@@ -34,6 +37,7 @@ class QScriptValue;
  * @hifi-avatar
  * @hifi-assignment-client
  */
+/// Provides the <code><a href="https://apidocs.vircadia.dev/Recording.html">Recording</a></code> scripting interface
 class RecordingScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 
@@ -369,3 +373,5 @@ private:
 };
 
 #endif // hifi_RecordingScriptingInterface_h
+
+/// @}

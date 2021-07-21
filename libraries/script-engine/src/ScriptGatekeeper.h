@@ -9,11 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef vircadia_ScriptGatekeeper_h
 #define vircadia_ScriptGatekeeper_h
 
 #include <QtCore/QObject>
 
+/// Manages script whitelisting in a domain
 class ScriptGatekeeper : public QObject {
     Q_OBJECT
 public:
@@ -27,3 +31,5 @@ private:
 };
 
 #endif // vircadia_ScriptGatekeeper_h
+
+/// @}

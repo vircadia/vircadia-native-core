@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_AudioScriptingInterface_h
 #define hifi_AudioScriptingInterface_h
 
@@ -19,6 +22,7 @@
 
 class ScriptAudioInjector;
 
+/// Provides the <code><a href="https://apidocs.vircadia.dev/Audio.html">Audio</a></code> scripting API
 class AudioScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -290,3 +294,5 @@ private:
 void registerAudioMetaTypes(QScriptEngine* engine);
 
 #endif // hifi_AudioScriptingInterface_h
+
+/// @}

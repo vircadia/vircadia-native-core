@@ -10,6 +10,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #pragma once
 
 #ifndef hifi_UsersScriptingInterface_h
@@ -38,6 +41,7 @@
  * @property {BanFlags} BAN_BY_FINGERPRINT - Ban user by fingerprint. <em>Read-only.</em>
  * @property {BanFlags} BAN_BY_IP - Ban user by IP address. <em>Read-only.</em>
  */
+/// Provides the <code><a href="https://apidocs.vircadia.dev/Users.html">Users</a></code> scripting interface
 class UsersScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -262,3 +266,5 @@ private:
 
 
 #endif // hifi_UsersScriptingInterface_h
+
+/// @}

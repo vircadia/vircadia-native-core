@@ -34,7 +34,7 @@
 #include <shared/WebRTC.h>
 
 #include <DependencyManager.h>
-#include <HifiSockAddr.h>
+#include <SockAddr.h>
 #include <NLPacket.h>
 #include <MixedProcessedAudioStream.h>
 #include <RingBufferHistory.h>
