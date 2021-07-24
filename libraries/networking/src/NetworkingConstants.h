@@ -71,8 +71,7 @@ namespace NetworkingConstants {
     const unsigned short STUN_SERVER_DEFAULT_PORT = 19302;
 #endif
 
-    const QUrl TALK_DIRECTORY_URL{ "https://vircadia.com/#talk" };
-
+    const QUrl HELP_COMMUNITY_URL{ "https://vircadia.com/#community" };
     const QUrl HELP_DOCS_URL{ "https://docs.vircadia.com" };
     const QUrl HELP_FORUM_URL{ "https://forum.vircadia.com" };
     const QUrl HELP_SCRIPTING_REFERENCE_URL{ "https://apidocs.vircadia.dev/" };
