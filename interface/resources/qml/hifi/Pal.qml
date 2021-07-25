@@ -1109,10 +1109,10 @@ Rectangle {
                         // TODO: Change language from "Happening Now" to something else (or remove entirely)
                         popupComboDialog("Set your availability:",
                         availabilityComboBox.availabilityStrings,
-                        ["Your username will be visible in everyone's 'Nearby' list. Anyone will be able to jump to your location from within the 'Nearby' list.",
-                        "Your location will be visible in the 'Connections' list only for those with whom you are connected or friends. They'll be able to jump to your location if the domain allows, and you will see 'Snaps' Blasts from them in 'Go To'.",
-                        "Your location will be visible in the 'Connections' list only for those with whom you are friends. They'll be able to jump to your location if the domain allows, and you will see 'Snaps' Blasts from them in 'Go To'",
-                        "You will appear offline in the 'Connections' list, and you will not receive Snaps Blasts from connections or friends in 'Go To'."],
+                        ["Your username will be visible in everyone's 'Nearby' list.",
+                        "Your location will be visible in the 'Connections' list only for those with whom you are connected or friends. They'll be able to jump to your location if the domain allows,",
+                        "Your location will be visible in the 'Connections' list only for those with whom you are friends. They'll be able to jump to your location if the domain allows,",
+                        "You will appear offline in the 'Connections' list,"],
                         ["all", "connections", "friends", "none"]);
                     }
                     onEntered: availabilityComboBox.color = hifi.colors.lightGrayText;
