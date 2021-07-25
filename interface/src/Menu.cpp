@@ -829,7 +829,7 @@ Menu::Menu() {
     // Help > Vircadia Forum
     action = addActionToQMenuAndActionHash(helpMenu, "Community Support");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(NetworkingConstants::HELP_COMMUNITY_URL));
+        QDesktopServices::openUrl(NetworkingConstants::HELP_COMMUNITY_URL);
     });
 
     // Help > Scripting Reference
