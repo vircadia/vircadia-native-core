@@ -827,10 +827,10 @@ Menu::Menu() {
     });
 
     // Help > Vircadia Forum
-    /* action = addActionToQMenuAndActionHash(helpMenu, "Online Forums");
+    action = addActionToQMenuAndActionHash(helpMenu, "Community Support");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(NetworkingConstants::HELP_FORUM_URL));
-    }); */
+        QDesktopServices::openUrl(NetworkingConstants::HELP_COMMUNITY_URL);
+    });
 
     // Help > Scripting Reference
     action = addActionToQMenuAndActionHash(helpMenu, "Online Script Reference");
