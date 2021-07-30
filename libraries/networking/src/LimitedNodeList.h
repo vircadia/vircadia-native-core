@@ -420,7 +420,6 @@ protected:
 
     qint64 sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode,
                       const SockAddr& overridenSockAddr);
-    void fillPacketHeader(const NLPacket& packet, HMACAuth* hmacAuth = nullptr);
 
     void setLocalSocket(const SockAddr& sockAddr);
 
@@ -487,6 +486,8 @@ private slots:
     void addSTUNHandlerToUnfiltered(); // called once STUN socket known
 
 private:
+    void fillPacketHeader(const NLPacket& packet, HMACAuth* hmacAuth = nullptr);
+
     mutable QReadWriteLock _sessionUUIDLock;
     QUuid _sessionUUID;
     using LocalIDMapping = tbb::concurrent_unordered_map<Node::LocalID, SharedNodePointer>;
