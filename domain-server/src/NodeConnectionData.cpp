@@ -55,6 +55,21 @@ NodeConnectionData NodeConnectionData::fromDataStream(QDataStream& dataStream, c
         >> newHeader.publicSockAddr >> newHeader.localSockAddr
         >> newHeader.interestList >> newHeader.placeName;
 
+    // A WebRTC web client doesn't necessarily know it's public Internet or local network addresses, and for WebRTC they aren't
+    // needed: for WebRTC, the data channel ID is the important thing. The client's public Internet IP address still needs to
+    // be known for domain access permissions, though, and this can be obtained from the WebSocket signaling connection.
+    if (senderSockAddr.getSocketType() == SocketType::WebRTC) {
+        // WEBRTC TODO: Rather than setting the SocketType here, serialize and deserialize the SocketType in the leading byte of
+        // the 5 bytes used to encode the IP address.
+        newHeader.publicSockAddr.setSocketType(SocketType::WebRTC);
+        newHeader.localSockAddr.setSocketType(SocketType::WebRTC);
+
+        // WEBRTC TODO: Set the public Internet address obtained from the WebSocket used in WebRTC signaling.
+
+        newHeader.publicSockAddr.setPort(senderSockAddr.getPort());  // We don't know whether it's a public or local connection
+        newHeader.localSockAddr.setPort(senderSockAddr.getPort());   // so set both ports.
+    }
+
     newHeader.senderSockAddr = senderSockAddr;
     
     if (newHeader.publicSockAddr.getAddress().isNull()) {
