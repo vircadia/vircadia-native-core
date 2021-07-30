@@ -291,6 +291,9 @@ void WDCConnection::onDataChannelOpened(rtc::scoped_refptr<DataChannelInterface>
     _dataChannelID = _parent->getNewDataChannelID();  // Not dataChannel->id() because it's only unique per peer connection.
     _dataChannel->RegisterObserver(_dataChannelObserver.get());
 
+#ifdef WEBRTC_DEBUG
+    qCDebug(networking_webrtc) << "WDCConnection::onDataChannelOpened() : channel ID:" << _dataChannelID;
+#endif
     _parent->onDataChannelOpened(this, _dataChannelID);
 }
 
@@ -486,7 +489,8 @@ void WebRTCDataChannels::sendSignalingMessage(const QJsonObject& message) {
 
 void WebRTCDataChannels::emitDataMessage(int dataChannelID, const QByteArray& byteArray) {
 #ifdef WEBRTC_DEBUG
-    qCDebug(networking_webrtc) << "WebRTCDataChannels::emitDataMessage() :" << dataChannelID << byteArray;
+    qCDebug(networking_webrtc) << "WebRTCDataChannels::emitDataMessage() :" << dataChannelID << byteArray.toHex()
+        << byteArray.length();
 #endif
     emit dataMessage(dataChannelID, byteArray);
 }
@@ -557,6 +561,9 @@ void WebRTCDataChannels::closePeerConnectionNow(WDCConnection* connection) {
     connection->closePeerConnection();
 
     // Delete the WDCConnection.
+#ifdef WEBRTC_DEBUG
+    qCDebug(networking_webrtc) << "Dispose of connection for channel ID:" << connection->getDataChannelID();
+#endif
     _connectionsByWebSocket.remove(connection->getWebSocketID());
     _connectionsByDataChannel.remove(connection->getDataChannelID());
     delete connection;
