@@ -121,7 +121,7 @@ public:
     QUuid getSessionUUID() const;
     void setSessionUUID(const QUuid& sessionUUID);
     Node::LocalID getSessionLocalID() const;
-    void setSessionLocalID(Node::LocalID localID);
+    void setSessionLocalID(Node::LocalID sessionLocalID);
 
     void setPermissions(const NodePermissions& newPermissions);
     bool isAllowedEditor() const { return _permissions.can(NodePermissions::Permission::canAdjustLocks); }
