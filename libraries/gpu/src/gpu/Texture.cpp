@@ -322,6 +322,16 @@ bool Texture::isDepthStencilRenderTarget() const {
     return (_texelFormat.getSemantic() == gpu::DEPTH) || (_texelFormat.getSemantic() == gpu::DEPTH_STENCIL);
 }
 
+void Texture::setSize(int width, int height) {
+    _width = width;
+    _height = height;
+}
+
+void Texture::setOriginalSize(int width, int height) {
+    _originalWidth = width;
+    _originalHeight = height;
+}
+
 uint16 Texture::evalDimMaxNumMips(uint16 size) {
     double largerDim = size;
     double val = log(largerDim)/log(2.0);
@@ -887,16 +897,34 @@ void SphericalHarmonics::evalFromTexture(const Texture& texture, gpu::BackendTar
 
 
 // TextureSource
-void TextureSource::resetTexture(gpu::TexturePointer texture) {
+const gpu::TexturePointer TextureSource::getGPUTexture() const {
+    if (_gpuTextureOperator && !_locked) {
+        _locked = true;
+        auto gpuTexture = _gpuTextureOperator();
+        _locked = false;
+        return gpuTexture;
+    }
+    return _gpuTexture;
+}
+
+void TextureSource::resetTexture(const gpu::TexturePointer& texture) {
     _gpuTexture = texture;
+    _gpuTextureOperator = nullptr;
+}
+
+void TextureSource::resetTextureOperator(const std::function<gpu::TexturePointer()>& textureOperator) {
+    _gpuTexture = nullptr;
+    _gpuTextureOperator = textureOperator;
 }
 
 bool TextureSource::isDefined() const {
-    if (_gpuTexture) {
-        return _gpuTexture->isDefined();
-    } else {
-        return false;
+    if (_gpuTextureOperator && !_locked) {
+        _locked = true;
+        auto gpuTexture = _gpuTextureOperator();
+        _locked = false;
+        return gpuTexture && gpuTexture->isDefined();
     }
+    return _gpuTexture && _gpuTexture->isDefined();
 }
 
 bool Texture::setMinMip(uint16 newMinMip) {
@@ -930,6 +958,7 @@ void Texture::setExternalTexture(uint32 externalId, void* externalFence) {
     Lock lock(_externalMutex);
     assert(_externalRecycler);
     _externalUpdates.push_back({ externalId, externalFence });
+    _defined = true;
 }
 
 Texture::ExternalUpdates Texture::getUpdates() const {

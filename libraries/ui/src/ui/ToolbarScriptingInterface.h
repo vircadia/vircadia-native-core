@@ -38,7 +38,7 @@ protected:
 
 Q_DECLARE_METATYPE(ToolbarButtonProxy*);
 
-/**jsdoc
+/*@jsdoc
  * An instance of a toolbar.
  * 
  * <p>Retrieve an existing toolbar or create a new toolbar using {@link Toolbars.getToolbar}.</p>
@@ -55,7 +55,7 @@ class ToolbarProxy : public QmlWrapper {
 public:
     ToolbarProxy(QObject* qmlObject, QObject* parent = nullptr);
 
-    /**jsdoc
+    /*@jsdoc
      * <em>Currently doesn't work.</em>
      * @function ToolbarProxy#addButton
      * @param {object} properties - Button properties
@@ -64,7 +64,7 @@ public:
      */
     Q_INVOKABLE ToolbarButtonProxy* addButton(const QVariant& properties);
 
-    /**jsdoc
+    /*@jsdoc
      * <em>Currently doesn't work.</em>
      * @function ToolbarProxy#removeButton
      * @param {string} name - Button name.
@@ -75,7 +75,7 @@ public:
 
     // QmlWrapper methods.
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the value of a toolbar property. A property is added to the toolbar if the named property doesn't already 
      * exist.
      * @function ToolbarProxy#writeProperty
@@ -84,7 +84,7 @@ public:
      * @param {object} propertyValue - The value of the property.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the values of toolbar properties. A property is added to the toolbar if a named property doesn't already
      * exist.
      * @function ToolbarProxy#writeProperties
@@ -92,14 +92,14 @@ public:
      *     implementation of the toolbar.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the value of a toolbar property.
      * @function ToolbarProxy#readProperty
      * @param {string} propertyName - The property name. Toolbar properties are those in the QML implementation of the toolbar.
      * @returns {object} The value of the property if the property name is valid, otherwise <code>undefined</code>.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the values of toolbar properties.
      * @function ToolbarProxy#readProperties
      * @param {string[]} propertyList - The names of the properties to get the values of. Toolbar properties are those in the 
@@ -111,7 +111,7 @@ public:
 
 Q_DECLARE_METATYPE(ToolbarProxy*);
 
-/**jsdoc
+/*@jsdoc
  * The <code>Toolbars</code> API provides facilities to work with the system or other toolbar.
  *
  * <p>See also the {@link Tablet} API for use of the system tablet and toolbar in desktop and HMD modes.</p>
@@ -126,7 +126,7 @@ class ToolbarScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 public:
 
-    /**jsdoc
+    /*@jsdoc
      * Gets an instance of a toolbar. A new toolbar is created if one with the specified name doesn't already exist.
      * @function Toolbars.getToolbar
      * @param {string} name - A unique name that identifies the toolbar.
@@ -135,7 +135,7 @@ public:
     Q_INVOKABLE ToolbarProxy* getToolbar(const QString& toolbarId);
 
 signals:
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the visibility of a toolbar changes.
      * @function Toolbars.toolbarVisibleChanged
      * @param {boolean} isVisible - <code>true</code> if the toolbar is visible, <code>false</code> if it is hidden.

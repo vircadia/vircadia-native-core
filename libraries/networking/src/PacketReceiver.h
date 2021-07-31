@@ -5,6 +5,7 @@
 //  Created by Stephen Birarda on 1/23/2014.
 //  Update by Ryan Huffman on 7/8/2015.
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -34,9 +35,9 @@ class OctreePacketProcessor;
 
 namespace std {
     template <>
-    struct hash<std::pair<HifiSockAddr, udt::Packet::MessageNumber>> {
-        size_t operator()(const std::pair<HifiSockAddr, udt::Packet::MessageNumber>& pair) const {
-            return hash<HifiSockAddr>()(pair.first) ^ hash<udt::Packet::MessageNumber>()(pair.second);
+    struct hash<std::pair<SockAddr, udt::Packet::MessageNumber>> {
+        size_t operator()(const std::pair<SockAddr, udt::Packet::MessageNumber>& pair) const {
+            return hash<SockAddr>()(pair.first) ^ hash<udt::Packet::MessageNumber>()(pair.second);
         }
     };
 }
@@ -78,16 +79,16 @@ public:
     
     void handleVerifiedPacket(std::unique_ptr<udt::Packet> packet);
     void handleVerifiedMessagePacket(std::unique_ptr<udt::Packet> message);
-    void handleMessageFailure(HifiSockAddr from, udt::Packet::MessageNumber messageNumber);
+    void handleMessageFailure(SockAddr from, udt::Packet::MessageNumber messageNumber);
     
 private:
     template <class T>
     class UnsourcedListenerReference : public ListenerReference {
     public:
         inline UnsourcedListenerReference(T* target, void (T::*slot)(QSharedPointer<ReceivedMessage>));
-        virtual bool invokeDirectly(const QSharedPointer<ReceivedMessage>& receivedMessagePointer, const QSharedPointer<Node>& sourceNode);
-        virtual bool isSourced() const { return false; }
-        virtual QObject* getObject() const { return _target; }
+        virtual bool invokeDirectly(const QSharedPointer<ReceivedMessage>& receivedMessagePointer, const QSharedPointer<Node>& sourceNode) override;
+        virtual bool isSourced() const override { return false; }
+        virtual QObject* getObject() const override { return _target; }
 
     private:
         QPointer<T> _target;
@@ -98,9 +99,9 @@ private:
     class SourcedListenerReference : public ListenerReference {
     public:
         inline SourcedListenerReference(T* target, void (T::*slot)(QSharedPointer<ReceivedMessage>, QSharedPointer<Node>));
-        virtual bool invokeDirectly(const QSharedPointer<ReceivedMessage>& receivedMessagePointer, const QSharedPointer<Node>& sourceNode);
-        virtual bool isSourced() const { return true; }
-        virtual QObject* getObject() const { return _target; }
+        virtual bool invokeDirectly(const QSharedPointer<ReceivedMessage>& receivedMessagePointer, const QSharedPointer<Node>& sourceNode) override;
+        virtual bool isSourced() const override { return true; }
+        virtual QObject* getObject() const override { return _target; }
 
     private:
         QPointer<T> _target;
@@ -129,7 +130,7 @@ private:
     QMutex _directConnectSetMutex;
     QSet<QObject*> _directlyConnectedObjects;
 
-    std::unordered_map<std::pair<HifiSockAddr, udt::Packet::MessageNumber>, QSharedPointer<ReceivedMessage>> _pendingMessages;
+    std::unordered_map<std::pair<SockAddr, udt::Packet::MessageNumber>, QSharedPointer<ReceivedMessage>> _pendingMessages;
     
     friend class EntityEditPacketSender;
     friend class OctreePacketProcessor;

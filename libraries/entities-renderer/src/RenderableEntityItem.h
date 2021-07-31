@@ -55,8 +55,16 @@ public:
 
     const uint64_t& getUpdateTime() const { return _updateTime; }
 
+    enum class Pipeline {
+        SIMPLE,
+        MATERIAL,
+        PROCEDURAL
+    };
     virtual void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
     virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
+    virtual graphics::MaterialPointer getTopMaterial();
+    static Pipeline getPipelineType(const graphics::MultiMaterial& materials);
+    virtual gpu::TexturePointer getTexture() { return nullptr; }
 
     virtual scriptable::ScriptableModelBase getScriptableModel() override { return scriptable::ScriptableModelBase(); }
 
@@ -117,6 +125,14 @@ protected:
 
     Transform getTransformToCenterWithMaybeOnlyLocalRotation(const EntityItemPointer& entity, bool& success) const;
 
+    // Shared methods for entities that support materials
+    using MaterialMap = std::unordered_map<std::string, graphics::MultiMaterial>;
+    bool needsRenderUpdateFromMaterials() const;
+    void updateMaterials(bool baseMaterialChanged = false);
+    bool materialsTransparent() const;
+    Item::Bound getMaterialBound(RenderArgs* args);
+    void updateShapeKeyBuilderFromMaterials(ShapeKey::Builder& builder);
+
     Item::Bound _bound;
     SharedSoundPointer _collisionSound;
     QUuid _changeHandlerId;
@@ -132,13 +148,13 @@ protected:
     RenderLayer _renderLayer { RenderLayer::WORLD };
     PrimitiveMode _primitiveMode { PrimitiveMode::SOLID };
     QVector<QUuid> _renderWithZones;
-    BillboardMode _billboardMode;
+    BillboardMode _billboardMode { BillboardMode::NONE };
     bool _cauterized { false };
     bool _moving { false };
     Transform _renderTransform;
 
-    std::unordered_map<std::string, graphics::MultiMaterial> _materials;
-    std::mutex _materialsLock;
+    MaterialMap _materials;
+    mutable std::mutex _materialsLock;
 
     quint64 _created;
 

@@ -535,7 +535,7 @@ bool OculusMobileInputDevice::triggerHapticPulse(float strength, float duration,
     return success;
 }
 
-/**jsdoc
+/*@jsdoc
  * <p>The <code>Controller.Hardware.OculusTouch</code> object has properties representing Oculus Rift. The property values are 
  * integer IDs, uniquely identifying each output. <em>Read-only.</em> These can be mapped to actions or functions or 
  * <code>Controller.Standard</code> items in a {@link RouteObject} mapping.</p>

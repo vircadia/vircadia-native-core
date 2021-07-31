@@ -17,7 +17,7 @@
 
 #include "DependencyManager.h"
 
-/**jsdoc
+/*@jsdoc
  * The <code>Keyboard</code> API provides facilities to use an in-world, virtual keyboard. When enabled, this keyboard is 
  * displayed instead of the 2D keyboard that raises at the bottom of the tablet or Web entities when a text input field has 
  * focus and you're in HMD mode.
@@ -48,7 +48,7 @@ public:
     KeyboardScriptingInterface() = default;
     ~KeyboardScriptingInterface() = default;
 
-    /**jsdoc
+    /*@jsdoc
      * Loads a JSON file that defines the virtual keyboard's layout. The default JSON file used is 
      * {@link https://github.com/highfidelity/hifi/blob/master/interface/resources/config/keyboard.json|https://github.com/highfidelity/hifi/.../keyboard.json}.
      * @function Keyboard.loadKeyboardFile
@@ -56,45 +56,45 @@ public:
      */
     Q_INVOKABLE void loadKeyboardFile(const QString& string);
 
-    /**jsdoc
+    /*@jsdoc
      * Enables the left mallet so that it is displayed when in HMD mode.
      * @function Keyboard.enableLeftMallet
      */
     Q_INVOKABLE void enableLeftMallet();
 
-    /**jsdoc
+    /*@jsdoc
      * Enables the right mallet so that it is displayed when in HMD mode.
      * @function Keyboard.enableRightMallet
      */
     Q_INVOKABLE void enableRightMallet();
 
-    /**jsdoc
+    /*@jsdoc
      * Disables the left mallet so that it is not displayed when in HMD mode.
      * @function Keyboard.disableLeftMallet
      */
     Q_INVOKABLE void disableLeftMallet();
 
-    /**jsdoc
+    /*@jsdoc
      * Disables the right mallet so that it is not displayed when in HMD mode.
      * @function Keyboard.disableRightMallet
      */
     Q_INVOKABLE void disableRightMallet();
 
-    /**jsdoc
+    /*@jsdoc
      * Configures the virtual keyboard to recognize a ray pointer as the left hand's laser.
      * @function Keyboard.setLeftHandLaser
      * @param {number} leftHandLaser - The ID of a ray pointer created by {@link Pointers.createPointer}.
      */
     Q_INVOKABLE void setLeftHandLaser(unsigned int leftHandLaser);
 
-    /**jsdoc
+    /*@jsdoc
      * Configures the virtual keyboard to recognize a ray pointer as the right hand's laser.
      * @function Keyboard.setRightHandLaser
      * @param {number} rightHandLaser - The ID of a ray pointer created by {@link Pointers.createPointer}.
      */
     Q_INVOKABLE void setRightHandLaser(unsigned int rightHandLaser);
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether an entity is part of the virtual keyboard.
      * @function Keyboard.containsID
      * @param {Uuid} entityID - The entity ID.

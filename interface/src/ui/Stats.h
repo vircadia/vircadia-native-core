@@ -23,7 +23,7 @@ public: \
 private: \
     type _##name{ initialValue };
 
-/**jsdoc
+/*@jsdoc
  * The <code>Stats</code> API provides statistics on Interface and domain operation, per the statistics overlay.
  *
  * <p><strong>Note:</strong> This API is primarily an internal diagnostics tool and is provided "as is".</p>
@@ -626,7 +626,7 @@ public:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * Updates statistics to make current values available to scripts even though the statistics overlay may not be displayed.
      * (Many statistics values are normally updated only if the statistics overlay is displayed.)
      * <p><strong>Note:</strong> Not all statistics values are updated when the statistics overlay isn't displayed or 
@@ -655,364 +655,364 @@ signals:
 
     // Signals for properties...
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>expanded</code> property changes.
      * @function Stats.expandedChanged
      * @returns {Signal}
      */
     void expandedChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>timingExpanded</code> property changes.
      * @function Stats.timingExpandedChanged
      * @returns {Signal}
      */
     void timingExpandedChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>serverCount</code> property changes.
      * @function Stats.serverCountChanged
      * @returns {Signal}
      */
     void serverCountChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>renderrate</code> property changes.
      * @function Stats.renderrateChanged
      * @returns {Signal}
      */
     void renderrateChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>presentrate</code> property changes.
      * @function Stats.presentrateChanged
      * @returns {Signal}
      */
     void presentrateChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>stutterrate</code> property changes.
      * @function Stats.stutterrateChanged
      * @returns {Signal}
      */
     void stutterrateChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>appdropped</code> property changes.
      * @function Stats.appdroppedChanged
      * @returns {Signal}
      */
     void appdroppedChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>longsubmits</code> property changes.
      * @function Stats.longsubmitsChanged
      * @returns {Signal}
      */
     void longsubmitsChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>longrenders</code> property changes.
      * @function Stats.longrendersChanged
      * @returns {Signal}
      */
     void longrendersChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>longframes</code> property changes.
      * @function Stats.longframesChanged
      * @returns {Signal}
      */
     void longframesChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>presentnewrate</code> property changes.
      * @function Stats.presentnewrateChanged
      * @returns {Signal}
      */
     void presentnewrateChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>presentdroprate</code> property changes.
      * @function Stats.presentdroprateChanged
      * @returns {Signal}
      */
     void presentdroprateChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>gameLoopRate</code> property changes.
      * @function Stats.gameLoopRateChanged
      * @returns {Signal}
      */
     void gameLoopRateChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>avatarCount</code> property changes.
      * @function Stats.avatarCountChanged
      * @returns {Signal}
      */
     void avatarCountChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>refreshRateTarget</code> property changes.
      * @function Stats.refreshRateTargetChanged
      * @returns {Signal}
      */
     void refreshRateTargetChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>refreshRateMode</code> property changes.
      * @function Stats.refreshRateModeChanged
      * @returns {Signal}
      */
     void refreshRateModeChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>refreshRateRegime</code> property changes.
      * @function Stats.refreshRateRegimeChanged
      * @returns {Signal}
      */
     void refreshRateRegimeChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>uxMode</code> property changes.
      * @function Stats.uxModeChanged
      * @returns {Signal}
      */
     void uxModeChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>heroAvatarCount</code> property changes.
      * @function Stats.heroAvatarCountChanged
      * @returns {Signal}
      */
     void heroAvatarCountChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>physicsObjectCount</code> property changes.
      * @function Stats.physicsObjectCountChanged
      * @returns {Signal}
      */
     void physicsObjectCountChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>updatedAvatarCount</code> property changes.
      * @function Stats.updatedAvatarCountChanged
      * @returns {Signal}
      */
     void updatedAvatarCountChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>updatedHeroAvatarCount</code> property changes.
      * @function Stats.updatedHeroAvatarCountChanged
      * @returns {Signal}
      */
     void updatedHeroAvatarCountChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>notUpdatedAvatarCount</code> property changes.
      * @function Stats.notUpdatedAvatarCountChanged
      * @returns {Signal}
      */
     void notUpdatedAvatarCountChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>packetInCount</code> property changes.
      * @function Stats.packetInCountChanged
      * @returns {Signal}
      */
     void packetInCountChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>packetOutCount</code> property changes.
      * @function Stats.packetOutCountChanged
      * @returns {Signal}
      */
     void packetOutCountChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>mbpsIn</code> property changes.
      * @function Stats.mbpsInChanged
      * @returns {Signal}
      */
     void mbpsInChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>mbpsOut</code> property changes.
      * @function Stats.mbpsOutChanged
      * @returns {Signal}
      */
     void mbpsOutChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>assetMbpsIn</code> property changes.
      * @function Stats.assetMbpsInChanged
      * @returns {Signal}
      */
     void assetMbpsInChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>assetMbpsOut</code> property changes.
      * @function Stats.assetMbpsOutChanged
      * @returns {Signal}
      */
     void assetMbpsOutChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>audioPing</code> property changes.
      * @function Stats.audioPingChanged
      * @returns {Signal}
      */
     void audioPingChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>avatarPing</code> property changes.
      * @function Stats.avatarPingChanged
      * @returns {Signal}
      */
     void avatarPingChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>entitiesPing</code> property changes.
      * @function Stats.entitiesPingChanged
      * @returns {Signal}
      */
     void entitiesPingChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>assetPing</code> property changes.
      * @function Stats.assetPingChanged
      * @returns {Signal}
      */
     void assetPingChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>messagePing</code> property changes.
      * @function Stats.messagePingChanged
      * @returns {Signal}
      */
     void messagePingChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>position</code> property changes.
      * @function Stats.positionChanged
      * @returns {Signal}
      */
     void positionChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>speed</code> property changes.
      * @function Stats.speedChanged
      * @returns {Signal}
      */
     void speedChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>yaw</code> property changes.
      * @function Stats.yawChanged
      * @returns {Signal}
      */
     void yawChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>avatarMixerInKbps</code> property changes.
      * @function Stats.avatarMixerInKbpsChanged
      * @returns {Signal}
      */
     void avatarMixerInKbpsChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>avatarMixerInPps</code> property changes.
      * @function Stats.avatarMixerInPpsChanged
      * @returns {Signal}
      */
     void avatarMixerInPpsChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>avatarMixerOutKbps</code> property changes.
      * @function Stats.avatarMixerOutKbpsChanged
      * @returns {Signal}
      */
     void avatarMixerOutKbpsChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>avatarMixerOutPps</code> property changes.
      * @function Stats.avatarMixerOutPpsChanged
      * @returns {Signal}
      */
     void avatarMixerOutPpsChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>myAvatarSendRate</code> property changes.
      * @function Stats.myAvatarSendRateChanged
      * @returns {Signal}
      */
     void myAvatarSendRateChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>audioMixerInKbps</code> property changes.
      * @function Stats.audioMixerInKbpsChanged
      * @returns {Signal}
      */
     void audioMixerInKbpsChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>audioMixerInPps</code> property changes.
      * @function Stats.audioMixerInPpsChanged
      * @returns {Signal}
      */
     void audioMixerInPpsChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>audioMixerOutKbps</code> property changes.
      * @function Stats.audioMixerOutKbpsChanged
      * @returns {Signal}
      */
     void audioMixerOutKbpsChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>audioMixerOutPps</code> property changes.
      * @function Stats.audioMixerOutPpsChanged
      * @returns {Signal}
      */
     void audioMixerOutPpsChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>audioMixerKbps</code> property changes.
      * @function Stats.audioMixerKbpsChanged
      * @returns {Signal}
      */
     void audioMixerKbpsChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>audioMixerPps</code> property changes.
      * @function Stats.audioMixerPpsChanged
      * @returns {Signal}
      */
     void audioMixerPpsChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>audioOutboundPPS</code> property changes.
      * @function Stats.audioOutboundPPSChanged
      * @returns {Signal}
      */
     void audioOutboundPPSChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>audioSilentOutboundPPS</code> property changes.
      * @function Stats.audioSilentOutboundPPSChanged
      * @returns {Signal}
      */
     void audioSilentOutboundPPSChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>audioInboundPPS</code> property changes.
      * @function Stats.audioInboundPPSChanged
      * @returns {Signal}
      */
     void audioInboundPPSChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>audioAudioInboundPPS</code> property changes.
      * @function Stats.audioAudioInboundPPSChanged
      * @returns {Signal}
@@ -1021,504 +1021,504 @@ signals:
      */
     void audioAudioInboundPPSChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>audioSilentInboundPPS</code> property changes.
      * @function Stats.audioSilentInboundPPSChanged
      * @returns {Signal}
      */
     void audioSilentInboundPPSChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>audioPacketLoss</code> property changes.
      * @function Stats.audioPacketLossChanged
      * @returns {Signal}
      */
     void audioPacketLossChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>audioCodec</code> property changes.
      * @function Stats.audioCodecChanged
      * @returns {Signal}
      */
     void audioCodecChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>audioNoiseGate</code> property changes.
      * @function Stats.audioNoiseGateChanged
      * @returns {Signal}
      */
     void audioNoiseGateChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>audioInjectors</code> property changes.
      * @function Stats.audioInjectorsChanged
      * @returns {Signal}
      */
     void audioInjectorsChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>entityPacketsInKbps</code> property changes.
      * @function Stats.entityPacketsInKbpsChanged
      * @returns {Signal}
      */
     void entityPacketsInKbpsChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>downloads</code> property changes.
      * @function Stats.downloadsChanged
      * @returns {Signal}
      */
     void downloadsChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>downloadLimit</code> property changes.
      * @function Stats.downloadLimitChanged
      * @returns {Signal}
      */
     void downloadLimitChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>downloadsPending</code> property changes.
      * @function Stats.downloadsPendingChanged
      * @returns {Signal}
      */
     void downloadsPendingChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>downloadUrls</code> property changes.
      * @function Stats.downloadUrlsChanged
      * @returns {Signal}
      */
     void downloadUrlsChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>processing</code> property changes.
      * @function Stats.processingChanged
      * @returns {Signal}
      */
     void processingChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>processingPending</code> property changes.
      * @function Stats.processingPendingChanged
      * @returns {Signal}
      */
     void processingPendingChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>triangles</code> property changes.
      * @function Stats.trianglesChanged
      * @returns {Signal}
      */
     void trianglesChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>drawcalls</code> property changes.
      * @function Stats.drawcallsChanged
      * @returns {Signal}
      */
     void drawcallsChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>materialSwitches</code> property changes.
      * @function Stats.materialSwitchesChanged
      * @returns {Signal}
      */
     void materialSwitchesChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>itemConsidered</code> property changes.
      * @function Stats.itemConsideredChanged
      * @returns {Signal}
      */
     void itemConsideredChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>itemOutOfView</code> property changes.
      * @function Stats.itemOutOfViewChanged
      * @returns {Signal}
      */
     void itemOutOfViewChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>itemTooSmall</code> property changes.
      * @function Stats.itemTooSmallChanged
      * @returns {Signal}
      */
     void itemTooSmallChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>itemRendered</code> property changes.
      * @function Stats.itemRenderedChanged
      * @returns {Signal}
      */
     void itemRenderedChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>shadowConsidered</code> property changes.
      * @function Stats.shadowConsideredChanged
      * @returns {Signal}
      */
     void shadowConsideredChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>shadowOutOfView</code> property changes.
      * @function Stats.shadowOutOfViewChanged
      * @returns {Signal}
      */
     void shadowOutOfViewChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>shadowTooSmall</code> property changes.
      * @function Stats.shadowTooSmallChanged
      * @returns {Signal}
      */
     void shadowTooSmallChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>shadowRendered</code> property changes.
      * @function Stats.shadowRenderedChanged
      * @returns {Signal}
      */
     void shadowRenderedChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>sendingMode</code> property changes.
      * @function Stats.sendingModeChanged
      * @returns {Signal}
      */
     void sendingModeChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>packetStats</code> property changes.
      * @function Stats.packetStatsChanged
      * @returns {Signal}
      */
     void packetStatsChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>lodAngle</code> property changes.
      * @function Stats.lodAngleChanged
      * @returns {Signal}
      */
     void lodAngleChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>lodTargetFramerate</code> property changes.
      * @function Stats.lodTargetFramerateChanged
      * @returns {Signal}
      */
     void lodTargetFramerateChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>lodStatus</code> property changes.
      * @function Stats.lodStatusChanged
      * @returns {Signal}
      */
     void lodStatusChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>numEntityUpdates</code> property changes.
      * @function Stats.numEntityUpdatesChanged
      * @returns {Signal}
      */
     void numEntityUpdatesChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>numNeededEntityUpdates</code> property changes.
      * @function Stats.numNeededEntityUpdatesChanged
      * @returns {Signal}
      */
     void numNeededEntityUpdatesChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>timingStats</code> property changes.
      * @function Stats.timingStatsChanged
      * @returns {Signal}
      */
     void timingStatsChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>gameUpdateStats</code> property changes.
      * @function Stats.gameUpdateStatsChanged
      * @returns {Signal}
      */
     void gameUpdateStatsChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>serverElements</code> property changes.
      * @function Stats.serverElementsChanged
      * @returns {Signal}
      */
     void serverElementsChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>serverInternal</code> property changes.
      * @function Stats.serverInternalChanged
      * @returns {Signal}
      */
     void serverInternalChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>serverLeaves</code> property changes.
      * @function Stats.serverLeavesChanged
      * @returns {Signal}
      */
     void serverLeavesChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>localElements</code> property changes.
      * @function Stats.localElementsChanged
      * @returns {Signal}
      */
     void localElementsChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>localInternal</code> property changes.
      * @function Stats.localInternalChanged
      * @returns {Signal}
      */
     void localInternalChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>localLeaves</code> property changes.
      * @function Stats.localLeavesChanged
      * @returns {Signal}
      */
     void localLeavesChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>rectifiedTextureCount</code> property changes.
      * @function Stats.rectifiedTextureCountChanged
      * @returns {Signal}
      */
     void rectifiedTextureCountChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>decimatedTextureCount</code> property changes.
      * @function Stats.decimatedTextureCountChanged
      * @returns {Signal}
      */
     void decimatedTextureCountChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>gpuBuffers</code> property changes.
      * @function Stats.gpuBuffersChanged
      * @returns {Signal}
      */
     void gpuBuffersChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>gpuBufferMemory</code> property changes.
      * @function Stats.gpuBufferMemoryChanged
      * @returns {Signal}
      */
     void gpuBufferMemoryChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>gpuTextures</code> property changes.
      * @function Stats.gpuTexturesChanged
      * @returns {Signal}
      */
     void gpuTexturesChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>glContextSwapchainMemory</code> property changes.
      * @function Stats.glContextSwapchainMemoryChanged
      * @returns {Signal}
      */
     void glContextSwapchainMemoryChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>qmlTextureMemory</code> property changes.
      * @function Stats.qmlTextureMemoryChanged
      * @returns {Signal}
      */
     void qmlTextureMemoryChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>texturePendingTransfers</code> property changes.
      * @function Stats.texturePendingTransfersChanged
      * @returns {Signal}
      */
     void texturePendingTransfersChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>gpuTextureMemory</code> property changes.
      * @function Stats.gpuTextureMemoryChanged
      * @returns {Signal}
      */
     void gpuTextureMemoryChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>gpuTextureResidentMemory</code> property changes.
      * @function Stats.gpuTextureResidentMemoryChanged
      * @returns {Signal}
      */
     void gpuTextureResidentMemoryChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>gpuTextureFramebufferMemory</code> property changes.
      * @function Stats.gpuTextureFramebufferMemoryChanged
      * @returns {Signal}
      */
     void gpuTextureFramebufferMemoryChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>gpuTextureResourceMemory</code> property changes.
      * @function Stats.gpuTextureResourceMemoryChanged
      * @returns {Signal}
      */
     void gpuTextureResourceMemoryChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>gpuTextureResourceIdealMemory</code> property changes.
      * @function Stats.gpuTextureResourceIdealMemoryChanged
      * @returns {Signal}
      */
     void gpuTextureResourceIdealMemoryChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>gpuTextureResourcePopulatedMemory</code> property changes.
      * @function Stats.gpuTextureResourcePopulatedMemoryChanged
      * @returns {Signal}
      */
     void gpuTextureResourcePopulatedMemoryChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>gpuTextureExternalMemory</code> property changes.
      * @function Stats.gpuTextureExternalMemoryChanged
      * @returns {Signal}
      */
     void gpuTextureExternalMemoryChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>gpuTextureMemoryPressureState</code> property changes.
      * @function Stats.gpuTextureMemoryPressureStateChanged
      * @returns {Signal}
      */
     void gpuTextureMemoryPressureStateChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>gpuFreeMemory</code> property changes.
      * @function Stats.gpuFreeMemoryChanged
      * @returns {Signal}
      */
     void gpuFreeMemoryChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>gpuFrameSize</code> property changes.
      * @function Stats.gpuFrameSizeChanged
      * @returns {Signal}
      */
     void gpuFrameSizeChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>gpuFrameTime</code> property changes.
      * @function Stats.gpuFrameTimeChanged
      * @returns {Signal}
      */
     void gpuFrameTimeChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>gpuFrameTimePerPixel</code> property changes.
      * @function Stats.gpuFrameTimePerPixelChanged
      * @returns {Signal}
      */
     void gpuFrameTimePerPixelChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>batchFrameTime</code> property changes.
      * @function Stats.batchFrameTimeChanged
      * @returns {Signal}
      */
     void batchFrameTimeChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>engineFrameTime</code> property changes.
      * @function Stats.engineFrameTimeChanged
      * @returns {Signal}
      */
     void engineFrameTimeChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>avatarSimulationTime</code> property changes.
      * @function Stats.avatarSimulationTimeChanged
      * @returns {Signal}
      */
     void avatarSimulationTimeChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>stylusPicksCount</code> property changes.
      * @function Stats.stylusPicksCountChanged
      * @returns {Signal}
      */
     void stylusPicksCountChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>rayPicksCount</code> property changes.
      * @function Stats.rayPicksCountChanged
      * @returns {Signal}
      */
     void rayPicksCountChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>parabolaPicksCount</code> property changes.
      * @function Stats.parabolaPicksCountChanged
      * @returns {Signal}
      */
     void parabolaPicksCountChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>collisionPicksCount</code> property changes.
      * @function Stats.collisionPicksCountChanged
      * @returns {Signal}
      */
     void collisionPicksCountChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>stylusPicksUpdated</code> property changes.
      * @function Stats.stylusPicksUpdatedChanged
      * @returns {Signal}
      */
     void stylusPicksUpdatedChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>rayPicksUpdated</code> property changes.
      * @function Stats.rayPicksUpdatedChanged
      * @returns {Signal}
      */
     void rayPicksUpdatedChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>parabolaPicksUpdated</code> property changes.
      * @function Stats.parabolaPicksUpdatedChanged
      * @returns {Signal}
      */
     void parabolaPicksUpdatedChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>collisionPicksUpdated</code> property changes.
      * @function Stats.collisionPicksUpdatedChanged
      * @returns {Signal}
      */
     void collisionPicksUpdatedChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>mainThreadQueueDepth</code> property changes.
      * @function Stats.mainThreadQueueDepthChanged
      * @returns {Signal}
      */
     void mainThreadQueueDepthChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>nodeListThreadQueueDepth</code> property changes.
      * @function Stats.nodeListThreadQueueDepth
      * @returns {Signal}
      */
     void nodeListThreadQueueDepthChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>eventQueueDebuggingOn</code> property changes.
      * @function Stats.eventQueueDebuggingOnChanged
      * @returns {Signal}
@@ -1528,7 +1528,7 @@ signals:
 
     // Stats.qml signals: shouldn't be in the API.
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>bgColor</code> property changes.
      * @function Stats.bgColorChanged
      * @returns {Signal}
@@ -1538,7 +1538,7 @@ signals:
 
     // QQuickItem signals: shouldn't be in the API.
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>activeFocus</code> property changes.
      * @function Stats.activeFocusChanged
      * @param {boolean} activeFocus - Active focus.
@@ -1546,7 +1546,7 @@ signals:
      * @deprecated This signal is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>activeFocusOnTab</code> property changes.
      * @function Stats.activeFocusOnTabChanged
      * @param {boolean} activeFocusOnTab - Active focus on tab.
@@ -1554,7 +1554,7 @@ signals:
      * @deprecated This signal is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>antialiasing</code> property changes.
      * @function Stats.antialiasingChanged
      * @param {boolean} antialiasing - Antialiasing.
@@ -1562,7 +1562,7 @@ signals:
      * @deprecated This signal is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>baselineOffset</code> property changes.
      * @function Stats.baselineOffsetChanged
      * @param {number} baselineOffset - Baseline offset.
@@ -1570,14 +1570,14 @@ signals:
      * @deprecated This signal is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>children</code> property changes.
      * @function Stats.childrenChanged
      * @returns {Signal}
      * @deprecated This signal is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the position and size of the rectangle containing the children changes.
      * @function Stats.childrenRectChanged
      * @param {Rect} childrenRect - Children rect.
@@ -1586,7 +1586,7 @@ signals:
      */
 
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>clip</code> property changes.
      * @function Stats.clipChanged
      * @param {boolean} clip - Clip.
@@ -1594,21 +1594,21 @@ signals:
      * @deprecated This signal is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>containmentMask</code> property changes.
      * @function Stats.containmentMaskChanged
      * @returns {Signal}
      * @deprecated This signal is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>enabled</code> property changes.
      * @function Stats.enabledChanged
      * @returns {Signal}
      * @deprecated This signal is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>focus</code> property changes.
      * @function Stats.focusChanged
      * @param {boolean} focus - Focus.
@@ -1616,35 +1616,35 @@ signals:
      * @deprecated This signal is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>height</code> property changes.
      * @function Stats.heightChanged
      * @returns {Signal}
      * @deprecated This signal is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>implicitHeight</code> property changes.
      * @function Stats.implicitHeightChanged
      * @returns {Signal}
      * @deprecated This signal is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>implicitWidth</code> property changes.
      * @function Stats.implicitWidthChanged
      * @returns {Signal}
      * @deprecated This signal is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>opacity</code> property changes.
      * @function Stats.opacityChanged
      * @returns {Signal}
      * @deprecated This signal is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the parent item changes.
      * @function Stats.parentChanged
      * @param {object} parent - Parent.
@@ -1652,21 +1652,21 @@ signals:
      * @deprecated This signal is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>rotation</code> property changes.
      * @function Stats.rotationChanged
      * @returns {Signal}
      * @deprecated This signal is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>scale</code> property changes.
      * @function Stats.scaleChanged
      * @returns {Signal}
      * @deprecated This signal is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>smooth</code> property changes.
      * @function Stats.smoothChanged
      * @param {boolean} smooth - Smooth.
@@ -1674,7 +1674,7 @@ signals:
      * @deprecated This signal is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>state</code> property changes.
      * @function Stats.stateChanged
      * @paramm {string} state - State.
@@ -1682,7 +1682,7 @@ signals:
      * @deprecated This signal is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>transformOrigin</code> property changes.
      * @function Stats.transformOriginChanged
      * @param {number} transformOrigin - Transformm origin.
@@ -1690,28 +1690,28 @@ signals:
      * @deprecated This signal is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>visibleChanged</code> property changes.
      * @function Stats.visibleChanged
      * @returns {Signal}
      * @deprecated This signal is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the list of visible children changes.
      * @function Stats.visibleChildrenChanged
      * @returns {Signal}
      * @deprecated This signal is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>width</code> property changes.
      * @function Stats.widthChanged
      * @returns {Signal}
      * @deprecated This signal is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the stats window changes.
      * @function Stats.windowChanged
      * @param {object} window - Window.
@@ -1719,21 +1719,21 @@ signals:
      * @deprecated This signal is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>x</code> property changes.
      * @function Stats.xChanged
      * @returns {Signal}
      * @deprecated This signal is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>y</code> property changes.
      * @function Stats.yChanged
      * @returns {Signal}
      * @deprecated This signal is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>z</code> property changes.
      * @function Stats.zChanged
      * @returns {Signal}
@@ -1743,7 +1743,7 @@ signals:
 
     // QQuickItem methods: shouldn't be in the API.
 
-    /**jsdoc
+    /*@jsdoc
      * @function Stats.childAt
      * @param {number} x - X.
      * @param {number} y - Y.
@@ -1751,20 +1751,20 @@ signals:
      * @deprecated This method is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * @function Stats.contains
      * @param {Vec2} point - Point
      * @returns {boolean}
      * @deprecated This method is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * @function Stats.forceActiveFocus
      * @param {number} [reason=7] - Reason
      * @deprecated This method is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * @function Stats.grabToImage
      * @param {object} callback - Callback.
      * @param {Size} [targetSize=0,0] - Target size.
@@ -1772,38 +1772,38 @@ signals:
      * @deprecated This method is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * @function Stats.mapFromGlobal
      * @param {object} global - Global.
      * @deprecated This method is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * @function Stats.mapFromItem
      * @param {object} item - Item.
      * @deprecated This method is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * @function Stats.mapToGlobal
      * @param {object} global - Global.
      * @deprecated This method is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * @function Stats.mapToItem
      * @param {object} item - Item
      * @deprecated This method is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * @function Stats.nextItemInFocusChain
      * @param {boolean} [forward=true] - Forward.
      * @returns {object}
      * @deprecated This method is deprecated and will be removed.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * @function Stats.update
      * @deprecated This method is deprecated and will be removed.
      */

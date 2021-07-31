@@ -4,24 +4,19 @@ project(${TARGET_NAME})
 set(CUSTOM_NITPICK_QRC_PATHS "")
 
 find_npm()
+find_package(Qt5 COMPONENTS Widgets)
 
 set(RESOURCES_QRC ${CMAKE_CURRENT_BINARY_DIR}/resources.qrc)
-set(RESOURCES_RCC ${CMAKE_CURRENT_SOURCE_DIR}/compiledResources/resources.rcc)
+set(RESOURCES_RCC ${CMAKE_CURRENT_BINARY_DIR}/resources.rcc)
 generate_qrc(OUTPUT ${RESOURCES_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources CUSTOM_PATHS ${CUSTOM_NITPICK_QRC_PATHS} GLOBS *)
 
-add_custom_command(
-    OUTPUT ${RESOURCES_RCC}
-    DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
-    COMMAND "${QT_DIR}/bin/rcc"
-    ARGS ${RESOURCES_QRC} -binary -o ${RESOURCES_RCC}
-)
+qt5_add_binary_resources(nitpick_resources "${RESOURCES_QRC}" DESTINATION "${RESOURCES_RCC}" OPTIONS -no-compress)
 
 # grab the implementation and header files from src dirs
 file(GLOB_RECURSE NITPICK_SRCS "src/*.cpp" "src/*.h")
 GroupSources("src")
 list(APPEND NITPICK_SRCS ${RESOURCES_RCC})
 
-find_package(Qt5 COMPONENTS Widgets)
 
 # grab the ui files in ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
@@ -31,6 +26,7 @@ source_group("UI Files" FILES ${QT_UI_FILES})
 qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 
 setup_memory_debugger()
+setup_thread_debugger()
 
 # add them to the nitpick source files
 set(NITPICK_SRCS ${NITPICK_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
@@ -82,9 +78,7 @@ else ()
     add_executable(${TARGET_NAME} ${NITPICK_SRCS} ${QM})
 endif ()
 
-if (NOT UNIX)
-    add_dependencies(${TARGET_NAME} resources)
-endif()
+add_dependencies(${TARGET_NAME} nitpick_resources)
 
 # disable /OPT:REF and /OPT:ICF for the Debug builds
 # This will prevent the following linker warnings
@@ -138,7 +132,7 @@ include_directories("${PROJECT_SOURCE_DIR}/src")
 if (UNIX AND NOT ANDROID)
     if (CMAKE_SYSTEM_NAME MATCHES "Linux")
         # Linux
-        target_link_libraries(${TARGET_NAME} pthread atomic)
+        target_link_libraries(${TARGET_NAME} atomic pthread)
     else ()
         # OSX
         target_link_libraries(${TARGET_NAME} pthread)

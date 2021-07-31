@@ -26,7 +26,6 @@
 #define __LOC__ __FILE__ "(" __STR1__(__LINE__) ") : Warning Msg: "
 
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-static const bool HIFI_SCRIPT_DEBUGGABLES { true };
 static const QString SETTINGS_KEY { "RunningScripts" };
 static const QUrl DEFAULT_SCRIPTS_LOCATION { "file:///~//defaultScripts.js" };
 
@@ -193,7 +192,7 @@ void ScriptEngines::shutdownScripting() {
     qCDebug(scriptengine) << "DONE Stopping all scripts....";
 }
 
-/**jsdoc
+/*@jsdoc
  * Information on a public script, i.e., a script that's included in the Interface installation.
  * @typedef {object} ScriptDiscoveryService.PublicScript
  * @property {string} name - The script's file name.
@@ -236,7 +235,7 @@ QVariantList ScriptEngines::getPublic() {
     return getPublicChildNodes(NULL);
 }
 
-/**jsdoc
+/*@jsdoc
  * Information on a local script.
  * @typedef {object} ScriptDiscoveryService.LocalScript
  * @property {string} name - The script's file name.
@@ -263,7 +262,7 @@ QVariantList ScriptEngines::getLocal() {
     return result;
 }
 
-/**jsdoc
+/*@jsdoc
  * Information on a running script.
  * @typedef {object} ScriptDiscoveryService.RunningScript
  * @property {boolean} local - <code>true</code> if the script is a local file (i.e., the scheme is "file"), <code>false</code> 
@@ -589,17 +588,7 @@ void ScriptEngines::launchScriptEngine(ScriptEnginePointer scriptEngine) {
 
     // register our application services and set it off on its own thread
     runScriptInitializers(scriptEngine);
-
-    // FIXME disabling 'shift key' debugging for now.  If you start up the application with
-    // the shift key held down, it triggers a deadlock because of script interfaces running
-    // on the main thread
-    auto const wantDebug = scriptEngine->isDebuggable(); //  || (qApp->queryKeyboardModifiers() & Qt::ShiftModifier);
-
-    if (HIFI_SCRIPT_DEBUGGABLES && wantDebug) {
-        scriptEngine->runDebuggable();
-    } else {
-        scriptEngine->runInThread();
-    }
+    scriptEngine->runInThread();
 }
 
 void ScriptEngines::onScriptFinished(const QString& rawScriptURL, ScriptEnginePointer engine) {

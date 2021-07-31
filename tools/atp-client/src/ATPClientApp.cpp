@@ -59,7 +59,7 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
     parser.addOption(listenPortOption);
 
     if (!parser.parse(QCoreApplication::arguments())) {
-        qCritical() << parser.errorText() << endl;
+        qCritical() << parser.errorText() << Qt::endl;
         parser.showHelp();
         Q_UNREACHABLE();
     }

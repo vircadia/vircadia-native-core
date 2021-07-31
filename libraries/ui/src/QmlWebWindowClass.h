@@ -11,7 +11,7 @@
 
 #include "QmlWindowClass.h"
 
-/**jsdoc
+/*@jsdoc
  * A <code>OverlayWebWindow</code> displays an HTML window inside Interface.
  *
  * <p>Create using <code>new OverlayWebWindow(...)</code>.</p>
@@ -63,25 +63,25 @@
  * @borrows OverlayWindow.qmlToScript as qmlToScript
  */
 
-/**jsdoc
+/*@jsdoc
  * @function OverlayWebWindow.clearDebugWindow
  * @deprecated This method is deprecated and will be removed.
  */
 
-/**jsdoc
+/*@jsdoc
  * @function OverlayWebWindow.sendToQML
  * @param {string | object} message - Message.
  * @deprecated This method is deprecated and will be removed.
  */
 
-/**jsdoc
+/*@jsdoc
  * @function OverlayWebWindow.fromQML
  * @param {object} message - Message.
  * @returns {Signal}
  * @deprecated This signal is deprecated and will be removed.
  */
 
-/**jsdoc
+/*@jsdoc
  * Sends a message to the HTML page. To receive the message, the HTML page's script must connect to the <code>EventBridge</code>
  * that is automatically provided for the script:
  * <pre class="prettyprint"><code>EventBridge.scriptEventReceived.connect(function(message) {
@@ -127,7 +127,7 @@
  * </html>
  */
 
-/**jsdoc
+/*@jsdoc
  * Triggered when a message from the HTML page is received. The HTML page can send a message by calling:
  * <pre class="prettyprint"><code>EventBridge.emitWebEvent(message);</code></pre>
  * @function OverlayWebWindow.webEventReceived
@@ -156,21 +156,21 @@ public:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the URL of the HTML displayed.
      * @function OverlayWebWindow.getURL
      * @returns {string} - The URL of the HTML page displayed.
      */
     QString getURL();
 
-    /**jsdoc
+    /*@jsdoc
      * Loads HTML into the window, replacing current window content.
      * @function OverlayWebWindow.setURL
      * @param {string} url - The URL of the HTML to display.
      */
     void setURL(const QString& url);
 
-    /**jsdoc
+    /*@jsdoc
      * Injects a script into the HTML page, replacing any currently injected script.
      * @function OverlayWebWindow.setScriptURL
      * @param {string} url - The URL of the script to inject.
@@ -178,7 +178,7 @@ public slots:
     void setScriptURL(const QString& script);
 
 signals:
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the window's URL changes.
      * @function OverlayWebWindow.urlChanged
      * @returns {Signal}

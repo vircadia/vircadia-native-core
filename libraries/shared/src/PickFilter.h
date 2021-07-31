@@ -15,7 +15,7 @@
 class PickFilter {
 public:
 
-    /**jsdoc
+    /*@jsdoc
      * <p>A set of flags for a pick filter. The value is constructed by using the <code>|</code> (bitwise OR) operator on the 
      * individual flag values.</p>
      * <table>

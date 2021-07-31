@@ -261,7 +261,7 @@ bool ObjectConstraintSlider::updateArguments(QVariantMap arguments) {
     return true;
 }
 
-/**jsdoc
+/*@jsdoc
  * The <code>"slider"</code> {@link Entities.ActionType|ActionType} lets an entity slide and rotate along an axis, or connects 
  * two entities that slide and rotate along a shared axis.
  * It has arguments in addition to the common {@link Entities.ActionArguments|ActionArguments}:

@@ -57,6 +57,7 @@ EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership
     connect(nodeList.data(), &NodeList::canRezTmpCertifiedChanged, this, &EntityScriptingInterface::canRezTmpCertifiedChanged);
     connect(nodeList.data(), &NodeList::canWriteAssetsChanged, this, &EntityScriptingInterface::canWriteAssetsChanged);
     connect(nodeList.data(), &NodeList::canGetAndSetPrivateUserDataChanged, this, &EntityScriptingInterface::canGetAndSetPrivateUserDataChanged);
+    connect(nodeList.data(), &NodeList::canRezAvatarEntitiesChanged, this, &EntityScriptingInterface::canRezAvatarEntitiesChanged);
 
     auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::EntityScriptCallMethod,
@@ -112,6 +113,11 @@ bool EntityScriptingInterface::canReplaceContent() {
 bool EntityScriptingInterface::canGetAndSetPrivateUserData() {
     auto nodeList = DependencyManager::get<NodeList>();
     return nodeList->getThisNodeCanGetAndSetPrivateUserData();
+}
+
+bool EntityScriptingInterface::canRezAvatarEntities() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanRezAvatarEntities();
 }
 
 void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
@@ -481,6 +487,15 @@ QUuid EntityScriptingInterface::addEntityInternal(const EntityItemProperties& pr
 
     _activityTracking.addedEntityCount++;
 
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    if (entityHostType == entity::HostType::AVATAR && !nodeList->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(entities) << "Ignoring addEntity() because don't have canRezAvatarEntities permission on domain";
+        // Only need to intercept methods that may add an avatar entity because avatar entities are removed from the tree when
+        // the user doesn't have canRezAvatarEntities permission.
+        return QUuid();
+    }
+
     EntityItemProperties propertiesWithSimID = properties;
     propertiesWithSimID.setEntityHostType(entityHostType);
     if (entityHostType == entity::HostType::AVATAR) {
@@ -493,7 +508,6 @@ QUuid EntityScriptingInterface::addEntityInternal(const EntityItemProperties& pr
     }
 
     // the created time will be set in EntityTree::addEntity by recordCreationTime()
-    auto nodeList = DependencyManager::get<NodeList>();
     auto sessionID = nodeList->getSessionUUID();
     propertiesWithSimID.setLastEditedBy(sessionID);
 
@@ -1002,7 +1016,7 @@ void EntityScriptingInterface::deleteEntity(const QUuid& id) {
 
     for (auto entity : entitiesToDeleteImmediately) {
         if (entity->isMyAvatarEntity()) {
-            getEntityPacketSender()->getMyAvatar()->clearAvatarEntity(entity->getID(), false);
+            getEntityPacketSender()->getMyAvatar()->clearAvatarEntityInternal(entity->getID());
         }
     }
 }

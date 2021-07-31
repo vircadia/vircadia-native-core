@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 9/5/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  The avatar mixer receives head, hand and positional data from all connected
 //  nodes, and broadcasts that data back to them, every BROADCAST_INTERVAL ms.
@@ -63,7 +64,7 @@ private slots:
     void handleReplicatedPacket(QSharedPointer<ReceivedMessage> message);
     void handleReplicatedBulkAvatarPacket(QSharedPointer<ReceivedMessage> message);
     void domainSettingsRequestComplete();
-    void handlePacketVersionMismatch(PacketType type, const HifiSockAddr& senderSockAddr, const QUuid& senderUUID);
+    void handlePacketVersionMismatch(PacketType type, const SockAddr& senderSockAddr, const QUuid& senderUUID);
     void handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void start();
 

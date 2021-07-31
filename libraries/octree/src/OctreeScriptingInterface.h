@@ -36,7 +36,7 @@ private slots:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the maximum number of entity packets that the client can send per second.
      * @function Entities.setPacketsPerSecond
      * @param {number} packetsPerSecond - Integer maximum number of entity packets that the client can send per second.
@@ -44,7 +44,7 @@ public slots:
     /// set the max packets per second send rate
     void setPacketsPerSecond(int packetsPerSecond) { return _packetSender->setPacketsPerSecond(packetsPerSecond); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the maximum number of entity packets that the client can send per second.
      * @function Entities.getPacketsPerSecond
      * @returns {number} Integer maximum number of entity packets that the client can send per second.
@@ -52,7 +52,7 @@ public slots:
     /// get the max packets per second send rate
     int getPacketsPerSecond() const  { return _packetSender->getPacketsPerSecond(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether servers exist for the client to send entity packets to, i.e., whether you are connected to a domain and
      * its entity server is working.
      * @function Entities.serversExist
@@ -62,7 +62,7 @@ public slots:
     /// does a server exist to send to
     bool serversExist() const { return _packetSender->serversExist(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether the client has entity packets waiting to be sent.
      * @function Entities.hasPacketsToSend
      * @returns {boolean} <code>true</code> if the client has entity packets waiting to be sent, otherwise <code>false</code>.
@@ -70,7 +70,7 @@ public slots:
     /// are there packets waiting in the send queue to be sent
     bool hasPacketsToSend() const { return _packetSender->hasPacketsToSend(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the number of entity packets the client has waiting to be sent.
      * @function Entities.packetsToSendCount
      * @returns {number} Integer number of entity packets the client has waiting to be sent.
@@ -78,7 +78,7 @@ public slots:
     /// how many packets are there in the send queue waiting to be sent
     int packetsToSendCount() const { return (int)_packetSender->packetsToSendCount(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the entity packets per second send rate of the client over its lifetime.
      * @function Entities.getLifetimePPS
      * @returns {number} Entity packets per second send rate of the client over its lifetime.
@@ -86,7 +86,7 @@ public slots:
     /// returns the packets per second send rate of this object over its lifetime
     float getLifetimePPS() const { return _packetSender->getLifetimePPS(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the entity bytes per second send rate of the client over its lifetime.
      * @function Entities.getLifetimeBPS
      * @returns {number} Entity bytes per second send rate of the client over its lifetime.
@@ -94,7 +94,7 @@ public slots:
     /// returns the bytes per second send rate of this object over its lifetime
     float getLifetimeBPS() const { return _packetSender->getLifetimeBPS(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the entity packets per second queued rate of the client over its lifetime.
      * @function Entities.getLifetimePPSQueued
      * @returns {number} Entity packets per second queued rate of the client over its lifetime.
@@ -102,7 +102,7 @@ public slots:
     /// returns the packets per second queued rate of this object over its lifetime
     float getLifetimePPSQueued() const  { return _packetSender->getLifetimePPSQueued(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the entity bytes per second queued rate of the client over its lifetime.
      * @function Entities.getLifetimeBPSQueued
      * @returns {number} Entity bytes per second queued rate of the client over its lifetime.
@@ -110,7 +110,7 @@ public slots:
     /// returns the bytes per second queued rate of this object over its lifetime
     float getLifetimeBPSQueued() const { return _packetSender->getLifetimeBPSQueued(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the lifetime of the client from the first entity packet sent until now, in microseconds.
      * @function Entities.getLifetimeInUsecs
      * @returns {number} Lifetime of the client from the first entity packet sent until now, in microseconds.
@@ -118,7 +118,7 @@ public slots:
     /// returns lifetime of this object from first packet sent to now in usecs
     long long unsigned int getLifetimeInUsecs() const { return _packetSender->getLifetimeInUsecs(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the lifetime of the client from the first entity packet sent until now, in seconds.
      * @function Entities.getLifetimeInSeconds
      * @returns {number} Lifetime of the client from the first entity packet sent until now, in seconds.
@@ -126,7 +126,7 @@ public slots:
     /// returns lifetime of this object from first packet sent to now in secs
     float getLifetimeInSeconds() const { return _packetSender->getLifetimeInSeconds(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the total number of entity packets sent by the client over its lifetime.
      * @function Entities.getLifetimePacketsSent
      * @returns {number} The total number of entity packets sent by the client over its lifetime.
@@ -134,7 +134,7 @@ public slots:
     /// returns the total packets sent by this object over its lifetime
     long long unsigned int getLifetimePacketsSent() const { return _packetSender->getLifetimePacketsSent(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the total bytes of entity packets sent by the client over its lifetime.
      * @function Entities.getLifetimeBytesSent
      * @returns {number} The total bytes of entity packets sent by the client over its lifetime.
@@ -142,7 +142,7 @@ public slots:
     /// returns the total bytes sent by this object over its lifetime
     long long unsigned int getLifetimeBytesSent() const { return _packetSender->getLifetimeBytesSent(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the total number of entity packets queued by the client over its lifetime.
      * @function Entities.getLifetimePacketsQueued
      * @returns {number} The total number of entity packets queued by the client over its lifetime.
@@ -150,7 +150,7 @@ public slots:
     /// returns the total packets queued by this object over its lifetime
     long long unsigned int getLifetimePacketsQueued() const { return _packetSender->getLifetimePacketsQueued(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the total bytes of entity packets queued by the client over its lifetime.
      * @function Entities.getLifetimeBytesQueued
      * @returns {number} The total bytes of entity packets queued by the client over its lifetime.

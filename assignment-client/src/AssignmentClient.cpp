@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 11/25/2013.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -82,7 +83,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
         _assignmentServerHostname = assignmentServerHostname;
     }
 
-    _assignmentServerSocket = HifiSockAddr(_assignmentServerHostname, assignmentServerPort, true);
+    _assignmentServerSocket = SockAddr(_assignmentServerHostname, assignmentServerPort, true);
     if (_assignmentServerSocket.isNull()) {
         qCCritical(assignment_client) << "PAGE: Couldn't resolve domain server address" << _assignmentServerHostname;
     }
@@ -110,7 +111,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
 
     // did we get an assignment-client monitor port?
     if (assignmentMonitorPort > 0) {
-        _assignmentClientMonitorSocket = HifiSockAddr(DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME, assignmentMonitorPort);
+        _assignmentClientMonitorSocket = SockAddr(DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME, assignmentMonitorPort);
         _assignmentClientMonitorSocket.setObjectName("AssignmentClientMonitor");
 
         qCDebug(assignment_client) << "Assignment-client monitor socket is" << _assignmentClientMonitorSocket;
@@ -269,7 +270,7 @@ void AssignmentClient::handleCreateAssignmentPacket(QSharedPointer<ReceivedMessa
 }
 
 void AssignmentClient::handleStopNodePacket(QSharedPointer<ReceivedMessage> message) {
-    const HifiSockAddr& senderSockAddr = message->getSenderSockAddr();
+    const SockAddr& senderSockAddr = message->getSenderSockAddr();
     
     if (senderSockAddr.getAddress() == QHostAddress::LocalHost ||
         senderSockAddr.getAddress() == QHostAddress::LocalHostIPv6) {

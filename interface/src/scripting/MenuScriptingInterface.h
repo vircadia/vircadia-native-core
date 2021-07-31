@@ -17,7 +17,7 @@
 
 class MenuItemProperties;
 
-/**jsdoc
+/*@jsdoc
  * The <code>Menu</code> API provides access to the menu that is displayed at the top of the window on a user's desktop and in 
  * the tablet when the "MENU" button is pressed.
  *
@@ -57,7 +57,7 @@ private slots:
     void menuItemTriggered();
 
 public slots:
-    /**jsdoc
+    /*@jsdoc
      * Adds a new top-level menu.
      * @function Menu.addMenu
      * @param {string} menuName - Name that will be displayed for the menu. Nested menus can be specified using the 
@@ -73,7 +73,7 @@ public slots:
      */
     void addMenu(const QString& menuName, const QString& grouping = QString());
 
-    /**jsdoc
+    /*@jsdoc
      * Removes a top-level menu.
      * @function Menu.removeMenu
      * @param {string} menuName - Name of the menu to remove.
@@ -83,7 +83,7 @@ public slots:
      */
     void removeMenu(const QString& menuName);
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether a top-level menu exists.
      * @function Menu.menuExists
      * @param {string} menuName - Name of the menu to check exists.
@@ -95,7 +95,7 @@ public slots:
      */
     bool menuExists(const QString& menuName);
 
-    /**jsdoc
+    /*@jsdoc
      * Adds a separator with an unclickable label below it. The separator will be placed at the bottom of the menu. To add a 
      * separator at a specific point in the menu, use {@link Menu.addMenuItem} with {@link Menu.MenuItemProperties} instead.
      * @function Menu.addSeparator
@@ -106,7 +106,7 @@ public slots:
      */
     void addSeparator(const QString& menuName, const QString& separatorName);
 
-    /**jsdoc
+    /*@jsdoc
      * Removes a separator from a menu.
      * @function Menu.removeSeparator
      * @param {string} menuName - Name of the menu to remove the separator from.
@@ -116,7 +116,7 @@ public slots:
      */
     void removeSeparator(const QString& menuName, const QString& separatorName);
 
-    /**jsdoc
+    /*@jsdoc
      * Adds a new menu item to a menu. The menu item is specified using {@link Menu.MenuItemProperties}.
      * @function Menu.addMenuItem
      * @param {Menu.MenuItemProperties} properties - Properties of the menu item to create.
@@ -130,7 +130,7 @@ public slots:
      */
     void addMenuItem(const MenuItemProperties& properties);
 
-    /**jsdoc
+    /*@jsdoc
      * Adds a new menu item to a menu. The new item is added at the end of the menu.
      * @function Menu.addMenuItem
      * @variation 0
@@ -143,7 +143,7 @@ public slots:
     void addMenuItem(const QString& menuName, const QString& menuitem, const QString& shortcutKey);
     void addMenuItem(const QString& menuName, const QString& menuitem);
 
-    /**jsdoc
+    /*@jsdoc
      * Removes a menu item from a menu.
      * @function Menu.removeMenuItem
      * @param {string} menuName - Name of the menu to remove a menu item from.
@@ -153,7 +153,7 @@ public slots:
      */
     void removeMenuItem(const QString& menuName, const QString& menuitem);
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether a menu item exists.
      * @function Menu.menuItemExists
      * @param {string} menuName - Name of the menu that the menu item is in.
@@ -166,7 +166,7 @@ public slots:
      */
     bool menuItemExists(const QString& menuName, const QString& menuitem);
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether a checkable menu item is checked.
      * @function Menu.isOptionChecked
      * @param {string} menuOption - The name of the menu item.
@@ -176,7 +176,7 @@ public slots:
      */
     bool isOptionChecked(const QString& menuOption);
 
-    /**jsdoc
+    /*@jsdoc
      * Sets a checkable menu item as checked or unchecked.
      * @function Menu.setIsOptionChecked
      * @param {string} menuOption - The name of the menu item to modify.
@@ -187,7 +187,7 @@ public slots:
      */
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggers a menu item as if the user clicked on it.
      * @function Menu.triggerOption
      * @param {string} menuOption - The name of the menu item to trigger.
@@ -196,7 +196,7 @@ public slots:
      */
     void triggerOption(const QString& menuOption);
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether a menu or menu item is enabled. If disabled, the item is grayed out and unusable.
      * Menus are enabled by default.
      * @function Menu.isMenuEnabled
@@ -207,7 +207,7 @@ public slots:
      */
     bool isMenuEnabled(const QString& menuName);
 
-    /**jsdoc
+    /*@jsdoc
      * Sets a menu or menu item to be enabled or disabled. If disabled, the item is grayed out and unusable.
      * @function Menu.setMenuEnabled
      * @param {string} menuName - The name of the menu or menu item to modify.
@@ -219,7 +219,7 @@ public slots:
     void setMenuEnabled(const QString& menuName, bool isEnabled);
 
 signals:
-    /**jsdoc
+    /*@jsdoc
      * Triggered when a menu item is clicked or triggered by {@link Menu.triggerOption}.
      * @function Menu.menuItemEvent
      * @param {string} menuItem - Name of the menu item that was clicked or triggered.

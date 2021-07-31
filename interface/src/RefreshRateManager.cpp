@@ -17,7 +17,7 @@
 
 static const int VR_TARGET_RATE = 90;
 
-/**jsdoc
+/*@jsdoc
  * <p>Refresh rate profile.</p>
  * <table>
  *   <thead>
@@ -36,7 +36,7 @@ static const int VR_TARGET_RATE = 90;
 static const std::array<std::string, RefreshRateManager::RefreshRateProfile::PROFILE_NUM> REFRESH_RATE_PROFILE_TO_STRING =
     { { "Eco", "Interactive", "Realtime" } };
 
-/**jsdoc
+/*@jsdoc
  * <p>Interface states that affect the refresh rate.</p>
  * <table>
  *   <thead>
@@ -56,7 +56,7 @@ static const std::array<std::string, RefreshRateManager::RefreshRateProfile::PRO
 static const std::array<std::string, RefreshRateManager::RefreshRateRegime::REGIME_NUM> REFRESH_RATE_REGIME_TO_STRING =
     { { "FocusActive", "FocusInactive", "Unfocus", "Minimized", "StartUp", "ShutDown" } };
 
-/**jsdoc
+/*@jsdoc
  * <p>User experience (UX) modes.</p>
  * <table>
  *   <thead>

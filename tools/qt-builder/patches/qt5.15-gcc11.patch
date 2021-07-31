@@ -1,0 +1,74 @@
+diff --git a/qtbase/src/corelib/global/qendian.h b/qtbase/src/corelib/global/qendian.h
+index 257efbbdbe..05f11d6f81 100644
+--- a/qtbase/src/corelib/global/qendian.h
++++ b/qtbase/src/corelib/global/qendian.h
+@@ -47,6 +47,7 @@
+ // include stdlib.h and hope that it defines __GLIBC__ for glibc-based systems
+ #include <stdlib.h>
+ #include <string.h>
++#include <limits>
+ 
+ #ifdef min // MSVC
+ #undef min
+diff --git a/qtbase/src/corelib/global/qfloat16.h b/qtbase/src/corelib/global/qfloat16.h
+index c7a9c87af3..3287d7cbf2 100644
+--- a/qtbase/src/corelib/global/qfloat16.h
++++ b/qtbase/src/corelib/global/qfloat16.h
+@@ -44,6 +44,7 @@
+ #include <QtCore/qglobal.h>
+ #include <QtCore/qmetatype.h>
+ #include <string.h>
++#include <limits>
+ 
+ #if defined(QT_COMPILER_SUPPORTS_F16C) && defined(__AVX2__) && !defined(__F16C__)
+ // All processors that support AVX2 do support F16C too. That doesn't mean
+diff --git a/qtbase/src/corelib/text/qbytearraymatcher.h b/qtbase/src/corelib/text/qbytearraymatcher.h
+index 0eedfc1d20..ee415e336d 100644
+--- a/qtbase/src/corelib/text/qbytearraymatcher.h
++++ b/qtbase/src/corelib/text/qbytearraymatcher.h
+@@ -41,6 +41,7 @@
+ #define QBYTEARRAYMATCHER_H
+ 
+ #include <QtCore/qbytearray.h>
++#include <limits>
+ 
+ QT_BEGIN_NAMESPACE
+ 
+Submodule qtdeclarative contains modified content
+diff --git a/qtdeclarative/src/3rdparty/masm/yarr/Yarr.h b/qtdeclarative/src/3rdparty/masm/yarr/Yarr.h
+index ccf78f9880..cbb42c60d8 100644
+--- a/qtdeclarative/src/3rdparty/masm/yarr/Yarr.h
++++ b/qtdeclarative/src/3rdparty/masm/yarr/Yarr.h
+@@ -27,7 +27,7 @@
+ 
+ #pragma once
+ 
+-#include <limits.h>
++#include <limits>
+ #include "YarrErrorCode.h"
+ 
+ namespace JSC { namespace Yarr {
+diff --git a/qtdeclarative/src/qmldebug/qqmlprofilerevent_p.h b/qtdeclarative/src/qmldebug/qqmlprofilerevent_p.h
+index a7e37d1964..3f13679a6a 100644
+--- a/qtdeclarative/src/qmldebug/qqmlprofilerevent_p.h
++++ b/qtdeclarative/src/qmldebug/qqmlprofilerevent_p.h
+@@ -49,6 +49,7 @@
+ 
+ #include <initializer_list>
+ #include <type_traits>
++#include <limits>
+ 
+ //
+ //  W A R N I N G
+diff --git a/qtwebengine/src/3rdparty/chromium/third_party/perfetto/src/trace_processor/containers/string_pool.h b/qtwebengine/src/3rdparty/chromium/third_party/perfetto/src/trace_processor/containers/string_pool.h
+index 11ae91cfeca..58c6db27bd6 100644
+--- a/qtwebengine/src/3rdparty/chromium/third_party/perfetto/src/trace_processor/containers/string_pool.h
++++ b/qtwebengine/src/3rdparty/chromium/third_party/perfetto/src/trace_processor/containers/string_pool.h
+@@ -22,6 +22,7 @@
+ 
+ #include <unordered_map>
+ #include <vector>
++#include <limits>
+ 
+ #include "perfetto/ext/base/optional.h"
+ #include "perfetto/ext/base/paged_memory.h"

@@ -24,7 +24,7 @@ class AnimOverlay : public AnimNode {
 public:
     friend class AnimTests;
 
-    /**jsdoc
+    /*@jsdoc
      * <p>Specifies sets of joints.</p>
      * <table>
      *   <thead>

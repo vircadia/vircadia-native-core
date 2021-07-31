@@ -40,7 +40,7 @@ public:
     virtual int getSteamVRBuildID() = 0;
 };
 
-/**jsdoc
+/*@jsdoc
  * The <code>Steam</code> API provides facilities for working with the Steam version of Interface.
  *
  * @namespace Steam
@@ -63,14 +63,14 @@ public:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether Interface is running under Steam.
      * @function Steam.isRunning
      * @returns {boolean} <code>true</code> if Interface is running under Steam, <code>false</code> if it isn't. 
      */
     bool isRunning() const { return _plugin && _plugin->isRunning(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Opens Steam's "Choose Friends to invite" dialog if Interface is running under Steam.
      * @function Steam.openInviteOverlay
      * @example <caption>Invite Steam friends to join you in Vircadia.</caption>

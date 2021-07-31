@@ -15,7 +15,7 @@
 #include <QObject>
 #include <DependencyManager.h>
 
-/**jsdoc 
+/*@jsdoc 
  * The GooglePoly API allows you to interact with Google Poly models direct from inside High Fidelity.
  * @namespace GooglePoly
  *
@@ -32,13 +32,13 @@ public:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * @function GooglePoly.setAPIKey
      * @param {string} key
      */
     void setAPIKey(const QString& key);
 
-    /**jsdoc
+    /*@jsdoc
      * @function GooglePoly.getAssetList
      * @param {string} keyword
      * @param {string} category
@@ -47,7 +47,7 @@ public slots:
      */
     QString getAssetList(const QString& keyword, const QString& category, const QString& format);
 
-    /**jsdoc
+    /*@jsdoc
      * @function GooglePoly.getFBX
      * @param {string} keyword
      * @param {string} category
@@ -55,7 +55,7 @@ public slots:
      */
     QString getFBX(const QString& keyword, const QString& category);
 
-    /**jsdoc
+    /*@jsdoc
      * @function GooglePoly.getOBJ
      * @param {string} keyword
      * @param {string} category
@@ -63,7 +63,7 @@ public slots:
      */
     QString getOBJ(const QString& keyword, const QString& category);
 
-    /**jsdoc
+    /*@jsdoc
      * @function GooglePoly.getBlocks
      * @param {string} keyword
      * @param {string} category
@@ -71,7 +71,7 @@ public slots:
      */
     QString getBlocks(const QString& keyword, const QString& category);
 
-    /**jsdoc
+    /*@jsdoc
      * @function GooglePoly.getGLTF
      * @param {string} keyword
      * @param {string} category
@@ -79,7 +79,7 @@ public slots:
      */
     QString getGLTF(const QString& keyword, const QString& category);
 
-    /**jsdoc
+    /*@jsdoc
      * @function GooglePoly.getGLTF2
      * @param {string} keyword
      * @param {string} category
@@ -87,7 +87,7 @@ public slots:
      */
     QString getGLTF2(const QString& keyword, const QString& category);
 
-    /**jsdoc
+    /*@jsdoc
      * @function GooglePoly.getTilt
      * @param {string} keyword
      * @param {string} category
@@ -95,7 +95,7 @@ public slots:
      */
     QString getTilt(const QString& keyword, const QString& category);
 
-    /**jsdoc
+    /*@jsdoc
      * @function GooglePoly.getModelInfo
      * @param {string} input
      * @returns {string}

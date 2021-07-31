@@ -919,7 +919,6 @@ const GROUPS = [
                 label: "Material Scale",
                 type: "vec2",
                 vec2Type: "xyz",
-                min: 0,
                 step: 0.1,
                 decimals: 4,
                 subLabels: [ "x", "y" ],
@@ -1355,6 +1354,12 @@ const GROUPS = [
                 spaceMode: PROPERTY_SPACE_MODE.LOCAL,
             },
             {
+                type: "buttons",
+                buttons: [  { id: "copyPosition", label: "Copy Position", className: "secondary", onClick: copyPositionProperty },
+                            { id: "pastePosition", label: "Paste Position", className: "secondary", onClick: pastePositionProperty } ],
+                propertyID: "copyPastePosition"
+            },
+            {
                 label: "Rotation",
                 type: "vec3",
                 vec3Type: "pyr",
@@ -1376,6 +1381,12 @@ const GROUPS = [
                 propertyID: "localRotation",
                 spaceMode: PROPERTY_SPACE_MODE.LOCAL,
             },
+            {
+                type: "buttons",
+                buttons: [  { id: "copyRotation", label: "Copy Rotation", className: "secondary", onClick: copyRotationProperty },
+                            { id: "pasteRotation", label: "Paste Rotation", className: "secondary", onClick: pasteRotationProperty } ],
+                propertyID: "copyPasteRotation"
+            },          
             {
                 label: "Dimensions",
                 type: "vec3",
@@ -1851,6 +1862,24 @@ function showPropertyElement(propertyID, show) {
 
 function setPropertyVisibility(property, visible) {
     property.elContainer.style.display = visible ? null : "none";
+}
+
+function setCopyPastePositionAndRotationAvailability (selectionLength, islocked) {
+    if (selectionLength === 1) {
+        $('#property-copyPastePosition-button-copyPosition').attr('disabled', false);
+        $('#property-copyPasteRotation-button-copyRotation').attr('disabled', false);
+    } else {
+        $('#property-copyPastePosition-button-copyPosition').attr('disabled', true);
+        $('#property-copyPasteRotation-button-copyRotation').attr('disabled', true);        
+    }
+    
+    if (selectionLength > 0 && !islocked) {
+        $('#property-copyPastePosition-button-pastePosition').attr('disabled', false);
+        $('#property-copyPasteRotation-button-pasteRotation').attr('disabled', false);           
+    } else {
+        $('#property-copyPastePosition-button-pastePosition').attr('disabled', true);
+        $('#property-copyPasteRotation-button-pasteRotation').attr('disabled', true);            
+    }
 }
 
 function resetProperties() {
@@ -3225,6 +3254,33 @@ function copySkyboxURLToAmbientURL() {
     updateProperty("ambientLight.ambientURL", skyboxURL, false);
 }
 
+function copyPositionProperty() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "action",
+        action: "copyPosition"
+    }));
+}
+
+function pastePositionProperty() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "action",
+        action: "pastePosition"
+    }));    
+}
+
+function copyRotationProperty() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "action",
+        action: "copyRotation"
+    }));    
+}
+
+function pasteRotationProperty() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "action",
+        action: "pasteRotation"
+    }));    
+}
 
 /**
  * USER DATA FUNCTIONS
@@ -3646,20 +3702,20 @@ function requestZoneList() {
     }));
 }
 
-function addZoneToZonesSelection(propertyId) {
+function addZoneToZonesSelection(propertyId, id) {
     let hiddenField = document.getElementById(propertyId);
     if (JSON.stringify(hiddenField.value) === '"undefined"') {
         hiddenField.value = "[]";
     }
     let selectedZones = JSON.parse(hiddenField.value);
-    let zoneToAdd = document.getElementById("zones-select-" + propertyId).value;
-    if (!selectedZones.includes(zoneToAdd)) {
-        selectedZones.push(zoneToAdd);
+    if (!selectedZones.includes(id)) {
+        selectedZones.push(id);
     }
     hiddenField.value = JSON.stringify(selectedZones);
     displaySelectedZones(propertyId, true);
     let propertyName = propertyId.replace("property-", "");
     updateProperty(propertyName, selectedZones, false);
+    document.getElementById("zones-select-selector-list-panel-" + propertyId).style.display = "none";
 }
 
 function removeZoneFromZonesSelection(propertyId, zoneId) {
@@ -3749,7 +3805,12 @@ function createZonesSelection(property, elProperty) {
 
 function setZonesSelectionData(element, isEditable) {
     let zoneSelectorContainer = document.getElementById("zones-selector-" + element.id);
-    let zoneSelector = "<div class='multiZoneSelToolbar' id='multiZoneSelTools-" + element.id + "'><select class = 'zoneSelect' id='zones-select-" + element.id + "' >";
+    let zoneSelector = "<div class='multiZoneSelToolbar' id='multiZoneSelTools-" + element.id + "'>";
+    zoneSelector += "<input type='button' value = 'Add a Zone' id='zones-select-add-" + element.id + "' onClick='document.getElementById(";
+    zoneSelector += '"' + "zones-select-selector-list-panel-" + element.id + '"' + ").style.display = " + '"' + "block" + '"' + ";'>";
+    zoneSelector += "<div class = 'zoneSelectorListPanel' id='zones-select-selector-list-panel-" + element.id + "'>";
+    zoneSelector += "<div class='zoneSelectListHeader'>Select the Zone to add: </div>";
+    zoneSelector += "<div class='zoneSelectList' id = 'zones-select-selector-list-" + element.id + "'>";
     let i, name;
     for (i = 0; i < zonesList.length; i++) {
         if (zonesList[i].name === "") {
@@ -3757,28 +3818,34 @@ function setZonesSelectionData(element, isEditable) {
         } else {
             name = zonesList[i].name;
         }
-        zoneSelector += "<option value='" + zonesList[i].id + "'>" + name + "</option>";
+        zoneSelector += "<button class='menu-button' onClick='addZoneToZonesSelection(";
+        zoneSelector += '"' + element.id + '"' + ", " + '"' + zonesList[i].id + '"' + ");'>" + name + "</button><br>";
     }   
-    zoneSelector += "</select>&nbsp;<a href='#' id='zones-select-add-" + element.id + "' onClick='addZoneToZonesSelection(" + '"' + element.id + '"' + ");' >";
-    zoneSelector += "<img style='vertical-align:top' src='../../../html/css/img/add_icon.png'></a></div>";
+    zoneSelector += "</div>";
+    zoneSelector += "<div class='zoneSelectListFooter'>";
+    zoneSelector += "<input type='button' value = 'Cancel' id='zones-select-cancel-" + element.id + "' onClick='document.getElementById(";
+    zoneSelector += '"' + "zones-select-selector-list-panel-" + element.id + '"' + ").style.display = " + '"' + "none" + '"' + ";'>";
+    zoneSelector += "</div></div></div>";
     zoneSelector += "<div class='selected-zone-container' id='selected-zones-" + element.id + "'></div>";
     zoneSelectorContainer.innerHTML = zoneSelector;
     displaySelectedZones(element.id, isEditable);
 }
 
 function updateAllZoneSelect() {
-    let allZoneSelects = document.querySelectorAll(".zoneSelect");
-    let i, j, name, propId;
+    let allZoneSelects = document.querySelectorAll(".zoneSelectList");
+    let i, j, name, propId, btnList;
     for (i = 0; i < allZoneSelects.length; i++) {
-        allZoneSelects[i].options.length = 0;
+        btnList = "";
         for (j = 0; j < zonesList.length; j++) {
             if (zonesList[j].name === "") {
                 name = zonesList[j].id;
             } else {
                 name = zonesList[j].name;
             }
-            allZoneSelects[i].options[j] = new Option(name, zonesList[j].id, false , false);
+            btnList += "<button class='menu-button' onClick='addZoneToZonesSelection(";
+            btnList += '"' + element.id + '"' + ", " + '"' + zonesList[j].id + '"' + ");'>" + name + "</button><br>";            
         }
+        allZoneSelects[i].innerHTML = btnList;
         propId = allZoneSelects[i].id.replace("zones-select-", "");
         if (document.getElementById("multiZoneSelTools-" + propId).style.display === "block") {
             displaySelectedZones(propId, true);
@@ -3960,7 +4027,7 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
     selectedEntityIDs = new Set(selections.map(selection => selection.id));
     const multipleSelections = currentSelections.length > 1;
     const hasSelectedEntityChanged = !areSetsEqual(selectedEntityIDs, previouslySelectedEntityIDs);
-    
+
     requestZoneList();
     
     if (selections.length === 0) {
@@ -3983,6 +4050,8 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
         showMaterialDataTextArea();
         showSaveMaterialDataButton();
         showNewJSONMaterialEditorButton();
+
+        setCopyPastePositionAndRotationAvailability (selections.length, true);
 
         disableProperties();
     } else {
@@ -4014,10 +4083,12 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
         if (lockedMultiValue.isMultiDiffValue || lockedMultiValue.value) {
             disableProperties();
             getPropertyInputElement('locked').removeAttribute('disabled');
+            setCopyPastePositionAndRotationAvailability (selections.length, true);
         } else {
             enableProperties();
             disableSaveUserDataButton();
             disableSaveMaterialDataButton();
+            setCopyPastePositionAndRotationAvailability (selections.length, false);
         }
 
         const certificateIDMultiValue = getMultiplePropertyValue('certificateID');
@@ -4447,6 +4518,7 @@ function loaded() {
         });
 
         updateVisibleSpaceModeProperties();
+        requestZoneList();
 
         if (window.EventBridge !== undefined) {
             EventBridge.scriptEventReceived.connect(function(data) {

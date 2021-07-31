@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_ArrayBufferClass_h
 #define hifi_ArrayBufferClass_h
 
@@ -23,6 +26,7 @@
 
 class ScriptEngine;
 
+/// Implements the <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer">ArrayBuffer</a></code> scripting class
 class ArrayBufferClass : public QObject, public QScriptClass {
     Q_OBJECT
 public:
@@ -58,3 +62,5 @@ private:
 };
 
 #endif // hifi_ArrayBufferClass_h
+
+/// @}

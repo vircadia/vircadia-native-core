@@ -1259,13 +1259,13 @@ void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
     if (_hasModel && !model) {
         model = std::make_shared<Model>(nullptr, entity.get(), _created);
         connect(model.get(), &Model::requestRenderUpdate, this, &ModelEntityRenderer::requestRenderUpdate);
-        connect(model.get(), &Model::setURLFinished, this, [&](bool didVisualGeometryRequestSucceed) {
+        connect(model.get(), &Model::setURLFinished, this, [=](bool didVisualGeometryRequestSucceed) {
             _didLastVisualGeometryRequestSucceed = didVisualGeometryRequestSucceed;
             const render::ScenePointer& scene = AbstractViewStateInterface::instance()->getMain3DScene();
             render::Transaction transaction;
-            transaction.updateItem<PayloadProxyInterface>(_renderItemID, [&](PayloadProxyInterface& self) {
+            transaction.updateItem<PayloadProxyInterface>(_renderItemID, [=](PayloadProxyInterface& self) {
                 const render::ScenePointer& scene = AbstractViewStateInterface::instance()->getMain3DScene();
-                withWriteLock([&] {
+                withWriteLock([=] {
                     setKey(didVisualGeometryRequestSucceed, _model);
                     _model->setVisibleInScene(_visible, scene);
                     _model->setCauterized(_cauterized, scene);

@@ -24,7 +24,7 @@ class QScriptEngine;
 
 #include <QReadWriteLock>
 
-/**jsdoc
+/*@jsdoc
  * The <code>HMD</code> API provides access to the HMD used in VR display mode.
  *
  * @namespace HMD
@@ -116,7 +116,7 @@ class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Depen
 
 public:
 
-    /**jsdoc
+    /*@jsdoc
      * Calculates the intersection of a ray with the HUD overlay.
      * @function HMD.calculateRayUICollisionPoint
      * @param {Vec3} position - The origin of the ray.
@@ -144,7 +144,7 @@ public:
 
     glm::vec3 calculateParabolaUICollisionPoint(const glm::vec3& position, const glm::vec3& velocity, const glm::vec3& acceleration, float& parabolicDistance) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the 2D HUD overlay coordinates of a 3D point on the HUD overlay.
      * 2D HUD overlay coordinates are pixels with the origin at the top left of the overlay.
      * @function HMD.overlayFromWorldPoint
@@ -170,7 +170,7 @@ public:
      */
     Q_INVOKABLE glm::vec2 overlayFromWorldPoint(const glm::vec3& position) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the 3D world coordinates of a 2D point on the HUD overlay.
      * 2D HUD overlay coordinates are pixels with the origin at the top left of the overlay.
      * @function HMD.worldPointFromOverlay
@@ -179,7 +179,7 @@ public:
      */
     Q_INVOKABLE glm::vec3 worldPointFromOverlay(const glm::vec2& overlay) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the 2D point on the HUD overlay represented by given spherical coordinates. 
      * 2D HUD overlay coordinates are pixels with the origin at the top left of the overlay.
      * Spherical coordinates are polar coordinates in radians with <code>{ x: 0, y: 0 }</code> being the center of the HUD 
@@ -190,7 +190,7 @@ public:
      */
     Q_INVOKABLE glm::vec2 sphericalToOverlay(const glm::vec2 & sphericalPos) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the spherical coordinates of a 2D point on the HUD overlay.
      * 2D HUD overlay coordinates are pixels with the origin at the top left of the overlay.
      * Spherical coordinates are polar coordinates in radians with <code>{ x: 0, y: 0 }</code> being the center of the HUD
@@ -201,21 +201,21 @@ public:
      */
     Q_INVOKABLE glm::vec2 overlayToSpherical(const glm::vec2 & overlayPos) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Recenters the HMD HUD to the current HMD position and orientation.
      * @function HMD.centerUI
      */
     Q_INVOKABLE void centerUI();
 
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the name of the HMD audio input device.
      * @function HMD.preferredAudioInput
      * @returns {string} The name of the HMD audio input device if in HMD mode, otherwise an empty string.
      */
     Q_INVOKABLE QString preferredAudioInput() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the name of the HMD audio output device.
      * @function HMD.preferredAudioOutput
      * @returns {string} The name of the HMD audio output device if in HMD mode, otherwise an empty string.
@@ -223,7 +223,7 @@ public:
     Q_INVOKABLE QString preferredAudioOutput() const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether there is an HMD available.
      * @function HMD.isHMDAvailable
      * @param {string} [name=""] - The name of the HMD to check for, e.g., <code>"Oculus Rift"</code>. The name is the same as 
@@ -237,7 +237,7 @@ public:
      */
     Q_INVOKABLE bool isHMDAvailable(const QString& name = "");
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether there is an HMD head controller available.
      * @function HMD.isHeadControllerAvailable
      * @param {string} [name=""] - The name of the HMD head controller to check for, e.g., <code>"Oculus"</code>. If no name is 
@@ -251,7 +251,7 @@ public:
      */
     Q_INVOKABLE bool isHeadControllerAvailable(const QString& name = "");
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether there are HMD hand controllers available.
      * @function HMD.isHandControllerAvailable
      * @param {string} [name=""] - The name of the HMD hand controller to check for, e.g., <code>"Oculus"</code>. If no name is 
@@ -265,7 +265,7 @@ public:
      */
     Q_INVOKABLE bool isHandControllerAvailable(const QString& name = "");
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether there are specific HMD controllers available.
      * @function HMD.isSubdeviceContainingNameAvailable
      * @param {string} name - The name of the HMD controller to check for, e.g., <code>"OculusTouch"</code>.
@@ -277,7 +277,7 @@ public:
      */
     Q_INVOKABLE bool isSubdeviceContainingNameAvailable(const QString& name);
 
-    /**jsdoc
+    /*@jsdoc
      * Signals that models of the HMD hand controllers being used should be displayed. The models are displayed at their actual, 
      * real-world locations.
      * @function HMD.requestShowHandControllers
@@ -289,14 +289,14 @@ public:
      */
     Q_INVOKABLE void requestShowHandControllers();
 
-    /**jsdoc
+    /*@jsdoc
      * Signals that it is no longer necessary to display models of the HMD hand controllers being used. If no other scripts 
      * want the models displayed then they are no longer displayed.
      * @function HMD.requestHideHandControllers
      */
     Q_INVOKABLE void requestHideHandControllers();
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether any script wants models of the HMD hand controllers displayed. Requests are made and canceled using 
      * {@link HMD.requestShowHandControllers|requestShowHandControllers} and 
      * {@link HMD.requestHideHandControllers|requestHideHandControllers}.
@@ -306,14 +306,14 @@ public:
     Q_INVOKABLE bool shouldShowHandControllers() const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * Causes the borders in HUD windows to be enlarged when the laser intersects them in HMD mode. By default, borders are not 
      * enlarged.
      * @function HMD.activateHMDHandMouse
      */
     Q_INVOKABLE void activateHMDHandMouse();
 
-    /**jsdoc
+    /*@jsdoc
      * Causes the border in HUD windows to no longer be enlarged when the laser intersects them in HMD mode. By default, 
      * borders are not enlarged.
      * @function HMD.deactivateHMDHandMouse
@@ -321,7 +321,7 @@ public:
     Q_INVOKABLE void deactivateHMDHandMouse();
 
 
-    /**jsdoc
+    /*@jsdoc
      * Suppresses the activation of the HMD-provided keyboard, if any. Successful calls should be balanced with a call to 
      * {@link HMD.unsuppressKeyboard|unsuppressKeyboard} within a reasonable amount of time.
      * @function HMD.suppressKeyboard
@@ -336,14 +336,14 @@ public:
     /// call to unsuppressKeyboard() within a reasonable amount of time
     Q_INVOKABLE bool suppressKeyboard();
 
-    /**jsdoc
+    /*@jsdoc
      * Unsuppresses the activation of the HMD-provided keyboard, if any.
      * @function HMD.unsuppressKeyboard
      */
     /// Enable the keyboard following a suppressKeyboard call
     Q_INVOKABLE void unsuppressKeyboard();
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether the HMD-provided keyboard, if any, is visible.
      * @function HMD.isKeyboardVisible
      * @returns {boolean} <code>true</code> if the current HMD provides a keyboard and it is visible, otherwise 
@@ -352,13 +352,13 @@ public:
     /// Query the display plugin to determine the current VR keyboard visibility
     Q_INVOKABLE bool isKeyboardVisible();
 
-    /**jsdoc
+    /*@jsdoc
      * Closes the tablet if it is open.
      * @function HMD.closeTablet
      */
     Q_INVOKABLE void closeTablet();
 
-    /**jsdoc
+    /*@jsdoc
      * Opens the tablet if the tablet is used in the current display mode and it isn't already showing, and sets the tablet to 
      * contextual mode if requested. In contextual mode, the page displayed on the tablet is wholly controlled by script (i.e., 
      * the user cannot navigate to another).
@@ -391,7 +391,7 @@ public:
     void setVisionSqueezeTurningYFactor(float value);
 
 signals:
-    /**jsdoc
+    /*@jsdoc
      * Triggered when a request to show or hide models of the HMD hand controllers is made using 
      * {@link HMD.requestShowHandControllers|requestShowHandControllers} or
      * {@link HMD.requestHideHandControllers|requestHideHandControllers}.
@@ -410,7 +410,7 @@ signals:
      */
     bool shouldShowHandControllersChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the tablet is shown or hidden.
      * @function HMD.showTabletChanged
      * @param {boolean} showTablet - <code>true</code> if the tablet is showing, otherwise <code>false</code>.
@@ -418,7 +418,7 @@ signals:
      */
     void showTabletChanged(bool showTablet);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the ability to display the mini tablet has changed.
      * @function HMD.miniTabletEnabledChanged
      * @param {boolean} enabled - <code>true</code> if the mini tablet is enabled to be displayed, otherwise <code>false</code>.
@@ -426,7 +426,7 @@ signals:
      */
     bool miniTabletEnabledChanged(bool enabled);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the altering the mode for going into an away state when the interface focus is lost in VR.
      * @function HMD.awayStateWhenFocusLostInVRChanged
      * @param {boolean} enabled - <code>true</code> if the setting to go into an away state in VR when the interface focus is lost is enabled, otherwise <code>false</code>.
@@ -437,14 +437,14 @@ signals:
 public:
     HMDScriptingInterface();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the position on the HUD overlay that your HMD is looking at, in HUD coordinates.
      * @function HMD.getHUDLookAtPosition2D
      * @returns {Vec2} The position on the HUD overlay that your HMD is looking at, in pixels.
      */
     static QScriptValue getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the position on the HUD overlay that your HMD is looking at, in world coordinates.
      * @function HMD.getHUDLookAtPosition3D
      * @returns {Vec3} The position on the HUD overlay the your HMD is looking at, in world coordinates.

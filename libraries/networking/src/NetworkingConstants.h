@@ -25,8 +25,8 @@ namespace NetworkingConstants {
     // You can avoid changing that and still effectively use a connected domain on staging
     // if you manually generate a personal access token for the domains scope
     // at https://staging.highfidelity.com/user/tokens/new?for_domain_server=true
-    
-    const QString WEB_ENGINE_VERSION = "Chrome/69.0.3497.113";
+
+    const QString WEB_ENGINE_VERSION = "Chrome/83.0.4103.122";
 
     // For now we only have one Metaverse server.
     const QUrl METAVERSE_SERVER_URL_STABLE { "https://metaverse.vircadia.com/live" };
@@ -35,21 +35,21 @@ namespace NetworkingConstants {
     // Web Engine requests to this parent domain have an account authorization header added
     const QString AUTH_HOSTNAME_BASE = "vircadia.com";
     const QStringList IS_AUTHABLE_HOSTNAME = { "vircadia.com", "vircadia.io" };
-    
+
     // Use a custom User-Agent to avoid ModSecurity filtering, e.g. by hosting providers.
     const QByteArray VIRCADIA_USER_AGENT = "Mozilla/5.0 (VircadiaInterface)";
-    
+
     const QString WEB_ENGINE_USER_AGENT = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) " + WEB_ENGINE_VERSION + " Mobile Safari/537.36";
     const QString MOBILE_USER_AGENT = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) " + WEB_ENGINE_VERSION + " Mobile Safari/537.36";
-    
+
     // WebEntity Defaults
     const QString WEB_ENTITY_DEFAULT_SOURCE_URL = "https://vircadia.com/";
     const QString WEB_ENTITY_DEFAULT_USER_AGENT = WEB_ENGINE_USER_AGENT;
-    
+
     // Builds URLs
     const QUrl BUILDS_XML_URL("https://highfidelity.com/builds.xml");
     const QUrl MASTER_BUILDS_XML_URL("https://highfidelity.com/dev-builds.xml");
-    
+
     const QString DEFAULT_AVATAR_COLLISION_SOUND_URL = "https://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/Body_Hits_Impact.wav";
 
     // CDN URLs
@@ -71,20 +71,21 @@ namespace NetworkingConstants {
     const unsigned short STUN_SERVER_DEFAULT_PORT = 19302;
 #endif
 
-    const QUrl HELP_DOCS_URL { "https://docs.vircadia.dev" };
-    const QUrl HELP_FORUM_URL { "https://forums.vircadia.dev" };
+    const QUrl HELP_COMMUNITY_URL{ "https://vircadia.com/#community" };
+    const QUrl HELP_DOCS_URL{ "https://docs.vircadia.com" };
+    const QUrl HELP_FORUM_URL{ "https://forum.vircadia.com" };
     const QUrl HELP_SCRIPTING_REFERENCE_URL{ "https://apidocs.vircadia.dev/" };
-    const QUrl HELP_RELEASE_NOTES_URL{ "https://docs.vircadia.dev/release-notes.html" };
+    const QUrl HELP_RELEASE_NOTES_URL{ "https://docs.vircadia.com/release-notes.html" };
     const QUrl HELP_BUG_REPORT_URL{ "https://github.com/vircadia/vircadia/issues" };
-    
+
     const QString DEFAULT_VIRCADIA_ADDRESS = "file:///~/serverless/tutorial.json";
     const QString DEFAULT_HOME_ADDRESS = "file:///~/serverless/tutorial.json";
     const QString REDIRECT_HIFI_ADDRESS = "file:///~/serverless/redirect.json";
 }
 
 const QString HIFI_URL_SCHEME_ABOUT = "about";
-const QString URL_SCHEME_HIFI = "hifi";
-const QString URL_SCHEME_HIFIAPP = "hifiapp";
+const QString URL_SCHEME_VIRCADIA = "hifi";
+const QString URL_SCHEME_VIRCADIAAPP = "hifiapp";
 const QString URL_SCHEME_DATA = "data";
 const QString URL_SCHEME_QRC = "qrc";
 const QString HIFI_URL_SCHEME_FILE = "file";

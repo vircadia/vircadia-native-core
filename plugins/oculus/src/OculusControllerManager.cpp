@@ -414,7 +414,7 @@ void OculusControllerManager::TouchDevice::stopHapticPulse(bool leftHand) {
     });
 }
 
-/**jsdoc
+/*@jsdoc
  * <p>The <code>Controller.Hardware.OculusTouch</code> object has properties representing the Oculus Rift. The property values 
  * are integer IDs, uniquely identifying each output. <em>Read-only.</em></p>
  * <p>These outputs can be mapped to actions or functions or <code>Controller.Standard</code> items in a {@link RouteObject} 

@@ -1084,7 +1084,7 @@ QScriptValue qColorToScriptValue(QScriptEngine* engine, const QColor& color) {
     return object;
 }
 
-/**jsdoc
+/*@jsdoc
  * An axis-aligned cube, defined as the bottom right near (minimum axes values) corner of the cube plus the dimension of its 
  * sides.
  * @typedef {object} AACube
@@ -1169,7 +1169,7 @@ void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay) {
     }
 }
 
-/**jsdoc
+/*@jsdoc
  * Details of a collision between avatars and entities.
  * @typedef {object} Collision
  * @property {ContactEventType} type - The contact type of the collision event.
@@ -1218,7 +1218,7 @@ void quuidFromScriptValue(const QScriptValue& object, QUuid& uuid) {
     uuid = fromString;
 }
 
-/**jsdoc
+/*@jsdoc
  * A 2D size value.
  * @typedef {object} Size
  * @property {number} height - The height value.
@@ -1248,7 +1248,7 @@ AnimationDetails::AnimationDetails(QString role, QUrl url, float fps, float prio
     running(running), currentFrame(currentFrame), allowTranslation(allowTranslation) {
 }
 
-/**jsdoc
+/*@jsdoc
  * The details of an animation that is playing.
  * @typedef {object} Avatar.AnimationDetails
  * @property {string} role - <em>Not used.</em>
@@ -1324,7 +1324,7 @@ void meshesFromScriptValue(const QScriptValue& value, MeshProxyList &out) {
 }
 
 
-/**jsdoc
+/*@jsdoc
  * A triangle in a mesh.
  * @typedef {object} MeshFace
  * @property {number[]} vertices - The indexes of the three vertices that make up the face.

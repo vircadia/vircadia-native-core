@@ -21,7 +21,7 @@
 
 namespace entity {
 
-    /**jsdoc
+    /*@jsdoc
      * <p>A <code>"Shape"</code>, <code>"Box"</code>, or <code>"Sphere"</code> {@link Entities.EntityType|EntityType} may 
      * display as one of the following geometrical shapes:</p>
      * <table>
@@ -339,7 +339,7 @@ bool ShapeEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, 
 
 bool ShapeEntityItem::getRotateForPicking() const {
     auto shape = getShape();
-    return getBillboardMode() != BillboardMode::NONE && (_shape < entity::Shape::Cube || _shape > entity::Shape::Icosahedron);
+    return getBillboardMode() != BillboardMode::NONE && (shape < entity::Shape::Cube || shape > entity::Shape::Icosahedron);
 }
 
 void ShapeEntityItem::debugDump() const {

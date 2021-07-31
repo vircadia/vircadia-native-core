@@ -19,7 +19,7 @@
 
 #include "ui/InteractiveWindow.h"
 
-/**jsdoc
+/*@jsdoc
  * The <code>Desktop</code> API provides the dimensions of the computer screen, sets the opacity of the HUD surface, and 
  * enables QML and HTML windows to be shown inside or outside of Interface.
  *
@@ -60,14 +60,14 @@ class DesktopScriptingInterface : public QObject, public Dependency {
 public:
     DesktopScriptingInterface(QObject* parent= nullptr, bool restricted = false);
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the opacity of the HUD surface.
      * @function Desktop.setHUDAlpha
      * @param {number} alpha - The opacity, <code>0.0 &ndash; 1.0</code>.
      */
     Q_INVOKABLE void setHUDAlpha(float alpha);
 
-    /**jsdoc
+    /*@jsdoc
      * Opens a QML window within Interface: in the Interface window in desktop mode or on the HUD surface in HMD mode. If a 
      * window of the specified name already exists, it is shown, otherwise a new window is created from the QML.
      * @function Desktop.show
@@ -78,7 +78,7 @@ public:
      */
     Q_INVOKABLE void show(const QString& path, const QString&  title);
 
-    /**jsdoc
+    /*@jsdoc
      * Creates a new window that can be displayed either within Interface or as a separate desktop window.
      * @function Desktop.createWindow
      * @param {string} url - The QML file that specifies the window content. The QML file can use a <code>WebView</code> 

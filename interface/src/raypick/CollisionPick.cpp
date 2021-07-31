@@ -57,7 +57,7 @@ void buildObjectIntersectionsMap(IntersectionType intersectionType, const std::v
     }
 }
 
-/**jsdoc
+/*@jsdoc
  * An intersection result for a collision pick.
  *
  * @typedef {object} CollisionPickResult
@@ -66,7 +66,7 @@ void buildObjectIntersectionsMap(IntersectionType intersectionType, const std::v
  * @property {CollisionRegion} collisionRegion - The collision region that was used. Valid even if there was no intersection.
  */
 
-/**jsdoc
+/*@jsdoc
  * Information about a {@link CollisionPick}'s intersection with an object.
  *
  * @typedef {object} IntersectingObject
@@ -76,7 +76,7 @@ void buildObjectIntersectionsMap(IntersectionType intersectionType, const std::v
  * @property {CollisionContact[]} collisionContacts - Information on the penetration between the pick and the object.
  */
 
-/**jsdoc
+/*@jsdoc
  * A pair of points that represents part of an overlap between a {@link CollisionPick} and an object in the physics engine. 
  * Points which are further apart represent deeper overlap.
  *

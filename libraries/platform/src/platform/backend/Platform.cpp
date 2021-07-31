@@ -10,7 +10,7 @@
 #include "../Platform.h"
 #include "../PlatformKeys.h"
 
-/**jsdoc
+/*@jsdoc
  * Information on the computer platform as a whole.
  * @typedef {object} PlatformInfo.PlatformDescription
  * @property {PlatformInfo.ComputerDescription} computer - Information on the computer.
@@ -24,7 +24,7 @@
 namespace platform { namespace keys {
     const char*  UNKNOWN = "UNKNOWN";
 
-    /**jsdoc
+    /*@jsdoc
      * Information on a CPU.
      * @typedef {object} PlatformInfo.CPUDescription
      * @property {string} vendor - The CPU vendor (e.g., <code>"Intel"</code> or <code>"AMD"</code>).
@@ -44,7 +44,7 @@ namespace platform { namespace keys {
         const char*  isMaster = "isMaster";
         }
 
-    /**jsdoc
+    /*@jsdoc
      * Information on a GPU.
      * @typedef {object} PlatformInfo.GPUDescription
      * @property {string} vendor - The GPU vendor (e.g., <code>"NVIDIA"</code>, <code>"AMD"</code>, or <code>"Intel"</code>).
@@ -69,7 +69,7 @@ namespace platform { namespace keys {
         const char*  isMaster = "isMaster";
     }
     
-    /**jsdoc
+    /*@jsdoc
      * Information on a graphics API.
      * @typedef {object} PlatformInfo.GraphicsAPIDescription
      * @property {string} name - The name of the graphics API.
@@ -82,7 +82,7 @@ namespace platform { namespace keys {
      *
      * @property {PlatformInfo.VulkanAPIDescription[]} [devices] - If a Vulkan API, then the devices provided in the API.
      */
-    /**jsdoc
+    /*@jsdoc
      * Information on a Vulkan graphics API.
      * @typedef {object} PlatformInfo.VulkanAPIDescription
      * @property {string} 
@@ -95,13 +95,13 @@ namespace platform { namespace keys {
      * @property {PlatformInfo.VulkanQueueDescription[]} queues - The Vulkan queues available.
      * @property {PlatformInfo.VulkanHeapDescription[]} heaps - The Vulkan heaps available.
      */
-    /**jsdoc
+    /*@jsdoc
      * Information on a Vulkan queue.
      * @typedef {object} PlatformInfo.VulkanQueueDescription
      * @property {string} flags - The Vulkan queue flags.
      * @property {number} count - The queue count.
      */
-    /**jsdoc
+    /*@jsdoc
      * Information on a Vulkan heap.
      * @typedef {object} PlatformInfo.VulkanHeapDescription
      * @property {string} flags - The Vulkan heap flags.
@@ -147,7 +147,7 @@ namespace platform { namespace keys {
         }
     }
 
-    /**jsdoc
+    /*@jsdoc
      * Information on a network card.
      * @typedef {object} PlatformInfo.NICDescription
      * @property {string} name - The name of the network card.
@@ -158,7 +158,7 @@ namespace platform { namespace keys {
         const char* name = "name";
     }
 
-    /**jsdoc
+    /*@jsdoc
      * Information on a display.
      * @typedef {object} PlatformInfo.DisplayDescription
      * @property {string} description - The display's description.
@@ -196,7 +196,7 @@ namespace platform { namespace keys {
         const char*  isMaster = "isMaster";
     }
 
-    /**jsdoc
+    /*@jsdoc
      * Information on the computer's memory.
      * @typedef {object} PlatformInfo.MemoryDescription
      * @property {number} memTotal - The total amount of usable physical memory, in MB.
@@ -205,7 +205,7 @@ namespace platform { namespace keys {
         const char*  memTotal = "memTotal";
     }
 
-    /**jsdoc
+    /*@jsdoc
      * Information on the computer.
      * @typedef {object} PlatformInfo.ComputerDescription
      * @property {PlatformInfo.ComputerOS} OS - The operating system.
@@ -214,7 +214,7 @@ namespace platform { namespace keys {
      * @property {string} model - The computer model.
      * @property {PlatformInfo.PlatformTier} profileTier - The platform tier of the computer, profiled at Interface start-up.
      */
-    /**jsdoc
+    /*@jsdoc
      * <p>The computer operating system.</p>
      * <table>
      *   <thead>

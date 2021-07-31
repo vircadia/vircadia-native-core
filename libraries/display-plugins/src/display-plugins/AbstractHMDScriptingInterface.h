@@ -33,14 +33,14 @@ public:
     virtual bool isMounted() const = 0;
 
 signals:
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the <code>HMD.ipdScale</code> property value changes.
      * @function HMD.IPDScaleChanged
      * @returns {Signal}
      */
     void IPDScaleChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when Interface's display mode changes and when the user puts on or takes off their HMD.
      * @function HMD.displayModeChanged
      * @param {boolean} isHMDMode - <code>true</code> if the display mode is HMD, otherwise <code>false</code>. This is the
@@ -56,7 +56,7 @@ signals:
      */
     void displayModeChanged(bool isHMDMode);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the <code>HMD.mounted</code> property value changes.
      * @function HMD.mountedChanged
      * @returns {Signal}

@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 07/14/15.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -20,7 +21,7 @@ std::unique_ptr<NLPacket> copyToReadPacket(std::unique_ptr<NLPacket>& packet) {
     auto size = packet->getDataSize();
     auto data = std::unique_ptr<char[]>(new char[size]);
     memcpy(data.get(), packet->getData(), size);
-    return NLPacket::fromReceivedPacket(std::move(data), size, HifiSockAddr());
+    return NLPacket::fromReceivedPacket(std::move(data), size, SockAddr());
 }
 
 void PacketTests::emptyPacketTest() {

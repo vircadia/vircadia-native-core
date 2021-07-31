@@ -14,7 +14,7 @@
 
 #include <display-plugins/DisplayPlugin.h>
 
-/**jsdoc
+/*@jsdoc
  *  The <code>Rates</code> API provides some information on current rendering performance.
  *
  * @namespace Rates

@@ -65,7 +65,7 @@ Promise BaseAssetScriptingInterface::queryCacheMeta(const QUrl& url) {
     return assetClient()->queryCacheMetaAsync(url, makePromise(__FUNCTION__));
 }
 
-/**jsdoc
+/*@jsdoc
  * Data and information returned by {@link Assets.loadFromCache}.
  * @typedef {object} Assets.LoadFromCacheResult
  * @property {number} [byteLength] - The number of bytes in the retrieved data.

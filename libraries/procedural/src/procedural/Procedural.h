@@ -27,12 +27,12 @@
 using UniformLambdas = std::list<std::function<void(gpu::Batch& batch)>>;
 const size_t MAX_PROCEDURAL_TEXTURE_CHANNELS{ 4 };
 
-/**jsdoc
+/*@jsdoc
  * An object containing user-defined uniforms for communicating data to shaders.
  * @typedef {object} ProceduralUniforms
  */
 
-/**jsdoc
+/*@jsdoc
  * The data used to define a Procedural shader material.
  * @typedef {object} ProceduralData
  * @property {number} version=1 - The version of the procedural shader.
@@ -40,7 +40,7 @@ const size_t MAX_PROCEDURAL_TEXTURE_CHANNELS{ 4 };
  *     If a procedural material contains a vertex shader, the bounding box of the material entity is used to cull the object to which the material is applied.
  * @property {string} fragmentShaderURL - A link to a fragment shader.  Currently, only GLSL shaders are supported.  The shader must implement a different method depending on the version.
  *     <code>shaderUrl</code> is an alias.
- * @property {string[]} channels=[] - An array of input texture URLs.  Currently, up to 4 are supported.
+ * @property {string[]} channels=[] - An array of input texture URLs or entity IDs.  Currently, up to 4 are supported.  An entity ID may be that of an Image or Web entity.
  * @property {ProceduralUniforms} uniforms={} - A {@link ProceduralUniforms} object containing all the custom uniforms to be passed to the shader.
  */
 
@@ -212,26 +212,26 @@ public:
     ProceduralMaterial() : NetworkMaterial() { initializeProcedural(); }
     ProceduralMaterial(const NetworkMaterial& material) : NetworkMaterial(material) { initializeProcedural(); }
 
-    bool isProcedural() const override { return true; }
-    bool isEnabled() const override { return _procedural.isEnabled(); }
-    bool isReady() const override { return _procedural.isReady(); }
-    QString getProceduralString() const override { return _proceduralString; }
+    virtual bool isProcedural() const override { return true; }
+    virtual bool isEnabled() const override { return _procedural.isEnabled(); }
+    virtual bool isReady() const override { return _procedural.isReady(); }
+    virtual QString getProceduralString() const override { return _proceduralString; }
 
     void setProceduralData(const QString& data) {
         _proceduralString = data;
         _procedural.setProceduralData(ProceduralData::parse(data));
     }
-    glm::vec4 getColor(const glm::vec4& color) const { return _procedural.getColor(color); }
-    bool isFading() const { return _procedural.isFading(); }
+    virtual glm::vec4 getColor(const glm::vec4& color) const { return _procedural.getColor(color); }
+    virtual bool isFading() const { return _procedural.isFading(); }
     void setIsFading(bool isFading) { _procedural.setIsFading(isFading); }
-    uint64_t getFadeStartTime() const { return _procedural.getFadeStartTime(); }
-    bool hasVertexShader() const { return _procedural.hasVertexShader(); }
-    void prepare(gpu::Batch& batch, const glm::vec3& position, const glm::vec3& size, const glm::quat& orientation,
+    virtual uint64_t getFadeStartTime() const { return _procedural.getFadeStartTime(); }
+    virtual bool hasVertexShader() const { return _procedural.hasVertexShader(); }
+    virtual void prepare(gpu::Batch& batch, const glm::vec3& position, const glm::vec3& size, const glm::quat& orientation,
                  const uint64_t& created, const ProceduralProgramKey key = ProceduralProgramKey()) {
         _procedural.prepare(batch, position, size, orientation, created, key);
     }
 
-    void initializeProcedural();
+    virtual void initializeProcedural();
 
     void setBoundOperator(const std::function<AABox(RenderArgs*)>& boundOperator) { _procedural.setBoundOperator(boundOperator); }
     bool hasBoundOperator() const { return _procedural.hasBoundOperator(); }
