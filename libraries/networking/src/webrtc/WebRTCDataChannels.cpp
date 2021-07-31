@@ -339,14 +339,20 @@ qint64 WDCConnection::getBufferedAmount() const {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WDCConnection::getBufferedAmount()";
 #endif
-    return _dataChannel->buffered_amount();
+    return _dataChannel ? _dataChannel->buffered_amount() : 0;
 }
 
 bool WDCConnection::sendDataMessage(const DataBuffer& buffer) {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WDCConnection::sendDataMessage()";
+    if (!_dataChannel) {
+        qCDebug(networking_webrtc) << "No data channel to send on";
+    }
 #endif
-    if (_dataChannel->buffered_amount() + buffer.size() > MAX_WEBRTC_BUFFER_SIZE) {
+    if (!_dataChannel) {
+        // Data channel may have been closed while message to send was being prepared.
+        return false;
+    } else if (_dataChannel->buffered_amount() + buffer.size() > MAX_WEBRTC_BUFFER_SIZE) {
         // Don't send, otherwise the data channel will be closed.
         qCDebug(networking_webrtc) << "WebRTC send buffer overflow";
         return false;
