@@ -242,7 +242,7 @@ public:
     };
 
 public slots:
-    void setURLAndID(QUrl domainURL, QUuid id);
+    void setURLAndID(QUrl domainURL, QUuid domainID);
     void setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id);
 
     void processSettingsPacketList(QSharedPointer<ReceivedMessage> packetList);
@@ -252,7 +252,7 @@ public slots:
     void processDomainServerConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message);
 
     // sets domain handler in error state.
-    void setRedirectErrorState(QUrl errorUrl, QString reasonMessage = "", int reason = -1, const QString& extraInfo = "");
+    void setRedirectErrorState(QUrl errorUrl, QString reasonMessage = "", int reasonCode = -1, const QString& extraInfo = "");
 
     bool isInErrorState() { return _isInErrorState; }
 
@@ -278,7 +278,7 @@ signals:
     void settingsReceived(const QJsonObject& domainSettingsObject);
     void settingsReceiveFail();
 
-    void domainConnectionRefused(QString reasonMessage, int reason, const QString& extraInfo);
+    void domainConnectionRefused(QString reasonMessage, int reasonCode, const QString& extraInfo);
     void redirectToErrorDomainURL(QUrl errorDomainURL);
     void redirectErrorStateChanged(bool isInErrorState);
 
