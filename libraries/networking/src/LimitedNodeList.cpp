@@ -1224,8 +1224,7 @@ void LimitedNodeList::updateLocalSocket() {
     QTcpSocket* localIPTestSocket = new QTcpSocket;
 
     connect(localIPTestSocket, &QTcpSocket::connected, this, &LimitedNodeList::connectedForLocalSocketTest);
-    connect(localIPTestSocket, static_cast<void(QTcpSocket::*)(QAbstractSocket::SocketError)>(&QTcpSocket::error),
-        this, &LimitedNodeList::errorTestingLocalSocket);
+    connect(localIPTestSocket, &QTcpSocket::errorOccurred, this, &LimitedNodeList::errorTestingLocalSocket);
 
     // attempt to connect to our reliable host
     localIPTestSocket->connectToHost(RELIABLE_LOCAL_IP_CHECK_HOST, RELIABLE_LOCAL_IP_CHECK_PORT);
