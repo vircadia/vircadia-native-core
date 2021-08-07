@@ -5,6 +5,7 @@
 //  Created by Burt Sloane
 //  Modified by Bruce Brown
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -21,9 +22,9 @@
 #include <string>
 
 /*@jsdoc
- * The <code>Midi</code> API provides the ability to connect Interface with musical instruments and other external or virtual 
- * devices via the MIDI protocol. For further information and examples, see the tutorial: 
- * <a href="https://docs.vircadia.dev/script/midi-tutorial.html">Use MIDI to Control Your Environment</a>.
+ * The <code>Midi</code> API provides the ability to connect Interface with musical instruments and other external or virtual
+ * devices via the MIDI protocol. For further information and examples, see the tutorial:
+ * <a href="https://docs.vircadia.com/script/midi-tutorial.html">Use MIDI to Control Your Environment</a>.
  *
  * <p><strong>Note:</strong> Only works on Windows.</p>
  *
@@ -43,7 +44,7 @@ public:
     void midiHardwareChange();  // relay hardware change to Javascript
     void sendRawMessage(int device, int raw);  // relay midi message to MIDI outputs
     void sendNote(int status, int note, int velocity);  // relay a note to MIDI outputs
-    void sendMessage(int device, int channel, int type, int note, int velocity);  // relay a message to MIDI outputs 
+    void sendMessage(int device, int channel, int type, int note, int velocity);  // relay a message to MIDI outputs
     static void USBchanged();
 
 private:
@@ -150,7 +151,7 @@ public slots:
     /*@jsdoc
      * Enables or disables repeating all incoming notes to all outputs. (Default is disabled.)
      * @function Midi.thruModeEnable
-     * @param {boolean} enable - <code>true</code> to enable repeating all incoming notes to all output, <code>false</code> to 
+     * @param {boolean} enable - <code>true</code> to enable repeating all incoming notes to all output, <code>false</code> to
      *     disable.
      */
     Q_INVOKABLE void thruModeEnable(bool enable);
@@ -159,11 +160,11 @@ public slots:
     /*@jsdoc
      * Enables or disables broadcasts to all unblocked devices.
      * @function Midi.broadcastEnable
-     * @param {boolean} enable - <code>true</code> to have "send" functions broadcast to all devices, <code>false</code> to 
+     * @param {boolean} enable - <code>true</code> to have "send" functions broadcast to all devices, <code>false</code> to
      *     have them send to specific output devices.
      */
     Q_INVOKABLE void broadcastEnable(bool enable);
-    
+
 
     /// filter by event types
 

@@ -4,6 +4,7 @@
 //
 //  Created by Clement on 7/6/15.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -52,7 +53,7 @@ public:
                     bool isReliable = false, bool isPartOfMessage = false, PacketVersion version = 0);
     
     static std::unique_ptr<NLPacket> fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size,
-                                                        const HifiSockAddr& senderSockAddr);
+                                                        const SockAddr& senderSockAddr);
 
     static std::unique_ptr<NLPacket> fromBase(std::unique_ptr<Packet> packet);
     
@@ -87,7 +88,7 @@ public:
 protected:
     
     NLPacket(PacketType type, qint64 size = -1, bool forceReliable = false, bool isPartOfMessage = false, PacketVersion version = 0);
-    NLPacket(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr);
+    NLPacket(std::unique_ptr<char[]> data, qint64 size, const SockAddr& senderSockAddr);
     
     NLPacket(const NLPacket& other);
     NLPacket(NLPacket&& other);

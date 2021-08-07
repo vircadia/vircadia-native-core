@@ -1,16 +1,17 @@
 //
-//  HifiSockAddr.h
+//  SockAddr.h
 //  libraries/networking/src
 //
 //  Created by Stephen Birarda on 11/26/2013.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_HifiSockAddr_h
-#define hifi_HifiSockAddr_h
+#ifndef hifi_SockAddr_h
+#define hifi_SockAddr_h
 
 #include <cstdint>
 #include <string>
@@ -22,22 +23,22 @@ struct sockaddr;
 #include "SocketType.h"
 
 
-class HifiSockAddr : public QObject {
+class SockAddr : public QObject {
     Q_OBJECT
 public:
-    HifiSockAddr();
-    HifiSockAddr(SocketType socketType, const QHostAddress& address, quint16 port);
-    HifiSockAddr(const HifiSockAddr& otherSockAddr);
-    HifiSockAddr(SocketType socketType, const QString& hostname, quint16 hostOrderPort, bool shouldBlockForLookup = false);
+    SockAddr();
+    SockAddr(SocketType socketType, const QHostAddress& address, quint16 port);
+    SockAddr(const SockAddr& otherSockAddr);
+    SockAddr(SocketType socketType, const QString& hostname, quint16 hostOrderPort, bool shouldBlockForLookup = false);
 
     bool isNull() const { return _address.isNull() && _port == 0; }
     void clear() { _address.clear(); _port = 0;}
 
-    HifiSockAddr& operator=(const HifiSockAddr& rhsSockAddr);
-    void swap(HifiSockAddr& otherSockAddr);
+    SockAddr& operator=(const SockAddr& rhsSockAddr);
+    void swap(SockAddr& otherSockAddr);
 
-    bool operator==(const HifiSockAddr& rhsSockAddr) const;
-    bool operator!=(const HifiSockAddr& rhsSockAddr) const { return !(*this == rhsSockAddr); }
+    bool operator==(const SockAddr& rhsSockAddr) const;
+    bool operator!=(const SockAddr& rhsSockAddr) const { return !(*this == rhsSockAddr); }
 
     SocketType getSocketType() const { return _socketType; }
     SocketType* getSocketTypePointer() { return &_socketType; }
@@ -51,18 +52,17 @@ public:
     quint16* getPortPointer() { return &_port; }
     void setPort(quint16 port) { _port = port; }
 
-    static int packSockAddr(unsigned char* packetData, const HifiSockAddr& packSockAddr);
-    static int unpackSockAddr(const unsigned char* packetData, HifiSockAddr& unpackDestSockAddr);
+    static int packSockAddr(unsigned char* packetData, const SockAddr& packSockAddr);
+    static int unpackSockAddr(const unsigned char* packetData, SockAddr& unpackDestSockAddr);
 
     QString toString() const;
 
     bool hasPrivateAddress() const; // checks if the address behind this sock addr is private per RFC 1918
 
-    friend QDebug operator<<(QDebug debug, const HifiSockAddr& sockAddr);
+    friend QDebug operator<<(QDebug debug, const SockAddr& sockAddr);
+    friend QDataStream& operator<<(QDataStream& dataStream, const SockAddr& sockAddr);
+    friend QDataStream& operator>>(QDataStream& dataStream, SockAddr& sockAddr);
 
-    friend QDataStream& operator<<(QDataStream& dataStream, const HifiSockAddr& sockAddr);
-    friend QDataStream& operator>>(QDataStream& dataStream, HifiSockAddr& sockAddr);
-    
 private slots:
     void handleLookupResult(const QHostInfo& hostInfo);
 signals:
@@ -74,14 +74,14 @@ private:
     quint16 _port;
 };
 
-uint qHash(const HifiSockAddr& key, uint seed);
+uint qHash(const SockAddr& key, uint seed);
 
 namespace std {
     template <>
-    struct hash<HifiSockAddr> {
+    struct hash<SockAddr> {
         // NOTE: this hashing specifically ignores IPv6 addresses - if we begin to support those we will need
         // to conditionally hash the bytes that represent an IPv6 address
-        size_t operator()(const HifiSockAddr& sockAddr) const {
+        size_t operator()(const SockAddr& sockAddr) const {
             // use XOR of implemented std::hash templates for new hash
             // depending on the type of address we're looking at
             
@@ -98,6 +98,6 @@ namespace std {
     };
 }
 
-Q_DECLARE_METATYPE(HifiSockAddr);
+Q_DECLARE_METATYPE(SockAddr);
 
-#endif // hifi_HifiSockAddr_h
+#endif // hifi_SockAddr_h

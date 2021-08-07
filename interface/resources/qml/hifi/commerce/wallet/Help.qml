@@ -6,6 +6,7 @@
 //
 //  Created by Zach Fox on 2017-08-18
 //  Copyright 2017 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -207,7 +208,7 @@ At the moment, there is currently no way to convert HFC to other currencies. Sta
                         if (link === "#privateKeyPath") {
                             Qt.openUrlExternally("file:///" + root.keyFilePath.substring(0, root.keyFilePath.lastIndexOf('/')));
                         } else if (link === "#blockchain") {
-                            Qt.openUrlExternally("https://docs.vircadia.dev/explore/shop.html");
+                            Qt.openUrlExternally("https://docs.vircadia.com/explore/shop.html");
                         } else if (link === "#bank") {
                             if ((Account.metaverseServerURL).toString().indexOf("staging") >= 0) {
                                 Qt.openUrlExternally("hifi://hifiqa-master-metaverse-staging"); // So that we can test in staging.

@@ -345,9 +345,8 @@ bool WDCConnection::sendDataMessage(const DataBuffer& buffer) {
 #endif
     if (_dataChannel->buffered_amount() + buffer.size() > MAX_WEBRTC_BUFFER_SIZE) {
         // Don't send, otherwise the data channel will be closed.
-        return false;
-    } else {
         qCDebug(networking_webrtc) << "WebRTC send buffer overflow";
+        return false;
     }
     return _dataChannel->Send(buffer);
 }

@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_WebSocketServerClass_h
 #define hifi_WebSocketServerClass_h
 
@@ -73,6 +76,7 @@
  *     webSocket.send(TEST_MESSAGE);
  * };
  */
+/// Provides the <code><a href="https://apidocs.vircadia.dev/WebSocketServer.html">WebSocketServer</a></code> scripting interface
 class WebSocketServerClass : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString url READ getURL)
@@ -118,3 +122,5 @@ signals:
 };
 
 #endif // hifi_WebSocketServerClass_h
+
+/// @}

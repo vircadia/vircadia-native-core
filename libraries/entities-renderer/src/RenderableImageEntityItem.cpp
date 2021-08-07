@@ -198,10 +198,8 @@ void ImageEntityRenderer::doRender(RenderArgs* args) {
         procedural->prepare(*batch, transform.getTranslation(), transform.getScale(), transform.getRotation(), _created, ProceduralProgramKey(transparent));
     } else if (pipelineType == Pipeline::SIMPLE) {
         batch->setResourceTexture(0, _texture->getGPUTexture());
-    } else {
-        if (RenderPipelines::bindMaterials(materials, *batch, args->_renderMode, args->_enableTexturing)) {
-            args->_details._materialSwitches++;
-        }
+    } else if (RenderPipelines::bindMaterials(materials, *batch, args->_renderMode, args->_enableTexturing)) {
+        args->_details._materialSwitches++;
     }
 
     DependencyManager::get<GeometryCache>()->renderQuad(

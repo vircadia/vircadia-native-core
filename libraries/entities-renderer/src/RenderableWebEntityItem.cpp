@@ -274,6 +274,7 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
 
     // Try to update the texture
     OffscreenQmlSurface::TextureAndFence newTextureAndFence;
+    QSize windowSize;
     bool newTextureAvailable = false;
     if (!resultWithReadLock<bool>([&] {
         if (!_webSurface) {
@@ -281,6 +282,7 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
         }
 
         newTextureAvailable = _webSurface->fetchTexture(newTextureAndFence);
+        windowSize = _webSurface->size();
         return true;
     })) {
         return;
@@ -288,6 +290,8 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
 
     if (newTextureAvailable) {
         _texture->setExternalTexture(newTextureAndFence.first, newTextureAndFence.second);
+        _texture->setSize(windowSize.width(), windowSize.height());
+        _texture->setOriginalSize(windowSize.width(), windowSize.height());
     }
 
     static const glm::vec2 texMin(0.0f), texMax(1.0f), topLeft(-0.5f), bottomRight(0.5f);

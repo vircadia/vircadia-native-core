@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2015-07-23.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -18,7 +19,7 @@
 
 #include <PortableHighResolutionClock.h>
 
-#include "../HifiSockAddr.h"
+#include "../SockAddr.h"
 #include "Constants.h"
 #include "../ExtendedIODevice.h"
 
@@ -31,7 +32,7 @@ public:
     
     static std::unique_ptr<BasePacket> create(qint64 size = -1);
     static std::unique_ptr<BasePacket> fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size,
-                                                          const HifiSockAddr& senderSockAddr);
+                                                          const SockAddr& senderSockAddr);
     
     // Current level's header size
     static int localHeaderSize();
@@ -66,8 +67,8 @@ public:
     qint64 bytesLeftToRead() const { return _payloadSize - pos(); }
     qint64 bytesAvailableForWrite() const { return _payloadCapacity - pos(); }
     
-    HifiSockAddr& getSenderSockAddr() { return _senderSockAddr; }
-    const HifiSockAddr& getSenderSockAddr() const { return _senderSockAddr; }
+    SockAddr& getSenderSockAddr() { return _senderSockAddr; }
+    const SockAddr& getSenderSockAddr() const { return _senderSockAddr; }
     
     // QIODevice virtual functions
     // WARNING: Those methods all refer to the payload ONLY and NOT the entire packet
@@ -87,7 +88,7 @@ public:
     
 protected:
     BasePacket(qint64 size);
-    BasePacket(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr);
+    BasePacket(std::unique_ptr<char[]> data, qint64 size, const SockAddr& senderSockAddr);
     BasePacket(const BasePacket& other) : ExtendedIODevice() { *this = other; }
     BasePacket& operator=(const BasePacket& other);
     BasePacket(BasePacket&& other);
@@ -107,7 +108,7 @@ protected:
     
     qint64 _payloadSize = 0;          // How much of the payload is actually used
     
-    HifiSockAddr _senderSockAddr;  // sender address for packet (only used on receiving end)
+    SockAddr _senderSockAddr;  // sender address for packet (only used on receiving end)
 
     p_high_resolution_clock::time_point _receiveTime; // captures the time the packet received (only used on receiving end)
 };
