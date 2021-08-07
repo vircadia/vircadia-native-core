@@ -1110,9 +1110,9 @@ Rectangle {
                         popupComboDialog("Set your availability:",
                         availabilityComboBox.availabilityStrings,
                         ["Your username will be visible in everyone's 'Nearby' list.",
-                        "Your location will be visible in the 'Connections' list only for those with whom you are connected or friends. They'll be able to jump to your location if the domain allows,",
-                        "Your location will be visible in the 'Connections' list only for those with whom you are friends. They'll be able to jump to your location if the domain allows,",
-                        "You will appear offline in the 'Connections' list,"],
+                        "Your location will be visible in the 'Connections' list only for those with whom you are connected or friends. They'll be able to jump to your location if the domain allows.",
+                        "Your location will be visible in the 'Connections' list only for those with whom you are friends. They'll be able to jump to your location if the domain allows.",
+                        "You will appear offline in the 'Connections' list."],
                         ["all", "connections", "friends", "none"]);
                     }
                     onEntered: availabilityComboBox.color = hifi.colors.lightGrayText;
