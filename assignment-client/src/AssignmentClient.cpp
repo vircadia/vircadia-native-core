@@ -91,7 +91,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     _assignmentServerSocket.setObjectName("AssignmentServer");
     nodeList->setAssignmentServerSocket(_assignmentServerSocket);
 
-    if (disableDomainPortAutoDiscovery == true) {
+    if (disableDomainPortAutoDiscovery) {
         _disableDomainPortAutoDiscovery = disableDomainPortAutoDiscovery;
         qCDebug(assignment_client) << "Disabling domain port auto discovery by the assignment client due to parsed command line parameter.";
     }

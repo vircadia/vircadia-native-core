@@ -71,7 +71,7 @@ public:
     void setAssignmentServerSocket(const SockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
 
-    void disableDomainPortAutoDiscovery(bool disabled = false) { _domainPortAutoDiscovery = disabled; };
+    void disableDomainPortAutoDiscovery(bool disabled = false) { _domainPortAutoDiscovery = !disabled; };
 
     void setIsShuttingDown(bool isShuttingDown) { _isShuttingDown = isShuttingDown; }
 
@@ -183,7 +183,7 @@ private:
     bool _requestsDomainListData { false };
 
     bool _sendDomainServerCheckInEnabled { true };
-    bool _domainPortAutoDiscovery { false };
+    bool _domainPortAutoDiscovery { true };
 
     mutable QReadWriteLock _ignoredSetLock;
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDs;
