@@ -100,7 +100,8 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     const QCommandLineOption logDirectoryOption(ASSIGNMENT_LOG_DIRECTORY, "directory to store logs", "log-directory");
     parser.addOption(logDirectoryOption);
 
-    const QCommandLineOption disableDomainPortAutoDiscoveryOption(ASSIGNMENT_DISABLE_DOMAIN_AUTO_PORT_DISCOVERY, "disable automatic discovery of the domain server port");
+    const QCommandLineOption disableDomainPortAutoDiscoveryOption(ASSIGNMENT_DISABLE_DOMAIN_AUTO_PORT_DISCOVERY,
+        "assignment clients automatically search for the domain server on the local machine, if networking is being managed, then disable automatic discovery of the domain server port");
     parser.addOption(disableDomainPortAutoDiscoveryOption);
 
     const QCommandLineOption parentPIDOption(PARENT_PID_OPTION, "PID of the parent process", "parent-pid");
