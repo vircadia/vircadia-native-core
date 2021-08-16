@@ -2656,6 +2656,24 @@ var PropertiesTool = function (opts) {
                 } else {
                     audioFeedback.rejection();
                 }
+            } else if (data.action === "setRotationToZero") {
+                if (selectionManager.selections.length === 1 && SelectionManager.hasUnlockedSelection()) {
+                    selectionManager.saveProperties();
+                    var parentState = getParentState(selectionManager.selections[0]);
+                    if ((parentState === "PARENT_CHILDREN" || parentState === "CHILDREN") && selectionDisplay.getSpaceMode() === "local" ) {
+                        Entities.editEntity(selectionManager.selections[0], {
+                            localRotation: Quat.IDENTITY
+                        });                    
+                    } else {
+                        Entities.editEntity(selectionManager.selections[0], {
+                            rotation: Quat.IDENTITY
+                        });
+                    }
+                    pushCommandForSelections();
+                    selectionManager._update(false, this);
+                } else {
+                    audioFeedback.rejection();
+                }
             }
         } else if (data.type === "propertiesPageReady") {
             updateSelections(true);
