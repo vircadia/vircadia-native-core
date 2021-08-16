@@ -52,10 +52,10 @@ public:
     WDCCreateSessionDescriptionObserver(WDCConnection* parent);
 
     /// @brief The call to CreateAnswer succeeded.
-    /// @param The session description.
+    /// @param desc The session description.
     void OnSuccess(webrtc::SessionDescriptionInterface* desc) override;
 
-    //@ @brief The call to CreateAnswer failed.
+    /// @brief The call to CreateAnswer failed.
     /// @param error Error information.
     void OnFailure(webrtc::RTCError error) override;
 
