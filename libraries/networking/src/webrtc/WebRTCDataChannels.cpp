@@ -291,6 +291,9 @@ void WDCConnection::onDataChannelOpened(rtc::scoped_refptr<DataChannelInterface>
     _dataChannelID = _parent->getNewDataChannelID();  // Not dataChannel->id() because it's only unique per peer connection.
     _dataChannel->RegisterObserver(_dataChannelObserver.get());
 
+#ifdef WEBRTC_DEBUG
+    qCDebug(networking_webrtc) << "WDCConnection::onDataChannelOpened() : channel ID:" << _dataChannelID;
+#endif
     _parent->onDataChannelOpened(this, _dataChannelID);
 }
 
@@ -336,14 +339,20 @@ qint64 WDCConnection::getBufferedAmount() const {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WDCConnection::getBufferedAmount()";
 #endif
-    return _dataChannel->buffered_amount();
+    return _dataChannel ? _dataChannel->buffered_amount() : 0;
 }
 
 bool WDCConnection::sendDataMessage(const DataBuffer& buffer) {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WDCConnection::sendDataMessage()";
+    if (!_dataChannel) {
+        qCDebug(networking_webrtc) << "No data channel to send on";
+    }
 #endif
-    if (_dataChannel->buffered_amount() + buffer.size() > MAX_WEBRTC_BUFFER_SIZE) {
+    if (!_dataChannel) {
+        // Data channel may have been closed while message to send was being prepared.
+        return false;
+    } else if (_dataChannel->buffered_amount() + buffer.size() > MAX_WEBRTC_BUFFER_SIZE) {
         // Don't send, otherwise the data channel will be closed.
         qCDebug(networking_webrtc) << "WebRTC send buffer overflow";
         return false;
@@ -486,7 +495,8 @@ void WebRTCDataChannels::sendSignalingMessage(const QJsonObject& message) {
 
 void WebRTCDataChannels::emitDataMessage(int dataChannelID, const QByteArray& byteArray) {
 #ifdef WEBRTC_DEBUG
-    qCDebug(networking_webrtc) << "WebRTCDataChannels::emitDataMessage() :" << dataChannelID << byteArray;
+    qCDebug(networking_webrtc) << "WebRTCDataChannels::emitDataMessage() :" << dataChannelID << byteArray.toHex()
+        << byteArray.length();
 #endif
     emit dataMessage(dataChannelID, byteArray);
 }
@@ -557,6 +567,9 @@ void WebRTCDataChannels::closePeerConnectionNow(WDCConnection* connection) {
     connection->closePeerConnection();
 
     // Delete the WDCConnection.
+#ifdef WEBRTC_DEBUG
+    qCDebug(networking_webrtc) << "Dispose of connection for channel ID:" << connection->getDataChannelID();
+#endif
     _connectionsByWebSocket.remove(connection->getWebSocketID());
     _connectionsByDataChannel.remove(connection->getDataChannelID());
     delete connection;
