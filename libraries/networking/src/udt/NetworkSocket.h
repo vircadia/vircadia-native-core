@@ -91,7 +91,7 @@ public:
     bool hasPendingDatagrams() const;
     
     /// @brief Gets the size of the next pending datagram, alternating between socket types if both have datagrams to read.
-    /// @return The size of the next pendign datagram.
+    /// @return The size of the next pending datagram.
     qint64 pendingDatagramSize();
     
     /// @brief Reads the next datagram per the most recent pendingDatagramSize call if made, otherwise alternating between
@@ -111,13 +111,20 @@ public:
 
     /// @brief Gets the type of error that last occurred.
     /// @param socketType The type of socket for which to get the last error.
-    /// @return The type of error that last occurred
+    /// @return The type of error that last occurred.
     QAbstractSocket::SocketError error(SocketType socketType) const;
 
     /// @brief Gets the description of the error that last occurred.
     /// @param socketType The type of socket for which to get the last error's description.
     /// @return The description of the error that last occurred.
     QString errorString(SocketType socketType) const;
+
+
+#if defined(WEBRTC_DATA_CHANNELS)
+    /// @brief  @brief Gets a pointer to the WebRTC socket object.
+    /// @return A pointer to the WebRTC socket object.
+    const WebRTCSocket* getWebRTCSocket();
+#endif
 
 signals:
 

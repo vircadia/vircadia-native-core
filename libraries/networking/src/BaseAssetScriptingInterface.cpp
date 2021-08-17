@@ -9,8 +9,9 @@
 
 #include "BaseAssetScriptingInterface.h"
 
-#include <QJsonDocument>
 #include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QMimeDatabase>
 #include <QThread>
 

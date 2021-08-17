@@ -10,20 +10,19 @@
 
 #if defined(WEBRTC_DATA_CHANNELS)
 
+#include <QHostAddress>
+
 #include "../NetworkLogging.h"
 #include "../udt/Constants.h"
 
 
 WebRTCSocket::WebRTCSocket(QObject* parent, NodeType_t nodeType) :
     QObject(parent),
-    _signalingServer(this /*, QHostAddress::AnyIPv4, DEFAULT_DOMAIN_SERVER_WS_PORT*/),
     _dataChannels(this, nodeType)
 {
-    // Connect WebRTC signaling server and data channels.
-    connect(&_signalingServer, &WebRTCSignalingServer::messageReceived,
-        &_dataChannels, &WebRTCDataChannels::onSignalingMessage);
-    connect(&_dataChannels, &WebRTCDataChannels::signalingMessage,
-        &_signalingServer, &WebRTCSignalingServer::sendMessage);
+    // Route signaling messages.
+    connect(this, &WebRTCSocket::onSignalingMessage, &_dataChannels, &WebRTCDataChannels::onSignalingMessage);
+    connect(&_dataChannels, &WebRTCDataChannels::signalingMessage, this, &WebRTCSocket::sendSignalingMessage);
 
     // Route received data channel messages.
     connect(&_dataChannels, &WebRTCDataChannels::dataMessage, this, &WebRTCSocket::onDataChannelReceivedMessage);
@@ -63,7 +62,7 @@ QVariant WebRTCSocket::socketOption(QAbstractSocket::SocketOption option) {
 bool WebRTCSocket::bind(const QHostAddress& address, quint16 port, QAbstractSocket::BindMode mode) {
     // WebRTC data channels aren't bound to ports so just treat this as a successful operation.
     auto wasBound = _isBound;
-    _isBound = _signalingServer.bind(address, port);
+    _isBound = true;
     if (_isBound != wasBound) {
         emit stateChanged(_isBound ? QAbstractSocket::BoundState : QAbstractSocket::UnconnectedState);
     }

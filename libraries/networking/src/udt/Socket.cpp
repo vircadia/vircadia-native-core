@@ -91,6 +91,12 @@ void Socket::rebind(SocketType socketType, quint16 localPort) {
     bind(socketType, QHostAddress::AnyIPv4, localPort);
 }
 
+#if defined(WEBRTC_DATA_CHANNELS)
+const WebRTCSocket* Socket::getWebRTCSocket() {
+    return _networkSocket.getWebRTCSocket();
+}
+#endif
+
 void Socket::setSystemBufferSizes(SocketType socketType) {
     for (int i = 0; i < 2; i++) {
         QAbstractSocket::SocketOption bufferOpt;

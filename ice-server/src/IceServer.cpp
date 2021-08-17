@@ -16,6 +16,7 @@
 
 #include <QtCore/QDataStream>
 #include <QtCore/QJsonDocument>
+#include <QtCore/QJsonObject>
 #include <QtCore/QTimer>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>

@@ -37,7 +37,6 @@
 #include <DependencyManager.h>
 #include <SharedUtil.h>
 
-#include "DomainHandler.h"
 #include "NetworkingConstants.h"
 #include "Node.h"
 #include "NLPacket.h"
@@ -139,6 +138,10 @@ public:
     Q_INVOKABLE void setSocketLocalPort(SocketType socketType, quint16 socketLocalPort);
 
     QUdpSocket& getDTLSSocket();
+#if defined(WEBRTC_DATA_CHANNELS)
+    const WebRTCSocket* getWebRTCSocket();
+#endif
+
 
     PacketReceiver& getPacketReceiver() { return *_packetReceiver; }
 

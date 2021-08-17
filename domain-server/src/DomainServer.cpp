@@ -167,6 +167,10 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _gatekeeper(this),
     _httpManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTP_PORT,
         QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this)
+#if defined(WEBRTC_DATA_CHANNELS)
+    ,
+    _webrtcSignalingServer(this)
+#endif
 {
     if (_parentPID != -1) {
         watchParentProcess(_parentPID);
@@ -247,6 +251,10 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     updateReplicatedNodes();
     updateDownstreamNodes();
     updateUpstreamNodes();
+
+#if defined(WEBRTC_DATA_CHANNELS)
+    setUpWebRTCSignalingServer();
+#endif
 
     if (_type != NonMetaverse) {
         // if we have a metaverse domain, we'll use an access token for API calls
@@ -845,6 +853,38 @@ void DomainServer::setupNodeListAndAssignments() {
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();
 }
+
+
+#if defined(WEBRTC_DATA_CHANNELS)
+
+void DomainServer::setUpWebRTCSignalingServer() {
+    // Bind the WebRTC signaling server's WebSocket to its port.
+    bool isBound = _webrtcSignalingServer.bind(QHostAddress::AnyIPv4, DEFAULT_DOMAIN_SERVER_WS_PORT);
+    if (!isBound) {
+        qWarning() << "WebRTC signaling server not bound to port. WebRTC connections are not supported.";
+        return;
+    }
+
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+
+    // Route inbound WebRTC signaling messages received from user clients.
+    connect(&_webrtcSignalingServer, &WebRTCSignalingServer::messageReceived, 
+        this, &DomainServer::routeWebRTCSignalingMessage);
+
+    // Route domain server signaling messages.
+    auto webrtcSocket = limitedNodeList->getWebRTCSocket();
+    connect(this, &DomainServer::webrtcSignalingMessageForDomainServer, webrtcSocket, &WebRTCSocket::onSignalingMessage);
+    connect(webrtcSocket, &WebRTCSocket::sendSignalingMessage, &_webrtcSignalingServer, &WebRTCSignalingServer::sendMessage);
+}
+
+void DomainServer::routeWebRTCSignalingMessage(const QJsonObject& json) {
+    if (json.value("to").toString() == NodeType::DomainServer) {
+        emit webrtcSignalingMessageForDomainServer(json);
+    }
+}
+
+#endif
+
 
 bool DomainServer::resetAccountManagerAccessToken() {
     if (!_oauthProviderURL.isEmpty()) {

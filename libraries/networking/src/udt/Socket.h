@@ -90,6 +90,10 @@ public:
     
     StatsVector sampleStatsForAllConnections();
 
+#if defined(WEBRTC_DATA_CHANNELS)
+    const WebRTCSocket* getWebRTCSocket();
+#endif
+
 #if (PR_BUILD || DEV_BUILD)
     void sendFakedHandshakeRequest(const SockAddr& sockAddr);
 #endif

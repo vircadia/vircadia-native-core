@@ -267,6 +267,13 @@ QString NetworkSocket::errorString(SocketType socketType) const {
 }
 
 
+#if defined(WEBRTC_DATA_CHANNELS)
+const WebRTCSocket* NetworkSocket::getWebRTCSocket() {
+    return &_webrtcSocket;
+}
+#endif
+
+
 void NetworkSocket::onUDPStateChanged(QAbstractSocket::SocketState socketState) {
     emit stateChanged(SocketType::UDP, socketState);
 }
