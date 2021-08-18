@@ -1384,7 +1384,7 @@ const GROUPS = [
                 type: "buttons",
                 buttons: [  { id: "copyRotation", label: "Copy Rotation", className: "secondary", onClick: copyRotationProperty },
                             { id: "pasteRotation", label: "Paste Rotation", className: "secondary", onClick: pasteRotationProperty },
-                            { id: "setRotationToZero", label: "Set Rotation to Zero", className: "secondary_red", onClick: setRotationToZeroProperty }],
+                            { id: "setRotationToZero", label: "Reset Rotation", className: "secondary_red", onClick: setRotationToZeroProperty }],
                 propertyID: "copyPasteRotation"
             },          
             {
