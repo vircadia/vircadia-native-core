@@ -150,6 +150,10 @@ private slots:
     void tokenGrantFinished();
     void profileRequestFinished();
 
+#if defined(WEBRTC_DATA_CHANNELS)
+    void forwardAssignmentClientSignalingMessageToUserClient(QSharedPointer<ReceivedMessage> message);
+#endif
+
     void aboutToQuit();
 
 signals:
@@ -159,6 +163,7 @@ signals:
 
 #if defined(WEBRTC_DATA_CHANNELS)
     void webrtcSignalingMessageForDomainServer(const QJsonObject& json);
+    void webrtcSignalingMessageForUserClient(const QJsonObject& json);
 #endif
 
 
@@ -245,6 +250,7 @@ private:
 #if defined(WEBRTC_DATA_CHANNELS)
     void setUpWebRTCSignalingServer();
     void routeWebRTCSignalingMessage(const QJsonObject& json);
+    void sendWebRTCSignalingMessageToAssignmentClient(const QJsonObject& json);
 #endif
 
     QString operationToString(const QNetworkAccessManager::Operation &op);

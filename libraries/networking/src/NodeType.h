@@ -43,6 +43,7 @@ namespace NodeType {
     NodeType_t downstreamType(NodeType_t primaryType);
 
     NodeType_t fromString(QString type);
+    NodeType_t fromChar(QChar type);
 }
 
 typedef QSet<NodeType_t> NodeSet;
