@@ -416,8 +416,7 @@ protected:
         QUuid connectionSecretUUID;
     };
 
-    LimitedNodeList(char ownerType = NodeType::DomainServer, int socketListenPort = INVALID_PORT, 
-        int dtlsListenPort = INVALID_PORT);
+    LimitedNodeList(int socketListenPort = INVALID_PORT, int dtlsListenPort = INVALID_PORT);
     LimitedNodeList(LimitedNodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
     void operator=(LimitedNodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
 

@@ -50,8 +50,8 @@ static Setting::Handle<quint16> LIMITED_NODELIST_LOCAL_PORT("LimitedNodeList.Loc
 using namespace std::chrono_literals;
 static const std::chrono::milliseconds CONNECTION_RATE_INTERVAL_MS = 1s;
 
-LimitedNodeList::LimitedNodeList(char ownerType, int socketListenPort, int dtlsListenPort) :
-    _nodeSocket(this, true, ownerType),
+LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
+    _nodeSocket(this, true),
     _packetReceiver(new PacketReceiver(this))
 {
     qRegisterMetaType<ConnectionStep>("ConnectionStep");

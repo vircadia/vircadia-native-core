@@ -33,8 +33,7 @@ public:
 
     /// @brief Constructs a new NetworkSocket object.
     /// @param parent Qt parent object.
-    /// @param nodeType The type of node that the NetworkSocket object is being used in.
-    NetworkSocket(QObject* parent, NodeType_t nodeType);
+    NetworkSocket(QObject* parent);
 
 
     /// @brief Set the value of a UDP or WebRTC socket option.

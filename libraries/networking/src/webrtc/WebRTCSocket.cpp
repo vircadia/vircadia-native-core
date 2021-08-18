@@ -16,9 +16,9 @@
 #include "../udt/Constants.h"
 
 
-WebRTCSocket::WebRTCSocket(QObject* parent, NodeType_t nodeType) :
+WebRTCSocket::WebRTCSocket(QObject* parent) :
     QObject(parent),
-    _dataChannels(this, nodeType)
+    _dataChannels(this)
 {
     // Route signaling messages.
     connect(this, &WebRTCSocket::onSignalingMessage, &_dataChannels, &WebRTCDataChannels::onSignalingMessage);

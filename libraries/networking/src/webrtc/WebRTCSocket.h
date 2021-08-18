@@ -31,8 +31,7 @@ public:
 
     /// @brief Constructs a new WebRTCSocket object.
     /// @param parent Qt parent object.
-    /// @param nodeType The type of node that the WebRTCsocket object is being used in.
-    WebRTCSocket(QObject* parent, NodeType_t nodeType);
+    WebRTCSocket(QObject* parent);
 
 
     /// @brief Nominally sets the value of a socket option.

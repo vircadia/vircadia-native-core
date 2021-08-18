@@ -373,13 +373,12 @@ void WDCConnection::closePeerConnection() {
 }
 
 
-WebRTCDataChannels::WebRTCDataChannels(QObject* parent, NodeType_t nodeType) :
+WebRTCDataChannels::WebRTCDataChannels(QObject* parent) :
     QObject(parent),
-    _parent(parent),
-    _nodeType(nodeType)
+    _parent(parent)
 {
 #ifdef WEBRTC_DEBUG
-    qCDebug(networking_webrtc) << "WebRTCDataChannels::WebRTCDataChannels()" << nodeType << NodeType::getNodeTypeName(nodeType);
+    qCDebug(networking_webrtc) << "WebRTCDataChannels::WebRTCDataChannels()";
 #endif
 
     // Create a peer connection factory.

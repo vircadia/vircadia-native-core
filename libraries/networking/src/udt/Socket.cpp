@@ -40,9 +40,9 @@ using namespace udt;
 #endif
 
 
-Socket::Socket(QObject* parent, bool shouldChangeSocketOptions, NodeType_t nodeType) :
+Socket::Socket(QObject* parent, bool shouldChangeSocketOptions) :
     QObject(parent),
-    _networkSocket(parent, nodeType),
+    _networkSocket(parent),
     _readyReadBackupTimer(new QTimer(this)),
     _shouldChangeSocketOptions(shouldChangeSocketOptions)
 {

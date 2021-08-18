@@ -227,8 +227,7 @@ public:
 
     /// @brief Constructs a new WebRTCDataChannels object.
     /// @param parent The parent Qt object.
-    /// @param nodeType The type of node that the WebRTCDataChannels object is being used in.
-    WebRTCDataChannels(QObject* parent, NodeType_t nodeType);
+    WebRTCDataChannels(QObject* parent);
 
     /// @brief Destroys a WebRTCDataChannels object.
     ~WebRTCDataChannels();
