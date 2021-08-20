@@ -1967,7 +1967,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     }
 
     QString scriptsSwitch = QString("--").append(SCRIPTS_SWITCH);
-    _defaultScriptsLocation = getCmdOption(argc, constArgv, scriptsSwitch.toStdString().c_str());
+    _defaultScriptsLocation.setPath(getCmdOption(argc, constArgv, scriptsSwitch.toStdString().c_str()));
 
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
