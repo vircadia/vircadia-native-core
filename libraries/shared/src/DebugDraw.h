@@ -21,7 +21,7 @@
 #include <QObject>
 #include <QString>
 
-/**jsdoc
+/*@jsdoc
  * The <code>DebugDraw</code> API renders debug markers and lines. These markers are only visible locally; they are not visible 
  * to other users.
  *
@@ -41,7 +41,7 @@ public:
     DebugDraw();
     ~DebugDraw();
 
-    /**jsdoc
+    /*@jsdoc
      * Draws a line in world space, visible for a single frame. To make the line visually persist, you need to repeatedly draw 
      * it.
      * @function DebugDraw.drawRay
@@ -60,7 +60,7 @@ public:
      */
     Q_INVOKABLE void drawRay(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color);
     
-    /**jsdoc
+    /*@jsdoc
      * Draws lines in world space, visible for a single frame. To make the lines visually persist, you need to repeatedly draw 
      * them.
      * <p><strong>Note:</strong> Currently doesn't work.
@@ -86,7 +86,7 @@ public:
     Q_INVOKABLE void drawRays(const std::vector<std::pair<glm::vec3, glm::vec3>>& lines, const glm::vec4& color,
                               const glm::vec3& translation = glm::vec3(0.0f, 0.0f, 0.0f), const glm::quat& rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f));
 
-    /**jsdoc
+    /*@jsdoc
      * Adds or updates a debug marker in world coordinates. This marker is drawn every frame until it is removed using  
      * {@link DebugDraw.removeMarker|removeMarker}. If a world coordinates debug marker of the specified <code>name</code> 
      * already exists, its parameters are updated.
@@ -112,14 +112,14 @@ public:
     Q_INVOKABLE void addMarker(const QString& key, const glm::quat& rotation, const glm::vec3& position,
                                const glm::vec4& color, float size = 1.0f);
 
-    /**jsdoc
+    /*@jsdoc
      * Removes a debug marker that was added in world coordinates.
      * @function DebugDraw.removeMarker
      * @param {string} key - The name of the world coordinates debug marker to remove.
      */
     Q_INVOKABLE void removeMarker(const QString& key);
 
-    /**jsdoc
+    /*@jsdoc
      * Adds or updates a debug marker to the world in avatar coordinates. This marker is drawn every frame until it is removed 
      * using {@link DebugDraw.removeMyAvatarMarker|removeMyAvatarMarker}. If an avatar coordinates debug marker of the 
      * specified <code>name</code> already exists, its parameters are updated. The debug marker moves with your avatar.
@@ -145,7 +145,7 @@ public:
     Q_INVOKABLE void addMyAvatarMarker(const QString& key, const glm::quat& rotation, const glm::vec3& position,
                                        const glm::vec4& color, float size = 1.0f);
 
-    /**jsdoc
+    /*@jsdoc
      * Removes a debug marker that was added in avatar coordinates.
      * @function DebugDraw.removeMyAvatarMarker
      * @param {string} key - The name of the avatar coordinates debug marker to remove.

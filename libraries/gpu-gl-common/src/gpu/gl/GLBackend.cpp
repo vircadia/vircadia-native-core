@@ -153,7 +153,7 @@ void GLBackend::init() {
 
         if (vendor.contains("NVIDIA") ) {
             qCDebug(gpugllogging) << "NVIDIA card detected";
-#if !defined(Q_OS_ANDROID)
+#if !defined(Q_OS_ANDROID) && !defined(USE_GLES)
             GL_GET_INTEGER(GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX);
             GL_GET_INTEGER(GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX);
             GL_GET_INTEGER(GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX);
@@ -170,7 +170,7 @@ void GLBackend::init() {
 
         } else if (vendor.contains("ATI")) {
             qCDebug(gpugllogging) << "ATI card detected";
-#if !defined(Q_OS_ANDROID)
+#if !defined(Q_OS_ANDROID) && !defined(USE_GLES)
             GL_GET_INTEGER(TEXTURE_FREE_MEMORY_ATI);
 #endif
 
@@ -225,12 +225,12 @@ size_t GLBackend::getAvailableMemory() {
 
     switch( _videoCard ) {
         case NVIDIA:
-#if !defined(Q_OS_ANDROID)
+#if !defined(Q_OS_ANDROID) && !defined(USE_GLES)
             glGetIntegerv(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &mem[0]);
 #endif
             return mem[0] * BYTES_PER_KIB;
         case ATI:
-#if !defined(Q_OS_ANDROID)
+#if !defined(Q_OS_ANDROID) && !defined(USE_GLES)
             glGetIntegerv(GL_TEXTURE_FREE_MEMORY_ATI, &mem[0]);
 #endif
             return mem[0] * BYTES_PER_KIB;
@@ -840,10 +840,7 @@ void GLBackend::do_glColor4f(const Batch& batch, size_t paramOffset) {
     if (_input._colorAttribute != newColor) {
         _input._colorAttribute = newColor;
         glVertexAttrib4fv(gpu::Stream::COLOR, &_input._colorAttribute.r);
-        // Color has been changed and is not white. To prevent colors from bleeding
-        // between different objects, we need to set the _hadColorAttribute flag
-        // as if a previous render call had potential colors
-        _input._hadColorAttribute = (newColor != glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+        _input._hasColorAttribute = true;
     }
     (void)CHECK_GL_ERROR();
 }

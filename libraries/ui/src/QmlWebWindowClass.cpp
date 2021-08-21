@@ -14,7 +14,6 @@
 #include <QtScript/QScriptEngine>
 
 #include <shared/QtHelpers.h>
-#include "OffscreenUi.h"
 
 static const char* const URL_PROPERTY = "source";
 static const char* const SCRIPT_PROPERTY = "scriptUrl";
@@ -22,7 +21,6 @@ static const char* const SCRIPT_PROPERTY = "scriptUrl";
 // Method called by Qt scripts to create a new web window in the overlay
 QScriptValue QmlWebWindowClass::internal_constructor(QScriptContext* context, QScriptEngine* engine, bool restricted) {
     auto properties = parseArguments(context);
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
     QmlWebWindowClass* retVal = new QmlWebWindowClass(restricted);
     Q_ASSERT(retVal);
     if (QThread::currentThread() != qApp->thread()) {

@@ -57,7 +57,7 @@ public:
     void render(RenderArgs* args);
 
     render::Item::Bound& editBound() { return _bound; }
-    const render::Item::Bound& getBound() { return _bound; }
+    const render::Item::Bound& getBound(RenderArgs* args) { return _bound; }
 
     void setVisible(bool visible);
     void showProxies(bool show);
@@ -96,7 +96,7 @@ protected:
 
 namespace render {
     template <> const ItemKey payloadGetKey(const GameWorkloadRenderItem::Pointer& payload);
-    template <> const Item::Bound payloadGetBound(const GameWorkloadRenderItem::Pointer& payload);
+    template <> const Item::Bound payloadGetBound(const GameWorkloadRenderItem::Pointer& payload, RenderArgs* args);
     template <> void payloadRender(const GameWorkloadRenderItem::Pointer& payload, RenderArgs* args);
     template <> const ShapeKey shapeGetShapeKey(const GameWorkloadRenderItem::Pointer& payload);
 }

@@ -11,12 +11,14 @@ Item {
     property alias url: webViewCore.url
     property alias canGoBack: webViewCore.canGoBack
     property alias webViewCore: webViewCore
-    property alias webViewCoreProfile: webViewCore.profile
-    property string webViewCoreUserAgent
+    // FIXME - This was commented out to allow for manual setting of the userAgent.
+    //
+    // property alias webViewCoreProfile: webViewCore.profile
 
-    property bool useBackground: webViewCore.useBackground
+    property alias useBackground: webViewCore.useBackground
+    property alias userAgent: webViewCore.userAgent
     property string userScriptUrl: ""
-    property string urlTag: "noDownload=false";
+    property string urlTag: "noDownload=false"
 
     signal newViewRequestedCallback(var request)
     signal loadingChangedCallback(var loadRequest)

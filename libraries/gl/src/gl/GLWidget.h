@@ -42,9 +42,6 @@ protected:
     virtual bool event(QEvent* event) override;
     gl::Context* _context { nullptr };
 
-private slots:
-    virtual bool eventFilter(QObject*, QEvent* event) override;
-
 private:
     QPaintEngine* _paintEngine { nullptr };
     bool _vsyncSupported { false };

@@ -9,9 +9,14 @@
 #ifndef hifi_BillboardMode_h
 #define hifi_BillboardMode_h
 
+#include <functional>
+
 #include "QString"
 
-/**jsdoc
+#include "glm/glm.hpp"
+#include "glm/gtc/quaternion.hpp"
+
+/*@jsdoc
  * <p>How an entity is billboarded.</p>
  * <table>
  *   <thead>
@@ -37,7 +42,17 @@ enum class BillboardMode {
 class BillboardModeHelpers {
 public:
     static QString getNameForBillboardMode(BillboardMode mode);
+
+    static void setBillboardRotationOperator(std::function<glm::quat(const glm::vec3&, const glm::quat&,
+        BillboardMode, const glm::vec3&, bool)> getBillboardRotationOperator);
+    static glm::quat getBillboardRotation(const glm::vec3& position, const glm::quat& rotation, BillboardMode billboardMode,
+        const glm::vec3& frustumPos, bool rotate90x = false);
+    static void setPrimaryViewFrustumPositionOperator(std::function<glm::vec3()> getPrimaryViewFrustumPositionOperator);
+    static glm::vec3 getPrimaryViewFrustumPosition() { return _getPrimaryViewFrustumPositionOperator(); }
+
+private:
+    static std::function<glm::quat(const glm::vec3&, const glm::quat&, BillboardMode, const glm::vec3&, bool)> _getBillboardRotationOperator;
+    static std::function<glm::vec3()> _getPrimaryViewFrustumPositionOperator;
 };
 
 #endif // hifi_BillboardMode_h
-

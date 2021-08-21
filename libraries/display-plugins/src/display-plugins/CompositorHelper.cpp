@@ -41,10 +41,10 @@ static const float reticleSize = TWO_PI / 100.0f;
 //EntityItemID CompositorHelper::_noItemId;
 static QString _tooltipId;
 
-const uvec2 CompositorHelper::VIRTUAL_SCREEN_SIZE = uvec2(3960, 1188); // ~10% more pixel density than old version, 72dx240d FOV
-const QRect CompositorHelper::VIRTUAL_SCREEN_RECOMMENDED_OVERLAY_RECT = QRect(956, 0, 2048, 1188); // don't include entire width only center 2048
+const uvec2 CompositorHelper::VIRTUAL_SCREEN_SIZE = uvec2(2640, 1188);
+const QRect CompositorHelper::VIRTUAL_SCREEN_RECOMMENDED_OVERLAY_RECT = QRect(296, 0, 2048, 1188);  // Center 2048 pixels.
 const float CompositorHelper::VIRTUAL_UI_ASPECT_RATIO = (float)VIRTUAL_SCREEN_SIZE.x / (float)VIRTUAL_SCREEN_SIZE.y;
-const vec2 CompositorHelper::VIRTUAL_UI_TARGET_FOV = vec2(PI * 3.0f / 2.0f, PI * 3.0f / 2.0f / VIRTUAL_UI_ASPECT_RATIO);
+const vec2 CompositorHelper::VIRTUAL_UI_TARGET_FOV = vec2(PI, PI / VIRTUAL_UI_ASPECT_RATIO);
 const vec2 CompositorHelper::MOUSE_EXTENTS_ANGULAR_SIZE = vec2(PI * 2.0f, PI * 0.95f); // horizontal: full sphere,  vertical: ~5deg from poles
 const vec2 CompositorHelper::MOUSE_EXTENTS_PIXELS = vec2(VIRTUAL_SCREEN_SIZE) * (MOUSE_EXTENTS_ANGULAR_SIZE / VIRTUAL_UI_TARGET_FOV);
 
@@ -384,9 +384,9 @@ bool CompositorHelper::calculateRayUICollisionPoint(const glm::vec3& position, c
     glm::vec3 localPosition = transformPoint(worldToUi, position);
     glm::vec3 localDirection = glm::normalize(transformVectorFast(worldToUi, direction));
 
-    const float UI_RADIUS = 1.0f;
+    const float UNIT_RADIUS = 1.0f;
     float intersectionDistance;
-    if (raySphereIntersect(localDirection, localPosition, UI_RADIUS, &intersectionDistance)) {
+    if (raySphereIntersect(localDirection, localPosition, UNIT_RADIUS, &intersectionDistance)) {
         result = transformPoint(uiToWorld, localPosition + localDirection * intersectionDistance);
 #ifdef WANT_DEBUG
         DebugDraw::getInstance().drawRay(position, result, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
@@ -407,9 +407,8 @@ bool CompositorHelper::calculateParabolaUICollisionPoint(const glm::vec3& origin
     glm::vec3 localVelocity = glm::normalize(transformVectorFast(worldToUi, velocity));
     glm::vec3 localAcceleration = glm::normalize(transformVectorFast(worldToUi, acceleration));
 
-    const float UI_RADIUS = 1.0f;
     float intersectionDistance;
-    if (findParabolaSphereIntersection(localOrigin, localVelocity, localAcceleration, glm::vec3(0.0f), UI_RADIUS, intersectionDistance)) {
+    if (findParabolaSphereIntersection(localOrigin, localVelocity, localAcceleration, glm::vec3(0.0f), HUD_RADIUS, intersectionDistance)) {
         result = origin + velocity * intersectionDistance + 0.5f * acceleration * intersectionDistance * intersectionDistance;
         parabolicDistance = intersectionDistance;
         return true;

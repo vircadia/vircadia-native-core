@@ -20,7 +20,7 @@ class LaserPointerScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
-/**jsdoc
+/*@jsdoc
  * The <code>LaserPointers</code> API is a subset of the {@link Pointers} API. It lets you create, manage, and visually 
  * represent objects for repeatedly calculating ray intersections with avatars, entities, and overlays. Ray pointers can also 
  * be configured to generate events on entities and overlays intersected.
@@ -40,7 +40,7 @@ class LaserPointerScriptingInterface : public QObject, public Dependency {
  */
 public:
 
-    /**jsdoc
+    /*@jsdoc
      * Creates a new ray pointer. The pointer can have a wide range of behaviors depending on the properties specified. For
      * example, it may be a static ray pointer, a mouse ray pointer, or joint ray pointer.
      * <p><strong>Warning:</strong> Pointers created using this method currently always intersect at least visible and
@@ -61,7 +61,7 @@ public:
     // jsdoc @borrows from Pointers
     Q_INVOKABLE void removeLaserPointer(unsigned int uid) const { DependencyManager::get<PointerManager>()->removePointer(uid); }
 
-    /**jsdoc
+    /*@jsdoc
      * Edits a render state of a pointer, to change its visual appearance for the state when the pointer is intersecting 
      * something.
      * <p><strong>Note:</strong> You can only edit the properties of the existing parts of the pointer; you cannot change the
@@ -75,7 +75,7 @@ public:
      */
     Q_INVOKABLE void editRenderState(unsigned int uid, const QString& renderState, const QVariant& properties) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the render state of a pointer, to change its visual appearance and possibly disable or enable it.
      * @function LaserPointers.setRenderState
      * @param {string} renderState - <p>The name of the render state to set the pointer to. This may be:</p>
@@ -87,7 +87,7 @@ public:
      */
     Q_INVOKABLE void setRenderState(unsigned int uid, const QString& renderState) const { DependencyManager::get<PointerManager>()->setRenderState(uid, renderState.toStdString()); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the most recent intersection of a pointer. A pointer continues to be updated ready to return a result, as long as
      * it is enabled, regardless of the render state.
      * @function LaserPointers.getPrevRayPickResult
@@ -99,7 +99,7 @@ public:
      // jsdoc @borrows from Pointers
     Q_INVOKABLE void setPrecisionPicking(unsigned int uid, bool precisionPicking) const { DependencyManager::get<PointerManager>()->setPrecisionPicking(uid, precisionPicking); }
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the length of a pointer.
      * @function LaserPointers.setLaserLength
      * @param {number} id - The ID of the pointer.
@@ -107,7 +107,7 @@ public:
      */
     Q_INVOKABLE void setLaserLength(unsigned int uid, float laserLength) const { DependencyManager::get<PointerManager>()->setLength(uid, laserLength); }
 
-    /**jsdoc
+    /*@jsdoc
      * Sets a list of entity and avatar IDs that a pointer should ignore during intersection.
      * @function LaserPointers.setIgnoreItems
      * @param {number} id - The ID of the pointer.
@@ -115,7 +115,7 @@ public:
      */
     Q_INVOKABLE void setIgnoreItems(unsigned int uid, const QScriptValue& ignoreEntities) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Sets a list of entity and avatar IDs that a pointer should include during intersection, instead of intersecting with
      * everything.
      * @function LaserPointers.setIncludeItems
@@ -125,7 +125,7 @@ public:
     Q_INVOKABLE void setIncludeItems(unsigned int uid, const QScriptValue& includeEntities) const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * Locks a pointer onto a specific entity or avatar.
      * @function LaserPointers.setLockEndUUID
      * @param {number} id - The ID of the pointer.
@@ -137,7 +137,7 @@ public:
     Q_INVOKABLE void setLockEndUUID(unsigned int uid, const QUuid& objectID, bool isAvatar, const glm::mat4& offsetMat = glm::mat4()) const { DependencyManager::get<PointerManager>()->setLockEndUUID(uid, objectID, isAvatar, offsetMat); }
 
 
-    /**jsdoc
+    /*@jsdoc
      * Checks if a pointer is associated with the left hand: a pointer with <code>joint</code> property set to
      * <code>"_CONTROLLER_LEFTHAND"</code> or <code>"_CAMERA_RELATIVE_CONTROLLER_LEFTHAND"</code>.
      * @function LaserPointers.isLeftHand
@@ -146,7 +146,7 @@ public:
      */
     Q_INVOKABLE bool isLeftHand(unsigned int uid) { return DependencyManager::get<PointerManager>()->isLeftHand(uid); }
 
-    /**jsdoc
+    /*@jsdoc
      * Checks if a pointer is associated with the right hand: a pointer with <code>joint</code> property set to
      * <code>"_CONTROLLER_RIGHTHAND"</code> or <code>"_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND"</code>.
      * @function LaserPointers.isRightHand
@@ -155,7 +155,7 @@ public:
      */
     Q_INVOKABLE bool isRightHand(unsigned int uid) { return DependencyManager::get<PointerManager>()->isRightHand(uid); }
 
-    /**jsdoc
+    /*@jsdoc
      * Checks if a pointer is associated with the system mouse: a pointer with <code>joint</code> property set to 
      * <code>"Mouse"</code>.
      * @function LaserPointers.isMouse

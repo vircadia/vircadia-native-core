@@ -44,13 +44,14 @@ endif()
         self.assets_url = self.readVar('EXTERNAL_BUILD_ASSETS')
 
         # The noClean flag indicates we're doing weird dependency maintenance stuff
-        # i.e. we've got an explicit checkout of vcpkg and we don't want the script to 
-        # do stuff it might otherwise do.  It typically indicates that we're using our 
+        # i.e. we've got an explicit checkout of vcpkg and we don't want the script to
+        # do stuff it might otherwise do.  It typically indicates that we're using our
         # own git checkout of vcpkg and manually managing it
         self.noClean = False
 
         # OS dependent information
         system = platform.system()
+        machine = platform.machine()
 
         if 'HIFI_VCPKG_PATH' in os.environ:
             self.path = os.environ['HIFI_VCPKG_PATH']
@@ -59,7 +60,7 @@ endif()
             self.path = args.vcpkg_root
             self.noClean = True
         else:
-            defaultBasePath = os.path.expanduser('~/hifi/vcpkg')
+            defaultBasePath = os.path.expanduser('~/vircadia-files/vcpkg')
             self.basePath = os.getenv('HIFI_VCPKG_BASE', defaultBasePath)
             if self.args.android:
                 self.basePath = os.path.join(self.basePath, 'android')
@@ -90,8 +91,8 @@ endif()
         if 'Windows' == system:
             self.exe = os.path.join(self.path, 'vcpkg.exe')
             self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.bat'), '-disableMetrics' ]
-            self.vcpkgUrl = self.assets_url + '/dependencies/vcpkg/builds/vcpkg-win32-client.zip%3FversionId=tSFzbw01VkkVFeRQ6YuAY4dro2HxJR9U'
-            self.vcpkgHash = 'a650db47a63ccdc9904b68ddd16af74772e7e78170b513ea8de5a3b47d032751a3b73dcc7526d88bcb500753ea3dd9880639ca842bb176e2bddb1710f9a58cd3'
+            self.vcpkgUrl = self.assets_url + '/dependencies/vcpkg/vcpkg-win32-client-20210122.zip'
+            self.vcpkgHash = '3df86b7d58c827bf08b3b7744f456f414b86a6d9bd58a507924103bc5a88f01ee495ce1f0fbf2f5b27f1ef6bfb1526e580ec13d3b9f87a89a462b3c50589fd6a'
             self.hostTriplet = 'x64-windows'
             if usePrebuilt:
                 self.prebuiltArchive = self.assets_url + "/dependencies/vcpkg/builds/vcpkg-win32.zip%3FversionId=3SF3mDC8dkQH1JP041m88xnYmWNzZflx"
@@ -105,6 +106,12 @@ endif()
             self.bootstrapEnv['CXXFLAGS'] = '-D_CTERMID_H_'
             if usePrebuilt:
                 self.prebuiltArchive = self.assets_url + "/dependencies/vcpkg/builds/vcpkg-osx.tgz%3FversionId=6JrIMTdvpBF3MAsjA92BMkO79Psjzs6Z"
+        elif 'Linux' == system and 'aarch64' == machine:
+            self.exe = os.path.join(self.path, 'vcpkg')
+            self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '-disableMetrics' ]
+            self.vcpkgUrl = 'http://motofckr9k.ddns.net/vircadia_packages/vcpkg-2020.11-1_arm64.tar.xz'
+            self.vcpkgHash = 'f39fa1c34d2ba820954b8ce4acc05e3d0ce5fa5efe5440516ba910ff222c85c658ba4bbfc92b3fa6cbb594f99be115cda69ebe44ed38d4d3988058fb1faefbb3'
+            self.hostTriplet = 'arm64-linux'
         else:
             self.exe = os.path.join(self.path, 'vcpkg')
             self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '-disableMetrics' ]

@@ -16,6 +16,18 @@ import functools
 
 print = functools.partial(print, flush=True)
 
+ansi_colors = {
+    'black' : 30,
+    'red': 31,
+    'green': 32,
+    'yellow': 33,
+    'blue': 34,
+    'magenta': 35,
+    'cyan': 36,
+    'white': 37,
+    'clear': 0
+}
+
 def scriptRelative(*paths):
     scriptdir = os.path.dirname(os.path.realpath(sys.argv[0]))
     result = os.path.join(scriptdir, *paths)
@@ -125,3 +137,17 @@ def downloadAndExtract(url, destPath, hash=None, hasher=hashlib.sha512(), isZip=
 def readEnviromentVariableFromFile(buildRootDir, var):
     with open(os.path.join(buildRootDir, '_env', var + ".txt")) as fp:
         return fp.read()
+
+class SilentFatalError(Exception):
+    """Thrown when some sort of fatal condition happened, and we already reported it to the user.
+    This excecption exists to give a chance to run any cleanup needed before exiting.
+
+    It should be handled at the bottom of the call stack, where the only action is to call
+    sys.exit(ex.exit_code)
+    """
+    def __init__(self, exit_code):
+        self.exit_code = exit_code
+
+def color(color_name):
+    # Ideally we'd use the termcolor module, but this avoids adding it as a dependency.
+    print("\033[1;{}m".format(ansi_colors[color_name]), end='')

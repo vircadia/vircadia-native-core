@@ -223,7 +223,7 @@ private:
     float _thresholdScale[FADE_CATEGORY_COUNT];
     uint64_t _previousTime{ 0 };
 
-    bool update(const Config& config, const render::ScenePointer& scene, render::Transaction& transaction, render::Transition& transition, const double deltaTime) const;
+    bool update(RenderArgs* args, const Config& config, const render::ScenePointer& scene, render::Transaction& transaction, render::Transition& transition, const double deltaTime) const;
     static float computeElementEnterRatio(double time, const double period, FadeConfig::Timing timing);
 
 };

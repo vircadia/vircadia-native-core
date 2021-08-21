@@ -35,13 +35,14 @@
 #include "Assignment.h"
 #include "AudioHelpers.h"
 #include "DomainAccountManager.h"
-#include "HifiSockAddr.h"
+#include "SockAddr.h"
 #include "FingerprintUtils.h"
 
 #include "NetworkLogging.h"
 #include "udt/PacketHeaders.h"
 #include "SharedUtil.h"
 #include <Trace.h>
+#include <ModerationFlags.h>
 
 using namespace std::chrono;
 
@@ -93,6 +94,12 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
 
     // send a ping punch immediately
     connect(&_domainHandler, &DomainHandler::icePeerSocketsReceived, this, &NodeList::pingPunchForDomainServer);
+
+    // FIXME: Can remove this temporary work-around in version 2021.2.0. (New protocol version implies a domain server upgrade.)
+    // Adjust our canRezAvatarEntities permissions on older domains that do not have this setting.
+    // DomainServerList and DomainSettings packets can come in either order so need to adjust with both occurrences.
+    auto nodeList = DependencyManager::get<NodeList>();
+    connect(&_domainHandler, &DomainHandler::settingsReceived, this, &NodeList::adjustCanRezAvatarEntitiesPerSettings);
 
     auto accountManager = DependencyManager::get<AccountManager>();
 
@@ -169,11 +176,11 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
         PacketReceiver::makeUnsourcedListenerReference<NodeList>(this, &NodeList::processUsernameFromIDReply));
 }
 
-qint64 NodeList::sendStats(QJsonObject statsObject, HifiSockAddr destination) {
+qint64 NodeList::sendStats(QJsonObject statsObject, SockAddr destination) {
     if (thread() != QThread::currentThread()) {
         QMetaObject::invokeMethod(this, "sendStats", Qt::QueuedConnection,
                                   Q_ARG(QJsonObject, statsObject),
-                                  Q_ARG(HifiSockAddr, destination));
+                                  Q_ARG(SockAddr, destination));
         return 0;
     }
 
@@ -238,7 +245,7 @@ void NodeList::timePingReply(ReceivedMessage& message, const SharedNodePointer& 
 void NodeList::processPingPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     // send back a reply
     auto replyPacket = constructPingReplyPacket(*message);
-    const HifiSockAddr& senderSockAddr = message->getSenderSockAddr();
+    const SockAddr& senderSockAddr = message->getSenderSockAddr();
     sendPacket(std::move(replyPacket), *sendingNode, senderSockAddr);
 
     // If we don't have a symmetric socket for this node and this socket doesn't match
@@ -357,7 +364,7 @@ void NodeList::sendDomainServerCheckIn() {
         // let the domain handler know we are due to send a checkin packet
     } else if (!domainHandlerIp.isNull() && !_domainHandler.checkInPacketTimeout()) {
         bool domainIsConnected = _domainHandler.isConnected();
-        HifiSockAddr domainSockAddr = _domainHandler.getSockAddr();
+        SockAddr domainSockAddr = _domainHandler.getSockAddr();
         PacketType domainPacketType = !domainIsConnected
             ? PacketType::DomainConnectRequest : PacketType::DomainListRequest;
 
@@ -398,7 +405,7 @@ void NodeList::sendDomainServerCheckIn() {
 
         QDataStream packetStream(domainPacket.get());
 
-        HifiSockAddr localSockAddr = _localSockAddr;
+        SockAddr localSockAddr = _localSockAddr;
         if (domainPacketType == PacketType::DomainConnectRequest) {
 
 #if (PR_BUILD || DEV_BUILD)
@@ -726,6 +733,11 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     // pull the permissions/right/privileges for this node out of the stream
     NodePermissions newPermissions;
     packetStream >> newPermissions;
+    // FIXME: Can remove this temporary work-around in version 2021.2.0. (New protocol version implies a domain server upgrade.)
+    // Adjust our canRezAvatarEntities permissions on older domains that do not have this setting.
+    // DomainServerList and DomainSettings packets can come in either order so need to adjust with both occurrences.
+    bool adjustedPermissions = adjustCanRezAvatarEntitiesPermissions(_domainHandler.getSettingsObject(), newPermissions, false);
+
     // Is packet authentication enabled?
     bool isAuthenticated;
     packetStream >> isAuthenticated;
@@ -781,7 +793,7 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveDSList);
 
     if (_domainHandler.isConnected() && _domainHandler.getUUID() != domainUUID) {
-        // Recieved packet from different domain.
+        // Received packet from different domain.
         qWarning() << "IGNORING DomainList packet from" << domainUUID << "while connected to" 
                    << _domainHandler.getUUID() << ": sent " << pingLagTime << " msec ago.";
         qWarning(networking) << "DomainList request lag (interface->ds): " << domainServerRequestLag << "msec";
@@ -808,6 +820,23 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
 
     setSessionLocalID(newLocalID);
     setSessionUUID(newUUID);
+
+    // FIXME: Remove this call to requestDomainSettings() and reinstate the one in DomainHandler::setIsConnected(), in version 
+    // 2021.2.0. (New protocol version implies a domain server upgrade.)
+    if (!_domainHandler.isConnected() 
+            && _domainHandler.getScheme() == URL_SCHEME_VIRCADIA && !_domainHandler.getHostname().isEmpty()) {
+        // We're about to connect but we need the domain settings (in particular, the node permissions) in order to adjust the
+        // canRezAvatarEntities permission above before using the permissions in determining whether or not to connect without
+        // avatar entities rezzing below.
+        _domainHandler.requestDomainSettings();
+    }
+
+    // Don't continue login to the domain if have avatar entities and don't have permissions to rez them, unless user has OKed 
+    // continuing login.
+    if (!newPermissions.can(NodePermissions::Permission::canRezAvatarEntities)
+            && (!adjustedPermissions || !_domainHandler.canConnectWithoutAvatarEntities())) {
+        return;
+    }
 
     // if this was the first domain-server list from this domain, we've now connected
     if (!_domainHandler.isConnected()) {
@@ -983,7 +1012,7 @@ void NodeList::sendKeepAlivePings() {
     });
 }
 
-bool NodeList::sockAddrBelongsToDomainOrNode(const HifiSockAddr& sockAddr) {
+bool NodeList::sockAddrBelongsToDomainOrNode(const SockAddr& sockAddr) {
     return _domainHandler.getSockAddr() == sockAddr || LimitedNodeList::sockAddrBelongsToNode(sockAddr);
 }
 
@@ -1263,17 +1292,19 @@ float NodeList::getInjectorGain() {
     return _injectorGain;
 }
 
-void NodeList::kickNodeBySessionID(const QUuid& nodeID) {
+void NodeList::kickNodeBySessionID(const QUuid& nodeID, unsigned int banFlags) {
     // send a request to domain-server to kick the node with the given session ID
     // the domain-server will handle the persistence of the kick (via username or IP)
 
     if (!nodeID.isNull() && getSessionUUID() != nodeID ) {
         if (getThisNodeCanKick()) {
             // setup the packet
-            auto kickPacket = NLPacket::create(PacketType::NodeKickRequest, NUM_BYTES_RFC4122_UUID, true);
+            auto kickPacket = NLPacket::create(PacketType::NodeKickRequest, NUM_BYTES_RFC4122_UUID + sizeof(int), true);
 
             // write the node ID to the packet
             kickPacket->write(nodeID.toRfc4122());
+            // write the ban parameters to the packet
+            kickPacket->writePrimitive(banFlags);
 
             qCDebug(networking) << "Sending packet to kick node" << uuidStringWithoutCurlyBraces(nodeID);
 
@@ -1367,4 +1398,36 @@ void NodeList::setRequestsDomainListData(bool isRequesting) {
 
 void NodeList::startThread() {
     moveToNewNamedThread(this, "NodeList Thread", QThread::TimeCriticalPriority);
+}
+
+
+// FIXME: Can remove this work-around in version 2021.2.0. (New protocol version implies a domain server upgrade.)
+bool NodeList::adjustCanRezAvatarEntitiesPermissions(const QJsonObject& domainSettingsObject,
+        NodePermissions& permissions, bool notify) {
+
+    if (domainSettingsObject.isEmpty()) {
+        // Don't have enough information to adjust yet.
+        return false;  // Failed to adjust.
+    }
+
+    const double CANREZAVATARENTITIES_INTRODUCED_VERSION = 2.5;
+    auto version = domainSettingsObject.value("version");
+    if (version.isUndefined() || version.isDouble() && version.toDouble() < CANREZAVATARENTITIES_INTRODUCED_VERSION) {
+        // On domains without the canRezAvatarEntities permission available, set it to the same as canConnectToDomain.
+        if (permissions.can(NodePermissions::Permission::canConnectToDomain)) {
+            if (!permissions.can(NodePermissions::Permission::canRezAvatarEntities)) {
+                permissions.set(NodePermissions::Permission::canRezAvatarEntities);
+                if (notify) {
+                    emit canRezAvatarEntitiesChanged(permissions.can(NodePermissions::Permission::canRezAvatarEntities));
+                }
+            }
+        }
+    }
+
+    return true;  // Successfully adjusted.
+}
+
+// FIXME: Can remove this work-around in version 2021.2.0. (New protocol version implies a domain server upgrade.)
+void NodeList::adjustCanRezAvatarEntitiesPerSettings(const QJsonObject& domainSettingsObject) {
+    adjustCanRezAvatarEntitiesPermissions(domainSettingsObject, _permissions, true);
 }

@@ -16,7 +16,7 @@
 
 #include <QObject>
 
-/**jsdoc
+/*@jsdoc
  * The <code>About</code> API provides information about the version of Interface that is currently running. It also has the
  * functionality to open a web page in an Interface browser window.
  *
@@ -30,16 +30,18 @@
  *     <em>Read-only.</em>
  * @property {string} buildDate - The build date of Interface that is currently running. <em>Read-only.</em>
  * @property {string} buildVersion - The build version of Interface that is currently running. <em>Read-only.</em>
+ * @property {string} releaseName - The release codename of the version that Interface is currently running. <em>Read-only.</em>
  * @property {string} qtVersion - The Qt version used in Interface that is currently running. <em>Read-only.</em>
  *
  * @example <caption>Report information on the version of Interface currently running.</caption>
  * print("Interface platform: " + About.platform);
  * print("Interface build date: " + About.buildDate);
  * print("Interface version: " + About.buildVersion);
+ * print("Interface release name: " + About.releaseName);
  * print("Qt version: " + About.qtVersion);
  */
 
- /**jsdoc
+ /*@jsdoc
  * The <code>HifiAbout</code> API provides information about the version of Interface that is currently running. It also
  * has the functionality to open a web page in an Interface browser window.
  *
@@ -66,6 +68,7 @@ class AboutUtil : public QObject {
     Q_PROPERTY(QString platform READ getPlatformName CONSTANT)
     Q_PROPERTY(QString buildDate READ getBuildDate CONSTANT)
     Q_PROPERTY(QString buildVersion READ getBuildVersion CONSTANT)
+    Q_PROPERTY(QString releaseName READ getReleaseName CONSTANT)
     Q_PROPERTY(QString qtVersion READ getQtVersion CONSTANT)
 public:
     static AboutUtil* getInstance();
@@ -74,11 +77,12 @@ public:
     QString getPlatformName() const { return "Vircadia"; }
     QString getBuildDate() const;
     QString getBuildVersion() const;
+    QString getReleaseName() const;
     QString getQtVersion() const;
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * Display a web page in an Interface browser window or the tablet.
      * @function About.openUrl
      * @param {string} url - The URL of the web page you want to view in Interface.

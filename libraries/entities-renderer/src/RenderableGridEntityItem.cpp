@@ -30,16 +30,6 @@ bool GridEntityRenderer::isTransparent() const {
 }
 
 void GridEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
-    withWriteLock([&] {
-        _color = entity->getColor();
-        _alpha = entity->getAlpha();
-        _pulseProperties = entity->getPulseProperties();
-
-        _followCamera = entity->getFollowCamera();
-        _majorGridEvery = entity->getMajorGridEvery();
-        _minorGridEvery = entity->getMinorGridEvery();
-    });
-
     void* key = (void*)this;
     AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity] {
         withWriteLock([&] {
@@ -49,13 +39,23 @@ void GridEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     });
 }
 
-Item::Bound GridEntityRenderer::getBound() {
+void GridEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
+    _color = entity->getColor();
+    _alpha = entity->getAlpha();
+    _pulseProperties = entity->getPulseProperties();
+
+    _followCamera = entity->getFollowCamera();
+    _majorGridEvery = entity->getMajorGridEvery();
+    _minorGridEvery = entity->getMinorGridEvery();
+}
+
+Item::Bound GridEntityRenderer::getBound(RenderArgs* args) {
     if (_followCamera) {
         // This is a UI element that should always be in view, lie to the octree to avoid culling
         const AABox DOMAIN_BOX = AABox(glm::vec3(-TREE_SCALE / 2), TREE_SCALE);
         return DOMAIN_BOX;
     }
-    return Parent::getBound();
+    return Parent::getBound(args);
 }
 
 ShapeKey GridEntityRenderer::getShapeKey() {
@@ -73,21 +73,20 @@ ShapeKey GridEntityRenderer::getShapeKey() {
 }
 
 void GridEntityRenderer::doRender(RenderArgs* args) {
-    glm::vec4 color;
+    glm::vec4 color = glm::vec4(toGlm(_color), _alpha);
+    color = EntityRenderer::calculatePulseColor(color, _pulseProperties, _created);
     glm::vec3 dimensions;
     Transform renderTransform;
-    bool forward;
     withReadLock([&] {
-        color = glm::vec4(toGlm(_color), _alpha);
-        color = EntityRenderer::calculatePulseColor(color, _pulseProperties, _created);
         dimensions = _dimensions;
         renderTransform = _renderTransform;
-        forward = _renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD;
     });
 
     if (!_visible || color.a == 0.0f) {
         return;
     }
+
+    bool forward = _renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD;
 
     auto batch = args->_batch;
 
@@ -104,6 +103,8 @@ void GridEntityRenderer::doRender(RenderArgs* args) {
     } else {
         transform.setTranslation(renderTransform.getTranslation());
     }
+    transform.setRotation(BillboardModeHelpers::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
+        args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
     batch->setModelTransform(transform);
 
     auto minCorner = glm::vec2(-0.5f, -0.5f);

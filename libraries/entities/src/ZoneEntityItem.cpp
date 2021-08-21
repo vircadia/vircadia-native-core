@@ -84,12 +84,12 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
 
     // Contains a QString property, must be synchronized
     withWriteLock([&] {
-        _keyLightPropertiesChanged = _keyLightProperties.setProperties(properties);
-        _ambientLightPropertiesChanged = _ambientLightProperties.setProperties(properties);
-        _skyboxPropertiesChanged = _skyboxProperties.setProperties(properties);
+        _keyLightPropertiesChanged |= _keyLightProperties.setProperties(properties);
+        _ambientLightPropertiesChanged |= _ambientLightProperties.setProperties(properties);
+        _skyboxPropertiesChanged |= _skyboxProperties.setProperties(properties);
     });
-    _hazePropertiesChanged = _hazeProperties.setProperties(properties);
-    _bloomPropertiesChanged = _bloomProperties.setProperties(properties);
+    _hazePropertiesChanged |= _hazeProperties.setProperties(properties);
+    _bloomPropertiesChanged |= _bloomProperties.setProperties(properties);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(flyingAllowed, setFlyingAllowed);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ghostingAllowed, setGhostingAllowed);
@@ -125,7 +125,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
             bytesFromKeylight = _keyLightProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
                 propertyFlags, overwriteLocalData, _keyLightPropertiesChanged);
         });
-        somethingChanged = somethingChanged || _keyLightPropertiesChanged;
+        somethingChanged |= _keyLightPropertiesChanged;
         bytesRead += bytesFromKeylight;
         dataAt += bytesFromKeylight;
     }
@@ -136,7 +136,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
             bytesFromAmbientlight = _ambientLightProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
                 propertyFlags, overwriteLocalData, _ambientLightPropertiesChanged);
         });
-        somethingChanged = somethingChanged || _ambientLightPropertiesChanged;
+        somethingChanged |= _ambientLightPropertiesChanged;
         bytesRead += bytesFromAmbientlight;
         dataAt += bytesFromAmbientlight;
     }
@@ -147,7 +147,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
             bytesFromSkybox = _skyboxProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
                 propertyFlags, overwriteLocalData, _skyboxPropertiesChanged);
         });
-        somethingChanged = somethingChanged || _skyboxPropertiesChanged;
+        somethingChanged |= _skyboxPropertiesChanged;
         bytesRead += bytesFromSkybox;
         dataAt += bytesFromSkybox;
     }
@@ -155,7 +155,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     {
         int bytesFromHaze = _hazeProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
             propertyFlags, overwriteLocalData, _hazePropertiesChanged);
-        somethingChanged = somethingChanged || _hazePropertiesChanged;
+        somethingChanged |= _hazePropertiesChanged;
         bytesRead += bytesFromHaze;
         dataAt += bytesFromHaze;
     }
@@ -163,7 +163,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     {
         int bytesFromBloom = _bloomProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
             propertyFlags, overwriteLocalData, _bloomPropertiesChanged);
-        somethingChanged = somethingChanged || _bloomPropertiesChanged;
+        somethingChanged |= _bloomPropertiesChanged;
         bytesRead += bytesFromBloom;
         dataAt += bytesFromBloom;
     }
@@ -270,7 +270,6 @@ void ZoneEntityItem::debugDump() const {
 }
 
 void ZoneEntityItem::setShapeType(ShapeType type) {
-    ShapeType oldShapeType = _shapeType;
     switch(type) {
         case SHAPE_TYPE_NONE:
         case SHAPE_TYPE_CAPSULE_X:
@@ -288,7 +287,12 @@ void ZoneEntityItem::setShapeType(ShapeType type) {
         default:
             break;
     }
-    _shapeType = type;
+
+    ShapeType oldShapeType;
+    withWriteLock([&] {
+        oldShapeType = _shapeType;
+        _shapeType = type;
+    });
 
     if (type == SHAPE_TYPE_COMPOUND) {
         if (type != oldShapeType) {
@@ -300,16 +304,21 @@ void ZoneEntityItem::setShapeType(ShapeType type) {
 }
 
 ShapeType ZoneEntityItem::getShapeType() const {
-    return _shapeType;
+    return resultWithReadLock<ShapeType>([&] {
+        return _shapeType;
+    });
 }
 
 void ZoneEntityItem::setCompoundShapeURL(const QString& url) {
-    QString oldCompoundShapeURL = _compoundShapeURL;
+    QString oldCompoundShapeURL;
+    ShapeType shapeType;
     withWriteLock([&] {
+        oldCompoundShapeURL = _compoundShapeURL;
         _compoundShapeURL = url;
+        shapeType = _shapeType;
     });
     if (oldCompoundShapeURL != url) {
-        if (_shapeType == SHAPE_TYPE_COMPOUND) {
+        if (shapeType == SHAPE_TYPE_COMPOUND) {
             fetchCollisionGeometryResource();
         } else {
             _shapeResource.reset();
@@ -318,22 +327,22 @@ void ZoneEntityItem::setCompoundShapeURL(const QString& url) {
 }
 
 bool ZoneEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         OctreeElementPointer& element, float& distance,
+                         const glm::vec3& viewFrustumPos, OctreeElementPointer& element, float& distance,
                          BoxFace& face, glm::vec3& surfaceNormal,
                          QVariantMap& extraInfo, bool precisionPicking) const {
     return _zonesArePickable;
 }
 
 bool ZoneEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
-                         const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
-                         BoxFace& face, glm::vec3& surfaceNormal,
+                         const glm::vec3& acceleration, const glm::vec3& viewFrustumPos, OctreeElementPointer& element,
+                         float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal,
                          QVariantMap& extraInfo, bool precisionPicking) const {
     return _zonesArePickable;
 }
 
 bool ZoneEntityItem::contains(const glm::vec3& point) const {
     GeometryResource::Pointer resource = _shapeResource;
-    if (_shapeType == SHAPE_TYPE_COMPOUND && resource) {
+    if (getShapeType() == SHAPE_TYPE_COMPOUND && resource) {
         if (resource->isLoaded()) {
             const HFMModel& hfmModel = resource->getHFMModel();
 
@@ -442,6 +451,13 @@ void ZoneEntityItem::setSkyboxMode(const uint32_t value) {
 
 uint32_t ZoneEntityItem::getSkyboxMode() const {
     return _skyboxMode;
+}
+
+void ZoneEntityItem::setUserData(const QString& value) {
+    withWriteLock([&] {
+        _needsRenderUpdate |= _userData != value;
+        _userData = value;
+    });
 }
 
 void ZoneEntityItem::fetchCollisionGeometryResource() {

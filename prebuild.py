@@ -102,7 +102,7 @@ def parse_args():
     if True:
         args = parser.parse_args()
     else:
-        args = parser.parse_args(['--android', 'questInterface', '--build-root', 'C:/git/project-athena/android/apps/questInterface/.externalNativeBuild/cmake/debug/arm64-v8a'])
+        args = parser.parse_args(['--android', 'questInterface', '--build-root', 'C:/git/vircadia/android/apps/questInterface/.externalNativeBuild/cmake/debug/arm64-v8a'])
     return args
 
 def main():
@@ -130,23 +130,33 @@ def main():
         with timer('NSIS'):
             hifi_utils.downloadAndExtract(assets_url + '/dependencies/NSIS-hifi-plugins-1.0.tgz', "C:/Program Files (x86)")
 
-    qtInstallPath = ''
+    qtInstallPath = None
     # If not android, install our Qt build
     if not args.android:
         qt = hifi_qt.QtDownloader(args)
         qtInstallPath = qt.cmakePath
-        with hifi_singleton.Singleton(qt.lockFile) as lock:
-            with timer('Qt'):
-                qt.installQt()
-                qt.writeConfig()
+
+        if qtInstallPath is not None:
+            # qtInstallPath is None when we're doing a system Qt build
+            print("cmake path: " + qtInstallPath)
+
+            with hifi_singleton.Singleton(qt.lockFile) as lock:
+                with timer('Qt'):
+                    qt.installQt()
+                    qt.writeConfig()
+        else:
+            if (os.environ["VIRCADIA_USE_SYSTEM_QT"]):
+                print("System Qt selected")
+            else:
+                raise Exception("Internal error: System Qt not selected, but hifi_qt.py failed to return a cmake path")
 
     pm = hifi_vcpkg.VcpkgRepo(args)
-    if qtInstallPath != '':
+    if qtInstallPath is not None:
         pm.writeVar('QT_CMAKE_PREFIX_PATH', qtInstallPath)
 
     # Only allow one instance of the program to run at a time
 
-    if qtInstallPath != '':
+    if qtInstallPath is not None:
         pm.writeVar('QT_CMAKE_PREFIX_PATH', qtInstallPath)
 
     # Only allow one instance of the program to run at a time
@@ -197,4 +207,7 @@ def main():
     logger.info('end')
 
 print(sys.argv)
-main()
+try:
+    main()
+except hifi_utils.SilentFatalError as fatal_ex:
+    sys.exit(fatal_ex.exit_code)

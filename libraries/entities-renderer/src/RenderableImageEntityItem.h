@@ -13,6 +13,8 @@
 
 #include <ImageEntityItem.h>
 
+#include <procedural/Procedural.h>
+
 namespace render { namespace entities {
 
 class ImageEntityRenderer : public TypedEntityRenderer<ImageEntityItem> {
@@ -22,8 +24,10 @@ public:
     ImageEntityRenderer(const EntityItemPointer& entity);
     ~ImageEntityRenderer();
 
+    gpu::TexturePointer getTexture() override { return _texture ? _texture->getGPUTexture() : nullptr; }
+
 protected:
-    Item::Bound getBound() override;
+    Item::Bound getBound(RenderArgs* args) override;
     ShapeKey getShapeKey() override;
 
     bool isTransparent() const override;
@@ -31,6 +35,7 @@ protected:
 private:
     virtual bool needsRenderUpdate() const override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
+    virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
     virtual void doRender(RenderArgs* args) override;
 
     QString _imageURL;
@@ -41,10 +46,10 @@ private:
     bool _keepAspectRatio;
     QRect _subImage;
 
-    glm::u8vec3 _color;
-    float _alpha;
+    std::shared_ptr<graphics::ProceduralMaterial> _material { std::make_shared<graphics::ProceduralMaterial>() };
+    glm::vec3 _color { NAN };
+    float _alpha { NAN };
     PulsePropertyGroup _pulseProperties;
-    BillboardMode _billboardMode;
 
     int _geometryId { 0 };
 };

@@ -129,9 +129,10 @@ function getCurrentDomainIDType() {
     return DOMAIN_ID_TYPE_UNKNOWN;
   }
   if (DomainInfo !== null) {
-    if (DomainInfo.name !== undefined) {
-      return DOMAIN_ID_TYPE_TEMP;
-    }
+    // Disabled because detecting as temp domain... and we're not even using temp domains right now.
+    // if (DomainInfo.name !== undefined) {
+    //   return DOMAIN_ID_TYPE_TEMP;
+    // }
     return DOMAIN_ID_TYPE_FULL;
   }
   return DOMAIN_ID_TYPE_UNKNOWN;
@@ -504,7 +505,7 @@ function createDomainIDPrompt(callback) {
   swal({
     title: 'Finish Registering Domain',
     type: 'input',
-    text: 'Enter a label for this machine.</br></br>This will help you identify which domain ID belongs to which machine.</br></br>This is a required step for registration.</br></br>',
+    text: 'Enter a label for this Domain Server.</br></br>This will help you identify which domain ID belongs to which server.</br></br>This is a required step for registration.</br></br>Acceptable characters are [A-Z][a-z0-9]+-_.</br',
     showCancelButton: true,
     confirmButtonText: "Create",
     closeOnConfirm: false,

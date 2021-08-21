@@ -2,8 +2,8 @@
 //  EntityScriptQMLWhitelist.qml
 //  interface/resources/qml/hifi/dialogs/security
 //
-//  Created by Kasen IO on 2019.12.05 | realities.dev | somnilibertas@gmail.com
-//  Copyright 2019 Kasen IO
+//  Created by Kalila L. on 2019.12.05 | realities.dev | somnilibertas@gmail.com
+//  Copyright 2019 Kalila L.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -61,8 +61,8 @@ Rectangle {
             whitelistEnabled.toggle();
         }
     }
-  
-  
+
+
     anchors.fill: parent
     width: parent.width;
     height: 120;
@@ -115,7 +115,7 @@ Rectangle {
         width: parent.width;
         height: 250;
         anchors.top: titleText.bottom;
-    
+
         ScrollView {
             id: textAreaScrollView
             anchors.fill: parent;
@@ -136,7 +136,7 @@ Rectangle {
                 color: "white";
             }
         }
-        
+
         Button {
             id: saveChanges
             anchors.topMargin: 5;
@@ -156,7 +156,7 @@ Rectangle {
             }
             text: "Save Changes"
             onClicked: setWhitelistAsText(whitelistTextArea)
-          
+
             HifiStylesUit.RalewayRegular {
                 id: notificationText;
                 text: ""
@@ -170,10 +170,10 @@ Rectangle {
                 anchors.rightMargin: 10;
             }
         }
-        
+
         HifiStylesUit.RalewayRegular {
             id: descriptionText;
-            text: 
+            text:
     "The whitelist checks scripts and QML as they are loaded.<br/>
     Therefore, if a script is cached or has no reason to load again,<br/>
     removing it from the whitelist will have no effect until<br/>

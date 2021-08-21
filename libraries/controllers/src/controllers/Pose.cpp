@@ -30,7 +30,7 @@ namespace controller {
             velocity == right.getVelocity() && angularVelocity == right.getAngularVelocity();
     }
 
-    /**jsdoc
+    /*@jsdoc
      * The pose of a joint or other item relative to the world or a parent.
      * @typedef {object} Pose
      * @property {Vec3} translation - Translation.

@@ -60,7 +60,7 @@ void render::depthSortItems(const RenderContextPointer& renderContext, bool fron
 
     for (auto itemDetails : inItems) {
         auto item = scene->getItem(itemDetails.id);
-        auto bound = itemDetails.bound; // item.getBound();
+        auto bound = itemDetails.bound; // item.getBound(args);
         float distanceSquared = args->getViewFrustum().distanceToCameraSquared(bound.calcCenter());
 
         itemBoundSorts.emplace_back(ItemBoundSort(distanceSquared, distanceSquared, distanceSquared, itemDetails.id, bound));

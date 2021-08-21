@@ -509,7 +509,7 @@ Menu::Menu() {
 
     action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::MaterialProceduralShaders, 0, false);
     connect(action, &QAction::triggered, [action] {
-        MeshPartPayload::enableMaterialProceduralShaders = action->isChecked();
+        ModelMeshPartPayload::enableMaterialProceduralShaders = action->isChecked();
     });
 
     {
@@ -556,8 +556,6 @@ Menu::Menu() {
         });
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::FixGaze, 0, false);
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ToggleHipsFollowing, 0, false,
-        avatar.get(), SLOT(setToggleHips(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawBaseOfSupport, 0, false,
         avatar.get(), SLOT(setEnableDebugDrawBaseOfSupport(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawDefaultPose, 0, false,
@@ -829,10 +827,10 @@ Menu::Menu() {
     });
 
     // Help > Vircadia Forum
-    /* action = addActionToQMenuAndActionHash(helpMenu, "Online Forums");
+    action = addActionToQMenuAndActionHash(helpMenu, "Community Support");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(NetworkingConstants::HELP_FORUM_URL));
-    }); */
+        QDesktopServices::openUrl(NetworkingConstants::HELP_COMMUNITY_URL);
+    });
 
     // Help > Scripting Reference
     action = addActionToQMenuAndActionHash(helpMenu, "Online Script Reference");

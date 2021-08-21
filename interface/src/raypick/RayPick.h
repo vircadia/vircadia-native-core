@@ -39,7 +39,7 @@ public:
     float distance { FLT_MAX };
     bool intersects { false };
 
-    /**jsdoc
+    /*@jsdoc
      * An intersection result for a ray pick.
      *
      * @typedef {object} RayPickResult

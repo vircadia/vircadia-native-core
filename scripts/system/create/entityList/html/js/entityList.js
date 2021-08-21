@@ -9,13 +9,13 @@
 
 const ASCENDING_SORT = 1;
 const DESCENDING_SORT = -1;
-const ASCENDING_STRING = '&#x25B4;';
-const DESCENDING_STRING = '&#x25BE;';
+const ASCENDING_STRING = "&#x25B4;";
+const DESCENDING_STRING = "&#x25BE;";
 const BYTES_PER_MEGABYTE = 1024 * 1024;
 const COLLAPSE_EXTRA_INFO = "E";
 const EXPAND_EXTRA_INFO = "D";
 const FILTER_IN_VIEW_ATTRIBUTE = "pressed";
-const WINDOW_NONVARIABLE_HEIGHT = 227;
+const WINDOW_NONVARIABLE_HEIGHT = 180;
 const EMPTY_ENTITY_ID = "0";
 const MAX_LENGTH_RADIUS = 9;
 const MINIMUM_COLUMN_WIDTH = 24;
@@ -34,7 +34,7 @@ function displayIfNonZero(number) {
 }
 
 function getFilename(url) {
-    let urlParts = url.split('/');
+    let urlParts = url.split("/");
     return urlParts[urlParts.length - 1];
 }
 
@@ -155,7 +155,15 @@ const COLUMNS = {
         propertyID: "lastEdited",
         initialWidth: 0.38,
         defaultSortOrder: DESCENDING_SORT,
-    },    
+    },
+    urlWithPath: {
+        columnHeader: "URL",
+        dropdownLabel: "URL",
+        propertyID: "urlWithPath",
+        initialWidth: 0.54,
+        initiallyShown: false,
+        defaultSortOrder: ASCENDING_SORT,
+    },
 };
 
 const FILTER_TYPES = [
@@ -195,7 +203,7 @@ let lastSelectedEntity;
  */
 let entityListContextMenu = null;
 
-let currentSortColumnID = 'type';
+let currentSortColumnID = "type";
 let currentSortOrder = ASCENDING_SORT;
 let elSortOrders = {};
 let typeFilters = [];
@@ -226,8 +234,10 @@ let elEntityTable,
     elToggleVisible,
     elActionsMenu,
     elSelectionMenu,
+    elTransformMenu,
+    elToolsMenu,
     elMenuBackgroundOverlay,
-    elHmdMultiSelect, 
+    elHmdMultiSelect,
     elHmdCopy,
     elHmdCut,
     elHmdPaste,
@@ -237,6 +247,10 @@ let elEntityTable,
     elParent,
     elUnparent,    
     elDelete,
+    elRotateAsTheNextClickedSurface,
+    elQuickRotate90x,
+    elQuickRotate90y,
+    elQuickRotate90z,
     elMoveEntitySelectionToAvatar,
     elSelectAll,
     elSelectInverse,
@@ -249,6 +263,17 @@ let elEntityTable,
     elSelectFamily,
     elSelectTopFamily,
     elTeleportToEntity,
+    elSetCameraFocusToSelection,
+    elToggleLocalWorldMode,
+    elExportSelectedEntities,
+    elImportEntitiesFromFile,
+    elImportEntitiesFromUrl,
+    elGridActivator,
+    elSnapToGridActivator,
+    elSnapToGridActivatorCaption,
+    elAlignGridToSelection,
+    elAlignGridToAvatar,
+    elBrokenURLReport,
     elFilterTypeMultiselectBox,
     elFilterTypeText,
     elFilterTypeOptions,
@@ -268,7 +293,7 @@ let elEntityTable,
     elRenameInput;
 
 const ENABLE_PROFILING = false;
-let profileIndent = '';
+let profileIndent = "";
 const PROFILE_NOOP = function(_name, fn, args) {
     fn.apply(this, args);
 } ;
@@ -298,6 +323,8 @@ function loaded() {
         elHmdMultiSelect = document.getElementById("hmdmultiselect");
         elActionsMenu = document.getElementById("actions");
         elSelectionMenu = document.getElementById("selection");
+        elTransformMenu = document.getElementById("transform");
+        elToolsMenu = document.getElementById("tools");
         elMenuBackgroundOverlay = document.getElementById("menuBackgroundOverlay");
         elHmdCopy = document.getElementById("hmdcopy");
         elHmdCut = document.getElementById("hmdcut");
@@ -308,6 +335,10 @@ function loaded() {
         elParent = document.getElementById("parent");
         elUnparent = document.getElementById("unparent");
         elDelete = document.getElementById("delete");
+        elRotateAsTheNextClickedSurface = document.getElementById("rotateAsTheNextClickedSurface");
+        elQuickRotate90x = document.getElementById("quickRotate90x");
+        elQuickRotate90y = document.getElementById("quickRotate90y");
+        elQuickRotate90z = document.getElementById("quickRotate90z");
         elMoveEntitySelectionToAvatar = document.getElementById("moveEntitySelectionToAvatar"); 
         elSelectAll = document.getElementById("selectall");
         elSelectInverse = document.getElementById("selectinverse");
@@ -320,6 +351,17 @@ function loaded() {
         elSelectFamily = document.getElementById("selectfamily");
         elSelectTopFamily = document.getElementById("selecttopfamily");
         elTeleportToEntity = document.getElementById("teleport-to-entity");
+        elSetCameraFocusToSelection = document.getElementById("setCameraFocusToSelection");
+        elToggleLocalWorldMode = document.getElementById("toggleLocalWorldMode");
+        elExportSelectedEntities = document.getElementById("exportSelectedEntities");
+        elImportEntitiesFromFile = document.getElementById("importEntitiesFromFile");
+        elImportEntitiesFromUrl = document.getElementById("importEntitiesFromUrl");
+        elGridActivator = document.getElementById("gridActivator");
+        elSnapToGridActivator = document.getElementById("snapToGridActivator");
+        elSnapToGridActivatorCaption = document.getElementById("snapToGridActivatorCaption");
+        elAlignGridToSelection = document.getElementById("alignGridToSelection");
+        elAlignGridToAvatar = document.getElementById("alignGridToAvatar");
+        elBrokenURLReport = document.getElementById("brokenURLReport");
         elFilterTypeMultiselectBox = document.getElementById("filter-type-multiselect-box");
         elFilterTypeText = document.getElementById("filter-type-text");
         elFilterTypeOptions = document.getElementById("filter-type-options");
@@ -335,17 +377,17 @@ function loaded() {
         elNoEntitiesMessage = document.getElementById("no-entities");
         elColumnsMultiselectBox = document.getElementById("entity-table-columns-multiselect-box");
         elColumnsOptions = document.getElementById("entity-table-columns-options");
-        elToggleSpaceMode = document.getElementById('toggle-space-mode');
+        elToggleSpaceMode = document.getElementById("toggle-space-mode");
 
         document.body.onclick = onBodyClick;
         elToggleLocked.onclick = function() {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleLocked' }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: "toggleLocked" }));
         };
         elToggleVisible.onclick = function() {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleVisible' }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: "toggleVisible" }));
         };
         elExport.onclick = function() {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'export'}));
+            EventBridge.emitWebEvent(JSON.stringify({ type: "export"}));
         };
         elHmdMultiSelect.onclick = function() {
             if (hmdMultiSelectMode) {
@@ -355,7 +397,7 @@ function loaded() {
                 elHmdMultiSelect.className = "white vglyph";
                 hmdMultiSelectMode = true;
             }
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'hmdMultiSelectMode', value: hmdMultiSelectMode }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: "hmdMultiSelectMode", value: hmdMultiSelectMode }));
         };
         elActionsMenu.onclick = function() {
             document.getElementById("menuBackgroundOverlay").style.display = "block";
@@ -365,47 +407,71 @@ function loaded() {
             document.getElementById("menuBackgroundOverlay").style.display = "block";
             document.getElementById("selection-menu").style.display = "block";
         };
+        elTransformMenu.onclick = function() {
+            document.getElementById("menuBackgroundOverlay").style.display = "block";
+            document.getElementById("transform-menu").style.display = "block";
+        };        
+        elToolsMenu.onclick = function() {
+            document.getElementById("menuBackgroundOverlay").style.display = "block";
+            document.getElementById("tools-menu").style.display = "block";
+        };
         elMenuBackgroundOverlay.onclick = function() {
             closeAllEntityListMenu();
         };
         elHmdCopy.onclick = function() {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'copy' }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: "copy" }));
             closeAllEntityListMenu();
         };
         elHmdCut.onclick = function() {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'cut' }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: "cut" }));
             closeAllEntityListMenu();
         };
         elHmdPaste.onclick = function() {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'paste' }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: "paste" }));
             closeAllEntityListMenu();
         };
         elHmdDuplicate.onclick = function() {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'duplicate' }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: "duplicate" }));
             closeAllEntityListMenu();
         };
         elParent.onclick = function() {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'parent' }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: "parent" }));
             closeAllEntityListMenu();
         };
         elUnparent.onclick = function() {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'unparent' }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: "unparent" }));
             closeAllEntityListMenu();
         };
         elUndo.onclick = function() {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'undo' }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: "undo" }));
             closeAllEntityListMenu();
         };
         elRedo.onclick = function() {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'redo' }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: "redo" }));
             closeAllEntityListMenu();
         };         
         elDelete.onclick = function() {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: "delete" }));
+            closeAllEntityListMenu();
+        };
+        elRotateAsTheNextClickedSurface.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "rotateAsTheNextClickedSurface" }));
+            closeAllEntityListMenu();
+        };
+        elQuickRotate90x.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "quickRotate90x" }));
+            closeAllEntityListMenu();
+        };
+        elQuickRotate90y.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "quickRotate90y" }));
+            closeAllEntityListMenu();
+        };
+        elQuickRotate90z.onclick = function() {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "quickRotate90z" }));
             closeAllEntityListMenu();
         };
         elMoveEntitySelectionToAvatar.onclick = function() {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'moveEntitySelectionToAvatar' }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: "moveEntitySelectionToAvatar" }));
             closeAllEntityListMenu();
         };
         elSelectAll.onclick = function() {
@@ -467,39 +533,79 @@ function loaded() {
             closeAllEntityListMenu();
         };
         elSelectAllInBox.onclick = function() {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'selectAllInBox' }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: "selectAllInBox" }));
             closeAllEntityListMenu();
         };
         elSelectAllTouchingBox.onclick = function() {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'selectAllTouchingBox' }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: "selectAllTouchingBox" }));
             closeAllEntityListMenu();
         };
         elSelectParent.onclick = function() {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'selectParent' }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: "selectParent" }));
             closeAllEntityListMenu();
         };
         elSelectTopParent.onclick = function() {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'selectTopParent' }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: "selectTopParent" }));
             closeAllEntityListMenu();
         };
         elAddChildrenToSelection.onclick = function() {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'addChildrenToSelection' }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: "addChildrenToSelection" }));
             closeAllEntityListMenu();
         };
         elSelectFamily.onclick = function() {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'selectFamily' }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: "selectFamily" }));
             closeAllEntityListMenu();
         };
         elSelectTopFamily.onclick = function() {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'selectTopFamily' }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: "selectTopFamily" }));
             closeAllEntityListMenu();
         };
         elTeleportToEntity.onclick = function () {
             EventBridge.emitWebEvent(JSON.stringify({ type: "teleportToEntity" }));
             closeAllEntityListMenu();
         };
+        elSetCameraFocusToSelection.onclick = function () {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "setCameraFocusToSelection" }));
+            closeAllEntityListMenu();
+        };
+        elToggleLocalWorldMode.onclick = function () {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "toggleSpaceMode" }));
+            closeAllEntityListMenu();
+        };
+        elExportSelectedEntities.onclick = function () {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "export"}));
+            closeAllEntityListMenu();
+        };
+        elImportEntitiesFromFile.onclick = function () {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "importFromFile"}));
+            closeAllEntityListMenu();
+        };
+        elImportEntitiesFromUrl.onclick = function () {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "importFromUrl"}));
+            closeAllEntityListMenu();
+        };
+        elGridActivator.onclick = function () {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "toggleGridVisibility" }));
+            closeAllEntityListMenu();
+        };
+        elSnapToGridActivator.onclick = function () {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "toggleSnapToGrid" }));
+            closeAllEntityListMenu();
+        };
+        elAlignGridToSelection.onclick = function () {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "alignGridToSelection" }));
+            closeAllEntityListMenu();
+        };
+        elAlignGridToAvatar.onclick = function () {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "alignGridToAvatar" }));
+            closeAllEntityListMenu();
+        };
+        elBrokenURLReport.onclick = function () {
+            EventBridge.emitWebEvent(JSON.stringify({ type: "brokenURLReport" }));
+            closeAllEntityListMenu();
+        };
         elToggleSpaceMode.onclick = function() {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleSpaceMode' }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: "toggleSpaceMode" }));
         };
         elRefresh.onclick = refreshEntities;
         elFilterTypeMultiselectBox.onclick = onToggleTypeDropdown;
@@ -517,11 +623,11 @@ function loaded() {
             let type = FILTER_TYPES[i];
             let typeFilterID = "filter-type-" + type;
             
-            let elDiv = document.createElement('div');
+            let elDiv = document.createElement("div");
             elDiv.onclick = onToggleTypeFilter;
             elFilterTypeOptions.insertBefore(elDiv, elFilterTypeOptionsButtons);
             
-            let elInput = document.createElement('input');
+            let elInput = document.createElement("input");
             elInput.setAttribute("type", "checkbox");
             elInput.setAttribute("id", typeFilterID);
             elInput.setAttribute("filterType", type);
@@ -529,12 +635,12 @@ function loaded() {
             elFilterTypeInputs[type] = elInput;
             elDiv.appendChild(elInput);
             
-            let elLabel = document.createElement('label');
+            let elLabel = document.createElement("label");
             elLabel.setAttribute("for", typeFilterID);
             elLabel.innerText = type;
             elDiv.appendChild(elLabel);
             
-            let elSpan = document.createElement('span');
+            let elSpan = document.createElement("span");
             elSpan.setAttribute("class", "typeIcon");
             elSpan.innerHTML = ENTITY_TYPE_ICON[type];
 
@@ -567,11 +673,11 @@ function loaded() {
                 elTh.innerText = columnData.columnHeader;
             }
             elTh.onmousedown = function(event) {
-                if (event.target.nodeName === 'TH') {
+                if (event.target.nodeName === "TH") {
                     elTargetTh = event.target;
                     targetColumnIndex = parseInt(elTargetTh.getAttribute("columnIndex"));
                     lastColumnSwapPosition = event.clientX;
-                } else if (event.target.nodeName === 'SPAN') {
+                } else if (event.target.nodeName === "SPAN") {
                     elTargetSpan = event.target;
                 }
                 initialThEvent = event;
@@ -594,18 +700,18 @@ function loaded() {
             if (columnData.alwaysShown !== true) { 
                 let columnDropdownID = "entity-table-column-" + columnID;
                 
-                let elDiv = document.createElement('div');
+                let elDiv = document.createElement("div");
                 elDiv.onclick = onToggleColumn;
                 elColumnsOptions.appendChild(elDiv);
                 
-                let elInput = document.createElement('input');
+                let elInput = document.createElement("input");
                 elInput.setAttribute("type", "checkbox");
                 elInput.setAttribute("id", columnDropdownID);
                 elInput.setAttribute("columnID", columnID);
                 elInput.checked = columnData.initiallyShown === true;
                 elDiv.appendChild(elInput);
                 
-                let elLabel = document.createElement('label');
+                let elLabel = document.createElement("label");
                 elLabel.setAttribute("for", columnDropdownID);
                 elLabel.innerText = columnData.dropdownLabel;
                 elDiv.appendChild(elLabel);
@@ -640,7 +746,7 @@ function loaded() {
 
             let elCell = entity.elRow.childNodes[getColumnIndex("name")];
             elRenameInput = document.createElement("input");
-            elRenameInput.setAttribute('class', 'rename-entity');
+            elRenameInput.setAttribute("class", "rename-entity");
             elRenameInput.value = entity.name;
             let ignoreClicks = function(event) {
                 event.stopPropagation();
@@ -705,22 +811,22 @@ function loaded() {
         entityListContextMenu.setOnSelectedCallback(function(optionName, selectedEntityID) {
             switch (optionName) {
                 case "Cut":
-                    EventBridge.emitWebEvent(JSON.stringify({ type: 'cut' }));
+                    EventBridge.emitWebEvent(JSON.stringify({ type: "cut" }));
                     break;
                 case "Copy":
-                    EventBridge.emitWebEvent(JSON.stringify({ type: 'copy' }));
+                    EventBridge.emitWebEvent(JSON.stringify({ type: "copy" }));
                     break;
                 case "Paste":
-                    EventBridge.emitWebEvent(JSON.stringify({ type: 'paste' }));
+                    EventBridge.emitWebEvent(JSON.stringify({ type: "paste" }));
                     break;
                 case "Rename":
                     startRenamingEntity(selectedEntityID);
                     break;
                 case "Duplicate":
-                    EventBridge.emitWebEvent(JSON.stringify({ type: 'duplicate' }));
+                    EventBridge.emitWebEvent(JSON.stringify({ type: "duplicate" }));
                     break;
                 case "Delete":
-                    EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
+                    EventBridge.emitWebEvent(JSON.stringify({ type: "delete" }));
                     break;
             }
         });
@@ -744,11 +850,11 @@ function loaded() {
                 }));
             }
 
-            let enabledContextMenuItems = ['Copy', 'Paste', 'Duplicate'];
+            let enabledContextMenuItems = ["Copy", "Paste", "Duplicate"];
             if (entitiesByID[entityID] && !entitiesByID[entityID].locked) {
-                enabledContextMenuItems.push('Cut');
-                enabledContextMenuItems.push('Rename');
-                enabledContextMenuItems.push('Delete');
+                enabledContextMenuItems.push("Cut");
+                enabledContextMenuItems.push("Rename");
+                enabledContextMenuItems.push("Delete");
             }
 
             entityListContextMenu.open(clickEvent, entityID, enabledContextMenuItems);
@@ -833,7 +939,7 @@ function loaded() {
                 entityIds: selection,
             }));
         }
-        
+
         function updateEntityData(entityData) {
             entities = [];
             entitiesByID = {};
@@ -843,13 +949,14 @@ function loaded() {
                 entityData.forEach(function(entity) {
                     let type = entity.type;
                     let filename = getFilename(entity.url);
-            
+
                     let entityData = {
                         id: entity.id,
                         name: entity.name,
                         type: type,
                         url: entity.certificateID === "" ? filename : "<i>" + CERTIFIED_PLACEHOLDER + "</i>",
                         fullUrl: entity.certificateID === "" ? filename : CERTIFIED_PLACEHOLDER,
+                        urlWithPath: entity.certificateID === "" ? entity.url : "<i>" + CERTIFIED_PLACEHOLDER + "</i>",
                         locked: entity.locked,
                         visible: entity.visible,
                         certificateID: entity.certificateID,
@@ -889,11 +996,13 @@ function loaded() {
                         let searchFilter = searchTerm === '' || (e.name.toLowerCase().indexOf(searchTerm) > -1 ||
                                                                  e.type.toLowerCase().indexOf(searchTerm) > -1 ||
                                                                  e.fullUrl.toLowerCase().indexOf(searchTerm) > -1 ||
+                                                                 (e.urlWithPath.toLowerCase().indexOf(searchTerm) > -1 && 
+                                                                 columnsByID["urlWithPath"].elTh.style.visibility === "visible") ||
                                                                  e.id.toLowerCase().indexOf(searchTerm) > -1);
                         return typeFilter && searchFilter;
                     });
                 });
-                
+
                 PROFILE("sort", function() {
                     let isAscendingSort = currentSortOrder === ASCENDING_SORT;
                     let isDefaultSort = currentSortOrder === COLUMNS[currentSortColumnID].defaultSortOrder;
@@ -947,7 +1056,7 @@ function loaded() {
                     if (id === deletedIDs[i]) {
                         let elRow = entities[j].elRow;
                         if (elRow) {
-                            elRow.className = '';
+                            elRow.className = "";
                             elRow.dataset.entityID = EMPTY_ENTITY_ID;
                         }
                         entities.splice(j, 1);
@@ -1030,7 +1139,7 @@ function loaded() {
         }
         
         function refreshEntities() {
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'refresh' }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: "refresh" }));
         }
         
         function refreshFooter() {
@@ -1057,7 +1166,7 @@ function loaded() {
                 if (entity !== undefined) {
                     entity.selected = false;
                     if (entity.elRow) {
-                        entity.elRow.className = '';
+                        entity.elRow.className = "";
                     }
                 }
             });
@@ -1071,9 +1180,9 @@ function loaded() {
                     entity.selected = true;
                     if (entity.elRow) {
                         if (id === lastSelectedEntity) {
-                            entity.elRow.className = 'last-selected';
+                            entity.elRow.className = "last-selected";
                         } else {
-                            entity.elRow.className = 'selected';
+                            entity.elRow.className = "selected";
                         }
                     }
                 } else {
@@ -1144,12 +1253,12 @@ function loaded() {
             // if this entity was previously selected flag it's row as selected
             if (itemData.selected) {
                 if (itemData.id === lastSelectedEntity) {
-                    elRow.className = 'last-selected';
+                    elRow.className = "last-selected";
                 } else {
-                    elRow.className = 'selected';
+                    elRow.className = "selected";
                 }
             } else {
-                elRow.className = '';
+                elRow.className = "";
             }
 
             // if this row previously had an associated entity ID that wasn't the new entity ID then clear
@@ -1202,9 +1311,9 @@ function loaded() {
         }
         
         function onRadiusChange() {
-            elFilterRadius.value = elFilterRadius.value.replace(/[^0-9]/g, '');
+            elFilterRadius.value = elFilterRadius.value.replace(/[^0-9]/g, "");
             elFilterRadius.value = Math.max(elFilterRadius.value, 0);
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'radius', radius: elFilterRadius.value }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: "radius", radius: elFilterRadius.value }));
             refreshEntities();
         }
         
@@ -1425,7 +1534,7 @@ function loaded() {
             }
             
             if (isColumnsSettingLoaded) {
-                EventBridge.emitWebEvent(JSON.stringify({ type: 'saveColumnsConfigSetting', columnsData: columns }));
+                EventBridge.emitWebEvent(JSON.stringify({ type: "saveColumnsConfigSetting", columnsData: columns }));
             }
             
             entityList.refresh();
@@ -1628,7 +1737,7 @@ function loaded() {
             }
 
             EventBridge.emitWebEvent(JSON.stringify({
-                type: 'keyUpEvent',
+                type: "keyUpEvent",
                 keyUpEvent: {
                     code,
                     key,
@@ -1673,6 +1782,12 @@ function loaded() {
                     removeEntities(data.ids);
                 } else if (data.type === "setSpaceMode") {
                     setSpaceMode(data.spaceMode);
+                } else if (data.type === "setSnapToGrid") {
+                    if (data.snap) { 
+                        elSnapToGridActivatorCaption.innerHTML = "&#x2713; Deactivate Snap to Grid";
+                    } else {
+                        elSnapToGridActivatorCaption.innerHTML = "Activate Snap to Grid";
+                    }
                 } else if (data.type === "confirmHMDstate") {
                     if (data.isHmd) {
                         document.getElementById("hmdmultiselect").style.display = "inline";
@@ -1722,7 +1837,7 @@ function loaded() {
                                 }
                             }
                         } else {
-                            EventBridge.emitWebEvent(JSON.stringify({ type: 'saveColumnsConfigSetting', columnsData: "" }));
+                            EventBridge.emitWebEvent(JSON.stringify({ type: "saveColumnsConfigSetting", columnsData: "" }));
                         }
                     }
                     isColumnsSettingLoaded = true;
@@ -1735,7 +1850,7 @@ function loaded() {
         
         window.addEventListener("resize", updateColumnWidths);
         
-        EventBridge.emitWebEvent(JSON.stringify({ type: 'loadConfigSetting' }));
+        EventBridge.emitWebEvent(JSON.stringify({ type: "loadConfigSetting" }));
     });
     
     augmentSpinButtons();
@@ -1758,6 +1873,8 @@ function loaded() {
         document.getElementById("menuBackgroundOverlay").style.display = "none";
         document.getElementById("selection-menu").style.display = "none";
         document.getElementById("actions-menu").style.display = "none";
+        document.getElementById("transform-menu").style.display = "none";
+        document.getElementById("tools-menu").style.display = "none";
     }
 
 }

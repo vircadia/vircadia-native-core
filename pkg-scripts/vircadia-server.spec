@@ -9,7 +9,7 @@ Summary:        Vircadia metaverse platform, based on the High Fidelity Engine.
 
 License:        ASL 2.0
 URL:            https://vircadia.com
-Source0:        https://github.com/kasenvr/vircadia-builder/blob/master/vircadia-builder
+Source0:        https://github.com/vircadia/vircadia-builder/blob/master/vircadia-builder
 
 #BuildRequires:  systemd-rpm-macros
 BuildRequires:  chrpath

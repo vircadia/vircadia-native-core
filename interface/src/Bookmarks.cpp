@@ -61,7 +61,6 @@ void Bookmarks::deleteBookmark(const QString& bookmarkName) {
 void Bookmarks::addBookmarkToFile(const QString& bookmarkName, const QVariant& bookmark) {
     Menu* menubar = Menu::getInstance();
     if (contains(bookmarkName)) {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
         ModalDialogListener* dlg = OffscreenUi::asyncWarning("Duplicate Bookmark",
                                   "The bookmark name you entered already exists in your list.",
                                   QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);

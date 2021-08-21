@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2/15/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -85,8 +86,8 @@ NodeType_t NodeType::fromString(QString type) {
 }
 
 
-Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
-    const HifiSockAddr& localSocket, QObject* parent) :
+Node::Node(const QUuid& uuid, NodeType_t type, const SockAddr& publicSocket,
+    const SockAddr& localSocket, QObject* parent) :
     NetworkPeer(uuid, publicSocket, localSocket, parent),
     _type(type),
     _pingMs(-1),  // "Uninitialized"

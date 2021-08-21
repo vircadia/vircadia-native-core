@@ -365,19 +365,19 @@ Pose UserInputMapper::getPoseState(Action action) const {
 }
 
 
-bool UserInputMapper::triggerHapticPulse(float strength, float duration, controller::Hand hand) {
+bool UserInputMapper::triggerHapticPulse(float strength, float duration, uint16_t index) {
     Locker locker(_lock);
     bool toReturn = false;
     for (const auto& device : _registeredDevices) {
-        toReturn = device.second->triggerHapticPulse(strength, duration, hand) || toReturn;
+        toReturn = device.second->triggerHapticPulse(strength, duration, index) || toReturn;
     }
     return toReturn;
 }
 
-bool UserInputMapper::triggerHapticPulseOnDevice(uint16 deviceID, float strength, float duration, controller::Hand hand) {
+bool UserInputMapper::triggerHapticPulseOnDevice(uint16 deviceID, float strength, float duration, uint16_t index) {
     Locker locker(_lock);
     if (_registeredDevices.find(deviceID) != _registeredDevices.end()) {
-        return _registeredDevices[deviceID]->triggerHapticPulse(strength, duration, hand);
+        return _registeredDevices[deviceID]->triggerHapticPulse(strength, duration, index);
     }
     return false;
 }
@@ -738,7 +738,7 @@ Mapping::Pointer UserInputMapper::newMapping(const QString& mappingName) {
 //        if (request->getResult() == ResourceRequest::Success) {
 //            result = parseMapping(QString(request->getData()));
 //        } else {
-//            qCWarning(controllers) << "Failed to load mapping url <" << jsonUrl << ">" << endl;
+//            qCWarning(controllers) << "Failed to load mapping url <" << jsonUrl << ">" << Qt::endl;
 //        }
 //        request->deleteLater();
 //    }
@@ -1177,13 +1177,13 @@ Mapping::Pointer UserInputMapper::parseMapping(const QString& json) {
     if (doc.isNull()) {
         qCDebug(controllers) << "Invalid JSON...\n";
         qCDebug(controllers) << error.errorString();
-        qCDebug(controllers) << "JSON was:\n" << json << endl;
+        qCDebug(controllers) << "JSON was:\n" << json << Qt::endl;
         return Mapping::Pointer();
     }
 
     if (!doc.isObject()) {
-        qWarning() << "Mapping json Document is not an object" << endl;
-        qCDebug(controllers) << "JSON was:\n" << json << endl;
+        qWarning() << "Mapping json Document is not an object" << Qt::endl;
+        qCDebug(controllers) << "JSON was:\n" << json << Qt::endl;
         return Mapping::Pointer();
     }
     return parseMapping(doc.object());

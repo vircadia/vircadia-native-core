@@ -16,7 +16,7 @@
 #include <QString>
 #include <QUrl>
 
-/**jsdoc
+/*@jsdoc
  * Information about a resource request.
  * @typedef {object} ResourceRequestObserver.ResourceRequest
  * @property {string} url - The URL of the resource request.

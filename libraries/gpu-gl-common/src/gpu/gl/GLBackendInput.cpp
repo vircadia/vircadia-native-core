@@ -103,6 +103,9 @@ void GLBackend::resetInputStage() {
     reset(_input._format);
     _input._formatKey.clear();
     _input._invalidFormat = false;
+    _input._hasColorAttribute = false;
+    _input._hadColorAttribute = false;
+    _input._colorAttribute = vec4(1.0f);
     _input._attributeActivation.reset();
 
     for (uint32_t i = 0; i < _input._buffers.size(); i++) {
@@ -159,15 +162,15 @@ void GLBackend::updateInput() {
     _input._invalidFormat |= (isStereoNow != _input._lastUpdateStereoState);
 #endif
     _input._lastUpdateStereoState = isStereoNow;
- 
+
+    bool hasColorAttribute = _input._hasColorAttribute;
+
     if (_input._invalidFormat) {
         InputStageState::ActivationCache newActivation;
 
         // Assign the vertex format required
         auto format = acquire(_input._format);
         if (format) {
-            bool hasColorAttribute{ false };
-
             _input._attribBindingBuffers.reset();
 
             const auto& attributes = format->getAttributes();
@@ -186,12 +189,12 @@ void GLBackend::updateInput() {
                     uint8_t locationCount = attrib._element.getLocationCount();
                     GLenum type = gl::ELEMENT_TYPE_TO_GL[attrib._element.getType()];
 
-                    GLuint offset = (GLuint)attrib._offset;;
+                    GLuint offset = (GLuint)attrib._offset;
                     GLboolean isNormalized = attrib._element.isNormalized();
 
                     GLenum perLocationSize = attrib._element.getLocationSize();
 
-                    hasColorAttribute = hasColorAttribute || (slot == Stream::COLOR);
+                    hasColorAttribute |= slot == Stream::COLOR;
 
                     for (GLuint locNum = 0; locNum < locationCount; ++locNum) {
                         GLuint attriNum = (GLuint)(slot + locNum);
@@ -224,14 +227,11 @@ void GLBackend::updateInput() {
 #endif
             }
 
-            if (_input._hadColorAttribute && !hasColorAttribute) {
-                // The previous input stage had a color attribute but this one doesn't so reset
-                // color to pure white.
-                const auto white = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-                glVertexAttrib4fv(Stream::COLOR, &white.r);
-                _input._colorAttribute = white;
+            if (!hasColorAttribute && _input._hadColorAttribute) {
+                // The previous input stage had a color attribute but this one doesn't, so reset the color to pure white.
+                _input._colorAttribute = glm::vec4(1.0f);
+                glVertexAttrib4fv(Stream::COLOR, &_input._colorAttribute.r);
             }
-            _input._hadColorAttribute = hasColorAttribute;
         }
 
         // Manage Activation what was and what is expected now
@@ -252,6 +252,9 @@ void GLBackend::updateInput() {
         _input._invalidFormat = false;
         _stats._ISNumFormatChanges++;
     }
+
+    _input._hadColorAttribute = hasColorAttribute;
+    _input._hasColorAttribute = false;
 
     if (_input._invalidBuffers.any()) {
         auto vbo = _input._bufferVBOs.data();
@@ -276,4 +279,3 @@ void GLBackend::updateInput() {
         (void)CHECK_GL_ERROR();
     }
 }
-

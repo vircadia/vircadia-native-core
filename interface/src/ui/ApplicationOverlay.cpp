@@ -100,10 +100,10 @@ void ApplicationOverlay::renderQmlUi(RenderArgs* renderArgs) {
     // threads, we need to use a sync object to deteremine when
     // the current UI texture is no longer being read from, and only
     // then release it back to the UI for re-use
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    auto offscreenUI = DependencyManager::get<OffscreenUi>();
 
     OffscreenQmlSurface::TextureAndFence newTextureAndFence;
-    bool newTextureAvailable = offscreenUi->fetchTexture(newTextureAndFence);
+    bool newTextureAvailable = offscreenUI ? offscreenUI->fetchTexture(newTextureAndFence) : false;
     if (newTextureAvailable) {
         _uiTexture->setExternalTexture(newTextureAndFence.first, newTextureAndFence.second);
     }

@@ -76,8 +76,13 @@ void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, 
         "Use the field below to place your file in a specific folder or to rename it. "
         "Specifying a new folder name will automatically create that folder for you.";
 
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    auto result = offscreenUi->inputDialog(OffscreenUi::ICON_INFORMATION, "Specify Asset Path",
+    auto offscreenUI = DependencyManager::get<OffscreenUi>();
+    if (!offscreenUI) {
+        completedCallback.call({ -1 });
+        return;
+    }
+
+    auto result = offscreenUI->inputDialog(OffscreenUi::ICON_INFORMATION, "Specify Asset Path",
                                            dropEvent ? dropHelpText : helpText, mapping);
 
     if (!result.isValid() || result.toString() == "") {
@@ -94,7 +99,7 @@ void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, 
     // Check for override
     if (isKnownMapping(mapping)) {
         auto message = mapping + "\n" + "This file already exists. Do you want to overwrite it?";
-        auto button = offscreenUi->messageBox(OffscreenUi::ICON_QUESTION, "Overwrite File", message,
+        auto button = offscreenUI->messageBox(OffscreenUi::ICON_QUESTION, "Overwrite File", message,
                                               QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
         if (button == QMessageBox::No) {
             completedCallback.call({ -1 });

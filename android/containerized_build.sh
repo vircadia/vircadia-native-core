@@ -17,7 +17,7 @@ test -z "$STABLE_BUILD" && export STABLE_BUILD=0
 docker run \
    --rm \
    --security-opt seccomp:unconfined \
-   -v "${WORKSPACE}":/home/gha/project-athena \
+   -v "${WORKSPACE}":/home/gha/vircadia \
    -e RELEASE_NUMBER \
    -e RELEASE_TYPE \
    -e ANDROID_APP \

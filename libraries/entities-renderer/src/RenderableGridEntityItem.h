@@ -23,17 +23,18 @@ public:
     ~GridEntityRenderer();
 
 protected:
-    Item::Bound getBound() override;
+    Item::Bound getBound(RenderArgs* args) override;
     ShapeKey getShapeKey() override;
 
     bool isTransparent() const override;
 
 private:
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
+    virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
     virtual void doRender(RenderArgs* args) override;
 
     glm::u8vec3 _color;
-    float _alpha;
+    float _alpha { NAN };
     PulsePropertyGroup _pulseProperties;
 
     bool _followCamera;

@@ -68,28 +68,28 @@ public:
     QVariantMap getViewFrustum();
 
 public slots:
-    /**jsdoc
+    /*@jsdoc
      * Gets the current camera mode. You can also get the mode using the {@link Camera|Camera.mode} property.
      * @function Camera.getModeString
      * @returns {Camera.Mode} The current camera mode.
      */
     QString getModeString() const;
     
-    /**jsdoc
+    /*@jsdoc
      * Sets the camera mode. You can also set the mode using the {@link Camera|Camera.mode} property.
      * @function Camera.setModeString
      * @param {Camera.Mode} mode - The mode to set the camera to.
      */
     void setModeString(const QString& mode);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the current camera position. You can also get the position using the {@link Camera|Camera.position} property.
      * @function Camera.getPosition
      * @returns {Vec3} The current camera position.
      */
     glm::vec3 getPosition() const { return _position; }
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the camera position. You can also set the position using the {@link Camera|Camera.position} property. Only works if 
      * the camera is in independent mode.
      * @function Camera.setPosition
@@ -97,7 +97,7 @@ public slots:
      */
     void setPosition(const glm::vec3& position);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the current camera orientation. You can also get the orientation using the {@link Camera|Camera.orientation} 
      * property.
      * @function Camera.getOrientation
@@ -105,7 +105,7 @@ public slots:
      */
     glm::quat getOrientation() const { return _orientation; }
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the camera orientation. You can also set the orientation using the {@link Camera|Camera.orientation} property. Only
      * works if the camera is in independent mode.
      * @function Camera.setOrientation
@@ -113,7 +113,7 @@ public slots:
      */
     void setOrientation(const glm::quat& orientation);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the current mouse capture state.
      * @function Camera.getCaptureMouse
      * @returns {boolean} <code>true</code> if the mouse is captured (is invisible and cannot leave the bounds of Interface,
@@ -121,7 +121,7 @@ public slots:
      */
     bool getCaptureMouse() const { return _captureMouse; }
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the mouse capture state.  When <code>true</code>, the mouse is invisible and cannot leave the bounds of
      * Interface, as long as Interface is the active window and no menu item is selected.  When <code>false</code>, the mouse
      * behaves normally.
@@ -130,21 +130,21 @@ public slots:
      */
     void setCaptureMouse(bool captureMouse) { _captureMouse = captureMouse; emit captureMouseChanged(captureMouse); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the current camera sensitivity.
      * @function Camera.getSensitivity
      * @returns {number} The current camera sensitivity.  Must be positive.
      */
     float getSensitivity() const { return _sensitivity; }
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the camera sensitivity.  Higher values mean that the camera will be more sensitive to mouse movements.
      * @function Camera.setSensitivity
      * @param {number} sensitivity - The desired camera sensitivity.  Must be positive.
      */
     void setSensitivity(float sensitivity) { _sensitivity = glm::max(0.0f, sensitivity); }
 
-    /**jsdoc
+    /*@jsdoc
      * Computes a {@link PickRay} based on the current camera configuration and the specified <code>x, y</code> position on the 
      * screen. The {@link PickRay} can be used in functions such as {@link Entities.findRayIntersection} and 
      * {@link Overlays.findRayIntersection}.
@@ -165,7 +165,7 @@ public slots:
      */
     virtual PickRay computePickRay(float x, float y) const = 0;
 
-    /**jsdoc
+    /*@jsdoc
      * Rotates the camera to look at the specified <code>position</code>. Only works if the camera is in independent mode.
      * @function Camera.lookAt
      * @param {Vec3} position - The position to look at.
@@ -186,7 +186,7 @@ public slots:
      */
     void lookAt(const glm::vec3& position);
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the camera to continue looking at the specified <code>position</code> even while the camera moves. Only works if 
      * the camera is in independent mode.
      * @function Camera.keepLookingAt
@@ -194,14 +194,14 @@ public slots:
      */
     void keepLookingAt(const glm::vec3& position);
 
-    /**jsdoc
+    /*@jsdoc
      * Stops the camera from continually looking at the position that was set with {@link Camera.keepLookingAt}.
      * @function Camera.stopLookingAt
      */
     void stopLooking() { _isKeepLookingAt = false; }
 
 signals:
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the camera mode changes.
      * @function Camera.modeUpdated
      * @param {Camera.Mode} newMode - The new camera mode.
@@ -215,7 +215,7 @@ signals:
      */
     void modeUpdated(const QString& newMode);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the camera mouse capture state changes.
      * @function Camera.captureMouseChanged
      * @param {boolean} newCaptureMouse - The new mouse capture state.

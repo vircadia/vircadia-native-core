@@ -72,7 +72,6 @@ QVariantMap QmlWindowClass::parseArguments(QScriptContext* context) {
 // Method called by Qt scripts to create a new web window in the overlay
 QScriptValue QmlWindowClass::internal_constructor(QScriptContext* context, QScriptEngine* engine, bool restricted) {
     auto properties = parseArguments(context);
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
     QmlWindowClass* retVal = new QmlWindowClass(restricted);
     Q_ASSERT(retVal);
     if (QThread::currentThread() != qApp->thread()) {
@@ -89,7 +88,7 @@ QmlWindowClass::QmlWindowClass(bool restricted) : _restricted(restricted) {
 
 }
 
-/**jsdoc
+/*@jsdoc
  * Properties used to initialize an {@link OverlayWindow} or {@link OverlayWebWindow}.
  * @typedef {object} OverlayWindow.Properties
  * @property {string} [title="WebWindow] - The window title.
@@ -349,7 +348,6 @@ void QmlWindowClass::raise() {
         return;
     }
 
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
     if (_qmlWindow) {
         QMetaObject::invokeMethod(asQuickItem(), "raise", Qt::DirectConnection);
     }

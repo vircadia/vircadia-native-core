@@ -96,8 +96,9 @@ bool HMDScriptingInterface::shouldShowHandControllers() const {
 
 void HMDScriptingInterface::activateHMDHandMouse() {
     QWriteLocker lock(&_hmdHandMouseLock);
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->getDesktop()->setProperty("hmdHandMouseActive", true);
+    if (auto offscreenUI = DependencyManager::get<OffscreenUi>()) {
+        offscreenUI->getDesktop()->setProperty("hmdHandMouseActive", true);
+    }
     _hmdHandMouseCount++;
 }
 
@@ -105,8 +106,9 @@ void HMDScriptingInterface::deactivateHMDHandMouse() {
     QWriteLocker lock(&_hmdHandMouseLock);
     _hmdHandMouseCount = std::max(_hmdHandMouseCount - 1, 0);
     if (_hmdHandMouseCount == 0) {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        offscreenUi->getDesktop()->setProperty("hmdHandMouseActive", false);
+        if (auto offscreenUI = DependencyManager::get<OffscreenUi>()) {
+            offscreenUI->getDesktop()->setProperty("hmdHandMouseActive", false);
+        }
     }
 }
 
