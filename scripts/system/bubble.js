@@ -58,8 +58,8 @@
     AvatarInputs.showBubbleToolsChanged.connect(showBubbleToolsChanged);
 
     function onToggleHudShieldButton(menuItem) {
-        if (menuItem == menuItemName) {
-            AvatarInputs.setShowBubbleTools(Menu.isOptionChecked(menuItem))
+        if (menuItem === menuItemName) {
+            AvatarInputs.setShowBubbleTools(Menu.isOptionChecked(menuItem));
         };
     }
 
