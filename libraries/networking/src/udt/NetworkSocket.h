@@ -120,7 +120,7 @@ public:
 
 
 #if defined(WEBRTC_DATA_CHANNELS)
-    /// @brief  @brief Gets a pointer to the WebRTC socket object.
+    /// @brief Gets a pointer to the WebRTC socket object.
     /// @return A pointer to the WebRTC socket object.
     const WebRTCSocket* getWebRTCSocket();
 #endif
