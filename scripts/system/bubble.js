@@ -47,7 +47,7 @@
     }
 
     //create a menu item in "Setings" to toggle the bubble/shield HUD button 
-    var menuItemName = "HUD shield button";
+    var menuItemName = "HUD Shield Button";
     Menu.addMenuItem({
         menuName: "Settings",
         menuItemName: menuItemName,
