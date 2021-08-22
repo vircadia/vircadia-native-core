@@ -46,6 +46,27 @@
         });
     }
 
+    //create a menu item in "Setings" to toggle the bubble/shield HUD button 
+    var menuItemName = "HUD Shield Button";
+    Menu.addMenuItem({
+        menuName: "Settings",
+        menuItemName: menuItemName,
+        isCheckable: true,
+        isChecked: AvatarInputs.showBubbleTools
+    });
+    Menu.menuItemEvent.connect(onToggleHudShieldButton);
+    AvatarInputs.showBubbleToolsChanged.connect(showBubbleToolsChanged);
+
+    function onToggleHudShieldButton(menuItem) {
+        if (menuItem === menuItemName) {
+            AvatarInputs.setShowBubbleTools(Menu.isOptionChecked(menuItem));
+        };
+    }
+
+    function showBubbleToolsChanged(show) {
+        Menu.setIsOptionChecked(menuItemName, show);
+    }
+
     // Make the bubble overlay visible, set its position, and play the sound
     function createOverlays() {
         var nowTimestamp = Date.now();
@@ -191,6 +212,9 @@
 
     // Cleanup the tablet button and overlays when script is stopped
     Script.scriptEnding.connect(function () {
+        Menu.menuItemEvent.disconnect(onToggleHudShieldButton);
+        AvatarInputs.showBubbleToolsChanged.disconnect(showBubbleToolsChanged);
+        Menu.removeMenuItem("Settings", menuItemName);
         button.clicked.disconnect(Users.toggleIgnoreRadius);
         if (tablet) {
             tablet.removeButton(button);
