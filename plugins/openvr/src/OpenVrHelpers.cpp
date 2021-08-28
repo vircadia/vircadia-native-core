@@ -411,6 +411,14 @@ void showMinSpecWarning() {
     if (!vrOverlay) {
         qFatal("Unable to initialize SteamVR overlay manager");
     }
+    auto vrChaperone = vr::VRChaperone();
+    if (!vrChaperone) {
+        qFatal("Unable to initialize SteamVR chaperone");
+    }
+    auto vrCompositor = vr::VRCompositor();
+    if (!vrCompositor) {
+        qFatal("Unable to initialize SteamVR compositor");
+    }
 
     vr::VROverlayHandle_t minSpecFailedOverlay = 0;
     if (vr::VROverlayError_None != vrOverlay->CreateOverlay(FAILED_MIN_SPEC_OVERLAY_NAME, FAILED_MIN_SPEC_OVERLAY_FRIENDLY_NAME, &minSpecFailedOverlay)) {
@@ -443,7 +451,7 @@ void showMinSpecWarning() {
     });
 #endif
 
-    vrSystem->ResetSeatedZeroPose();
+    vrChaperone->ResetZeroPose(vrCompositor->GetTrackingSpace());
     QString imagePath = PathUtils::resourcesPath() + "/images/steam-min-spec-failed.png";
     vrOverlay->SetOverlayFromFile(minSpecFailedOverlay, imagePath.toLocal8Bit().toStdString().c_str());
     vrOverlay->SetOverlayWidthInMeters(minSpecFailedOverlay, 1.4f);
