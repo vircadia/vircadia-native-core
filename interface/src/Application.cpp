@@ -805,11 +805,13 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
 
     {
         const QString resourcesBinaryFile = PathUtils::getRccPath();
+        qCInfo(interfaceapp) << "Loading primary resources from" << resourcesBinaryFile;
+
         if (!QFile::exists(resourcesBinaryFile)) {
-            throw std::runtime_error("Unable to find primary resources");
+            throw std::runtime_error(QString("Unable to find primary resources from '%1'").arg(resourcesBinaryFile).toStdString());
         }
         if (!QResource::registerResource(resourcesBinaryFile)) {
-            throw std::runtime_error("Unable to load primary resources");
+            throw std::runtime_error(QString("Unable to load primary resources from '%1'").arg(resourcesBinaryFile).toStdString());
         }
     }
 
@@ -1965,7 +1967,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     }
 
     QString scriptsSwitch = QString("--").append(SCRIPTS_SWITCH);
-    _defaultScriptsLocation = getCmdOption(argc, constArgv, scriptsSwitch.toStdString().c_str());
+    _defaultScriptsLocation.setPath(getCmdOption(argc, constArgv, scriptsSwitch.toStdString().c_str()));
 
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
