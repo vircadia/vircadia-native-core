@@ -356,6 +356,7 @@ void AssignmentClient::handleWebRTCSignalingPacket(QSharedPointer<ReceivedMessag
         // Echo message back to sender.
 
         if (!json.keys().contains("to") || !json.keys().contains("from")) {
+            qCDebug(assignment_client) << "Invalid WebRTC signaling echo message received.";
             return;
         }
 

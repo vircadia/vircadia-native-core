@@ -901,6 +901,7 @@ void DomainServer::sendWebRTCSignalingMessageToAssignmentClient(const QJsonObjec
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
     auto destinationNode = limitedNodeList->soloNodeOfType(destinationNodeType);
     if (!destinationNode) {
+        qWarning() << NodeType::getNodeTypeName(destinationNodeType) << "not found for WebRTC signaling message.";
         return;
     }
     // Use an NLPacketList because the signaling message is not necessarily small.
