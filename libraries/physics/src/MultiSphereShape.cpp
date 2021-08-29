@@ -486,7 +486,10 @@ void MultiSphereShape::calculateDebugLines() {
                     break;
                 }
             }
-        }        
+        }
+        if (radiuses.size() == 0) {
+            radiuses.push_back(0.0f);
+        }
         calculateChamferBox(_debugLines, radiuses, axes, _midPoint);
     } else if (_spheres.size() == 8) {
         std::vector<glm::vec3> axes;
