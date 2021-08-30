@@ -10,6 +10,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_ScriptManager_h
 #define hifi_ScriptManager_h
 
@@ -43,8 +46,6 @@
 #include "Quat.h"
 #include "ScriptUUID.h"
 #include "Vec3.h"
-
-class QScriptEngineDebugger;
 
 static const QString NO_SCRIPT("");
 
@@ -136,6 +137,7 @@ public:
  *     <em>Read-only.</em>
  * @property {Script.ResourceBuckets} ExternalPaths - External resource buckets.
  */
+/// The main class managing a scripting engine.  Also provides the <code><a href="https://apidocs.vircadia.dev/Script.html">Script</a></code> scripting interface
 class ScriptManager : public QObject, public EntitiesScriptEngineProvider, public QEnableSharedFromThis<ScriptManager> {
     Q_OBJECT
     Q_PROPERTY(QString context READ getContext)
@@ -170,8 +172,6 @@ public:
     /// services before calling this.
     void runInThread();
 
-    void runDebuggable();
-
     /// run the script in the callers thread, exit when stop() is called.
     void run();
 
@@ -193,7 +193,7 @@ public:
      * Script.setInterval(function () {
      *     print("Hello");
      * }, 1000);
-     * 
+     *
      * Script.setTimeout(function () {
      *     Script.stop(true);
      * }, 5000);
@@ -231,7 +231,7 @@ public:
     /*@jsdoc
      * Checks whether the script is running as an Interface or avatar script.
      * @function Script.isClientScript
-     * @returns {boolean} <code>true</code> if the script is running as an Interface or avatar script, <code>false</code> if it 
+     * @returns {boolean} <code>true</code> if the script is running as an Interface or avatar script, <code>false</code> if it
      *     isn't.
      */
     Q_INVOKABLE bool isClientScript() const { return _context == CLIENT_SCRIPT; }
@@ -239,7 +239,7 @@ public:
     /*@jsdoc
      * Checks whether the application was compiled as a debug build.
      * @function Script.isDebugMode
-     * @returns {boolean} <code>true</code> if the application was compiled as a debug build, <code>false</code> if it was 
+     * @returns {boolean} <code>true</code> if the application was compiled as a debug build, <code>false</code> if it was
      *     compiled as a release build.
      */
     Q_INVOKABLE bool isDebugMode() const;
@@ -261,7 +261,7 @@ public:
     /*@jsdoc
      * Checks whether the script is running as an assignment client script.
      * @function Script.isAgentScript
-     * @returns {boolean} <code>true</code> if the script is running as an assignment client script, <code>false</code> if it 
+     * @returns {boolean} <code>true</code> if the script is running as an assignment client script, <code>false</code> if it
      *     isn't.
      */
     Q_INVOKABLE bool isAgentScript() const { return _context == AGENT_SCRIPT; }
@@ -284,7 +284,7 @@ public:
      * @function Script.addEventHandler
      * @param {Uuid} entityID - The ID of the entity.
      * @param {Script.EntityEvent} eventName - The name of the event.
-     * @param {Script~entityEventCallback|Script~pointerEventCallback|Script~collisionEventCallback} handler - The function to 
+     * @param {Script~entityEventCallback|Script~pointerEventCallback|Script~collisionEventCallback} handler - The function to
      *     call when the event occurs on the entity. It can be either the name of a function or an in-line definition.
      * @example <caption>Report when a mouse press occurs on a particular entity.</caption>
      * var entityID = Entities.addEntity({
@@ -293,11 +293,11 @@ public:
      *     dimensions: { x: 0.5, y: 0.5, z: 0.5 },
      *     lifetime: 300  // Delete after 5 minutes.
      * });
-     * 
+     *
      * function reportMousePress(entityID, event) {
      *     print("Mouse pressed on entity: " + JSON.stringify(event));
      * }
-     * 
+     *
      * Script.addEventHandler(entityID, "mousePressOnEntity", reportMousePress);
      */
     Q_INVOKABLE void addEventHandler(const EntityItemID& entityID, const QString& eventName, ScriptValuePointer handler);
@@ -313,7 +313,7 @@ public:
     Q_INVOKABLE void removeEventHandler(const EntityItemID& entityID, const QString& eventName, ScriptValuePointer handler);
 
     /*@jsdoc
-     * Starts running another script in Interface, if it isn't already running. The script is not automatically loaded next 
+     * Starts running another script in Interface, if it isn't already running. The script is not automatically loaded next
      * time Interface starts.
      * <p class="availableIn"><strong>Supported Script Types:</strong> Interface Scripts &bull; Avatar Scripts</p>
      * <p>See also, {@link ScriptDiscoveryService.loadScript}.</p>
@@ -335,13 +335,13 @@ public:
     Q_INVOKABLE void load(const QString& loadfile);
 
     /*@jsdoc
-     * Includes JavaScript from other files in the current script. If a callback is specified, the files are loaded and 
-     * included asynchronously, otherwise they are included synchronously (i.e., script execution blocks while the files are 
+     * Includes JavaScript from other files in the current script. If a callback is specified, the files are loaded and
+     * included asynchronously, otherwise they are included synchronously (i.e., script execution blocks while the files are
      * included).
      * @function Script.include
      * @variation 0
      * @param {string[]} filenames - The URLs of the scripts to include. Each can be relative to the current script.
-     * @param {function} [callback=null] - The function to call back when the scripts have been included. It can be either the 
+     * @param {function} [callback=null] - The function to call back when the scripts have been included. It can be either the
      *     name of a function or an in-line definition.
      */
     Q_INVOKABLE void include(const QStringList& includeFiles, ScriptValuePointer callback = ScriptValuePointer());
@@ -351,7 +351,7 @@ public:
      * asynchronously, otherwise it is included synchronously (i.e., script execution blocks while the file is included).
      * @function Script.include
      * @param {string} filename - The URL of the script to include. It can be relative to the current script.
-     * @param {function} [callback=null] - The function to call back when the script has been included. It can be either the 
+     * @param {function} [callback=null] - The function to call back when the script has been included. It can be either the
      *     name of a function or an in-line definition.
      * @example <caption>Include a script file asynchronously.</caption>
      * // First file: scriptA.js
@@ -376,11 +376,11 @@ public:
 
     /*@jsdoc
      * Provides access to methods or objects provided in an external JavaScript or JSON file. 
-     * See {@link https://docs.vircadia.dev/script/js-tips.html} for further details.
+     * See {@link https://docs.vircadia.com/script/js-tips.html} for further details.
      * @function Script.require
-     * @param {string} module - The module to use. May be a JavaScript file, a JSON file, or the name of a system module such 
+     * @param {string} module - The module to use. May be a JavaScript file, a JSON file, or the name of a system module such
      *     as <code>"appUi"</code> (i.e., the "appUi.js" system module JavaScript file).
-     * @returns {object|array} The value assigned to <code>module.exports</code> in the JavaScript file, or the value defined 
+     * @returns {object|array} The value assigned to <code>module.exports</code> in the JavaScript file, or the value defined
      *     in the JSON file.
      */
     Q_INVOKABLE ScriptValuePointer require(const QString& moduleId);
@@ -489,7 +489,7 @@ public:
     Q_INVOKABLE QUrl resourcesPath() const;
 
     /*@jsdoc
-     * Starts timing a section of code in order to send usage data about it to Vircadia. Shouldn't be used outside of the 
+     * Starts timing a section of code in order to send usage data about it to Vircadia. Shouldn't be used outside of the
      * standard scripts.
      * @function Script.beginProfileRange
      * @param {string} label - A name that identifies the section of code.
@@ -497,7 +497,7 @@ public:
     Q_INVOKABLE void beginProfileRange(const QString& label) const;
 
     /*@jsdoc
-     * Finishes timing a section of code in order to send usage data about it to Vircadia. Shouldn't be used outside of 
+     * Finishes timing a section of code in order to send usage data about it to Vircadia. Shouldn't be used outside of
      * the standard scripts.
      * @function Script.endProfileRange
      * @param {string} label - A name that identifies the section of code.
@@ -595,8 +595,6 @@ public:
     // this is used by code in ScriptEngines.cpp during the "reload all" operation
     bool isStopping() const { return _isStopping; }
 
-    bool isDebuggable() const { return _debuggable; }
-
     void disconnectNonEssentialSignals();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -626,9 +624,9 @@ public:
      * but this method will return the asset's current URL.)
      * @function Script.getExternalPath
      * @param {Script.ResourceBucket} bucket - The external resource bucket that the asset is in.
-     * @param {string} path - The path within the external resource bucket where the asset is located. 
+     * @param {string} path - The path within the external resource bucket where the asset is located.
      *     <p>Normally, this should start with a path or filename to be appended to the bucket URL.
-     *     Alternatively, it can be a relative path starting with <code>./</code> or <code>../</code>, to navigate within the 
+     *     Alternatively, it can be a relative path starting with <code>./</code> or <code>../</code>, to navigate within the
      *     resource bucket's URL.</p>
      * @Returns {string} The URL of an external asset.
      * @example <caption>Report the URL of a default particle.</caption>
@@ -724,8 +722,8 @@ signals:
     void cleanupMenuItem(const QString& menuItemString);
 
     /*@jsdoc
-     * Triggered when the script prints a message to the program log via {@link  print}, {@link Script.print}, 
-     * {@link console.log}, {@link console.debug}, {@link console.group}, {@link console.groupEnd}, {@link console.time}, or 
+     * Triggered when the script prints a message to the program log via {@link  print}, {@link Script.print},
+     * {@link console.log}, {@link console.debug}, {@link console.group}, {@link console.groupEnd}, {@link console.time}, or
      * {@link console.timeEnd}.
      * @function Script.printedMessage
      * @param {string} message - The message.
@@ -735,7 +733,7 @@ signals:
     void printedMessage(const QString& message, const QString& scriptName);
 
     /*@jsdoc
-     * Triggered when the script generates an error, {@link console.error} or {@link console.exception} is called, or 
+     * Triggered when the script generates an error, {@link console.error} or {@link console.exception} is called, or
      * {@link console.assert} is called and fails.
      * @function Script.errorMessage
      * @param {string} message - The error message.
@@ -921,8 +919,6 @@ protected:
     EntityScriptContentAvailableMap _contentAvailableQueue;
 
     bool _isThreaded { false };
-    QScriptEngineDebugger* _debugger { nullptr };
-    bool _debuggable { false };
     qint64 _lastUpdate;
 
     QString _fileNameString;
@@ -961,3 +957,5 @@ ScriptManagerPointer scriptManagerFactory(ScriptManager::Context context,
                                         const QString& fileNameString);
 
 #endif // hifi_ScriptManager_h
+
+/// @}

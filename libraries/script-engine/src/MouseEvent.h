@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_MouseEvent_h
 #define hifi_MouseEvent_h
 
@@ -19,6 +22,7 @@ class ScriptEngine;
 class ScriptValue;
 using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
+/// Represents a mouse event to the scripting engine. Exposed as <code><a href="https://apidocs.vircadia.dev/global.html#MouseEvent">MouseEvent</a></code>
 class MouseEvent {
 public:
     MouseEvent();
@@ -44,3 +48,5 @@ public:
 Q_DECLARE_METATYPE(MouseEvent)
 
 #endif // hifi_MouseEvent_h
+
+/// @}

@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_MIDIEvent_h
 #define hifi_MIDIEvent_h
 
@@ -18,6 +21,7 @@ class ScriptEngine;
 class ScriptValue;
 using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
+/// Represents a MIDI protocol event to the scripting engine.
 class MIDIEvent {
 public:
     double deltaTime;
@@ -34,3 +38,5 @@ ScriptValuePointer midiEventToScriptValue(ScriptEngine* engine, const MIDIEvent&
 void midiEventFromScriptValue(const ScriptValuePointer &object, MIDIEvent& event);
 
 #endif // hifi_MIDIEvent_h
+
+/// @}

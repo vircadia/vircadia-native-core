@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #pragma once
 
 #ifndef hifi_AssetScriptingInterface_h
@@ -44,6 +47,7 @@ using ScriptValuePointer = QSharedPointer<ScriptValue>;
  * @hifi-server-entity
  * @hifi-assignment-client
  */
+/// Provides the <code><a href="https://apidocs.vircadia.dev/Assets.html">Assets</a></code> scripting API
 class AssetScriptingInterface : public BaseAssetScriptingInterface, Scriptable {
     Q_OBJECT
 public:
@@ -547,3 +551,5 @@ protected:
 };
 
 #endif // hifi_AssetScriptingInterface_h
+
+/// @}

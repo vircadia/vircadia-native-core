@@ -9,3 +9,7 @@ include_hifi_library_headers(image)
 include_hifi_library_headers(networking)
 
 target_nsight()
+
+if (WIN32)
+  add_compile_definitions(_USE_MATH_DEFINES)
+endif()

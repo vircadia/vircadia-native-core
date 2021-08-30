@@ -10,3 +10,7 @@ include_hifi_library_headers(ktx)
 include_hifi_library_headers(material-networking)
 include_hifi_library_headers(procedural)
 link_hifi_libraries(shared shaders networking octree avatars graphics model-networking script-engine)
+
+if (WIN32)
+  add_compile_definitions(_USE_MATH_DEFINES)
+endif()

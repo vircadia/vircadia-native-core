@@ -189,7 +189,7 @@ void inputControllerFromScriptValue(const ScriptValuePointer& object, controller
 //
 // Extract the url portion of a url that has been encoded with encodeEntityIdIntoEntityUrl(...)
 QString extractUrlFromEntityUrl(const QString& url) {
-    auto parts = url.split(' ', QString::SkipEmptyParts);
+    auto parts = url.split(' ', Qt::SkipEmptyParts);
     if (parts.length() > 0) {
         return parts[0];
     } else {
@@ -322,96 +322,7 @@ void ScriptManager::disconnectNonEssentialSignals() {
         connect(workerThread, &QThread::finished, workerThread, &QObject::deleteLater);
     }
 }
-/*
-void ScriptManager::runDebuggable() {
-    static QMenuBar* menuBar{ nullptr };
-    static QMenu* scriptDebugMenu { nullptr };
-    static size_t scriptMenuCount { 0 };
-    if (!scriptDebugMenu) {
-        for (auto window : qApp->topLevelWidgets()) {
-            auto mainWindow = qobject_cast<QMainWindow*>(window);
-            if (mainWindow) {
-                menuBar = mainWindow->menuBar();
-                break;
-            }
-        }
-        if (menuBar) {
-            scriptDebugMenu = menuBar->addMenu("Script Debug");
-        }
-    }
 
-    init();
-    _isRunning = true;
-    _debuggable = true;
-    _debugger = new QScriptEngineDebugger(this);
-    _debugger->attachTo(_engine);
-
-    QMenu* parentMenu = scriptDebugMenu;
-    QMenu* scriptMenu { nullptr };
-    if (parentMenu) {
-        ++scriptMenuCount;
-        scriptMenu = parentMenu->addMenu(_fileNameString);
-        scriptMenu->addMenu(_debugger->createStandardMenu(qApp->activeWindow()));
-    } else {
-        qWarning() << "Unable to add script debug menu";
-    }
-
-    ScriptValuePointer result = _engine->evaluate(_scriptContents, _fileNameString);
-
-    _lastUpdate = usecTimestampNow();
-    QTimer* timer = new QTimer(this);
-    connect(this, &ScriptManager::finished, [this, timer, parentMenu, scriptMenu] {
-        if (scriptMenu) {
-            parentMenu->removeAction(scriptMenu->menuAction());
-            --scriptMenuCount;
-            if (0 == scriptMenuCount) {
-                menuBar->removeAction(scriptDebugMenu->menuAction());
-                scriptDebugMenu = nullptr;
-            }
-        }
-        disconnect(timer);
-    });
-
-    connect(timer, &QTimer::timeout, [this, timer] {
-        if (_isFinished) {
-            if (!_isRunning) {
-                return;
-            }
-            stopAllTimers(); // make sure all our timers are stopped if the script is ending
-
-            emit scriptEnding();
-            emit finished(_fileNameString, qSharedPointerCast<ScriptManager>(sharedFromThis()));
-            _isRunning = false;
-
-            emit runningStateChanged();
-            emit doneRunning();
-
-            timer->deleteLater();
-            return;
-        }
-
-        qint64 now = usecTimestampNow();
-        // we check for 'now' in the past in case people set their clock back
-        if (_lastUpdate < now) {
-            float deltaTime = (float)(now - _lastUpdate) / (float)USECS_PER_SECOND;
-            if (!(_isFinished || _isStopping)) {
-                emit update(deltaTime);
-            }
-        }
-        _lastUpdate = now;
-
-        // only clear exceptions if we are not in the middle of evaluating
-        if (!_engine->isEvaluating() && _engine->hasUncaughtException()) {
-            qCWarning(scriptengine) << __FUNCTION__ << "---------- UNCAUGHT EXCEPTION --------";
-            qCWarning(scriptengine) << "runDebuggable" << _engine->uncaughtException()->toString();
-            logException(_engine->newValue(__FUNCTION__));
-            _engine->clearExceptions();
-        }
-    });
-
-    timer->start(10);
-}
-*/
 void ScriptManager::runInThread() {
     Q_ASSERT_X(!_isThreaded, "ScriptManager::runInThread()", "runInThread should not be called more than once");
 
@@ -583,12 +494,6 @@ void ScriptManager::loadURL(const QUrl& scriptURL, bool reload) {
 
         _scriptContents = scriptContents;
 
-        {
-            static const QString DEBUG_FLAG("#debug");
-            if (QRegularExpression(DEBUG_FLAG).match(scriptContents).hasMatch()) {
-                _debuggable = true;
-            }
-        }
         emit scriptLoaded(url);
     }, reload, maxRetries);
 }
@@ -2284,7 +2189,7 @@ void ScriptManager::entityScriptContentAvailable(const EntityItemID& entityID, c
         bool passList = false;  // assume unsafe
         QString whitelistPrefix = "[WHITELIST ENTITY SCRIPTS]";
         QList<QString> safeURLPrefixes = { "file:///", "atp:", "cache:" };
-        safeURLPrefixes += qEnvironmentVariable("EXTRA_WHITELIST").trimmed().split(QRegExp("\\s*,\\s*"), QString::SkipEmptyParts);
+        safeURLPrefixes += qEnvironmentVariable("EXTRA_WHITELIST").trimmed().split(QRegExp("\\s*,\\s*"), Qt::SkipEmptyParts);
 
         // Entity Script Whitelist toggle check.
         Setting::Handle<bool> whitelistEnabled {"private/whitelistEnabled", false };
@@ -2295,7 +2200,7 @@ void ScriptManager::entityScriptContentAvailable(const EntityItemID& entityID, c
         
         // Pull SAFEURLS from the Interface.JSON settings.
         QVariant raw = Setting::Handle<QVariant>("private/settingsSafeURLS").get();
-        QStringList settingsSafeURLS = raw.toString().trimmed().split(QRegExp("\\s*[,\r\n]+\\s*"), QString::SkipEmptyParts);
+        QStringList settingsSafeURLS = raw.toString().trimmed().split(QRegExp("\\s*[,\r\n]+\\s*"), Qt::SkipEmptyParts);
         safeURLPrefixes += settingsSafeURLS;
         // END Pull SAFEURLS from the Interface.JSON settings.
         
@@ -2303,7 +2208,7 @@ void ScriptManager::entityScriptContentAvailable(const EntityItemID& entityID, c
         QString currentDomain = DependencyManager::get<AddressManager>()->getDomainURL().host();
         
         QString domainSafeIP = nodeList->getDomainHandler().getHostname();
-        QString domainSafeURL = URL_SCHEME_HIFI + "://" + currentDomain;
+        QString domainSafeURL = URL_SCHEME_VIRCADIA + "://" + currentDomain;
         for (const auto& str : safeURLPrefixes) {
             if (domainSafeURL.startsWith(str) || domainSafeIP.startsWith(str)) {
                 qCDebug(scriptengine) << whitelistPrefix << "Whitelist Bypassed, entire domain is whitelisted. Current Domain Host: " 

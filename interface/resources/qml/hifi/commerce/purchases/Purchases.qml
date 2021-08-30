@@ -6,6 +6,7 @@
 //
 //  Created by Zach Fox on 2017-08-25
 //  Copyright 2017 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -115,7 +116,7 @@ Rectangle {
     Component.onCompleted: {
         isStandalone = PlatformInfo.isStandalone();
     }
-    
+
     HifiCommerceCommon.CommerceLightbox {
         id: lightboxPopup;
         z: 999;
@@ -174,7 +175,7 @@ Rectangle {
             Commerce.getWalletStatus();
         }
     }
-        
+
     Item {
         id: installedAppsContainer;
         z: 998;
@@ -210,7 +211,7 @@ Rectangle {
             delegate: Item {
                 width: parent.width;
                 height: 40;
-                
+
                 RalewayRegular {
                     text: model.appUrl;
                     // Text size
@@ -251,7 +252,7 @@ Rectangle {
                         Commerce.openApp(model.appUrl);
                     }
                 }
-            
+
                 HiFiGlyphs {
                     id: uninstallGlyph;
                     text: hifi.glyphs.close;
@@ -292,7 +293,7 @@ Rectangle {
             height: 40;
             text: "SIDELOAD APP FROM LOCAL DISK";
             onClicked: {
-                Window.browseChanged.connect(onFileOpenChanged); 
+                Window.browseChanged.connect(onFileOpenChanged);
                 Window.browseAsync("Locate your app's .app.json file", "", "*.app.json");
             }
         }
@@ -602,7 +603,7 @@ Rectangle {
                             lightboxPopup.bodyText = "Rezzing this content set will replace the existing environment and all of the items in this domain. " +
                                 "If you want to save the state of the content in this domain, create a backup before proceeding.<br><br>" +
                                 "For more information about backing up and restoring content, " +
-                                "<a href='https://docs.vircadia.dev/host/maintain-domain/backup-domain.html'>" +
+                                "<a href='https://docs.vircadia.com/host/maintain-domain/backup-domain.html'>" +
                                 "click here to open info on your desktop browser.";
                             lightboxPopup.button1text = "CANCEL";
                             lightboxPopup.button1method = function() {
@@ -823,7 +824,7 @@ Rectangle {
             anchors.right: parent.right;
             height: 75;
             color: "#B5EAFF";
-            
+
             Rectangle {
                 id: updatesAvailableGlyph;
                 anchors.verticalCenter: parent.verticalCenter;
@@ -991,7 +992,7 @@ Rectangle {
     //
     // FUNCTION DEFINITIONS START
     //
-    
+
     function updateCurrentlyWornWearables(wearables) {
         for (var i = 0; i < purchasesModel.count; i++) {
             for (var j = 0; j < wearables.length; j++) {

@@ -150,7 +150,7 @@ Item {
             id: uploadingItemFooter
 
             anchors.fill: parent
-            anchors.topMargin: 1 
+            anchors.topMargin: 1
             visible: !!root.uploader && !root.finished && root.uploader.state === 4
 
             color: "#00B4EF"
@@ -205,7 +205,7 @@ Item {
 
     function showConfirmUploadPopup() {
         popup.titleText = 'Overwrite Avatar';
-        popup.bodyText = 'You have previously uploaded the avatar file from this project.' + 
+        popup.bodyText = 'You have previously uploaded the avatar file from this project.' +
                          ' This will overwrite that avatar and you won’t be able to access the older version.';
 
         popup.button1text = 'CREATE NEW';
@@ -318,7 +318,7 @@ Item {
         text: "This item is not for sale yet, <a href='#'>learn more</a>."
 
         onLinkActivated: {
-            Qt.openUrlExternally("https://docs.vircadia.dev/sell/add-item/upload-avatar.html");
+            Qt.openUrlExternally("https://docs.vircadia.com/sell/add-item/upload-avatar.html");
         }
     }
 

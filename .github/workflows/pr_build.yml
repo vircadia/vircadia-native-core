@@ -25,6 +25,8 @@ env:
   # WIN32 specific variables
   PreferredToolArchitecture: X64
 
+  # Ensure XZ always runs with muticore support
+  XZ_OPT: -T0
 
 jobs:
   build:
@@ -118,8 +120,8 @@ jobs:
       working-directory: ${{runner.workspace}}
       run: rm -rf ./*
     - uses: actions/checkout@v1
-      with: 
-        submodules: true
+      with:
+        submodules: false
         fetch-depth: 1
     - name: Install dependencies
       shell: bash
@@ -140,6 +142,24 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DVCPKG_BUILD_TYPE=release $CMAKE_EXTRA
+    - name: Compress cmake logs
+      if: always()
+      shell: bash
+      run: |
+        if [ "${{ matrix.os }}" == "macOS-latest" ]; then
+          TAR=gtar
+        else
+          TAR=tar
+        fi
+
+        find "$HOME/vircadia-files/vcpkg" -name '*log' -type f -print0 | $TAR --null --force-local -T - -c --xz -v -f "${{ runner.workspace }}/cmake-logs-${{ matrix.os }}-${{ github.event.number }}.tar.xz"
+    - name: Archive cmake logs
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: cmake-logs-${{ matrix.os }}-${{ github.event.number }}.tar.xz
+        path: ${{ runner.workspace }}/cmake-logs-${{ matrix.os }}-${{ github.event.number }}.tar.xz
+        if-no-files-found: error
     - name: Build Application
       if: matrix.build_type == 'full' || matrix.build_type == 'client'
       working-directory: ${{runner.workspace}}/build
@@ -188,6 +208,16 @@ jobs:
           done
         }
         retry cmake --build . --config $BUILD_TYPE --target package $CMAKE_BUILD_EXTRA
+    # As of 05/17/21 GitHub Virtual Environments changed their "Ubuntu 18.04.5 LTS" image to include two versions of CMake for Android
+    # https://github.com/actions/virtual-environments/blob/ubuntu18/20210517.1/images/linux/Ubuntu1804-README.md
+    # Removing 3.18.1 version of CMake as its not compatible with our Android build.
+    # It will fall back to 3.10.2 which is already installed
+    - name: Nuke CMake 3.18.1-g262b901
+      if: matrix.build_type == 'android'
+      shell: bash
+      working-directory: ${{runner.workspace}}/vircadia
+      run: |
+        /usr/local/lib/android/sdk/tools/bin/sdkmanager --uninstall 'cmake;3.18.1'
     - name: Build for Android + Quest
       if: matrix.build_type == 'android'
       shell: bash

@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2015-07-30.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -49,7 +50,7 @@ private:
     QCommandLineParser _argumentParser;
     udt::Socket _socket;
     
-    HifiSockAddr _target; // the target for sent packets
+    SockAddr _target; // the target for sent packets
     
     int _minPacketSize { udt::MAX_PACKET_SIZE };
     int _maxPacketSize { udt::MAX_PACKET_SIZE };

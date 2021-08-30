@@ -19,3 +19,6 @@ include_hifi_library_headers(task)
 target_bullet()
 target_polyvox()
 
+if (WIN32)
+  add_compile_definitions(_USE_MATH_DEFINES)
+endif()

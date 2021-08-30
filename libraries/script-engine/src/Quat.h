@@ -11,6 +11,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_Quat_h
 #define hifi_Quat_h
 
@@ -52,8 +55,7 @@
  * print(JSON.stringify(Quat.IDENTITY)); // { x: 0, y: 0, z: 0, w: 1 }
  * print(JSON.stringify(Quat.safeEulerAngles(Quat.IDENTITY))); // { x: 0, y: 0, z: 0 }
  */
-
-/// Scriptable interface a Quaternion helper class object. Used exclusively in the JavaScript API
+/// Provides the <code><a href="https://apidocs.vircadia.dev/Quat.html">Quat</a></code> scripting interface
 class Quat : public QObject, protected Scriptable {
     Q_OBJECT
     Q_PROPERTY(glm::quat IDENTITY READ IDENTITY CONSTANT)
@@ -471,3 +473,5 @@ private:
 };
 
 #endif // hifi_Quat_h
+
+/// @}

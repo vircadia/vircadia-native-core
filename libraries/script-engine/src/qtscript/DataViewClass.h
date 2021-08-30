@@ -9,11 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_DataViewClass_h
 #define hifi_DataViewClass_h
 
 #include "ArrayBufferViewClass.h"
 
+/// Implements the <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView">DataView</a></code> scripting class
 class DataViewClass : public ArrayBufferViewClass {
     Q_OBJECT
 public:
@@ -34,3 +38,5 @@ private:
 
 
 #endif // hifi_DataViewClass_h
+
+/// @}

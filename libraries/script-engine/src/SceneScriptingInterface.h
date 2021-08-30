@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_SceneScriptingInterface_h
 #define hifi_SceneScriptingInterface_h
 
@@ -27,6 +30,7 @@
  * @property {boolean} shouldRenderEntities - <code>true</code> if entities (domain, avatar, and local) are rendered, 
  *     <code>false</code> if they aren't.
  */
+/// Provides the <code><a href="https://apidocs.vircadia.dev/Scene.html">Scene</a></code> scripting interface
 class SceneScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -68,3 +72,5 @@ protected:
 };
 
 #endif // hifi_SceneScriptingInterface_h 
+
+/// @}

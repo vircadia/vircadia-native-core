@@ -4,6 +4,7 @@
 //
 //  Created by Clement on 7/27/15.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -17,7 +18,7 @@
 
 #include <NumericalConstants.h>
 
-#include "../HifiSockAddr.h"
+#include "../SockAddr.h"
 #include "../NetworkLogging.h"
 
 #include "CongestionControl.h"
@@ -30,7 +31,7 @@
 using namespace udt;
 using namespace std::chrono;
 
-Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::unique_ptr<CongestionControl> congestionControl) :
+Connection::Connection(Socket* parentSocket, SockAddr destination, std::unique_ptr<CongestionControl> congestionControl) :
     _parentSocket(parentSocket),
     _destination(destination),
     _congestionControl(move(congestionControl))
@@ -485,7 +486,7 @@ std::unique_ptr<Packet> PendingReceivedMessage::removeNextPacket() {
     return std::unique_ptr<Packet>();
 }
 
-void Connection::setDestinationAddress(const HifiSockAddr& destination) {
+void Connection::setDestinationAddress(const SockAddr& destination) {
     if (_destination != destination) {
         _destination = destination;
         emit destinationAddressChange(destination);

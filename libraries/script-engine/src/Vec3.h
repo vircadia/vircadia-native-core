@@ -11,6 +11,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #pragma once
 #ifndef hifi_Vec3_h
 #define hifi_Vec3_h
@@ -71,8 +74,7 @@
  * @property {Vec3} FRONT - <code>{ x: 0, y: 0, z: -1 }</code> : Unit vector in the "front" direction. Synonym for 
  *     <code>UNIT_NEG_Z</code>. <em>Read-only.</em>
  */
-
-/// Scriptable interface a Vec3ernion helper class object. Used exclusively in the JavaScript API
+/// Provides the <code><a href="https://apidocs.vircadia.dev/Vec3.html">Vec3</a></code> scripting interface
 class Vec3 : public QObject, protected Scriptable {
     Q_OBJECT
     Q_PROPERTY(glm::vec3 UNIT_X READ UNIT_X CONSTANT)
@@ -419,3 +421,5 @@ private:
 };
 
 #endif // hifi_Vec3_h
+
+/// @}

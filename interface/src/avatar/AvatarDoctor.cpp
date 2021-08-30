@@ -1,9 +1,9 @@
 ﻿//
 //  AvatarDoctor.cpp
 //
-//
 //  Created by Thijs Wenker on 2/12/2019.
 //  Copyright 2019 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -55,7 +55,7 @@ static QStringList HAND_MAPPING_SUFFIXES = {
     "HandThumb1",
 };
 
-const QUrl PACKAGE_AVATAR_DOCS_BASE_URL = QUrl("https://docs.vircadia.dev/create/avatars/package-avatar.html");
+const QUrl PACKAGE_AVATAR_DOCS_BASE_URL = QUrl("https://docs.vircadia.com/create/avatars/package-avatar.html");
 
 AvatarDoctor::AvatarDoctor(const QUrl& avatarFSTFileUrl) :
     _avatarFSTFileUrl(avatarFSTFileUrl) {
@@ -71,7 +71,7 @@ void AvatarDoctor::startDiagnosing() {
         return;
     }
     _isDiagnosing = true;
-    
+
     _errors.clear();
 
     _externalTextureCount = 0;
@@ -107,7 +107,7 @@ void AvatarDoctor::startDiagnosing() {
             if (avatarModel.joints.length() > NETWORKED_JOINTS_LIMIT) {
                 addError(tr( "Avatar has over %n bones.", "", NETWORKED_JOINTS_LIMIT), "maximum-bone-limit");
             }
-            // Avatar does not have Hips bone mapped	
+            // Avatar does not have Hips bone mapped
             if (!jointNames.contains("Hips")) {
                 addError("Hips are not mapped.", "hips-not-mapped");
             }
@@ -236,7 +236,7 @@ void AvatarDoctor::startDiagnosing() {
                 for (const auto& jointVariant: jointNameMappings.values()) {
                     jointValues << jointVariant.toString();
                 }
-                
+
                 const auto& uniqueJointValues = jointValues.toSet();
                 for (const auto& jointName: uniqueJointValues) {
                     if (jointValues.count(jointName) > 1) {
@@ -279,7 +279,7 @@ void AvatarDoctor::startDiagnosing() {
                 } else {
                     connect(materialMappingResource.data(), &NetworkTexture::finished, this,
                         [materialMappingHandled](bool success) mutable {
-                        
+
                         materialMappingHandled();
                     });
                 }
@@ -302,7 +302,7 @@ void AvatarDoctor::startDiagnosing() {
     } else {
         addError("Model file cannot be opened", "missing-file");
         emit complete(getErrors());
-    }    
+    }
 }
 
 void AvatarDoctor::diagnoseTextures() {

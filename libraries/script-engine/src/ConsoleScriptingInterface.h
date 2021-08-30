@@ -15,6 +15,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #pragma once
 #ifndef hifi_ConsoleScriptingInterface_h
 #define hifi_ConsoleScriptingInterface_h
@@ -44,7 +47,7 @@ using ScriptValuePointer = QSharedPointer<ScriptValue>;
  * @hifi-server-entity
  * @hifi-assignment-client
  */
-// Scriptable interface of "console" object. Used exclusively in the JavaScript API
+/// Provides the <code><a href="https://apidocs.vircadia.dev/console.html">console</a></code> scripting API
 class ConsoleScriptingInterface : public QObject, protected Scriptable {
     Q_OBJECT
 public:
@@ -227,3 +230,5 @@ private:
 };
 
 #endif // hifi_ConsoleScriptingInterface_h
+
+/// @}

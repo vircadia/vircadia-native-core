@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_BatchLoader_h
 #define hifi_BatchLoader_h
 
@@ -23,6 +26,7 @@
 
 #include <mutex>
 
+// Proxy object internal to <code>BatchLoader</code> to ensure threadsafety during loading actions
 class ScriptCacheSignalProxy : public QObject {
     Q_OBJECT
 public:
@@ -32,6 +36,7 @@ signals:
     void contentAvailable(const QString& url, const QString& contents, bool isURL, bool success, const QString& status);
 };
 
+/// Load one or more files for use by the scripting engine
 class BatchLoader : public QObject {
     Q_OBJECT
 public:
@@ -54,3 +59,5 @@ private:
 };
 
 #endif // hifi_BatchLoader_h
+
+/// @}

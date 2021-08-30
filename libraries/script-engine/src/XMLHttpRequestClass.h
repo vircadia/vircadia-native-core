@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_XMLHttpRequestClass_h
 #define hifi_XMLHttpRequestClass_h
 
@@ -153,6 +156,7 @@ XMlHttpRequest.getResponseHeader(QString) function
  * req.open("GET", URL);
  * req.send();
  */
+/// Provides the <code><a href="https://apidocs.vircadia.dev/XMLHttpRequest.html">XMLHttpRequest</a></code> scripting interface
 class XMLHttpRequestClass : public QObject {
     Q_OBJECT
     Q_PROPERTY(ScriptValuePointer response READ getResponse)
@@ -378,3 +382,5 @@ private slots:
 };
 
 #endif // hifi_XMLHttpRequestClass_h
+
+/// @}

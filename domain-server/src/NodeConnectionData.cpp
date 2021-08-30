@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2015-08-24.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -13,7 +14,7 @@
 
 #include <QtCore/QDataStream>
 
-NodeConnectionData NodeConnectionData::fromDataStream(QDataStream& dataStream, const HifiSockAddr& senderSockAddr,
+NodeConnectionData NodeConnectionData::fromDataStream(QDataStream& dataStream, const SockAddr& senderSockAddr,
                                                       bool isConnectRequest) {
     NodeConnectionData newHeader;
     

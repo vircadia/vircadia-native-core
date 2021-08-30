@@ -4,6 +4,7 @@
 //
 //  Created by Zach Fox on 2017-04-10.
 //  Copyright 2017 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -117,10 +118,10 @@ public:
 
     /*@jsdoc
      * Gets the rotation of a joint relative to its parent. For information on the joint hierarchy used, see
-     * <a href="https://docs.vircadia.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.
+     * <a href="https://docs.vircadia.com/create/avatars/avatar-standards.html">Avatar Standards</a>.
      * @function ScriptAvatar.getJointRotation
      * @param {number} index - The index of the joint.
-     * @returns {Quat} The rotation of the joint relative to its parent, or {@link Quat(0)|Quat.IDENTITY} if the avatar data 
+     * @returns {Quat} The rotation of the joint relative to its parent, or {@link Quat(0)|Quat.IDENTITY} if the avatar data
      *     aren't available.
      */
     Q_INVOKABLE glm::quat getJointRotation(int index) const;
@@ -129,20 +130,20 @@ public:
      * Gets the translation of a joint relative to its parent, in model coordinates.
      * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
      * <p>For information on the joint hierarchy used, see
-     * <a href="https://docs.vircadia.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
+     * <a href="https://docs.vircadia.com/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
      * @function ScriptAvatar.getJointTranslation
      * @param {number} index - The index of the joint.
-     * @returns {Vec3} The translation of the joint relative to its parent, in model coordinates, or {@link Vec3(0)|Vec3.ZERO} 
+     * @returns {Vec3} The translation of the joint relative to its parent, in model coordinates, or {@link Vec3(0)|Vec3.ZERO}
      *     if the avatar data aren't available.
      */
     Q_INVOKABLE glm::vec3 getJointTranslation(int index) const;
 
     /*@jsdoc
      * Gets the rotation of a joint relative to its parent. For information on the joint hierarchy used, see
-     * <a href="https://docs.vircadia.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.
+     * <a href="https://docs.vircadia.com/create/avatars/avatar-standards.html">Avatar Standards</a>.
      * @function ScriptAvatar.getJointRotation
      * @param {string} name - The name of the joint.
-     * @returns {Quat} The rotation of the joint relative to its parent, or {@link Quat(0)|Quat.IDENTITY} if the avatar data 
+     * @returns {Quat} The rotation of the joint relative to its parent, or {@link Quat(0)|Quat.IDENTITY} if the avatar data
      *     aren't available.
      */
     Q_INVOKABLE glm::quat getJointRotation(const QString& name) const;
@@ -151,10 +152,10 @@ public:
      * Gets the translation of a joint relative to its parent, in model coordinates.
      * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
      * <p>For information on the joint hierarchy used, see
-     * <a href="https://docs.vircadia.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
+     * <a href="https://docs.vircadia.com/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
      * @function ScriptAvatar.getJointTranslation
      * @param {number} name - The name of the joint.
-     * @returns {Vec3} The translation of the joint relative to its parent, in model coordinates, or {@link Vec3(0)|Vec3.ZERO} 
+     * @returns {Vec3} The translation of the joint relative to its parent, in model coordinates, or {@link Vec3(0)|Vec3.ZERO}
      *     if the avatar data aren't available.
      */
     Q_INVOKABLE glm::vec3 getJointTranslation(const QString& name) const;
@@ -162,7 +163,7 @@ public:
     /*@jsdoc
      * Gets the rotations of all joints in the avatar. Each joint's rotation is relative to its parent joint.
      * @function ScriptAvatar.getJointRotations
-     * @returns {Quat[]} The rotations of all joints relative to each's parent, or <code>[]</code> if the avatar data aren't 
+     * @returns {Quat[]} The rotations of all joints relative to each's parent, or <code>[]</code> if the avatar data aren't
      *     available. The values are in the same order as the array returned by {@link ScriptAvatar.getJointNames}.
      */
     Q_INVOKABLE QVector<glm::quat> getJointRotations() const;
@@ -172,8 +173,8 @@ public:
      * model coordinates.
      * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
      * @function ScriptAvatar.getJointTranslations
-     * @returns {Vec3[]} The translations of all joints relative to each's parent, in model coordinates, or <code>[]</code> if 
-     *     the avatar data aren't available. The values are in the same order as the array returned by 
+     * @returns {Vec3[]} The translations of all joints relative to each's parent, in model coordinates, or <code>[]</code> if
+     *     the avatar data aren't available. The values are in the same order as the array returned by
      *     {@link ScriptAvatar.getJointNames}.
      */
     Q_INVOKABLE QVector<glm::vec3> getJointTranslations() const;
@@ -182,7 +183,7 @@ public:
      * Checks that the data for a joint are valid.
      * @function ScriptAvatar.isJointDataValid
      * @param {number} index - The index of the joint.
-     * @returns {boolean} <code>true</code> if the joint data are valid, <code>false</code> if not or the avatar data aren't 
+     * @returns {boolean} <code>true</code> if the joint data are valid, <code>false</code> if not or the avatar data aren't
      *     available.
      */
     Q_INVOKABLE bool isJointDataValid(const QString& name) const;
@@ -206,7 +207,7 @@ public:
     /*@jsdoc
      * Gets information about the models currently attached to the avatar.
      * @function ScriptAvatar.getAttachmentData
-     * @returns {AttachmentData[]} Information about all models attached to the avatar, or <code>[]</code> if the avatar data 
+     * @returns {AttachmentData[]} Information about all models attached to the avatar, or <code>[]</code> if the avatar data
      *     aren't available.
      * @deprecated This function is deprecated and will be removed. Use avatar entities instead.
      */
@@ -228,7 +229,7 @@ public:
     glm::mat4 getSensorToWorldMatrix() const;
     glm::mat4 getControllerLeftHandMatrix() const;
     glm::mat4 getControllerRightHandMatrix() const;
-    
+
     bool getHasPriority() const;
 
 signals:
@@ -268,7 +269,7 @@ public slots:
      * Gets the rotation of a joint relative to the avatar.
      * @function ScriptAvatar.getAbsoluteJointRotationInObjectFrame
      * @param {number} index - The index of the joint.
-     * @returns {Quat} The rotation of the joint relative to the avatar, or {@link Quat(0)|Quat.IDENTITY} if the avatar data 
+     * @returns {Quat} The rotation of the joint relative to the avatar, or {@link Quat(0)|Quat.IDENTITY} if the avatar data
      *     aren't available.
      */
     glm::quat getAbsoluteJointRotationInObjectFrame(int index) const;
@@ -277,7 +278,7 @@ public slots:
      * Gets the translation of a joint relative to the avatar.
      * @function ScriptAvatar.getAbsoluteJointTranslationInObjectFrame
      * @param {number} index - The index of the joint.
-     * @returns {Vec3} The translation of the joint relative to the avatar, or {@link Vec3(0)|Vec3.ZERO} if the avatar data 
+     * @returns {Vec3} The translation of the joint relative to the avatar, or {@link Vec3(0)|Vec3.ZERO} if the avatar data
      *     aren't available.
      */
     glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const;

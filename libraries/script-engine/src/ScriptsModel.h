@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_ScriptsModel_h
 #define hifi_ScriptsModel_h
 
@@ -122,6 +125,7 @@ public:
  * print("Scripts:");
  * printDirectory(null, 0, "");  // null index for the root directory.
  */
+/// Provides script file information available from the <code><a href="https://apidocs.vircadia.dev/ScriptDiscoveryService.html">ScriptDiscoveryService</a></code> scripting interface
 class ScriptsModel : public QAbstractItemModel {
     Q_OBJECT
 public:
@@ -194,3 +198,5 @@ private:
 };
 
 #endif // hifi_ScriptsModel_h
+
+/// @}

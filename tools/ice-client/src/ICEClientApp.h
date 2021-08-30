@@ -4,6 +4,7 @@
 //
 //  Created by Seth Alves on 2016-9-16
 //  Copyright 2016 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -54,7 +55,7 @@ private:
     void setState(int newState);
 
     void doSomething();
-    void sendPacketToIceServer(PacketType packetType, const HifiSockAddr& iceServerSockAddr,
+    void sendPacketToIceServer(PacketType packetType, const SockAddr& iceServerSockAddr,
                                const QUuid& clientID, const QUuid& peerID);
     void icePingDomainServer();
     void processSTUNResponse(std::unique_ptr<udt::BasePacket> packet);
@@ -65,7 +66,7 @@ private:
     bool _cacheSTUNResult; // should we only talk to stun server once?
     bool _stunResultSet { false }; // have we already talked to stun server?
 
-    HifiSockAddr _stunSockAddr;
+    SockAddr _stunSockAddr;
 
     unsigned int _actionCount { 0 };
     unsigned int _actionMax { 0 };
@@ -75,10 +76,10 @@ private:
 
     QTimer* _pingDomainTimer { nullptr };
 
-    HifiSockAddr _iceServerAddr;
+    SockAddr _iceServerAddr;
 
-    HifiSockAddr _localSockAddr;
-    HifiSockAddr _publicSockAddr;
+    SockAddr _localSockAddr;
+    SockAddr _publicSockAddr;
     udt::Socket* _socket { nullptr };
 
     bool _domainServerPeerSet { false };
