@@ -14,6 +14,8 @@
 
 // Object conversion helpers (copied from QScriptEngine)
 
+#include <QtCore/QMetaType>
+
 #include "ScriptEngine.h"
 #include "ScriptValue.h"
 
