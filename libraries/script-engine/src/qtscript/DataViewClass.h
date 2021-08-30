@@ -17,7 +17,7 @@
 
 #include "ArrayBufferViewClass.h"
 
-/// Implements the <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView">DataView</a></code> scripting class
+/// [QtScript] Implements the <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView">DataView</a></code> scripting class
 class DataViewClass : public ArrayBufferViewClass {
     Q_OBJECT
 public:

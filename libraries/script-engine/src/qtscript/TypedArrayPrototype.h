@@ -19,7 +19,7 @@
 #include <QtScript/QScriptable>
 #include <QtScript/QScriptValue>
 
-/// The javascript functions associated with a <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray">TypedArray</a></code> instance prototype
+/// [QtScript] The javascript functions associated with a <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray">TypedArray</a></code> instance prototype
 class TypedArrayPrototype : public QObject, public QScriptable {
     Q_OBJECT
 public:

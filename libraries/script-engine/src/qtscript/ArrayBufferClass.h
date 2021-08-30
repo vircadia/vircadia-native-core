@@ -26,7 +26,7 @@
 
 class ScriptEngineQtScript;
 
-/// Implements the <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer">ArrayBuffer</a></code> scripting class
+/// [QtScript] Implements the <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer">ArrayBuffer</a></code> scripting class
 class ArrayBufferClass : public QObject, public QScriptClass {
     Q_OBJECT
 public:

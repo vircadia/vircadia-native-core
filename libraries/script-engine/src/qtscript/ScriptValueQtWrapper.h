@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_ScriptValueQtWrapper_h
 #define hifi_ScriptValueQtWrapper_h
 
@@ -20,6 +23,7 @@
 #include "../ScriptValue.h"
 #include "ScriptEngineQtScript.h"
 
+/// [QtScript] Implements ScriptValue for QtScript and translates calls for QScriptValue
 class ScriptValueQtWrapper : public ScriptValue {
 public: // construction
     inline ScriptValueQtWrapper(ScriptEngineQtScript* engine, const QScriptValue& value) :
@@ -84,3 +88,5 @@ private: // storage
 };
 
 #endif  // hifi_ScriptValueQtWrapper_h
+
+/// @}

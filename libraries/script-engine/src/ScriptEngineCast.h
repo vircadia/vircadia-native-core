@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_ScriptEngineCast_h
 #define hifi_ScriptEngineCast_h
 
@@ -99,3 +102,5 @@ int scriptRegisterSequenceMetaType(ScriptEngine* engine,
 }
 
 #endif // hifi_ScriptEngineCast_h
+
+/// @}

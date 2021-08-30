@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_ScriptContextQtWrapper_h
 #define hifi_ScriptContextQtWrapper_h
 
@@ -23,6 +26,7 @@ class ScriptEngineQtScript;
 class ScriptValue;
 using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
+/// [QtScript] Implements ScriptContext for QtScript and translates calls for QScriptContextInfo
 class ScriptContextQtWrapper : public ScriptContext {
 public: // construction
     inline ScriptContextQtWrapper(ScriptEngineQtScript* engine, QScriptContext* context) : _engine(engine), _context(context) {}
@@ -61,3 +65,5 @@ private: // storage
 };
 
 #endif  // hifi_ScriptContextQtWrapper_h
+
+/// @}

@@ -30,7 +30,7 @@ static const QString UINT_32_ARRAY_CLASS_NAME = "Uint32Array";
 static const QString FLOAT_32_ARRAY_CLASS_NAME = "Float32Array";
 static const QString FLOAT_64_ARRAY_CLASS_NAME = "Float64Array";
 
-/// Implements the <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray">TypedArray</a></code> scripting class
+/// [QtScript] Implements the <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray">TypedArray</a></code> scripting class
 class TypedArray : public ArrayBufferViewClass {
     Q_OBJECT
 public:

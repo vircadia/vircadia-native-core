@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_Scriptable_h
 #define hifi_Scriptable_h
 
@@ -21,6 +24,7 @@ class ScriptValue;
 using ScriptEnginePointer = QSharedPointer<ScriptEngine>;
 using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
+/// [ScriptInterface] Provides an engine-independent interface for QScriptable
 class Scriptable {
 public:
     static inline ScriptEnginePointer engine();
@@ -57,3 +61,5 @@ ScriptValuePointer Scriptable::argument(int index) {
 }
 
 #endif // hifi_Scriptable_h
+
+/// @}

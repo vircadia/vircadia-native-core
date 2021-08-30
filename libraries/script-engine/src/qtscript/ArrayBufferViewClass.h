@@ -29,7 +29,7 @@ static const QString BUFFER_PROPERTY_NAME = "buffer";
 static const QString BYTE_OFFSET_PROPERTY_NAME = "byteOffset";
 static const QString BYTE_LENGTH_PROPERTY_NAME = "byteLength";
 
-/// The base class containing common code for ArrayBuffer views
+/// [QtScript] The base class containing common code for ArrayBuffer views
 class ArrayBufferViewClass : public QObject, public QScriptClass {
     Q_OBJECT
 public:

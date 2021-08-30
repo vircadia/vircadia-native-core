@@ -10,6 +10,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_ScriptEngineQtScript_h
 #define hifi_ScriptEngineQtScript_h
 
@@ -35,40 +38,9 @@ class ScriptManager;
 using ScriptEngineQtScriptPointer = QSharedPointer<ScriptEngineQtScript>;
 using ScriptContextQtPointer = QSharedPointer<ScriptContextQtWrapper>;
 
-Q_DECLARE_METATYPE(ScriptEngineQtScriptPointer)
+Q_DECLARE_METATYPE(ScriptEngineQtScriptPointer);
 
-/*@jsdoc
- * The <code>Script</code> API provides facilities for working with scripts.
- *
- * @namespace Script
- *
- * @hifi-interface
- * @hifi-client-entity
- * @hifi-avatar
- * @hifi-server-entity
- * @hifi-assignment-client
- *
- * @property {string} context - The context that the script is running in:
- *     <ul>
- *       <li><code>"client"</code>: An Interface or avatar script.</li>
- *       <li><code>"entity_client"</code>: A client entity script.</li>
- *       <li><code>"entity_server"</code>: A server entity script.</li>
- *       <li><code>"agent"</code>: An assignment client script.</li>
- *     </ul>
- *     <em>Read-only.</em>
- * @property {string} type - The type of script that is running:
- *     <ul>
- *       <li><code>"client"</code>: An Interface script.</li>
- *       <li><code>"entity_client"</code>: A client entity script.</li>
- *       <li><code>"avatar"</code>: An avatar script.</li>
- *       <li><code>"entity_server"</code>: A server entity script.</li>
- *       <li><code>"agent"</code>: An assignment client script.</li>
- *     </ul>
- *     <em>Read-only.</em>
- * @property {string} filename - The filename of the script file.
- *     <em>Read-only.</em>
- * @property {Script.ResourceBuckets} ExternalPaths - External resource buckets.
- */
+/// [QtScript] Implements ScriptEngine for QtScript and translates calls for QScriptEngine
 class ScriptEngineQtScript : public QScriptEngine, public ScriptEngine, public QEnableSharedFromThis<ScriptEngineQtScript> {
     Q_OBJECT
 
@@ -467,3 +439,5 @@ private:
 };
 
 #endif  // hifi_ScriptEngineQtScript_h
+
+/// @}

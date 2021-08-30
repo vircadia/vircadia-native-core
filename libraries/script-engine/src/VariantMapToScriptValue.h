@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #include <QVariant>
 #include "ScriptValue.h"
 #include "ScriptEngine.h"
@@ -16,3 +19,5 @@
 ScriptValuePointer variantToScriptValue(QVariant& qValue, ScriptEngine& scriptEngine);
 ScriptValuePointer variantMapToScriptValue(QVariantMap& variantMap, ScriptEngine& scriptEngine);
 ScriptValuePointer variantListToScriptValue(QVariantList& variantList, ScriptEngine& scriptEngine);
+
+/// @}

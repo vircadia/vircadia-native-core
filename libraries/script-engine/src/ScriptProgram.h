@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_ScriptProgram_h
 #define hifi_ScriptProgram_h
 
@@ -19,6 +22,7 @@ class ScriptSyntaxCheckResult;
 using ScriptProgramPointer = QSharedPointer<ScriptProgram>;
 using ScriptSyntaxCheckResultPointer = QSharedPointer<ScriptSyntaxCheckResult>;
 
+/// [ScriptInterface] Provides an engine-independent interface for QScriptProgram
 class ScriptProgram {
 public:
     virtual ScriptSyntaxCheckResultPointer checkSyntax() const = 0;
@@ -26,6 +30,7 @@ public:
     virtual QString sourceCode() const = 0;
 };
 
+/// [ScriptInterface] Provides an engine-independent interface for QScriptSyntaxCheckResult
 class ScriptSyntaxCheckResult {
 public:
     enum State
@@ -43,3 +48,5 @@ public:
 };
 
 #endif // hifi_ScriptProgram_h
+
+/// @}

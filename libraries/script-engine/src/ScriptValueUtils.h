@@ -11,6 +11,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_ScriptValueUtils_h
 #define hifi_ScriptValueUtils_h
 
@@ -260,3 +263,5 @@ void promiseFromScriptValue(const ScriptValuePointer& object, std::shared_ptr<Mi
 ScriptValuePointer promiseToScriptValue(ScriptEngine* engine, const std::shared_ptr<MiniPromise>& promise);
 
 #endif  // #define hifi_ScriptValueUtils_h
+
+/// @}

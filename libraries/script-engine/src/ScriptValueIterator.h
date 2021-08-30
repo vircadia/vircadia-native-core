@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_ScriptValueIterator_h
 #define hifi_ScriptValueIterator_h
 
@@ -20,6 +23,7 @@
 class ScriptValueIterator;
 using ScriptValueIteratorPointer = QSharedPointer<ScriptValueIterator>;
 
+/// [ScriptInterface] Provides an engine-independent interface for QScriptValueIterator
 class ScriptValueIterator {
 public:
     virtual ScriptValue::PropertyFlags flags() const = 0;
@@ -30,3 +34,5 @@ public:
 };
 
 #endif  // hifi_ScriptValueIterator_h
+
+/// @}

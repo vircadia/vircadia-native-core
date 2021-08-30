@@ -9,16 +9,20 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_ScriptValueIteratorQtWrapper_h
 #define hifi_ScriptValueIteratorQtWrapper_h
 
-//#include <QtCore/QPointer>
+#include <QtCore/QPointer>
 #include <QtScript/QScriptValueIterator>
 
 #include "../ScriptValueIterator.h"
 #include "ScriptEngineQtScript.h"
 #include "ScriptValueQtWrapper.h"
 
+/// [QtScript] Implements ScriptValueIterator for QtScript and translates calls for QScriptValueIterator
 class ScriptValueIteratorQtWrapper : public ScriptValueIterator {
 public: // construction
     inline ScriptValueIteratorQtWrapper(ScriptEngineQtScript* engine, const ScriptValuePointer& object) :
@@ -39,3 +43,5 @@ private: // storage
 };
 
 #endif  // hifi_ScriptValueIteratorQtWrapper_h
+
+/// @}

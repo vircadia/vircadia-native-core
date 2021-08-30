@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_ScriptProgramQtWrapper_h
 #define hifi_ScriptProgramQtWrapper_h
 
@@ -18,6 +21,7 @@
 #include "../ScriptProgram.h"
 #include "ScriptEngineQtScript.h"
 
+/// [QtScript] Implements ScriptProgram for QtScript and translates calls for QScriptProgram
 class ScriptProgramQtWrapper : public ScriptProgram {
 public: // construction
     inline ScriptProgramQtWrapper(ScriptEngineQtScript* engine, const QScriptProgram& value) :
@@ -53,3 +57,5 @@ private: // storage
 };
 
 #endif  // hifi_ScriptValueQtWrapper_h
+
+/// @}

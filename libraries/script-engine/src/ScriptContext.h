@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_ScriptContext_h
 #define hifi_ScriptContext_h
 
@@ -25,6 +28,7 @@ using ScriptFunctionContextPointer = QSharedPointer<ScriptFunctionContext>;
 using ScriptEnginePointer = QSharedPointer<ScriptEngine>;
 using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
+/// [ScriptInterface] Provides an engine-independent interface for QScriptContextInfo
 class ScriptFunctionContext {
 public:
     enum FunctionType {
@@ -41,6 +45,7 @@ public:
     virtual int lineNumber() const = 0;
 };
 
+/// [ScriptInterface] Provides an engine-independent interface for QScriptContext
 class ScriptContext {
 public:
     virtual int argumentCount() const = 0;
@@ -56,3 +61,5 @@ public:
 };
 
 #endif // hifi_ScriptContext_h
+
+/// @}

@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_PointerEvent_h
 #define hifi_PointerEvent_h
 
@@ -22,6 +25,7 @@ class ScriptEngine;
 class ScriptValue;
 using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
+/// Represents a 2D or 3D pointer to the scripting engine. Exposed as <code><a href="https://apidocs.vircadia.dev/global.html#PointerEvent">PointerEvent</a></code>
 class PointerEvent {
 public:
     enum Button {
@@ -95,3 +99,5 @@ QDebug& operator<<(QDebug& dbg, const PointerEvent& p);
 Q_DECLARE_METATYPE(PointerEvent)
 
 #endif // hifi_PointerEvent_h
+
+/// @}

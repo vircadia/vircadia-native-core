@@ -18,7 +18,7 @@
 #include <QtCore/QObject>
 #include <QtScript/QScriptable>
 
-/// The javascript functions associated with a <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView">DataView</a></code> instance prototype
+/// [QtScript] The javascript functions associated with a <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView">DataView</a></code> instance prototype
 class DataViewPrototype : public QObject, public QScriptable {
     Q_OBJECT
 public:

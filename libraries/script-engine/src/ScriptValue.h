@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_ScriptValue_h
 #define hifi_ScriptValue_h
 
@@ -26,6 +29,7 @@ using ScriptValuePointer = QSharedPointer<ScriptValue>;
 using ScriptValueList = QList<ScriptValuePointer>;
 using ScriptValueIteratorPointer = QSharedPointer<ScriptValueIterator>;
 
+/// [ScriptInterface] Provides an engine-independent interface for QScriptValue
 class ScriptValue {
 public:
     enum ResolveFlag
@@ -107,7 +111,7 @@ protected:
     virtual bool isValidInternal() const = 0;
     virtual bool isVariantInternal() const = 0;
 };
-Q_DECLARE_OPERATORS_FOR_FLAGS(ScriptValue::PropertyFlags)
+Q_DECLARE_OPERATORS_FOR_FLAGS(ScriptValue::PropertyFlags);
 
 bool ScriptValue::equals(const ScriptValuePointer& other) const {
     if (this == NULL || !other) {
@@ -206,3 +210,5 @@ template <typename T>
 T scriptvalue_cast(const ScriptValuePointer& value);
 
 #endif // hifi_ScriptValue_h
+
+/// @}

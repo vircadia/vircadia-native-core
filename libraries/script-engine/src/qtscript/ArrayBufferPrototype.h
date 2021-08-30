@@ -18,7 +18,7 @@
 #include <QtCore/QObject>
 #include <QtScript/QScriptable>
 
-/// The javascript functions associated with an <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer">ArrayBuffer</a></code> instance prototype
+/// [QtScript] The javascript functions associated with an <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer">ArrayBuffer</a></code> instance prototype
 class ArrayBufferPrototype : public QObject, public QScriptable {
     Q_OBJECT
 public:
