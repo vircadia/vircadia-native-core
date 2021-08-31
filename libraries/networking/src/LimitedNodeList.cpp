@@ -50,8 +50,8 @@ static Setting::Handle<quint16> LIMITED_NODELIST_LOCAL_PORT("LimitedNodeList.Loc
 using namespace std::chrono_literals;
 static const std::chrono::milliseconds CONNECTION_RATE_INTERVAL_MS = 1s;
 
-LimitedNodeList::LimitedNodeList(char ownerType, int socketListenPort, int dtlsListenPort) :
-    _nodeSocket(this, true, ownerType),
+LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
+    _nodeSocket(this, true),
     _packetReceiver(new PacketReceiver(this))
 {
     qRegisterMetaType<ConnectionStep>("ConnectionStep");
@@ -74,7 +74,7 @@ LimitedNodeList::LimitedNodeList(char ownerType, int socketListenPort, int dtlsL
         qCDebug(networking) << "NodeList DTLS socket is listening on" << _dtlsSocket->localPort();
     }
 
-    _nodeSocket.bind(SocketType::WebRTC, QHostAddress::AnyIPv4, DEFAULT_DOMAIN_SERVER_WS_PORT);
+    _nodeSocket.bind(SocketType::WebRTC, QHostAddress::AnyIPv4);
 
     // check for local socket updates every so often
     const int LOCAL_SOCKET_UPDATE_INTERVAL_MSECS = 5 * 1000;
@@ -240,6 +240,12 @@ QUdpSocket& LimitedNodeList::getDTLSSocket() {
 
     return *_dtlsSocket;
 }
+
+#if defined(WEBRTC_DATA_CHANNELS)
+const WebRTCSocket* LimitedNodeList::getWebRTCSocket() {
+    return _nodeSocket.getWebRTCSocket();
+}
+#endif
 
 bool LimitedNodeList::isPacketVerifiedWithSource(const udt::Packet& packet, Node* sourceNode) {
     // We track bandwidth when doing packet verification to avoid needing to do a node lookup

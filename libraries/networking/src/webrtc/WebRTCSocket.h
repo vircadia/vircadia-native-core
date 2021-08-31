@@ -18,7 +18,6 @@
 #include <QQueue>
 
 #include "WebRTCDataChannels.h"
-#include "WebRTCSignalingServer.h"
 
 /// @addtogroup Networking
 /// @{
@@ -32,8 +31,7 @@ public:
 
     /// @brief Constructs a new WebRTCSocket object.
     /// @param parent Qt parent object.
-    /// @param nodeType The type of node that the WebRTCsocket object is being used in.
-    WebRTCSocket(QObject* parent, NodeType_t nodeType);
+    WebRTCSocket(QObject* parent);
 
 
     /// @brief Nominally sets the value of a socket option.
@@ -52,13 +50,14 @@ public:
     /// @return The value of the socket option.
     QVariant socketOption(QAbstractSocket::SocketOption option);
 
-    /// @brief Binds the WebRTC socket's signaling server to an address and port.
-    /// @details Note: WebRTC data connections aren't bound to an address or port. Their ports are negotiated as part of the
+    /// @brief Nominally binds the WebRTC socket to an address and port.
+    /// @details WebRTC data connections aren't actually bound to an address or port. Their ports are negotiated as part of the
     /// WebRTC peer connection process.
-    /// @param address The address to use for the signaling server.
-    /// @param port The port to use for the signaling server.
-    /// @param mode The bind mode. (Not used: included for compatibility with the QUdpSocket interface.)
-    /// @return <code>true</code> if the signaling server was successfully bound, <code>false</code> if it wasn't.
+    /// Included for compatibility with the QUdpSocket interface.
+    /// @param address The address.
+    /// @param port The port.
+    /// @param mode The bind mode.
+    /// @return <code>true</code>.
     bool bind(const QHostAddress& address, quint16 port = 0, QAbstractSocket::BindMode mode
         = QAbstractSocket::DefaultForPlatform);
 
@@ -132,17 +131,26 @@ public slots:
 signals:
 
     /// @brief Emitted when the state of the socket changes.
+    /// @param socketState The new state of the socket.
     void stateChanged(QAbstractSocket::SocketState socketState);
 
     /// @brief Emitted each time new data becomes available for reading.
     void readyRead();
+
+    /// @brief Emitted when a WebRTC signaling message has been received from the signaling server for this WebRTCSocket.
+    /// @param json The signaling message.
+    void onSignalingMessage(const QJsonObject& json);
+
+    /// @brief Emitted when there's a WebRTC signaling message to send via the signaling server.
+    /// @param json The signaling message.
+    void sendSignalingMessage(const QJsonObject& message);
+
 
 private:
 
     void setError(QAbstractSocket::SocketError errorType, QString errorString);
     void clearError();
 
-    WebRTCSignalingServer _signalingServer;
     WebRTCDataChannels _dataChannels;
 
     bool _isBound { false };

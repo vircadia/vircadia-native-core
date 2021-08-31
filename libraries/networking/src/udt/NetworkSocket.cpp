@@ -11,13 +11,13 @@
 #include "../NetworkLogging.h"
 
 
-NetworkSocket::NetworkSocket(QObject* parent, NodeType_t nodeType) :
+NetworkSocket::NetworkSocket(QObject* parent) :
     QObject(parent),
     _parent(parent),
     _udpSocket(this)
 #if defined(WEBRTC_DATA_CHANNELS)
     ,
-    _webrtcSocket(this, nodeType)
+    _webrtcSocket(this)
 #endif
 {
     connect(&_udpSocket, &QUdpSocket::readyRead, this, &NetworkSocket::readyRead);
@@ -265,6 +265,13 @@ QString NetworkSocket::errorString(SocketType socketType) const {
         return "";
     }
 }
+
+
+#if defined(WEBRTC_DATA_CHANNELS)
+const WebRTCSocket* NetworkSocket::getWebRTCSocket() {
+    return &_webrtcSocket;
+}
+#endif
 
 
 void NetworkSocket::onUDPStateChanged(QAbstractSocket::SocketState socketState) {

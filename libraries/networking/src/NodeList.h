@@ -154,7 +154,7 @@ private slots:
     void maybeSendIgnoreSetToNode(SharedNodePointer node);
 
 private:
-    NodeList() : LimitedNodeList(NodeType::Unassigned, INVALID_PORT, INVALID_PORT) { 
+    NodeList() : LimitedNodeList(INVALID_PORT, INVALID_PORT) { 
         assert(false);  // Not implemented, needed for DependencyManager templates compile
     }
     NodeList(char ownerType, int socketListenPort = INVALID_PORT, int dtlsListenPort = INVALID_PORT);

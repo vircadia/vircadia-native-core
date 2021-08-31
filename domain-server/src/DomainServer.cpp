@@ -167,6 +167,10 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _gatekeeper(this),
     _httpManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTP_PORT,
         QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this)
+#if defined(WEBRTC_DATA_CHANNELS)
+    ,
+    _webrtcSignalingServer(this)
+#endif
 {
     if (_parentPID != -1) {
         watchParentProcess(_parentPID);
@@ -247,6 +251,10 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     updateReplicatedNodes();
     updateDownstreamNodes();
     updateUpstreamNodes();
+
+#if defined(WEBRTC_DATA_CHANNELS)
+    setUpWebRTCSignalingServer();
+#endif
 
     if (_type != NonMetaverse) {
         // if we have a metaverse domain, we'll use an access token for API calls
@@ -731,7 +739,7 @@ void DomainServer::setupNodeListAndAssignments() {
     // check for scripts the user wants to persist from their domain-server config
     populateStaticScriptedAssignmentsFromSettings();
 
-    auto nodeList = DependencyManager::set<LimitedNodeList>(NodeType::DomainServer, domainServerPort, domainServerDTLSPort);
+    auto nodeList = DependencyManager::set<LimitedNodeList>(domainServerPort, domainServerDTLSPort);
 
     // no matter the local port, save it to shared mem so that local assignment clients can ask what it is
     nodeList->putLocalPortIntoSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this,
@@ -845,6 +853,72 @@ void DomainServer::setupNodeListAndAssignments() {
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();
 }
+
+
+#if defined(WEBRTC_DATA_CHANNELS)
+
+// Sets up the WebRTC signaling server that's hosted by the domain server.
+void DomainServer::setUpWebRTCSignalingServer() {
+    // Bind the WebRTC signaling server's WebSocket to its port.
+    bool isBound = _webrtcSignalingServer.bind(QHostAddress::AnyIPv4, DEFAULT_DOMAIN_SERVER_WS_PORT);
+    if (!isBound) {
+        qWarning() << "WebRTC signaling server not bound to port. WebRTC connections are not supported.";
+        return;
+    }
+
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+
+    // Route inbound WebRTC signaling messages received from user clients.
+    connect(&_webrtcSignalingServer, &WebRTCSignalingServer::messageReceived, 
+        this, &DomainServer::routeWebRTCSignalingMessage);
+
+    // Route domain server signaling messages.
+    auto webrtcSocket = limitedNodeList->getWebRTCSocket();
+    connect(this, &DomainServer::webrtcSignalingMessageForDomainServer, webrtcSocket, &WebRTCSocket::onSignalingMessage);
+    connect(webrtcSocket, &WebRTCSocket::sendSignalingMessage, &_webrtcSignalingServer, &WebRTCSignalingServer::sendMessage);
+
+    // Forward signaling messages received from assignment clients to user client.
+    PacketReceiver& packetReceiver = limitedNodeList->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::WebRTCSignaling,
+        PacketReceiver::makeUnsourcedListenerReference<DomainServer>(this, 
+            &DomainServer::forwardAssignmentClientSignalingMessageToUserClient));
+    connect(this, &DomainServer::webrtcSignalingMessageForUserClient, 
+        &_webrtcSignalingServer, &WebRTCSignalingServer::sendMessage);
+}
+
+// Routes an inbound WebRTC signaling message received from a client app to the appropriate recipient.
+void DomainServer::routeWebRTCSignalingMessage(const QJsonObject& json) {
+    if (json.value("to").toString() == NodeType::DomainServer) {
+        emit webrtcSignalingMessageForDomainServer(json);
+    } else {
+        sendWebRTCSignalingMessageToAssignmentClient(json);
+    }
+}
+
+// Sends a WebRTC signaling message to the target AC contained in the message.
+void DomainServer::sendWebRTCSignalingMessageToAssignmentClient(const QJsonObject& json) {
+    NodeType_t destinationNodeType = NodeType::fromChar(json.value("to").toString().at(0));
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+    auto destinationNode = limitedNodeList->soloNodeOfType(destinationNodeType);
+    if (!destinationNode) {
+        qWarning() << NodeType::getNodeTypeName(destinationNodeType) << "not found for WebRTC signaling message.";
+        return;
+    }
+    // Use an NLPacketList because the signaling message is not necessarily small.
+    auto packetList = NLPacketList::create(PacketType::WebRTCSignaling, QByteArray(), true, true);
+    packetList->writeString(QJsonDocument(json).toJson(QJsonDocument::Compact));
+    limitedNodeList->sendPacketList(std::move(packetList), *destinationNode);
+}
+
+// Forwards a WebRTC signaling message received from an assignment client to the relevant user client.
+void DomainServer::forwardAssignmentClientSignalingMessageToUserClient(QSharedPointer<ReceivedMessage> message) {
+    auto messageString = message->readString();
+    auto json = QJsonDocument::fromJson(messageString.toUtf8()).object();
+    emit webrtcSignalingMessageForUserClient(json);
+}
+
+#endif
+
 
 bool DomainServer::resetAccountManagerAccessToken() {
     if (!_oauthProviderURL.isEmpty()) {

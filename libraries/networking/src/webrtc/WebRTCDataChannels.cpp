@@ -373,13 +373,12 @@ void WDCConnection::closePeerConnection() {
 }
 
 
-WebRTCDataChannels::WebRTCDataChannels(QObject* parent, NodeType_t nodeType) :
+WebRTCDataChannels::WebRTCDataChannels(QObject* parent) :
     QObject(parent),
-    _parent(parent),
-    _nodeType(nodeType)
+    _parent(parent)
 {
 #ifdef WEBRTC_DEBUG
-    qCDebug(networking_webrtc) << "WebRTCDataChannels::WebRTCDataChannels()" << nodeType << NodeType::getNodeTypeName(nodeType);
+    qCDebug(networking_webrtc) << "WebRTCDataChannels::WebRTCDataChannels()";
 #endif
 
     // Create a peer connection factory.
@@ -452,11 +451,17 @@ void WebRTCDataChannels::onSignalingMessage(const QJsonObject& message) {
     const int MAX_DEBUG_DETAIL_LENGTH = 64;
     auto data = message.value("data").isObject() ? message.value("data").toObject() : QJsonObject();
     int from = message.value("from").isDouble() ? (quint16)(message.value("from").toInt()) : 0;
-    if (from <= 0 || from > MAXUINT16 || !data.contains("description") && !data.contains("candidate")) {
+    auto to = NodeType::fromChar(message.value("to").toString().at(0));
+
+    if (from <= 0 || from > MAXUINT16 || to == NodeType::Unassigned
+            || !data.contains("description") && !data.contains("candidate")) {
         qCWarning(networking_webrtc) << "Unexpected signaling message:"
             << QJsonDocument(message).toJson(QJsonDocument::Compact).left(MAX_DEBUG_DETAIL_LENGTH);
         return;
     }
+
+    // Remember this node's type for the reply.
+    _nodeType = to;
 
     // Find or create a connection.
     WDCConnection* connection;

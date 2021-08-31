@@ -139,6 +139,7 @@ public:
         BulkAvatarTraitsAck,
         StopInjector,
         AvatarZonePresence,
+        WebRTCSignaling,
         NUM_PACKET_TYPE
     };
 
@@ -190,7 +191,7 @@ public:
             << PacketTypeEnum::Value::ReplicatedMicrophoneAudioWithEcho << PacketTypeEnum::Value::ReplicatedInjectAudio
             << PacketTypeEnum::Value::ReplicatedSilentAudioFrame << PacketTypeEnum::Value::ReplicatedAvatarIdentity
             << PacketTypeEnum::Value::ReplicatedKillAvatar << PacketTypeEnum::Value::ReplicatedBulkAvatarData
-            << PacketTypeEnum::Value::AvatarZonePresence;
+            << PacketTypeEnum::Value::AvatarZonePresence << PacketTypeEnum::Value::WebRTCSignaling;
         return NON_SOURCED_PACKETS;
     }
 

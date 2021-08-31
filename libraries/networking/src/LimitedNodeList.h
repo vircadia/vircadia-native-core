@@ -37,7 +37,6 @@
 #include <DependencyManager.h>
 #include <SharedUtil.h>
 
-#include "DomainHandler.h"
 #include "NetworkingConstants.h"
 #include "Node.h"
 #include "NLPacket.h"
@@ -139,6 +138,10 @@ public:
     Q_INVOKABLE void setSocketLocalPort(SocketType socketType, quint16 socketLocalPort);
 
     QUdpSocket& getDTLSSocket();
+#if defined(WEBRTC_DATA_CHANNELS)
+    const WebRTCSocket* getWebRTCSocket();
+#endif
+
 
     PacketReceiver& getPacketReceiver() { return *_packetReceiver; }
 
@@ -413,8 +416,7 @@ protected:
         QUuid connectionSecretUUID;
     };
 
-    LimitedNodeList(char ownerType = NodeType::DomainServer, int socketListenPort = INVALID_PORT, 
-        int dtlsListenPort = INVALID_PORT);
+    LimitedNodeList(int socketListenPort = INVALID_PORT, int dtlsListenPort = INVALID_PORT);
     LimitedNodeList(LimitedNodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
     void operator=(LimitedNodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
 

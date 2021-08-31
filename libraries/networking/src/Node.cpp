@@ -46,6 +46,22 @@ static const QHash<NodeType_t, QString> TYPE_NAME_HASH {
     { NodeType::Unassigned, "Unassigned" }
 };
 
+static const QHash<NodeType_t, QString> TYPE_CHAR_HASH {
+    { NodeType::DomainServer, "D" },
+    { NodeType::EntityServer, "o" },
+    { NodeType::Agent, "I" },
+    { NodeType::AudioMixer, "M" },
+    { NodeType::AvatarMixer, "W" },
+    { NodeType::AssetServer, "A" },
+    { NodeType::MessagesMixer, "m" },
+    { NodeType::EntityScriptServer, "S" },
+    { NodeType::UpstreamAudioMixer, "B" },
+    { NodeType::UpstreamAvatarMixer, "C" },
+    { NodeType::DownstreamAudioMixer, "a" },
+    { NodeType::DownstreamAvatarMixer, "w" },
+    { NodeType::Unassigned, QChar(1) }
+};
+
 const QString& NodeType::getNodeTypeName(NodeType_t nodeType) {
     const auto matchedTypeName = TYPE_NAME_HASH.find(nodeType);
     return matchedTypeName != TYPE_NAME_HASH.end() ? matchedTypeName.value() : UNKNOWN_NodeType_t_NAME;
@@ -85,6 +101,9 @@ NodeType_t NodeType::fromString(QString type) {
     return TYPE_NAME_HASH.key(type, NodeType::Unassigned);
 }
 
+NodeType_t NodeType::fromChar(QChar type) {
+    return TYPE_CHAR_HASH.key(type, NodeType::Unassigned);
+}
 
 Node::Node(const QUuid& uuid, NodeType_t type, const SockAddr& publicSocket,
     const SockAddr& localSocket, QObject* parent) :

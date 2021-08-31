@@ -16,6 +16,8 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QPointer>
 
+#include <shared/WebRTC.h>
+
 #include "ThreadedAssignment.h"
 
 class QSharedMemory;
@@ -29,19 +31,26 @@ public:
                      quint16 assignmentMonitorPort);
     ~AssignmentClient();
 
+public slots:
+    void aboutToQuit();
+
 private slots:
     void sendAssignmentRequest();
     void assignmentCompleted();
     void handleAuthenticationRequest();
     void sendStatusPacketToACM();
     void stopAssignmentClient();
-
-public slots:
-    void aboutToQuit();
-
-private slots:
     void handleCreateAssignmentPacket(QSharedPointer<ReceivedMessage> message);
     void handleStopNodePacket(QSharedPointer<ReceivedMessage> message);
+#if defined(WEBRTC_DATA_CHANNELS)
+    void handleWebRTCSignalingPacket(QSharedPointer<ReceivedMessage> message);
+    void sendSignalingMessageToUserClient(const QJsonObject& json);
+#endif
+
+signals:
+#if defined(WEBRTC_DATA_CHANNELS)
+    void webrtcSignalingMessageFromUserClient(const QJsonObject& json);
+#endif
 
 private:
     void setUpStatusToMonitor();

@@ -55,8 +55,8 @@ class Socket : public QObject {
 
 public:
     using StatsVector = std::vector<std::pair<SockAddr, ConnectionStats::Stats>>;
-    
-    Socket(QObject* object = 0, bool shouldChangeSocketOptions = true, NodeType_t nodeType = NodeType::Unassigned);
+ 
+    Socket(QObject* object = 0, bool shouldChangeSocketOptions = true);
     
     quint16 localPort(SocketType socketType) const { return _networkSocket.localPort(socketType); }
     
@@ -89,6 +89,10 @@ public:
     void messageFailed(Connection* connection, Packet::MessageNumber messageNumber);
     
     StatsVector sampleStatsForAllConnections();
+
+#if defined(WEBRTC_DATA_CHANNELS)
+    const WebRTCSocket* getWebRTCSocket();
+#endif
 
 #if (PR_BUILD || DEV_BUILD)
     void sendFakedHandshakeRequest(const SockAddr& sockAddr);

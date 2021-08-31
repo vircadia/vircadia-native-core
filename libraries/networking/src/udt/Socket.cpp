@@ -40,9 +40,9 @@ using namespace udt;
 #endif
 
 
-Socket::Socket(QObject* parent, bool shouldChangeSocketOptions, NodeType_t nodeType) :
+Socket::Socket(QObject* parent, bool shouldChangeSocketOptions) :
     QObject(parent),
-    _networkSocket(parent, nodeType),
+    _networkSocket(parent),
     _readyReadBackupTimer(new QTimer(this)),
     _shouldChangeSocketOptions(shouldChangeSocketOptions)
 {
@@ -90,6 +90,12 @@ void Socket::rebind(SocketType socketType, quint16 localPort) {
     _networkSocket.abort(socketType);
     bind(socketType, QHostAddress::AnyIPv4, localPort);
 }
+
+#if defined(WEBRTC_DATA_CHANNELS)
+const WebRTCSocket* Socket::getWebRTCSocket() {
+    return _networkSocket.getWebRTCSocket();
+}
+#endif
 
 void Socket::setSystemBufferSizes(SocketType socketType) {
     for (int i = 0; i < 2; i++) {
