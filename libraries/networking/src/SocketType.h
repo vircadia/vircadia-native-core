@@ -19,7 +19,7 @@
 
 
 /// @brief The types of network socket.
-enum class SocketType {
+enum class SocketType : uint8_t {
     Unknown,    ///< Unknown socket type.
     UDP,        ///< UDP socket.
     WebRTC      ///< WebRTC socket. A WebRTC data channel presented as a UDP-style socket.

@@ -135,21 +135,12 @@ QDebug operator<<(QDebug debug, const SockAddr& sockAddr) {
 }
 
 QDataStream& operator<<(QDataStream& dataStream, const SockAddr& sockAddr) {
-    // Don't include socketType because it can be implied from the type of connection used.
-    // WEBRTC TODO: Reconsider this.
-    dataStream << sockAddr._address << sockAddr._port;
+    dataStream << sockAddr._socketType << sockAddr._address << sockAddr._port;
     return dataStream;
 }
 
 QDataStream& operator>>(QDataStream& dataStream, SockAddr& sockAddr) {
-    // Don't include socketType because it can be implied from the type of connection used.
-    // WEBRTC TODO: Reconsider this.
-    dataStream >> sockAddr._address >> sockAddr._port;
-
-    // Set default for non-WebRTC code.
-    // WEBRTC TODO: Reconsider this.
-    sockAddr.setSocketType(SocketType::UDP);
-
+    dataStream >> sockAddr._socketType >> sockAddr._address >> sockAddr._port;
     return dataStream;
 }
 
