@@ -262,6 +262,11 @@ class MiniPromise;
 void promiseFromScriptValue(const ScriptValuePointer& object, std::shared_ptr<MiniPromise>& promise);
 ScriptValuePointer promiseToScriptValue(ScriptEngine* engine, const std::shared_ptr<MiniPromise>& promise);
 
+class EntityItemID;
+ScriptValuePointer EntityItemIDtoScriptValue(ScriptEngine* engine, const EntityItemID& properties);
+void EntityItemIDfromScriptValue(const ScriptValuePointer& object, EntityItemID& properties);
+QVector<EntityItemID> qVectorEntityItemIDFromScriptValue(const ScriptValuePointer& array);
+
 #endif  // #define hifi_ScriptValueUtils_h
 
 /// @}

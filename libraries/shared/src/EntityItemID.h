@@ -1,6 +1,6 @@
 //
 //  EntityItemID.h
-//  libraries/script-engine/src
+//  libraries/shared/src
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -20,10 +20,6 @@
 #include <QtCore/QSharedPointer>
 #include <QUuid>
 
-class ScriptEngine;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
-
 const QUuid UNKNOWN_ENTITY_ID; // null uuid
 
 /// Abstract ID for editing model items. Used in EntityItem JS API.
@@ -33,7 +29,6 @@ public:
     EntityItemID(const QUuid& id);
     // EntityItemID(const EntityItemID& other);
     static EntityItemID readEntityItemIDFromBuffer(const unsigned char* data, int bytesLeftToRead);
-    ScriptValuePointer toScriptValue(ScriptEngine* engine) const;
 
     bool isInvalidID() const { return *this == UNKNOWN_ENTITY_ID; }
 };
@@ -45,9 +40,6 @@ inline QDebug operator<<(QDebug debug, const EntityItemID& id) {
 
 Q_DECLARE_METATYPE(EntityItemID);
 Q_DECLARE_METATYPE(QVector<EntityItemID>);
-ScriptValuePointer EntityItemIDtoScriptValue(ScriptEngine* engine, const EntityItemID& properties);
-void EntityItemIDfromScriptValue(const ScriptValuePointer &object, EntityItemID& properties);
-QVector<EntityItemID> qVectorEntityItemIDFromScriptValue(const ScriptValuePointer& array);
 
 // Allow the use of std::unordered_map with QUuid keys
 namespace std { template<> struct hash<EntityItemID> { size_t operator()(const EntityItemID& id) const; }; }

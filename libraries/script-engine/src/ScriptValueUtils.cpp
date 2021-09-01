@@ -22,6 +22,7 @@
 #include <AACube.h>
 #include <shared/MiniPromises.h>
 #include <RegisteredMetaTypes.h>
+#include <EntityItemID.h>
 
 #include "ScriptEngine.h"
 #include "ScriptEngineCast.h"
@@ -884,4 +885,27 @@ void promiseFromScriptValue(const ScriptValuePointer& object, std::shared_ptr<Mi
 }
 ScriptValuePointer promiseToScriptValue(ScriptEngine* engine, const std::shared_ptr<MiniPromise>& promise) {
     return engine->newQObject(promise.get());
+}
+
+ScriptValuePointer EntityItemIDtoScriptValue(ScriptEngine* engine, const EntityItemID& id) {
+    return quuidToScriptValue(engine, id);
+}
+
+void EntityItemIDfromScriptValue(const ScriptValuePointer &object, EntityItemID& id) {
+    quuidFromScriptValue(object, id);
+}
+
+QVector<EntityItemID> qVectorEntityItemIDFromScriptValue(const ScriptValuePointer& array) {
+    if (!array->isArray()) {
+        return QVector<EntityItemID>();
+    }
+    QVector<EntityItemID> newVector;
+    int length = array->property("length")->toInteger();
+    newVector.reserve(length);
+    for (int i = 0; i < length; i++) {
+        QString uuidAsString = array->property(i)->toString();
+        EntityItemID fromString(uuidAsString);
+        newVector << fromString;
+    }
+    return newVector;
 }

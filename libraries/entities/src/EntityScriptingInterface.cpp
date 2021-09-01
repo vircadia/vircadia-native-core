@@ -145,7 +145,7 @@ void EntityScriptingInterface::attachDefaultEventHandlers(ScriptManager* manager
     using SingleEntityHandler = std::function<void(const EntityItemID&)>;
     auto makeSingleEntityHandler = [manager](QString eventName) -> SingleEntityHandler {
         return [manager, eventName](const EntityItemID& entityItemID) {
-            manager->forwardHandlerCall(entityItemID, eventName, { entityItemID.toScriptValue(manager->engine().data()) });
+            manager->forwardHandlerCall(entityItemID, eventName, { EntityItemIDtoScriptValue(manager->engine().data(), entityItemID) });
         };
     };
 
@@ -161,7 +161,7 @@ void EntityScriptingInterface::attachDefaultEventHandlers(ScriptManager* manager
             if (!EntityTree::areEntityClicksCaptured()) {
                 ScriptEngine* engine = manager->engine().data();
                 manager->forwardHandlerCall(entityItemID, eventName,
-                                            { entityItemID.toScriptValue(engine), event.toScriptValue(engine) });
+                                            { EntityItemIDtoScriptValue(engine, entityItemID), event.toScriptValue(engine) });
             }
         };
     };
@@ -178,7 +178,8 @@ void EntityScriptingInterface::attachDefaultEventHandlers(ScriptManager* manager
         return [manager, eventName](const EntityItemID& idA, const EntityItemID& idB, const Collision& collision) {
             ScriptEngine* engine = manager->engine().data();
             manager->forwardHandlerCall(idA, eventName,
-                                        { idA.toScriptValue(engine), idB.toScriptValue(engine),
+                                        { EntityItemIDtoScriptValue(engine, idA),
+                                          EntityItemIDtoScriptValue(engine, idB),
                                           collisionToScriptValue(engine, collision) });
         };
     };

@@ -2340,7 +2340,7 @@ void ScriptManager::callEntityScriptMethod(const EntityItemID& entityID, const Q
             auto scriptEngine = engine().data();
 
             ScriptValueList args;
-            args << entityID.toScriptValue(scriptEngine);
+            args << EntityItemIDtoScriptValue(scriptEngine, entityID);
             args << scriptValueFromSequence(scriptEngine, params);
 
             ScriptValuePointer oldData = scriptEngine->globalObject()->property("Script")->property("remoteCallerID");
@@ -2383,7 +2383,7 @@ void ScriptManager::callEntityScriptMethod(const EntityItemID& entityID, const Q
             auto scriptEngine = engine().data();
 
             ScriptValueList args;
-            args << entityID.toScriptValue(scriptEngine);
+            args << EntityItemIDtoScriptValue(scriptEngine, entityID);
             args << event.toScriptValue(scriptEngine);
             callWithEnvironment(entityID, details.definingSandboxURL, entityScript->property(methodName), entityScript, args);
         }
@@ -2423,8 +2423,8 @@ void ScriptManager::callEntityScriptMethod(const EntityItemID& entityID, const Q
             auto scriptEngine = engine().data();
 
             ScriptValueList args;
-            args << entityID.toScriptValue(scriptEngine);
-            args << otherID.toScriptValue(scriptEngine);
+            args << EntityItemIDtoScriptValue(scriptEngine, entityID);
+            args << EntityItemIDtoScriptValue(scriptEngine, otherID);
             args << collisionToScriptValue(scriptEngine, collision);
             callWithEnvironment(entityID, details.definingSandboxURL, entityScript->property(methodName), entityScript, args);
         }
