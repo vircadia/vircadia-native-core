@@ -124,9 +124,9 @@ HTTPConnection::HTTPConnection(QTcpSocket* socket, HTTPManager* parentManager) :
     _socket->setParent(this);
 
     // connect initial slots
-    connect(socket, SIGNAL(readyRead()), SLOT(readRequest()));
-    connect(socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(deleteLater()));
-    connect(socket, SIGNAL(disconnected()), SLOT(deleteLater()));
+    connect(socket, &QAbstractSocket::readyRead, this, &HTTPConnection::readRequest);
+    connect(socket, &QAbstractSocket::errorOccurred, this, &HTTPConnection::deleteLater);
+    connect(socket, &QAbstractSocket::disconnected, this, &HTTPConnection::deleteLater);
 }
 
 HTTPConnection::~HTTPConnection() {
