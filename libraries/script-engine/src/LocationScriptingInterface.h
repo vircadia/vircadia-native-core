@@ -1,6 +1,6 @@
 //
 //  LocationScriptingInterface.h
-//  libraries/networking/src
+//  libraries/script-engine/src
 //
 //  Created by Ryan Huffman on 4/29/14.
 //  Copyright 2014 High Fidelity, Inc.

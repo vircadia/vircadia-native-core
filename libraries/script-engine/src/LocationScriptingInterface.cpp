@@ -1,6 +1,6 @@
 //
 //  LocationScriptingInterface.cpp
-//  libraries/networking/src
+//  libraries/script-engine/src
 //
 //  Created by Ryan Huffman on 4/29/14.
 //  Copyright 2014 High Fidelity, Inc.
@@ -11,10 +11,10 @@
 
 #include "LocationScriptingInterface.h"
 
-#include "AddressManager.h"
-#include <ScriptContext.h>
-#include <ScriptEngine.h>
-#include <ScriptValue.h>
+#include <AddressManager.h>
+#include "ScriptContext.h"
+#include "ScriptEngine.h"
+#include "ScriptValue.h"
 
 LocationScriptingInterface* LocationScriptingInterface::getInstance() {
     static LocationScriptingInterface sharedInstance;

@@ -1,6 +1,6 @@
 #include "EntityScriptClient.h"
-#include "NodeList.h"
-#include "NetworkLogging.h"
+#include <NodeList.h>
+#include <NetworkLogging.h>
 #include "EntityScriptUtils.h"
 
 #include <QThread>

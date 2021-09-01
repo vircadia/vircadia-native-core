@@ -1,7 +1,6 @@
 set(TARGET_NAME networking)
 setup_hifi_library(Network)
 link_hifi_libraries(shared platform)
-include_hifi_library_headers(script-engine)
 
 target_openssl()
 target_tbb()
