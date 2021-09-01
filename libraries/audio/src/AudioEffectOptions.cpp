@@ -12,7 +12,15 @@
 
 #include <ScriptContext.h>
 #include <ScriptEngine.h>
+#include <ScriptManager.h>
 #include <ScriptValue.h>
+
+STATIC_SCRIPT_INITIALIZER(+[](ScriptManager* manager) {
+    auto scriptEngine = manager->engine().data();
+
+    ScriptValuePointer audioEffectOptionsConstructorValue = scriptEngine->newFunction(AudioEffectOptions::constructor);
+    scriptEngine->globalObject()->setProperty("AudioEffectOptions", audioEffectOptionsConstructorValue);
+});
 
 static const QString BANDWIDTH_HANDLE = "bandwidth";
 static const QString PRE_DELAY_HANDLE = "preDelay";

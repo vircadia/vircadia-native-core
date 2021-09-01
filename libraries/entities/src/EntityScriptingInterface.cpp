@@ -48,6 +48,36 @@
 const QString GRABBABLE_USER_DATA = "{\"grabbableKey\":{\"grabbable\":true}}";
 const QString NOT_GRABBABLE_USER_DATA = "{\"grabbableKey\":{\"grabbable\":false}}";
 
+static void staticScriptInitializer(ScriptManager* manager) {
+    auto scriptEngine = manager->engine().data();
+
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    entityScriptingInterface->init();
+    auto ifacePtr = entityScriptingInterface.data(); // using this when we don't want to leak a reference
+
+    registerMetaTypes(scriptEngine);
+
+    scriptRegisterMetaType(scriptEngine, EntityPropertyFlagsToScriptValue, EntityPropertyFlagsFromScriptValue);
+    scriptRegisterMetaType(scriptEngine, EntityItemPropertiesToScriptValue, EntityItemPropertiesFromScriptValueHonorReadOnly);
+    scriptRegisterMetaType(scriptEngine, EntityPropertyInfoToScriptValue, EntityPropertyInfoFromScriptValue);
+    scriptRegisterMetaType(scriptEngine, EntityItemIDtoScriptValue, EntityItemIDfromScriptValue);
+    scriptRegisterMetaType(scriptEngine, RayToEntityIntersectionResultToScriptValue, RayToEntityIntersectionResultFromScriptValue);
+
+    scriptEngine->registerGlobalObject("Entities", entityScriptingInterface.data());
+    scriptEngine->registerFunction("Entities", "getMultipleEntityProperties", EntityScriptingInterface::getMultipleEntityProperties);
+
+    // "The return value of QObject::sender() is not valid when the slot is called via a Qt::DirectConnection from a thread
+    // different from this object's thread. Do not use this function in this type of scenario."
+    // so... yay lambdas everywhere to get the sender
+    manager->connect(
+        manager, &ScriptManager::attachDefaultEventHandlers, entityScriptingInterface.data(),
+        [ifacePtr, manager] { ifacePtr->attachDefaultEventHandlers(manager); },
+        Qt::DirectConnection);
+    manager->connect(manager, &ScriptManager::releaseEntityPacketSenderMessages, entityScriptingInterface.data(),
+                     &EntityScriptingInterface::releaseEntityPacketSenderMessages, Qt::DirectConnection);
+}
+STATIC_SCRIPT_INITIALIZER(staticScriptInitializer);
+
 EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership) :
     _entityTree(nullptr),
     _bidOnSimulationOwnership(bidOnSimulationOwnership)
@@ -65,6 +95,146 @@ EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership
     auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::EntityScriptCallMethod,
         PacketReceiver::makeSourcedListenerReference<EntityScriptingInterface>(this, &EntityScriptingInterface::handleEntityScriptCallMethodPacket));
+}
+
+void EntityScriptingInterface::releaseEntityPacketSenderMessages(bool wait) {
+    EntityEditPacketSender* entityPacketSender = getEntityPacketSender();
+    if (entityPacketSender->serversExist()) {
+        // release the queue of edit entity messages.
+        entityPacketSender->releaseQueuedMessages();
+
+        // since we're in non-threaded mode, call process so that the packets are sent
+        if (!entityPacketSender->isThreaded()) {
+            if (!wait) {
+                entityPacketSender->process();
+            } else {
+                // wait here till the edit packet sender is completely done sending
+                while (entityPacketSender->hasPacketsToSend()) {
+                    entityPacketSender->process();
+                    QCoreApplication::processEvents();
+                }
+            }
+        } else {
+            // FIXME - do we need to have a similar "wait here" loop for non-threaded packet senders?
+        }
+    }
+}
+
+
+void EntityScriptingInterface::attachDefaultEventHandlers(ScriptManager* manager) {
+    // Connect up ALL the handlers to the global entities object's signals.
+    // (We could go signal by signal, or even handler by handler, but I don't think the efficiency is worth the complexity.)
+    
+    // Bug? These handlers are deleted when entityID is deleted, which is nice.
+    // But if they are created by an entity script on a different entity, should they also be deleted when the entity script unloads?
+    // E.g., suppose a bow has an entity script that causes arrows to be created with a potential lifetime greater than the bow,
+    // and that the entity script adds (e.g., collision) handlers to the arrows. Should those handlers fire if the bow is unloaded?
+    // Also, what about when the entity script is REloaded?
+    // For now, we are leaving them around. Changing that would require some non-trivial digging around to find the
+    // handlers that were added while a given currentEntityIdentifier was in place. I don't think this is dangerous. Just perhaps unexpected. -HRS
+    connect(this, &EntityScriptingInterface::deletingEntity, manager,
+            [manager](const EntityItemID& entityID) { manager->removeAllEventHandlers(entityID); });
+
+    // Two common cases of event handler, differing only in argument signature.
+
+    /*@jsdoc
+         * Called when an entity event occurs on an entity as registered with {@link Script.addEventHandler}.
+         * @callback Script~entityEventCallback
+         * @param {Uuid} entityID - The ID of the entity the event has occured on.
+         */
+    using SingleEntityHandler = std::function<void(const EntityItemID&)>;
+    auto makeSingleEntityHandler = [manager](QString eventName) -> SingleEntityHandler {
+        return [manager, eventName](const EntityItemID& entityItemID) {
+            manager->forwardHandlerCall(entityItemID, eventName, { entityItemID.toScriptValue(manager->engine().data()) });
+        };
+    };
+
+    /*@jsdoc
+         * Called when a pointer event occurs on an entity as registered with {@link Script.addEventHandler}.
+         * @callback Script~pointerEventCallback
+         * @param {Uuid} entityID - The ID of the entity the event has occurred on.
+         * @param {PointerEvent} pointerEvent - Details of the event.
+         */
+    using PointerHandler = std::function<void(const EntityItemID&, const PointerEvent&)>;
+    auto makePointerHandler = [manager](QString eventName) -> PointerHandler {
+        return [manager, eventName](const EntityItemID& entityItemID, const PointerEvent& event) {
+            if (!EntityTree::areEntityClicksCaptured()) {
+                ScriptEngine* engine = manager->engine().data();
+                manager->forwardHandlerCall(entityItemID, eventName,
+                                            { entityItemID.toScriptValue(engine), event.toScriptValue(engine) });
+            }
+        };
+    };
+
+    /*@jsdoc
+         * Called when a collision event occurs on an entity as registered with {@link Script.addEventHandler}.
+         * @callback Script~collisionEventCallback
+         * @param {Uuid} entityA - The ID of one entity in the collision.
+         * @param {Uuid} entityB - The ID of the other entity in the collision.
+         * @param {Collision} collisionEvent - Details of the collision.
+         */
+    using CollisionHandler = std::function<void(const EntityItemID&, const EntityItemID&, const Collision&)>;
+    auto makeCollisionHandler = [manager](QString eventName) -> CollisionHandler {
+        return [manager, eventName](const EntityItemID& idA, const EntityItemID& idB, const Collision& collision) {
+            ScriptEngine* engine = manager->engine().data();
+            manager->forwardHandlerCall(idA, eventName,
+                                        { idA.toScriptValue(engine), idB.toScriptValue(engine),
+                                          collisionToScriptValue(engine, collision) });
+        };
+    };
+
+    /*@jsdoc
+         * <p>The name of an entity event. When the entity event occurs, any function that has been registered for that event 
+         * via {@link Script.addEventHandler} is called with parameters per the entity event.</p>
+         * <table>
+         *   <thead>
+         *     <tr><th>Event Name</th><th>Callback Type</th><th>Entity Event</th></tr>
+         *   </thead>
+         *   <tbody>
+         *     <tr><td><code>"enterEntity"</code></td><td>{@link Script~entityEventCallback|entityEventCallback}</td>
+         *       <td>{@link Entities.enterEntity}</td></tr>
+         *     <tr><td><code>"leaveEntity"</code></td><td>{@link Script~entityEventCallback|entityEventCallback}</td>
+         *       <td>{@link Entities.leaveEntity}</td></tr>
+         *     <tr><td><code>"mousePressOnEntity"</code></td><td>{@link Script~pointerEventCallback|pointerEventCallback}</td>
+         *       <td>{@link Entities.mousePressOnEntity}</td></tr>
+         *     <tr><td><code>"mouseMoveOnEntity"</code></td><td>{@link Script~pointerEventCallback|pointerEventCallback}</td>
+         *       <td>{@link Entities.mouseMoveOnEntity}</td></tr>
+         *     <tr><td><code>"mouseReleaseOnEntity"</code></td><td>{@link Script~pointerEventCallback|pointerEventCallback}</td>
+         *       <td>{@link Entities.mouseReleaseOnEntity}</td></tr>
+         *     <tr><td><code>"clickDownOnEntity"</code></td><td>{@link Script~pointerEventCallback|pointerEventCallback}</td>
+         *       <td>{@link Entities.clickDownOnEntity}</td></tr>
+         *     <tr><td><code>"holdingClickOnEntity"</code></td><td>{@link Script~pointerEventCallback|pointerEventCallback}</td>
+         *       <td>{@link Entities.holdingClickOnEntity}</td></tr>
+         *     <tr><td><code>"clickReleaseOnEntity"</code></td><td>{@link Script~pointerEventCallback|pointerEventCallback}</td>
+         *       <td>{@link Entities.clickReleaseOnEntity}</td></tr>
+         *     <tr><td><code>"hoverEnterEntity"</code></td><td>{@link Script~pointerEventCallback|pointerEventCallback}</td>
+         *       <td>{@link Entities.hoverEnterEntity}</td></tr>
+         *     <tr><td><code>"hoverOverEntity"</code></td><td>{@link Script~pointerEventCallback|pointerEventCallback}</td>
+         *       <td>{@link Entities.hoverOverEntity}</td></tr>
+         *     <tr><td><code>"hoverLeaveEntity"</code></td><td>{@link Script~pointerEventCallback|pointerEventCallback}</td>
+         *       <td>{@link Entities.hoverLeaveEntity}</td></tr>
+         *     <tr><td><code>"collisionWithEntity"</code><td>{@link Script~collisionEventCallback|collisionEventCallback}</td>
+         *       </td><td>{@link Entities.collisionWithEntity}</td></tr>
+         *   </tbody>
+         * </table>
+         * @typedef {string} Script.EntityEvent
+         */
+    connect(this, &EntityScriptingInterface::enterEntity, manager, makeSingleEntityHandler("enterEntity"));
+    connect(this, &EntityScriptingInterface::leaveEntity, manager, makeSingleEntityHandler("leaveEntity"));
+
+    connect(this, &EntityScriptingInterface::mousePressOnEntity, manager, makePointerHandler("mousePressOnEntity"));
+    connect(this, &EntityScriptingInterface::mouseMoveOnEntity, manager, makePointerHandler("mouseMoveOnEntity"));
+    connect(this, &EntityScriptingInterface::mouseReleaseOnEntity, manager, makePointerHandler("mouseReleaseOnEntity"));
+
+    connect(this, &EntityScriptingInterface::clickDownOnEntity, manager, makePointerHandler("clickDownOnEntity"));
+    connect(this, &EntityScriptingInterface::holdingClickOnEntity, manager, makePointerHandler("holdingClickOnEntity"));
+    connect(this, &EntityScriptingInterface::clickReleaseOnEntity, manager, makePointerHandler("clickReleaseOnEntity"));
+
+    connect(this, &EntityScriptingInterface::hoverEnterEntity, manager, makePointerHandler("hoverEnterEntity"));
+    connect(this, &EntityScriptingInterface::hoverOverEntity, manager, makePointerHandler("hoverOverEntity"));
+    connect(this, &EntityScriptingInterface::hoverLeaveEntity, manager, makePointerHandler("hoverLeaveEntity"));
+
+    connect(this, &EntityScriptingInterface::collisionWithEntity, manager, makeCollisionHandler("collisionWithEntity"));
 }
 
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,

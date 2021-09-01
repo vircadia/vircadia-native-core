@@ -323,7 +323,7 @@ namespace scriptable {
                 if (!object) {
                     return engine->nullValue();
                 }
-                return engine->newQObject(object, ScriptEngine::QtOwnership, ScriptEngine::ExcludeDeleteLater | ScriptEngine::AutoCreateDynamicProperties);
+                return engine->newQObject(object, ScriptEngine::QtOwnership, ScriptEngine::AutoCreateDynamicProperties);
             },
             [](const ScriptValuePointer& value, QPointer<T>& out) {
                 auto obj = value->toQObject();

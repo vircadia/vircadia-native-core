@@ -13,9 +13,14 @@
 
 #include <ScriptEngine.h>
 #include <ScriptEngineCast.h>
+#include <ScriptManager.h>
 #include <ScriptValue.h>
 
 #include "AnimationCache.h"
+
+STATIC_SCRIPT_INITIALIZER(+[](ScriptManager* manager) {
+    registerAnimationTypes(manager->engine().data());
+});
 
 QStringList AnimationObject::getJointNames() const {
     return scriptvalue_cast<AnimationPointer>(thisObject())->getJointNames();

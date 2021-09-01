@@ -1,6 +1,6 @@
 //
 //  ScriptProgramQtWrapper.cpp
-//  libraries/script-engine/src
+//  libraries/script-engine/src/qtscript
 //
 //  Created by Heather Anderson on 8/24/21.
 //  Copyright 2021 Vircadia contributors.

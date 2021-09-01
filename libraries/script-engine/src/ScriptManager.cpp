@@ -24,55 +24,36 @@
 #include <QtCore/QFuture>
 #include <QtConcurrent/QtConcurrentRun>
 
-#include <QtWidgets/QMainWindow>
-#include <QtWidgets/QApplication>
-#include <QtWidgets/QMenuBar>
-#include <QtWidgets/QMenu>
-
-#include <QtNetwork/QNetworkRequest>
-#include <QtNetwork/QNetworkReply>
-
 #include <shared/LocalFileAccessGate.h>
-#include <shared/QtHelpers.h>
 #include <shared/AbstractLoggerInterface.h>
-#include <AudioConstants.h>
-#include <AudioEffectOptions.h>
-#include <AvatarData.h>
 #include <DebugDraw.h>
-#include <EntityScriptingInterface.h>
 #include <MessagesClient.h>
-#include <NetworkAccessManager.h>
+#include <OctreeConstants.h>
 #include <PathUtils.h>
+#include <PortableHighResolutionClock.h>
+#include <ResourceCache.h>
+#include <ResourceManager.h>
 #include <ResourceScriptingInterface.h>
 #include <UserActivityLoggerScriptingInterface.h>
 #include <NodeList.h>
-#include <ScriptAvatarData.h>
-#include <udt/PacketHeaders.h>
-#include <UUID.h>
 
-#include <controllers/ScriptingInterface.h>
-#include <AnimationObject.h>
-
-#include "AudioScriptingInterface.h"
 #include "AssetScriptingInterface.h"
 #include "BatchLoader.h"
 #include "EventTypes.h"
 #include "FileScriptingInterface.h" // unzip project
 #include "MenuItemProperties.h"
-#include "ScriptAudioInjector.h"
-#include "ScriptAvatarData.h"
 #include "ScriptCache.h"
 #include "ScriptContext.h"
-#include "ScriptEngineCast.h"
-#include "ScriptEngineLogging.h"
 #include "XMLHttpRequestClass.h"
 #include "WebSocketClass.h"
-#include "RecordingScriptingInterface.h"
+#include "ScriptEngine.h"
+#include "ScriptEngineCast.h"
+#include "ScriptEngineLogging.h"
 #include "ScriptEngines.h"
 #include "StackTestScriptingInterface.h"
-#include "ModelScriptingInterface.h"
 #include "ScriptValue.h"
 #include "ScriptValueIterator.h"
+#include "ScriptValueUtils.h"
 
 #include <Profile.h>
 
@@ -94,8 +75,6 @@ const QString ScriptManager::SCRIPT_BACKTRACE_SEP{ "\n    " };
 static const int MAX_MODULE_ID_LENGTH { 4096 };
 static const int MAX_DEBUG_VALUE_LENGTH { 80 };
 
-static const ScriptEngine::QObjectWrapOptions DEFAULT_QOBJECT_WRAP_OPTIONS =
-                ScriptEngine::ExcludeDeleteLater | ScriptEngine::ExcludeChildObjects;
 static const ScriptValue::PropertyFlags READONLY_PROP_FLAGS{ ScriptValue::ReadOnly | ScriptValue::Undeletable };
 static const ScriptValue::PropertyFlags READONLY_HIDDEN_PROP_FLAGS{ READONLY_PROP_FLAGS | ScriptValue::SkipInEnumeration };
 
@@ -107,6 +86,26 @@ int functionSignatureMetaID = qRegisterMetaType<ScriptEngine::FunctionSignature>
 int scriptManagerPointerMetaID = qRegisterMetaType<ScriptManagerPointer>();
 
 Q_DECLARE_METATYPE(ExternalResource::Bucket);
+
+// --- Static script initialization registry
+
+static ScriptManager::StaticInitializerNode* rootInitializer = nullptr;
+
+void ScriptManager::registerNewStaticInitializer(StaticInitializerNode* dest) {
+    // this function is assumed to be called on LoadLibrary, where we are explicitly operating in single-threaded mode
+    // Therefore there is no mutex or threadsafety here and the structure is assumed not to change after loading
+    dest->prev = rootInitializer;
+    rootInitializer = dest;
+}
+static void runStaticInitializers(ScriptManager* manager) {
+    ScriptManager::StaticInitializerNode* here = rootInitializer;
+    while (here != nullptr) {
+        (*here->init)(manager);
+        here = here->prev;
+    }
+}
+
+// ---
 
 static ScriptValuePointer debugPrint(ScriptContext* context, ScriptEngine* engine) {
     // assemble the message by concatenating our arguments
@@ -170,17 +169,6 @@ static ScriptValuePointer debugPrint(ScriptContext* context, ScriptEngine* engin
     }
 
     return ScriptValuePointer();
-}
-
-Q_DECLARE_METATYPE(controller::InputController*)
-//static int inputControllerPointerId = qRegisterMetaType<controller::InputController*>();
-
-ScriptValuePointer inputControllerToScriptValue(ScriptEngine* engine, controller::InputController* const& in) {
-    return engine->newQObject(in, ScriptEngine::QtOwnership, DEFAULT_QOBJECT_WRAP_OPTIONS);
-}
-
-void inputControllerFromScriptValue(const ScriptValuePointer& object, controller::InputController*& out) {
-    out = qobject_cast<controller::InputController*>(object->toQObject());
 }
 
 // FIXME Come up with a way to properly encode entity IDs in filename
@@ -522,28 +510,6 @@ void ScriptManager::clearDebugLogWindow() {
     emit clearDebugWindow();
 }
 
-// Even though we never pass AnimVariantMap directly to and from javascript, the queued invokeMethod of
-// callAnimationStateHandler requires that the type be registered.
-// These two are meaningful, if we ever do want to use them...
-static ScriptValuePointer animVarMapToScriptValue(ScriptEngine* engine, const AnimVariantMap& parameters) {
-    QStringList unused;
-    return parameters.animVariantMapToScriptValue(engine, unused, false);
-}
-static void animVarMapFromScriptValue(const ScriptValuePointer& value, AnimVariantMap& parameters) {
-    parameters.animVariantMapFromScriptValue(value);
-}
-// ... while these two are not. But none of the four are ever used.
-static ScriptValuePointer resultHandlerToScriptValue(ScriptEngine* engine,
-                                               const AnimVariantResultHandler& resultHandler) {
-    qCCritical(scriptengine) << "Attempt to marshall result handler to javascript";
-    assert(false);
-    return ScriptValuePointer();
-}
-static void resultHandlerFromScriptValue(const ScriptValuePointer& value, AnimVariantResultHandler& resultHandler) {
-    qCCritical(scriptengine) << "Attempt to marshall result handler from javascript";
-    assert(false);
-}
-
 // Templated qScriptRegisterMetaType fails to compile with raw pointers
 using ScriptableResourceRawPtr = ScriptableResource*;
 
@@ -562,13 +528,10 @@ static ScriptValuePointer scriptableResourceToScriptValue(ScriptEngine* engine,
     auto manager = engine->manager();
     if (data && manager && !resource->isInScript()) {
         resource->setInScript(true);
-        QObject::connect(data.data(), SIGNAL(updateSize(qint64)), manager, SLOT(updateMemoryCost(qint64)));
+        QObject::connect(data.data(), &Resource::updateSize, manager, &ScriptManager::updateMemoryCost);
     }
 
-    auto object = engine->newQObject(
-        const_cast<ScriptableResourceRawPtr>(resource),
-        ScriptEngine::ScriptOwnership,
-        DEFAULT_QOBJECT_WRAP_OPTIONS);
+    auto object = engine->newQObject(const_cast<ScriptableResourceRawPtr>(resource), ScriptEngine::ScriptOwnership);
     return object;
 }
 
@@ -602,20 +565,10 @@ static ScriptValuePointer createScriptableResourcePrototype(ScriptManagerPointer
     }
 
     auto prototypeState = engine->newQObject(state, ScriptEngine::QtOwnership,
-       ScriptEngine::ExcludeDeleteLater | ScriptEngine::ExcludeSlots | ScriptEngine::ExcludeSuperClassMethods);
+       ScriptEngine::ExcludeSlots | ScriptEngine::ExcludeSuperClassMethods);
     prototype->setProperty("State", prototypeState);
 
     return prototype;
-}
-
-ScriptValuePointer avatarDataToScriptValue(ScriptEngine* engine, ScriptAvatarData* const& in) {
-    return engine->newQObject(in, ScriptEngine::ScriptOwnership, DEFAULT_QOBJECT_WRAP_OPTIONS);
-}
-
-void avatarDataFromScriptValue(const ScriptValuePointer& object, ScriptAvatarData*& out) {
-    // This is not implemented because there are no slots/properties that take an AvatarSharedPointer from a script
-    assert(false);
-    out = nullptr;
 }
 
 ScriptValuePointer externalResourceBucketToScriptValue(ScriptEngine* engine, ExternalResource::Bucket const& in) {
@@ -666,27 +619,15 @@ void ScriptManager::init() {
     }
 
     _isInitialized = true;
+    runStaticInitializers(this);
+
     auto scriptEngine = _engine.data();
 
-    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-    entityScriptingInterface->init();
-
     // register various meta-types
-    registerMetaTypes(scriptEngine);
     registerMIDIMetaTypes(scriptEngine);
     registerEventTypes(scriptEngine);
     registerMenuItemProperties(scriptEngine);
-    registerAnimationTypes(scriptEngine);
-    registerAvatarTypes(scriptEngine);
-    registerAudioMetaTypes(scriptEngine);
 
-    scriptRegisterMetaType(scriptEngine, EntityPropertyFlagsToScriptValue, EntityPropertyFlagsFromScriptValue);
-    scriptRegisterMetaType(scriptEngine, EntityItemPropertiesToScriptValue, EntityItemPropertiesFromScriptValueHonorReadOnly);
-    scriptRegisterMetaType(scriptEngine, EntityPropertyInfoToScriptValue, EntityPropertyInfoFromScriptValue);
-    scriptRegisterMetaType(scriptEngine, EntityItemIDtoScriptValue, EntityItemIDfromScriptValue);
-    scriptRegisterMetaType(scriptEngine, RayToEntityIntersectionResultToScriptValue, RayToEntityIntersectionResultFromScriptValue);
-    scriptRegisterMetaType(scriptEngine, RayToAvatarIntersectionResultToScriptValue, RayToAvatarIntersectionResultFromScriptValue);
-    scriptRegisterMetaType(scriptEngine, AvatarEntityMapToScriptValue, AvatarEntityMapFromScriptValue);
     scriptRegisterSequenceMetaType<QVector<QUuid>>(scriptEngine);
     scriptRegisterSequenceMetaType<QVector<EntityItemID>>(scriptEngine);
 
@@ -709,12 +650,6 @@ void ScriptManager::init() {
      */
     scriptEngine->globalObject()->setProperty("print", scriptEngine->newFunction(debugPrint));
 
-    ScriptValuePointer audioEffectOptionsConstructorValue = scriptEngine->newFunction(AudioEffectOptions::constructor);
-    scriptEngine->globalObject()->setProperty("AudioEffectOptions", audioEffectOptionsConstructorValue);
-
-    scriptRegisterMetaType(scriptEngine, injectorToScriptValue, injectorFromScriptValue);
-    scriptRegisterMetaType(scriptEngine, inputControllerToScriptValue, inputControllerFromScriptValue);
-    scriptRegisterMetaType(scriptEngine, avatarDataToScriptValue, avatarDataFromScriptValue);
     scriptRegisterMetaType(scriptEngine, animationDetailsToScriptValue, animationDetailsFromScriptValue);
     scriptRegisterMetaType(scriptEngine, webSocketToScriptValue, webSocketFromScriptValue);
     scriptRegisterMetaType(scriptEngine, qWSCloseCodeToScriptValue, qWSCloseCodeFromScriptValue);
@@ -737,13 +672,8 @@ void ScriptManager::init() {
     scriptRegisterMetaType(scriptEngine, externalResourceBucketToScriptValue, externalResourceBucketFromScriptValue);
     scriptEngine->registerEnum("Script.ExternalPaths", QMetaEnum::fromType<ExternalResource::Bucket>());
 
-    scriptEngine->registerGlobalObject("Audio", DependencyManager::get<AudioScriptingInterface>().data());
-
     scriptEngine->registerGlobalObject("Midi", DependencyManager::get<Midi>().data());
 
-    scriptEngine->registerGlobalObject("Entities", entityScriptingInterface.data());
-    scriptEngine->registerFunction("Entities", "getMultipleEntityProperties",
-                                 EntityScriptingInterface::getMultipleEntityProperties);
     scriptEngine->registerGlobalObject("Quat", &_quatLibrary);
     scriptEngine->registerGlobalObject("Vec3", &_vec3Library);
     scriptEngine->registerGlobalObject("Mat4", &_mat4Library);
@@ -762,9 +692,6 @@ void ScriptManager::init() {
     scriptEngine->registerFunction("console", "groupCollapsed", ConsoleScriptingInterface::groupCollapsed, 1);
     scriptEngine->registerFunction("console", "groupEnd", ConsoleScriptingInterface::groupEnd, 0);
 
-    scriptRegisterMetaType(scriptEngine, animVarMapToScriptValue, animVarMapFromScriptValue);
-    scriptRegisterMetaType(scriptEngine, resultHandlerToScriptValue, resultHandlerFromScriptValue);
-
     // Scriptable cache access
     auto resourcePrototype = createScriptableResourcePrototype(qSharedPointerCast<ScriptManager>(sharedFromThis()));
     scriptEngine->globalObject()->setProperty("Resource", resourcePrototype);
@@ -779,7 +706,6 @@ void ScriptManager::init() {
 
     scriptEngine->registerGlobalObject("DebugDraw", &DebugDraw::getInstance());
 
-    scriptEngine->registerGlobalObject("Model", new ModelScriptingInterface(this));
     scriptRegisterMetaType(scriptEngine, meshToScriptValue, meshFromScriptValue);
     scriptRegisterMetaType(scriptEngine, meshesToScriptValue, meshesFromScriptValue);
 
@@ -825,6 +751,22 @@ void ScriptManager::removeEventHandler(const EntityItemID& entityID, const QStri
         }
     }
 }
+
+// Unregister all event handlers for the specified entityID (i.e. the entity is being removed)
+void ScriptManager::removeAllEventHandlers(const EntityItemID& entityID) {
+    if (QThread::currentThread() != thread()) {
+#ifdef THREAD_DEBUGGING
+        qCDebug(scriptengine) << "*** WARNING *** ScriptManager::removeAllEventHandlers() called on wrong thread [" << QThread::currentThread() << ", correct thread is " << thread() << " ], ignoring "
+            "entityID:" << entityID;
+#endif
+        return;
+    }
+
+    if (_registeredHandlers.contains(entityID)) {
+        _registeredHandlers.remove(entityID);
+    }
+}
+
 // Register the handler.
 void ScriptManager::addEventHandler(const EntityItemID& entityID, const QString& eventName, ScriptValuePointer handler) {
     if (QThread::currentThread() != thread()) {
@@ -843,117 +785,9 @@ void ScriptManager::addEventHandler(const EntityItemID& entityID, const QString&
     qCDebug(scriptengine) << "ScriptManager::addEventHandler() called on thread [" << QThread::currentThread() << "] entityID:" << entityID << " eventName : " << eventName;
 #endif
 
-    if (_registeredHandlers.count() == 0) { // First time any per-entity handler has been added in this script...
-        // Connect up ALL the handlers to the global entities object's signals.
-        // (We could go signal by signal, or even handler by handler, but I don't think the efficiency is worth the complexity.)
-        auto entities = DependencyManager::get<EntityScriptingInterface>();
-        // Bug? These handlers are deleted when entityID is deleted, which is nice.
-        // But if they are created by an entity script on a different entity, should they also be deleted when the entity script unloads?
-        // E.g., suppose a bow has an entity script that causes arrows to be created with a potential lifetime greater than the bow,
-        // and that the entity script adds (e.g., collision) handlers to the arrows. Should those handlers fire if the bow is unloaded?
-        // Also, what about when the entity script is REloaded?
-        // For now, we are leaving them around. Changing that would require some non-trivial digging around to find the
-        // handlers that were added while a given currentEntityIdentifier was in place. I don't think this is dangerous. Just perhaps unexpected. -HRS
-        connect(entities.data(), &EntityScriptingInterface::deletingEntity, this, [this](const EntityItemID& entityID) {
-            _registeredHandlers.remove(entityID);
-        });
-
-        // Two common cases of event handler, differing only in argument signature.
-
-        /*@jsdoc
-         * Called when an entity event occurs on an entity as registered with {@link Script.addEventHandler}.
-         * @callback Script~entityEventCallback
-         * @param {Uuid} entityID - The ID of the entity the event has occured on.
-         */
-        using SingleEntityHandler = std::function<void(const EntityItemID&)>;
-        auto makeSingleEntityHandler = [this](QString eventName) -> SingleEntityHandler {
-            return [this, eventName](const EntityItemID& entityItemID) {
-                forwardHandlerCall(entityItemID, eventName, { entityItemID.toScriptValue(_engine.data()) });
-            };
-        };
-
-        /*@jsdoc
-         * Called when a pointer event occurs on an entity as registered with {@link Script.addEventHandler}.
-         * @callback Script~pointerEventCallback
-         * @param {Uuid} entityID - The ID of the entity the event has occurred on.
-         * @param {PointerEvent} pointerEvent - Details of the event.
-         */
-        using PointerHandler = std::function<void(const EntityItemID&, const PointerEvent&)>;
-        auto makePointerHandler = [this](QString eventName) -> PointerHandler {
-            return [this, eventName](const EntityItemID& entityItemID, const PointerEvent& event) {
-                if (!EntityTree::areEntityClicksCaptured()) {
-                    forwardHandlerCall(entityItemID, eventName, { entityItemID.toScriptValue(_engine.data()), event.toScriptValue(_engine.data()) });
-                }
-            };
-        };
-
-        /*@jsdoc
-         * Called when a collision event occurs on an entity as registered with {@link Script.addEventHandler}.
-         * @callback Script~collisionEventCallback
-         * @param {Uuid} entityA - The ID of one entity in the collision.
-         * @param {Uuid} entityB - The ID of the other entity in the collision.
-         * @param {Collision} collisionEvent - Details of the collision.
-         */
-        using CollisionHandler = std::function<void(const EntityItemID&, const EntityItemID&, const Collision&)>;
-        auto makeCollisionHandler = [this](QString eventName) -> CollisionHandler {
-            return [this, eventName](const EntityItemID& idA, const EntityItemID& idB, const Collision& collision) {
-                forwardHandlerCall(idA, eventName, { idA.toScriptValue(_engine.data()), idB.toScriptValue(_engine.data()),
-                    collisionToScriptValue(_engine.data(), collision) });
-            };
-        };
-
-        /*@jsdoc
-         * <p>The name of an entity event. When the entity event occurs, any function that has been registered for that event 
-         * via {@link Script.addEventHandler} is called with parameters per the entity event.</p>
-         * <table>
-         *   <thead>
-         *     <tr><th>Event Name</th><th>Callback Type</th><th>Entity Event</th></tr>
-         *   </thead>
-         *   <tbody>
-         *     <tr><td><code>"enterEntity"</code></td><td>{@link Script~entityEventCallback|entityEventCallback}</td>
-         *       <td>{@link Entities.enterEntity}</td></tr>
-         *     <tr><td><code>"leaveEntity"</code></td><td>{@link Script~entityEventCallback|entityEventCallback}</td>
-         *       <td>{@link Entities.leaveEntity}</td></tr>
-         *     <tr><td><code>"mousePressOnEntity"</code></td><td>{@link Script~pointerEventCallback|pointerEventCallback}</td>
-         *       <td>{@link Entities.mousePressOnEntity}</td></tr>
-         *     <tr><td><code>"mouseMoveOnEntity"</code></td><td>{@link Script~pointerEventCallback|pointerEventCallback}</td>
-         *       <td>{@link Entities.mouseMoveOnEntity}</td></tr>
-         *     <tr><td><code>"mouseReleaseOnEntity"</code></td><td>{@link Script~pointerEventCallback|pointerEventCallback}</td>
-         *       <td>{@link Entities.mouseReleaseOnEntity}</td></tr>
-         *     <tr><td><code>"clickDownOnEntity"</code></td><td>{@link Script~pointerEventCallback|pointerEventCallback}</td>
-         *       <td>{@link Entities.clickDownOnEntity}</td></tr>
-         *     <tr><td><code>"holdingClickOnEntity"</code></td><td>{@link Script~pointerEventCallback|pointerEventCallback}</td>
-         *       <td>{@link Entities.holdingClickOnEntity}</td></tr>
-         *     <tr><td><code>"clickReleaseOnEntity"</code></td><td>{@link Script~pointerEventCallback|pointerEventCallback}</td>
-         *       <td>{@link Entities.clickReleaseOnEntity}</td></tr>
-         *     <tr><td><code>"hoverEnterEntity"</code></td><td>{@link Script~pointerEventCallback|pointerEventCallback}</td>
-         *       <td>{@link Entities.hoverEnterEntity}</td></tr>
-         *     <tr><td><code>"hoverOverEntity"</code></td><td>{@link Script~pointerEventCallback|pointerEventCallback}</td>
-         *       <td>{@link Entities.hoverOverEntity}</td></tr>
-         *     <tr><td><code>"hoverLeaveEntity"</code></td><td>{@link Script~pointerEventCallback|pointerEventCallback}</td>
-         *       <td>{@link Entities.hoverLeaveEntity}</td></tr>
-         *     <tr><td><code>"collisionWithEntity"</code><td>{@link Script~collisionEventCallback|collisionEventCallback}</td>
-         *       </td><td>{@link Entities.collisionWithEntity}</td></tr>
-         *   </tbody>
-         * </table>
-         * @typedef {string} Script.EntityEvent
-         */
-        connect(entities.data(), &EntityScriptingInterface::enterEntity, this, makeSingleEntityHandler("enterEntity"));
-        connect(entities.data(), &EntityScriptingInterface::leaveEntity, this, makeSingleEntityHandler("leaveEntity"));
-
-        connect(entities.data(), &EntityScriptingInterface::mousePressOnEntity, this, makePointerHandler("mousePressOnEntity"));
-        connect(entities.data(), &EntityScriptingInterface::mouseMoveOnEntity, this, makePointerHandler("mouseMoveOnEntity"));
-        connect(entities.data(), &EntityScriptingInterface::mouseReleaseOnEntity, this, makePointerHandler("mouseReleaseOnEntity"));
-
-        connect(entities.data(), &EntityScriptingInterface::clickDownOnEntity, this, makePointerHandler("clickDownOnEntity"));
-        connect(entities.data(), &EntityScriptingInterface::holdingClickOnEntity, this, makePointerHandler("holdingClickOnEntity"));
-        connect(entities.data(), &EntityScriptingInterface::clickReleaseOnEntity, this, makePointerHandler("clickReleaseOnEntity"));
-
-        connect(entities.data(), &EntityScriptingInterface::hoverEnterEntity, this, makePointerHandler("hoverEnterEntity"));
-        connect(entities.data(), &EntityScriptingInterface::hoverOverEntity, this, makePointerHandler("hoverOverEntity"));
-        connect(entities.data(), &EntityScriptingInterface::hoverLeaveEntity, this, makePointerHandler("hoverLeaveEntity"));
-
-        connect(entities.data(), &EntityScriptingInterface::collisionWithEntity, this, makeCollisionHandler("collisionWithEntity"));
+    if (_registeredHandlers.count() == 0) {
+        // First time any per-entity handler has been added in this script...
+        emit attachDefaultEventHandlers();
     }
     if (!_registeredHandlers.contains(entityID)) {
         _registeredHandlers[entityID] = RegisteredEventHandlers();
@@ -1008,9 +842,6 @@ void ScriptManager::run() {
     clock::time_point startTime = clock::now();
     int thisFrame = 0;
 
-    auto nodeList = DependencyManager::get<NodeList>();
-    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-
     _lastUpdate = usecTimestampNow();
 
     std::chrono::microseconds totalUpdates(0);
@@ -1050,7 +881,7 @@ void ScriptManager::run() {
                 QEventLoop loop;
                 QTimer timer;
                 timer.setSingleShot(true);
-                connect(&timer, SIGNAL(timeout()), &loop, SLOT(quit()));
+                connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
                 timer.start(sleepFor.count());
                 loop.exec();
             } else {
@@ -1092,14 +923,8 @@ void ScriptManager::run() {
             break;
         }
 
-        if (!_isFinished && entityScriptingInterface->getEntityPacketSender()->serversExist()) {
-            // release the queue of edit entity messages.
-            entityScriptingInterface->getEntityPacketSender()->releaseQueuedMessages();
-
-            // since we're in non-threaded mode, call process so that the packets are sent
-            if (!entityScriptingInterface->getEntityPacketSender()->isThreaded()) {
-                entityScriptingInterface->getEntityPacketSender()->process();
-            }
+        if (!_isFinished) {
+            emit releaseEntityPacketSenderMessages(false);
         }
 
         qint64 now = usecTimestampNow();
@@ -1133,21 +958,7 @@ void ScriptManager::run() {
     stopAllTimers(); // make sure all our timers are stopped if the script is ending
     emit scriptEnding();
 
-    if (entityScriptingInterface->getEntityPacketSender()->serversExist()) {
-        // release the queue of edit entity messages.
-        entityScriptingInterface->getEntityPacketSender()->releaseQueuedMessages();
-
-        // since we're in non-threaded mode, call process so that the packets are sent
-        if (!entityScriptingInterface->getEntityPacketSender()->isThreaded()) {
-            // wait here till the edit packet sender is completely done sending
-            while (entityScriptingInterface->getEntityPacketSender()->hasPacketsToSend()) {
-                entityScriptingInterface->getEntityPacketSender()->process();
-                QCoreApplication::processEvents();
-            }
-        } else {
-            // FIXME - do we need to have a similar "wait here" loop for non-threaded packet senders?
-        }
-    }
+    emit releaseEntityPacketSenderMessages(true);
 
     emit finished(_fileNameString, qSharedPointerCast<ScriptManager>(sharedFromThis()));
 
@@ -1200,34 +1011,6 @@ void ScriptManager::stop(bool marshal) {
     if (!_isFinished) {
         _isFinished = true;
         emit runningStateChanged();
-    }
-}
-
-// Other threads can invoke this through invokeMethod, which causes the callback to be asynchronously executed in this script's thread.
-void ScriptManager::callAnimationStateHandler(ScriptValuePointer callback, AnimVariantMap parameters, QStringList names, bool useNames, AnimVariantResultHandler resultHandler) {
-    if (QThread::currentThread() != thread()) {
-#ifdef THREAD_DEBUGGING
-        qCDebug(scriptengine) << "*** WARNING *** ScriptManager::callAnimationStateHandler() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  name:" << name;
-#endif
-        QMetaObject::invokeMethod(this, "callAnimationStateHandler",
-                                  Q_ARG(ScriptValuePointer, callback),
-                                  Q_ARG(AnimVariantMap, parameters),
-                                  Q_ARG(QStringList, names),
-                                  Q_ARG(bool, useNames),
-                                  Q_ARG(AnimVariantResultHandler, resultHandler));
-        return;
-    }
-    ScriptValuePointer javascriptParameters = parameters.animVariantMapToScriptValue(_engine.get(), names, useNames);
-    ScriptValueList callingArguments;
-    callingArguments << javascriptParameters;
-    assert(currentEntityIdentifier.isInvalidID()); // No animation state handlers from entity scripts.
-    ScriptValuePointer result = callback->call(ScriptValuePointer(), callingArguments);
-
-    // validate result from callback function.
-    if (result->isValid() && result->isObject()) {
-        resultHandler(result);
-    } else {
-        qCWarning(scriptengine) << "ScriptManager::callAnimationStateHandler invalid return argument from callback, expected an object";
     }
 }
 

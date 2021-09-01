@@ -806,8 +806,7 @@ void animationDetailsFromScriptValue(const ScriptValuePointer& object, Animation
 }
 
 ScriptValuePointer meshToScriptValue(ScriptEngine* engine, MeshProxy* const& in) {
-    return engine->newQObject(in, ScriptEngine::QtOwnership,
-                              ScriptEngine::ExcludeDeleteLater | ScriptEngine::ExcludeChildObjects);
+    return engine->newQObject(in, ScriptEngine::QtOwnership);
 }
 
 void meshFromScriptValue(const ScriptValuePointer& value, MeshProxy*& out) {

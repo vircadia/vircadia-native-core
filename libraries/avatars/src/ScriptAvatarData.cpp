@@ -11,6 +11,25 @@
 
 #include "ScriptAvatarData.h"
 
+#include <ScriptEngineCast.h>
+#include <ScriptManager.h>
+
+ScriptValuePointer avatarDataToScriptValue(ScriptEngine* engine, ScriptAvatarData* const& in) {
+    return engine->newQObject(in, ScriptEngine::ScriptOwnership);
+}
+
+void avatarDataFromScriptValue(const ScriptValuePointer& object, ScriptAvatarData*& out) {
+    // This is not implemented because there are no slots/properties that take an AvatarSharedPointer from a script
+    assert(false);
+    out = nullptr;
+}
+
+STATIC_SCRIPT_INITIALIZER(+[](ScriptManager* manager) {
+    auto scriptEngine = manager->engine().data();
+
+    scriptRegisterMetaType(scriptEngine, avatarDataToScriptValue, avatarDataFromScriptValue);
+});
+
 ScriptAvatarData::ScriptAvatarData(AvatarSharedPointer avatarData) :
     _avatarData(avatarData)
 {

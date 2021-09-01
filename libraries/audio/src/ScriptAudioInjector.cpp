@@ -1,6 +1,6 @@
 //
 //  ScriptAudioInjector.cpp
-//  libraries/script-engine/src
+//  libraries/audio/src
 //
 //  Created by Stephen Birarda on 2015-02-11.
 //  Copyright 2015 High Fidelity, Inc.
@@ -11,9 +11,17 @@
 
 #include "ScriptAudioInjector.h"
 
-#include "ScriptEngine.h"
-#include "ScriptEngineLogging.h"
-#include "ScriptValue.h"
+#include <ScriptEngine.h>
+#include <ScriptEngineCast.h>
+#include <ScriptEngineLogging.h>
+#include <ScriptManager.h>
+#include <ScriptValue.h>
+
+STATIC_SCRIPT_INITIALIZER(+[](ScriptManager* manager) {
+    auto scriptEngine = manager->engine().data();
+
+    scriptRegisterMetaType(scriptEngine, injectorToScriptValue, injectorFromScriptValue);
+});
 
 ScriptValuePointer injectorToScriptValue(ScriptEngine* engine, ScriptAudioInjector* const& in) {
     // The AudioScriptingInterface::playSound method can return null, so we need to account for that.

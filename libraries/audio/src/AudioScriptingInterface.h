@@ -15,10 +15,10 @@
 #ifndef hifi_AudioScriptingInterface_h
 #define hifi_AudioScriptingInterface_h
 
-#include <AbstractAudioInterface.h>
-#include <AudioInjector.h>
+#include "AbstractAudioInterface.h"
+#include "AudioInjector.h"
 #include <DependencyManager.h>
-#include <Sound.h>
+#include "Sound.h"
 
 class ScriptAudioInjector;
 class ScriptEngine;

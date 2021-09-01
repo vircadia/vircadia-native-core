@@ -1,6 +1,6 @@
 //
 //  ScriptValueQtWrapper.cpp
-//  libraries/script-engine/src
+//  libraries/script-engine/src/qtscript
 //
 //  Created by Heather Anderson on 5/16/21.
 //  Copyright 2021 Vircadia contributors.

@@ -1,6 +1,6 @@
 //
 //  ScriptAudioInjector.h
-//  libraries/script-engine/src
+//  libraries/audio/src
 //
 //  Created by Stephen Birarda on 2015-02-11.
 //  Copyright 2015 High Fidelity, Inc.
@@ -18,7 +18,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QSharedPointer>
 
-#include <AudioInjectorManager.h>
+#include "AudioInjectorManager.h"
 
 class ScriptEngine;
 class ScriptValue;

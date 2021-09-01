@@ -1,7 +1,6 @@
 set(TARGET_NAME entities)
 setup_hifi_library(Network)
 target_include_directories(${TARGET_NAME} PRIVATE "${OPENSSL_INCLUDE_DIR}")
-include_hifi_library_headers(animation)
 include_hifi_library_headers(hfm)
 include_hifi_library_headers(model-serializers)
 include_hifi_library_headers(gpu)

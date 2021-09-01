@@ -20,7 +20,7 @@ ScriptValuePointer toolbarToScriptValue(ScriptEngine* engine, ToolbarProxy* cons
     if (!in) {
         return engine->undefinedValue();
     }
-    return engine->newQObject(in, ScriptEngine::QtOwnership, ScriptEngine::ExcludeDeleteLater | ScriptEngine::ExcludeChildObjects);
+    return engine->newQObject(in, ScriptEngine::QtOwnership);
 }
 
 void toolbarFromScriptValue(const ScriptValuePointer& value, ToolbarProxy* &out) {
@@ -31,7 +31,7 @@ ScriptValuePointer toolbarButtonToScriptValue(ScriptEngine* engine, ToolbarButto
     if (!in) {
         return engine->undefinedValue();
     }
-    return engine->newQObject(in, ScriptEngine::QtOwnership, ScriptEngine::ExcludeDeleteLater | ScriptEngine::ExcludeChildObjects);
+    return engine->newQObject(in, ScriptEngine::QtOwnership);
 }
 
 void toolbarButtonFromScriptValue(const ScriptValuePointer& value, ToolbarButtonProxy* &out) {

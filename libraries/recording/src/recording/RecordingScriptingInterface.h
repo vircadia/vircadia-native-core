@@ -19,9 +19,9 @@
 #include <QtCore/QSharedPointer>
 
 #include <DependencyManager.h>
-#include <recording/ClipCache.h>
-#include <recording/Forward.h>
-#include <recording/Frame.h>
+#include "ClipCache.h"
+#include "Forward.h"
+#include "Frame.h"
 
 class ScriptValue;
 using ScriptValuePointer = QSharedPointer<ScriptValue>;

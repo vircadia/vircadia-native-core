@@ -16,9 +16,19 @@
 #include <shared/QtHelpers.h>
 
 #include "ScriptAudioInjector.h"
-#include "ScriptEngine.h"
-#include "ScriptEngineCast.h"
-#include "ScriptEngineLogging.h"
+#include <ScriptEngine.h>
+#include <ScriptEngineCast.h>
+#include <ScriptEngineLogging.h>
+#include <ScriptManager.h>
+
+
+STATIC_SCRIPT_INITIALIZER(+[](ScriptManager* manager){
+    auto scriptEngine = manager->engine().data();
+
+    registerAudioMetaTypes(scriptEngine);
+    scriptEngine->registerGlobalObject("Audio", DependencyManager::get<AudioScriptingInterface>().data());
+});
+
 
 void registerAudioMetaTypes(ScriptEngine* engine) {
     scriptRegisterMetaType(engine, injectorOptionsToScriptValue, injectorOptionsFromScriptValue);

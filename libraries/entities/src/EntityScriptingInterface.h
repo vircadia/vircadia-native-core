@@ -27,7 +27,7 @@
 #include <RegisteredMetaTypes.h>
 #include "PointerEvent.h"
 #include <PickFilter.h>
-#include "ScriptManager.h"
+#include <ScriptManager.h>
 
 #include "PolyVoxEntityItem.h"
 #include "LineEntityItem.h"
@@ -2540,7 +2540,13 @@ protected:
         }
     };
 
+private:
+    void attachDefaultEventHandlers(ScriptManager* manager);  // called on first call to Script.addEventHandler
+    friend void staticScriptInitializer(ScriptManager* manager);
+
 private slots:
+    void releaseEntityPacketSenderMessages(bool wait);
+
     void handleEntityScriptCallMethodPacket(QSharedPointer<ReceivedMessage> receivedMessage, SharedNodePointer senderNode);
     void onAddingEntity(EntityItem* entity);
     void onDeletingEntity(EntityItem* entity);

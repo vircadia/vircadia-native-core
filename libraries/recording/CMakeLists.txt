@@ -4,6 +4,6 @@ set(TARGET_NAME recording)
 setup_hifi_library()
 
 # use setup_hifi_library macro to setup our project and link appropriate Qt modules
-link_hifi_libraries(shared networking)
+link_hifi_libraries(shared networking script-engine)
 
 GroupSources("src/recording")

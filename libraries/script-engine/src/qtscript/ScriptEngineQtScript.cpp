@@ -1,6 +1,6 @@
 //
 //  ScriptEngineQtScript.cpp
-//  libraries/script-engine-qtscript/src
+//  libraries/script-engine/src/qtscript
 //
 //  Created by Brad Hefta-Gaub on 12/14/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -869,11 +869,11 @@ ScriptProgramPointer ScriptEngineQtScript::newProgram(const QString& sourceCode,
     return ScriptProgramPointer(new ScriptProgramQtWrapper(this, result));
 }
 
-ScriptValuePointer ScriptEngineQtScript::newQObject(QObject* obj,
+ScriptValuePointer ScriptEngineQtScript::newQObject(QObject* object,
                                                     ScriptEngine::ValueOwnership ownership,
                                                     const ScriptEngine::QObjectWrapOptions& options) {
-    QScriptValue result = QScriptEngine::newQObject(obj, static_cast<QScriptEngine::ValueOwnership>(ownership),
-        (QScriptEngine::QObjectWrapOptions)(int)options);
+    QScriptValue result = QScriptEngine::newQObject(object, static_cast<QScriptEngine::ValueOwnership>(ownership),
+        (QScriptEngine::QObjectWrapOptions)((int)options | DEFAULT_QOBJECT_WRAP_OPTIONS));
     return ScriptValuePointer(new ScriptValueQtWrapper(this, std::move(result)));
 }
 

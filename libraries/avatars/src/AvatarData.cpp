@@ -37,13 +37,14 @@
 #include <shared/JSONHelpers.h>
 #include <ScriptEngine.h>
 #include <ScriptEngineCast.h>
+#include <ScriptManager.h>
 #include <ScriptValueIterator.h>
+#include <ScriptValueUtils.h>
 #include <ShapeInfo.h>
 #include <AudioHelpers.h>
 #include <Profile.h>
 #include <VariantMapToScriptValue.h>
 #include <BitVectorHelpers.h>
-#include <ScriptValueUtils.h>
 
 #include "AvatarLogging.h"
 #include "AvatarTraits.h"
@@ -65,6 +66,14 @@ static const float AUDIO_LOUDNESS_SCALE = 1024.0f;
 static const float DEFAULT_AVATAR_DENSITY = 1000.0f; // density of water
 
 #define ASSERT(COND)  do { if (!(COND)) { abort(); } } while(0)
+
+STATIC_SCRIPT_INITIALIZER(+[](ScriptManager* manager) {
+    auto scriptEngine = manager->engine().data();
+
+    registerAvatarTypes(scriptEngine);
+    scriptRegisterMetaType(scriptEngine, RayToAvatarIntersectionResultToScriptValue, RayToAvatarIntersectionResultFromScriptValue);
+    scriptRegisterMetaType(scriptEngine, AvatarEntityMapToScriptValue, AvatarEntityMapFromScriptValue);
+});
 
 size_t AvatarDataPacket::maxFaceTrackerInfoSize(size_t numBlendshapeCoefficients) {
     return FACE_TRACKER_INFO_SIZE + numBlendshapeCoefficients * sizeof(float);

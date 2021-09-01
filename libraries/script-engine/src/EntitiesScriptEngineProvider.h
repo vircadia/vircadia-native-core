@@ -1,6 +1,6 @@
 //
 //  EntitiesScriptEngineProvider.h
-//  libraries/entities/src
+//  libraries/script-engine/src
 //
 //  Created by Brad Hefta-Gaub on Sept. 18, 2015
 //  Copyright 2015 High Fidelity, Inc.

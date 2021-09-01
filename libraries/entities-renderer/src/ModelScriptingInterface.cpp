@@ -1,6 +1,6 @@
 //
 //  ModelScriptingInterface.cpp
-//  libraries/script-engine/src
+//  libraries/entities-renderer/src
 //
 //  Created by Seth Alves on 2017-1-27.
 //  Copyright 2017 High Fidelity, Inc.
@@ -11,12 +11,18 @@
 
 #include "ModelScriptingInterface.h"
 #include <model-networking/SimpleMeshProxy.h>
-#include "ScriptEngine.h"
-#include "ScriptEngineCast.h"
-#include "ScriptEngineLogging.h"
-#include "ScriptManager.h"
-#include "ScriptValueUtils.h"
-#include "OBJWriter.h"
+#include <ScriptEngine.h>
+#include <ScriptEngineCast.h>
+#include <ScriptEngineLogging.h>
+#include <ScriptManager.h>
+#include <ScriptValueUtils.h>
+#include <OBJWriter.h>
+
+STATIC_SCRIPT_INITIALIZER(+[](ScriptManager* manager) {
+    auto scriptEngine = manager->engine().data();
+
+    scriptEngine->registerGlobalObject("Model", new ModelScriptingInterface(manager));
+});
 
 ModelScriptingInterface::ModelScriptingInterface(QObject* parent) : QObject(parent) {
     _modelScriptEngine = qobject_cast<ScriptManager*>(parent)->engine();

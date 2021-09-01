@@ -131,7 +131,7 @@
 #include <plugins/OculusPlatformPlugin.h>
 #include <plugins/InputConfiguration.h>
 #include <Quat.h>
-#include <RecordingScriptingInterface.h>
+#include <recording/RecordingScriptingInterface.h>
 #include <render/EngineStats.h>
 #include <SecondaryCamera.h>
 #include <ResourceCache.h>

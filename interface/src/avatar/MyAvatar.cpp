@@ -51,7 +51,7 @@
 #include <TextRenderer3D.h>
 #include <UserActivityLogger.h>
 #include <recording/Recorder.h>
-#include <RecordingScriptingInterface.h>
+#include <recording/RecordingScriptingInterface.h>
 #include <RenderableModelEntityItem.h>
 #include <VariantMapToScriptValue.h>
 #include <NetworkingConstants.h>
@@ -439,7 +439,7 @@ void MyAvatar::enableHandTouchForID(const QUuid& entityID) {
 }
 
 void MyAvatar::registerMetaTypes(ScriptEnginePointer engine) {
-    ScriptValuePointer value = engine->newQObject(this, ScriptEngine::QtOwnership, ScriptEngine::ExcludeDeleteLater | ScriptEngine::ExcludeChildObjects);
+    ScriptValuePointer value = engine->newQObject(this, ScriptEngine::QtOwnership);
     engine->globalObject()->setProperty("MyAvatar", value);
 
     ScriptValuePointer driveKeys = engine->newObject();

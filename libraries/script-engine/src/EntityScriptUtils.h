@@ -1,6 +1,6 @@
 //
 //  EntityScriptUtils.h
-//  libraries/networking/src
+//  libraries/script-engine/src
 //
 //  Created by Ryan Huffman on 2017/01/13
 //  Copyright 2017 High Fidelity, Inc.

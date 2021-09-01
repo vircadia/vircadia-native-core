@@ -36,7 +36,7 @@ ScriptValuePointer wrapperToScriptValue(ScriptEngine* engine, T* const &in) {
     if (!in) {
         return engine->undefinedValue();
     }
-    return engine->newQObject(in, ScriptEngine::QtOwnership, ScriptEngine::ExcludeDeleteLater | ScriptEngine::ExcludeChildObjects);
+    return engine->newQObject(in, ScriptEngine::QtOwnership);
 }
 
 template <typename T>

@@ -25,6 +25,27 @@
 #include "InputDevice.h"
 #include "InputRecorder.h"
 
+#include <ScriptEngine.h>
+#include <ScriptEngineCast.h>
+#include <ScriptManager.h>
+#include <ScriptValue.h>
+
+Q_DECLARE_METATYPE(controller::InputController*)
+//static int inputControllerPointerId = qRegisterMetaType<controller::InputController*>();
+
+ScriptValuePointer inputControllerToScriptValue(ScriptEngine* engine, controller::InputController* const& in) {
+    return engine->newQObject(in, ScriptEngine::QtOwnership);
+}
+
+void inputControllerFromScriptValue(const ScriptValuePointer& object, controller::InputController*& out) {
+    out = qobject_cast<controller::InputController*>(object->toQObject());
+}
+
+STATIC_SCRIPT_INITIALIZER(+[](ScriptManager* manager) {
+    auto scriptEngine = manager->engine().data();
+
+    scriptRegisterMetaType(scriptEngine, inputControllerToScriptValue, inputControllerFromScriptValue);
+});
 
 static QRegularExpression SANITIZE_NAME_EXPRESSION{ "[\\(\\)\\.\\s]" };
 

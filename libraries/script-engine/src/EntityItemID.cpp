@@ -1,6 +1,6 @@
 //
 //  EntityItemID.cpp
-//  libraries/entities/src
+//  libraries/script-engine/src
 //
 //  Created by Brad Hefta-Gaub on 12/4/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -17,9 +17,9 @@
 #include <udt/PacketHeaders.h>
 #include <UUID.h>
 
-#include "RegisteredMetaTypes.h"
-#include <ScriptValue.h>
-#include <ScriptValueUtils.h>
+#include <RegisteredMetaTypes.h>
+#include "ScriptValue.h"
+#include "ScriptValueUtils.h"
 
 int entityItemIDTypeID = qRegisterMetaType<EntityItemID>();
 

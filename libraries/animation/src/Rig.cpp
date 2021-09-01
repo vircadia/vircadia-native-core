@@ -1652,14 +1652,35 @@ void Rig::updateAnimationStateHandlers() { // called on avatar update thread (wh
                 rig->animationStateHandlerResult(identifier, result);
             }
         };
-        // invokeMethod makes a copy of the args, and copies of AnimVariantMap do copy the underlying map, so this will correctly capture
-        // the state of _animVars and allow continued changes to _animVars in this thread without conflict.
-        QMetaObject::invokeMethod(function->engine()->manager(), "callAnimationStateHandler",  Qt::QueuedConnection,
-                                  Q_ARG(ScriptValuePointer, function),
-                                  Q_ARG(AnimVariantMap, _animVars),
-                                  Q_ARG(QStringList, value.propertyNames),
-                                  Q_ARG(bool, value.useNames),
-                                  Q_ARG(AnimVariantResultHandler, handleResult));
+
+        {
+            // make references to the parameters for the lambda here, but let the lambda be the one to take the copies
+            // Copies of AnimVariantMap do copy the underlying map, so this will correctly capture
+            // the state of _animVars and allow continued changes to _animVars in this thread without conflict.
+            const AnimVariantMap& animVars = _animVars;
+            ScriptEnginePointer engine = function->engine();
+            const QStringList& names = value.propertyNames;
+            bool useNames = value.useNames;
+
+            QMetaObject::invokeMethod(
+                engine->manager(),
+                [function, animVars, names, useNames, handleResult, engine] {
+                    ScriptValuePointer javascriptParameters = animVars.animVariantMapToScriptValue(engine.get(), names, useNames);
+                    ScriptValueList callingArguments;
+                    callingArguments << javascriptParameters;
+                    ScriptValuePointer result = function->call(ScriptValuePointer(), callingArguments);
+
+                    // validate result from callback function.
+                    if (result->isValid() && result->isObject()) {
+                        handleResult(result);
+                    } else {
+                        qCWarning(animation) << "Rig::updateAnimationStateHandlers invalid return argument from "
+                                                "callback, expected an object";
+                    }
+                },
+                Qt::QueuedConnection);
+        }
+
         // It turns out that, for thread-safety reasons, ScriptEngine::callAnimationStateHandler will invoke itself if called from other
         // than the script thread. Thus the above _could_ be replaced with an ordinary call, which will then trigger the same
         // invokeMethod as is done explicitly above. However, the script-engine library depends on this animation library, not vice versa.

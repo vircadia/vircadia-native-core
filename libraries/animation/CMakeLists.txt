@@ -1,8 +1,6 @@
 set(TARGET_NAME animation)
 setup_hifi_library(Network)
 link_hifi_libraries(shared graphics model-serializers script-engine)
-include_hifi_library_headers(animation)
-include_hifi_library_headers(entities)
 include_hifi_library_headers(gpu)
 include_hifi_library_headers(hfm)
 include_hifi_library_headers(image)

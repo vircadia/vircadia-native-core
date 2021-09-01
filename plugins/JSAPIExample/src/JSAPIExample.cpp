@@ -63,7 +63,7 @@ namespace REPLACE_ME_WITH_UNIQUE_NAME {
             }
             qCWarning(logger) << "registering w/ScriptInitializerMixin..." << scriptInit.data();
             scriptInit->registerScriptInitializer([this](ScriptEngine* engine) {
-                auto value = engine->newQObject(this, ScriptEngine::QtOwnership, ScriptEngine::ExcludeDeleteLater);
+                auto value = engine->newQObject(this, ScriptEngine::QtOwnership);
                 engine->globalObject()->setProperty(objectName(), value);
                 // qCDebug(logger) << "setGlobalInstance" << objectName() << engine->property("fileName");
             });
@@ -174,7 +174,7 @@ namespace REPLACE_ME_WITH_UNIQUE_NAME {
                 raiseScriptingError(context(), "error creating scoped settings instance: " + error);
                 return engine->nullValue();
             }
-            return engine->newQObject(cppValue, ScriptEngine::ScriptOwnership, ScriptEngine::ExcludeDeleteLater);
+            return engine->newQObject(cppValue, ScriptEngine::ScriptOwnership);
         }
 
     private:

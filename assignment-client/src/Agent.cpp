@@ -59,7 +59,7 @@
 
 #include "entities/AssignmentParentFinder.h"
 #include "AssignmentDynamicFactory.h"
-#include "RecordingScriptingInterface.h"
+#include <recording/RecordingScriptingInterface.h>
 #include "AbstractAudioInterface.h"
 #include "AgentScriptingInterface.h"
 

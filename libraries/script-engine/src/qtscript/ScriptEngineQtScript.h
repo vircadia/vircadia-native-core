@@ -1,6 +1,6 @@
 //
 //  ScriptEngineQtScript.h
-//  libraries/script-engine-qtscript/src
+//  libraries/script-engine/src/qtscript
 //
 //  Created by Brad Hefta-Gaub on 12/14/13.
 //  Copyright 2013 High Fidelity, Inc.

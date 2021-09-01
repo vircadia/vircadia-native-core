@@ -20,16 +20,16 @@
 #include <NumericalConstants.h>
 #include <PathUtils.h>
 #include <Transform.h>
-#include <recording/Deck.h>
-#include <recording/Recorder.h>
-#include <recording/Clip.h>
-#include <recording/Frame.h>
-#include <recording/ClipCache.h>
+#include "Deck.h"
+#include "Recorder.h"
+#include "Clip.h"
+#include "Frame.h"
+#include "ClipCache.h"
 
-#include "ScriptEngine.h"
-#include "ScriptEngineLogging.h"
-#include "ScriptManager.h"
-#include "ScriptValue.h"
+#include <ScriptEngine.h>
+#include <ScriptEngineLogging.h>
+#include <ScriptManager.h>
+#include <ScriptValue.h>
 
 using namespace recording;
 
