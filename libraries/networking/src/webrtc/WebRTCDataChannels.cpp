@@ -513,7 +513,7 @@ bool WebRTCDataChannels::sendDataMessage(int dataChannelID, const QByteArray& by
 
     // Find connection.
     if (!_connectionsByDataChannel.contains(dataChannelID)) {
-        qCWarning(networking_webrtc) << "Could not find data channel to send message on!";
+        qCWarning(networking_webrtc) << "Could not find WebRTC data channel to send message on!";
         return false;
     }
 
@@ -524,8 +524,14 @@ bool WebRTCDataChannels::sendDataMessage(int dataChannelID, const QByteArray& by
 
 /// @brief Gets the number of bytes waiting to be written on a data channel.
 /// @param port The data channel ID.
-/// @return The number of bytes waiting to be written on the data channel.
+/// @return The number of bytes waiting to be written on the data channel; 0 if the channel doesn't exist.
 qint64 WebRTCDataChannels::getBufferedAmount(int dataChannelID) const {
+    if (!_connectionsByDataChannel.contains(dataChannelID)) {
+#ifdef WEBRTC_DEBUG
+        qCDebug(networking_webrtc) << "WebRTCDataChannels::getBufferedAmount() : Channel doesn't exist:" << dataChannelID;
+#endif
+        return 0;
+    }
     auto connection = _connectionsByDataChannel.value(dataChannelID);
     return connection->getBufferedAmount();
 }
