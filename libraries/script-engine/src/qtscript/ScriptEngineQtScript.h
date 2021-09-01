@@ -382,7 +382,8 @@ signals:
 public: // not for public use, but I don't like how Qt strings this along with private friend functions
     virtual ScriptValuePointer create(int type, const void* ptr);
     virtual bool convert(const ScriptValuePointer& value, int type, void* ptr);
-    virtual void registerCustomType(int type, ScriptEngine::MarshalFunction mf, ScriptEngine::DemarshalFunction df, const ScriptValuePointer& prototype);
+    virtual void registerCustomType(int type, ScriptEngine::MarshalFunction marshalFunc,
+        ScriptEngine::DemarshalFunction demarshalFunc, const ScriptValuePointer& prototype);
 
 protected:
     // like `newFunction`, but allows mapping inline C++ lambdas with captures as callable QScriptValues
@@ -402,6 +403,16 @@ protected:
      * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE void executeOnScriptThread(std::function<void()> function, const Qt::ConnectionType& type = Qt::QueuedConnection );
+
+    // store for handling custom type marshaling/demarshaling
+    struct CustomTypeInfo {
+        ScriptEngine::MarshalFunction marshalFunc;
+        ScriptEngine::DemarshalFunction demarshalFunc;
+        ScriptValuePointer prototype;
+    };
+    typedef std::map<int, CustomTypeInfo> TCustomTypeMap;
+    TCustomTypeMap _customTypes;
+    std::mutex _customTypeProtect;
 
     QPointer<ScriptManager> _manager;
 

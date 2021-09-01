@@ -1013,25 +1013,70 @@ bool ScriptEngineQtScript::raiseException(const ScriptValuePointer& exception) {
 }
 
 ScriptValuePointer ScriptEngineQtScript::create(int type, const void* ptr) {
+    // first we'll try custom types registered with us
+    ScriptEngine::MarshalFunction marshalFunc = nullptr;
+    ScriptValuePointer prototype;
+    {
+        std::lock_guard<std::mutex> guard(_customTypeProtect);
+        TCustomTypeMap::const_iterator loc = _customTypes.find(type);
+        if (loc != _customTypes.end()) {
+            const CustomTypeInfo& typeInfo = loc->second;
+            marshalFunc = typeInfo.marshalFunc;
+            prototype = typeInfo.prototype;
+        }
+    }
+    if (marshalFunc) {
+        ScriptValuePointer result = marshalFunc(this, ptr);
+        if (result && prototype) {
+            result->setPrototype(prototype);
+        }
+        return result;
+    }
+
+    // falling back to having QtScript handle it
     QScriptValue result = qScriptValueFromValue_helper(this, type, ptr);
     return ScriptValuePointer(new ScriptValueQtWrapper(const_cast<ScriptEngineQtScript*>(this), std::move(result)));
 }
 
 bool ScriptEngineQtScript::convert(const ScriptValuePointer& value, int type, void* ptr) {
+    // first we'll try custom types registered with us
+    ScriptEngine::DemarshalFunction demarshalFunc = nullptr;
+    {
+        std::lock_guard<std::mutex> guard(_customTypeProtect);
+        TCustomTypeMap::const_iterator loc = _customTypes.find(type);
+        if (loc != _customTypes.end()) {
+            demarshalFunc = loc->second.demarshalFunc;
+        }
+    }
+    if (demarshalFunc) {
+        demarshalFunc(value, ptr);
+        return true;
+    }
+
+    // falling back to having QtScript handle it
     ScriptValueQtWrapper* unwrapped = ScriptValueQtWrapper::unwrap(value);
     if (unwrapped == nullptr) {
         return false;
     }
     return qscriptvalue_cast_helper(unwrapped->toQtValue(), type, ptr);
 }
-/*
+
 void ScriptEngineQtScript::registerCustomType(int type,
-                                              ScriptEngine::MarshalFunction mf,
-                                              ScriptEngine::DemarshalFunction df,
-                                              const ScriptValuePointer& prototype) {
+                                              ScriptEngine::MarshalFunction marshalFunc,
+                                              ScriptEngine::DemarshalFunction demarshalFunc,
+                                              const ScriptValuePointer& prototype)
+{
     ScriptValueQtWrapper* unwrapped = ScriptValueQtWrapper::unwrap(prototype);
-    if (unwrapped != nullptr) {
-        qScriptRegisterMetaType_helper(this, type, mf, df, unwrapped->toQtValue());
+    if (unwrapped == nullptr) {
+        return;
     }
+
+    std::lock_guard<std::mutex> guard(_customTypeProtect);
+    TCustomTypeMap::iterator loc = _customTypes.find(type);
+    if(loc == _customTypes.end()) {
+        _customTypes.insert(TCustomTypeMap::value_type(type, CustomTypeInfo())).first;
+    }
+    CustomTypeInfo& typeInfo = loc->second;
+    typeInfo.marshalFunc = marshalFunc;
+    typeInfo.demarshalFunc = demarshalFunc;
 }
-*/
