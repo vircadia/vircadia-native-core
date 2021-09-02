@@ -805,11 +805,13 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
 
     {
         const QString resourcesBinaryFile = PathUtils::getRccPath();
+        qCInfo(interfaceapp) << "Loading primary resources from" << resourcesBinaryFile;
+
         if (!QFile::exists(resourcesBinaryFile)) {
-            throw std::runtime_error("Unable to find primary resources");
+            throw std::runtime_error(QString("Unable to find primary resources from '%1'").arg(resourcesBinaryFile).toStdString());
         }
         if (!QResource::registerResource(resourcesBinaryFile)) {
-            throw std::runtime_error("Unable to load primary resources");
+            throw std::runtime_error(QString("Unable to load primary resources from '%1'").arg(resourcesBinaryFile).toStdString());
         }
     }
 
@@ -1965,7 +1967,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     }
 
     QString scriptsSwitch = QString("--").append(SCRIPTS_SWITCH);
-    _defaultScriptsLocation = getCmdOption(argc, constArgv, scriptsSwitch.toStdString().c_str());
+    _defaultScriptsLocation.setPath(getCmdOption(argc, constArgv, scriptsSwitch.toStdString().c_str()));
 
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
@@ -3264,12 +3266,12 @@ void Application::initializeUi() {
         auto newValidator = [=](const QUrl& url) -> bool {
             QString whitelistPrefix = "[WHITELIST ENTITY SCRIPTS]";
             QList<QString> safeURLS = { "" };
-            safeURLS += qEnvironmentVariable("EXTRA_WHITELIST").trimmed().split(QRegExp("\\s*,\\s*"), QString::SkipEmptyParts);
+            safeURLS += qEnvironmentVariable("EXTRA_WHITELIST").trimmed().split(QRegExp("\\s*,\\s*"), Qt::SkipEmptyParts);
 
             // PULL SAFEURLS FROM INTERFACE.JSON Settings
 
             QVariant raw = Setting::Handle<QVariant>("private/settingsSafeURLS").get();
-            QStringList settingsSafeURLS = raw.toString().trimmed().split(QRegExp("\\s*[,\r\n]+\\s*"), QString::SkipEmptyParts);
+            QStringList settingsSafeURLS = raw.toString().trimmed().split(QRegExp("\\s*[,\r\n]+\\s*"), Qt::SkipEmptyParts);
             safeURLS += settingsSafeURLS;
 
             // END PULL SAFEURLS FROM INTERFACE.JSON Settings
@@ -8846,19 +8848,19 @@ void Application::initPlugins(const QStringList& arguments) {
     parser.parse(arguments);
 
     if (parser.isSet(display)) {
-        auto preferredDisplays = parser.value(display).split(',', QString::SkipEmptyParts);
+        auto preferredDisplays = parser.value(display).split(',', Qt::SkipEmptyParts);
         qInfo() << "Setting prefered display plugins:" << preferredDisplays;
         PluginManager::getInstance()->setPreferredDisplayPlugins(preferredDisplays);
     }
 
     if (parser.isSet(disableDisplays)) {
-        auto disabledDisplays = parser.value(disableDisplays).split(',', QString::SkipEmptyParts);
+        auto disabledDisplays = parser.value(disableDisplays).split(',', Qt::SkipEmptyParts);
         qInfo() << "Disabling following display plugins:"  << disabledDisplays;
         PluginManager::getInstance()->disableDisplays(disabledDisplays);
     }
 
     if (parser.isSet(disableInputs)) {
-        auto disabledInputs = parser.value(disableInputs).split(',', QString::SkipEmptyParts);
+        auto disabledInputs = parser.value(disableInputs).split(',', Qt::SkipEmptyParts);
         qInfo() << "Disabling following input plugins:" << disabledInputs;
         PluginManager::getInstance()->disableInputs(disabledInputs);
     }
