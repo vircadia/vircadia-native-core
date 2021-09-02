@@ -129,7 +129,9 @@ bool SockAddr::hasPrivateAddress() const {
 }
 
 QDebug operator<<(QDebug debug, const SockAddr& sockAddr) {
-    debug.nospace() << socketTypeToString(sockAddr._socketType).toLocal8Bit().constData() << " " 
+    debug.nospace() 
+        << (sockAddr._socketType != SocketType::Unknown 
+            ? (socketTypeToString(sockAddr._socketType) + " ").toLocal8Bit().constData() : "")
         << sockAddr._address.toString().toLocal8Bit().constData() << ":" << sockAddr._port;
     return debug.space();
 }
