@@ -103,6 +103,7 @@ public:
     virtual bool setProperty(const char* name, const QVariant& value) = 0;
     virtual void setProcessEventsInterval(int interval) = 0;
     virtual QThread* thread() const = 0;
+    virtual void setThread(QThread* thread) = 0;
     virtual ScriptValuePointer undefinedValue() = 0;
     virtual ScriptValuePointer uncaughtException() const = 0;
     virtual QStringList uncaughtExceptionBacktrace() const = 0;

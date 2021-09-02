@@ -67,7 +67,7 @@ ScriptValuePointer injectorOptionsToScriptValue(ScriptEngine* engine, const Audi
  *     removed.</p>
  */
 void injectorOptionsFromScriptValue(const ScriptValuePointer& object, AudioInjectorOptions& injectorOptions) {
-    if (!object->isObject()) {
+    if (!object || !object->isObject()) {
         qWarning() << "Audio injector options is not an object.";
         return;
     }

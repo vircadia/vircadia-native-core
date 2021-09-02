@@ -62,13 +62,16 @@ static const QScriptValue::PropertyFlags READONLY_HIDDEN_PROP_FLAGS { READONLY_P
 
 static const bool HIFI_AUTOREFRESH_FILE_SCRIPTS { true };
 
+Q_DECLARE_METATYPE(ScriptValuePointer);
+
 Q_DECLARE_METATYPE(QScriptEngine::FunctionSignature)
 int qfunctionSignatureMetaID = qRegisterMetaType<QScriptEngine::FunctionSignature>();
 
 int scriptEnginePointerMetaID = qRegisterMetaType<ScriptEngineQtScriptPointer>();
 
 bool ScriptEngineQtScript::IS_THREADSAFE_INVOCATION(const QThread* thread, const QString& method) {
-    if (QThread::currentThread() == thread) {
+    const QThread* currentThread = QThread::currentThread();
+    if (currentThread == thread) {
         return true;
     }
     qCCritical(scriptengine) << QString("Scripting::%1 @ %2 -- ignoring thread-unsafe call from %3")
@@ -380,11 +383,22 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine) {
     return QScriptValue();
 }
 
+static QScriptValue ScriptValueToQScriptValue(QScriptEngine* engine, const ScriptValuePointer& src) {
+    return ScriptValueQtWrapper::fullUnwrap(static_cast<ScriptEngineQtScript*>(engine), src);
+}
+
+static void ScriptValueFromQScriptValue(const QScriptValue& src, ScriptValuePointer& dest) {
+    ScriptEngineQtScript* engine = static_cast<ScriptEngineQtScript*>(src.engine());
+    dest = ScriptValuePointer(new ScriptValueQtWrapper(engine, src));
+}
+
 ScriptEngineQtScript::ScriptEngineQtScript(ScriptManager* scriptManager) :
     QScriptEngine(),
     _manager(scriptManager),
     _arrayBufferClass(new ArrayBufferClass(this))
 {
+    qScriptRegisterMetaType(this, ScriptValueToQScriptValue, ScriptValueFromQScriptValue);
+
     if (_manager) {
         connect(this, &QScriptEngine::signalHandlerException, this, [this](const QScriptValue& exception) {
             if (hasUncaughtException()) {
@@ -397,6 +411,7 @@ ScriptEngineQtScript::ScriptEngineQtScript(ScriptManager* scriptManager) :
                 emit _manager->unhandledException(ScriptValuePointer(new ScriptValueQtWrapper(this, std::move(thrown))));
             }
         }, Qt::DirectConnection);
+        moveToThread(scriptManager->thread());
     }
 
     QScriptValue null = QScriptEngine::nullValue();
@@ -993,6 +1008,10 @@ QThread* ScriptEngineQtScript::thread() const {
     return QScriptEngine::thread();
 }
 
+void ScriptEngineQtScript::setThread(QThread* thread) {
+    moveToThread(thread);
+}
+
 ScriptValuePointer ScriptEngineQtScript::uncaughtException() const {
     QScriptValue result = QScriptEngine::uncaughtException();
     return ScriptValuePointer(new ScriptValueQtWrapper(const_cast<ScriptEngineQtScript*>(this), std::move(result)));
@@ -1013,47 +1032,11 @@ bool ScriptEngineQtScript::raiseException(const ScriptValuePointer& exception) {
 }
 
 ScriptValuePointer ScriptEngineQtScript::create(int type, const void* ptr) {
-    // first we'll try custom types registered with us
-    ScriptEngine::MarshalFunction marshalFunc = nullptr;
-    ScriptValuePointer prototype;
-    {
-        std::lock_guard<std::mutex> guard(_customTypeProtect);
-        TCustomTypeMap::const_iterator loc = _customTypes.find(type);
-        if (loc != _customTypes.end()) {
-            const CustomTypeInfo& typeInfo = loc->second;
-            marshalFunc = typeInfo.marshalFunc;
-            prototype = typeInfo.prototype;
-        }
-    }
-    if (marshalFunc) {
-        ScriptValuePointer result = marshalFunc(this, ptr);
-        if (result && prototype) {
-            result->setPrototype(prototype);
-        }
-        return result;
-    }
-
-    // falling back to having QtScript handle it
     QScriptValue result = qScriptValueFromValue_helper(this, type, ptr);
     return ScriptValuePointer(new ScriptValueQtWrapper(const_cast<ScriptEngineQtScript*>(this), std::move(result)));
 }
 
 bool ScriptEngineQtScript::convert(const ScriptValuePointer& value, int type, void* ptr) {
-    // first we'll try custom types registered with us
-    ScriptEngine::DemarshalFunction demarshalFunc = nullptr;
-    {
-        std::lock_guard<std::mutex> guard(_customTypeProtect);
-        TCustomTypeMap::const_iterator loc = _customTypes.find(type);
-        if (loc != _customTypes.end()) {
-            demarshalFunc = loc->second.demarshalFunc;
-        }
-    }
-    if (demarshalFunc) {
-        demarshalFunc(value, ptr);
-        return true;
-    }
-
-    // falling back to having QtScript handle it
     ScriptValueQtWrapper* unwrapped = ScriptValueQtWrapper::unwrap(value);
     if (unwrapped == nullptr) {
         return false;
@@ -1061,22 +1044,100 @@ bool ScriptEngineQtScript::convert(const ScriptValuePointer& value, int type, vo
     return qscriptvalue_cast_helper(unwrapped->toQtValue(), type, ptr);
 }
 
+template <int i>
+class CustomTypeInstance {
+public:
+    static ScriptEngine::MarshalFunction marshalFunc;
+    static ScriptEngine::DemarshalFunction demarshalFunc;
+
+    static QScriptValue internalMarshalFunc(QScriptEngine* engine, const void* src) {
+        ScriptEngineQtScript* unwrappedEngine = static_cast<ScriptEngineQtScript*>(engine);
+        ScriptValuePointer dest = marshalFunc(unwrappedEngine, src);
+        return ScriptValueQtWrapper::fullUnwrap(unwrappedEngine, dest);
+    }
+
+    static void internalDemarshalFunc(const QScriptValue& src, void* dest) {
+        ScriptEngineQtScript* unwrappedEngine = static_cast<ScriptEngineQtScript*>(src.engine());
+        ScriptValuePointer wrappedSrc(new ScriptValueQtWrapper(unwrappedEngine, src));
+        demarshalFunc(wrappedSrc, dest);
+    }
+};
+template <int i>
+ScriptEngine::MarshalFunction CustomTypeInstance<i>::marshalFunc;
+template <int i>
+ScriptEngine::DemarshalFunction CustomTypeInstance<i>::demarshalFunc;
+
+// I would *LOVE* it if there was a different way to do this, jeez!
+// Qt requires two functions that have no parameters that give any context,
+// one of the must return a QScriptValue (so we can't void* them into generics and stick them in the templates).
+// This *has* to be done via templates but the whole point of this is to avoid leaking types into the rest of
+// the system that would require anyone other than us to have a dependency on QtScript
+#define CUSTOM_TYPE_ENTRY(idx) \
+        case idx: \
+            CustomTypeInstance<idx>::marshalFunc = marshalFunc; \
+            CustomTypeInstance<idx>::demarshalFunc = demarshalFunc; \
+            internalMarshalFunc = CustomTypeInstance<idx>::internalMarshalFunc; \
+            internalDemarshalFunc = CustomTypeInstance<idx>::internalDemarshalFunc; \
+            break;
+#define CUSTOM_TYPE_ENTRY_10(idx) \
+        CUSTOM_TYPE_ENTRY((idx * 10)); \
+        CUSTOM_TYPE_ENTRY((idx * 10) + 1); \
+        CUSTOM_TYPE_ENTRY((idx * 10) + 2); \
+        CUSTOM_TYPE_ENTRY((idx * 10) + 3); \
+        CUSTOM_TYPE_ENTRY((idx * 10) + 4); \
+        CUSTOM_TYPE_ENTRY((idx * 10) + 5); \
+        CUSTOM_TYPE_ENTRY((idx * 10) + 6); \
+        CUSTOM_TYPE_ENTRY((idx * 10) + 7); \
+        CUSTOM_TYPE_ENTRY((idx * 10) + 8); \
+        CUSTOM_TYPE_ENTRY((idx * 10) + 9);
+
 void ScriptEngineQtScript::registerCustomType(int type,
                                               ScriptEngine::MarshalFunction marshalFunc,
                                               ScriptEngine::DemarshalFunction demarshalFunc,
                                               const ScriptValuePointer& prototype)
 {
-    ScriptValueQtWrapper* unwrapped = ScriptValueQtWrapper::unwrap(prototype);
-    if (unwrapped == nullptr) {
+    QScriptValue unwrapped = ScriptValueQtWrapper::fullUnwrap(this, prototype);
+    QScriptEngine::MarshalFunction internalMarshalFunc;
+    QScriptEngine::DemarshalFunction internalDemarshalFunc;
+
+    if (_nextCustomType >= 300) { // have we ran out of translators?
+        Q_ASSERT(false);
         return;
     }
 
-    std::lock_guard<std::mutex> guard(_customTypeProtect);
-    TCustomTypeMap::iterator loc = _customTypes.find(type);
-    if(loc == _customTypes.end()) {
-        _customTypes.insert(TCustomTypeMap::value_type(type, CustomTypeInfo())).first;
+    switch (_nextCustomType++) {
+        CUSTOM_TYPE_ENTRY_10(0);
+        CUSTOM_TYPE_ENTRY_10(1);
+        CUSTOM_TYPE_ENTRY_10(2);
+        CUSTOM_TYPE_ENTRY_10(3);
+        CUSTOM_TYPE_ENTRY_10(4);
+        CUSTOM_TYPE_ENTRY_10(5);
+        CUSTOM_TYPE_ENTRY_10(6);
+        CUSTOM_TYPE_ENTRY_10(7);
+        CUSTOM_TYPE_ENTRY_10(8);
+        CUSTOM_TYPE_ENTRY_10(9);
+        CUSTOM_TYPE_ENTRY_10(10);
+        CUSTOM_TYPE_ENTRY_10(11);
+        CUSTOM_TYPE_ENTRY_10(12);
+        CUSTOM_TYPE_ENTRY_10(13);
+        CUSTOM_TYPE_ENTRY_10(14);
+        CUSTOM_TYPE_ENTRY_10(15);
+        CUSTOM_TYPE_ENTRY_10(16);
+        CUSTOM_TYPE_ENTRY_10(17);
+        CUSTOM_TYPE_ENTRY_10(18);
+        CUSTOM_TYPE_ENTRY_10(19);
+        CUSTOM_TYPE_ENTRY_10(20);
+        CUSTOM_TYPE_ENTRY_10(21);
+        CUSTOM_TYPE_ENTRY_10(22);
+        CUSTOM_TYPE_ENTRY_10(23);
+        CUSTOM_TYPE_ENTRY_10(24);
+        CUSTOM_TYPE_ENTRY_10(25);
+        CUSTOM_TYPE_ENTRY_10(26);
+        CUSTOM_TYPE_ENTRY_10(27);
+        CUSTOM_TYPE_ENTRY_10(28);
+        CUSTOM_TYPE_ENTRY_10(29);
+        CUSTOM_TYPE_ENTRY_10(30);
     }
-    CustomTypeInfo& typeInfo = loc->second;
-    typeInfo.marshalFunc = marshalFunc;
-    typeInfo.demarshalFunc = demarshalFunc;
+
+    qScriptRegisterMetaType_helper(this, type, internalMarshalFunc, internalDemarshalFunc, unwrapped);
 }

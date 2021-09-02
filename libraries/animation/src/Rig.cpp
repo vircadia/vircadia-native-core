@@ -1589,7 +1589,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 ScriptValuePointer Rig::addAnimationStateHandler(ScriptValuePointer handler, ScriptValuePointer propertiesList) { // called in script thread
 
     // validate argument types
-    if (handler->isFunction() && (isListOfStrings(propertiesList) || propertiesList->isUndefined() || propertiesList->isNull())) {
+    if (handler && handler->isFunction() && (isListOfStrings(propertiesList) || propertiesList->isUndefined() || propertiesList->isNull())) {
         QMutexLocker locker(&_stateMutex);
         // Find a safe id, even if there are lots of many scripts add and remove handlers repeatedly.
         while (!_nextStateHandlerId || _stateHandlers.contains(_nextStateHandlerId)) { // 0 is unused, and don't reuse existing after wrap.
@@ -1610,7 +1610,7 @@ ScriptValuePointer Rig::addAnimationStateHandler(ScriptValuePointer handler, Scr
 
 void Rig::removeAnimationStateHandler(ScriptValuePointer identifier) {  // called in script thread
     // validate arguments
-    if (identifier->isNumber()) {
+    if (identifier && identifier->isNumber()) {
         QMutexLocker locker(&_stateMutex);
         _stateHandlers.remove(identifier->toInt32()); // silently continues if handler not present. 0 is unused
     } else {

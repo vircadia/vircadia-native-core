@@ -67,7 +67,7 @@ static const float LATE_MIX_RIGHT_DEFAULT = 90.0f;
 static const float WET_DRY_MIX_DEFAULT = 50.0f;
 
 static void setOption(ScriptValuePointer arguments, const QString name, float defaultValue, float& variable) {
-    variable = arguments->property(name)->isNumber() ? (float)arguments->property(name)->toNumber() : defaultValue;
+    variable = arguments && arguments->property(name)->isNumber() ? (float)arguments->property(name)->toNumber() : defaultValue;
 }
 
 /*@jsdoc

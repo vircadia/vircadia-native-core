@@ -2670,8 +2670,7 @@ QVariantList MyAvatar::getAvatarEntitiesVariant() {
             EntityItemProperties entityProperties = entity->getProperties(desiredProperties);
             {
                 std::lock_guard<std::mutex> guard(_scriptEngineLock);
-                ScriptValuePointer scriptProperties;
-                scriptProperties = EntityItemPropertiesToScriptValue(_scriptEngine.data(), entityProperties);
+                ScriptValuePointer scriptProperties = EntityItemPropertiesToScriptValue(_scriptEngine.data(), entityProperties);
                 avatarEntityData["properties"] = scriptProperties->toVariant();
             }
             avatarEntitiesData.append(QVariant(avatarEntityData));

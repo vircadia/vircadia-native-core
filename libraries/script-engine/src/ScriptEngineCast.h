@@ -65,7 +65,8 @@ int scriptRegisterMetaType(ScriptEngine* eng,
                            ScriptValuePointer (*toScriptValue)(ScriptEngine*, const T& t),
                            void (*fromScriptValue)(const ScriptValuePointer&, T& t),
                            const ScriptValuePointer& prototype = ScriptValuePointer(),
-                           T* = 0) {
+                           T* = 0)
+{
     const int id = qRegisterMetaType<T>();  // make sure it's registered
     eng->registerCustomType(id, reinterpret_cast<ScriptEngine::MarshalFunction>(toScriptValue),
                             reinterpret_cast<ScriptEngine::DemarshalFunction>(fromScriptValue), prototype);

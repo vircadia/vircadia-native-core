@@ -87,6 +87,8 @@ int scriptManagerPointerMetaID = qRegisterMetaType<ScriptManagerPointer>();
 
 Q_DECLARE_METATYPE(ExternalResource::Bucket);
 
+Q_DECLARE_METATYPE(ScriptValuePointer);
+
 // --- Static script initialization registry
 
 static ScriptManager::StaticInitializerNode* rootInitializer = nullptr;
@@ -325,6 +327,7 @@ void ScriptManager::runInThread() {
     QThread* workerThread = new QThread();
     QString name = QString("js:") + getFilename().replace("about:","");
     workerThread->setObjectName(name);
+    _engine->setThread(workerThread);
     moveToThread(workerThread);
 
     // NOTE: If you connect any essential signals for proper shutdown or cleanup of
@@ -1256,13 +1259,13 @@ ScriptValuePointer ScriptManager::currentModule() {
     }
     auto jsRequire = _engine->globalObject()->property("Script")->property("require");
     auto cache = jsRequire->property("cache");
-    auto candidate = ScriptValuePointer();
+    ScriptValuePointer candidate;
     ScriptContextPointer parentContext;  // using this variable to maintain parent variable lifespan
-    for (auto context = _engine->currentContext(); context && !candidate->isObject(); parentContext = context->parentContext(), context = parentContext.data()) {
+    for (auto context = _engine->currentContext(); context && (!candidate || !candidate->isObject()); parentContext = context->parentContext(), context = parentContext.data()) {
         auto contextInfo = context->functionContext();
         candidate = cache->property(contextInfo->fileName());
     }
-    if (!candidate->isObject()) {
+    if (!candidate || !candidate->isObject()) {
         return ScriptValuePointer();
     }
     return candidate;
@@ -1589,8 +1592,8 @@ void ScriptManager::include(const QStringList& includeFiles, ScriptValuePointer 
         }
         _parentURL = parentURL;
 
-        if (callback->isFunction()) {
-            callWithEnvironment(capturedEntityIdentifier, capturedSandboxURL, ScriptValuePointer(callback), ScriptValuePointer(), ScriptValueList());
+        if (callback && callback->isFunction()) {
+            callWithEnvironment(capturedEntityIdentifier, capturedSandboxURL, callback, ScriptValuePointer(), ScriptValueList());
         }
 
         loader->deleteLater();
@@ -1603,7 +1606,7 @@ void ScriptManager::include(const QStringList& includeFiles, ScriptValuePointer 
 
     loader->start(processLevelMaxRetries);
 
-    if (!callback->isFunction() && !loader->isFinished()) {
+    if ((!callback || !callback->isFunction()) && !loader->isFinished()) {
         QEventLoop loop;
         QObject::connect(loader, &BatchLoader::finished, &loop, &QEventLoop::quit);
         loop.exec();
@@ -1963,7 +1966,7 @@ void ScriptManager::entityScriptContentAvailable(const EntityItemID& entityID, c
         if (sandbox->hasUncaughtException()) {
             exception = sandbox->cloneUncaughtException(QString("(preflight %1)").arg(entityID.toString()));
             sandbox->clearExceptions();
-        } else if (testConstructor->isError()) {
+        } else if (testConstructor && testConstructor->isError()) {
             exception = testConstructor;
         }
     } else {
@@ -2038,7 +2041,7 @@ void ScriptManager::entityScriptContentAvailable(const EntityItemID& entityID, c
             if (sandbox->hasUncaughtException()) {
                 exception = sandbox->cloneUncaughtException(QString("(preflight %1)").arg(entityID.toString()));
                 sandbox->clearExceptions();
-            } else if (testConstructor->isError()) {
+            } else if (testConstructor && testConstructor->isError()) {
                 exception = testConstructor;
             }
         }
@@ -2048,7 +2051,7 @@ void ScriptManager::entityScriptContentAvailable(const EntityItemID& entityID, c
       // exception = makeError("UNSAFE_ENTITY_SCRIPTS == 0");
     }
 
-    if (exception->isError()) {
+    if (exception && exception->isError()) {
       // create a local copy using makeError to decouple from the sandbox engine
       exception = _engine->makeError(exception);
       setError(formatException(exception, _enableExtendedJSExceptions.get()), EntityScriptStatus::ERROR_RUNNING_SCRIPT);
@@ -2057,7 +2060,7 @@ void ScriptManager::entityScriptContentAvailable(const EntityItemID& entityID, c
     }
 
     // CONSTRUCTOR VIABILITY
-    if (!testConstructor->isFunction()) {
+    if (!testConstructor || !testConstructor->isFunction()) {
         QString testConstructorType = QString(testConstructor->toVariant().typeName());
         if (testConstructorType == "") {
             testConstructorType = "empty";
@@ -2100,7 +2103,7 @@ void ScriptManager::entityScriptContentAvailable(const EntityItemID& entityID, c
 
     doWithEnvironment(entityID, sandboxURL, initialization);
 
-    if (entityScriptObject->isError()) {
+    if (entityScriptObject && entityScriptObject->isError()) {
         auto exception = entityScriptObject;
         setError(formatException(exception, _enableExtendedJSExceptions.get()), EntityScriptStatus::ERROR_RUNNING_SCRIPT);
         emit unhandledException(exception);

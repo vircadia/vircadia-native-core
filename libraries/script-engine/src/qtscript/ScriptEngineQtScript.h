@@ -89,6 +89,7 @@ public:  // ScriptEngine implementation
     virtual bool setProperty(const char* name, const QVariant& value);
     virtual void setProcessEventsInterval(int interval);
     virtual QThread* thread() const;
+    virtual void setThread(QThread* thread);
     virtual ScriptValuePointer undefinedValue();
     virtual ScriptValuePointer uncaughtException() const;
     virtual QStringList uncaughtExceptionBacktrace() const;
@@ -404,18 +405,9 @@ protected:
      */
     Q_INVOKABLE void executeOnScriptThread(std::function<void()> function, const Qt::ConnectionType& type = Qt::QueuedConnection );
 
-    // store for handling custom type marshaling/demarshaling
-    struct CustomTypeInfo {
-        ScriptEngine::MarshalFunction marshalFunc;
-        ScriptEngine::DemarshalFunction demarshalFunc;
-        ScriptValuePointer prototype;
-    };
-    typedef std::map<int, CustomTypeInfo> TCustomTypeMap;
-    TCustomTypeMap _customTypes;
-    std::mutex _customTypeProtect;
-
     QPointer<ScriptManager> _manager;
 
+    int _nextCustomType = 0;
     ScriptValuePointer _nullValue;
     ScriptValuePointer _undefinedValue;
     mutable ScriptContextQtPointer _currContext;

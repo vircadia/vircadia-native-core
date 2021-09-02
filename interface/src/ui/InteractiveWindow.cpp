@@ -102,8 +102,10 @@ ScriptValuePointer interactiveWindowPointerToScriptValue(ScriptEngine* engine, c
 }
 
 void interactiveWindowPointerFromScriptValue(const ScriptValuePointer& object, InteractiveWindowPointer& out) {
-    if (const auto interactiveWindow = qobject_cast<InteractiveWindowPointer>(object->toQObject())) {
-        out = interactiveWindow;
+    if (!object) {
+        if (const auto interactiveWindow = qobject_cast<InteractiveWindowPointer>(object->toQObject())) {
+            out = interactiveWindow;
+        }
     }
 }
 

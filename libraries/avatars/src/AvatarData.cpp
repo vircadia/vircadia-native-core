@@ -3178,11 +3178,11 @@ void RayToAvatarIntersectionResultFromScriptValue(const ScriptValuePointer& obje
     value.face = boxFaceFromString(object->property("face")->toVariant().toString());
 
     ScriptValuePointer intersection = object->property("intersection");
-    if (intersection->isValid()) {
+    if (intersection && intersection->isValid()) {
         vec3FromScriptValue(intersection, value.intersection);
     }
     ScriptValuePointer surfaceNormal = object->property("surfaceNormal");
-    if (surfaceNormal->isValid()) {
+    if (surfaceNormal && surfaceNormal->isValid()) {
         vec3FromScriptValue(surfaceNormal, value.surfaceNormal);
     }
     value.jointIndex = object->property("jointIndex")->toInt32();

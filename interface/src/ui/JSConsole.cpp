@@ -375,10 +375,10 @@ void JSConsole::commandFinished() {
         _ui->promptTextEdit->setFocus();
     }
 
-    bool error = (_scriptManager->engine()->hasUncaughtException() || result->isError());
+    bool error = (_scriptManager->engine()->hasUncaughtException() || (result && result->isError()));
     QString gutter = error ? GUTTER_ERROR : GUTTER_PREVIOUS_COMMAND;
     QString resultColor = error ? RESULT_ERROR_STYLE : RESULT_SUCCESS_STYLE;
-    QString resultStr = "<span style='" + resultColor + "'>" + result->toString().toHtmlEscaped() + "</span>";
+    QString resultStr = result ? "<span style='" + resultColor + "'>" + result->toString().toHtmlEscaped() + "</span>" : "";
     appendMessage(gutter, resultStr);
 
     resetCurrentCommandHistory();

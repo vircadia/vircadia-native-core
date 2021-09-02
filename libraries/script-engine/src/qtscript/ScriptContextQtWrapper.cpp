@@ -52,7 +52,7 @@ ScriptFunctionContextPointer ScriptContextQtWrapper::functionContext() const {
 
 ScriptContextPointer ScriptContextQtWrapper::parentContext() const {
     QScriptContext* result = _context->parentContext();
-    return ScriptContextPointer(new ScriptContextQtWrapper(_engine, result));
+    return result ? ScriptContextPointer(new ScriptContextQtWrapper(_engine, result)) : ScriptContextPointer();
 }
 
 ScriptValuePointer ScriptContextQtWrapper::thisObject() const {

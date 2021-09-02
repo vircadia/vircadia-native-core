@@ -89,11 +89,11 @@ void AnimVariantMap::animVariantMapFromScriptValue(const ScriptValuePointer& sou
     while (property->hasNext()) {
         property->next();
         ScriptValuePointer value = property->value();
-        if (value->isBool()) {
+        if (value && value->isBool()) {
             set(property->name(), value->toBool());
-        } else if (value->isString()) {
+        } else if (value && value->isString()) {
             set(property->name(), value->toString());
-        } else if (value->isNumber()) {
+        } else if (value && value->isNumber()) {
             int asInteger = value->toInt32();
             float asFloat = value->toNumber();
             if (asInteger == asFloat) {
@@ -102,15 +102,15 @@ void AnimVariantMap::animVariantMapFromScriptValue(const ScriptValuePointer& sou
                 set(property->name(), asFloat);
             }
         } else { // Try to get x,y,z and possibly w
-            if (value->isObject()) {
+            if (value && value->isObject()) {
                 ScriptValuePointer x = value->property("x");
-                if (x->isNumber()) {
+                if (x && x->isNumber()) {
                     ScriptValuePointer y = value->property("y");
-                    if (y->isNumber()) {
+                    if (y && y->isNumber()) {
                         ScriptValuePointer z = value->property("z");
-                        if (z->isNumber()) {
+                        if (z && z->isNumber()) {
                             ScriptValuePointer w = value->property("w");
-                            if (w->isNumber()) {
+                            if (w && w->isNumber()) {
                                 set(property->name(), glm::quat(w->toNumber(), x->toNumber(), y->toNumber(), z->toNumber()));
                             } else {
                                 set(property->name(), glm::vec3(x->toNumber(), y->toNumber(), z->toNumber()));
@@ -120,7 +120,7 @@ void AnimVariantMap::animVariantMapFromScriptValue(const ScriptValuePointer& sou
                     }
                 }
             }
-            qCWarning(animation) << "Ignoring unrecognized data" << value->toString() << "for animation property" << property->name();
+            qCWarning(animation) << "Ignoring unrecognized data " << (value ? value->toString() : "(undefined)") << " for animation property " << property->name();
             Q_ASSERT(false);
         }
     }
