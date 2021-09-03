@@ -20,6 +20,8 @@
 #include <QtCore/QObject>
 #include <QtCore/QSharedPointer>
 
+#include "ScriptValue.h"
+
 class QByteArray;
 class QLatin1String;
 class QString;
@@ -29,19 +31,17 @@ class ScriptContext;
 class ScriptEngine;
 class ScriptManager;
 class ScriptProgram;
-class ScriptValue;
 using ScriptEnginePointer = QSharedPointer<ScriptEngine>;
 using ScriptProgramPointer = QSharedPointer<ScriptProgram>;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 Q_DECLARE_METATYPE(ScriptEnginePointer);
 
 /// [ScriptInterface] Provides an engine-independent interface for QScriptEngine
 class ScriptEngine {
 public:
-    typedef ScriptValuePointer (*FunctionSignature)(ScriptContext*, ScriptEngine*);
-    typedef ScriptValuePointer (*MarshalFunction)(ScriptEngine*, const void*);
-    typedef void (*DemarshalFunction)(const ScriptValuePointer&, void*);
+    typedef ScriptValue (*FunctionSignature)(ScriptContext*, ScriptEngine*);
+    typedef ScriptValue (*MarshalFunction)(ScriptEngine*, const void*);
+    typedef void (*DemarshalFunction)(const ScriptValue&, void*);
 
     enum ValueOwnership {
         QtOwnership = 0,
@@ -65,47 +65,47 @@ public:
 public:
     virtual void abortEvaluation() = 0;
     virtual void clearExceptions() = 0;
-    virtual ScriptValuePointer cloneUncaughtException(const QString& detail = QString()) = 0;
+    virtual ScriptValue cloneUncaughtException(const QString& detail = QString()) = 0;
     virtual ScriptContext* currentContext() const = 0;
-    virtual ScriptValuePointer evaluate(const QString& program, const QString& fileName = QString()) = 0;
-    virtual ScriptValuePointer evaluate(const ScriptProgramPointer &program) = 0;
-    virtual ScriptValuePointer evaluateInClosure(const ScriptValuePointer& locals, const ScriptProgramPointer& program) = 0;
-    virtual ScriptValuePointer globalObject() const = 0;
+    virtual ScriptValue evaluate(const QString& program, const QString& fileName = QString()) = 0;
+    virtual ScriptValue evaluate(const ScriptProgramPointer &program) = 0;
+    virtual ScriptValue evaluateInClosure(const ScriptValue& locals, const ScriptProgramPointer& program) = 0;
+    virtual ScriptValue globalObject() const = 0;
     virtual bool hasUncaughtException() const = 0;
     virtual bool isEvaluating() const = 0;
-    virtual ScriptValuePointer lintScript(const QString& sourceCode, const QString& fileName, const int lineNumber = 1) = 0;
-    virtual ScriptValuePointer makeError(const ScriptValuePointer& other = ScriptValuePointer(), const QString& type = "Error") = 0;
+    virtual ScriptValue lintScript(const QString& sourceCode, const QString& fileName, const int lineNumber = 1) = 0;
+    virtual ScriptValue makeError(const ScriptValue& other = ScriptValue(), const QString& type = "Error") = 0;
     virtual ScriptManager* manager() const = 0;
     virtual bool maybeEmitUncaughtException(const QString& debugHint = QString()) = 0;
-    virtual ScriptValuePointer newArray(uint length = 0) = 0;
-    virtual ScriptValuePointer newArrayBuffer(const QByteArray& message) = 0;
-    virtual ScriptValuePointer newFunction(FunctionSignature fun, int length = 0) = 0;
-    virtual ScriptValuePointer newObject() = 0;
+    virtual ScriptValue newArray(uint length = 0) = 0;
+    virtual ScriptValue newArrayBuffer(const QByteArray& message) = 0;
+    virtual ScriptValue newFunction(FunctionSignature fun, int length = 0) = 0;
+    virtual ScriptValue newObject() = 0;
     virtual ScriptProgramPointer newProgram(const QString& sourceCode, const QString& fileName) = 0;
-    virtual ScriptValuePointer newQObject(QObject *object, ValueOwnership ownership = QtOwnership, const QObjectWrapOptions &options = QObjectWrapOptions()) = 0;
-    virtual ScriptValuePointer newValue(bool value) = 0;
-    virtual ScriptValuePointer newValue(int value) = 0;
-    virtual ScriptValuePointer newValue(uint value) = 0;
-    virtual ScriptValuePointer newValue(double value) = 0;
-    virtual ScriptValuePointer newValue(const QString& value) = 0;
-    virtual ScriptValuePointer newValue(const QLatin1String& value) = 0;
-    virtual ScriptValuePointer newValue(const char* value) = 0;
-    virtual ScriptValuePointer newVariant(const QVariant& value) = 0;
-    virtual ScriptValuePointer nullValue() = 0;
-    virtual bool raiseException(const ScriptValuePointer& exception) = 0;
+    virtual ScriptValue newQObject(QObject *object, ValueOwnership ownership = QtOwnership, const QObjectWrapOptions &options = QObjectWrapOptions()) = 0;
+    virtual ScriptValue newValue(bool value) = 0;
+    virtual ScriptValue newValue(int value) = 0;
+    virtual ScriptValue newValue(uint value) = 0;
+    virtual ScriptValue newValue(double value) = 0;
+    virtual ScriptValue newValue(const QString& value) = 0;
+    virtual ScriptValue newValue(const QLatin1String& value) = 0;
+    virtual ScriptValue newValue(const char* value) = 0;
+    virtual ScriptValue newVariant(const QVariant& value) = 0;
+    virtual ScriptValue nullValue() = 0;
+    virtual bool raiseException(const ScriptValue& exception) = 0;
     virtual void registerEnum(const QString& enumName, QMetaEnum newEnum) = 0;
     virtual void registerFunction(const QString& name, FunctionSignature fun, int numArguments = -1) = 0;
     virtual void registerFunction(const QString& parent, const QString& name, FunctionSignature fun, int numArguments = -1) = 0;
     virtual void registerGetterSetter(const QString& name, FunctionSignature getter, FunctionSignature setter, const QString& parent = QString("")) = 0;
     virtual void registerGlobalObject(const QString& name, QObject* object) = 0;
-    virtual void setDefaultPrototype(int metaTypeId, const ScriptValuePointer& prototype) = 0;
+    virtual void setDefaultPrototype(int metaTypeId, const ScriptValue& prototype) = 0;
     virtual void setObjectName(const QString& name) = 0;
     virtual bool setProperty(const char* name, const QVariant& value) = 0;
     virtual void setProcessEventsInterval(int interval) = 0;
     virtual QThread* thread() const = 0;
     virtual void setThread(QThread* thread) = 0;
-    virtual ScriptValuePointer undefinedValue() = 0;
-    virtual ScriptValuePointer uncaughtException() const = 0;
+    virtual ScriptValue undefinedValue() = 0;
+    virtual ScriptValue uncaughtException() const = 0;
     virtual QStringList uncaughtExceptionBacktrace() const = 0;
     virtual int uncaughtExceptionLineNumber() const = 0;
     virtual void updateMemoryCost(const qint64& deltaSize) = 0;
@@ -116,19 +116,19 @@ public:
 
 public:
     template <typename T>
-    inline T fromScriptValue(const ScriptValuePointer& value) {
+    inline T fromScriptValue(const ScriptValue& value) {
         return scriptvalue_cast<T>(value);
     }
 
     template <typename T>
-    inline ScriptValuePointer toScriptValue(const T& value) {
+    inline ScriptValue toScriptValue(const T& value) {
         return scriptValueFromValue(this, value);
     }
 
 public: // not for public use, but I don't like how Qt strings this along with private friend functions
-    virtual ScriptValuePointer create(int type, const void* ptr) = 0;
-    virtual bool convert(const ScriptValuePointer& value, int type, void* ptr) = 0;
-    virtual void registerCustomType(int type, MarshalFunction mf, DemarshalFunction df, const ScriptValuePointer& prototype) = 0;
+    virtual ScriptValue create(int type, const void* ptr) = 0;
+    virtual bool convert(const ScriptValue& value, int type, void* ptr) = 0;
+    virtual void registerCustomType(int type, MarshalFunction mf, DemarshalFunction df, const ScriptValue& prototype) = 0;
 };
 Q_DECLARE_OPERATORS_FOR_FLAGS(ScriptEngine::QObjectWrapOptions);
 
@@ -143,8 +143,8 @@ ScriptEnginePointer newScriptEngine(ScriptManager* manager = nullptr);
 //   auto handler = makeScopedHandlerObject(scopeOrCallback, optionalMethodOrName);
 // And then invoke the scoped handler later per CPS conventions:
 //   auto result = callScopedHandlerObject(handler, err, result);
-ScriptValuePointer makeScopedHandlerObject(ScriptValuePointer scopeOrCallback, ScriptValuePointer methodOrName);
-ScriptValuePointer callScopedHandlerObject(ScriptValuePointer handler, ScriptValuePointer err, ScriptValuePointer result);
+ScriptValue makeScopedHandlerObject(const ScriptValue& scopeOrCallback, const ScriptValue& methodOrName);
+ScriptValue callScopedHandlerObject(const ScriptValue& handler, const ScriptValue& err, const ScriptValue& result);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Inline implementations

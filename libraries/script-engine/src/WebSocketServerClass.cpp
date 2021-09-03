@@ -26,21 +26,21 @@ WebSocketServerClass::WebSocketServerClass(ScriptEngine* engine, const QString& 
     }
 }
 
-ScriptValuePointer WebSocketServerClass::constructor(ScriptContext* context, ScriptEngine* engine) {
+ScriptValue WebSocketServerClass::constructor(ScriptContext* context, ScriptEngine* engine) {
     // the serverName is used in handshakes
     QString serverName = QStringLiteral("HighFidelity - Scripted WebSocket Listener");
     // port 0 will auto-assign a free port
     quint16 port = 0;
-    ScriptValuePointer callee = context->callee();
+    ScriptValue callee = context->callee();
     if (context->argumentCount() > 0) {
-        ScriptValuePointer options = context->argument(0);
-        ScriptValuePointer portOption = options->property(QStringLiteral("port"));
-        if (portOption->isValid() && portOption->isNumber()) {
-            port = portOption->toNumber();
+        ScriptValue options = context->argument(0);
+        ScriptValue portOption = options.property(QStringLiteral("port"));
+        if (portOption.isValid() && portOption.isNumber()) {
+            port = portOption.toNumber();
         }
-        ScriptValuePointer serverNameOption = options->property(QStringLiteral("serverName"));
-        if (serverNameOption->isValid() && serverNameOption->isString()) {
-            serverName = serverNameOption->toString();
+        ScriptValue serverNameOption = options.property(QStringLiteral("serverName"));
+        if (serverNameOption.isValid() && serverNameOption.isString()) {
+            serverName = serverNameOption.toString();
         }
     }
     return engine->newQObject(new WebSocketServerClass(engine, serverName, port), ScriptEngine::ScriptOwnership);

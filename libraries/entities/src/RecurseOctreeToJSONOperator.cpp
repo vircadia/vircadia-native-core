@@ -35,7 +35,7 @@ void RecurseOctreeToJSONOperator::processEntity(const EntityItemPointer& entity)
         return;  // we weren't able to resolve a parent from _parentID, so don't save this entity.
     }
 
-    ScriptValuePointer qScriptValues = _skipDefaults
+    ScriptValue qScriptValues = _skipDefaults
         ? EntityItemNonDefaultPropertiesToScriptValue(_engine, entity->getProperties())
         : EntityItemPropertiesToScriptValue(_engine, entity->getProperties());
 
@@ -46,6 +46,6 @@ void RecurseOctreeToJSONOperator::processEntity(const EntityItemPointer& entity)
     _json += "\n    ";
 
     // Override default toString():
-    qScriptValues->setProperty("toString", _toStringMethod);
-    _json += qScriptValues->toString();
+    qScriptValues.setProperty("toString", _toStringMethod);
+    _json += qScriptValues.toString();
 }

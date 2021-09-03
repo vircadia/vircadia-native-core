@@ -62,7 +62,7 @@ static const QScriptValue::PropertyFlags READONLY_HIDDEN_PROP_FLAGS { READONLY_P
 
 static const bool HIFI_AUTOREFRESH_FILE_SCRIPTS { true };
 
-Q_DECLARE_METATYPE(ScriptValuePointer);
+Q_DECLARE_METATYPE(ScriptValue);
 
 Q_DECLARE_METATYPE(QScriptEngine::FunctionSignature)
 int qfunctionSignatureMetaID = qRegisterMetaType<QScriptEngine::FunctionSignature>();
@@ -120,26 +120,26 @@ QScriptValue ScriptEngineQtScript::makeError(const QScriptValue& _other, const Q
     return err;
 }
 
-ScriptValuePointer ScriptEngineQtScript::makeError(const ScriptValuePointer& _other, const QString& type) {
+ScriptValue ScriptEngineQtScript::makeError(const ScriptValue& _other, const QString& type) {
     if (!IS_THREADSAFE_INVOCATION(thread(), __FUNCTION__)) {
         return nullValue();
     }
     ScriptValueQtWrapper* unwrapped = ScriptValueQtWrapper::unwrap(_other);
     QScriptValue other;
-    if (_other->isString()) {
+    if (_other.isString()) {
         other = QScriptEngine::newObject();
-        other.setProperty("message", _other->toString());
+        other.setProperty("message", _other.toString());
     } else if (unwrapped) {
         other = unwrapped->toQtValue();
     } else {
-        other = QScriptEngine::newVariant(_other->toVariant());
+        other = QScriptEngine::newVariant(_other.toVariant());
     }
     QScriptValue result = makeError(other, type);
-    return ScriptValuePointer(new ScriptValueQtWrapper(this, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(this, std::move(result)));
 }
 
 // check syntax and when there are issues returns an actual "SyntaxError" with the details
-ScriptValuePointer ScriptEngineQtScript::lintScript(const QString& sourceCode, const QString& fileName, const int lineNumber) {
+ScriptValue ScriptEngineQtScript::lintScript(const QString& sourceCode, const QString& fileName, const int lineNumber) {
     if (!IS_THREADSAFE_INVOCATION(thread(), __FUNCTION__)) {
         return nullValue();
     }
@@ -158,13 +158,13 @@ ScriptValuePointer ScriptEngineQtScript::lintScript(const QString& sourceCode, c
             const auto message = QString("[SyntaxError] %1 in %2:%3(%4)").arg(error, fileName, line, column);
             err.setProperty("formatted", message);
         }
-        return ScriptValuePointer(new ScriptValueQtWrapper(this, std::move(err)));
+        return ScriptValue(new ScriptValueQtWrapper(this, std::move(err)));
     }
     return undefinedValue();
 }
 
 // this pulls from the best available information to create a detailed snapshot of the current exception
-ScriptValuePointer ScriptEngineQtScript::cloneUncaughtException(const QString& extraDetail) {
+ScriptValue ScriptEngineQtScript::cloneUncaughtException(const QString& extraDetail) {
     if (!IS_THREADSAFE_INVOCATION(thread(), __FUNCTION__)) {
         return nullValue();
     }
@@ -178,17 +178,17 @@ ScriptValuePointer ScriptEngineQtScript::cloneUncaughtException(const QString& e
     // not sure why Qt does't offer uncaughtExceptionFileName -- but the line number
     // on its own is often useless/wrong if arbitrarily married to a filename.
     // when the error object already has this info, it seems to be the most reliable
-    auto fileName = exception->property("fileName")->toString();
-    auto lineNumber = exception->property("lineNumber")->toInt32();
+    auto fileName = exception.property("fileName").toString();
+    auto lineNumber = exception.property("lineNumber").toInt32();
 
     // the backtrace, on the other hand, seems most reliable taken from uncaughtExceptionBacktrace
     auto backtrace = uncaughtExceptionBacktrace();
     if (backtrace.isEmpty()) {
         // fallback to the error object
-        backtrace = exception->property("stack")->toString().split(ScriptManager::SCRIPT_BACKTRACE_SEP);
+        backtrace = exception.property("stack").toString().split(ScriptManager::SCRIPT_BACKTRACE_SEP);
     }
     // the ad hoc "detail" property can be used now to embed additional clues
-    auto detail = exception->property("detail")->toString();
+    auto detail = exception.property("detail").toString();
     if (detail.isEmpty()) {
         detail = extraDetail;
     } else if (!extraDetail.isEmpty()) {
@@ -212,15 +212,15 @@ ScriptValuePointer ScriptEngineQtScript::cloneUncaughtException(const QString& e
             }
         }
     }
-    err->setProperty("fileName", fileName);
-    err->setProperty("lineNumber", lineNumber);
-    err->setProperty("detail", detail);
-    err->setProperty("stack", backtrace.join(ScriptManager::SCRIPT_BACKTRACE_SEP));
+    err.setProperty("fileName", fileName);
+    err.setProperty("lineNumber", lineNumber);
+    err.setProperty("detail", detail);
+    err.setProperty("stack", backtrace.join(ScriptManager::SCRIPT_BACKTRACE_SEP));
 
 #ifdef DEBUG_JS_EXCEPTIONS
-    err->setProperty("_fileName", exception.property("fileName").toString());
-    err->setProperty("_stack", uncaughtExceptionBacktrace().join(SCRIPT_BACKTRACE_SEP));
-    err->setProperty("_lineNumber", uncaughtExceptionLineNumber());
+    err.setProperty("_fileName", exception.property("fileName").toString());
+    err.setProperty("_stack", uncaughtExceptionBacktrace().join(SCRIPT_BACKTRACE_SEP));
+    err.setProperty("_lineNumber", uncaughtExceptionLineNumber());
 #endif
     return err;
 }
@@ -237,7 +237,7 @@ bool ScriptEngineQtScript::raiseException(const QScriptValue& exception) {
         // we are within a pure C++ stack frame (ie: being called directly by other C++ code)
         // in this case no context information is available so just emit the exception for reporting
         QScriptValue thrown = makeError(exception);
-        emit _manager->unhandledException(ScriptValuePointer(new ScriptValueQtWrapper(this, std::move(thrown))));
+        emit _manager->unhandledException(ScriptValue(new ScriptValueQtWrapper(this, std::move(thrown))));
     }
     return false;
 }
@@ -383,13 +383,13 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine) {
     return QScriptValue();
 }
 
-static QScriptValue ScriptValueToQScriptValue(QScriptEngine* engine, const ScriptValuePointer& src) {
+static QScriptValue ScriptValueToQScriptValue(QScriptEngine* engine, const ScriptValue& src) {
     return ScriptValueQtWrapper::fullUnwrap(static_cast<ScriptEngineQtScript*>(engine), src);
 }
 
-static void ScriptValueFromQScriptValue(const QScriptValue& src, ScriptValuePointer& dest) {
+static void ScriptValueFromQScriptValue(const QScriptValue& src, ScriptValue& dest) {
     ScriptEngineQtScript* engine = static_cast<ScriptEngineQtScript*>(src.engine());
-    dest = ScriptValuePointer(new ScriptValueQtWrapper(engine, src));
+    dest = ScriptValue(new ScriptValueQtWrapper(engine, src));
 }
 
 ScriptEngineQtScript::ScriptEngineQtScript(ScriptManager* scriptManager) :
@@ -408,17 +408,17 @@ ScriptEngineQtScript::ScriptEngineQtScript(ScriptManager* scriptManager) :
             } else {
                 // ... but may not always be available -- so if needed we fallback to the passed exception
                 QScriptValue thrown = makeError(exception);
-                emit _manager->unhandledException(ScriptValuePointer(new ScriptValueQtWrapper(this, std::move(thrown))));
+                emit _manager->unhandledException(ScriptValue(new ScriptValueQtWrapper(this, std::move(thrown))));
             }
         }, Qt::DirectConnection);
         moveToThread(scriptManager->thread());
     }
 
     QScriptValue null = QScriptEngine::nullValue();
-    _nullValue = ScriptValuePointer(new ScriptValueQtWrapper(const_cast<ScriptEngineQtScript*>(this), std::move(null)));
+    _nullValue = ScriptValue(new ScriptValueQtWrapper(const_cast<ScriptEngineQtScript*>(this), std::move(null)));
 
     QScriptValue undefined = QScriptEngine::undefinedValue();
-    _undefinedValue = ScriptValuePointer(new ScriptValueQtWrapper(const_cast<ScriptEngineQtScript*>(this), std::move(undefined)));
+    _undefinedValue = ScriptValue(new ScriptValueQtWrapper(const_cast<ScriptEngineQtScript*>(this), std::move(undefined)));
 
     QScriptEngine::setProcessEventsInterval(MSECS_PER_SECOND);
 }
@@ -478,14 +478,14 @@ void ScriptEngineQtScript::registerValue(const QString& valueName, QScriptValue 
 
     QStringList pathToValue = valueName.split(".");
     int partsToGo = pathToValue.length();
-    QScriptValue partObject = globalObject();
+    QScriptValue partObject = QScriptEngine::globalObject();
 
     for (const auto& pathPart : pathToValue) {
         partsToGo--;
         if (!partObject.property(pathPart).isValid()) {
             if (partsToGo > 0) {
                 //QObject *object = new QObject;
-                QScriptValue partValue = newArray(); //newQObject(object, QScriptEngine::ScriptOwnership);
+                QScriptValue partValue = QScriptEngine::newArray();  //newQObject(object, QScriptEngine::ScriptOwnership);
                 partObject.setProperty(pathPart, partValue);
             } else {
                 partObject.setProperty(pathPart, value);
@@ -554,7 +554,7 @@ void ScriptEngineQtScript::registerFunction(const QString& name, ScriptEngine::F
 #endif
 
     auto scriptFun = newFunction(functionSignature, numArguments);
-    globalObject()->setProperty(name, scriptFun);
+    globalObject().setProperty(name, scriptFun);
 }
 
 void ScriptEngineQtScript::registerFunction(const QString& parent, const QString& name, QScriptEngine::FunctionSignature functionSignature, int numArguments) {
@@ -594,10 +594,10 @@ void ScriptEngineQtScript::registerFunction(const QString& parent, const QString
     qCDebug(scriptengine) << "ScriptEngineQtScript::registerFunction() called on thread [" << QThread::currentThread() << "] parent:" << parent << "name:" << name;
 #endif
 
-    auto object = globalObject()->property(parent);
-    if (object->isValid()) {
+    auto object = globalObject().property(parent);
+    if (object.isValid()) {
         auto scriptFun = newFunction(functionSignature, numArguments);
-        object->setProperty(name, scriptFun);
+        object.setProperty(name, scriptFun);
     }
 }
 
@@ -656,18 +656,18 @@ void ScriptEngineQtScript::registerGetterSetter(const QString& name, ScriptEngin
     auto getterFunction = newFunction(getter);
 
     if (!parent.isNull() && !parent.isEmpty()) {
-        auto object = globalObject()->property(parent);
-        if (object->isValid()) {
-            object->setProperty(name, setterFunction, ScriptValue::PropertySetter);
-            object->setProperty(name, getterFunction, ScriptValue::PropertyGetter);
+        auto object = globalObject().property(parent);
+        if (object.isValid()) {
+            object.setProperty(name, setterFunction, ScriptValue::PropertySetter);
+            object.setProperty(name, getterFunction, ScriptValue::PropertyGetter);
         }
     } else {
-        globalObject()->setProperty(name, setterFunction, ScriptValue::PropertySetter);
-        globalObject()->setProperty(name, getterFunction, ScriptValue::PropertyGetter);
+        globalObject().setProperty(name, setterFunction, ScriptValue::PropertySetter);
+        globalObject().setProperty(name, getterFunction, ScriptValue::PropertyGetter);
     }
 }
 
-ScriptValuePointer ScriptEngineQtScript::evaluateInClosure(const ScriptValuePointer& _closure,
+ScriptValue ScriptEngineQtScript::evaluateInClosure(const ScriptValue& _closure,
                                                            const ScriptProgramPointer& _program) {
     PROFILE_RANGE(script, "evaluateInClosure");
     if (!IS_THREADSAFE_INVOCATION(thread(), __FUNCTION__)) {
@@ -712,7 +712,7 @@ ScriptValuePointer ScriptEngineQtScript::evaluateInClosure(const ScriptValuePoin
 #ifdef DEBUG_JS
     qCDebug(shared) << QString("[%1] evaluateInClosure %2").arg(isEvaluating()).arg(shortName);
 #endif
-    ScriptValuePointer result;
+    ScriptValue result;
     {
         auto qResult = QScriptEngine::evaluate(program);
 
@@ -724,7 +724,7 @@ ScriptValuePointer ScriptEngineQtScript::evaluateInClosure(const ScriptValuePoin
 #endif
             result = err;
         } else {
-            result = ScriptValuePointer(new ScriptValueQtWrapper(this, std::move(qResult)));
+            result = ScriptValue(new ScriptValueQtWrapper(this, std::move(qResult)));
         }
     }
 #ifdef DEBUG_JS
@@ -742,19 +742,19 @@ ScriptValuePointer ScriptEngineQtScript::evaluateInClosure(const ScriptValuePoin
     return result;
 }
 
-ScriptValuePointer ScriptEngineQtScript::evaluate(const QString& sourceCode, const QString& fileName) {
+ScriptValue ScriptEngineQtScript::evaluate(const QString& sourceCode, const QString& fileName) {
     if (_manager && _manager->isStopped()) {
         return undefinedValue(); // bail early
     }
 
     if (QThread::currentThread() != QScriptEngine::thread()) {
-        ScriptValuePointer result;
+        ScriptValue result;
 #ifdef THREAD_DEBUGGING
         qCDebug(scriptengine) << "*** WARNING *** ScriptEngineQtScript::evaluate() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "] "
             "sourceCode:" << sourceCode << " fileName:" << fileName;
 #endif
         BLOCKING_INVOKE_METHOD(this, "evaluate",
-                                  Q_RETURN_ARG(ScriptValuePointer, result),
+                                  Q_RETURN_ARG(ScriptValue, result),
                                   Q_ARG(const QString&, sourceCode),
                                   Q_ARG(const QString&, fileName));
         return result;
@@ -762,9 +762,9 @@ ScriptValuePointer ScriptEngineQtScript::evaluate(const QString& sourceCode, con
 
     // Check syntax
     auto syntaxError = lintScript(sourceCode, fileName);
-    if (syntaxError->isError()) {
+    if (syntaxError.isError()) {
         if (!isEvaluating()) {
-            syntaxError->setProperty("detail", "evaluate");
+            syntaxError.setProperty("detail", "evaluate");
         }
         raiseException(syntaxError);
         maybeEmitUncaughtException("lint");
@@ -782,22 +782,22 @@ ScriptValuePointer ScriptEngineQtScript::evaluate(const QString& sourceCode, con
     QScriptValue result = QScriptEngine::evaluate(program);
     maybeEmitUncaughtException("evaluate");
     
-    return ScriptValuePointer(new ScriptValueQtWrapper(this, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(this, std::move(result)));
 }
 
-Q_INVOKABLE ScriptValuePointer ScriptEngineQtScript::evaluate(const ScriptProgramPointer& program) {
+Q_INVOKABLE ScriptValue ScriptEngineQtScript::evaluate(const ScriptProgramPointer& program) {
     if (_manager && _manager->isStopped()) {
         return undefinedValue(); // bail early
     }
 
     if (QThread::currentThread() != QScriptEngine::thread()) {
-        ScriptValuePointer result;
+        ScriptValue result;
 #ifdef THREAD_DEBUGGING
         qCDebug(scriptengine) << "*** WARNING *** ScriptEngineQtScript::evaluate() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "] "
             "sourceCode:" << sourceCode << " fileName:" << fileName;
 #endif
         BLOCKING_INVOKE_METHOD(this, "evaluate",
-                                  Q_RETURN_ARG(ScriptValuePointer, result),
+                                  Q_RETURN_ARG(ScriptValue, result),
                                   Q_ARG(const ScriptProgramPointer&, program));
         return result;
     }
@@ -822,7 +822,7 @@ Q_INVOKABLE ScriptValuePointer ScriptEngineQtScript::evaluate(const ScriptProgra
     QScriptValue result = QScriptEngine::evaluate(qProgram);
     maybeEmitUncaughtException("evaluate");
 
-    return ScriptValuePointer(new ScriptValueQtWrapper(this, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(this, std::move(result)));
 }
 
 
@@ -849,21 +849,21 @@ void ScriptEngineQtScript::print(const QString& message) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // ScriptEngine implementation
 
-ScriptValuePointer ScriptEngineQtScript::globalObject() const {
+ScriptValue ScriptEngineQtScript::globalObject() const {
     QScriptValue global = QScriptEngine::globalObject(); // can't cache the value as it may change
-    return ScriptValuePointer(new ScriptValueQtWrapper(const_cast < ScriptEngineQtScript*>(this), std::move(global)));
+    return ScriptValue(new ScriptValueQtWrapper(const_cast < ScriptEngineQtScript*>(this), std::move(global)));
 }
 
 ScriptManager* ScriptEngineQtScript::manager() const {
     return _manager;
 }
 
-ScriptValuePointer ScriptEngineQtScript::newArray(uint length) {
+ScriptValue ScriptEngineQtScript::newArray(uint length) {
     QScriptValue result = QScriptEngine::newArray(length);
-    return ScriptValuePointer(new ScriptValueQtWrapper(this, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(this, std::move(result)));
 }
 
-ScriptValuePointer ScriptEngineQtScript::newArrayBuffer(const QByteArray& message) {
+ScriptValue ScriptEngineQtScript::newArrayBuffer(const QByteArray& message) {
     QScriptValue data = QScriptEngine::newVariant(QVariant::fromValue(message));
     QScriptValue ctor = QScriptEngine::globalObject().property("ArrayBuffer");
     auto array = qscriptvalue_cast<ArrayBufferClass*>(ctor.data());
@@ -871,12 +871,12 @@ ScriptValuePointer ScriptEngineQtScript::newArrayBuffer(const QByteArray& messag
         return undefinedValue();
     }
     QScriptValue result = QScriptEngine::newObject(array, data);
-    return ScriptValuePointer(new ScriptValueQtWrapper(this, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(this, std::move(result)));
 }
 
-ScriptValuePointer ScriptEngineQtScript::newObject() {
+ScriptValue ScriptEngineQtScript::newObject() {
     QScriptValue result = QScriptEngine::newObject();
-    return ScriptValuePointer(new ScriptValueQtWrapper(this, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(this, std::move(result)));
 }
 
 ScriptProgramPointer ScriptEngineQtScript::newProgram(const QString& sourceCode, const QString& fileName) {
@@ -884,66 +884,66 @@ ScriptProgramPointer ScriptEngineQtScript::newProgram(const QString& sourceCode,
     return ScriptProgramPointer(new ScriptProgramQtWrapper(this, result));
 }
 
-ScriptValuePointer ScriptEngineQtScript::newQObject(QObject* object,
+ScriptValue ScriptEngineQtScript::newQObject(QObject* object,
                                                     ScriptEngine::ValueOwnership ownership,
                                                     const ScriptEngine::QObjectWrapOptions& options) {
     QScriptValue result = QScriptEngine::newQObject(object, static_cast<QScriptEngine::ValueOwnership>(ownership),
         (QScriptEngine::QObjectWrapOptions)((int)options | DEFAULT_QOBJECT_WRAP_OPTIONS));
-    return ScriptValuePointer(new ScriptValueQtWrapper(this, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(this, std::move(result)));
 }
 
-ScriptValuePointer ScriptEngineQtScript::newValue(bool value) {
+ScriptValue ScriptEngineQtScript::newValue(bool value) {
     QScriptValue result(this, value);
-    return ScriptValuePointer(new ScriptValueQtWrapper(this, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(this, std::move(result)));
 }
 
-ScriptValuePointer ScriptEngineQtScript::newValue(int value) {
+ScriptValue ScriptEngineQtScript::newValue(int value) {
     QScriptValue result(this, value);
-    return ScriptValuePointer(new ScriptValueQtWrapper(this, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(this, std::move(result)));
 }
 
-ScriptValuePointer ScriptEngineQtScript::newValue(uint value) {
+ScriptValue ScriptEngineQtScript::newValue(uint value) {
     QScriptValue result(this, value);
-    return ScriptValuePointer(new ScriptValueQtWrapper(this, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(this, std::move(result)));
 }
 
-ScriptValuePointer ScriptEngineQtScript::newValue(double value) {
+ScriptValue ScriptEngineQtScript::newValue(double value) {
     QScriptValue result(this, value);
-    return ScriptValuePointer(new ScriptValueQtWrapper(this, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(this, std::move(result)));
 }
 
-ScriptValuePointer ScriptEngineQtScript::newValue(const QString& value) {
+ScriptValue ScriptEngineQtScript::newValue(const QString& value) {
     QScriptValue result(this, value);
-    return ScriptValuePointer(new ScriptValueQtWrapper(this, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(this, std::move(result)));
 }
 
-ScriptValuePointer ScriptEngineQtScript::newValue(const QLatin1String& value) {
+ScriptValue ScriptEngineQtScript::newValue(const QLatin1String& value) {
     QScriptValue result(this, value);
-    return ScriptValuePointer(new ScriptValueQtWrapper(this, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(this, std::move(result)));
 }
 
-ScriptValuePointer ScriptEngineQtScript::newValue(const char* value) {
+ScriptValue ScriptEngineQtScript::newValue(const char* value) {
     QScriptValue result(this, value);
-    return ScriptValuePointer(new ScriptValueQtWrapper(this, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(this, std::move(result)));
 }
 
-ScriptValuePointer ScriptEngineQtScript::newVariant(const QVariant& value) {
+ScriptValue ScriptEngineQtScript::newVariant(const QVariant& value) {
     QScriptValue result = QScriptEngine::newVariant(value);
-    return ScriptValuePointer(new ScriptValueQtWrapper(this, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(this, std::move(result)));
 }
 
-ScriptValuePointer ScriptEngineQtScript::nullValue() {
+ScriptValue ScriptEngineQtScript::nullValue() {
     return _nullValue;
 }
 
-void ScriptEngineQtScript::setDefaultPrototype(int metaTypeId, const ScriptValuePointer& prototype){
+void ScriptEngineQtScript::setDefaultPrototype(int metaTypeId, const ScriptValue& prototype){
     ScriptValueQtWrapper* unwrappedPrototype = ScriptValueQtWrapper::unwrap(prototype);
     if (unwrappedPrototype) {
         QScriptEngine::setDefaultPrototype(metaTypeId, unwrappedPrototype->toQtValue());
     }
 }
 
-ScriptValuePointer ScriptEngineQtScript::undefinedValue() {
+ScriptValue ScriptEngineQtScript::undefinedValue() {
     return _undefinedValue;
 }
 
@@ -974,14 +974,14 @@ bool ScriptEngineQtScript::isEvaluating() const {
     return QScriptEngine::isEvaluating();
 }
 
-ScriptValuePointer ScriptEngineQtScript::newFunction(ScriptEngine::FunctionSignature fun, int length) {
+ScriptValue ScriptEngineQtScript::newFunction(ScriptEngine::FunctionSignature fun, int length) {
     auto innerFunc = [](QScriptContext* _context, QScriptEngine* _engine) -> QScriptValue {
         auto callee = _context->callee();
         QVariant funAddr = callee.property("_func").toVariant();
         ScriptEngine::FunctionSignature fun = reinterpret_cast<ScriptEngine::FunctionSignature>(funAddr.toULongLong());
         ScriptEngineQtScript* engine = static_cast<ScriptEngineQtScript*>(_engine);
         ScriptContextQtWrapper context(engine, _context);
-        ScriptValuePointer result = fun(&context, engine);
+        ScriptValue result = fun(&context, engine);
         ScriptValueQtWrapper* unwrapped = ScriptValueQtWrapper::unwrap(result);
         return unwrapped ? unwrapped->toQtValue() : QScriptValue();
     };
@@ -989,7 +989,7 @@ ScriptValuePointer ScriptEngineQtScript::newFunction(ScriptEngine::FunctionSigna
     QScriptValue result = QScriptEngine::newFunction(innerFunc, length);
     auto funAddr = QScriptEngine::newVariant(QVariant(reinterpret_cast<qulonglong>(fun)));
     result.setProperty("_func", funAddr, QScriptValue::PropertyFlags(QScriptValue::ReadOnly + QScriptValue::Undeletable + QScriptValue::SkipInEnumeration));
-    return ScriptValuePointer(new ScriptValueQtWrapper(this, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(this, std::move(result)));
 }
 
 void ScriptEngineQtScript::setObjectName(const QString& name) {
@@ -1012,9 +1012,9 @@ void ScriptEngineQtScript::setThread(QThread* thread) {
     moveToThread(thread);
 }
 
-ScriptValuePointer ScriptEngineQtScript::uncaughtException() const {
+ScriptValue ScriptEngineQtScript::uncaughtException() const {
     QScriptValue result = QScriptEngine::uncaughtException();
-    return ScriptValuePointer(new ScriptValueQtWrapper(const_cast<ScriptEngineQtScript*>(this), std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(const_cast<ScriptEngineQtScript*>(this), std::move(result)));
 }
 
 QStringList ScriptEngineQtScript::uncaughtExceptionBacktrace() const {
@@ -1025,18 +1025,18 @@ int ScriptEngineQtScript::uncaughtExceptionLineNumber() const {
     return QScriptEngine::uncaughtExceptionLineNumber();
 }
 
-bool ScriptEngineQtScript::raiseException(const ScriptValuePointer& exception) {
+bool ScriptEngineQtScript::raiseException(const ScriptValue& exception) {
     ScriptValueQtWrapper* unwrapped = ScriptValueQtWrapper::unwrap(exception);
-    QScriptValue qException = unwrapped ? unwrapped->toQtValue() : QScriptEngine::newVariant(exception->toVariant());
+    QScriptValue qException = unwrapped ? unwrapped->toQtValue() : QScriptEngine::newVariant(exception.toVariant());
     return raiseException(qException);
 }
 
-ScriptValuePointer ScriptEngineQtScript::create(int type, const void* ptr) {
+ScriptValue ScriptEngineQtScript::create(int type, const void* ptr) {
     QScriptValue result = qScriptValueFromValue_helper(this, type, ptr);
-    return ScriptValuePointer(new ScriptValueQtWrapper(const_cast<ScriptEngineQtScript*>(this), std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(const_cast<ScriptEngineQtScript*>(this), std::move(result)));
 }
 
-bool ScriptEngineQtScript::convert(const ScriptValuePointer& value, int type, void* ptr) {
+bool ScriptEngineQtScript::convert(const ScriptValue& value, int type, void* ptr) {
     ScriptValueQtWrapper* unwrapped = ScriptValueQtWrapper::unwrap(value);
     if (unwrapped == nullptr) {
         return false;
@@ -1052,13 +1052,13 @@ public:
 
     static QScriptValue internalMarshalFunc(QScriptEngine* engine, const void* src) {
         ScriptEngineQtScript* unwrappedEngine = static_cast<ScriptEngineQtScript*>(engine);
-        ScriptValuePointer dest = marshalFunc(unwrappedEngine, src);
+        ScriptValue dest = marshalFunc(unwrappedEngine, src);
         return ScriptValueQtWrapper::fullUnwrap(unwrappedEngine, dest);
     }
 
     static void internalDemarshalFunc(const QScriptValue& src, void* dest) {
         ScriptEngineQtScript* unwrappedEngine = static_cast<ScriptEngineQtScript*>(src.engine());
-        ScriptValuePointer wrappedSrc(new ScriptValueQtWrapper(unwrappedEngine, src));
+        ScriptValue wrappedSrc(new ScriptValueQtWrapper(unwrappedEngine, src));
         demarshalFunc(wrappedSrc, dest);
     }
 };
@@ -1094,7 +1094,7 @@ ScriptEngine::DemarshalFunction CustomTypeInstance<i>::demarshalFunc;
 void ScriptEngineQtScript::registerCustomType(int type,
                                               ScriptEngine::MarshalFunction marshalFunc,
                                               ScriptEngine::DemarshalFunction demarshalFunc,
-                                              const ScriptValuePointer& prototype)
+                                              const ScriptValue& prototype)
 {
     QScriptValue unwrapped = ScriptValueQtWrapper::fullUnwrap(this, prototype);
     QScriptEngine::MarshalFunction internalMarshalFunc;

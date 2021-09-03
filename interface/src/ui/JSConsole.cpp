@@ -187,7 +187,7 @@ JSConsole::JSConsole(QWidget* parent, const ScriptManagerPointer& scriptManager)
 
     resizeTextInput();
 
-    connect(&_executeWatcher, &QFutureWatcher<ScriptValuePointer>::finished, this, &JSConsole::commandFinished);
+    connect(&_executeWatcher, &QFutureWatcher<ScriptValue>::finished, this, &JSConsole::commandFinished);
 }
 
 void JSConsole::insertCompletion(const QModelIndex& completion) {
@@ -351,12 +351,12 @@ void JSConsole::executeCommand(const QString& command) {
 
     QWeakPointer<ScriptManager> weakScriptManager = _scriptManager;
     auto consoleFileName = _consoleFileName;
-    QFuture<ScriptValuePointer> future = QtConcurrent::run([weakScriptManager, consoleFileName, command]() -> ScriptValuePointer {
-        ScriptValuePointer result;
+    QFuture<ScriptValue> future = QtConcurrent::run([weakScriptManager, consoleFileName, command]() -> ScriptValue {
+        ScriptValue result;
         auto scriptManager = weakScriptManager.lock();
         if (scriptManager) {
             BLOCKING_INVOKE_METHOD(scriptManager.data(), "evaluate",
-                Q_RETURN_ARG(ScriptValuePointer, result),
+                Q_RETURN_ARG(ScriptValue, result),
                 Q_ARG(const QString&, command),
                 Q_ARG(const QString&, consoleFileName));
         }
@@ -366,7 +366,7 @@ void JSConsole::executeCommand(const QString& command) {
 }
 
 void JSConsole::commandFinished() {
-    ScriptValuePointer result = _executeWatcher.result();
+    ScriptValue result = _executeWatcher.result();
 
     _ui->promptTextEdit->setDisabled(false);
 
@@ -375,10 +375,10 @@ void JSConsole::commandFinished() {
         _ui->promptTextEdit->setFocus();
     }
 
-    bool error = (_scriptManager->engine()->hasUncaughtException() || (result && result->isError()));
+    bool error = (_scriptManager->engine()->hasUncaughtException() || result.isError());
     QString gutter = error ? GUTTER_ERROR : GUTTER_PREVIOUS_COMMAND;
     QString resultColor = error ? RESULT_ERROR_STYLE : RESULT_SUCCESS_STYLE;
-    QString resultStr = result ? "<span style='" + resultColor + "'>" + result->toString().toHtmlEscaped() + "</span>" : "";
+    QString resultStr = "<span style='" + resultColor + "'>" + result.toString().toHtmlEscaped() + "</span>";
     appendMessage(gutter, resultStr);
 
     resetCurrentCommandHistory();

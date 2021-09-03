@@ -174,37 +174,37 @@ KeyEvent::operator QKeySequence() const {
  *     print(JSON.stringify(event));
  * });
  */
-ScriptValuePointer KeyEvent::toScriptValue(ScriptEngine* engine, const KeyEvent& event) {
-    ScriptValuePointer obj = engine->newObject();
-    obj->setProperty("key", event.key);
-    obj->setProperty("text", event.text);
-    obj->setProperty("isShifted", event.isShifted);
-    obj->setProperty("isMeta", event.isMeta);
-    obj->setProperty("isControl", event.isControl);
-    obj->setProperty("isAlt", event.isAlt);
-    obj->setProperty("isKeypad", event.isKeypad);
-    obj->setProperty("isAutoRepeat", event.isAutoRepeat);
+ScriptValue KeyEvent::toScriptValue(ScriptEngine* engine, const KeyEvent& event) {
+    ScriptValue obj = engine->newObject();
+    obj.setProperty("key", event.key);
+    obj.setProperty("text", event.text);
+    obj.setProperty("isShifted", event.isShifted);
+    obj.setProperty("isMeta", event.isMeta);
+    obj.setProperty("isControl", event.isControl);
+    obj.setProperty("isAlt", event.isAlt);
+    obj.setProperty("isKeypad", event.isKeypad);
+    obj.setProperty("isAutoRepeat", event.isAutoRepeat);
     return obj;
 }
 
-void KeyEvent::fromScriptValue(const ScriptValuePointer& object, KeyEvent& event) {
+void KeyEvent::fromScriptValue(const ScriptValue& object, KeyEvent& event) {
     
     event.isValid = false; // assume the worst
-    event.isMeta = object->property("isMeta")->toVariant().toBool();
-    event.isControl = object->property("isControl")->toVariant().toBool();
-    event.isAlt = object->property("isAlt")->toVariant().toBool();
-    event.isKeypad = object->property("isKeypad")->toVariant().toBool();
-    event.isAutoRepeat = object->property("isAutoRepeat")->toVariant().toBool();
+    event.isMeta = object.property("isMeta").toVariant().toBool();
+    event.isControl = object.property("isControl").toVariant().toBool();
+    event.isAlt = object.property("isAlt").toVariant().toBool();
+    event.isKeypad = object.property("isKeypad").toVariant().toBool();
+    event.isAutoRepeat = object.property("isAutoRepeat").toVariant().toBool();
     
-    ScriptValuePointer key = object->property("key");
-    if (key->isValid()) {
-        event.key = key->toVariant().toInt();
+    ScriptValue key = object.property("key");
+    if (key.isValid()) {
+        event.key = key.toVariant().toInt();
         event.text = QString(QChar(event.key));
         event.isValid = true;
     } else {
-        ScriptValuePointer text = object->property("text");
-        if (text->isValid()) {
-            event.text = object->property("text")->toVariant().toString();
+        ScriptValue text = object.property("text");
+        if (text.isValid()) {
+            event.text = object.property("text").toVariant().toString();
             
             // if the text is a special command, then map it here...
             // TODO: come up with more elegant solution here, a map? is there a Qt function that gives nice names for keys?
@@ -283,9 +283,9 @@ void KeyEvent::fromScriptValue(const ScriptValuePointer& object, KeyEvent& event
         }
     }
     
-    ScriptValuePointer isShifted = object->property("isShifted");
-    if (isShifted->isValid()) {
-        event.isShifted = isShifted->toVariant().toBool();
+    ScriptValue isShifted = object.property("isShifted");
+    if (isShifted.isValid()) {
+        event.isShifted = isShifted.toVariant().toBool();
     } else {
         // if no isShifted was included, get it from the text
         QChar character = event.text.at(0);

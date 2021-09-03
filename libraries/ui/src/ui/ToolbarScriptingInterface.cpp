@@ -16,26 +16,26 @@
 #include <shared/QtHelpers.h>
 #include "../OffscreenUi.h"
 
-ScriptValuePointer toolbarToScriptValue(ScriptEngine* engine, ToolbarProxy* const &in) {
+ScriptValue toolbarToScriptValue(ScriptEngine* engine, ToolbarProxy* const &in) {
     if (!in) {
         return engine->undefinedValue();
     }
     return engine->newQObject(in, ScriptEngine::QtOwnership);
 }
 
-void toolbarFromScriptValue(const ScriptValuePointer& value, ToolbarProxy* &out) {
-    out = qobject_cast<ToolbarProxy*>(value->toQObject());
+void toolbarFromScriptValue(const ScriptValue& value, ToolbarProxy* &out) {
+    out = qobject_cast<ToolbarProxy*>(value.toQObject());
 }
 
-ScriptValuePointer toolbarButtonToScriptValue(ScriptEngine* engine, ToolbarButtonProxy* const &in) {
+ScriptValue toolbarButtonToScriptValue(ScriptEngine* engine, ToolbarButtonProxy* const &in) {
     if (!in) {
         return engine->undefinedValue();
     }
     return engine->newQObject(in, ScriptEngine::QtOwnership);
 }
 
-void toolbarButtonFromScriptValue(const ScriptValuePointer& value, ToolbarButtonProxy* &out) {
-    out = qobject_cast<ToolbarButtonProxy*>(value->toQObject());
+void toolbarButtonFromScriptValue(const ScriptValue& value, ToolbarButtonProxy* &out) {
+    out = qobject_cast<ToolbarButtonProxy*>(value.toQObject());
 }
 
 

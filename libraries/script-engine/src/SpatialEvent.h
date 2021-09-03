@@ -17,11 +17,10 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <QtCore/QSharedPointer>
+
+#include "ScriptValue.h"
 
 class ScriptEngine;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /// [unused] Represents a spatial event to the scripting engine
 class SpatialEvent {
@@ -29,8 +28,8 @@ public:
     SpatialEvent();
     SpatialEvent(const SpatialEvent& other);
     
-    static ScriptValuePointer toScriptValue(ScriptEngine* engine, const SpatialEvent& event);
-    static void fromScriptValue(const ScriptValuePointer& object, SpatialEvent& event);
+    static ScriptValue toScriptValue(ScriptEngine* engine, const SpatialEvent& event);
+    static void fromScriptValue(const ScriptValue& object, SpatialEvent& event);
     
     glm::vec3 locTranslation;
     glm::quat locRotation;

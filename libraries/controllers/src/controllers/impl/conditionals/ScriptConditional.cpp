@@ -25,5 +25,5 @@ void ScriptConditional::updateValue() {
         return;
     }
 
-    _lastValue = _callable->call()->toBool();
+    _lastValue = _callable.call().toBool();
 }

@@ -19,11 +19,10 @@
 
 #include <QVector>
 #include <QTouchEvent>
-#include <QtCore/QSharedPointer>
+
+#include "ScriptValue.h"
 
 class ScriptEngine;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /// Represents a display or device event to the scripting engine. Exposed as <code><a href="https://apidocs.vircadia.dev/global.html#TouchEvent">TouchEvent</a></code>
 class TouchEvent {
@@ -32,8 +31,8 @@ public:
     TouchEvent(const QTouchEvent& event);
     TouchEvent(const QTouchEvent& event, const TouchEvent& other);
     
-    static ScriptValuePointer toScriptValue(ScriptEngine* engine, const TouchEvent& event);
-    static void fromScriptValue(const ScriptValuePointer& object, TouchEvent& event);
+    static ScriptValue toScriptValue(ScriptEngine* engine, const TouchEvent& event);
+    static void fromScriptValue(const ScriptValue& object, TouchEvent& event);
     
     float x;
     float y;

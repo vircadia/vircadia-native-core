@@ -16,11 +16,10 @@
 #define hifi_KeyEvent_h
 
 #include <QKeyEvent>
-#include <QtCore/QSharedPointer>
+
+#include "ScriptValue.h"
 
 class ScriptEngine;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /// Represents a keyboard event to the scripting engine. Exposed as <code><a href="https://apidocs.vircadia.dev/global.html#KeyEvent">KeyEvent</a></code>
 class KeyEvent {
@@ -30,8 +29,8 @@ public:
     bool operator==(const KeyEvent& other) const;
     operator QKeySequence() const;
     
-    static ScriptValuePointer toScriptValue(ScriptEngine* engine, const KeyEvent& event);
-    static void fromScriptValue(const ScriptValuePointer& object, KeyEvent& event);
+    static ScriptValue toScriptValue(ScriptEngine* engine, const KeyEvent& event);
+    static void fromScriptValue(const ScriptValue& object, KeyEvent& event);
     
     int key;
     QString text;

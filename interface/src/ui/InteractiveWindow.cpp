@@ -97,15 +97,13 @@ void registerInteractiveWindowMetaType(ScriptEngine* engine) {
     scriptRegisterMetaType(engine, interactiveWindowPointerToScriptValue, interactiveWindowPointerFromScriptValue);
 }
 
-ScriptValuePointer interactiveWindowPointerToScriptValue(ScriptEngine* engine, const InteractiveWindowPointer& in) {
+ScriptValue interactiveWindowPointerToScriptValue(ScriptEngine* engine, const InteractiveWindowPointer& in) {
     return engine->newQObject(in, ScriptEngine::ScriptOwnership);
 }
 
-void interactiveWindowPointerFromScriptValue(const ScriptValuePointer& object, InteractiveWindowPointer& out) {
-    if (!object) {
-        if (const auto interactiveWindow = qobject_cast<InteractiveWindowPointer>(object->toQObject())) {
-            out = interactiveWindow;
-        }
+void interactiveWindowPointerFromScriptValue(const ScriptValue& object, InteractiveWindowPointer& out) {
+    if (const auto interactiveWindow = qobject_cast<InteractiveWindowPointer>(object.toQObject())) {
+        out = interactiveWindow;
     }
 }
 

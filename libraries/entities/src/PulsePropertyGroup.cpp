@@ -57,7 +57,7 @@ void PulsePropertyGroup::setAlphaModeFromString(const QString& pulseMode) {
     }
 }
 
-void PulsePropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, ScriptValuePointer& properties,
+void PulsePropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, ScriptValue& properties,
                                           ScriptEngine* engine, bool skipDefaults,
                                           EntityItemProperties& defaultEntityProperties) const {
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_PULSE_MIN, Pulse, pulse, Min, min);
@@ -67,7 +67,7 @@ void PulsePropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredPro
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_PULSE_ALPHA_MODE, Pulse, pulse, AlphaMode, alphaMode, getAlphaModeAsString);
 }
 
-void PulsePropertyGroup::copyFromScriptValue(const ScriptValuePointer& object, bool& _defaultSettings) {
+void PulsePropertyGroup::copyFromScriptValue(const ScriptValue& object, bool& _defaultSettings) {
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(pulse, min, float, setMin);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(pulse, max, float, setMax);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(pulse, period, float, setPeriod);

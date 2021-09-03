@@ -16,13 +16,11 @@
 #define hifi_ScriptAudioInjector_h
 
 #include <QtCore/QObject>
-#include <QtCore/QSharedPointer>
+#include <ScriptValue.h>
 
 #include "AudioInjectorManager.h"
 
 class ScriptEngine;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /*@jsdoc
  * Plays or "injects" the content of an audio file.
@@ -148,13 +146,13 @@ signals:
 private:
     QWeakPointer<AudioInjector> _injector;
 
-    friend ScriptValuePointer injectorToScriptValue(ScriptEngine* engine, ScriptAudioInjector* const& in);
+    friend ScriptValue injectorToScriptValue(ScriptEngine* engine, ScriptAudioInjector* const& in);
 };
 
 Q_DECLARE_METATYPE(ScriptAudioInjector*)
 
-ScriptValuePointer injectorToScriptValue(ScriptEngine* engine, ScriptAudioInjector* const& in);
-void injectorFromScriptValue(const ScriptValuePointer& object, ScriptAudioInjector*& out);
+ScriptValue injectorToScriptValue(ScriptEngine* engine, ScriptAudioInjector* const& in);
+void injectorFromScriptValue(const ScriptValue& object, ScriptAudioInjector*& out);
 
 #endif // hifi_ScriptAudioInjector_h
 

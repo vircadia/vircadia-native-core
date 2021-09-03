@@ -14,11 +14,11 @@
 #include <ScriptEngineCast.h>
 #include <ScriptManager.h>
 
-ScriptValuePointer avatarDataToScriptValue(ScriptEngine* engine, ScriptAvatarData* const& in) {
+ScriptValue avatarDataToScriptValue(ScriptEngine* engine, ScriptAvatarData* const& in) {
     return engine->newQObject(in, ScriptEngine::ScriptOwnership);
 }
 
-void avatarDataFromScriptValue(const ScriptValuePointer& object, ScriptAvatarData*& out) {
+void avatarDataFromScriptValue(const ScriptValue& object, ScriptAvatarData*& out) {
     // This is not implemented because there are no slots/properties that take an AvatarSharedPointer from a script
     assert(false);
     out = nullptr;

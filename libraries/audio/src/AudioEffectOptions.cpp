@@ -18,8 +18,8 @@
 STATIC_SCRIPT_INITIALIZER(+[](ScriptManager* manager) {
     auto scriptEngine = manager->engine().data();
 
-    ScriptValuePointer audioEffectOptionsConstructorValue = scriptEngine->newFunction(AudioEffectOptions::constructor);
-    scriptEngine->globalObject()->setProperty("AudioEffectOptions", audioEffectOptionsConstructorValue);
+    ScriptValue audioEffectOptionsConstructorValue = scriptEngine->newFunction(AudioEffectOptions::constructor);
+    scriptEngine->globalObject().setProperty("AudioEffectOptions", audioEffectOptionsConstructorValue);
 });
 
 static const QString BANDWIDTH_HANDLE = "bandwidth";
@@ -66,8 +66,8 @@ static const float LATE_MIX_LEFT_DEFAULT = 90.0f;
 static const float LATE_MIX_RIGHT_DEFAULT = 90.0f;
 static const float WET_DRY_MIX_DEFAULT = 50.0f;
 
-static void setOption(ScriptValuePointer arguments, const QString name, float defaultValue, float& variable) {
-    variable = arguments && arguments->property(name)->isNumber() ? (float)arguments->property(name)->toNumber() : defaultValue;
+static void setOption(const ScriptValue& arguments, const QString name, float defaultValue, float& variable) {
+    variable = arguments.property(name).isNumber() ? (float)arguments.property(name).toNumber() : defaultValue;
 }
 
 /*@jsdoc
@@ -95,7 +95,7 @@ static void setOption(ScriptValuePointer arguments, const QString name, float de
  * @property {number} lateMixRight=90 - The apparent distance of the source (percent) in the reverb tail.
  * @property {number} wetDryMix=50 - Adjusts the wet/dry ratio, from completely dry (0%) to completely wet (100%).
  */
-AudioEffectOptions::AudioEffectOptions(ScriptValuePointer arguments) {
+AudioEffectOptions::AudioEffectOptions(const ScriptValue& arguments) {
     setOption(arguments, BANDWIDTH_HANDLE, BANDWIDTH_DEFAULT, _bandwidth);
     setOption(arguments, PRE_DELAY_HANDLE, PRE_DELAY_DEFAULT, _preDelay);
     setOption(arguments, LATE_DELAY_HANDLE, LATE_DELAY_DEFAULT, _lateDelay);
@@ -149,6 +149,6 @@ AudioEffectOptions& AudioEffectOptions::operator=(const AudioEffectOptions &othe
     return *this;
 }
 
-ScriptValuePointer AudioEffectOptions::constructor(ScriptContext* context, ScriptEngine* engine) {
+ScriptValue AudioEffectOptions::constructor(ScriptContext* context, ScriptEngine* engine) {
     return engine->newQObject(new AudioEffectOptions(context->argument(0)));
 }

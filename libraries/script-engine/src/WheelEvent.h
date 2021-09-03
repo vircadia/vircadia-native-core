@@ -17,11 +17,10 @@
 
 #include <QString>
 #include <QWheelEvent>
-#include <QtCore/QSharedPointer>
+
+#include "ScriptValue.h"
 
 class ScriptEngine;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /// Represents a mouse wheel event to the scripting engine. Exposed as <code><a href="https://apidocs.vircadia.dev/global.html#WheelEvent">WheelEvent</a></code>
 class WheelEvent {
@@ -29,8 +28,8 @@ public:
     WheelEvent();
     WheelEvent(const QWheelEvent& event);
     
-    static ScriptValuePointer toScriptValue(ScriptEngine* engine, const WheelEvent& event);
-    static void fromScriptValue(const ScriptValuePointer& object, WheelEvent& event);
+    static ScriptValue toScriptValue(ScriptEngine* engine, const WheelEvent& event);
+    static void fromScriptValue(const ScriptValue& object, WheelEvent& event);
     
     int x;
     int y;

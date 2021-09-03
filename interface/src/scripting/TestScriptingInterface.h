@@ -12,10 +12,7 @@
 
 #include <functional>
 #include <QtCore/QObject>
-#include <QtCore/QSharedPointer>
-
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
+#include <ScriptValue.h>
 
 class TestScriptingInterface : public QObject {
     Q_OBJECT
@@ -129,7 +126,7 @@ public slots:
     * @param {string} name - Name used to reference the function
     * @param {function} function - Function to profile
     */
-    Q_INVOKABLE void profileRange(const QString& name, ScriptValuePointer function);
+    Q_INVOKABLE void profileRange(const QString& name, const ScriptValue& function);
 
     /*@jsdoc
     * Clear all caches (menu command Reload Content)

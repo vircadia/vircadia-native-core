@@ -16,6 +16,7 @@
 #include <QtCore/QFileInfo>
 #include <QtCore/QJsonObject>
 #include <QtCore/QLoggingCategory>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
 
@@ -64,7 +65,7 @@ namespace REPLACE_ME_WITH_UNIQUE_NAME {
             qCWarning(logger) << "registering w/ScriptInitializerMixin..." << scriptInit.data();
             scriptInit->registerScriptInitializer([this](ScriptEngine* engine) {
                 auto value = engine->newQObject(this, ScriptEngine::QtOwnership);
-                engine->globalObject()->setProperty(objectName(), value);
+                engine->globalObject().setProperty(objectName(), value);
                 // qCDebug(logger) << "setGlobalInstance" << objectName() << engine->property("fileName");
             });
             // qCInfo(logger) << "plugin loaded" << qApp << toString() << QThread::currentThread();
@@ -72,7 +73,7 @@ namespace REPLACE_ME_WITH_UNIQUE_NAME {
 
         // NOTES: everything within the "public slots:" section below will be available from JS via overall plugin QObject
         //    also, to demonstrate future-proofing JS API code, QVariant's are used throughout most of these examples --
-        //    which still makes them very Qt-specific, but avoids depending directly on deprecated ScriptValuePointer APIs.
+        //    which still makes them very Qt-specific, but avoids depending directly on deprecated ScriptValue APIs.
         //    (as such this plugin class and its methods remain forward-compatible with other engines like QML's QJSEngine)
 
     public slots:
@@ -159,14 +160,14 @@ namespace REPLACE_ME_WITH_UNIQUE_NAME {
           * print("all example::* keys", settings.allKeys());
           * settings = null; // optional best pratice; allows the object to be reclaimed ASAP by the JS garbage collector
           */
-        ScriptValuePointer getScopedSettings(const QString& scope) {
+        ScriptValue getScopedSettings(const QString& scope) {
             auto engine = Scriptable::engine();
             if (!engine) {
-                return ScriptValuePointer();
+                return ScriptValue();
             }
             auto manager = engine->manager();
             if (!manager) {
-                return ScriptValuePointer();
+                return ScriptValue();
             }
             QString error;
             auto cppValue = createScopedSettings(scope, manager, error);

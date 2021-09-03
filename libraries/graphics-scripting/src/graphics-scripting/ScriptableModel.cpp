@@ -262,7 +262,7 @@ scriptable::ScriptableMeshes scriptable::ScriptableModel::getMeshes() {
 }
 
 #if 0
-glm::uint32 scriptable::ScriptableModel::forEachVertexAttribute(ScriptValuePointer callback) {
+glm::uint32 scriptable::ScriptableModel::forEachVertexAttribute(const ScriptValue& callback) {
     glm::uint32 result = 0;
     scriptable::ScriptableMeshes in = getMeshes();
     if (in.size()) {

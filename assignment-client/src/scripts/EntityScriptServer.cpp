@@ -452,7 +452,7 @@ void EntityScriptServer::resetEntitiesScriptEngine() {
     auto newEngine = newManager->engine();
 
     auto webSocketServerConstructorValue = newEngine->newFunction(WebSocketServerClass::constructor);
-    newEngine->globalObject()->setProperty("WebSocketServer", webSocketServerConstructorValue);
+    newEngine->globalObject().setProperty("WebSocketServer", webSocketServerConstructorValue);
 
     newEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCacheScriptingInterface>().data());
     newEngine->registerGlobalObject("AvatarList", DependencyManager::get<AvatarHashMap>().data());

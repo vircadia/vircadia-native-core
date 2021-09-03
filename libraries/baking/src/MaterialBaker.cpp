@@ -212,13 +212,13 @@ void MaterialBaker::outputMaterial() {
         if (_materialResource->parsedMaterials.networkMaterials.size() == 1) {
             auto networkMaterial = _materialResource->parsedMaterials.networkMaterials.begin();
             auto scriptableMaterial = scriptable::ScriptableMaterial(networkMaterial->second);
-            QVariant materialVariant = scriptable::scriptableMaterialToScriptValue(_scriptEngine.data(), scriptableMaterial)->toVariant();
+            QVariant materialVariant = scriptable::scriptableMaterialToScriptValue(_scriptEngine.data(), scriptableMaterial).toVariant();
             json.insert("materials", QJsonDocument::fromVariant(materialVariant).object());
         } else {
             QJsonArray materialArray;
             for (auto networkMaterial : _materialResource->parsedMaterials.networkMaterials) {
                 auto scriptableMaterial = scriptable::ScriptableMaterial(networkMaterial.second);
-                QVariant materialVariant = scriptable::scriptableMaterialToScriptValue(_scriptEngine.data(), scriptableMaterial)->toVariant();
+                QVariant materialVariant = scriptable::scriptableMaterialToScriptValue(_scriptEngine.data(), scriptableMaterial).toVariant();
                 materialArray.append(QJsonDocument::fromVariant(materialVariant).object());
             }
             json.insert("materials", materialArray);

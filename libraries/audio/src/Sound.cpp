@@ -424,12 +424,12 @@ SoundProcessor::AudioProperties SoundProcessor::interpretAsMP3(const QByteArray&
 }
 
 
-ScriptValuePointer soundSharedPointerToScriptValue(ScriptEngine* engine, const SharedSoundPointer& in) {
+ScriptValue soundSharedPointerToScriptValue(ScriptEngine* engine, const SharedSoundPointer& in) {
     return engine->newQObject(new SoundScriptingInterface(in), ScriptEngine::ScriptOwnership);
 }
 
-void soundSharedPointerFromScriptValue(const ScriptValuePointer& object, SharedSoundPointer& out) {
-    if (auto soundInterface = qobject_cast<SoundScriptingInterface*>(object->toQObject())) {
+void soundSharedPointerFromScriptValue(const ScriptValue& object, SharedSoundPointer& out) {
+    if (auto soundInterface = qobject_cast<SoundScriptingInterface*>(object.toQObject())) {
         out = soundInterface->getSound();
     }
 }

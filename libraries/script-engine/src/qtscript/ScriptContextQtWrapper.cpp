@@ -28,18 +28,18 @@ int ScriptContextQtWrapper::argumentCount() const {
     return _context->argumentCount();
 }
 
-ScriptValuePointer ScriptContextQtWrapper::argument(int index) const {
+ScriptValue ScriptContextQtWrapper::argument(int index) const {
     QScriptValue result = _context->argument(index);
-    return ScriptValuePointer(new ScriptValueQtWrapper(_engine, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(_engine, std::move(result)));
 }
 
 QStringList ScriptContextQtWrapper::backtrace() const {
     return _context->backtrace();
 }
 
-ScriptValuePointer ScriptContextQtWrapper::callee() const {
+ScriptValue ScriptContextQtWrapper::callee() const {
     QScriptValue result = _context->callee();
-    return ScriptValuePointer(new ScriptValueQtWrapper(_engine, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(_engine, std::move(result)));
 }
 
 ScriptEnginePointer ScriptContextQtWrapper::engine() const {
@@ -55,23 +55,23 @@ ScriptContextPointer ScriptContextQtWrapper::parentContext() const {
     return result ? ScriptContextPointer(new ScriptContextQtWrapper(_engine, result)) : ScriptContextPointer();
 }
 
-ScriptValuePointer ScriptContextQtWrapper::thisObject() const {
+ScriptValue ScriptContextQtWrapper::thisObject() const {
     QScriptValue result = _context->thisObject();
-    return ScriptValuePointer(new ScriptValueQtWrapper(_engine, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(_engine, std::move(result)));
 }
 
-ScriptValuePointer ScriptContextQtWrapper::throwError(const QString& text) {
+ScriptValue ScriptContextQtWrapper::throwError(const QString& text) {
     QScriptValue result = _context->throwError(text);
-    return ScriptValuePointer(new ScriptValueQtWrapper(_engine, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(_engine, std::move(result)));
 }
 
-ScriptValuePointer ScriptContextQtWrapper::throwValue(const ScriptValuePointer& value) {
+ScriptValue ScriptContextQtWrapper::throwValue(const ScriptValue& value) {
     ScriptValueQtWrapper* unwrapped = ScriptValueQtWrapper::unwrap(value);
     if (!unwrapped) {
         return _engine->undefinedValue();
     }
     QScriptValue result = _context->throwValue(unwrapped->toQtValue());
-    return ScriptValuePointer(new ScriptValueQtWrapper(_engine, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(_engine, std::move(result)));
 }
 
 

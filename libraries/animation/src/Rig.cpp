@@ -1586,10 +1586,10 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 }
 
 // Allow script to add/remove handlers and report results, from within their thread.
-ScriptValuePointer Rig::addAnimationStateHandler(ScriptValuePointer handler, ScriptValuePointer propertiesList) { // called in script thread
+ScriptValue Rig::addAnimationStateHandler(const ScriptValue& handler, const ScriptValue& propertiesList) { // called in script thread
 
     // validate argument types
-    if (handler && handler->isFunction() && (isListOfStrings(propertiesList) || propertiesList->isUndefined() || propertiesList->isNull())) {
+    if (handler.isFunction() && (isListOfStrings(propertiesList) || propertiesList.isUndefined() || propertiesList.isNull())) {
         QMutexLocker locker(&_stateMutex);
         // Find a safe id, even if there are lots of many scripts add and remove handlers repeatedly.
         while (!_nextStateHandlerId || _stateHandlers.contains(_nextStateHandlerId)) { // 0 is unused, and don't reuse existing after wrap.
@@ -1597,28 +1597,28 @@ ScriptValuePointer Rig::addAnimationStateHandler(ScriptValuePointer handler, Scr
         }
         StateHandler& data = _stateHandlers[_nextStateHandlerId];
         data.function = handler;
-        data.useNames = propertiesList->isArray();
+        data.useNames = propertiesList.isArray();
         if (data.useNames) {
-            data.propertyNames = propertiesList->toVariant().toStringList();
+            data.propertyNames = propertiesList.toVariant().toStringList();
         }
-        return handler->engine()->newValue(_nextStateHandlerId);  // suitable for giving to removeAnimationStateHandler
+        return handler.engine()->newValue(_nextStateHandlerId);  // suitable for giving to removeAnimationStateHandler
     } else {
         qCWarning(animation) << "Rig::addAnimationStateHandler invalid arguments, expected (function, string[])";
-        return handler ? handler->engine()->undefinedValue() : ScriptValuePointer();
+        return handler.engine() ? handler.engine()->undefinedValue() : ScriptValue();
     }
 }
 
-void Rig::removeAnimationStateHandler(ScriptValuePointer identifier) {  // called in script thread
+void Rig::removeAnimationStateHandler(const ScriptValue& identifier) {  // called in script thread
     // validate arguments
-    if (identifier && identifier->isNumber()) {
+    if (identifier.isNumber()) {
         QMutexLocker locker(&_stateMutex);
-        _stateHandlers.remove(identifier->toInt32()); // silently continues if handler not present. 0 is unused
+        _stateHandlers.remove(identifier.toInt32()); // silently continues if handler not present. 0 is unused
     } else {
         qCWarning(animation) << "Rig::removeAnimationStateHandler invalid argument, expected a number";
     }
 }
 
-void Rig::animationStateHandlerResult(int identifier, ScriptValuePointer result) {  // called synchronously from script
+void Rig::animationStateHandlerResult(int identifier, const ScriptValue& result) {  // called synchronously from script
     QMutexLocker locker(&_stateMutex);
     auto found = _stateHandlers.find(identifier);
     if (found == _stateHandlers.end()) {
@@ -1637,9 +1637,9 @@ void Rig::updateAnimationStateHandlers() { // called on avatar update thread (wh
         // call out:
         int identifier = data.key();
         StateHandler& value = data.value();
-        ScriptValuePointer& function = value.function;
+        ScriptValue& function = value.function;
         int rigId = _rigId;
-        auto handleResult = [rigId, identifier](ScriptValuePointer result) { // called in script thread to get the result back to us.
+        auto handleResult = [rigId, identifier](const ScriptValue& result) { // called in script thread to get the result back to us.
             // Hold the rigRegistryMutex to ensure thread-safe access to the rigRegistry, but
             // also to prevent the rig from being deleted while this lambda is being executed.
             std::lock_guard<std::mutex> guard(rigRegistryMutex);
@@ -1658,20 +1658,20 @@ void Rig::updateAnimationStateHandlers() { // called on avatar update thread (wh
             // Copies of AnimVariantMap do copy the underlying map, so this will correctly capture
             // the state of _animVars and allow continued changes to _animVars in this thread without conflict.
             const AnimVariantMap& animVars = _animVars;
-            ScriptEnginePointer engine = function->engine();
+            ScriptEnginePointer engine = function.engine();
             const QStringList& names = value.propertyNames;
             bool useNames = value.useNames;
 
             QMetaObject::invokeMethod(
                 engine->manager(),
                 [function, animVars, names, useNames, handleResult, engine] {
-                    ScriptValuePointer javascriptParameters = animVars.animVariantMapToScriptValue(engine.get(), names, useNames);
+                    ScriptValue javascriptParameters = animVars.animVariantMapToScriptValue(engine.get(), names, useNames);
                     ScriptValueList callingArguments;
                     callingArguments << javascriptParameters;
-                    ScriptValuePointer result = function->call(ScriptValuePointer(), callingArguments);
+                    ScriptValue result = function.call(ScriptValue(), callingArguments);
 
                     // validate result from callback function.
-                    if (result->isValid() && result->isObject()) {
+                    if (result.isValid() && result.isObject()) {
                         handleResult(result);
                     } else {
                         qCWarning(animation) << "Rig::updateAnimationStateHandlers invalid return argument from "

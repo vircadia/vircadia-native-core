@@ -11,15 +11,13 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QPointer>
-#include <QtCore/QSharedPointer>
 #include <QtQuick/QQuickItem>
 
 #include <GLMHelpers.h>
+#include <ScriptValue.h>
 
 class ScriptContext;
 class ScriptEngine;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /*@jsdoc
  * A <code>OverlayWindow</code> displays a QML window inside Interface.
@@ -55,13 +53,13 @@ class QmlWindowClass : public QObject {
     Q_PROPERTY(bool visible READ isVisible WRITE setVisible NOTIFY visibleChanged)
 
 private:
-    static ScriptValuePointer internal_constructor(ScriptContext* context, ScriptEngine* engine, bool restricted);
+    static ScriptValue internal_constructor(ScriptContext* context, ScriptEngine* engine, bool restricted);
 public:
-    static ScriptValuePointer constructor(ScriptContext* context, ScriptEngine* engine) {
+    static ScriptValue constructor(ScriptContext* context, ScriptEngine* engine) {
         return internal_constructor(context, engine, false);
     }
 
-    static ScriptValuePointer restricted_constructor(ScriptContext* context, ScriptEngine* engine ){
+    static ScriptValue restricted_constructor(ScriptContext* context, ScriptEngine* engine ){
         return internal_constructor(context, engine, true);
     }
 
@@ -348,7 +346,7 @@ protected slots:
 
 protected:
     static QVariantMap parseArguments(ScriptContext* context);
-    static ScriptValuePointer internalConstructor(ScriptContext* context, ScriptEngine* engine, 
+    static ScriptValue internalConstructor(ScriptContext* context, ScriptEngine* engine, 
         std::function<QmlWindowClass*(QVariantMap)> function);
 
     virtual QString qmlSource() const { return "QmlWindow.qml"; }

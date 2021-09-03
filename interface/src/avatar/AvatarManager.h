@@ -16,7 +16,6 @@
 
 #include <QtCore/QHash>
 #include <QtCore/QObject>
-#include <QtCore/QSharedPointer>
 
 #include <AvatarHashMap.h>
 #include <PhysicsEngine.h>
@@ -27,6 +26,7 @@
 #include <AudioInjectorManager.h>
 #include <workload/Space.h>
 #include <EntitySimulation.h> // for SetOfEntities
+#include <ScriptValue.h>
 
 #include "AvatarMotionState.h"
 #include "DetailedMotionState.h"
@@ -34,9 +34,7 @@
 #include "OtherAvatar.h"
 
 class ScriptEngine;
-class ScriptValue;
 using SortedAvatar = std::pair<float, std::shared_ptr<Avatar>>;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /*@jsdoc 
  * The <code>AvatarManager</code> API provides information about avatars within the current domain. The avatars available are 
@@ -188,8 +186,8 @@ public:
      * }
      */
     Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersection(const PickRay& ray,
-                                                                  const ScriptValuePointer& avatarIdsToInclude = ScriptValuePointer(),
-                                                                  const ScriptValuePointer& avatarIdsToDiscard = ScriptValuePointer(),
+                                                                  const ScriptValue& avatarIdsToInclude = ScriptValue(),
+                                                                  const ScriptValue& avatarIdsToDiscard = ScriptValue(),
                                                                   bool pickAgainstMesh = true);
     /*@jsdoc
      * @function AvatarManager.findRayIntersectionVector
@@ -232,7 +230,7 @@ public:
      * @param {number} value - Value.
      * @deprecated This function is deprecated and will be removed.
      */
-    Q_INVOKABLE void setAvatarSortCoefficient(const QString& name, const ScriptValuePointer& value);
+    Q_INVOKABLE void setAvatarSortCoefficient(const QString& name, const ScriptValue& value);
 
     /*@jsdoc
      * Gets PAL (People Access List) data for one or more avatars. Using this method is faster than iterating over each avatar 

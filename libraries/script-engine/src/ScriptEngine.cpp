@@ -20,36 +20,36 @@ ScriptEnginePointer newScriptEngine(ScriptManager* manager) {
     return QSharedPointer<ScriptEngineQtScript>(new ScriptEngineQtScript(manager));
 }
 
-ScriptValuePointer makeScopedHandlerObject(ScriptValuePointer scopeOrCallback, ScriptValuePointer methodOrName) {
-    auto engine = scopeOrCallback->engine();
+ScriptValue makeScopedHandlerObject(const ScriptValue& scopeOrCallback, const ScriptValue& methodOrName) {
+    auto engine = scopeOrCallback.engine();
     if (!engine) {
         return scopeOrCallback;
     }
-    ScriptValuePointer scope;
-    ScriptValuePointer callback = scopeOrCallback;
-    if (scopeOrCallback->isObject()) {
-        if (methodOrName->isString()) {
+    ScriptValue scope;
+    ScriptValue callback = scopeOrCallback;
+    if (scopeOrCallback.isObject()) {
+        if (methodOrName.isString()) {
             scope = scopeOrCallback;
-            callback = scope->property(methodOrName->toString());
-        } else if (methodOrName->isFunction()) {
+            callback = scope.property(methodOrName.toString());
+        } else if (methodOrName.isFunction()) {
             scope = scopeOrCallback;
             callback = methodOrName;
-        } else if (!methodOrName->isValid()) {
+        } else if (!methodOrName.isValid()) {
             // instantiate from an existing scoped handler object
-            if (scopeOrCallback->property("callback")->isFunction()) {
-                scope = scopeOrCallback->property("scope");
-                callback = scopeOrCallback->property("callback");
+            if (scopeOrCallback.property("callback").isFunction()) {
+                scope = scopeOrCallback.property("scope");
+                callback = scopeOrCallback.property("callback");
             }
         }
     }
     auto handler = engine->newObject();
-    handler->setProperty("scope", scope);
-    handler->setProperty("callback", callback);
+    handler.setProperty("scope", scope);
+    handler.setProperty("callback", callback);
     return handler;
 }
 
-ScriptValuePointer callScopedHandlerObject(ScriptValuePointer handler, ScriptValuePointer err, ScriptValuePointer result) {
-    return handler->property("callback")->call(handler->property("scope"), ScriptValueList({ err, result }));
+ScriptValue callScopedHandlerObject(const ScriptValue& handler, const ScriptValue& err, const ScriptValue& result) {
+    return handler.property("callback").call(handler.property("scope"), ScriptValueList({ err, result }));
 }
 
 bool ScriptEngine::IS_THREADSAFE_INVOCATION(const QString& method) {

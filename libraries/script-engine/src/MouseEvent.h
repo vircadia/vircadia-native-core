@@ -16,11 +16,10 @@
 #define hifi_MouseEvent_h
 
 #include <QMouseEvent>
-#include <QtCore/QSharedPointer>
+
+#include "ScriptValue.h"
 
 class ScriptEngine;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /// Represents a mouse event to the scripting engine. Exposed as <code><a href="https://apidocs.vircadia.dev/global.html#MouseEvent">MouseEvent</a></code>
 class MouseEvent {
@@ -28,10 +27,10 @@ public:
     MouseEvent();
     MouseEvent(const QMouseEvent& event);
     
-    static ScriptValuePointer toScriptValue(ScriptEngine* engine, const MouseEvent& event);
-    static void fromScriptValue(const ScriptValuePointer& object, MouseEvent& event);
+    static ScriptValue toScriptValue(ScriptEngine* engine, const MouseEvent& event);
+    static void fromScriptValue(const ScriptValue& object, MouseEvent& event);
 
-    ScriptValuePointer toScriptValue(ScriptEngine* engine) const { return MouseEvent::toScriptValue(engine, *this); }
+    ScriptValue toScriptValue(ScriptEngine* engine) const { return MouseEvent::toScriptValue(engine, *this); }
     
     int x;
     int y;

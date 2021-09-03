@@ -27,14 +27,12 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QList>
 #include <QtCore/QHash>
-#include <QtCore/QSharedPointer>
 
 #include "Scriptable.h"
+#include "ScriptValue.h"
 
 class ScriptContext;
 class ScriptEngine;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /*@jsdoc
  * The <code>console</code> API provides program logging facilities.
@@ -58,7 +56,7 @@ public:
      * @function console.info
      * @param {...*} [message] - The message values to log.
      */
-    static ScriptValuePointer info(ScriptContext* context, ScriptEngine* engine);
+    static ScriptValue info(ScriptContext* context, ScriptEngine* engine);
 
     /*@jsdoc
      * Logs a message to the program log and triggers {@link Script.printedMessage}.
@@ -76,7 +74,7 @@ public:
      * // string 7 true
      * // INFO - Console.log message: "string 7 true" in [console.js]
      */
-    static ScriptValuePointer log(ScriptContext* context, ScriptEngine* engine);
+    static ScriptValue log(ScriptContext* context, ScriptEngine* engine);
 
     /*@jsdoc
      * Logs a message to the program log and triggers {@link Script.printedMessage}.
@@ -84,7 +82,7 @@ public:
      * @function console.debug
      * @param {...*} [message] - The message values to log.
      */
-    static ScriptValuePointer debug(ScriptContext* context, ScriptEngine* engine);
+    static ScriptValue debug(ScriptContext* context, ScriptEngine* engine);
 
     /*@jsdoc
      * Logs a "WARNING" message to the program log and triggers {@link Script.warningMessage}.
@@ -92,7 +90,7 @@ public:
      * @function console.warn
      * @param {...*} [message] - The message values to log.
      */
-    static ScriptValuePointer warn(ScriptContext* context, ScriptEngine* engine);
+    static ScriptValue warn(ScriptContext* context, ScriptEngine* engine);
 
     /*@jsdoc
      * Logs an "ERROR" message to the program log and triggers {@link Script.errorMessage}.
@@ -100,7 +98,7 @@ public:
      * @function console.error
      * @param {...*} [message] - The message values to log.
      */
-    static ScriptValuePointer error(ScriptContext* context, ScriptEngine* engine);
+    static ScriptValue error(ScriptContext* context, ScriptEngine* engine);
 
     /*@jsdoc
      * A synonym of {@link console.error}.
@@ -109,7 +107,7 @@ public:
      * @function console.exception
      * @param {...*} [message] - The message values to log.
      */
-    static ScriptValuePointer exception(ScriptContext* context, ScriptEngine* engine);
+    static ScriptValue exception(ScriptContext* context, ScriptEngine* engine);
 
     /*@jsdoc
      * Logs an "ERROR" message to the program log and triggers {@link Script.errorMessage}, if a test condition fails.
@@ -132,7 +130,7 @@ public:
      * // INFO - Script continues running.
      */
     // Note: Is registered in the script engine as "assert"
-    static ScriptValuePointer assertion(ScriptContext* context, ScriptEngine* engine);
+    static ScriptValue assertion(ScriptContext* context, ScriptEngine* engine);
 
     /*@jsdoc
      * Logs a message to the program log and triggers {@link Script.printedMessage}, then starts indenting subsequent 
@@ -160,7 +158,7 @@ public:
      * //   Sentence 5
      * //Sentence 6
      */
-    static ScriptValuePointer group(ScriptContext* context, ScriptEngine* engine);
+    static ScriptValue group(ScriptContext* context, ScriptEngine* engine);
 
     /*@jsdoc
      * Has the same behavior as {@link console.group}.
@@ -169,13 +167,13 @@ public:
      * @function console.groupCollapsed
      * @param {*} message - The message value to log.
      */
-    static ScriptValuePointer groupCollapsed(ScriptContext* context, ScriptEngine* engine);
+    static ScriptValue groupCollapsed(ScriptContext* context, ScriptEngine* engine);
 
     /*@jsdoc
      * Finishes a group of indented {@link console.log} messages.
      * @function console.groupEnd
      */
-    static ScriptValuePointer groupEnd(ScriptContext* context, ScriptEngine* engine);
+    static ScriptValue groupEnd(ScriptContext* context, ScriptEngine* engine);
 
 public slots:
     

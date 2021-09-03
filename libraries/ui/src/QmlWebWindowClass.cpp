@@ -20,7 +20,7 @@ static const char* const URL_PROPERTY = "source";
 static const char* const SCRIPT_PROPERTY = "scriptUrl";
 
 // Method called by Qt scripts to create a new web window in the overlay
-ScriptValuePointer QmlWebWindowClass::internal_constructor(ScriptContext* context, ScriptEngine* engine, bool restricted) {
+ScriptValue QmlWebWindowClass::internal_constructor(ScriptContext* context, ScriptEngine* engine, bool restricted) {
     auto properties = parseArguments(context);
     QmlWebWindowClass* retVal = new QmlWebWindowClass(restricted);
     Q_ASSERT(retVal);

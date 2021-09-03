@@ -28,6 +28,7 @@
 #include "PointerEvent.h"
 #include <PickFilter.h>
 #include <ScriptManager.h>
+#include <ScriptValue.h>
 
 #include "PolyVoxEntityItem.h"
 #include "LineEntityItem.h"
@@ -42,8 +43,6 @@ class EntityTree;
 class MeshProxy;
 class ScriptContext;
 class ScriptEngine;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 extern const QString GRABBABLE_USER_DATA;
 extern const QString NOT_GRABBABLE_USER_DATA;
@@ -55,8 +54,8 @@ extern const QString NOT_GRABBABLE_USER_DATA;
 class EntityPropertyMetadataRequest {
 public:
     EntityPropertyMetadataRequest(ScriptManager* manager) : _manager(manager == nullptr ? nullptr : manager){};
-    bool script(EntityItemID entityID, ScriptValuePointer handler);
-    bool serverScripts(EntityItemID entityID, ScriptValuePointer handler);
+    bool script(EntityItemID entityID, const ScriptValue& handler);
+    bool serverScripts(EntityItemID entityID, const ScriptValue& handler);
 private:
     QPointer<ScriptManager> _manager;
 };
@@ -89,8 +88,8 @@ public:
     QVariantMap extraInfo;
 };
 Q_DECLARE_METATYPE(RayToEntityIntersectionResult)
-ScriptValuePointer RayToEntityIntersectionResultToScriptValue(ScriptEngine* engine, const RayToEntityIntersectionResult& results);
-void RayToEntityIntersectionResultFromScriptValue(const ScriptValuePointer& object, RayToEntityIntersectionResult& results);
+ScriptValue RayToEntityIntersectionResultToScriptValue(ScriptEngine* engine, const RayToEntityIntersectionResult& results);
+void RayToEntityIntersectionResultFromScriptValue(const ScriptValue& object, RayToEntityIntersectionResult& results);
 
 class ParabolaToEntityIntersectionResult {
 public:
@@ -212,8 +211,8 @@ public:
      * var propertySets = Entities.getMultipleEntityProperties(entityIDs, "name");
      * print("Nearby entity names: " + JSON.stringify(propertySets));
     */
-    static ScriptValuePointer getMultipleEntityProperties(ScriptContext* context, ScriptEngine* engine);
-    ScriptValuePointer getMultipleEntityPropertiesInternal(ScriptEngine* engine, QVector<QUuid> entityIDs, const ScriptValuePointer& extendedDesiredProperties);
+    static ScriptValue getMultipleEntityProperties(ScriptContext* context, ScriptEngine* engine);
+    ScriptValue getMultipleEntityPropertiesInternal(ScriptEngine* engine, QVector<QUuid> entityIDs, const ScriptValue& extendedDesiredProperties);
 
     QUuid addEntityInternal(const EntityItemProperties& properties, entity::HostType entityHostType);
 
@@ -838,7 +837,7 @@ public slots:
     /// may be inaccurate if the engine is unable to access the visible entities, in which case result.accurate
     /// will be false.
     Q_INVOKABLE RayToEntityIntersectionResult findRayIntersection(const PickRay& ray, bool precisionPicking = false,
-            const ScriptValuePointer& entityIdsToInclude = ScriptValuePointer(), const ScriptValuePointer& entityIdsToDiscard = ScriptValuePointer(),
+            const ScriptValue& entityIdsToInclude = ScriptValue(), const ScriptValue& entityIdsToDiscard = ScriptValue(),
             bool visibleOnly = false, bool collidableOnly = false) const;
 
     /*@jsdoc
@@ -867,7 +866,7 @@ public slots:
      * @param {string} errorInfo - <code>""</code> if there is a server entity script running, otherwise it may contain extra 
      *     information on the error.
      */
-    Q_INVOKABLE bool getServerScriptStatus(const QUuid& entityID, ScriptValuePointer callback);
+    Q_INVOKABLE bool getServerScriptStatus(const QUuid& entityID, const ScriptValue& callback);
 
     /*@jsdoc
      * Gets metadata for certain entity properties such as <code>script</code> and <code>serverScripts</code>.
@@ -897,8 +896,8 @@ public slots:
      * @param {object} result - The metadata for the requested entity property if there was no error, otherwise
      *     <code>undefined</code>.
      */
-    Q_INVOKABLE bool queryPropertyMetadata(const QUuid& entityID, ScriptValuePointer property, ScriptValuePointer scopeOrCallback,
-        ScriptValuePointer methodOrName = ScriptValuePointer());
+    Q_INVOKABLE bool queryPropertyMetadata(const QUuid& entityID, const ScriptValue& property, const ScriptValue& scopeOrCallback,
+        const ScriptValue& methodOrName = ScriptValue());
 
 
     /*@jsdoc
@@ -1911,7 +1910,7 @@ public slots:
       *     {@link Graphics} API instead. 
       */
     // FIXME move to a renderable entity interface
-    Q_INVOKABLE void getMeshes(const QUuid& entityID, ScriptValuePointer callback);
+    Q_INVOKABLE void getMeshes(const QUuid& entityID, const ScriptValue& callback);
 
     /*@jsdoc
      * Gets the object to world transform, excluding scale, of an entity.

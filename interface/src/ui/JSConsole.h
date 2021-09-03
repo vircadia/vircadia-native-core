@@ -17,14 +17,13 @@
 #include <QSharedPointer>
 #include <QCompleter>
 #include <QtCore/QJsonArray>
+#include <ScriptValue.h>
 
 #include "ui_console.h"
 
 class QStandardItemModel;
 class ScriptManager;
-class ScriptValue;
 using ScriptManagerPointer = QSharedPointer<ScriptManager>;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 const QString CONSOLE_TITLE = "Scripting Console";
 const float CONSOLE_WINDOW_OPACITY = 0.95f;
@@ -72,7 +71,7 @@ private:
 
     QStandardItemModel* getAutoCompleteModel(const QString& memberOf = nullptr);
 
-    QFutureWatcher<ScriptValuePointer> _executeWatcher;
+    QFutureWatcher<ScriptValue> _executeWatcher;
     Ui::Console* _ui;
     int _currentCommandInHistory;
     QString _savedHistoryFilename;

@@ -19,12 +19,11 @@
 #include <QtCore/QSharedPointer>
 
 #include <DependencyManager.h>
+#include <ScriptValue.h>
+
 #include "ClipCache.h"
 #include "Forward.h"
 #include "Frame.h"
-
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /*@jsdoc
  * The <code>Recording</code> API makes and plays back recordings of voice and avatar movements. Playback may be done on a 
@@ -72,7 +71,7 @@ public slots:
      *     });
      * }
      */
-    void loadRecording(const QString& url, ScriptValuePointer callback = ScriptValuePointer());
+    void loadRecording(const QString& url, const ScriptValue& callback = ScriptValue());
 
 
     /*@jsdoc
@@ -336,7 +335,7 @@ public slots:
      *     }
      * }, 5000);
      */
-    bool saveRecordingToAsset(ScriptValuePointer getClipAtpUrl);
+    bool saveRecordingToAsset(const ScriptValue& getClipAtpUrl);
 
     /*@jsdoc
      * Loads the most recently made recording and plays it back on your avatar.
@@ -369,7 +368,7 @@ protected:
     QSet<recording::NetworkClipLoaderPointer> _clipLoaders;
 
 private:
-    void playClip(recording::NetworkClipLoaderPointer clipLoader, const QString& url, ScriptValuePointer callback);
+    void playClip(recording::NetworkClipLoaderPointer clipLoader, const QString& url, const ScriptValue& callback);
 };
 
 #endif // hifi_RecordingScriptingInterface_h

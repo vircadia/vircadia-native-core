@@ -736,8 +736,8 @@ AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) 
 }
 
 RayToAvatarIntersectionResult AvatarManager::findRayIntersection(const PickRay& ray,
-                                                                 const ScriptValuePointer& avatarIdsToInclude,
-                                                                 const ScriptValuePointer& avatarIdsToDiscard,
+                                                                 const ScriptValue& avatarIdsToInclude,
+                                                                 const ScriptValue& avatarIdsToDiscard,
                                                                  bool pickAgainstMesh) {
     QVector<EntityItemID> avatarsToInclude = qVectorEntityItemIDFromScriptValue(avatarIdsToInclude);
     QVector<EntityItemID> avatarsToDiscard = qVectorEntityItemIDFromScriptValue(avatarIdsToDiscard);
@@ -981,10 +981,10 @@ float AvatarManager::getAvatarSortCoefficient(const QString& name) {
 }
 
 // HACK
-void AvatarManager::setAvatarSortCoefficient(const QString& name, const ScriptValuePointer& value) {
+void AvatarManager::setAvatarSortCoefficient(const QString& name, const ScriptValue& value) {
     bool somethingChanged = false;
-    if (value->isNumber()) {
-        float numericalValue = (float)value->toNumber();
+    if (value.isNumber()) {
+        float numericalValue = (float)value.toNumber();
         if (name == "size") {
             AvatarData::_avatarSortCoefficientSize = numericalValue;
             somethingChanged = true;

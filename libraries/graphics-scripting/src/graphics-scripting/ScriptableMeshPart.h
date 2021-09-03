@@ -7,13 +7,10 @@
 
 #pragma once
 
-#include <QtCore/QSharedPointer>
-
 #include "ScriptableMesh.h"
 #include <Scriptable.h>
 
 class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 namespace scriptable {
     /*@jsdoc
@@ -288,7 +285,7 @@ namespace scriptable {
          * @param {GraphicsMesh~updateVertexAttributesCallback} callback - The function to call for each vertex.
          * @returns {number} The number of vertices the callback was called for.
          */
-        glm::uint32 updateVertexAttributes(ScriptValuePointer callback);
+        glm::uint32 updateVertexAttributes(const ScriptValue& callback);
 
         /*@jsdoc
          * Calls a function for each vertex in the <em>whole</em> mesh (i.e., parent and mesh parts).
@@ -296,7 +293,7 @@ namespace scriptable {
          * @param {GraphicsMesh~forEachVertexCallback} callback - The function to call for each vertex.
          * @returns {number} The number of vertices the callback was called for.
          */
-        glm::uint32 forEachVertex(ScriptValuePointer callback);
+        glm::uint32 forEachVertex(const ScriptValue& callback);
 
         /*@jsdoc
          * Checks if an index is valid and, optionally, that vertex has a particular attribute.

@@ -11,7 +11,6 @@
 #ifndef hifi_GraphicsScriptingInterface_h
 #define hifi_GraphicsScriptingInterface_h
 
-#include <QtCore/QSharedPointer>
 #include <QtCore/QObject>
 #include <QUrl>
 
@@ -19,10 +18,9 @@
 #include <DependencyManager.h>
 #include "RegisteredMetaTypes.h"
 #include <Scriptable.h>
+#include <ScriptValue.h>
 
 class ScriptEngine;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /*@jsdoc
  * The <code>Graphics</code> API enables you to access and manipulate avatar, entity, and overlay models in the rendered scene. 
@@ -151,7 +149,7 @@ private:
 };
 
 namespace scriptable {
-    ScriptValuePointer scriptableMaterialToScriptValue(ScriptEngine* engine, const scriptable::ScriptableMaterial &material);
+    ScriptValue scriptableMaterialToScriptValue(ScriptEngine* engine, const scriptable::ScriptableMaterial &material);
 };
 
 Q_DECLARE_METATYPE(NestableType)

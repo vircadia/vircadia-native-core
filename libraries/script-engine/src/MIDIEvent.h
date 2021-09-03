@@ -15,11 +15,9 @@
 #ifndef hifi_MIDIEvent_h
 #define hifi_MIDIEvent_h
 
-#include <QtCore/QSharedPointer>
+#include "ScriptValue.h"
 
 class ScriptEngine;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /// Represents a MIDI protocol event to the scripting engine.
 class MIDIEvent {
@@ -34,8 +32,8 @@ Q_DECLARE_METATYPE(MIDIEvent)
 
 void registerMIDIMetaTypes(ScriptEngine* engine);
 
-ScriptValuePointer midiEventToScriptValue(ScriptEngine* engine, const MIDIEvent& event);
-void midiEventFromScriptValue(const ScriptValuePointer &object, MIDIEvent& event);
+ScriptValue midiEventToScriptValue(ScriptEngine* engine, const MIDIEvent& event);
+void midiEventFromScriptValue(const ScriptValue &object, MIDIEvent& event);
 
 #endif // hifi_MIDIEvent_h
 

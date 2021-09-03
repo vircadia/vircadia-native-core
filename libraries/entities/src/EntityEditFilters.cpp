@@ -79,10 +79,10 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
             auto oldProperties = propertiesIn.getDesiredProperties();
             auto specifiedProperties = propertiesIn.getChangedProperties();
             propertiesIn.setDesiredProperties(specifiedProperties);
-            ScriptValuePointer inputValues = propertiesIn.copyToScriptValue(filterData.engine, false, true, true);
+            ScriptValue inputValues = propertiesIn.copyToScriptValue(filterData.engine, false, true, true);
             propertiesIn.setDesiredProperties(oldProperties);
 
-            auto in = QJsonValue::fromVariant(inputValues->toVariant()); // grab json copy now, because the inputValues might be side effected by the filter.
+            auto in = QJsonValue::fromVariant(inputValues.toVariant()); // grab json copy now, because the inputValues might be side effected by the filter.
 
             ScriptValueList args;
             args << inputValues;
@@ -91,7 +91,7 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
             // get the current properties for then entity and include them for the filter call
             if (existingEntity && filterData.wantsOriginalProperties) {
                 auto currentProperties = existingEntity->getProperties(filterData.includedOriginalProperties);
-                ScriptValuePointer currentValues = currentProperties.copyToScriptValue(filterData.engine, false, true, true);
+                ScriptValue currentValues = currentProperties.copyToScriptValue(filterData.engine, false, true, true);
                 args << currentValues;
             }
 
@@ -101,22 +101,22 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
                 auto zoneEntity = _tree->findEntityByEntityItemID(id);
                 if (zoneEntity) {
                     auto zoneProperties = zoneEntity->getProperties(filterData.includedZoneProperties);
-                    ScriptValuePointer zoneValues = zoneProperties.copyToScriptValue(filterData.engine, false, true, true);
+                    ScriptValue zoneValues = zoneProperties.copyToScriptValue(filterData.engine, false, true, true);
 
                     if (filterData.wantsZoneBoundingBox) {
                         bool success = true;
                         AABox aaBox = zoneEntity->getAABox(success);
                         if (success) {
-                            ScriptValuePointer boundingBox = filterData.engine->newObject();
-                            ScriptValuePointer bottomRightNear = vec3ToScriptValue(filterData.engine, aaBox.getCorner());
-                            ScriptValuePointer topFarLeft = vec3ToScriptValue(filterData.engine, aaBox.calcTopFarLeft());
-                            ScriptValuePointer center = vec3ToScriptValue(filterData.engine, aaBox.calcCenter());
-                            ScriptValuePointer boundingBoxDimensions = vec3ToScriptValue(filterData.engine, aaBox.getDimensions());
-                            boundingBox->setProperty("brn", bottomRightNear);
-                            boundingBox->setProperty("tfl", topFarLeft);
-                            boundingBox->setProperty("center", center);
-                            boundingBox->setProperty("dimensions", boundingBoxDimensions);
-                            zoneValues->setProperty("boundingBox", boundingBox);
+                            ScriptValue boundingBox = filterData.engine->newObject();
+                            ScriptValue bottomRightNear = vec3ToScriptValue(filterData.engine, aaBox.getCorner());
+                            ScriptValue topFarLeft = vec3ToScriptValue(filterData.engine, aaBox.calcTopFarLeft());
+                            ScriptValue center = vec3ToScriptValue(filterData.engine, aaBox.calcCenter());
+                            ScriptValue boundingBoxDimensions = vec3ToScriptValue(filterData.engine, aaBox.getDimensions());
+                            boundingBox.setProperty("brn", bottomRightNear);
+                            boundingBox.setProperty("tfl", topFarLeft);
+                            boundingBox.setProperty("center", center);
+                            boundingBox.setProperty("dimensions", boundingBoxDimensions);
+                            zoneValues.setProperty("boundingBox", boundingBox);
                         }
                     }
 
@@ -125,32 +125,32 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
                     // to be the fourth parameter, so we need to pad the args accordingly
                     int EXPECTED_ARGS = 3;
                     if (args.length() < EXPECTED_ARGS) {
-                        args << ScriptValuePointer();
+                        args << ScriptValue();
                     }
                     assert(args.length() == EXPECTED_ARGS); // we MUST have 3 args by now!
                     args << zoneValues;
                 }
             }
 
-            ScriptValuePointer result = filterData.filterFn->call(_nullObjectForFilter, args);
+            ScriptValue result = filterData.filterFn.call(_nullObjectForFilter, args);
 
             if (filterData.uncaughtExceptions()) {
                 return false;
             }
 
-            if (result->isObject()) {
+            if (result.isObject()) {
                 // make propertiesIn reflect the changes, for next filter...
                 propertiesIn.copyFromScriptValue(result, false);
 
                 // and update propertiesOut too.  TODO: this could be more efficient...
                 propertiesOut.copyFromScriptValue(result, false);
                 // Javascript objects are == only if they are the same object. To compare arbitrary values, we need to use JSON.
-                auto out = QJsonValue::fromVariant(result->toVariant());
+                auto out = QJsonValue::fromVariant(result.toVariant());
                 wasChanged |= (in != out);
-            } else if (result->isBool()) {
+            } else if (result.isBool()) {
 
                 // if the filter returned false, then it's authoritative
-                if (!result->toBool()) {
+                if (!result.toBool()) {
                     return false;
                 }
 
@@ -235,7 +235,7 @@ static bool hasCorrectSyntax(const ScriptProgramPointer& program) {
 static bool hadUncaughtExceptions(ScriptEngine& engine, const QString& fileName) {
     if (engine.hasUncaughtException()) {
         const auto backtrace = engine.uncaughtExceptionBacktrace();
-        const auto exception = engine.uncaughtException()->toString();
+        const auto exception = engine.uncaughtException().toString();
         const auto line = QString::number(engine.uncaughtExceptionLineNumber());
         engine.clearExceptions();
 
@@ -267,7 +267,7 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
             engine->setProperty("type", "edit_filter");
             engine->setProperty("fileName", urlString);
             engine->setProperty("entityID", entityID);
-            engine->globalObject()->setProperty("Script", engine->newQObject(manager.get()));
+            engine->globalObject().setProperty("Script", engine->newQObject(manager.get()));
             DependencyManager::get<ScriptInitializers>()->runScriptInitializers(engine.data());
             engine->evaluate(scriptContents, urlString);
             if (!hadUncaughtExceptions(*engine, urlString)) {
@@ -283,68 +283,68 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
                 // now get the filter function
                 auto global = engine->globalObject();
                 auto entitiesObject = engine->newObject();
-                entitiesObject->setProperty("ADD_FILTER_TYPE", EntityTree::FilterType::Add);
-                entitiesObject->setProperty("EDIT_FILTER_TYPE", EntityTree::FilterType::Edit);
-                entitiesObject->setProperty("PHYSICS_FILTER_TYPE", EntityTree::FilterType::Physics);
-                entitiesObject->setProperty("DELETE_FILTER_TYPE", EntityTree::FilterType::Delete);
-                global->setProperty("Entities", entitiesObject);
-                filterData.filterFn = global->property("filter");
-                if (!filterData.filterFn->isFunction()) {
+                entitiesObject.setProperty("ADD_FILTER_TYPE", EntityTree::FilterType::Add);
+                entitiesObject.setProperty("EDIT_FILTER_TYPE", EntityTree::FilterType::Edit);
+                entitiesObject.setProperty("PHYSICS_FILTER_TYPE", EntityTree::FilterType::Physics);
+                entitiesObject.setProperty("DELETE_FILTER_TYPE", EntityTree::FilterType::Delete);
+                global.setProperty("Entities", entitiesObject);
+                filterData.filterFn = global.property("filter");
+                if (!filterData.filterFn.isFunction()) {
                     qDebug() << "Filter function specified but not found. Will reject all edits for those without lock rights.";
                     engine.reset();
                     filterData.rejectAll=true;
                 }
 
                 // if the wantsToFilterEdit is a boolean evaluate as a boolean, otherwise assume true
-                ScriptValuePointer wantsToFilterAddValue = filterData.filterFn->property("wantsToFilterAdd");
-                filterData.wantsToFilterAdd = wantsToFilterAddValue->isBool() ? wantsToFilterAddValue->toBool() : true;
+                ScriptValue wantsToFilterAddValue = filterData.filterFn.property("wantsToFilterAdd");
+                filterData.wantsToFilterAdd = wantsToFilterAddValue.isBool() ? wantsToFilterAddValue.toBool() : true;
 
                 // if the wantsToFilterEdit is a boolean evaluate as a boolean, otherwise assume true
-                ScriptValuePointer wantsToFilterEditValue = filterData.filterFn->property("wantsToFilterEdit");
-                filterData.wantsToFilterEdit = wantsToFilterEditValue->isBool() ? wantsToFilterEditValue->toBool() : true;
+                ScriptValue wantsToFilterEditValue = filterData.filterFn.property("wantsToFilterEdit");
+                filterData.wantsToFilterEdit = wantsToFilterEditValue.isBool() ? wantsToFilterEditValue.toBool() : true;
 
                 // if the wantsToFilterPhysics is a boolean evaluate as a boolean, otherwise assume true
-                ScriptValuePointer wantsToFilterPhysicsValue = filterData.filterFn->property("wantsToFilterPhysics");
-                filterData.wantsToFilterPhysics = wantsToFilterPhysicsValue->isBool() ? wantsToFilterPhysicsValue->toBool() : true;
+                ScriptValue wantsToFilterPhysicsValue = filterData.filterFn.property("wantsToFilterPhysics");
+                filterData.wantsToFilterPhysics = wantsToFilterPhysicsValue.isBool() ? wantsToFilterPhysicsValue.toBool() : true;
 
                 // if the wantsToFilterDelete is a boolean evaluate as a boolean, otherwise assume false
-                ScriptValuePointer wantsToFilterDeleteValue = filterData.filterFn->property("wantsToFilterDelete");
-                filterData.wantsToFilterDelete = wantsToFilterDeleteValue->isBool() ? wantsToFilterDeleteValue->toBool() : false;
+                ScriptValue wantsToFilterDeleteValue = filterData.filterFn.property("wantsToFilterDelete");
+                filterData.wantsToFilterDelete = wantsToFilterDeleteValue.isBool() ? wantsToFilterDeleteValue.toBool() : false;
 
                 // check to see if the filterFn has properties asking for Original props
-                ScriptValuePointer wantsOriginalPropertiesValue = filterData.filterFn->property("wantsOriginalProperties");
+                ScriptValue wantsOriginalPropertiesValue = filterData.filterFn.property("wantsOriginalProperties");
                 // if the wantsOriginalProperties is a boolean, or a string, or list of strings, then evaluate as follows:
                 //   - boolean - true  - include all original properties
                 //               false - no properties at all
                 //   - string  - empty - no properties at all
                 //               any valid property - include just that property in the Original properties
                 //   - list of strings - include only those properties in the Original properties
-                if (wantsOriginalPropertiesValue->isBool()) {
-                    filterData.wantsOriginalProperties = wantsOriginalPropertiesValue->toBool();
-                } else if (wantsOriginalPropertiesValue->isString()) {
-                    auto stringValue = wantsOriginalPropertiesValue->toString();
+                if (wantsOriginalPropertiesValue.isBool()) {
+                    filterData.wantsOriginalProperties = wantsOriginalPropertiesValue.toBool();
+                } else if (wantsOriginalPropertiesValue.isString()) {
+                    auto stringValue = wantsOriginalPropertiesValue.toString();
                     filterData.wantsOriginalProperties = !stringValue.isEmpty();
                     if (filterData.wantsOriginalProperties) {
                         EntityPropertyFlagsFromScriptValue(wantsOriginalPropertiesValue, filterData.includedOriginalProperties);
                     }
-                } else if (wantsOriginalPropertiesValue->isArray()) {
+                } else if (wantsOriginalPropertiesValue.isArray()) {
                     EntityPropertyFlagsFromScriptValue(wantsOriginalPropertiesValue, filterData.includedOriginalProperties);
                     filterData.wantsOriginalProperties = !filterData.includedOriginalProperties.isEmpty();
                 }
 
                 // check to see if the filterFn has properties asking for Zone props
-                ScriptValuePointer wantsZonePropertiesValue = filterData.filterFn->property("wantsZoneProperties");
+                ScriptValue wantsZonePropertiesValue = filterData.filterFn.property("wantsZoneProperties");
                 // if the wantsZoneProperties is a boolean, or a string, or list of strings, then evaluate as follows:
                 //   - boolean - true  - include all Zone properties
                 //               false - no properties at all
                 //   - string  - empty - no properties at all
                 //               any valid property - include just that property in the Zone properties
                 //   - list of strings - include only those properties in the Zone properties
-                if (wantsZonePropertiesValue->isBool()) {
-                    filterData.wantsZoneProperties = wantsZonePropertiesValue->toBool();
+                if (wantsZonePropertiesValue.isBool()) {
+                    filterData.wantsZoneProperties = wantsZonePropertiesValue.toBool();
                     filterData.wantsZoneBoundingBox = filterData.wantsZoneProperties; // include this too
-                } else if (wantsZonePropertiesValue->isString()) {
-                    auto stringValue = wantsZonePropertiesValue->toString();
+                } else if (wantsZonePropertiesValue.isString()) {
+                    auto stringValue = wantsZonePropertiesValue.toString();
                     filterData.wantsZoneProperties = !stringValue.isEmpty();
                     if (filterData.wantsZoneProperties) {
                         if (stringValue == "boundingBox") {
@@ -353,10 +353,10 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
                             EntityPropertyFlagsFromScriptValue(wantsZonePropertiesValue, filterData.includedZoneProperties);
                         }
                     }
-                } else if (wantsZonePropertiesValue->isArray()) {
-                    auto length = wantsZonePropertiesValue->property("length")->toInteger();
+                } else if (wantsZonePropertiesValue.isArray()) {
+                    auto length = wantsZonePropertiesValue.property("length").toInteger();
                     for (int i = 0; i < length; i++) {
-                        auto stringValue = wantsZonePropertiesValue->property(i)->toString();
+                        auto stringValue = wantsZonePropertiesValue.property(i).toString();
                         if (!stringValue.isEmpty()) {
                             filterData.wantsZoneProperties = true;
 

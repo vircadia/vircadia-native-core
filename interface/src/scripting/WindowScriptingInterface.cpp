@@ -76,7 +76,7 @@ WindowScriptingInterface::~WindowScriptingInterface() {
     _messageBoxes.clear();
 }
 
-ScriptValuePointer WindowScriptingInterface::hasFocus() {
+ScriptValue WindowScriptingInterface::hasFocus() {
     return engine()->newValue(qApp->hasFocus());
 }
 
@@ -96,26 +96,26 @@ void WindowScriptingInterface::raise() {
 
 /// Display an alert box
 /// \param const QString& message message to display
-/// \return ScriptValuePointer::UndefinedValue
+/// \return ScriptValue::UndefinedValue
 void WindowScriptingInterface::alert(const QString& message) {
     OffscreenUi::asyncWarning("", message, QMessageBox::Ok, QMessageBox::Ok);
 }
 
 /// Display a confirmation box with the options 'Yes' and 'No'
 /// \param const QString& message message to display
-/// \return ScriptValuePointer `true` if 'Yes' was clicked, `false` otherwise
-ScriptValuePointer WindowScriptingInterface::confirm(const QString& message) {
+/// \return ScriptValue `true` if 'Yes' was clicked, `false` otherwise
+ScriptValue WindowScriptingInterface::confirm(const QString& message) {
     return engine()->newValue((QMessageBox::Yes == OffscreenUi::question("", message, QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes)));
 }
 
 /// Display a prompt with a text box
 /// \param const QString& message message to display
 /// \param const QString& defaultText default text in the text box
-/// \return ScriptValuePointer string text value in text box if the dialog was accepted, `null` otherwise.
-ScriptValuePointer WindowScriptingInterface::prompt(const QString& message, const QString& defaultText) {
+/// \return ScriptValue string text value in text box if the dialog was accepted, `null` otherwise.
+ScriptValue WindowScriptingInterface::prompt(const QString& message, const QString& defaultText) {
     QString result = OffscreenUi::getText(nullptr, "", message, QLineEdit::Normal, defaultText);
     auto sResult = engine()->newValue(result);
-    if (sResult->equals(engine()->newValue(""))) {
+    if (sResult.equals(engine()->newValue(""))) {
         return engine()->nullValue();
     }
     return sResult;
@@ -218,8 +218,8 @@ void WindowScriptingInterface::ensureReticleVisible() const {
 /// working directory.
 /// \param const QString& title title of the window
 /// \param const QString& directory directory to start the directory browser at
-/// \return ScriptValuePointer file path as a string if one was selected, otherwise `ScriptValuePointer::NullValue`
-ScriptValuePointer WindowScriptingInterface::browseDir(const QString& title, const QString& directory) {
+/// \return ScriptValue file path as a string if one was selected, otherwise `ScriptValue::NullValue`
+ScriptValue WindowScriptingInterface::browseDir(const QString& title, const QString& directory) {
     ensureReticleVisible();
     QString path = directory;
     if (path.isEmpty()) {
@@ -262,8 +262,8 @@ void WindowScriptingInterface::browseDirAsync(const QString& title, const QStrin
 /// \param const QString& title title of the window
 /// \param const QString& directory directory to start the file browser at
 /// \param const QString& nameFilter filter to filter filenames by - see `QFileDialog`
-/// \return ScriptValuePointer file path as a string if one was selected, otherwise `ScriptValuePointer::NullValue`
-ScriptValuePointer WindowScriptingInterface::browse(const QString& title, const QString& directory, const QString& nameFilter) {
+/// \return ScriptValue file path as a string if one was selected, otherwise `ScriptValue::NullValue`
+ScriptValue WindowScriptingInterface::browse(const QString& title, const QString& directory, const QString& nameFilter) {
     ensureReticleVisible();
     QString path = directory;
     if (path.isEmpty()) {
@@ -309,8 +309,8 @@ void WindowScriptingInterface::browseAsync(const QString& title, const QString& 
 /// \param const QString& title title of the window
 /// \param const QString& directory directory to start the file browser at
 /// \param const QString& nameFilter filter to filter filenames by - see `QFileDialog`
-/// \return ScriptValuePointer file path as a string if one was selected, otherwise `ScriptValuePointer::NullValue`
-ScriptValuePointer WindowScriptingInterface::save(const QString& title, const QString& directory, const QString& nameFilter) {
+/// \return ScriptValue file path as a string if one was selected, otherwise `ScriptValue::NullValue`
+ScriptValue WindowScriptingInterface::save(const QString& title, const QString& directory, const QString& nameFilter) {
     ensureReticleVisible();
     QString path = directory;
     if (path.isEmpty()) {
@@ -356,8 +356,8 @@ void WindowScriptingInterface::saveAsync(const QString& title, const QString& di
 /// \param const QString& title title of the window
 /// \param const QString& directory directory to start the asset browser at
 /// \param const QString& nameFilter filter to filter asset names by - see `QFileDialog`
-/// \return ScriptValuePointer asset path as a string if one was selected, otherwise `ScriptValuePointer::NullValue`
-ScriptValuePointer WindowScriptingInterface::browseAssets(const QString& title, const QString& directory, const QString& nameFilter) {
+/// \return ScriptValue asset path as a string if one was selected, otherwise `ScriptValue::NullValue`
+ScriptValue WindowScriptingInterface::browseAssets(const QString& title, const QString& directory, const QString& nameFilter) {
     ensureReticleVisible();
     QString path = directory;
     if (path.isEmpty()) {

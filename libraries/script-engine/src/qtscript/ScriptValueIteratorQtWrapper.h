@@ -25,7 +25,7 @@
 /// [QtScript] Implements ScriptValueIterator for QtScript and translates calls for QScriptValueIterator
 class ScriptValueIteratorQtWrapper : public ScriptValueIterator {
 public: // construction
-    inline ScriptValueIteratorQtWrapper(ScriptEngineQtScript* engine, const ScriptValuePointer& object) :
+    inline ScriptValueIteratorQtWrapper(ScriptEngineQtScript* engine, const ScriptValue& object) :
         _engine(engine), _value(ScriptValueQtWrapper::fullUnwrap(engine, object)) {}
     inline ScriptValueIteratorQtWrapper(ScriptEngineQtScript* engine, const QScriptValue& object) :
         _engine(engine), _value(object) {}
@@ -35,7 +35,7 @@ public:  // ScriptValueIterator implementation
     virtual bool hasNext() const;
     virtual QString name() const;
     virtual void next();
-    virtual ScriptValuePointer value() const;
+    virtual ScriptValue value() const;
 
 private: // storage
     QPointer<ScriptEngineQtScript> _engine;

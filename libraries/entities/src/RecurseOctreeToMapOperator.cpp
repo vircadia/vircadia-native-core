@@ -57,7 +57,7 @@ bool RecurseOctreeToMapOperator::postRecursion(const OctreeElementPointer& eleme
         }
 
         EntityItemProperties properties = entityItem->getProperties();
-        ScriptValuePointer qScriptValues;
+        ScriptValue qScriptValues;
         if (_skipDefaultValues) {
             qScriptValues = EntityItemNonDefaultPropertiesToScriptValue(_engine, properties);
         } else {
@@ -71,11 +71,11 @@ bool RecurseOctreeToMapOperator::postRecursion(const OctreeElementPointer& eleme
             auto jointNames = _myAvatar->getJointNames();
             auto parentJointIndex = entityItem->getParentJointIndex();
         	if (parentJointIndex < jointNames.count()) {
-                qScriptValues->setProperty("parentJointName", jointNames.at(parentJointIndex));
+                qScriptValues.setProperty("parentJointName", jointNames.at(parentJointIndex));
         	}
         }
 
-        entitiesQList << qScriptValues->toVariant();
+        entitiesQList << qScriptValues.toVariant();
     });
 
     _map["Entities"] = entitiesQList;

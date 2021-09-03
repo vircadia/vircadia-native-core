@@ -23,12 +23,9 @@
 #include <NetworkAccessManager.h>
 #include <BaseAssetScriptingInterface.h>
 #include <QtNetwork/QNetworkDiskCache>
-#include <QtCore/QSharedPointer>
 
 #include "Scriptable.h"
-
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
+#include "ScriptValue.h"
 
 /*@jsdoc
  * The <code>Assets</code> API provides facilities for interacting with the domain's asset server and the client cache. 
@@ -79,7 +76,7 @@ public:
      *     });
      * });
      */
-    Q_INVOKABLE void uploadData(QString data, ScriptValuePointer callback);
+    Q_INVOKABLE void uploadData(QString data, const ScriptValue& callback);
 
     /*@jsdoc
      * Called when an {@link Assets.downloadData} call is complete.
@@ -115,7 +112,7 @@ public:
      *     });
      * }, 1000);
      */
-    Q_INVOKABLE void downloadData(QString url, ScriptValuePointer callback);
+    Q_INVOKABLE void downloadData(QString url, const ScriptValue& callback);
 
     /*@jsdoc
      * Called when an {@link Assets.setMapping} call is complete.
@@ -129,7 +126,7 @@ public:
      * @param {string} hash - The hash in the asset server.
      * @param {Assets~setMappingCallback} callback - The function to call upon completion.
      */
-    Q_INVOKABLE void setMapping(QString path, QString hash, ScriptValuePointer callback);
+    Q_INVOKABLE void setMapping(QString path, QString hash, const ScriptValue& callback);
 
     /*@jsdoc
      * Called when an {@link Assets.getMapping} call is complete.
@@ -153,7 +150,7 @@ public:
      *     });
      * }
      */
-    Q_INVOKABLE void getMapping(QString path, ScriptValuePointer callback);
+    Q_INVOKABLE void getMapping(QString path, const ScriptValue& callback);
 
     /*@jsdoc
      * Called when an {@link Assets.setBakingEnabled} call is complete.
@@ -169,7 +166,7 @@ public:
      * @param {Assets~setBakingEnabledCallback} callback - The function to call upon completion.
      */
     // Note: Second callback parameter not documented because it's always {}.
-    Q_INVOKABLE void setBakingEnabled(QString path, bool enabled, ScriptValuePointer callback);
+    Q_INVOKABLE void setBakingEnabled(QString path, bool enabled, const ScriptValue& callback);
 
 #if (PR_BUILD || DEV_BUILD)
     /**
@@ -225,7 +222,7 @@ public:
      *     }
      * );
      */
-    Q_INVOKABLE void getAsset(ScriptValuePointer options, ScriptValuePointer scope, ScriptValuePointer callback = ScriptValuePointer());
+    Q_INVOKABLE void getAsset(const ScriptValue& options, const ScriptValue& scope, const ScriptValue& callback = ScriptValue());
 
     /*@jsdoc
      * Called when an {@link Assets.putAsset} call is complete.
@@ -262,7 +259,7 @@ public:
      *     }
      * );
      */
-    Q_INVOKABLE void putAsset(ScriptValuePointer options, ScriptValuePointer scope, ScriptValuePointer callback = ScriptValuePointer());
+    Q_INVOKABLE void putAsset(const ScriptValue& options, const ScriptValue& scope, const ScriptValue& callback = ScriptValue());
 
     /*@jsdoc
      * Called when an {@link Assets.deleteAsset} call is complete.
@@ -279,7 +276,7 @@ public:
      * @param {object} scope - The scope that the <code>callback</code> function is defined in.
      * @param {Assets~deleteAssetCallback} callback - The function to call upon completion.
      */
-    Q_INVOKABLE void deleteAsset(ScriptValuePointer options, ScriptValuePointer scope, ScriptValuePointer callback = ScriptValuePointer());
+    Q_INVOKABLE void deleteAsset(const ScriptValue& options, const ScriptValue& scope, const ScriptValue& callback = ScriptValue());
 
     /*@jsdoc
      * Called when an {@link Assets.resolveAsset} call is complete.
@@ -313,7 +310,7 @@ public:
      *     }
      * );
      */
-    Q_INVOKABLE void resolveAsset(ScriptValuePointer options, ScriptValuePointer scope, ScriptValuePointer callback = ScriptValuePointer());
+    Q_INVOKABLE void resolveAsset(const ScriptValue& options, const ScriptValue& scope, const ScriptValue& callback = ScriptValue());
     
     /*@jsdoc
      * Called when an {@link Assets.decompressData} call is complete.
@@ -334,7 +331,7 @@ public:
      *     in a string. If the name of a function or a function identifier, it must be a member of the scope specified by
      *     <code>scopeOrCallback</code>.</p>
      */
-    Q_INVOKABLE void decompressData(ScriptValuePointer options, ScriptValuePointer scope, ScriptValuePointer callback = ScriptValuePointer());
+    Q_INVOKABLE void decompressData(const ScriptValue& options, const ScriptValue& scope, const ScriptValue& callback = ScriptValue());
     
     /*@jsdoc
      * Called when an {@link Assets.compressData} call is complete.
@@ -356,7 +353,7 @@ public:
      *     in a string. If the name of a function or a function identifier, it must be a member of the scope specified by
      *     <code>scopeOrCallback</code>.</p>
      */
-    Q_INVOKABLE void compressData(ScriptValuePointer options, ScriptValuePointer scope, ScriptValuePointer callback = ScriptValuePointer());
+    Q_INVOKABLE void compressData(const ScriptValue& options, const ScriptValue& scope, const ScriptValue& callback = ScriptValue());
     
     /*@jsdoc
      * Initializes the cache if it isn't already initialized.
@@ -401,7 +398,7 @@ public:
      *     print("- Status: " + JSON.stringify(status));
      * });
      */
-    Q_INVOKABLE void getCacheStatus(ScriptValuePointer scope, ScriptValuePointer callback = ScriptValuePointer()) {
+    Q_INVOKABLE void getCacheStatus(const ScriptValue& scope, const ScriptValue& callback = ScriptValue()) {
         jsPromiseReady(Parent::getCacheStatus(), scope, callback);
     }
 
@@ -441,7 +438,7 @@ public:
      *     }
      * );
      */
-    Q_INVOKABLE void queryCacheMeta(ScriptValuePointer options, ScriptValuePointer scope, ScriptValuePointer callback = ScriptValuePointer());
+    Q_INVOKABLE void queryCacheMeta(const ScriptValue& options, const ScriptValue& scope, const ScriptValue& callback = ScriptValue());
     
     /*@jsdoc
      * Called when an {@link Assets.loadFromCache} call is complete.
@@ -481,7 +478,7 @@ public:
      *     }
      * );
      */
-    Q_INVOKABLE void loadFromCache(ScriptValuePointer options, ScriptValuePointer scope, ScriptValuePointer callback = ScriptValuePointer());
+    Q_INVOKABLE void loadFromCache(const ScriptValue& options, const ScriptValue& scope, const ScriptValue& callback = ScriptValue());
     
     /*@jsdoc
      * Called when an {@link Assets.saveToCache} call is complete.
@@ -520,7 +517,7 @@ public:
      *     }
      * );
      */
-    Q_INVOKABLE void saveToCache(ScriptValuePointer options, ScriptValuePointer scope, ScriptValuePointer callback = ScriptValuePointer());
+    Q_INVOKABLE void saveToCache(const ScriptValue& options, const ScriptValue& scope, const ScriptValue& callback = ScriptValue());
     
     /*@jsdoc
      * Saves asset data to the cache directly, without downloading it from a URL.
@@ -540,13 +537,13 @@ public:
      *     <code>scopeOrCallback</code>.</p>
      */
     Q_INVOKABLE void saveToCache(const QUrl& url, const QByteArray& data, const QVariantMap& metadata,
-                                 ScriptValuePointer scope, ScriptValuePointer callback = ScriptValuePointer());
+                                 const ScriptValue& scope, const ScriptValue& callback = ScriptValue());
 protected:
-    ScriptValuePointer jsBindCallback(ScriptValuePointer scope, ScriptValuePointer callback = ScriptValuePointer());
-    Promise jsPromiseReady(Promise promise, ScriptValuePointer scope, ScriptValuePointer callback = ScriptValuePointer());
+    ScriptValue jsBindCallback(const ScriptValue& scope, const ScriptValue& callback = ScriptValue());
+    Promise jsPromiseReady(Promise promise, const ScriptValue& scope, const ScriptValue& callback = ScriptValue());
 
-    void jsCallback(const ScriptValuePointer& handler, const ScriptValuePointer& error, const QVariantMap& result);
-    void jsCallback(const ScriptValuePointer& handler, const ScriptValuePointer& error, const ScriptValuePointer& result);
+    void jsCallback(const ScriptValue& handler, const ScriptValue& error, const QVariantMap& result);
+    void jsCallback(const ScriptValue& handler, const ScriptValue& error, const ScriptValue& result);
     bool jsVerify(bool condition, const QString& error);
 };
 

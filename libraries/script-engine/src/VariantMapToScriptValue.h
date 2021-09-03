@@ -16,8 +16,8 @@
 #include "ScriptValue.h"
 #include "ScriptEngine.h"
 
-ScriptValuePointer variantToScriptValue(QVariant& qValue, ScriptEngine& scriptEngine);
-ScriptValuePointer variantMapToScriptValue(QVariantMap& variantMap, ScriptEngine& scriptEngine);
-ScriptValuePointer variantListToScriptValue(QVariantList& variantList, ScriptEngine& scriptEngine);
+ScriptValue variantToScriptValue(QVariant& qValue, ScriptEngine& scriptEngine);
+ScriptValue variantMapToScriptValue(QVariantMap& variantMap, ScriptEngine& scriptEngine);
+ScriptValue variantListToScriptValue(QVariantList& variantList, ScriptEngine& scriptEngine);
 
 /// @}

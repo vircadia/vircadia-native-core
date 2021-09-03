@@ -23,7 +23,7 @@ STATIC_SCRIPT_INITIALIZER(+[](ScriptManager* manager) {
     scriptRegisterMetaType(scriptEngine, injectorToScriptValue, injectorFromScriptValue);
 });
 
-ScriptValuePointer injectorToScriptValue(ScriptEngine* engine, ScriptAudioInjector* const& in) {
+ScriptValue injectorToScriptValue(ScriptEngine* engine, ScriptAudioInjector* const& in) {
     // The AudioScriptingInterface::playSound method can return null, so we need to account for that.
     if (!in) {
         return engine->nullValue();
@@ -32,8 +32,8 @@ ScriptValuePointer injectorToScriptValue(ScriptEngine* engine, ScriptAudioInject
     return engine->newQObject(in, ScriptEngine::ScriptOwnership);
 }
 
-void injectorFromScriptValue(const ScriptValuePointer& object, ScriptAudioInjector*& out) {
-    out = qobject_cast<ScriptAudioInjector*>(object->toQObject());
+void injectorFromScriptValue(const ScriptValue& object, ScriptAudioInjector*& out) {
+    out = qobject_cast<ScriptAudioInjector*>(object.toQObject());
 }
 
 ScriptAudioInjector::ScriptAudioInjector(const AudioInjectorPointer& injector) :

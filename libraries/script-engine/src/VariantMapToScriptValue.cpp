@@ -15,7 +15,7 @@
 
 #include "SharedLogging.h"
 
-ScriptValuePointer variantToScriptValue(QVariant& qValue, ScriptEngine& scriptEngine) {
+ScriptValue variantToScriptValue(QVariant& qValue, ScriptEngine& scriptEngine) {
     switch(qValue.type()) {
         case QVariant::Bool:
             return scriptEngine.newValue(qValue.toBool());
@@ -48,29 +48,29 @@ ScriptValuePointer variantToScriptValue(QVariant& qValue, ScriptEngine& scriptEn
             break;
     }
 
-    return ScriptValuePointer();
+    return ScriptValue();
 }
 
 
-ScriptValuePointer variantMapToScriptValue(QVariantMap& variantMap, ScriptEngine& scriptEngine) {
-    ScriptValuePointer scriptValue = scriptEngine.newObject();
+ScriptValue variantMapToScriptValue(QVariantMap& variantMap, ScriptEngine& scriptEngine) {
+    ScriptValue scriptValue = scriptEngine.newObject();
 
     for (QVariantMap::const_iterator iter = variantMap.begin(); iter != variantMap.end(); ++iter) {
         QString key = iter.key();
         QVariant qValue = iter.value();
-        scriptValue->setProperty(key, variantToScriptValue(qValue, scriptEngine));
+        scriptValue.setProperty(key, variantToScriptValue(qValue, scriptEngine));
     }
 
     return scriptValue;
 }
 
 
-ScriptValuePointer variantListToScriptValue(QVariantList& variantList, ScriptEngine& scriptEngine) {
+ScriptValue variantListToScriptValue(QVariantList& variantList, ScriptEngine& scriptEngine) {
 
-    ScriptValuePointer scriptValue = scriptEngine.newArray();
+    ScriptValue scriptValue = scriptEngine.newArray();
 
     for (int i = 0; i < variantList.size(); i++) {
-        scriptValue->setProperty(i, variantToScriptValue(variantList[i], scriptEngine));
+        scriptValue.setProperty(i, variantToScriptValue(variantList[i], scriptEngine));
     }
 
     return scriptValue;

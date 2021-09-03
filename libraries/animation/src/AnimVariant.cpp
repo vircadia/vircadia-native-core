@@ -18,32 +18,32 @@
 
 const AnimVariant AnimVariant::False = AnimVariant();
 
-ScriptValuePointer AnimVariantMap::animVariantMapToScriptValue(ScriptEngine* engine, const QStringList& names, bool useNames) const {
+ScriptValue AnimVariantMap::animVariantMapToScriptValue(ScriptEngine* engine, const QStringList& names, bool useNames) const {
     if (QThread::currentThread() != engine->thread()) {
         qCWarning(animation) << "Cannot create Javacript object from non-script thread" << QThread::currentThread();
         Q_ASSERT(false);
-        return ScriptValuePointer();
+        return ScriptValue();
     }
-    ScriptValuePointer target = engine->newObject();
+    ScriptValue target = engine->newObject();
     auto setOne = [&] (const QString& name, const AnimVariant& value) {
         switch (value.getType()) {
             case AnimVariant::Type::Bool:
-                target->setProperty(name, value.getBool());
+                target.setProperty(name, value.getBool());
                 break;
             case AnimVariant::Type::Int:
-                target->setProperty(name, value.getInt());
+                target.setProperty(name, value.getInt());
                 break;
             case AnimVariant::Type::Float:
-                target->setProperty(name, value.getFloat());
+                target.setProperty(name, value.getFloat());
                 break;
             case AnimVariant::Type::String:
-                target->setProperty(name, value.getString());
+                target.setProperty(name, value.getString());
                 break;
             case AnimVariant::Type::Vec3:
-                target->setProperty(name, vec3ToScriptValue(engine, value.getVec3()));
+                target.setProperty(name, vec3ToScriptValue(engine, value.getVec3()));
                 break;
             case AnimVariant::Type::Quat:
-                target->setProperty(name, quatToScriptValue(engine, value.getQuat()));
+                target.setProperty(name, quatToScriptValue(engine, value.getQuat()));
                 break;
             default:
                 // Unknown type
@@ -56,7 +56,7 @@ ScriptValuePointer AnimVariantMap::animVariantMapToScriptValue(ScriptEngine* eng
             if (search != _map.end()) {
                 setOne(name, search->second);
             } else if (_triggers.count(name) == 1) {
-                target->setProperty(name, true);
+                target.setProperty(name, true);
             } // scripts are allowed to request names that do not exist
         }
 
@@ -74,8 +74,8 @@ void AnimVariantMap::copyVariantsFrom(const AnimVariantMap& other) {
     }
 }
 
-void AnimVariantMap::animVariantMapFromScriptValue(const ScriptValuePointer& source) {
-    if (QThread::currentThread() != source->engine()->thread()) {
+void AnimVariantMap::animVariantMapFromScriptValue(const ScriptValue& source) {
+    if (QThread::currentThread() != source.engine()->thread()) {
         qCWarning(animation) << "Cannot examine Javacript object from non-script thread" << QThread::currentThread();
         Q_ASSERT(false);
         return;
@@ -84,43 +84,43 @@ void AnimVariantMap::animVariantMapFromScriptValue(const ScriptValuePointer& sou
     // Whenever we identify a new outbound type in animVariantMapToScriptValue above, or a new inbound type in the code that follows here,
     // we would enter it into the dictionary. Then switch on that type here, with the code that follow being executed only if
     // the type is not known. One problem with that is that there is no checking that two different script use the same name differently.
-    ScriptValueIteratorPointer property(source->newIterator());
+    ScriptValueIteratorPointer property(source.newIterator());
     // Note: ScriptValueIterator iterates only over source's own properties. It does not follow the prototype chain.
     while (property->hasNext()) {
         property->next();
-        ScriptValuePointer value = property->value();
-        if (value && value->isBool()) {
-            set(property->name(), value->toBool());
-        } else if (value && value->isString()) {
-            set(property->name(), value->toString());
-        } else if (value && value->isNumber()) {
-            int asInteger = value->toInt32();
-            float asFloat = value->toNumber();
+        ScriptValue value = property->value();
+        if (value.isBool()) {
+            set(property->name(), value.toBool());
+        } else if (value.isString()) {
+            set(property->name(), value.toString());
+        } else if (value.isNumber()) {
+            int asInteger = value.toInt32();
+            float asFloat = value.toNumber();
             if (asInteger == asFloat) {
                 set(property->name(), asInteger);
             } else {
                 set(property->name(), asFloat);
             }
         } else { // Try to get x,y,z and possibly w
-            if (value && value->isObject()) {
-                ScriptValuePointer x = value->property("x");
-                if (x && x->isNumber()) {
-                    ScriptValuePointer y = value->property("y");
-                    if (y && y->isNumber()) {
-                        ScriptValuePointer z = value->property("z");
-                        if (z && z->isNumber()) {
-                            ScriptValuePointer w = value->property("w");
-                            if (w && w->isNumber()) {
-                                set(property->name(), glm::quat(w->toNumber(), x->toNumber(), y->toNumber(), z->toNumber()));
+            if (value.isObject()) {
+                ScriptValue x = value.property("x");
+                if (x.isNumber()) {
+                    ScriptValue y = value.property("y");
+                    if (y.isNumber()) {
+                        ScriptValue z = value.property("z");
+                        if (z.isNumber()) {
+                            ScriptValue w = value.property("w");
+                            if (w.isNumber()) {
+                                set(property->name(), glm::quat(w.toNumber(), x.toNumber(), y.toNumber(), z.toNumber()));
                             } else {
-                                set(property->name(), glm::vec3(x->toNumber(), y->toNumber(), z->toNumber()));
+                                set(property->name(), glm::vec3(x.toNumber(), y.toNumber(), z.toNumber()));
                             }
                             continue; // we got either a vector or quaternion object, so don't fall through to warning
                         }
                     }
                 }
             }
-            qCWarning(animation) << "Ignoring unrecognized data " << (value ? value->toString() : "(undefined)") << " for animation property " << property->name();
+            qCWarning(animation) << "Ignoring unrecognized data " << value.toString() << " for animation property " << property->name();
             Q_ASSERT(false);
         }
     }

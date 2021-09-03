@@ -25,7 +25,6 @@
 #include <QVector>
 #include <QString>
 #include <QDateTime>
-#include <QtCore/QSharedPointer>
 
 #include <AACube.h>
 #include <NumericalConstants.h>
@@ -34,8 +33,9 @@
 #include <ShapeInfo.h>
 #include <ColorUtils.h>
 #include "FontFamilies.h"
+#include <ScriptValue.h>
 
-#include "EntityItemID.h"
+#include <EntityItemID.h>
 #include "EntityItemPropertiesDefaults.h"
 #include "EntityItemPropertiesMacros.h"
 #include "EntityTypes.h"
@@ -70,8 +70,6 @@
 #include "TextAlignment.h"
 
 class ScriptEngine;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 const quint64 UNKNOWN_CREATED_TIME = 0;
 
@@ -100,7 +98,7 @@ EntityPropertyInfo makePropertyInfo(EntityPropertyList p, typename std::enable_i
 }
 
 /// A collection of properties of an entity item used in the scripting API. Translates between the actual properties of an
-/// entity and a JavaScript style hash/ScriptValuePointer storing a set of properties. Used in scripting to set/get the complete
+/// entity and a JavaScript style hash/ScriptValue storing a set of properties. Used in scripting to set/get the complete
 /// set of entity item properties via JavaScript hashes/QScriptValues
 /// all units for SI units (meter, second, radian, etc) 
 class EntityItemProperties {
@@ -137,13 +135,13 @@ public:
     EntityTypes::EntityType getType() const { return _type; }
     void setType(EntityTypes::EntityType type) { _type = type; }
 
-    virtual ScriptValuePointer copyToScriptValue(ScriptEngine* engine, bool skipDefaults, bool allowUnknownCreateTime = false,
+    virtual ScriptValue copyToScriptValue(ScriptEngine* engine, bool skipDefaults, bool allowUnknownCreateTime = false,
         bool strictSemantics = false, EntityPsuedoPropertyFlags psueudoPropertyFlags = EntityPsuedoPropertyFlags()) const;
-    virtual void copyFromScriptValue(const ScriptValuePointer& object, bool honorReadOnly);
+    virtual void copyFromScriptValue(const ScriptValue& object, bool honorReadOnly);
     void copyFromJSONString(ScriptEngine& scriptEngine, const QString& jsonString);
 
-    static ScriptValuePointer entityPropertyFlagsToScriptValue(ScriptEngine* engine, const EntityPropertyFlags& flags);
-    static void entityPropertyFlagsFromScriptValue(const ScriptValuePointer& object, EntityPropertyFlags& flags);
+    static ScriptValue entityPropertyFlagsToScriptValue(ScriptEngine* engine, const EntityPropertyFlags& flags);
+    static void entityPropertyFlagsFromScriptValue(const ScriptValue& object, EntityPropertyFlags& flags);
 
     static bool getPropertyInfo(const QString& propertyName, EntityPropertyInfo& propertyInfo);
 
@@ -543,18 +541,18 @@ private:
 };
 
 Q_DECLARE_METATYPE(EntityItemProperties);
-ScriptValuePointer EntityItemPropertiesToScriptValue(ScriptEngine* engine, const EntityItemProperties& properties);
-ScriptValuePointer EntityItemNonDefaultPropertiesToScriptValue(ScriptEngine* engine, const EntityItemProperties& properties);
-void EntityItemPropertiesFromScriptValueIgnoreReadOnly(const ScriptValuePointer& object, EntityItemProperties& properties);
-void EntityItemPropertiesFromScriptValueHonorReadOnly(const ScriptValuePointer& object, EntityItemProperties& properties);
+ScriptValue EntityItemPropertiesToScriptValue(ScriptEngine* engine, const EntityItemProperties& properties);
+ScriptValue EntityItemNonDefaultPropertiesToScriptValue(ScriptEngine* engine, const EntityItemProperties& properties);
+void EntityItemPropertiesFromScriptValueIgnoreReadOnly(const ScriptValue& object, EntityItemProperties& properties);
+void EntityItemPropertiesFromScriptValueHonorReadOnly(const ScriptValue& object, EntityItemProperties& properties);
 
 Q_DECLARE_METATYPE(EntityPropertyFlags);
-ScriptValuePointer EntityPropertyFlagsToScriptValue(ScriptEngine* engine, const EntityPropertyFlags& flags);
-void EntityPropertyFlagsFromScriptValue(const ScriptValuePointer& object, EntityPropertyFlags& flags);
+ScriptValue EntityPropertyFlagsToScriptValue(ScriptEngine* engine, const EntityPropertyFlags& flags);
+void EntityPropertyFlagsFromScriptValue(const ScriptValue& object, EntityPropertyFlags& flags);
 
 Q_DECLARE_METATYPE(EntityPropertyInfo);
-ScriptValuePointer EntityPropertyInfoToScriptValue(ScriptEngine* engine, const EntityPropertyInfo& propertyInfo);
-void EntityPropertyInfoFromScriptValue(const ScriptValuePointer& object, EntityPropertyInfo& propertyInfo);
+ScriptValue EntityPropertyInfoToScriptValue(ScriptEngine* engine, const EntityPropertyInfo& propertyInfo);
+void EntityPropertyInfoFromScriptValue(const ScriptValue& object, EntityPropertyInfo& propertyInfo);
 
 // define these inline here so the macros work
 inline void EntityItemProperties::setPosition(const glm::vec3& value)

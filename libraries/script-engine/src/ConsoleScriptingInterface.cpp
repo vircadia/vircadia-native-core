@@ -30,14 +30,14 @@ const QString SPACE_SEPARATOR = " ";
 const QString STACK_TRACE_FORMAT = "\n[Stacktrace]%1%2";
 QList<QString> ConsoleScriptingInterface::_groupDetails = QList<QString>();
 
-ScriptValuePointer ConsoleScriptingInterface::info(ScriptContext* context, ScriptEngine* engine) {
+ScriptValue ConsoleScriptingInterface::info(ScriptContext* context, ScriptEngine* engine) {
     if (ScriptManager* scriptManager = engine->manager()) {
         scriptManager->scriptInfoMessage(appendArguments(context));
     }
     return engine->nullValue();
 }
 
-ScriptValuePointer ConsoleScriptingInterface::log(ScriptContext* context, ScriptEngine* engine) {
+ScriptValue ConsoleScriptingInterface::log(ScriptContext* context, ScriptEngine* engine) {
     QString message = appendArguments(context);
     if (_groupDetails.count() == 0) {
         if (ScriptManager* scriptManager = engine->manager()) {
@@ -49,28 +49,28 @@ ScriptValuePointer ConsoleScriptingInterface::log(ScriptContext* context, Script
     return engine->nullValue();
 }
 
-ScriptValuePointer ConsoleScriptingInterface::debug(ScriptContext* context, ScriptEngine* engine) {
+ScriptValue ConsoleScriptingInterface::debug(ScriptContext* context, ScriptEngine* engine) {
     if (ScriptManager* scriptManager = engine->manager()) {
         scriptManager->scriptPrintedMessage(appendArguments(context));
     }
     return engine->nullValue();
 }
 
-ScriptValuePointer ConsoleScriptingInterface::warn(ScriptContext* context, ScriptEngine* engine) {
+ScriptValue ConsoleScriptingInterface::warn(ScriptContext* context, ScriptEngine* engine) {
     if (ScriptManager* scriptManager = engine->manager()) {
         scriptManager->scriptWarningMessage(appendArguments(context));
     }
     return engine->nullValue();
 }
 
-ScriptValuePointer ConsoleScriptingInterface::error(ScriptContext* context, ScriptEngine* engine) {
+ScriptValue ConsoleScriptingInterface::error(ScriptContext* context, ScriptEngine* engine) {
     if (ScriptManager* scriptManager = engine->manager()) {
         scriptManager->scriptErrorMessage(appendArguments(context));
     }
     return engine->nullValue();
 }
 
-ScriptValuePointer ConsoleScriptingInterface::exception(ScriptContext* context, ScriptEngine* engine) {
+ScriptValue ConsoleScriptingInterface::exception(ScriptContext* context, ScriptEngine* engine) {
     if (ScriptManager* scriptManager = engine->manager()) {
         scriptManager->scriptErrorMessage(appendArguments(context));
     }
@@ -108,14 +108,14 @@ void ConsoleScriptingInterface::timeEnd(QString labelName) {
     }
 }
 
-ScriptValuePointer ConsoleScriptingInterface::assertion(ScriptContext* context, ScriptEngine* engine) {
+ScriptValue ConsoleScriptingInterface::assertion(ScriptContext* context, ScriptEngine* engine) {
     QString message;
     bool condition = false;
     for (int i = 0; i < context->argumentCount(); i++) {
         if (i == 0) {
-            condition = context->argument(i)->toBool(); // accept first value as condition
+            condition = context->argument(i).toBool(); // accept first value as condition
         } else {
-            message += SPACE_SEPARATOR + context->argument(i)->toString(); // accept other parameters as message
+            message += SPACE_SEPARATOR + context->argument(i).toString(); // accept other parameters as message
         }
     }
 
@@ -148,19 +148,19 @@ void ConsoleScriptingInterface::clear() {
     }
 }
 
-ScriptValuePointer ConsoleScriptingInterface::group(ScriptContext* context, ScriptEngine* engine) {
-    logGroupMessage(context->argument(0)->toString(), engine); // accept first parameter as label
-    _groupDetails.push_back(context->argument(0)->toString());
+ScriptValue ConsoleScriptingInterface::group(ScriptContext* context, ScriptEngine* engine) {
+    logGroupMessage(context->argument(0).toString(), engine); // accept first parameter as label
+    _groupDetails.push_back(context->argument(0).toString());
     return engine->nullValue();
 }
 
-ScriptValuePointer ConsoleScriptingInterface::groupCollapsed(ScriptContext* context, ScriptEngine* engine) {
-    logGroupMessage(context->argument(0)->toString(), engine); // accept first parameter as label
-    _groupDetails.push_back(context->argument(0)->toString());
+ScriptValue ConsoleScriptingInterface::groupCollapsed(ScriptContext* context, ScriptEngine* engine) {
+    logGroupMessage(context->argument(0).toString(), engine); // accept first parameter as label
+    _groupDetails.push_back(context->argument(0).toString());
     return engine->nullValue();
 }
 
-ScriptValuePointer ConsoleScriptingInterface::groupEnd(ScriptContext* context, ScriptEngine* engine) {
+ScriptValue ConsoleScriptingInterface::groupEnd(ScriptContext* context, ScriptEngine* engine) {
     ConsoleScriptingInterface::_groupDetails.removeLast();
     return engine->nullValue();
 }
@@ -171,7 +171,7 @@ QString ConsoleScriptingInterface::appendArguments(ScriptContext* context) {
         if (i > 0) {
             message += SPACE_SEPARATOR;
         }
-        message += context->argument(i)->toString();
+        message += context->argument(i).toString();
     }
     return message;
 }

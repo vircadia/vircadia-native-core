@@ -18,12 +18,11 @@
 #include <QObject>
 #include <QWebSocketServer>
 #include "WebSocketClass.h"
-#include <QtCore/QSharedPointer>
+
+#include "ScriptValue.h"
 
 class ScriptContext;
 class ScriptEngine;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /*@jsdoc
  * Manages {@link WebSocket}s in server entity and assignment client scripts.
@@ -96,7 +95,7 @@ public:
     quint16 getPort() { return _webSocketServer.serverPort(); }
     bool isListening() { return _webSocketServer.isListening(); }
 
-    static ScriptValuePointer constructor(ScriptContext* context, ScriptEngine* engine);
+    static ScriptValue constructor(ScriptContext* context, ScriptEngine* engine);
 
 public slots:
 

@@ -439,15 +439,15 @@ void MyAvatar::enableHandTouchForID(const QUuid& entityID) {
 }
 
 void MyAvatar::registerMetaTypes(ScriptEnginePointer engine) {
-    ScriptValuePointer value = engine->newQObject(this, ScriptEngine::QtOwnership);
-    engine->globalObject()->setProperty("MyAvatar", value);
+    ScriptValue value = engine->newQObject(this, ScriptEngine::QtOwnership);
+    engine->globalObject().setProperty("MyAvatar", value);
 
-    ScriptValuePointer driveKeys = engine->newObject();
+    ScriptValue driveKeys = engine->newObject();
     auto metaEnum = QMetaEnum::fromType<DriveKeys>();
     for (int i = 0; i < MAX_DRIVE_KEYS; ++i) {
-        driveKeys->setProperty(metaEnum.key(i), metaEnum.value(i));
+        driveKeys.setProperty(metaEnum.key(i), metaEnum.value(i));
     }
-    engine->globalObject()->setProperty("DriveKeys", driveKeys);
+    engine->globalObject().setProperty("DriveKeys", driveKeys);
 
     scriptRegisterMetaType(engine.data(), audioListenModeToScriptValue, audioListenModeFromScriptValue);
     scriptRegisterMetaType(engine.data(), driveKeysToScriptValue, driveKeysFromScriptValue);
@@ -2670,8 +2670,8 @@ QVariantList MyAvatar::getAvatarEntitiesVariant() {
             EntityItemProperties entityProperties = entity->getProperties(desiredProperties);
             {
                 std::lock_guard<std::mutex> guard(_scriptEngineLock);
-                ScriptValuePointer scriptProperties = EntityItemPropertiesToScriptValue(_scriptEngine.data(), entityProperties);
-                avatarEntityData["properties"] = scriptProperties->toVariant();
+                ScriptValue scriptProperties = EntityItemPropertiesToScriptValue(_scriptEngine.data(), entityProperties);
+                avatarEntityData["properties"] = scriptProperties.toVariant();
             }
             avatarEntitiesData.append(QVariant(avatarEntityData));
         }
@@ -5702,20 +5702,20 @@ void MyAvatar::setAudioListenerMode(AudioListenerMode audioListenerMode) {
     }
 }
 
-ScriptValuePointer audioListenModeToScriptValue(ScriptEngine* engine, const AudioListenerMode& audioListenerMode) {
+ScriptValue audioListenModeToScriptValue(ScriptEngine* engine, const AudioListenerMode& audioListenerMode) {
     return engine->newValue(audioListenerMode);
 }
 
-void audioListenModeFromScriptValue(const ScriptValuePointer& object, AudioListenerMode& audioListenerMode) {
-    audioListenerMode = static_cast<AudioListenerMode>(object->toUInt16());
+void audioListenModeFromScriptValue(const ScriptValue& object, AudioListenerMode& audioListenerMode) {
+    audioListenerMode = static_cast<AudioListenerMode>(object.toUInt16());
 }
 
-ScriptValuePointer driveKeysToScriptValue(ScriptEngine* engine, const MyAvatar::DriveKeys& driveKeys) {
+ScriptValue driveKeysToScriptValue(ScriptEngine* engine, const MyAvatar::DriveKeys& driveKeys) {
     return engine->newValue(driveKeys);
 }
 
-void driveKeysFromScriptValue(const ScriptValuePointer& object, MyAvatar::DriveKeys& driveKeys) {
-    driveKeys = static_cast<MyAvatar::DriveKeys>(object->toUInt16());
+void driveKeysFromScriptValue(const ScriptValue& object, MyAvatar::DriveKeys& driveKeys) {
+    driveKeys = static_cast<MyAvatar::DriveKeys>(object.toUInt16());
 }
 
 

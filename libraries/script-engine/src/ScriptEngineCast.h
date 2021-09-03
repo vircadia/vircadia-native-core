@@ -23,48 +23,48 @@
 #include "ScriptValue.h"
 
 template <typename T>
-inline ScriptValuePointer scriptValueFromValue(ScriptEngine* engine, const T& t) {
+inline ScriptValue scriptValueFromValue(ScriptEngine* engine, const T& t) {
     if (!engine) {
-        return ScriptValuePointer();
+        return ScriptValue();
     }
 
     return engine->create(qMetaTypeId<T>(), &t);
 }
 
 template <>
-inline ScriptValuePointer scriptValueFromValue<QVariant>(ScriptEngine* engine, const QVariant& v) {
+inline ScriptValue scriptValueFromValue<QVariant>(ScriptEngine* engine, const QVariant& v) {
     if (!engine) {
-        return ScriptValuePointer();
+        return ScriptValue();
     }
 
     return engine->create(v.userType(), v.data());
 }
 
 template <typename T>
-T scriptvalue_cast(const ScriptValuePointer& value) {
+T scriptvalue_cast(const ScriptValue& value) {
     T t;
     const int id = qMetaTypeId<T>();
 
-    auto engine = value->engine();
+    auto engine = value.engine();
     if (engine && engine->convert(value, id, &t)) {
         return t;
-    } else if (value->isVariant()) {
-        return qvariant_cast<T>(value->toVariant());
+    } else if (value.isVariant()) {
+        return qvariant_cast<T>(value.toVariant());
     }
 
     return T();
 }
 
 template <>
-inline QVariant scriptvalue_cast<QVariant>(const ScriptValuePointer& value) {
-    return value->toVariant();
+inline QVariant scriptvalue_cast<QVariant>(const ScriptValue& value) {
+    return value.toVariant();
 }
 
 template <typename T>
 int scriptRegisterMetaType(ScriptEngine* eng,
-                           ScriptValuePointer (*toScriptValue)(ScriptEngine*, const T& t),
-                           void (*fromScriptValue)(const ScriptValuePointer&, T& t),
-                           const ScriptValuePointer& prototype = ScriptValuePointer(),
+                           ScriptValue (*toScriptValue)(ScriptEngine*, const T& t),
+                           void (*fromScriptValue)(const ScriptValue&, T& t),
+                           const ScriptValue& prototype = ScriptValue(),
                            T* = 0)
 {
     const int id = qRegisterMetaType<T>();  // make sure it's registered
@@ -74,30 +74,30 @@ int scriptRegisterMetaType(ScriptEngine* eng,
 }
 
 template <class Container>
-ScriptValuePointer scriptValueFromSequence(ScriptEngine* eng, const Container& cont) {
-    ScriptValuePointer a = eng->newArray();
+ScriptValue scriptValueFromSequence(ScriptEngine* eng, const Container& cont) {
+    ScriptValue a = eng->newArray();
     typename Container::const_iterator begin = cont.begin();
     typename Container::const_iterator end = cont.end();
     typename Container::const_iterator it;
     quint32 i;
     for (it = begin, i = 0; it != end; ++it, ++i) {
-        a->setProperty(i, eng->toScriptValue(*it));
+        a.setProperty(i, eng->toScriptValue(*it));
     }
     return a;
 }
 
 template <class Container>
-void scriptValueToSequence(const ScriptValuePointer& value, Container& cont) {
-    quint32 len = value->property(QLatin1String("length"))->toUInt32();
+void scriptValueToSequence(const ScriptValue& value, Container& cont) {
+    quint32 len = value.property(QLatin1String("length")).toUInt32();
     for (quint32 i = 0; i < len; ++i) {
-        ScriptValuePointer item = value->property(i);
+        ScriptValue item = value.property(i);
         cont.push_back(scriptvalue_cast<typename Container::value_type>(item));
     }
 }
 
 template <typename T>
 int scriptRegisterSequenceMetaType(ScriptEngine* engine,
-                                   const ScriptValuePointer& prototype = ScriptValuePointer(),
+                                   const ScriptValue& prototype = ScriptValue(),
                                    T* = 0) {
     return scriptRegisterMetaType<T>(engine, scriptValueFromSequence, scriptValueToSequence, prototype);
 }

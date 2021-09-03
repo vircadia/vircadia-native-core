@@ -22,7 +22,7 @@
 #include <QReadWriteLock>
 
 #include <PointerEvent.h>
-#include <QtCore/QSharedPointer>
+#include <ScriptValue.h>
 
 #include "Overlay.h"
 
@@ -30,8 +30,6 @@
 
 class PickRay;
 class ScriptEngine;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /*@jsdoc
  * The result of a {@link PickRay} search using {@link Overlays.findRayIntersection|findRayIntersection}.
@@ -55,8 +53,8 @@ public:
     QVariantMap extraInfo;
 };
 Q_DECLARE_METATYPE(RayToOverlayIntersectionResult);
-ScriptValuePointer RayToOverlayIntersectionResultToScriptValue(ScriptEngine* engine, const RayToOverlayIntersectionResult& value);
-void RayToOverlayIntersectionResultFromScriptValue(const ScriptValuePointer& object, RayToOverlayIntersectionResult& value);
+ScriptValue RayToOverlayIntersectionResultToScriptValue(ScriptEngine* engine, const RayToOverlayIntersectionResult& value);
+void RayToOverlayIntersectionResultFromScriptValue(const ScriptValue& object, RayToOverlayIntersectionResult& value);
 
 class ParabolaToOverlayIntersectionResult {
 public:
@@ -414,8 +412,8 @@ public slots:
      */
     RayToOverlayIntersectionResult findRayIntersection(const PickRay& ray,
                                                        bool precisionPicking = false,
-                                                       const ScriptValuePointer& include = ScriptValuePointer(),
-                                                       const ScriptValuePointer& discard = ScriptValuePointer(),
+                                                       const ScriptValue& include = ScriptValue(),
+                                                       const ScriptValue& discard = ScriptValue(),
                                                        bool visibleOnly = false,
                                                        bool collidableOnly = false);
 

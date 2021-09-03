@@ -19,11 +19,10 @@
 
 #include <stdint.h>
 #include <glm/glm.hpp>
-#include <QtCore/QSharedPointer>
+
+#include "ScriptValue.h"
 
 class ScriptEngine;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /// Represents a 2D or 3D pointer to the scripting engine. Exposed as <code><a href="https://apidocs.vircadia.dev/global.html#PointerEvent">PointerEvent</a></code>
 class PointerEvent {
@@ -52,10 +51,10 @@ public:
                  const glm::vec3& normal, const glm::vec3& direction,
                  Button button = NoButtons, uint32_t buttons = NoButtons, Qt::KeyboardModifiers keyboardModifiers = Qt::NoModifier);
 
-    static ScriptValuePointer toScriptValue(ScriptEngine* engine, const PointerEvent& event);
-    static void fromScriptValue(const ScriptValuePointer& object, PointerEvent& event);
+    static ScriptValue toScriptValue(ScriptEngine* engine, const PointerEvent& event);
+    static void fromScriptValue(const ScriptValue& object, PointerEvent& event);
 
-    ScriptValuePointer toScriptValue(ScriptEngine* engine) const { return PointerEvent::toScriptValue(engine, *this); }
+    ScriptValue toScriptValue(ScriptEngine* engine) const { return PointerEvent::toScriptValue(engine, *this); }
 
     EventType getType() const { return _type; }
     uint32_t getID() const { return _id; }

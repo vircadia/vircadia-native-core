@@ -20,13 +20,11 @@
 #include <QNetworkRequest>
 #include <QObject>
 #include <QTimer>
-#include <QtCore/QSharedPointer>
 
 #include "ScriptEngine.h"
+#include "ScriptValue.h"
 
 class ScriptContext;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /*
 XMlHttpRequest object
@@ -58,7 +56,7 @@ XMlHttpRequest.open(QString,QString,bool,QString) function
 XMlHttpRequest.open(QString,QString,bool) function
 XMlHttpRequest.open(QString,QString) function
 XMlHttpRequest.send() function
-XMlHttpRequest.send(ScriptValuePointer) function
+XMlHttpRequest.send(ScriptValue) function
 XMlHttpRequest.getAllResponseHeaders() function
 XMlHttpRequest.getResponseHeader(QString) function
 */
@@ -159,13 +157,13 @@ XMlHttpRequest.getResponseHeader(QString) function
 /// Provides the <code><a href="https://apidocs.vircadia.dev/XMLHttpRequest.html">XMLHttpRequest</a></code> scripting interface
 class XMLHttpRequestClass : public QObject {
     Q_OBJECT
-    Q_PROPERTY(ScriptValuePointer response READ getResponse)
-    Q_PROPERTY(ScriptValuePointer responseText READ getResponseText)
+    Q_PROPERTY(ScriptValue response READ getResponse)
+    Q_PROPERTY(ScriptValue responseText READ getResponseText)
     Q_PROPERTY(QString responseType READ getResponseType WRITE setResponseType)
-    Q_PROPERTY(ScriptValuePointer status READ getStatus)
+    Q_PROPERTY(ScriptValue status READ getStatus)
     Q_PROPERTY(QString statusText READ getStatusText)
-    Q_PROPERTY(ScriptValuePointer readyState READ getReadyState)
-    Q_PROPERTY(ScriptValuePointer errorCode READ getError)
+    Q_PROPERTY(ScriptValue readyState READ getReadyState)
+    Q_PROPERTY(ScriptValue errorCode READ getError)
     Q_PROPERTY(int timeout READ getTimeout WRITE setTimeout)
 
     Q_PROPERTY(int UNSENT READ getUnsent)
@@ -175,8 +173,8 @@ class XMLHttpRequestClass : public QObject {
     Q_PROPERTY(int DONE READ getDone)
 
     // Callbacks
-    Q_PROPERTY(ScriptValuePointer ontimeout READ getOnTimeout WRITE setOnTimeout)
-    Q_PROPERTY(ScriptValuePointer onreadystatechange READ getOnReadyStateChange WRITE setOnReadyStateChange)
+    Q_PROPERTY(ScriptValue ontimeout READ getOnTimeout WRITE setOnTimeout)
+    Q_PROPERTY(ScriptValue onreadystatechange READ getOnReadyStateChange WRITE setOnReadyStateChange)
 public:
     XMLHttpRequestClass(ScriptEngine* engine);
     ~XMLHttpRequestClass();
@@ -216,23 +214,23 @@ public:
     int getLoading() const { return LOADING; };
     int getDone() const { return DONE; };
 
-    static ScriptValuePointer constructor(ScriptContext* context, ScriptEngine* engine);
+    static ScriptValue constructor(ScriptContext* context, ScriptEngine* engine);
 
     int getTimeout() const { return _timeout; }
     void setTimeout(int timeout) { _timeout = timeout; }
-    ScriptValuePointer getResponse() const { return _responseData; }
-    ScriptValuePointer getResponseText() const { return _engine->newValue(QString(_rawResponseData.data())); }
+    ScriptValue getResponse() const { return _responseData; }
+    ScriptValue getResponseText() const { return _engine->newValue(QString(_rawResponseData.data())); }
     QString getResponseType() const { return _responseType; }
     void setResponseType(const QString& responseType) { _responseType = responseType; }
-    ScriptValuePointer getReadyState() const { return _engine->newValue(_readyState); }
-    ScriptValuePointer getError() const { return _engine->newValue(_errorCode); }
-    ScriptValuePointer getStatus() const;
+    ScriptValue getReadyState() const { return _engine->newValue(_readyState); }
+    ScriptValue getError() const { return _engine->newValue(_errorCode); }
+    ScriptValue getStatus() const;
     QString getStatusText() const;
 
-    ScriptValuePointer getOnTimeout() const { return _onTimeout; }
-    void setOnTimeout(ScriptValuePointer function) { _onTimeout = function; }
-    ScriptValuePointer getOnReadyStateChange() const { return _onReadyStateChange; }
-    void setOnReadyStateChange(ScriptValuePointer function) { _onReadyStateChange = function; }
+    ScriptValue getOnTimeout() const { return _onTimeout; }
+    void setOnTimeout(const ScriptValue& function) { _onTimeout = function; }
+    ScriptValue getOnReadyStateChange() const { return _onReadyStateChange; }
+    void setOnReadyStateChange(const ScriptValue& function) { _onReadyStateChange = function; }
 
 public slots:
 
@@ -271,14 +269,14 @@ public slots:
      * @param {*} [data] - The data to send.
      */
     void send();
-    void send(const ScriptValuePointer& data);
+    void send(const ScriptValue& data);
 
     /*@jsdoc
      * Gets the response headers.
      * @function XMLHttpRequest.getAllResponseHeaders
      * @returns {string} The response headers, separated by <code>"\n"</code> characters.
      */
-    ScriptValuePointer getAllResponseHeaders() const;
+    ScriptValue getAllResponseHeaders() const;
 
     /*@jsdoc
      * Gets a response header.
@@ -286,7 +284,7 @@ public slots:
      * @param {string} name - 
      * @returns {string} The response header.
      */
-    ScriptValuePointer getResponseHeader(const QString& name) const;
+    ScriptValue getResponseHeader(const QString& name) const;
 
 signals:
 
@@ -313,9 +311,9 @@ private:
     QNetworkReply* _reply { nullptr };
     QByteArray _sendData;
     QByteArray _rawResponseData;
-    ScriptValuePointer _responseData;
-    ScriptValuePointer _onTimeout;
-    ScriptValuePointer _onReadyStateChange;
+    ScriptValue _responseData;
+    ScriptValue _onTimeout;
+    ScriptValue _onReadyStateChange;
     ReadyState _readyState { XMLHttpRequestClass::UNSENT };
 
     /*@jsdoc

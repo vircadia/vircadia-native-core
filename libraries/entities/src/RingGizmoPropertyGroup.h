@@ -11,8 +11,6 @@
 
 #include <stdint.h>
 
-#include <QtCore/QSharedPointer>
-
 #include "PropertyGroup.h"
 #include "EntityItemPropertiesMacros.h"
 #include "EntityItemPropertiesDefaults.h"
@@ -23,7 +21,6 @@ class OctreePacketData;
 class ReadBitstreamToTreeParams;
 class ScriptEngine;
 class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 using u8vec3Color = glm::u8vec3;
 
@@ -59,10 +56,10 @@ using u8vec3Color = glm::u8vec3;
 class RingGizmoPropertyGroup : public PropertyGroup {
 public:
     // EntityItemProperty related helpers
-    virtual void copyToScriptValue(const EntityPropertyFlags& desiredProperties, ScriptValuePointer& properties,
+    virtual void copyToScriptValue(const EntityPropertyFlags& desiredProperties, ScriptValue& properties,
                                    ScriptEngine* engine, bool skipDefaults,
                                    EntityItemProperties& defaultEntityProperties) const override;
-    virtual void copyFromScriptValue(const ScriptValuePointer& object, bool& _defaultSettings) override;
+    virtual void copyFromScriptValue(const ScriptValue& object, bool& _defaultSettings) override;
 
     void merge(const RingGizmoPropertyGroup& other);
 

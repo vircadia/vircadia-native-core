@@ -30,7 +30,7 @@ public:
     virtual bool hasNext() const = 0;
     virtual QString name() const = 0;
     virtual void next() = 0;
-    virtual ScriptValuePointer value() const = 0;
+    virtual ScriptValue value() const = 0;
 };
 
 #endif  // hifi_ScriptValueIterator_h

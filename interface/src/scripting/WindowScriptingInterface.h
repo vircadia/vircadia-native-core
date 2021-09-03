@@ -18,14 +18,11 @@
 #include <QtCore/QString>
 #include <QtQuick/QQuickItem>
 #include <QtWidgets/QMessageBox>
-#include <QtCore/QSharedPointer>
 
 #include <DependencyManager.h>
 #include <Scriptable.h>
+#include <ScriptValue.h>
 
-
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /*@jsdoc
  * The <code>Window</code> API provides various facilities not covered elsewhere, including: window dimensions, window focus, 
@@ -74,7 +71,7 @@ public slots:
      * @function Window.hasFocus
      * @returns {boolean} <code>true</code> if the Interface window has focus, <code>false</code> if it doesn't.
      */
-    ScriptValuePointer hasFocus();
+    ScriptValue hasFocus();
 
     /*@jsdoc
      * Makes the Interface window have focus. On Windows, if Interface doesn't already have focus, the task bar icon flashes to 
@@ -109,7 +106,7 @@ public slots:
      * var answer = Window.confirm("Are you sure?");
      * print(answer);  // true or false
      */
-    ScriptValuePointer confirm(const QString& message = "");
+    ScriptValue confirm(const QString& message = "");
 
     /*@jsdoc
      * Prompts the user to enter some text. Displays a modal dialog with a message and a text box, plus "OK" and "Cancel" 
@@ -126,7 +123,7 @@ public slots:
      *     print("User answer: " + answer);
      * }
      */
-    ScriptValuePointer prompt(const QString& message, const QString& defaultText);
+    ScriptValue prompt(const QString& message, const QString& defaultText);
 
     /*@jsdoc
      * Prompts the user to enter some text. Displays a non-modal dialog with a message and a text box, plus "OK" and "Cancel" 
@@ -156,7 +153,7 @@ public slots:
      * var directory = Window.browseDir("Select Directory", Paths.resources);
      * print("Directory: " + directory);
      */
-    ScriptValuePointer browseDir(const QString& title = "", const QString& directory = "");
+    ScriptValue browseDir(const QString& title = "", const QString& directory = "");
     
     /*@jsdoc
      * Prompts the user to choose a directory. Displays a non-modal dialog that navigates the directory tree. A
@@ -188,7 +185,7 @@ public slots:
      * var filename = Window.browse("Select Image File", Paths.resources, "Images (*.png *.jpg *.svg)");
      * print("File: " + filename);
      */
-    ScriptValuePointer browse(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
+    ScriptValue browse(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
 
     /*@jsdoc
      * Prompts the user to choose a file. Displays a non-modal dialog that navigates the directory tree. A
@@ -224,7 +221,7 @@ public slots:
      * var filename = Window.save("Save to JSON file", Paths.resources, "*.json");
      * print("File: " + filename);
      */
-    ScriptValuePointer save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
+    ScriptValue save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
 
     /*@jsdoc
      * Prompts the user to specify the path and name of a file to save to. Displays a non-modal dialog that navigates the
@@ -259,7 +256,7 @@ public slots:
      * var asset = Window.browseAssets("Select FBX File", "/", "*.fbx");
      * print("FBX file: " + asset);
      */
-    ScriptValuePointer browseAssets(const QString& title = "", const QString& directory = "", const QString& nameFilter = "");
+    ScriptValue browseAssets(const QString& title = "", const QString& directory = "", const QString& nameFilter = "");
 
     /*@jsdoc
      * Prompts the user to choose an Asset Server item. Displays a non-modal dialog that navigates the tree of assets on the 

@@ -13,7 +13,6 @@
 
 #include <QObject>
 #include <QMap>
-#include <QtCore/QSharedPointer>
 #include <glm/glm.hpp>
 
 #include <functional>
@@ -30,7 +29,7 @@ class EntityEditFilters : public QObject, public Dependency {
     Q_OBJECT
 public:
     struct FilterData {
-        ScriptValuePointer filterFn;
+        ScriptValue filterFn;
         bool wantsOriginalProperties { false };
         bool wantsZoneProperties { false };
 
@@ -48,7 +47,7 @@ public:
         bool rejectAll;
         
         FilterData(): engine(nullptr), rejectAll(false) {};
-        bool valid() { return (rejectAll || (engine != nullptr && filterFn->isFunction() && uncaughtExceptions)); }
+        bool valid() { return (rejectAll || (engine != nullptr && filterFn.isFunction() && uncaughtExceptions)); }
     };
 
     EntityEditFilters() {};
@@ -71,7 +70,7 @@ private:
 
     EntityTreePointer _tree {};
     bool _rejectAll {false};
-    ScriptValuePointer _nullObjectForFilter{};
+    ScriptValue _nullObjectForFilter{};
     
     QReadWriteLock _lock;
     QMap<EntityItemID, FilterData> _filterDataMap;

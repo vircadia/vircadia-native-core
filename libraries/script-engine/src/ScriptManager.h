@@ -45,6 +45,7 @@
 #include "PointerEvent.h"
 #include "Quat.h"
 #include "ScriptUUID.h"
+#include "ScriptValue.h"
 #include "Vec3.h"
 
 static const QString NO_SCRIPT("");
@@ -56,17 +57,15 @@ static const int DEFAULT_ENTITY_PPS_PER_SCRIPT = 900;
 class ScriptEngine;
 class ScriptEngines;
 class ScriptManager;
-class ScriptValue;
 using ScriptEnginePointer = QSharedPointer<ScriptEngine>;
 using ScriptManagerPointer = QSharedPointer<ScriptManager>;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
-using ScriptValueList = QList<ScriptValuePointer>;
+using ScriptValueList = QList<ScriptValue>;
 
 Q_DECLARE_METATYPE(ScriptManagerPointer)
 
 class CallbackData {
 public:
-    ScriptValuePointer function;
+    ScriptValue function;
     EntityItemID definingEntityIdentifier;
     QUrl definingSandboxURL;
 };
@@ -100,7 +99,7 @@ public:
     QString errorInfo { "" };
 
     QString scriptText { "" };
-    ScriptValuePointer scriptObject{ ScriptValuePointer() };
+    ScriptValue scriptObject{ ScriptValue() };
     int64_t lastModified { 0 };
     QUrl definingSandboxURL { QUrl("about:EntityScript") };
 };
@@ -290,7 +289,7 @@ public:
      * @returns {string} String.
      * @deprecated This function is deprecated and will be removed.
      */
-    Q_INVOKABLE QString formatException(const ScriptValuePointer& exception, bool includeExtendedDetails);
+    Q_INVOKABLE QString formatException(const ScriptValue& exception, bool includeExtendedDetails);
 
     /*@jsdoc
      * Adds a function to the list of functions called when a particular event occurs on a particular entity.
@@ -314,7 +313,7 @@ public:
      *
      * Script.addEventHandler(entityID, "mousePressOnEntity", reportMousePress);
      */
-    Q_INVOKABLE void addEventHandler(const EntityItemID& entityID, const QString& eventName, ScriptValuePointer handler);
+    Q_INVOKABLE void addEventHandler(const EntityItemID& entityID, const QString& eventName, const ScriptValue& handler);
 
     /*@jsdoc
      * Removes a function from the list of functions called when an entity event occurs on a particular entity.
@@ -324,7 +323,7 @@ public:
      * @param {Script.EntityEvent} eventName - The name of the entity event.
      * @param {function} handler - The name of the function to no longer call when the entity event occurs on the entity.
      */
-    Q_INVOKABLE void removeEventHandler(const EntityItemID& entityID, const QString& eventName, ScriptValuePointer handler);
+    Q_INVOKABLE void removeEventHandler(const EntityItemID& entityID, const QString& eventName, const ScriptValue& handler);
 
     /*@jsdoc
      * Starts running another script in Interface, if it isn't already running. The script is not automatically loaded next
@@ -358,7 +357,7 @@ public:
      * @param {function} [callback=null] - The function to call back when the scripts have been included. It can be either the
      *     name of a function or an in-line definition.
      */
-    Q_INVOKABLE void include(const QStringList& includeFiles, ScriptValuePointer callback = ScriptValuePointer());
+    Q_INVOKABLE void include(const QStringList& includeFiles, const ScriptValue& callback = ScriptValue());
 
     /*@jsdoc
      * Includes JavaScript from another file in the current script. If a callback is specified, the file is loaded and included
@@ -383,7 +382,7 @@ public:
      * // This is script A
      * // Script A has been included
      */
-    Q_INVOKABLE void include(const QString& includeFile, ScriptValuePointer callback = ScriptValuePointer());
+    Q_INVOKABLE void include(const QString& includeFile, const ScriptValue& callback = ScriptValue());
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // MODULE related methods
@@ -397,7 +396,7 @@ public:
      * @returns {object|array} The value assigned to <code>module.exports</code> in the JavaScript file, or the value defined
      *     in the JSON file.
      */
-    Q_INVOKABLE ScriptValuePointer require(const QString& moduleId);
+    Q_INVOKABLE ScriptValue require(const QString& moduleId);
 
     /*@jsdoc
      * @function Script.resetModuleCache
@@ -406,13 +405,13 @@ public:
      */
     Q_INVOKABLE void resetModuleCache(bool deleteScriptCache = false);
 
-    ScriptValuePointer currentModule();
-    bool registerModuleWithParent(const ScriptValuePointer& module, const ScriptValuePointer& parent);
-    ScriptValuePointer newModule(const QString& modulePath, const ScriptValuePointer& parent = ScriptValuePointer());
+    ScriptValue currentModule();
+    bool registerModuleWithParent(const ScriptValue& module, const ScriptValue& parent);
+    ScriptValue newModule(const QString& modulePath, const ScriptValue& parent = ScriptValue());
     QVariantMap fetchModuleSource(const QString& modulePath, const bool forceDownload = false);
-    ScriptValuePointer instantiateModule(const ScriptValuePointer& module, const QString& sourceCode);
+    ScriptValue instantiateModule(const ScriptValue& module, const QString& sourceCode);
 
-    Q_INVOKABLE ScriptValuePointer evaluate(const QString& program, const QString& fileName = QString());
+    Q_INVOKABLE ScriptValue evaluate(const QString& program, const QString& fileName = QString());
 
     /*@jsdoc
      * Calls a function repeatedly, at a set interval.
@@ -425,7 +424,7 @@ public:
      *     print("Interval timer fired");
      * }, 1000);
     */
-    Q_INVOKABLE QObject* setInterval(const ScriptValuePointer& function, int intervalMS);
+    Q_INVOKABLE QObject* setInterval(const ScriptValue& function, int intervalMS);
 
     /*@jsdoc
      * Calls a function once, after a delay.
@@ -438,7 +437,7 @@ public:
      *     print("Timeout timer fired");
      * }, 1000);
      */
-    Q_INVOKABLE QObject* setTimeout(const ScriptValuePointer& function, int timeoutMS);
+    Q_INVOKABLE QObject* setTimeout(const ScriptValue& function, int timeoutMS);
 
     /*@jsdoc
      * Stops an interval timer set by {@link Script.setInterval|setInterval}.
@@ -634,7 +633,7 @@ public:
     void setScriptEngines(QSharedPointer<ScriptEngines>& scriptEngines) { _scriptEngines = scriptEngines; }
 
     // call all the registered event handlers on an entity for the specified name.
-    void forwardHandlerCall(const EntityItemID& entityID, const QString& eventName, ScriptValueList eventHanderArgs);
+    void forwardHandlerCall(const EntityItemID& entityID, const QString& eventName, const ScriptValueList& eventHanderArgs);
 
     // remove all event handlers for the specified entityID (i.e. the entity is being removed)
     void removeAllEventHandlers(const EntityItemID& entityID);
@@ -857,7 +856,7 @@ signals:
      * });
      * var properties = JSON.parse("{ x: 1"); // Invalid JSON string.
      */
-    void unhandledException(const ScriptValuePointer& exception);
+    void unhandledException(const ScriptValue& exception);
 
     // Triggered once before the first call to Script.addEventHandler happens on this ScriptManager
     // connections assumed to use Qt::DirectConnection; not for use by scripts
@@ -889,7 +888,7 @@ protected:
     //   then inside of init() we just have to do "Script.require.resolve = Script._requireResolve;"
     Q_INVOKABLE QString _requireResolve(const QString& moduleId, const QString& relativeTo = QString());
 
-    QString logException(const ScriptValuePointer& exception);
+    QString logException(const ScriptValue& exception);
     void timerFired();
     void stopAllTimers();
     void stopAllTimersForEntityScript(const EntityItemID& entityID);
@@ -898,7 +897,7 @@ protected:
     void setEntityScriptDetails(const EntityItemID& entityID, const EntityScriptDetails& details);
     void setParentURL(const QString& parentURL) { _parentURL = parentURL; }
 
-    QObject* setupTimerWithInterval(const ScriptValuePointer& function, int intervalMS, bool isSingleShot);
+    QObject* setupTimerWithInterval(const ScriptValue& function, int intervalMS, bool isSingleShot);
     void stopTimer(QTimer* timer);
 
     QHash<EntityItemID, RegisteredEventHandlers> _registeredHandlers;
@@ -918,7 +917,7 @@ protected:
     EntityItemID currentEntityIdentifier; // Contains the defining entity script entity id during execution, if any. Empty for interface script execution.
     QUrl currentSandboxURL; // The toplevel url string for the entity script that loaded the code being executed, else empty.
     void doWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, std::function<void()> operation);
-    void callWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, ScriptValuePointer function, ScriptValuePointer thisObject, ScriptValueList args);
+    void callWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, const ScriptValue& function, const ScriptValue& thisObject, const ScriptValueList& args);
 
     Context _context;
     Type _type;

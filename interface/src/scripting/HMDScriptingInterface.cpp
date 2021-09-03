@@ -152,7 +152,7 @@ bool HMDScriptingInterface::getAwayStateWhenFocusLostInVREnabled() {
 }
 
 
-ScriptValuePointer HMDScriptingInterface::getHUDLookAtPosition2D(ScriptContext* context, ScriptEngine* engine) {
+ScriptValue HMDScriptingInterface::getHUDLookAtPosition2D(ScriptContext* context, ScriptEngine* engine) {
     glm::vec3 hudIntersection;
     auto instance = DependencyManager::get<HMDScriptingInterface>();
     if (instance->getHUDLookAtPosition3D(hudIntersection)) {
@@ -162,7 +162,7 @@ ScriptValuePointer HMDScriptingInterface::getHUDLookAtPosition2D(ScriptContext* 
     return engine->nullValue();
 }
 
-ScriptValuePointer HMDScriptingInterface::getHUDLookAtPosition3D(ScriptContext* context, ScriptEngine* engine) {
+ScriptValue HMDScriptingInterface::getHUDLookAtPosition3D(ScriptContext* context, ScriptEngine* engine) {
     glm::vec3 result;
     auto instance = DependencyManager::get<HMDScriptingInterface>();
     if (instance->getHUDLookAtPosition3D(result)) {

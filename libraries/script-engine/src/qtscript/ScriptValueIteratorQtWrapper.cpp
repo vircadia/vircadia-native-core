@@ -27,7 +27,7 @@ void ScriptValueIteratorQtWrapper::next() {
     _value.next();
 }
 
-ScriptValuePointer ScriptValueIteratorQtWrapper::value() const {
+ScriptValue ScriptValueIteratorQtWrapper::value() const {
     QScriptValue result = _value.value();
-    return ScriptValuePointer(new ScriptValueQtWrapper(_engine, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(_engine, std::move(result)));
 }

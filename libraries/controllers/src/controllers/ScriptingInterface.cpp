@@ -33,12 +33,12 @@
 Q_DECLARE_METATYPE(controller::InputController*)
 //static int inputControllerPointerId = qRegisterMetaType<controller::InputController*>();
 
-ScriptValuePointer inputControllerToScriptValue(ScriptEngine* engine, controller::InputController* const& in) {
+ScriptValue inputControllerToScriptValue(ScriptEngine* engine, controller::InputController* const& in) {
     return engine->newQObject(in, ScriptEngine::QtOwnership);
 }
 
-void inputControllerFromScriptValue(const ScriptValuePointer& object, controller::InputController*& out) {
-    out = qobject_cast<controller::InputController*>(object->toQObject());
+void inputControllerFromScriptValue(const ScriptValue& object, controller::InputController*& out) {
+    out = qobject_cast<controller::InputController*>(object.toQObject());
 }
 
 STATIC_SCRIPT_INITIALIZER(+[](ScriptManager* manager) {

@@ -3089,7 +3089,7 @@ bool EntityTree::readFromMap(QVariantMap& map, const bool isImport) {
 
     // map will have a top-level list keyed as "Entities".  This will be extracted
     // and iterated over.  Each member of this list is converted to a QVariantMap, then
-    // to a ScriptValuePointer, and then to EntityItemProperties.  These properties are used
+    // to a ScriptValue, and then to EntityItemProperties.  These properties are used
     // to add the new entity to the EntityTree.
     QVariantList entitiesQList = map["Entities"].toList();
     ScriptEnginePointer scriptEngine = newScriptEngine();
@@ -3103,7 +3103,7 @@ bool EntityTree::readFromMap(QVariantMap& map, const bool isImport) {
 
     bool success = true;
     foreach (QVariant entityVariant, entitiesQList) {
-        // QVariantMap --> ScriptValuePointer --> EntityItemProperties --> Entity
+        // QVariantMap --> ScriptValue --> EntityItemProperties --> Entity
         QVariantMap entityMap = entityVariant.toMap();
 
         // handle parentJointName for wearables
@@ -3116,7 +3116,7 @@ bool EntityTree::readFromMap(QVariantMap& map, const bool isImport) {
                 " mapped it to parentJointIndex " << entityMap["parentJointIndex"].toInt();
         }
 
-        ScriptValuePointer entityScriptValue = variantMapToScriptValue(entityMap, *scriptEngine);
+        ScriptValue entityScriptValue = variantMapToScriptValue(entityMap, *scriptEngine);
         EntityItemProperties properties;
         EntityItemPropertiesFromScriptValueIgnoreReadOnly(entityScriptValue, properties);
 

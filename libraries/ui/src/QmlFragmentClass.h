@@ -10,24 +10,22 @@
 #define hifi_ui_QmlFragmentClass_h
 
 #include "QmlWindowClass.h"
-#include <QtCore/QSharedPointer>
+#include <ScriptValue.h>
 
 class ScriptContext;
 class ScriptEngine;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 class QmlFragmentClass : public QmlWindowClass {
     Q_OBJECT
 
 private:
-    static ScriptValuePointer internal_constructor(ScriptContext* context, ScriptEngine* engine, bool restricted);
+    static ScriptValue internal_constructor(ScriptContext* context, ScriptEngine* engine, bool restricted);
 public: 
-    static ScriptValuePointer constructor(ScriptContext* context, ScriptEngine* engine) {
+    static ScriptValue constructor(ScriptContext* context, ScriptEngine* engine) {
         return internal_constructor(context, engine, false);
     }
 
-    static ScriptValuePointer restricted_constructor(ScriptContext* context, ScriptEngine* engine ){
+    static ScriptValue restricted_constructor(ScriptContext* context, ScriptEngine* engine ){
         return internal_constructor(context, engine, true);
     }
 
@@ -52,7 +50,7 @@ protected:
     QString qmlSource() const override { return qml; }
 
     static std::mutex _mutex;
-    static std::map<QString, ScriptValuePointer> _fragments;
+    static std::map<QString, ScriptValue> _fragments;
 private:
     QString qml;
 

@@ -9,7 +9,6 @@
 #define hifi_PickScriptingInterface_h
 
 #include <QtCore/QObject>
-#include <QtCore/QSharedPointer>
 
 #include <DependencyManager.h>
 #include <PhysicsEngine.h>
@@ -18,7 +17,6 @@
 
 class ScriptEngine;
 class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /*@jsdoc
  * The <code>Picks</code> API lets you create and manage objects for repeatedly calculating intersections.
@@ -250,7 +248,7 @@ public:
      * @param {number} id - The ID of the pick.
      * @param {Uuid[]} ignoreItems - The list of IDs to ignore.
      */
-    Q_INVOKABLE void setIgnoreItems(unsigned int uid, const ScriptValuePointer& ignoreItems);
+    Q_INVOKABLE void setIgnoreItems(unsigned int uid, const ScriptValue& ignoreItems);
 
     /*@jsdoc
      * Sets a list of entity and avatar IDs that a pick should include during intersection, instead of intersecting with 
@@ -260,7 +258,7 @@ public:
      * @param {number} id - The ID of the pick.
      * @param {Uuid[]} includeItems - The list of IDs to include.
      */
-    Q_INVOKABLE void setIncludeItems(unsigned int uid, const ScriptValuePointer& includeItems);
+    Q_INVOKABLE void setIncludeItems(unsigned int uid, const ScriptValue& includeItems);
 
     /*@jsdoc
      * Checks if a pick is associated with the left hand: a ray or parabola pick with <code>joint</code> property set to 

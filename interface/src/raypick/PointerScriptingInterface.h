@@ -9,7 +9,6 @@
 #define hifi_PointerScriptingInterface_h
 
 #include <QtCore/QObject>
-#include <QtCore/QSharedPointer>
 
 #include "DependencyManager.h"
 #include "RegisteredMetaTypes.h"
@@ -17,7 +16,6 @@
 #include <Pick.h>
 
 class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /*@jsdoc
  * The <code>Pointers</code> API lets you create, manage, and visually represent objects for repeatedly calculating 
@@ -369,7 +367,7 @@ public:
      * @param {number} id - The ID of the pointer.
      * @param {Uuid[]} ignoreItems - A list of IDs to ignore.
      */
-    Q_INVOKABLE void setIgnoreItems(unsigned int uid, const ScriptValuePointer& ignoreEntities) const;
+    Q_INVOKABLE void setIgnoreItems(unsigned int uid, const ScriptValue& ignoreEntities) const;
 
     /*@jsdoc
      * Sets a list of entity and avatar IDs that a pointer should include during intersection, instead of intersecting with 
@@ -379,7 +377,7 @@ public:
      * @param {number} id - The ID of the pointer.
      * @param {Uuid[]} includeItems - A list of IDs to include.
      */
-    Q_INVOKABLE void setIncludeItems(unsigned int uid, const ScriptValuePointer& includeEntities) const;
+    Q_INVOKABLE void setIncludeItems(unsigned int uid, const ScriptValue& includeEntities) const;
 
 
     /*@jsdoc

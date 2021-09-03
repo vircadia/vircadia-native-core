@@ -12,20 +12,18 @@
 #ifndef hifi_LocationScriptingInterface_h
 #define hifi_LocationScriptingInterface_h
 
-#include <QtCore/QSharedPointer>
+#include "ScriptValue.h"
 
 class ScriptContext;
 class ScriptEngine;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 class LocationScriptingInterface : public QObject {
     Q_OBJECT
 public:
     static LocationScriptingInterface* getInstance();
 
-    static ScriptValuePointer locationGetter(ScriptContext* context, ScriptEngine* engine);
-    static ScriptValuePointer locationSetter(ScriptContext* context, ScriptEngine* engine);
+    static ScriptValue locationGetter(ScriptContext* context, ScriptEngine* engine);
+    static ScriptValue locationSetter(ScriptContext* context, ScriptEngine* engine);
 private:
     LocationScriptingInterface() {};
 };

@@ -33,7 +33,6 @@
 #include <QVariantMap>
 #include <QVector>
 #include <QReadWriteLock>
-#include <QtCore/QSharedPointer>
 
 #include <AvatarConstants.h>
 #include <JointData.h>
@@ -50,6 +49,7 @@
 #include <shared/RateCounter.h>
 #include <udt/SequenceNumber.h>
 #include "Scriptable.h"
+#include <ScriptValue.h>
 
 #include "AABox.h"
 #include "AvatarTraits.h"
@@ -57,8 +57,6 @@
 #include "PathUtils.h"
 
 class ScriptEngine;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 using AvatarSharedPointer = std::shared_ptr<AvatarData>;
 using AvatarWeakPointer = std::weak_ptr<AvatarData>;
@@ -1973,8 +1971,8 @@ public:
     QVariantMap extraInfo;
 };
 Q_DECLARE_METATYPE(RayToAvatarIntersectionResult)
-ScriptValuePointer RayToAvatarIntersectionResultToScriptValue(ScriptEngine* engine, const RayToAvatarIntersectionResult& results);
-void RayToAvatarIntersectionResultFromScriptValue(const ScriptValuePointer& object, RayToAvatarIntersectionResult& results);
+ScriptValue RayToAvatarIntersectionResultToScriptValue(ScriptEngine* engine, const RayToAvatarIntersectionResult& results);
+void RayToAvatarIntersectionResultFromScriptValue(const ScriptValue& object, RayToAvatarIntersectionResult& results);
 
 // No JSDoc because it's not provided as a type to the script engine.
 class ParabolaToAvatarIntersectionResult {
@@ -1991,8 +1989,8 @@ public:
 
 Q_DECLARE_METATYPE(AvatarEntityMap)
 
-ScriptValuePointer AvatarEntityMapToScriptValue(ScriptEngine* engine, const AvatarEntityMap& value);
-void AvatarEntityMapFromScriptValue(const ScriptValuePointer& object, AvatarEntityMap& value);
+ScriptValue AvatarEntityMapToScriptValue(ScriptEngine* engine, const AvatarEntityMap& value);
+void AvatarEntityMapFromScriptValue(const ScriptValue& object, AvatarEntityMap& value);
 
 // faux joint indexes (-1 means invalid)
 const int NO_JOINT_INDEX = 65535; // -1

@@ -17,15 +17,15 @@
 #include <ScriptValue.h>
 
 std::mutex QmlFragmentClass::_mutex;
-std::map<QString, ScriptValuePointer> QmlFragmentClass::_fragments;
+std::map<QString, ScriptValue> QmlFragmentClass::_fragments;
 
 QmlFragmentClass::QmlFragmentClass(bool restricted, QString id) : QmlWindowClass(restricted), qml(id) { }
 
 // Method called by Qt scripts to create a new bottom menu bar in Android
-ScriptValuePointer QmlFragmentClass::internal_constructor(ScriptContext* context, ScriptEngine* engine, bool restricted) {
+ScriptValue QmlFragmentClass::internal_constructor(ScriptContext* context, ScriptEngine* engine, bool restricted) {
 #ifndef DISABLE_QML
     std::lock_guard<std::mutex> guard(_mutex);
-    auto qml = context->argument(0)->toVariant().toMap().value("qml");
+    auto qml = context->argument(0).toVariant().toMap().value("qml");
     if (qml.isValid()) {
         // look up tabletId in the map.
         auto iter = _fragments.find(qml.toString());
@@ -35,7 +35,7 @@ ScriptValuePointer QmlFragmentClass::internal_constructor(ScriptContext* context
         }
     } else {
         qWarning() << "QmlFragmentClass could not build instance " << qml;
-        return ScriptValuePointer();
+        return ScriptValue();
     }
 
     auto properties = parseArguments(context);
@@ -49,11 +49,11 @@ ScriptValuePointer QmlFragmentClass::internal_constructor(ScriptContext* context
     }
     auto manager = engine->manager();
     connect(manager, &ScriptManager::destroyed, retVal, &QmlWindowClass::deleteLater);
-    ScriptValuePointer scriptObject = engine->newQObject(retVal);
+    ScriptValue scriptObject = engine->newQObject(retVal);
     _fragments[qml.toString()] = scriptObject;
     return scriptObject;
 #else
-    return ScriptValuePointer();
+    return ScriptValue();
 #endif
 }
 

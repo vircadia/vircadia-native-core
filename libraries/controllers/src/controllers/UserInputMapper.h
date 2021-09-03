@@ -16,7 +16,6 @@
 #include <functional>
 #include <memory>
 #include <mutex>
-#include <QtCore/QSharedPointer>
 
 #include <QtQml/QJSValue>
 
@@ -34,7 +33,6 @@
 
 class ScriptEngine;
 class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 namespace controller {
 
@@ -168,10 +166,10 @@ namespace controller {
         void enableMapping(const MappingPointer& mapping);
         void disableMapping(const MappingPointer& mapping);
         EndpointPointer endpointFor(const QJSValue& endpoint);
-        EndpointPointer endpointFor(const ScriptValuePointer& endpoint);
+        EndpointPointer endpointFor(const ScriptValue& endpoint);
         EndpointPointer compositeEndpointFor(EndpointPointer first, EndpointPointer second);
         ConditionalPointer conditionalFor(const QJSValue& endpoint);
-        ConditionalPointer conditionalFor(const ScriptValuePointer& endpoint);
+        ConditionalPointer conditionalFor(const ScriptValue& endpoint);
         ConditionalPointer conditionalFor(const Input& endpoint) const;
 
         MappingPointer parseMapping(const QJsonValue& json);

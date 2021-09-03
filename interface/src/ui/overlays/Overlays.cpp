@@ -633,7 +633,7 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
     }
 
     ScriptEnginePointer scriptEngine = newScriptEngine();
-    ScriptValuePointer props = variantMapToScriptValue(overlayProps, *scriptEngine);
+    ScriptValue props = variantMapToScriptValue(overlayProps, *scriptEngine);
     EntityItemProperties toReturn;
     EntityItemPropertiesFromScriptValueHonorReadOnly(props, toReturn);
     return toReturn;
@@ -641,7 +641,7 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
 
 QVariantMap Overlays::convertEntityToOverlayProperties(const EntityItemProperties& properties) {
     ScriptEnginePointer scriptEngine = newScriptEngine();
-    QVariantMap overlayProps = EntityItemPropertiesToScriptValue(scriptEngine.data(), properties)->toVariant().toMap();
+    QVariantMap overlayProps = EntityItemPropertiesToScriptValue(scriptEngine.data(), properties).toVariant().toMap();
 
     QString type = overlayProps["type"].toString();
     overlayProps["type"] = entityToOverlayType(type);
@@ -1041,8 +1041,8 @@ QVariantMap Overlays::getOverlaysProperties(const QVariant& propertiesById) {
 }
 
 RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray, bool precisionPicking,
-                                                             const ScriptValuePointer& overlayIDsToInclude,
-                                                             const ScriptValuePointer& overlayIDsToDiscard,
+                                                             const ScriptValue& overlayIDsToInclude,
+                                                             const ScriptValue& overlayIDsToDiscard,
                                                              bool visibleOnly, bool collidableOnly) {
     const QVector<EntityItemID> include = qVectorEntityItemIDFromScriptValue(overlayIDsToInclude);
     const QVector<EntityItemID> discard = qVectorEntityItemIDFromScriptValue(overlayIDsToDiscard);
@@ -1110,38 +1110,38 @@ ParabolaToOverlayIntersectionResult Overlays::findParabolaIntersectionVector(con
     return overlayResult;
 }
 
-ScriptValuePointer RayToOverlayIntersectionResultToScriptValue(ScriptEngine* engine, const RayToOverlayIntersectionResult& value) {
-    ScriptValuePointer obj = engine->newObject();
-    obj->setProperty("intersects", value.intersects);
-    ScriptValuePointer overlayIDValue = quuidToScriptValue(engine, value.overlayID);
-    obj->setProperty("overlayID", overlayIDValue);
-    obj->setProperty("distance", value.distance);
-    obj->setProperty("face", boxFaceToString(value.face));
+ScriptValue RayToOverlayIntersectionResultToScriptValue(ScriptEngine* engine, const RayToOverlayIntersectionResult& value) {
+    ScriptValue obj = engine->newObject();
+    obj.setProperty("intersects", value.intersects);
+    ScriptValue overlayIDValue = quuidToScriptValue(engine, value.overlayID);
+    obj.setProperty("overlayID", overlayIDValue);
+    obj.setProperty("distance", value.distance);
+    obj.setProperty("face", boxFaceToString(value.face));
 
-    ScriptValuePointer intersection = vec3ToScriptValue(engine, value.intersection);
-    obj->setProperty("intersection", intersection);
-    ScriptValuePointer surfaceNormal = vec3ToScriptValue(engine, value.surfaceNormal);
-    obj->setProperty("surfaceNormal", surfaceNormal);
-    obj->setProperty("extraInfo", engine->toScriptValue(value.extraInfo));
+    ScriptValue intersection = vec3ToScriptValue(engine, value.intersection);
+    obj.setProperty("intersection", intersection);
+    ScriptValue surfaceNormal = vec3ToScriptValue(engine, value.surfaceNormal);
+    obj.setProperty("surfaceNormal", surfaceNormal);
+    obj.setProperty("extraInfo", engine->toScriptValue(value.extraInfo));
     return obj;
 }
 
-void RayToOverlayIntersectionResultFromScriptValue(const ScriptValuePointer& object, RayToOverlayIntersectionResult& value) {
-    value.intersects = object->property("intersects")->toVariant().toBool();
-    ScriptValuePointer overlayIDValue = object->property("overlayID");
+void RayToOverlayIntersectionResultFromScriptValue(const ScriptValue& object, RayToOverlayIntersectionResult& value) {
+    value.intersects = object.property("intersects").toVariant().toBool();
+    ScriptValue overlayIDValue = object.property("overlayID");
     quuidFromScriptValue(overlayIDValue, value.overlayID);
-    value.distance = object->property("distance")->toVariant().toFloat();
-    value.face = boxFaceFromString(object->property("face")->toVariant().toString());
+    value.distance = object.property("distance").toVariant().toFloat();
+    value.face = boxFaceFromString(object.property("face").toVariant().toString());
 
-    ScriptValuePointer intersection = object->property("intersection");
-    if (intersection->isValid()) {
+    ScriptValue intersection = object.property("intersection");
+    if (intersection.isValid()) {
         vec3FromScriptValue(intersection, value.intersection);
     }
-    ScriptValuePointer surfaceNormal = object->property("surfaceNormal");
-    if (surfaceNormal->isValid()) {
+    ScriptValue surfaceNormal = object.property("surfaceNormal");
+    if (surfaceNormal.isValid()) {
         vec3FromScriptValue(surfaceNormal, value.surfaceNormal);
     }
-    value.extraInfo = object->property("extraInfo")->toVariant().toMap();
+    value.extraInfo = object.property("extraInfo").toVariant().toMap();
 }
 
 bool Overlays::isLoaded(const QUuid& id) {

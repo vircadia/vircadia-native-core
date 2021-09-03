@@ -54,7 +54,7 @@ void addAvatarEntities(const QVariantList& avatarEntities) {
         const QVariantMap& avatarEntityProperties = avatarEntities.at(index).toMap();
         QVariant variantProperties = avatarEntityProperties["properties"];
         QVariantMap asMap = variantProperties.toMap();
-        ScriptValuePointer scriptProperties = variantMapToScriptValue(asMap, *scriptEngine);
+        ScriptValue scriptProperties = variantMapToScriptValue(asMap, *scriptEngine);
         EntityItemProperties entityProperties;
         EntityItemPropertiesFromScriptValueIgnoreReadOnly(scriptProperties, entityProperties);
 
@@ -318,8 +318,8 @@ QVariantMap AvatarBookmarks::getAvatarDataToBookmark() {
             desiredProperties -= PROP_JOINT_TRANSLATIONS;
 
             EntityItemProperties entityProperties = entity->getProperties(desiredProperties);
-            ScriptValuePointer scriptProperties = EntityItemPropertiesToScriptValue(scriptEngine.get(), entityProperties);
-            avatarEntityData["properties"] = scriptProperties->toVariant();
+            ScriptValue scriptProperties = EntityItemPropertiesToScriptValue(scriptEngine.get(), entityProperties);
+            avatarEntityData["properties"] = scriptProperties.toVariant();
             wearableEntities.append(QVariant(avatarEntityData));
         }
     }

@@ -41,7 +41,7 @@ QString ModelScriptingInterface::meshToOBJ(MeshProxyList in) {
     return writeOBJToString(meshes);
 }
 
-ScriptValuePointer ModelScriptingInterface::appendMeshes(MeshProxyList in) {
+ScriptValue ModelScriptingInterface::appendMeshes(MeshProxyList in) {
     // figure out the size of the resulting mesh
     size_t totalVertexCount { 0 };
     size_t totalColorCount { 0 };
@@ -149,13 +149,13 @@ ScriptValuePointer ModelScriptingInterface::appendMeshes(MeshProxyList in) {
     return meshToScriptValue(_modelScriptEngine.get(), resultProxy);
 }
 
-ScriptValuePointer ModelScriptingInterface::transformMesh(glm::mat4 transform, MeshProxy* meshProxy) {
+ScriptValue ModelScriptingInterface::transformMesh(glm::mat4 transform, MeshProxy* meshProxy) {
     if (!meshProxy) {
-        return ScriptValuePointer(false);
+        return ScriptValue();
     }
     MeshPointer mesh = meshProxy->getMeshPointer();
     if (!mesh) {
-        return ScriptValuePointer(false);
+        return ScriptValue();
     }
 
     const auto inverseTransposeTransform = glm::inverse(glm::transpose(transform));
@@ -167,13 +167,13 @@ ScriptValuePointer ModelScriptingInterface::transformMesh(glm::mat4 transform, M
     return meshToScriptValue(_modelScriptEngine.get(), resultProxy);
 }
 
-ScriptValuePointer ModelScriptingInterface::getVertexCount(MeshProxy* meshProxy) {
+ScriptValue ModelScriptingInterface::getVertexCount(MeshProxy* meshProxy) {
     if (!meshProxy) {
-        return ScriptValuePointer(false);
+        return ScriptValue();
     }
     MeshPointer mesh = meshProxy->getMeshPointer();
     if (!mesh) {
-        return ScriptValuePointer(false);
+        return ScriptValue();
     }
 
     gpu::BufferView::Index numVertices = (gpu::BufferView::Index)mesh->getNumVertices();
@@ -181,20 +181,20 @@ ScriptValuePointer ModelScriptingInterface::getVertexCount(MeshProxy* meshProxy)
     return _modelScriptEngine->newValue(numVertices);
 }
 
-ScriptValuePointer ModelScriptingInterface::getVertex(MeshProxy* meshProxy, int vertexIndex) {
+ScriptValue ModelScriptingInterface::getVertex(MeshProxy* meshProxy, int vertexIndex) {
     if (!meshProxy) {
-        return ScriptValuePointer(false);
+        return ScriptValue();
     }
     MeshPointer mesh = meshProxy->getMeshPointer();
     if (!mesh) {
-        return ScriptValuePointer(false);
+        return ScriptValue();
     }
 
     const gpu::BufferView& vertexBufferView = mesh->getVertexBuffer();
     gpu::BufferView::Index numVertices = (gpu::BufferView::Index)mesh->getNumVertices();
 
     if (vertexIndex < 0 || vertexIndex >= numVertices) {
-        return ScriptValuePointer(false);
+        return ScriptValue();
     }
 
     glm::vec3 pos = vertexBufferView.get<glm::vec3>(vertexIndex);
@@ -202,7 +202,7 @@ ScriptValuePointer ModelScriptingInterface::getVertex(MeshProxy* meshProxy, int 
 }
 
 
-ScriptValuePointer ModelScriptingInterface::newMesh(const QVector<glm::vec3>& vertices,
+ScriptValue ModelScriptingInterface::newMesh(const QVector<glm::vec3>& vertices,
                                               const QVector<glm::vec3>& normals,
                                               const QVector<MeshFace>& faces) {
     graphics::MeshPointer mesh(new graphics::Mesh());

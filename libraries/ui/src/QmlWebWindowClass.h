@@ -13,10 +13,10 @@
 
 #include "QmlWindowClass.h"
 
+#include <ScriptValue.h>
+
 class ScriptContext;
 class ScriptEngine;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /*@jsdoc
  * A <code>OverlayWebWindow</code> displays an HTML window inside Interface.
@@ -149,15 +149,15 @@ class QmlWebWindowClass : public QmlWindowClass {
     Q_PROPERTY(QString url READ getURL CONSTANT)
 
 private:
-    static ScriptValuePointer internal_constructor(ScriptContext* context, ScriptEngine* engine, bool restricted);
+    static ScriptValue internal_constructor(ScriptContext* context, ScriptEngine* engine, bool restricted);
 public:
     QmlWebWindowClass(bool restricted) : QmlWindowClass(restricted) {}
 
-    static ScriptValuePointer constructor(ScriptContext* context, ScriptEngine* engine) {
+    static ScriptValue constructor(ScriptContext* context, ScriptEngine* engine) {
         return internal_constructor(context, engine, false);
     }
 
-    static ScriptValuePointer restricted_constructor(ScriptContext* context, ScriptEngine* engine ){
+    static ScriptValue restricted_constructor(ScriptContext* context, ScriptEngine* engine ){
         return internal_constructor(context, engine, true);
     }
 

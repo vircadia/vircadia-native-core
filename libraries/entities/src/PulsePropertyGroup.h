@@ -13,8 +13,6 @@
 
 #include <stdint.h>
 
-#include <QtCore/QSharedPointer>
-
 #include <PulseMode.h>
 
 #include "PropertyGroup.h"
@@ -26,7 +24,6 @@ class OctreePacketData;
 class ReadBitstreamToTreeParams;
 class ScriptEngine;
 class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /*@jsdoc
  * A color and alpha pulse that an entity may have.
@@ -43,10 +40,10 @@ using ScriptValuePointer = QSharedPointer<ScriptValue>;
 class PulsePropertyGroup : public PropertyGroup {
 public:
     // EntityItemProperty related helpers
-    virtual void copyToScriptValue(const EntityPropertyFlags& desiredProperties, ScriptValuePointer& properties,
+    virtual void copyToScriptValue(const EntityPropertyFlags& desiredProperties, ScriptValue& properties,
                                    ScriptEngine* engine, bool skipDefaults,
                                    EntityItemProperties& defaultEntityProperties) const override;
-    virtual void copyFromScriptValue(const ScriptValuePointer& object, bool& _defaultSettings) override;
+    virtual void copyFromScriptValue(const ScriptValue& object, bool& _defaultSettings) override;
 
     void merge(const PulsePropertyGroup& other);
 

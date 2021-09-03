@@ -13,73 +13,71 @@
 
 #include "ScriptValueIteratorQtWrapper.h"
 
-ScriptValueQtWrapper* ScriptValueQtWrapper::unwrap(ScriptValuePointer val) {
-    if (!val) {
-        return nullptr;
-    }
-
-    return dynamic_cast<ScriptValueQtWrapper*>(val.data());
+void ScriptValueQtWrapper::release() {
+    delete this;
 }
 
-QScriptValue ScriptValueQtWrapper::fullUnwrap(const ScriptValuePointer& value) const {
-    if (!value) {
-        return QScriptValue();
-    }
+ScriptValueProxy* ScriptValueQtWrapper::copy() const {
+    return new ScriptValueQtWrapper(_engine, _value);
+}
+
+ScriptValueQtWrapper* ScriptValueQtWrapper::unwrap(const ScriptValue& val) {
+    return dynamic_cast<ScriptValueQtWrapper*>(val.ptr());
+}
+
+QScriptValue ScriptValueQtWrapper::fullUnwrap(const ScriptValue& value) const {
     ScriptValueQtWrapper* unwrapped = unwrap(value);
     if (unwrapped) {
         return unwrapped->toQtValue();
     }
-    QVariant varValue = value->toVariant();
+    QVariant varValue = value.toVariant();
     return static_cast<QScriptEngine*>(_engine)->newVariant(varValue);
 }
 
-QScriptValue ScriptValueQtWrapper::fullUnwrap(ScriptEngineQtScript* engine, const ScriptValuePointer& value) {
-    if (!value) {
-        return QScriptValue();
-    }
+QScriptValue ScriptValueQtWrapper::fullUnwrap(ScriptEngineQtScript* engine, const ScriptValue& value) {
     ScriptValueQtWrapper* unwrapped = unwrap(value);
     if (unwrapped) {
         return unwrapped->toQtValue();
     }
-    QVariant varValue = value->toVariant();
+    QVariant varValue = value.toVariant();
     return static_cast<QScriptEngine*>(engine)->newVariant(varValue);
 }
 
-ScriptValuePointer ScriptValueQtWrapper::call(const ScriptValuePointer& thisObject, const ScriptValueList& args) {
+ScriptValue ScriptValueQtWrapper::call(const ScriptValue& thisObject, const ScriptValueList& args) {
     QScriptValue qThis = fullUnwrap(thisObject);
     QScriptValueList qArgs;
     for (ScriptValueList::const_iterator iter = args.begin(); iter != args.end(); ++iter) {
         qArgs.push_back(fullUnwrap(*iter));
     }
     QScriptValue result = _value.call(qThis, qArgs);
-    return ScriptValuePointer(new ScriptValueQtWrapper(_engine, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(_engine, std::move(result)));
 }
 
-ScriptValuePointer ScriptValueQtWrapper::call(const ScriptValuePointer& thisObject, const ScriptValuePointer& arguments) {
+ScriptValue ScriptValueQtWrapper::call(const ScriptValue& thisObject, const ScriptValue& arguments) {
     QScriptValue qThis = fullUnwrap(thisObject);
     QScriptValue qArgs = fullUnwrap(arguments);
     QScriptValue result = _value.call(qThis, qArgs);
-    return ScriptValuePointer(new ScriptValueQtWrapper(_engine, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(_engine, std::move(result)));
 }
 
-ScriptValuePointer ScriptValueQtWrapper::construct(const ScriptValueList& args) {
+ScriptValue ScriptValueQtWrapper::construct(const ScriptValueList& args) {
     QScriptValueList qArgs;
     for (ScriptValueList::const_iterator iter = args.begin(); iter != args.end(); ++iter) {
         qArgs.push_back(fullUnwrap(*iter));
     }
     QScriptValue result = _value.construct(qArgs);
-    return ScriptValuePointer(new ScriptValueQtWrapper(_engine, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(_engine, std::move(result)));
 }
 
-ScriptValuePointer ScriptValueQtWrapper::construct(const ScriptValuePointer& arguments) {
+ScriptValue ScriptValueQtWrapper::construct(const ScriptValue& arguments) {
     QScriptValue unwrapped = fullUnwrap(arguments);
     QScriptValue result = _value.construct(unwrapped);
-    return ScriptValuePointer(new ScriptValueQtWrapper(_engine, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(_engine, std::move(result)));
 }
 
-ScriptValuePointer ScriptValueQtWrapper::data() const {
+ScriptValue ScriptValueQtWrapper::data() const {
     QScriptValue result = _value.data();
-    return ScriptValuePointer(new ScriptValueQtWrapper(_engine, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(_engine, std::move(result)));
 }
 
 ScriptEnginePointer ScriptValueQtWrapper::engine() const {
@@ -89,43 +87,43 @@ ScriptEnginePointer ScriptValueQtWrapper::engine() const {
     return _engine->sharedFromThis();
 }
 
-ScriptValueIteratorPointer ScriptValueQtWrapper::newIterator() {
+ScriptValueIteratorPointer ScriptValueQtWrapper::newIterator() const {
     return ScriptValueIteratorPointer(new ScriptValueIteratorQtWrapper(_engine, _value));
 }
 
-ScriptValuePointer ScriptValueQtWrapper::property(const QString& name, const ResolveFlags& mode) const {
+ScriptValue ScriptValueQtWrapper::property(const QString& name, const ScriptValue::ResolveFlags& mode) const {
     QScriptValue result = _value.property(name, (QScriptValue::ResolveFlags)(int)mode);
-    return ScriptValuePointer(new ScriptValueQtWrapper(_engine, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(_engine, std::move(result)));
 }
 
-ScriptValuePointer ScriptValueQtWrapper::property(quint32 arrayIndex, const ResolveFlags& mode) const {
+ScriptValue ScriptValueQtWrapper::property(quint32 arrayIndex, const ScriptValue::ResolveFlags& mode) const {
     QScriptValue result = _value.property(arrayIndex, (QScriptValue::ResolveFlags)(int)mode);
-    return ScriptValuePointer(new ScriptValueQtWrapper(_engine, std::move(result)));
+    return ScriptValue(new ScriptValueQtWrapper(_engine, std::move(result)));
 }
 
-void ScriptValueQtWrapper::setData(const ScriptValuePointer& value) {
+void ScriptValueQtWrapper::setData(const ScriptValue& value) {
     QScriptValue unwrapped = fullUnwrap(value);
     _value.setData(unwrapped);
 }
 
-void ScriptValueQtWrapper::setProperty(const QString& name, const ScriptValuePointer& value, const PropertyFlags& flags) {
+void ScriptValueQtWrapper::setProperty(const QString& name, const ScriptValue& value, const ScriptValue::PropertyFlags& flags) {
     QScriptValue unwrapped = fullUnwrap(value);
     _value.setProperty(name, unwrapped, (QScriptValue::PropertyFlags)(int)flags);
 }
 
-void ScriptValueQtWrapper::setProperty(quint32 arrayIndex, const ScriptValuePointer& value, const PropertyFlags& flags) {
+void ScriptValueQtWrapper::setProperty(quint32 arrayIndex, const ScriptValue& value, const ScriptValue::PropertyFlags& flags) {
     QScriptValue unwrapped = fullUnwrap(value);
     _value.setProperty(arrayIndex, unwrapped, (QScriptValue::PropertyFlags)(int)flags);
 }
 
-void ScriptValueQtWrapper::setPrototype(const ScriptValuePointer& prototype) {
+void ScriptValueQtWrapper::setPrototype(const ScriptValue& prototype) {
     ScriptValueQtWrapper* unwrappedPrototype = unwrap(prototype);
     if (unwrappedPrototype) {
         _value.setPrototype(unwrappedPrototype->toQtValue());
     }
 }
 
-bool ScriptValueQtWrapper::strictlyEquals(const ScriptValuePointer& other) const {
+bool ScriptValueQtWrapper::strictlyEquals(const ScriptValue& other) const {
     ScriptValueQtWrapper* unwrappedOther = unwrap(other);
     return unwrappedOther ? _value.strictlyEquals(unwrappedOther->toQtValue()) : false;
 }
@@ -166,51 +164,51 @@ QObject* ScriptValueQtWrapper::toQObject() const {
     return _value.toQObject();
 }
 
-bool ScriptValueQtWrapper::equalsInternal(const ScriptValuePointer& other) const {
+bool ScriptValueQtWrapper::equals(const ScriptValue& other) const {
     ScriptValueQtWrapper* unwrappedOther = unwrap(other);
     return unwrappedOther ? _value.equals(unwrappedOther->toQtValue()) : false;
 }
 
-bool ScriptValueQtWrapper::isArrayInternal() const {
+bool ScriptValueQtWrapper::isArray() const {
     return _value.isArray();
 }
 
-bool ScriptValueQtWrapper::isBoolInternal() const {
+bool ScriptValueQtWrapper::isBool() const {
     return _value.isBool();
 }
 
-bool ScriptValueQtWrapper::isErrorInternal() const {
+bool ScriptValueQtWrapper::isError() const {
     return _value.isError();
 }
 
-bool ScriptValueQtWrapper::isFunctionInternal() const {
+bool ScriptValueQtWrapper::isFunction() const {
     return _value.isFunction();
 }
 
-bool ScriptValueQtWrapper::isNumberInternal() const {
+bool ScriptValueQtWrapper::isNumber() const {
     return _value.isNumber();
 }
 
-bool ScriptValueQtWrapper::isNullInternal() const {
+bool ScriptValueQtWrapper::isNull() const {
     return _value.isNull();
 }
 
-bool ScriptValueQtWrapper::isObjectInternal() const {
+bool ScriptValueQtWrapper::isObject() const {
     return _value.isObject();
 }
 
-bool ScriptValueQtWrapper::isStringInternal() const {
+bool ScriptValueQtWrapper::isString() const {
     return _value.isString();
 }
 
-bool ScriptValueQtWrapper::isUndefinedInternal() const {
+bool ScriptValueQtWrapper::isUndefined() const {
     return _value.isUndefined();
 }
 
-bool ScriptValueQtWrapper::isValidInternal() const {
+bool ScriptValueQtWrapper::isValid() const {
     return _value.isValid();
 }
 
-bool ScriptValueQtWrapper::isVariantInternal() const {
+bool ScriptValueQtWrapper::isVariant() const {
     return _value.isVariant();
 }

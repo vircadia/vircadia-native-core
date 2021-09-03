@@ -21,12 +21,12 @@ LocationScriptingInterface* LocationScriptingInterface::getInstance() {
     return &sharedInstance;
 }
 
-ScriptValuePointer LocationScriptingInterface::locationGetter(ScriptContext* context, ScriptEngine* engine) {
+ScriptValue LocationScriptingInterface::locationGetter(ScriptContext* context, ScriptEngine* engine) {
     return engine->newQObject(DependencyManager::get<AddressManager>().data());
 }
 
-ScriptValuePointer LocationScriptingInterface::locationSetter(ScriptContext* context, ScriptEngine* engine) {
-    const QVariant& argumentVariant = context->argument(0)->toVariant();
+ScriptValue LocationScriptingInterface::locationSetter(ScriptContext* context, ScriptEngine* engine) {
+    const QVariant& argumentVariant = context->argument(0).toVariant();
     
     // just try and convert the argument to a string, should be a hifi:// address
     QMetaObject::invokeMethod(DependencyManager::get<AddressManager>().data(), "handleLookupString",

@@ -14,11 +14,9 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
-#include <QtCore/QSharedPointer>
+#include <ScriptValue.h>
 
 class ScriptEngine;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 class AudioInjectorOptions {
 public:
@@ -38,7 +36,7 @@ public:
 
 Q_DECLARE_METATYPE(AudioInjectorOptions);
 
-ScriptValuePointer injectorOptionsToScriptValue(ScriptEngine* engine, const AudioInjectorOptions& injectorOptions);
-void injectorOptionsFromScriptValue(const ScriptValuePointer& object, AudioInjectorOptions& injectorOptions);
+ScriptValue injectorOptionsToScriptValue(ScriptEngine* engine, const AudioInjectorOptions& injectorOptions);
+void injectorOptionsFromScriptValue(const ScriptValue& object, AudioInjectorOptions& injectorOptions);
 
 #endif // hifi_AudioInjectorOptions_h

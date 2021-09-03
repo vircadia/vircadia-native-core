@@ -15,14 +15,12 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
-#include <QtCore/QSharedPointer>
 
 #include <AccountManager.h>
 #include <DiscoverabilityManager.h>
+#include <ScriptValue.h>
 
 class ScriptEngine;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 class DownloadInfoResult {
 public:
@@ -33,8 +31,8 @@ public:
 
 Q_DECLARE_METATYPE(DownloadInfoResult)
 
-ScriptValuePointer DownloadInfoResultToScriptValue(ScriptEngine* engine, const DownloadInfoResult& result);
-void DownloadInfoResultFromScriptValue(const ScriptValuePointer& object, DownloadInfoResult& result);
+ScriptValue DownloadInfoResultToScriptValue(ScriptEngine* engine, const DownloadInfoResult& result);
+void DownloadInfoResultFromScriptValue(const ScriptValue& object, DownloadInfoResult& result);
 
 class AccountServicesScriptingInterface : public QObject {
     Q_OBJECT

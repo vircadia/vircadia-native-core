@@ -18,14 +18,13 @@
 #include <QtCore/QSharedPointer>
 
 #include <ResourceCache.h>
+#include <ScriptValue.h>
 
 #include "AudioConstants.h"
 
 class AudioData;
 class ScriptEngine;
-class ScriptValue;
 using AudioDataPointer = std::shared_ptr<const AudioData>;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 Q_DECLARE_METATYPE(AudioDataPointer);
 
@@ -171,7 +170,7 @@ private:
 };
 
 Q_DECLARE_METATYPE(SharedSoundPointer)
-ScriptValuePointer soundSharedPointerToScriptValue(ScriptEngine* engine, const SharedSoundPointer& in);
-void soundSharedPointerFromScriptValue(const ScriptValuePointer& object, SharedSoundPointer& out);
+ScriptValue soundSharedPointerToScriptValue(ScriptEngine* engine, const SharedSoundPointer& in);
+void soundSharedPointerFromScriptValue(const ScriptValue& object, SharedSoundPointer& out);
 
 #endif // hifi_Sound_h

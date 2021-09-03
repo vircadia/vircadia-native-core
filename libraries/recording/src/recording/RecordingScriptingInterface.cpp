@@ -56,19 +56,19 @@ float RecordingScriptingInterface::playerLength() const {
     return _player->length();
 }
 
-void RecordingScriptingInterface::playClip(NetworkClipLoaderPointer clipLoader, const QString& url, ScriptValuePointer callback) {
+void RecordingScriptingInterface::playClip(NetworkClipLoaderPointer clipLoader, const QString& url, const ScriptValue& callback) {
     _player->queueClip(clipLoader->getClip());
 
-    if (callback->isFunction()) {
-        auto engine = callback->engine();
+    if (callback.isFunction()) {
+        auto engine = callback.engine();
         ScriptValueList args{ engine->newValue(true), engine->newValue(url) };
-        callback->call(ScriptValuePointer(), args);
+        callback.call(ScriptValue(), args);
     }
 }
 
-void RecordingScriptingInterface::loadRecording(const QString& url, ScriptValuePointer callback) {
+void RecordingScriptingInterface::loadRecording(const QString& url, const ScriptValue& callback) {
     if (QThread::currentThread() != thread()) {
-        BLOCKING_INVOKE_METHOD(this, "loadRecording", Q_ARG(const QString&, url), Q_ARG(ScriptValuePointer, callback));
+        BLOCKING_INVOKE_METHOD(this, "loadRecording", Q_ARG(const QString&, url), Q_ARG(const ScriptValue&, callback));
         return;
     }
 
@@ -85,7 +85,7 @@ void RecordingScriptingInterface::loadRecording(const QString& url, ScriptValueP
 
     auto weakClipLoader = clipLoader.toWeakRef();
 
-    auto manager = callback->engine()->manager();
+    auto manager = callback.engine()->manager();
     if (!manager) {
         qWarning() << "This script does not belong to a ScriptManager";
         return;
@@ -110,10 +110,10 @@ void RecordingScriptingInterface::loadRecording(const QString& url, ScriptValueP
             [this, weakClipLoader, url, callback](QNetworkReply::NetworkError error) mutable {
         qCDebug(scriptengine) << "Failed to load recording from\"" << url << '"';
 
-        if (callback->isFunction()) {
-            auto engine = callback->engine();
+        if (callback.isFunction()) {
+            auto engine = callback.engine();
             ScriptValueList args{ engine->newValue(false), engine->newValue(url) };
-            callback->call(ScriptValuePointer(), args);
+            callback.call(ScriptValue(), args);
         }
 
         if (auto clipLoader = weakClipLoader.toStrongRef()) {
@@ -259,8 +259,8 @@ void RecordingScriptingInterface::saveRecording(const QString& filename) {
     recording::Clip::toFile(filename, _lastClip);
 }
 
-bool RecordingScriptingInterface::saveRecordingToAsset(ScriptValuePointer getClipAtpUrl) {
-    if (!getClipAtpUrl->isFunction()) {
+bool RecordingScriptingInterface::saveRecordingToAsset(const ScriptValue& getClipAtpUrl) {
+    if (!getClipAtpUrl.isFunction()) {
         qCWarning(scriptengine) << "The argument is not a function.";
         return false;
     }
@@ -269,7 +269,7 @@ bool RecordingScriptingInterface::saveRecordingToAsset(ScriptValuePointer getCli
         bool result;
         BLOCKING_INVOKE_METHOD(this, "saveRecordingToAsset",
             Q_RETURN_ARG(bool, result),
-            Q_ARG(ScriptValuePointer, getClipAtpUrl));
+            Q_ARG(const ScriptValue&, getClipAtpUrl));
         return result;
     }
 
@@ -278,7 +278,7 @@ bool RecordingScriptingInterface::saveRecordingToAsset(ScriptValuePointer getCli
         return false;
     }
 
-    auto manager = getClipAtpUrl->engine()->manager();
+    auto manager = getClipAtpUrl.engine()->manager();
     if (!manager) {
         qWarning() << "This script does not belong to a ScriptManager";
         return false;
@@ -297,8 +297,8 @@ bool RecordingScriptingInterface::saveRecordingToAsset(ScriptValuePointer getCli
             }
 
             ScriptValueList args;
-            args << getClipAtpUrl->engine()->newValue(clip_atp_url);
-            getClipAtpUrl->call(ScriptValuePointer(), args);
+            args << getClipAtpUrl.engine()->newValue(clip_atp_url);
+            getClipAtpUrl.call(ScriptValue(), args);
         });
         upload->start();
         return true;

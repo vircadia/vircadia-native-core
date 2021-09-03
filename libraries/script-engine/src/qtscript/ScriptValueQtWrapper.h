@@ -24,37 +24,54 @@
 #include "ScriptEngineQtScript.h"
 
 /// [QtScript] Implements ScriptValue for QtScript and translates calls for QScriptValue
-class ScriptValueQtWrapper : public ScriptValue {
+class ScriptValueQtWrapper : public ScriptValueProxy {
 public: // construction
     inline ScriptValueQtWrapper(ScriptEngineQtScript* engine, const QScriptValue& value) :
         _engine(engine), _value(value) {}
     inline ScriptValueQtWrapper(ScriptEngineQtScript* engine, QScriptValue&& value) :
         _engine(engine), _value(std::move(value)) {}
-    static ScriptValueQtWrapper* unwrap(ScriptValuePointer val);
+    static ScriptValueQtWrapper* unwrap(const ScriptValue& val);
     inline const QScriptValue& toQtValue() const { return _value; }
-    static QScriptValue fullUnwrap(ScriptEngineQtScript* engine, const ScriptValuePointer& value);
+    static QScriptValue fullUnwrap(ScriptEngineQtScript* engine, const ScriptValue& value);
 
-public: // ScriptValue implementation
-    virtual ScriptValuePointer call(const ScriptValuePointer& thisObject = ScriptValuePointer(),
-                                    const ScriptValueList& args = ScriptValueList());
-    virtual ScriptValuePointer call(const ScriptValuePointer& thisObject, const ScriptValuePointer& arguments);
-    virtual ScriptValuePointer construct(const ScriptValueList& args = ScriptValueList());
-    virtual ScriptValuePointer construct(const ScriptValuePointer& arguments);
-    virtual ScriptValuePointer data() const;
+public:
+    virtual void release();
+    virtual ScriptValueProxy* copy() const;
+
+public:  // ScriptValue implementation
+    virtual ScriptValue call(const ScriptValue& thisObject = ScriptValue(), const ScriptValueList& args = ScriptValueList());
+    virtual ScriptValue call(const ScriptValue& thisObject, const ScriptValue& arguments);
+    virtual ScriptValue construct(const ScriptValueList& args = ScriptValueList());
+    virtual ScriptValue construct(const ScriptValue& arguments);
+    virtual ScriptValue data() const;
     virtual ScriptEnginePointer engine() const;
-    virtual ScriptValueIteratorPointer newIterator();
-    virtual ScriptValuePointer property(const QString& name, const ResolveFlags& mode = ResolvePrototype) const;
-    virtual ScriptValuePointer property(quint32 arrayIndex, const ResolveFlags& mode = ResolvePrototype) const;
-    virtual void setData(const ScriptValuePointer& val);
+    virtual ScriptValueIteratorPointer newIterator() const;
+    virtual ScriptValue property(const QString& name,
+        const ScriptValue::ResolveFlags& mode = ScriptValue::ResolvePrototype) const;
+    virtual ScriptValue property(quint32 arrayIndex,
+        const ScriptValue::ResolveFlags& mode = ScriptValue::ResolvePrototype) const;
+    virtual void setData(const ScriptValue& val);
     virtual void setProperty(const QString& name,
-                             const ScriptValuePointer& value,
-                             const PropertyFlags& flags = KeepExistingFlags);
+                             const ScriptValue& value,
+                             const ScriptValue::PropertyFlags& flags = ScriptValue::KeepExistingFlags);
     virtual void setProperty(quint32 arrayIndex,
-                             const ScriptValuePointer& value,
-                             const PropertyFlags& flags = KeepExistingFlags);
-    virtual void setPrototype(const ScriptValuePointer& prototype);
-    virtual bool strictlyEquals(const ScriptValuePointer& other) const;
+                             const ScriptValue& value,
+                             const ScriptValue::PropertyFlags& flags = ScriptValue::KeepExistingFlags);
+    virtual void setPrototype(const ScriptValue& prototype);
+    virtual bool strictlyEquals(const ScriptValue& other) const;
 
+    virtual bool equals(const ScriptValue& other) const;
+    virtual bool isArray() const;
+    virtual bool isBool() const;
+    virtual bool isError() const;
+    virtual bool isFunction() const;
+    virtual bool isNumber() const;
+    virtual bool isNull() const;
+    virtual bool isObject() const;
+    virtual bool isString() const;
+    virtual bool isUndefined() const;
+    virtual bool isValid() const;
+    virtual bool isVariant() const;
     virtual bool toBool() const;
     virtual qint32 toInt32() const;
     virtual double toInteger() const;
@@ -65,22 +82,8 @@ public: // ScriptValue implementation
     virtual QVariant toVariant() const;
     virtual QObject* toQObject() const;
 
-protected:  // ScriptValue implementation
-    virtual bool equalsInternal(const ScriptValuePointer& other) const;
-    virtual bool isArrayInternal() const;
-    virtual bool isBoolInternal() const;
-    virtual bool isErrorInternal() const;
-    virtual bool isFunctionInternal() const;
-    virtual bool isNumberInternal() const;
-    virtual bool isNullInternal() const;
-    virtual bool isObjectInternal() const;
-    virtual bool isStringInternal() const;
-    virtual bool isUndefinedInternal() const;
-    virtual bool isValidInternal() const;
-    virtual bool isVariantInternal() const;
-
 private: // helper functions
-    QScriptValue fullUnwrap(const ScriptValuePointer& value) const;
+    QScriptValue fullUnwrap(const ScriptValue& value) const;
 
 private: // storage
     QPointer<ScriptEngineQtScript> _engine;

@@ -47,51 +47,51 @@ class ScriptEngineQtScript : public QScriptEngine, public ScriptEngine, public Q
 public:  // ScriptEngine implementation
     virtual void abortEvaluation();
     virtual void clearExceptions();
-    virtual ScriptValuePointer cloneUncaughtException(const QString& detail = QString());
+    virtual ScriptValue cloneUncaughtException(const QString& detail = QString());
     virtual ScriptContext* currentContext() const;
-    //virtual ScriptValuePointer evaluate(const QString& program, const QString& fileName = QString());
-    //virtual ScriptValuePointer evaluate(const ScriptProgramPointer &program);
-    //virtual ScriptValuePointer evaluateInClosure(const ScriptValuePointer& locals, const ScriptProgramPointer& program);
-    virtual ScriptValuePointer globalObject() const;
+    //virtual ScriptValue evaluate(const QString& program, const QString& fileName = QString());
+    //virtual ScriptValue evaluate(const ScriptProgramPointer &program);
+    //virtual ScriptValue evaluateInClosure(const ScriptValue& locals, const ScriptProgramPointer& program);
+    virtual ScriptValue globalObject() const;
     virtual bool hasUncaughtException() const;
     virtual bool isEvaluating() const;
-    virtual ScriptValuePointer lintScript(const QString& sourceCode, const QString& fileName, const int lineNumber = 1);
-    virtual ScriptValuePointer makeError(const ScriptValuePointer& other, const QString& type = "Error");
+    virtual ScriptValue lintScript(const QString& sourceCode, const QString& fileName, const int lineNumber = 1);
+    virtual ScriptValue makeError(const ScriptValue& other, const QString& type = "Error");
     virtual ScriptManager* manager() const;
 
     // if there is a pending exception and we are at the top level (non-recursive) stack frame, this emits and resets it
     virtual bool maybeEmitUncaughtException(const QString& debugHint = QString());
 
-    virtual ScriptValuePointer newArray(uint length = 0);
-    virtual ScriptValuePointer newArrayBuffer(const QByteArray& message);
-    virtual ScriptValuePointer newFunction(ScriptEngine::FunctionSignature fun, int length = 0);
-    virtual ScriptValuePointer newObject();
+    virtual ScriptValue newArray(uint length = 0);
+    virtual ScriptValue newArrayBuffer(const QByteArray& message);
+    virtual ScriptValue newFunction(ScriptEngine::FunctionSignature fun, int length = 0);
+    virtual ScriptValue newObject();
     virtual ScriptProgramPointer newProgram(const QString& sourceCode, const QString& fileName);
-    virtual ScriptValuePointer newQObject(QObject *object, ScriptEngine::ValueOwnership ownership = ScriptEngine::QtOwnership,
+    virtual ScriptValue newQObject(QObject *object, ScriptEngine::ValueOwnership ownership = ScriptEngine::QtOwnership,
         const ScriptEngine::QObjectWrapOptions &options = ScriptEngine::QObjectWrapOptions());
-    virtual ScriptValuePointer newValue(bool value);
-    virtual ScriptValuePointer newValue(int value);
-    virtual ScriptValuePointer newValue(uint value);
-    virtual ScriptValuePointer newValue(double value);
-    virtual ScriptValuePointer newValue(const QString& value);
-    virtual ScriptValuePointer newValue(const QLatin1String& value);
-    virtual ScriptValuePointer newValue(const char* value);
-    virtual ScriptValuePointer newVariant(const QVariant& value);
-    virtual ScriptValuePointer nullValue();
-    virtual bool raiseException(const ScriptValuePointer& exception);
+    virtual ScriptValue newValue(bool value);
+    virtual ScriptValue newValue(int value);
+    virtual ScriptValue newValue(uint value);
+    virtual ScriptValue newValue(double value);
+    virtual ScriptValue newValue(const QString& value);
+    virtual ScriptValue newValue(const QLatin1String& value);
+    virtual ScriptValue newValue(const char* value);
+    virtual ScriptValue newVariant(const QVariant& value);
+    virtual ScriptValue nullValue();
+    virtual bool raiseException(const ScriptValue& exception);
     //virtual void registerEnum(const QString& enumName, QMetaEnum newEnum);
     //Q_INVOKABLE virtual void registerFunction(const QString& name, ScriptEngine::FunctionSignature fun, int numArguments = -1);
     //Q_INVOKABLE virtual void registerFunction(const QString& parent, const QString& name, ScriptEngine::FunctionSignature fun, int numArguments = -1);
     //Q_INVOKABLE virtual void registerGetterSetter(const QString& name, ScriptEngine::FunctionSignature getter, ScriptEngine::FunctionSignature setter, const QString& parent = QString(""));
     //virtual void registerGlobalObject(const QString& name, QObject* object);
-    virtual void setDefaultPrototype(int metaTypeId, const ScriptValuePointer& prototype);
+    virtual void setDefaultPrototype(int metaTypeId, const ScriptValue& prototype);
     virtual void setObjectName(const QString& name);
     virtual bool setProperty(const char* name, const QVariant& value);
     virtual void setProcessEventsInterval(int interval);
     virtual QThread* thread() const;
     virtual void setThread(QThread* thread);
-    virtual ScriptValuePointer undefinedValue();
-    virtual ScriptValuePointer uncaughtException() const;
+    virtual ScriptValue undefinedValue();
+    virtual ScriptValue uncaughtException() const;
     virtual QStringList uncaughtExceptionBacktrace() const;
     virtual int uncaughtExceptionLineNumber() const;
 
@@ -203,10 +203,10 @@ public:
      * @deprecated This function is deprecated and will be removed.
      */
     /// evaluate some code in the context of the ScriptEngineQtScript and return the result
-    Q_INVOKABLE virtual ScriptValuePointer evaluate(const QString& program, const QString& fileName); // this is also used by the script tool widget
+    Q_INVOKABLE virtual ScriptValue evaluate(const QString& program, const QString& fileName); // this is also used by the script tool widget
 
 
-    Q_INVOKABLE virtual ScriptValuePointer evaluate(const ScriptProgramPointer& program);
+    Q_INVOKABLE virtual ScriptValue evaluate(const ScriptProgramPointer& program);
 
     /*@jsdoc
      * @function Script.evaluateInClosure
@@ -215,7 +215,7 @@ public:
      * @returns {object} Object.
      * @deprecated This function is deprecated and will be removed.
      */
-    Q_INVOKABLE virtual ScriptValuePointer evaluateInClosure(const ScriptValuePointer& locals, const ScriptProgramPointer& program);
+    Q_INVOKABLE virtual ScriptValue evaluateInClosure(const ScriptValue& locals, const ScriptProgramPointer& program);
 
     /*@jsdoc
      * Checks whether the application was compiled as a debug build.
@@ -381,10 +381,10 @@ signals:
     void entityScriptDetailsUpdated();
 
 public: // not for public use, but I don't like how Qt strings this along with private friend functions
-    virtual ScriptValuePointer create(int type, const void* ptr);
-    virtual bool convert(const ScriptValuePointer& value, int type, void* ptr);
+    virtual ScriptValue create(int type, const void* ptr);
+    virtual bool convert(const ScriptValue& value, int type, void* ptr);
     virtual void registerCustomType(int type, ScriptEngine::MarshalFunction marshalFunc,
-        ScriptEngine::DemarshalFunction demarshalFunc, const ScriptValuePointer& prototype);
+        ScriptEngine::DemarshalFunction demarshalFunc, const ScriptValue& prototype);
 
 protected:
     // like `newFunction`, but allows mapping inline C++ lambdas with captures as callable QScriptValues
@@ -408,8 +408,8 @@ protected:
     QPointer<ScriptManager> _manager;
 
     int _nextCustomType = 0;
-    ScriptValuePointer _nullValue;
-    ScriptValuePointer _undefinedValue;
+    ScriptValue _nullValue;
+    ScriptValue _undefinedValue;
     mutable ScriptContextQtPointer _currContext;
 
     std::atomic<bool> _isRunning { false };

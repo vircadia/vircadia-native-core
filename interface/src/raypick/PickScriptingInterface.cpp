@@ -427,11 +427,11 @@ void PickScriptingInterface::setPrecisionPicking(unsigned int uid, bool precisio
     DependencyManager::get<PickManager>()->setPrecisionPicking(uid, precisionPicking);
 }
 
-void PickScriptingInterface::setIgnoreItems(unsigned int uid, const ScriptValuePointer& ignoreItems) {
+void PickScriptingInterface::setIgnoreItems(unsigned int uid, const ScriptValue& ignoreItems) {
     DependencyManager::get<PickManager>()->setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));
 }
 
-void PickScriptingInterface::setIncludeItems(unsigned int uid, const ScriptValuePointer& includeItems) {
+void PickScriptingInterface::setIncludeItems(unsigned int uid, const ScriptValue& includeItems) {
     DependencyManager::get<PickManager>()->setIncludeItems(uid, qVectorQUuidFromScriptValue(includeItems));
 }
 
@@ -447,21 +447,21 @@ bool PickScriptingInterface::isMouse(unsigned int uid) {
     return DependencyManager::get<PickManager>()->isMouse(uid);
 }
 
-ScriptValuePointer pickTypesToScriptValue(ScriptEngine* engine, const PickQuery::PickType& pickType) {
+ScriptValue pickTypesToScriptValue(ScriptEngine* engine, const PickQuery::PickType& pickType) {
     return engine->newValue(pickType);
 }
 
-void pickTypesFromScriptValue(const ScriptValuePointer& object, PickQuery::PickType& pickType) {
-    pickType = static_cast<PickQuery::PickType>(object->toUInt16());
+void pickTypesFromScriptValue(const ScriptValue& object, PickQuery::PickType& pickType) {
+    pickType = static_cast<PickQuery::PickType>(object.toUInt16());
 }
 
 void PickScriptingInterface::registerMetaTypes(ScriptEngine* engine) {
-    ScriptValuePointer pickTypes = engine->newObject();
+    ScriptValue pickTypes = engine->newObject();
     auto metaEnum = QMetaEnum::fromType<PickQuery::PickType>();
     for (int i = 0; i < PickQuery::PickType::NUM_PICK_TYPES; ++i) {
-        pickTypes->setProperty(metaEnum.key(i), metaEnum.value(i));
+        pickTypes.setProperty(metaEnum.key(i), metaEnum.value(i));
     }
-    engine->globalObject()->setProperty("PickType", pickTypes);
+    engine->globalObject().setProperty("PickType", pickTypes);
 
     scriptRegisterMetaType(engine, pickTypesToScriptValue, pickTypesFromScriptValue);
 }

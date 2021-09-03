@@ -3153,40 +3153,40 @@ glm::mat4 AvatarData::getControllerRightHandMatrix() const {
  * @property {SubmeshIntersection} extraInfo - Extra information on the mesh intersected if mesh was picked against, 
  *     <code>{}</code> if it wasn't.
  */
-ScriptValuePointer RayToAvatarIntersectionResultToScriptValue(ScriptEngine* engine, const RayToAvatarIntersectionResult& value) {
-    ScriptValuePointer obj = engine->newObject();
-    obj->setProperty("intersects", value.intersects);
-    ScriptValuePointer avatarIDValue = quuidToScriptValue(engine, value.avatarID);
-    obj->setProperty("avatarID", avatarIDValue);
-    obj->setProperty("distance", value.distance);
-    obj->setProperty("face", boxFaceToString(value.face));
-    ScriptValuePointer intersection = vec3ToScriptValue(engine, value.intersection);
+ScriptValue RayToAvatarIntersectionResultToScriptValue(ScriptEngine* engine, const RayToAvatarIntersectionResult& value) {
+    ScriptValue obj = engine->newObject();
+    obj.setProperty("intersects", value.intersects);
+    ScriptValue avatarIDValue = quuidToScriptValue(engine, value.avatarID);
+    obj.setProperty("avatarID", avatarIDValue);
+    obj.setProperty("distance", value.distance);
+    obj.setProperty("face", boxFaceToString(value.face));
+    ScriptValue intersection = vec3ToScriptValue(engine, value.intersection);
 
-    obj->setProperty("intersection", intersection);
-    ScriptValuePointer surfaceNormal = vec3ToScriptValue(engine, value.surfaceNormal);
-    obj->setProperty("surfaceNormal", surfaceNormal);
-    obj->setProperty("jointIndex", value.jointIndex);
-    obj->setProperty("extraInfo", engine->toScriptValue(value.extraInfo));
+    obj.setProperty("intersection", intersection);
+    ScriptValue surfaceNormal = vec3ToScriptValue(engine, value.surfaceNormal);
+    obj.setProperty("surfaceNormal", surfaceNormal);
+    obj.setProperty("jointIndex", value.jointIndex);
+    obj.setProperty("extraInfo", engine->toScriptValue(value.extraInfo));
     return obj;
 }
 
-void RayToAvatarIntersectionResultFromScriptValue(const ScriptValuePointer& object, RayToAvatarIntersectionResult& value) {
-    value.intersects = object->property("intersects")->toVariant().toBool();
-    ScriptValuePointer avatarIDValue = object->property("avatarID");
+void RayToAvatarIntersectionResultFromScriptValue(const ScriptValue& object, RayToAvatarIntersectionResult& value) {
+    value.intersects = object.property("intersects").toVariant().toBool();
+    ScriptValue avatarIDValue = object.property("avatarID");
     quuidFromScriptValue(avatarIDValue, value.avatarID);
-    value.distance = object->property("distance")->toVariant().toFloat();
-    value.face = boxFaceFromString(object->property("face")->toVariant().toString());
+    value.distance = object.property("distance").toVariant().toFloat();
+    value.face = boxFaceFromString(object.property("face").toVariant().toString());
 
-    ScriptValuePointer intersection = object->property("intersection");
-    if (intersection && intersection->isValid()) {
+    ScriptValue intersection = object.property("intersection");
+    if (intersection.isValid()) {
         vec3FromScriptValue(intersection, value.intersection);
     }
-    ScriptValuePointer surfaceNormal = object->property("surfaceNormal");
-    if (surfaceNormal && surfaceNormal->isValid()) {
+    ScriptValue surfaceNormal = object.property("surfaceNormal");
+    if (surfaceNormal.isValid()) {
         vec3FromScriptValue(surfaceNormal, value.surfaceNormal);
     }
-    value.jointIndex = object->property("jointIndex")->toInt32();
-    value.extraInfo = object->property("extraInfo")->toVariant().toMap();
+    value.jointIndex = object.property("jointIndex").toInt32();
+    value.extraInfo = object.property("extraInfo").toVariant().toMap();
 }
 
 // these coefficients can be changed via JS for experimental tuning
@@ -3199,8 +3199,8 @@ float AvatarData::_avatarSortCoefficientAge { 1.0f };
  * An object with the UUIDs of avatar entities as keys and avatar entity properties objects as values.
  * @typedef {Object.<Uuid, Entities.EntityProperties>} AvatarEntityMap
  */
-ScriptValuePointer AvatarEntityMapToScriptValue(ScriptEngine* engine, const AvatarEntityMap& value) {
-    ScriptValuePointer obj = engine->newObject();
+ScriptValue AvatarEntityMapToScriptValue(ScriptEngine* engine, const AvatarEntityMap& value) {
+    ScriptValue obj = engine->newObject();
     for (auto entityID : value.keys()) {
         QByteArray entityProperties = value.value(entityID);
         QJsonDocument jsonEntityProperties = QJsonDocument::fromBinaryData(entityProperties);
@@ -3210,22 +3210,22 @@ ScriptValuePointer AvatarEntityMapToScriptValue(ScriptEngine* engine, const Avat
 
         QVariant variantEntityProperties = jsonEntityProperties.toVariant();
         QVariantMap entityPropertiesMap = variantEntityProperties.toMap();
-        ScriptValuePointer scriptEntityProperties = variantMapToScriptValue(entityPropertiesMap, *engine);
+        ScriptValue scriptEntityProperties = variantMapToScriptValue(entityPropertiesMap, *engine);
 
         QString key = entityID.toString();
-        obj->setProperty(key, scriptEntityProperties);
+        obj.setProperty(key, scriptEntityProperties);
     }
     return obj;
 }
 
-void AvatarEntityMapFromScriptValue(const ScriptValuePointer& object, AvatarEntityMap& value) {
-    ScriptValueIteratorPointer itr(object->newIterator());
+void AvatarEntityMapFromScriptValue(const ScriptValue& object, AvatarEntityMap& value) {
+    ScriptValueIteratorPointer itr(object.newIterator());
     while (itr->hasNext()) {
         itr->next();
         QUuid EntityID = QUuid(itr->name());
 
-        ScriptValuePointer scriptEntityProperties = itr->value();
-        QVariant variantEntityProperties = scriptEntityProperties->toVariant();
+        ScriptValue scriptEntityProperties = itr->value();
+        QVariant variantEntityProperties = scriptEntityProperties.toVariant();
         QJsonDocument jsonEntityProperties = QJsonDocument::fromVariant(variantEntityProperties);
         QByteArray binaryEntityProperties = jsonEntityProperties.toBinaryData();
 

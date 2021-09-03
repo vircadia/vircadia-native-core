@@ -11,11 +11,9 @@
 
 #include "EntityTree.h"
 
-#include <QtCore/QSharedPointer>
+#include <ScriptValue.h>
 
 class ScriptEngine;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 class RecurseOctreeToJSONOperator : public RecurseOctreeOperator {
 public:
@@ -30,7 +28,7 @@ private:
     void processEntity(const EntityItemPointer& entity);
 
     ScriptEngine* _engine;
-    ScriptValuePointer _toStringMethod;
+    ScriptValue _toStringMethod;
 
     QString _json;
     const bool _skipDefaults;

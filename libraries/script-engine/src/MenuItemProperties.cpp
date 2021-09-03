@@ -47,8 +47,8 @@ void registerMenuItemProperties(ScriptEngine* engine) {
     scriptRegisterMetaType(engine, menuItemPropertiesToScriptValue, menuItemPropertiesFromScriptValue);
 }
 
-ScriptValuePointer menuItemPropertiesToScriptValue(ScriptEngine* engine, const MenuItemProperties& properties) {
-    ScriptValuePointer obj = engine->newObject();
+ScriptValue menuItemPropertiesToScriptValue(ScriptEngine* engine, const MenuItemProperties& properties) {
+    ScriptValue obj = engine->newObject();
     // not supported
     return obj;
 }
@@ -73,32 +73,32 @@ ScriptValuePointer menuItemPropertiesToScriptValue(ScriptEngine* engine, const M
  * @property {string} [afterItem] - The name of the menu item to place this menu item after.
  * @property {string} [grouping] - The name of grouping to add this menu item to.
  */
-void menuItemPropertiesFromScriptValue(const ScriptValuePointer& object, MenuItemProperties& properties) {
-    properties.menuName = object->property("menuName")->toVariant().toString();
-    properties.menuItemName = object->property("menuItemName")->toVariant().toString();
-    properties.isCheckable = object->property("isCheckable")->toVariant().toBool();
-    properties.isChecked = object->property("isChecked")->toVariant().toBool();
-    properties.isSeparator = object->property("isSeparator")->toVariant().toBool();
+void menuItemPropertiesFromScriptValue(const ScriptValue& object, MenuItemProperties& properties) {
+    properties.menuName = object.property("menuName").toVariant().toString();
+    properties.menuItemName = object.property("menuItemName").toVariant().toString();
+    properties.isCheckable = object.property("isCheckable").toVariant().toBool();
+    properties.isChecked = object.property("isChecked").toVariant().toBool();
+    properties.isSeparator = object.property("isSeparator").toVariant().toBool();
 
     // handle the shortcut key options in order...
-    ScriptValuePointer shortcutKeyValue = object->property("shortcutKey");
-    if (shortcutKeyValue->isValid()) {
-        properties.shortcutKey = shortcutKeyValue->toVariant().toString();
+    ScriptValue shortcutKeyValue = object.property("shortcutKey");
+    if (shortcutKeyValue.isValid()) {
+        properties.shortcutKey = shortcutKeyValue.toVariant().toString();
         properties.shortcutKeySequence = properties.shortcutKey;
     } else {
-        ScriptValuePointer shortcutKeyEventValue = object->property("shortcutKeyEvent");
-        if (shortcutKeyEventValue->isValid()) {
+        ScriptValue shortcutKeyEventValue = object.property("shortcutKeyEvent");
+        if (shortcutKeyEventValue.isValid()) {
             KeyEvent::fromScriptValue(shortcutKeyEventValue, properties.shortcutKeyEvent);
             properties.shortcutKeySequence = properties.shortcutKeyEvent;
         }
     }
 
-    if (object->property("position")->isValid()) {
-        properties.position = object->property("position")->toVariant().toInt();
+    if (object.property("position").isValid()) {
+        properties.position = object.property("position").toVariant().toInt();
     }
-    properties.beforeItem = object->property("beforeItem")->toVariant().toString();
-    properties.afterItem = object->property("afterItem")->toVariant().toString();
-    properties.grouping = object->property("grouping")->toVariant().toString();
+    properties.beforeItem = object.property("beforeItem").toVariant().toString();
+    properties.afterItem = object.property("afterItem").toVariant().toString();
+    properties.grouping = object.property("grouping").toVariant().toString();
 }
 
 

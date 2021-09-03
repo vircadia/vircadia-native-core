@@ -846,7 +846,7 @@ struct EntityPropertiesResult {
 
 // Static method to make sure that we have the right script engine.
 // Using sender() or QtScriptable::engine() does not work for classes used by multiple threads (script-engines)
-ScriptValuePointer EntityScriptingInterface::getMultipleEntityProperties(ScriptContext* context, ScriptEngine* engine) {
+ScriptValue EntityScriptingInterface::getMultipleEntityProperties(ScriptContext* context, ScriptEngine* engine) {
     const int ARGUMENT_ENTITY_IDS = 0;
     const int ARGUMENT_EXTENDED_DESIRED_PROPERTIES = 1;
 
@@ -855,12 +855,12 @@ ScriptValuePointer EntityScriptingInterface::getMultipleEntityProperties(ScriptC
     return entityScriptingInterface->getMultipleEntityPropertiesInternal(engine, entityIDs, context->argument(ARGUMENT_EXTENDED_DESIRED_PROPERTIES));
 }
 
-ScriptValuePointer EntityScriptingInterface::getMultipleEntityPropertiesInternal(ScriptEngine* engine, QVector<QUuid> entityIDs, const ScriptValuePointer& extendedDesiredProperties) {
+ScriptValue EntityScriptingInterface::getMultipleEntityPropertiesInternal(ScriptEngine* engine, QVector<QUuid> entityIDs, const ScriptValue& extendedDesiredProperties) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     EntityPsuedoPropertyFlags psuedoPropertyFlags;
-    const auto readExtendedPropertyStringValue = [&](ScriptValuePointer extendedProperty) {
-        const auto extendedPropertyString = extendedProperty->toString();
+    const auto readExtendedPropertyStringValue = [&](ScriptValue extendedProperty) {
+        const auto extendedPropertyString = extendedProperty.toString();
         if (extendedPropertyString == "id") {
             psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::ID);
         } else if (extendedPropertyString == "type") {
@@ -890,13 +890,13 @@ ScriptValuePointer EntityScriptingInterface::getMultipleEntityPropertiesInternal
         }
     };
 
-    if (extendedDesiredProperties->isString()) {
+    if (extendedDesiredProperties.isString()) {
         readExtendedPropertyStringValue(extendedDesiredProperties);
         psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::FlagsActive);
-    } else if (extendedDesiredProperties->isArray()) {
-        const quint32 length = extendedDesiredProperties->property("length")->toInt32();
+    } else if (extendedDesiredProperties.isArray()) {
+        const quint32 length = extendedDesiredProperties.property("length").toInt32();
         for (quint32 i = 0; i < length; i++) {
-            readExtendedPropertyStringValue(extendedDesiredProperties->property(i));
+            readExtendedPropertyStringValue(extendedDesiredProperties.property(i));
         }
         psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::FlagsActive);
     }
@@ -948,18 +948,18 @@ ScriptValuePointer EntityScriptingInterface::getMultipleEntityPropertiesInternal
             });
         }
     }
-    ScriptValuePointer finalResult = engine->newArray(resultProperties.size());
+    ScriptValue finalResult = engine->newArray(resultProperties.size());
     quint32 i = 0;
     if (needsScriptSemantics) {
         PROFILE_RANGE(script_entities, "EntityScriptingInterface::getMultipleEntityProperties>Script Semantics");
         foreach(const auto& result, resultProperties) {
-            finalResult->setProperty(i++, convertPropertiesToScriptSemantics(result.properties, result.scalesWithParent)
+            finalResult.setProperty(i++, convertPropertiesToScriptSemantics(result.properties, result.scalesWithParent)
                 .copyToScriptValue(engine, false, false, false, psuedoPropertyFlags));
         }
     } else {
         PROFILE_RANGE(script_entities, "EntityScriptingInterface::getMultipleEntityProperties>Skip Script Semantics");
         foreach(const auto& result, resultProperties) {
-            finalResult->setProperty(i++, result.properties.copyToScriptValue(engine, false, false, false, psuedoPropertyFlags));
+            finalResult.setProperty(i++, result.properties.copyToScriptValue(engine, false, false, false, psuedoPropertyFlags));
         }
     }
     return finalResult;
@@ -1432,7 +1432,7 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesByName(const QString entity
 }
 
 RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray, bool precisionPicking,
-        const ScriptValuePointer& entityIdsToInclude, const ScriptValuePointer& entityIdsToDiscard, bool visibleOnly, bool collidableOnly) const {
+        const ScriptValue& entityIdsToInclude, const ScriptValue& entityIdsToDiscard, bool visibleOnly, bool collidableOnly) const {
     PROFILE_RANGE(script_entities, __FUNCTION__);
     QVector<EntityItemID> entitiesToInclude = qVectorEntityItemIDFromScriptValue(entityIdsToInclude);
     QVector<EntityItemID> entitiesToDiscard = qVectorEntityItemIDFromScriptValue(entityIdsToDiscard);
@@ -1508,13 +1508,13 @@ bool EntityScriptingInterface::reloadServerScripts(const QUuid& entityID) {
     return client->reloadServerScript(entityID);
 }
 
-bool EntityPropertyMetadataRequest::script(EntityItemID entityID, ScriptValuePointer handler) {
+bool EntityPropertyMetadataRequest::script(EntityItemID entityID, const ScriptValue& handler) {
     using LocalScriptStatusRequest = QFutureWatcher<QVariant>;
 
     LocalScriptStatusRequest* request = new LocalScriptStatusRequest;
     QObject::connect(request, &LocalScriptStatusRequest::finished, _manager, [=]() mutable {
         auto details = request->result().toMap();
-        ScriptValuePointer err, result;
+        ScriptValue err, result;
         if (details.contains("isError")) {
             if (!details.contains("message")) {
                 details["message"] = details["errorInfo"];
@@ -1535,14 +1535,14 @@ bool EntityPropertyMetadataRequest::script(EntityItemID entityID, ScriptValuePoi
     }, entityID);
     if (!request->isStarted()) {
         request->deleteLater();
-        auto engine = handler->engine();
-        callScopedHandlerObject(handler, engine->makeError(engine->newValue("Entities Scripting Provider unavailable"), "InternalError"), ScriptValuePointer());
+        auto engine = handler.engine();
+        callScopedHandlerObject(handler, engine->makeError(engine->newValue("Entities Scripting Provider unavailable"), "InternalError"), ScriptValue());
         return false;
     }
     return true;
 }
 
-bool EntityPropertyMetadataRequest::serverScripts(EntityItemID entityID, ScriptValuePointer handler) {
+bool EntityPropertyMetadataRequest::serverScripts(EntityItemID entityID, const ScriptValue& handler) {
     auto client = DependencyManager::get<EntityScriptClient>();
     auto request = client->createScriptStatusRequest(entityID);
     QPointer<ScriptManager> manager = _manager;
@@ -1558,7 +1558,7 @@ bool EntityPropertyMetadataRequest::serverScripts(EntityItemID entityID, ScriptV
         details["status"] = EntityScriptStatus_::valueToKey(request->getStatus()).toLower();
         details["errorInfo"] = request->getErrorInfo();
 
-        ScriptValuePointer err, result;
+        ScriptValue err, result;
         if (!details["success"].toBool()) {
             if (!details.contains("message") && details.contains("errorInfo")) {
                 details["message"] = details["errorInfo"];
@@ -1577,10 +1577,13 @@ bool EntityPropertyMetadataRequest::serverScripts(EntityItemID entityID, ScriptV
     return true;
 }
 
-bool EntityScriptingInterface::queryPropertyMetadata(const QUuid& entityID, ScriptValuePointer property, ScriptValuePointer scopeOrCallback, ScriptValuePointer methodOrName) {
-    auto name = property->toString();
+bool EntityScriptingInterface::queryPropertyMetadata(const QUuid& entityID,
+                                                     const ScriptValue& property,
+                                                     const ScriptValue& scopeOrCallback,
+                                                     const ScriptValue& methodOrName) {
+    auto name = property.toString();
     auto handler = makeScopedHandlerObject(scopeOrCallback, methodOrName);
-    QPointer<ScriptManager> manager = handler->engine()->manager();
+    QPointer<ScriptManager> manager = handler.engine()->manager();
     if (!manager) {
         qCDebug(entities) << "queryPropertyMetadata without detectable script manager" << entityID << name;
         return false;
@@ -1591,7 +1594,7 @@ bool EntityScriptingInterface::queryPropertyMetadata(const QUuid& entityID, Scri
         qDebug() << "queryPropertyMetadata -- engine destroyed!" << (!engine ? "nullptr" : "engine");
     });
 #endif
-    if (!handler->property("callback")->isFunction()) {
+    if (!handler.property("callback").isFunction()) {
         qDebug() << "!handler.callback.isFunction" << manager;
         engine->raiseException(engine->makeError(engine->newValue("callback is not a function"), "TypeError"));
         return false;
@@ -1622,11 +1625,11 @@ bool EntityScriptingInterface::queryPropertyMetadata(const QUuid& entityID, Scri
     }
 }
 
-bool EntityScriptingInterface::getServerScriptStatus(const QUuid& entityID, ScriptValuePointer callback) {
+bool EntityScriptingInterface::getServerScriptStatus(const QUuid& entityID, const ScriptValue& callback) {
     auto client = DependencyManager::get<EntityScriptClient>();
     auto request = client->createScriptStatusRequest(entityID);
 
-    auto engine = callback->engine();
+    auto engine = callback.engine();
     auto manager = engine->manager();
     if (!manager) {
         engine->raiseException(engine->makeError(engine->newValue("This script does not belong to a ScriptManager")));
@@ -1636,9 +1639,9 @@ bool EntityScriptingInterface::getServerScriptStatus(const QUuid& entityID, Scri
 
     connect(request, &GetScriptStatusRequest::finished, manager, [callback](GetScriptStatusRequest* request) mutable {
         QString statusString = EntityScriptStatus_::valueToKey(request->getStatus());
-        auto engine = callback->engine();
+        auto engine = callback.engine();
         ScriptValueList args { engine->newValue(request->getResponseReceived()), engine->newValue(request->getIsRunning()), engine->newValue(statusString.toLower()), engine->newValue(request->getErrorInfo()) };
-        callback->call(ScriptValuePointer(), args);
+        callback.call(ScriptValue(), args);
         request->deleteLater();
     });
     request->start();
@@ -1669,40 +1672,40 @@ bool EntityScriptingInterface::getDrawZoneBoundaries() const {
     return ZoneEntityItem::getDrawZoneBoundaries();
 }
 
-ScriptValuePointer RayToEntityIntersectionResultToScriptValue(ScriptEngine* engine, const RayToEntityIntersectionResult& value) {
-    ScriptValuePointer obj = engine->newObject();
-    obj->setProperty("intersects", value.intersects);
-    obj->setProperty("accurate", value.accurate);
-    ScriptValuePointer entityItemValue = EntityItemIDtoScriptValue(engine, value.entityID);
-    obj->setProperty("entityID", entityItemValue);
-    obj->setProperty("distance", value.distance);
-    obj->setProperty("face", boxFaceToString(value.face));
+ScriptValue RayToEntityIntersectionResultToScriptValue(ScriptEngine* engine, const RayToEntityIntersectionResult& value) {
+    ScriptValue obj = engine->newObject();
+    obj.setProperty("intersects", value.intersects);
+    obj.setProperty("accurate", value.accurate);
+    ScriptValue entityItemValue = EntityItemIDtoScriptValue(engine, value.entityID);
+    obj.setProperty("entityID", entityItemValue);
+    obj.setProperty("distance", value.distance);
+    obj.setProperty("face", boxFaceToString(value.face));
 
-    ScriptValuePointer intersection = vec3ToScriptValue(engine, value.intersection);
-    obj->setProperty("intersection", intersection);
-    ScriptValuePointer surfaceNormal = vec3ToScriptValue(engine, value.surfaceNormal);
-    obj->setProperty("surfaceNormal", surfaceNormal);
-    obj->setProperty("extraInfo", engine->toScriptValue(value.extraInfo));
+    ScriptValue intersection = vec3ToScriptValue(engine, value.intersection);
+    obj.setProperty("intersection", intersection);
+    ScriptValue surfaceNormal = vec3ToScriptValue(engine, value.surfaceNormal);
+    obj.setProperty("surfaceNormal", surfaceNormal);
+    obj.setProperty("extraInfo", engine->toScriptValue(value.extraInfo));
     return obj;
 }
 
-void RayToEntityIntersectionResultFromScriptValue(const ScriptValuePointer& object, RayToEntityIntersectionResult& value) {
-    value.intersects = object->property("intersects")->toVariant().toBool();
-    value.accurate = object->property("accurate")->toVariant().toBool();
-    ScriptValuePointer entityIDValue = object->property("entityID");
+void RayToEntityIntersectionResultFromScriptValue(const ScriptValue& object, RayToEntityIntersectionResult& value) {
+    value.intersects = object.property("intersects").toVariant().toBool();
+    value.accurate = object.property("accurate").toVariant().toBool();
+    ScriptValue entityIDValue = object.property("entityID");
     quuidFromScriptValue(entityIDValue, value.entityID);
-    value.distance = object->property("distance")->toVariant().toFloat();
-    value.face = boxFaceFromString(object->property("face")->toVariant().toString());
+    value.distance = object.property("distance").toVariant().toFloat();
+    value.face = boxFaceFromString(object.property("face").toVariant().toString());
 
-    ScriptValuePointer intersection = object->property("intersection");
-    if (intersection->isValid()) {
+    ScriptValue intersection = object.property("intersection");
+    if (intersection.isValid()) {
         vec3FromScriptValue(intersection, value.intersection);
     }
-    ScriptValuePointer surfaceNormal = object->property("surfaceNormal");
-    if (surfaceNormal->isValid()) {
+    ScriptValue surfaceNormal = object.property("surfaceNormal");
+    if (surfaceNormal.isValid()) {
         vec3FromScriptValue(surfaceNormal, value.surfaceNormal);
     }
-    value.extraInfo = object->property("extraInfo")->toVariant().toMap();
+    value.extraInfo = object.property("extraInfo").toVariant().toMap();
 }
 
 bool EntityScriptingInterface::polyVoxWorker(QUuid entityID, std::function<bool(PolyVoxEntityItem&)> actor) {
@@ -2423,15 +2426,15 @@ bool EntityScriptingInterface::AABoxIntersectsCapsule(const glm::vec3& low, cons
     return aaBox.findCapsulePenetration(start, end, radius, penetration);
 }
 
-void EntityScriptingInterface::getMeshes(const QUuid& entityID, ScriptValuePointer callback) {
+void EntityScriptingInterface::getMeshes(const QUuid& entityID, const ScriptValue& callback) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
-    auto engine = callback->engine();
+    auto engine = callback.engine();
 
     EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
     if (!entity) {
         qCDebug(entities) << "EntityScriptingInterface::getMeshes no entity with ID" << entityID;
         ScriptValueList args { engine->undefinedValue(), false };
-        callback->call(ScriptValuePointer(), args);
+        callback.call(ScriptValue(), args);
         return;
     }
 
@@ -2439,12 +2442,12 @@ void EntityScriptingInterface::getMeshes(const QUuid& entityID, ScriptValuePoint
     bool success = entity->getMeshes(result);
 
     if (success) {
-        ScriptValuePointer resultAsScriptValue = meshesToScriptValue(engine.data(), result);
+        ScriptValue resultAsScriptValue = meshesToScriptValue(engine.data(), result);
         ScriptValueList args{ resultAsScriptValue, engine->newValue(true) };
-        callback->call(ScriptValuePointer(), args);
+        callback.call(ScriptValue(), args);
     } else {
         ScriptValueList args { engine->undefinedValue(), engine->newValue(false) };
-        callback->call(ScriptValuePointer(), args);
+        callback.call(ScriptValue(), args);
     }
 }
 

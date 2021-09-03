@@ -16,8 +16,6 @@
 
 #include <glm/glm.hpp>
 
-#include <QtCore/QSharedPointer>
-
 #include <ColorUtils.h>
 
 #include "PropertyGroup.h"
@@ -30,7 +28,6 @@ class EntityTreeElementExtraEncodeData;
 class ReadBitstreamToTreeParams;
 class ScriptEngine;
 class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /*@jsdoc
  * A skybox is defined by the following properties:
@@ -42,10 +39,10 @@ using ScriptValuePointer = QSharedPointer<ScriptValue>;
 class SkyboxPropertyGroup : public PropertyGroup {
 public:
     // EntityItemProperty related helpers
-    virtual void copyToScriptValue(const EntityPropertyFlags& desiredProperties, ScriptValuePointer& properties,
+    virtual void copyToScriptValue(const EntityPropertyFlags& desiredProperties, ScriptValue& properties,
                                    ScriptEngine* engine, bool skipDefaults,
                                    EntityItemProperties& defaultEntityProperties) const override;
-    virtual void copyFromScriptValue(const ScriptValuePointer& object, bool& _defaultSettings) override;
+    virtual void copyFromScriptValue(const ScriptValue& object, bool& _defaultSettings) override;
 
     void merge(const SkyboxPropertyGroup& other);
 

@@ -17,11 +17,9 @@
 
 #include "KeyEvent.h"
 
-#include <QtCore/QSharedPointer>
+#include "ScriptValue.h"
 
 class ScriptEngine;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /// Represents a menu item a script may declare and bind events to. Exposed as <code><a href="https://apidocs.vircadia.dev/Menu.html#.MenuItemProperties">MenuItemProperties</a></code>
 class MenuItemProperties {
@@ -56,8 +54,8 @@ private:
     static const int UNSPECIFIED_POSITION = -1;
 };
 Q_DECLARE_METATYPE(MenuItemProperties)
-ScriptValuePointer menuItemPropertiesToScriptValue(ScriptEngine* engine, const MenuItemProperties& props);
-void menuItemPropertiesFromScriptValue(const ScriptValuePointer& object, MenuItemProperties& props);
+ScriptValue menuItemPropertiesToScriptValue(ScriptEngine* engine, const MenuItemProperties& props);
+void menuItemPropertiesFromScriptValue(const ScriptValue& object, MenuItemProperties& props);
 void registerMenuItemProperties(ScriptEngine* engine);
 
 

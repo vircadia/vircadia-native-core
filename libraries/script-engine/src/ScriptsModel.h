@@ -19,11 +19,8 @@
 #include <QDir>
 #include <QNetworkReply>
 #include <QFileSystemWatcher>
-#include <QtCore/QSharedPointer>
 
 class TreeNodeFolder;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 enum ScriptOrigin {
     SCRIPT_ORIGIN_LOCAL,
@@ -147,10 +144,10 @@ public:
     // No JSDoc because the particulars of the parent class is provided in the @class description.
     int columnCount(const QModelIndex& parent = QModelIndex()) const override;
 
-    // Not exposed in the API because no conversion between TreeNodeBase and ScriptValuePointer is provided.
+    // Not exposed in the API because no conversion between TreeNodeBase and ScriptValue is provided.
     TreeNodeBase* getTreeNodeFromIndex(const QModelIndex& index) const;
 
-    // Not exposed in the API because no conversion between TreeNodeBase and ScriptValuePointer is provided.
+    // Not exposed in the API because no conversion between TreeNodeBase and ScriptValue is provided.
     QList<TreeNodeBase*> getFolderNodes(TreeNodeFolder* parent) const;
 
     enum Role {

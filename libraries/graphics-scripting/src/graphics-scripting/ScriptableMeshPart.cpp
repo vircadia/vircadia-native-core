@@ -77,12 +77,12 @@ QVariantList scriptable::ScriptableMeshPart::queryVertexAttributes(QVariant sele
     return parentMesh->queryVertexAttributes(selector);
 }
 
-glm::uint32 scriptable::ScriptableMeshPart::forEachVertex(ScriptValuePointer _callback) {
+glm::uint32 scriptable::ScriptableMeshPart::forEachVertex(const ScriptValue& _callback) {
     // TODO: limit to vertices within the part's indexed range?
     return isValid() ? parentMesh->forEachVertex(_callback) : 0;
 }
 
-glm::uint32 scriptable::ScriptableMeshPart::updateVertexAttributes(ScriptValuePointer _callback) {
+glm::uint32 scriptable::ScriptableMeshPart::updateVertexAttributes(const ScriptValue& _callback) {
     // TODO: limit to vertices within the part's indexed range?
     return isValid() ? parentMesh->updateVertexAttributes(_callback) : 0;
 }

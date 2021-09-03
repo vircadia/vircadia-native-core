@@ -14,7 +14,6 @@
 #define hifi_LODManager_h
 
 #include <mutex>
-#include <QtCore/QSharedPointer>
 
 #include <DependencyManager.h>
 #include <NumericalConstants.h>
@@ -23,10 +22,9 @@
 #include <PIDController.h>
 #include <SimpleMovingAverage.h>
 #include <render/Args.h>
+#include <ScriptValue.h>
 
 class ScriptEngine;
-class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /*@jsdoc
  * <p>The world detail quality rendered.</p>
@@ -384,7 +382,7 @@ private:
     glm::vec4 _pidOutputs{ 0.0f };
 };
 
-ScriptValuePointer worldDetailQualityToScriptValue(ScriptEngine* engine, const WorldDetailQuality& worldDetailQuality);
-void worldDetailQualityFromScriptValue(const ScriptValuePointer& object, WorldDetailQuality& worldDetailQuality);
+ScriptValue worldDetailQualityToScriptValue(ScriptEngine* engine, const WorldDetailQuality& worldDetailQuality);
+void worldDetailQualityFromScriptValue(const ScriptValue& object, WorldDetailQuality& worldDetailQuality);
 
 #endif // hifi_LODManager_h

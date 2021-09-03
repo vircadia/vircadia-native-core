@@ -81,22 +81,22 @@ WheelEvent::WheelEvent(const QWheelEvent& event) {
  *     print(JSON.stringify(event));
  * });
  */
-ScriptValuePointer WheelEvent::toScriptValue(ScriptEngine* engine, const WheelEvent& event) {
-    ScriptValuePointer obj = engine->newObject();
-    obj->setProperty("x", event.x);
-    obj->setProperty("y", event.y);
-    obj->setProperty("delta", event.delta);
-    obj->setProperty("orientation", event.orientation);
-    obj->setProperty("isLeftButton", event.isLeftButton);
-    obj->setProperty("isRightButton", event.isRightButton);
-    obj->setProperty("isMiddleButton", event.isMiddleButton);
-    obj->setProperty("isShifted", event.isShifted);
-    obj->setProperty("isMeta", event.isMeta);
-    obj->setProperty("isControl", event.isControl);
-    obj->setProperty("isAlt", event.isAlt);
+ScriptValue WheelEvent::toScriptValue(ScriptEngine* engine, const WheelEvent& event) {
+    ScriptValue obj = engine->newObject();
+    obj.setProperty("x", event.x);
+    obj.setProperty("y", event.y);
+    obj.setProperty("delta", event.delta);
+    obj.setProperty("orientation", event.orientation);
+    obj.setProperty("isLeftButton", event.isLeftButton);
+    obj.setProperty("isRightButton", event.isRightButton);
+    obj.setProperty("isMiddleButton", event.isMiddleButton);
+    obj.setProperty("isShifted", event.isShifted);
+    obj.setProperty("isMeta", event.isMeta);
+    obj.setProperty("isControl", event.isControl);
+    obj.setProperty("isAlt", event.isAlt);
     return obj;
 }
 
-void WheelEvent::fromScriptValue(const ScriptValuePointer& object, WheelEvent& event) {
+void WheelEvent::fromScriptValue(const ScriptValue& object, WheelEvent& event) {
     // nothing for now...
 }

@@ -12,7 +12,6 @@
 #define hifi_RayPickScriptingInterface_h
 
 #include <QtCore/QObject>
-#include <QtCore/QSharedPointer>
 
 #include "RegisteredMetaTypes.h"
 #include <DependencyManager.h>
@@ -20,7 +19,6 @@
 #include "PickScriptingInterface.h"
 
 class ScriptValue;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /*@jsdoc
  * The <code>RayPick</code> API is a subset of the {@link Picks} API, as used for ray picks.
@@ -125,7 +123,7 @@ public:
      * @param {number} id - The ID of the ray pick.
      * @param {Uuid[]} ignoreItems - The list of IDs to ignore.
      */
-    Q_INVOKABLE void setIgnoreItems(unsigned int uid, const ScriptValuePointer& ignoreEntities);
+    Q_INVOKABLE void setIgnoreItems(unsigned int uid, const ScriptValue& ignoreEntities);
 
     /*@jsdoc
      * Sets a list of entity and avatar IDs that a ray pick should include during intersection, instead of intersecting with 
@@ -134,7 +132,7 @@ public:
      * @param {number} id - The ID of the ray pick.
      * @param {Uuid[]} includeItems - The list of IDs to include.
      */
-    Q_INVOKABLE void setIncludeItems(unsigned int uid, const ScriptValuePointer& includeEntities);
+    Q_INVOKABLE void setIncludeItems(unsigned int uid, const ScriptValue& includeEntities);
 
 
     /*@jsdoc

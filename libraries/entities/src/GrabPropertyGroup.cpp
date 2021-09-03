@@ -16,7 +16,7 @@
 #include "EntityItemProperties.h"
 #include "EntityItemPropertiesMacros.h"
 
-void GrabPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, ScriptValuePointer& properties,
+void GrabPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, ScriptValue& properties,
                                           ScriptEngine* engine, bool skipDefaults,
                                           EntityItemProperties& defaultEntityProperties) const {
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_GRAB_GRABBABLE, Grab, grab, Grabbable, grabbable);
@@ -43,7 +43,7 @@ void GrabPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProp
 
 }
 
-void GrabPropertyGroup::copyFromScriptValue(const ScriptValuePointer& object, bool& _defaultSettings) {
+void GrabPropertyGroup::copyFromScriptValue(const ScriptValue& object, bool& _defaultSettings) {
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(grab, grabbable, bool, setGrabbable);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(grab, grabKinematic, bool, setGrabKinematic);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(grab, grabFollowsController, bool, setGrabFollowsController);

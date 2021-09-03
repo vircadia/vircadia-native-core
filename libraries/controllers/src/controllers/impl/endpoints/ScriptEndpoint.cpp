@@ -17,14 +17,14 @@
 
 using namespace controller;
 
-QString formatException(const ScriptValuePointer& exception) {
+QString formatException(const ScriptValue& exception) {
     QString note { "UncaughtException" };
     QString result;
 
-    const auto message = exception->toString();
-    const auto fileName = exception->property("fileName")->toString();
-    const auto lineNumber = exception->property("lineNumber")->toString();
-    const auto stacktrace = exception->property("stack")->toString();
+    const auto message = exception.toString();
+    const auto fileName = exception.property("fileName").toString();
+    const auto lineNumber = exception.property("lineNumber").toString();
+    const auto stacktrace = exception.property("stack").toString();
 
     const QString SCRIPT_EXCEPTION_FORMAT = "[%0] %1 in %2:%3";
     const QString SCRIPT_BACKTRACE_SEP = "\n    ";
@@ -47,13 +47,13 @@ void ScriptEndpoint::updateValue() {
         return;
     }
 
-    ScriptValuePointer result = _callable->call();
-    if (result->isError()) {
+    ScriptValue result = _callable.call();
+    if (result.isError()) {
         // print JavaScript exception
         qCDebug(controllers).noquote() << formatException(result);
         _lastValueRead = 0.0f;
-    } else if (result->isNumber()) {
-        _lastValueRead = (float)_callable->call()->toNumber();
+    } else if (result.isNumber()) {
+        _lastValueRead = (float)_callable.call().toNumber();
     } else {
         Pose::fromScriptValue(result, _lastPoseRead);
         _returnPose = true;
@@ -75,10 +75,10 @@ void ScriptEndpoint::internalApply(float value, int sourceID) {
             Q_ARG(int, sourceID));
         return;
     }
-    ScriptEnginePointer engine = _callable->engine();
-    ScriptValuePointer result = _callable->call(ScriptValuePointer(),
+    ScriptEnginePointer engine = _callable.engine();
+    ScriptValue result = _callable.call(ScriptValue(),
         ScriptValueList({ engine->newValue(value), engine->newValue(sourceID) }));
-    if (result->isError()) {
+    if (result.isError()) {
         // print JavaScript exception
         qCDebug(controllers).noquote() << formatException(result);
     }
@@ -94,8 +94,8 @@ void ScriptEndpoint::updatePose() {
         QMetaObject::invokeMethod(this, "updatePose", Qt::QueuedConnection);
         return;
     }
-    ScriptValuePointer result = _callable->call();
-    if (result->isError()) {
+    ScriptValue result = _callable.call();
+    if (result.isError()) {
         // print JavaScript exception
         qCDebug(controllers).noquote() << formatException(result);
     }
@@ -117,10 +117,10 @@ void ScriptEndpoint::internalApply(const Pose& newPose, int sourceID) {
             Q_ARG(int, sourceID));
         return;
     }
-    ScriptEnginePointer engine = _callable->engine();
-    ScriptValuePointer result = _callable->call(ScriptValuePointer(),
+    ScriptEnginePointer engine = _callable.engine();
+    ScriptValue result = _callable.call(ScriptValue(),
         ScriptValueList({ Pose::toScriptValue(engine.get(), newPose), engine->newValue(sourceID) }));
-    if (result->isError()) {
+    if (result.isError()) {
         // print JavaScript exception
         qCDebug(controllers).noquote() << formatException(result);
     }

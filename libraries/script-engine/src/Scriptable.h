@@ -18,20 +18,19 @@
 #include <QtCore/QSharedPointer>
 
 #include "ScriptContext.h"
+#include "ScriptValue.h"
 
 class ScriptEngine;
-class ScriptValue;
 using ScriptEnginePointer = QSharedPointer<ScriptEngine>;
-using ScriptValuePointer = QSharedPointer<ScriptValue>;
 
 /// [ScriptInterface] Provides an engine-independent interface for QScriptable
 class Scriptable {
 public:
     static inline ScriptEnginePointer engine();
     static ScriptContext* context();
-    static inline ScriptValuePointer thisObject();
+    static inline ScriptValue thisObject();
     static inline int argumentCount();
-    static inline ScriptValuePointer argument(int index);
+    static inline ScriptValue argument(int index);
 
     static void setContext(ScriptContext* context);
 };
@@ -42,9 +41,9 @@ ScriptEnginePointer Scriptable::engine() {
     return scriptContext->engine();
 }
 
-ScriptValuePointer Scriptable::thisObject() {
+ScriptValue Scriptable::thisObject() {
     ScriptContext* scriptContext = context();
-    if (!scriptContext) return nullptr;
+    if (!scriptContext) return ScriptValue();
     return scriptContext->thisObject();
 }
 
@@ -54,9 +53,9 @@ int Scriptable::argumentCount() {
     return scriptContext->argumentCount();
 }
 
-ScriptValuePointer Scriptable::argument(int index) {
+ScriptValue Scriptable::argument(int index) {
     ScriptContext* scriptContext = context();
-    if (!scriptContext) return ScriptValuePointer();
+    if (!scriptContext) return ScriptValue();
     return scriptContext->argument(index);
 }
 

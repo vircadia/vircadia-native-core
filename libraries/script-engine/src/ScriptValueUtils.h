@@ -24,7 +24,7 @@
 
 #include "ScriptValue.h"
 
-bool isListOfStrings(const ScriptValuePointer& value);
+bool isListOfStrings(const ScriptValue& value);
 
 
 void registerMetaTypes(ScriptEngine* engine);
@@ -51,8 +51,8 @@ void registerMetaTypes(ScriptEngine* engine);
  * @property {number} r2c3 - Row 2, column 3 value.
  * @property {number} r3c3 - Row 3, column 3 value.
  */
-ScriptValuePointer mat4toScriptValue(ScriptEngine* engine, const glm::mat4& mat4);
-void mat4FromScriptValue(const ScriptValuePointer& object, glm::mat4& mat4);
+ScriptValue mat4toScriptValue(ScriptEngine* engine, const glm::mat4& mat4);
+void mat4FromScriptValue(const ScriptValue& object, glm::mat4& mat4);
 
 /*@jsdoc
 * A 2-dimensional vector.
@@ -68,8 +68,8 @@ void mat4FromScriptValue(const ScriptValuePointer& object, glm::mat4& mat4);
 * var color = Entities.getEntityProperties(<id>).materialMappingPos;             // { x: 0.7, y: 0.7 }
 * color.v = 0.8;                                                                 // { x: 0.7, y: 0.8 }
 */
-ScriptValuePointer vec2ToScriptValue(ScriptEngine* engine, const glm::vec2& vec2);
-void vec2FromScriptValue(const ScriptValuePointer& object, glm::vec2& vec2);
+ScriptValue vec2ToScriptValue(ScriptEngine* engine, const glm::vec2& vec2);
+void vec2FromScriptValue(const ScriptValue& object, glm::vec2& vec2);
 
 /*@jsdoc
 * A 3-dimensional vector. See also the {@link Vec3(0)|Vec3} object.
@@ -91,9 +91,9 @@ void vec2FromScriptValue(const ScriptValuePointer& object, glm::vec2& vec2);
 * Entities.editEntity(<id>, { position: "red"});                                // { x: 255, y: 0, z: 0 }
 * Entities.editEntity(<id>, { position: "#00FF00"});                            // { x: 0, y: 255, z: 0 }
 */
-ScriptValuePointer vec3ToScriptValue(ScriptEngine* engine, const glm::vec3& vec3);
-ScriptValuePointer vec3ColorToScriptValue(ScriptEngine* engine, const glm::vec3& vec3);
-void vec3FromScriptValue(const ScriptValuePointer& object, glm::vec3& vec3);
+ScriptValue vec3ToScriptValue(ScriptEngine* engine, const glm::vec3& vec3);
+ScriptValue vec3ColorToScriptValue(ScriptEngine* engine, const glm::vec3& vec3);
+void vec3FromScriptValue(const ScriptValue& object, glm::vec3& vec3);
 
 /*@jsdoc
  * A color vector. See also the {@link Vec3(0)|Vec3} object.
@@ -133,9 +133,9 @@ void vec3FromScriptValue(const ScriptValuePointer& object, glm::vec3& vec3);
  * Entities.editEntity(<id>, { color: "red"});                                // { red: 255, green: 0, blue: 0 }
  * Entities.editEntity(<id>, { color: "#00FF00"});                            // { red: 0, green: 255, blue: 0 }
  */
-ScriptValuePointer u8vec3ToScriptValue(ScriptEngine* engine, const glm::u8vec3& vec3);
-ScriptValuePointer u8vec3ColorToScriptValue(ScriptEngine* engine, const glm::u8vec3& vec3);
-void u8vec3FromScriptValue(const ScriptValuePointer& object, glm::u8vec3& vec3);
+ScriptValue u8vec3ToScriptValue(ScriptEngine* engine, const glm::u8vec3& vec3);
+ScriptValue u8vec3ColorToScriptValue(ScriptEngine* engine, const glm::u8vec3& vec3);
+void u8vec3FromScriptValue(const ScriptValue& object, glm::u8vec3& vec3);
 
 /*@jsdoc
  * A 4-dimensional vector.
@@ -146,12 +146,12 @@ void u8vec3FromScriptValue(const ScriptValuePointer& object, glm::u8vec3& vec3);
  * @property {number} z - Z-coordinate of the vector.
  * @property {number} w - W-coordinate of the vector.
  */
-ScriptValuePointer vec4toScriptValue(ScriptEngine* engine, const glm::vec4& vec4);
-void vec4FromScriptValue(const ScriptValuePointer& object, glm::vec4& vec4);
+ScriptValue vec4toScriptValue(ScriptEngine* engine, const glm::vec4& vec4);
+void vec4FromScriptValue(const ScriptValue& object, glm::vec4& vec4);
 
 // Quaternions
-ScriptValuePointer quatToScriptValue(ScriptEngine* engine, const glm::quat& quat);
-void quatFromScriptValue(const ScriptValuePointer& object, glm::quat& quat);
+ScriptValue quatToScriptValue(ScriptEngine* engine, const glm::quat& quat);
+void quatFromScriptValue(const ScriptValue& object, glm::quat& quat);
 
 /*@jsdoc
  * Defines a rectangular portion of an image or screen, or similar.
@@ -162,64 +162,64 @@ void quatFromScriptValue(const ScriptValuePointer& object, glm::quat& quat);
  * @property {number} height - Height of the rectangle.
  */
 class QRect;
-ScriptValuePointer qRectToScriptValue(ScriptEngine* engine, const QRect& rect);
-void qRectFromScriptValue(const ScriptValuePointer& object, QRect& rect);
+ScriptValue qRectToScriptValue(ScriptEngine* engine, const QRect& rect);
+void qRectFromScriptValue(const ScriptValue& object, QRect& rect);
 
 class QRectF;
-ScriptValuePointer qRectFToScriptValue(ScriptEngine* engine, const QRectF& rect);
-void qRectFFromScriptValue(const ScriptValuePointer& object, QRectF& rect);
+ScriptValue qRectFToScriptValue(ScriptEngine* engine, const QRectF& rect);
+void qRectFFromScriptValue(const ScriptValue& object, QRectF& rect);
 
 // QColor
 class QColor;
-ScriptValuePointer qColorToScriptValue(ScriptEngine* engine, const QColor& color);
-void qColorFromScriptValue(const ScriptValuePointer& object, QColor& color);
+ScriptValue qColorToScriptValue(ScriptEngine* engine, const QColor& color);
+void qColorFromScriptValue(const ScriptValue& object, QColor& color);
 
 class QUrl;
-ScriptValuePointer qURLToScriptValue(ScriptEngine* engine, const QUrl& url);
-void qURLFromScriptValue(const ScriptValuePointer& object, QUrl& url);
+ScriptValue qURLToScriptValue(ScriptEngine* engine, const QUrl& url);
+void qURLFromScriptValue(const ScriptValue& object, QUrl& url);
 
 // vector<vec3>
 Q_DECLARE_METATYPE(QVector<glm::vec3>)
-ScriptValuePointer qVectorVec3ToScriptValue(ScriptEngine* engine, const QVector<glm::vec3>& vector);
-ScriptValuePointer qVectorVec3ColorToScriptValue(ScriptEngine* engine, const QVector<glm::vec3>& vector);
-void qVectorVec3FromScriptValue(const ScriptValuePointer& array, QVector<glm::vec3>& vector);
-QVector<glm::vec3> qVectorVec3FromScriptValue(const ScriptValuePointer& array);
+ScriptValue qVectorVec3ToScriptValue(ScriptEngine* engine, const QVector<glm::vec3>& vector);
+ScriptValue qVectorVec3ColorToScriptValue(ScriptEngine* engine, const QVector<glm::vec3>& vector);
+void qVectorVec3FromScriptValue(const ScriptValue& array, QVector<glm::vec3>& vector);
+QVector<glm::vec3> qVectorVec3FromScriptValue(const ScriptValue& array);
 
 // vector<quat>
 Q_DECLARE_METATYPE(QVector<glm::quat>)
-ScriptValuePointer qVectorQuatToScriptValue(ScriptEngine* engine, const QVector<glm::quat>& vector);
-void qVectorQuatFromScriptValue(const ScriptValuePointer& array, QVector<glm::quat>& vector);
-QVector<glm::quat> qVectorQuatFromScriptValue(const ScriptValuePointer& array);
+ScriptValue qVectorQuatToScriptValue(ScriptEngine* engine, const QVector<glm::quat>& vector);
+void qVectorQuatFromScriptValue(const ScriptValue& array, QVector<glm::quat>& vector);
+QVector<glm::quat> qVectorQuatFromScriptValue(const ScriptValue& array);
 
 // vector<bool>
-ScriptValuePointer qVectorBoolToScriptValue(ScriptEngine* engine, const QVector<bool>& vector);
-void qVectorBoolFromScriptValue(const ScriptValuePointer& array, QVector<bool>& vector);
-QVector<bool> qVectorBoolFromScriptValue(const ScriptValuePointer& array);
+ScriptValue qVectorBoolToScriptValue(ScriptEngine* engine, const QVector<bool>& vector);
+void qVectorBoolFromScriptValue(const ScriptValue& array, QVector<bool>& vector);
+QVector<bool> qVectorBoolFromScriptValue(const ScriptValue& array);
 
 // vector<float>
-ScriptValuePointer qVectorFloatToScriptValue(ScriptEngine* engine, const QVector<float>& vector);
-void qVectorFloatFromScriptValue(const ScriptValuePointer& array, QVector<float>& vector);
-QVector<float> qVectorFloatFromScriptValue(const ScriptValuePointer& array);
+ScriptValue qVectorFloatToScriptValue(ScriptEngine* engine, const QVector<float>& vector);
+void qVectorFloatFromScriptValue(const ScriptValue& array, QVector<float>& vector);
+QVector<float> qVectorFloatFromScriptValue(const ScriptValue& array);
 
 // vector<uint32_t>
-ScriptValuePointer qVectorIntToScriptValue(ScriptEngine* engine, const QVector<uint32_t>& vector);
-void qVectorIntFromScriptValue(const ScriptValuePointer& array, QVector<uint32_t>& vector);
+ScriptValue qVectorIntToScriptValue(ScriptEngine* engine, const QVector<uint32_t>& vector);
+void qVectorIntFromScriptValue(const ScriptValue& array, QVector<uint32_t>& vector);
 
-ScriptValuePointer qVectorQUuidToScriptValue(ScriptEngine* engine, const QVector<QUuid>& vector);
-void qVectorQUuidFromScriptValue(const ScriptValuePointer& array, QVector<QUuid>& vector);
-QVector<QUuid> qVectorQUuidFromScriptValue(const ScriptValuePointer& array);
+ScriptValue qVectorQUuidToScriptValue(ScriptEngine* engine, const QVector<QUuid>& vector);
+void qVectorQUuidFromScriptValue(const ScriptValue& array, QVector<QUuid>& vector);
+QVector<QUuid> qVectorQUuidFromScriptValue(const ScriptValue& array);
 
 class AACube;
-ScriptValuePointer aaCubeToScriptValue(ScriptEngine* engine, const AACube& aaCube);
-void aaCubeFromScriptValue(const ScriptValuePointer& object, AACube& aaCube);
+ScriptValue aaCubeToScriptValue(ScriptEngine* engine, const AACube& aaCube);
+void aaCubeFromScriptValue(const ScriptValue& object, AACube& aaCube);
 
 class PickRay;
-ScriptValuePointer pickRayToScriptValue(ScriptEngine* engine, const PickRay& pickRay);
-void pickRayFromScriptValue(const ScriptValuePointer& object, PickRay& pickRay);
+ScriptValue pickRayToScriptValue(ScriptEngine* engine, const PickRay& pickRay);
+void pickRayFromScriptValue(const ScriptValue& object, PickRay& pickRay);
 
 class Collision;
-ScriptValuePointer collisionToScriptValue(ScriptEngine* engine, const Collision& collision);
-void collisionFromScriptValue(const ScriptValuePointer& object, Collision& collision);
+ScriptValue collisionToScriptValue(ScriptEngine* engine, const Collision& collision);
+void collisionFromScriptValue(const ScriptValue& object, Collision& collision);
 
 /*@jsdoc
  * UUIDs (Universally Unique IDentifiers) are used to uniquely identify entities, avatars, and the like. They are represented 
@@ -228,44 +228,44 @@ void collisionFromScriptValue(const ScriptValuePointer& object, Collision& colli
  * @typedef {string} Uuid
  */
 //Q_DECLARE_METATYPE(QUuid) // don't need to do this for QUuid since it's already a meta type
-ScriptValuePointer quuidToScriptValue(ScriptEngine* engine, const QUuid& uuid);
-void quuidFromScriptValue(const ScriptValuePointer& object, QUuid& uuid);
+ScriptValue quuidToScriptValue(ScriptEngine* engine, const QUuid& uuid);
+void quuidFromScriptValue(const ScriptValue& object, QUuid& uuid);
 
 //Q_DECLARE_METATYPE(QSizeF) // Don't need to to this becase it's arleady a meta type
 class QSizeF;
-ScriptValuePointer qSizeFToScriptValue(ScriptEngine* engine, const QSizeF& qSizeF);
-void qSizeFFromScriptValue(const ScriptValuePointer& object, QSizeF& qSizeF);
+ScriptValue qSizeFToScriptValue(ScriptEngine* engine, const QSizeF& qSizeF);
+void qSizeFFromScriptValue(const ScriptValue& object, QSizeF& qSizeF);
 
 class AnimationDetails;
-ScriptValuePointer animationDetailsToScriptValue(ScriptEngine* engine, const AnimationDetails& event);
-void animationDetailsFromScriptValue(const ScriptValuePointer& object, AnimationDetails& event);
+ScriptValue animationDetailsToScriptValue(ScriptEngine* engine, const AnimationDetails& event);
+void animationDetailsFromScriptValue(const ScriptValue& object, AnimationDetails& event);
 
 class MeshProxy;
-ScriptValuePointer meshToScriptValue(ScriptEngine* engine, MeshProxy* const& in);
-void meshFromScriptValue(const ScriptValuePointer& value, MeshProxy*& out);
+ScriptValue meshToScriptValue(ScriptEngine* engine, MeshProxy* const& in);
+void meshFromScriptValue(const ScriptValue& value, MeshProxy*& out);
 
 class MeshProxyList;
-ScriptValuePointer meshesToScriptValue(ScriptEngine* engine, const MeshProxyList& in);
-void meshesFromScriptValue(const ScriptValuePointer& value, MeshProxyList& out);
+ScriptValue meshesToScriptValue(ScriptEngine* engine, const MeshProxyList& in);
+void meshesFromScriptValue(const ScriptValue& value, MeshProxyList& out);
 
 class MeshFace;
-ScriptValuePointer meshFaceToScriptValue(ScriptEngine* engine, const MeshFace& meshFace);
-void meshFaceFromScriptValue(const ScriptValuePointer& object, MeshFace& meshFaceResult);
-ScriptValuePointer qVectorMeshFaceToScriptValue(ScriptEngine* engine, const QVector<MeshFace>& vector);
-void qVectorMeshFaceFromScriptValue(const ScriptValuePointer& array, QVector<MeshFace>& result);
+ScriptValue meshFaceToScriptValue(ScriptEngine* engine, const MeshFace& meshFace);
+void meshFaceFromScriptValue(const ScriptValue& object, MeshFace& meshFaceResult);
+ScriptValue qVectorMeshFaceToScriptValue(ScriptEngine* engine, const QVector<MeshFace>& vector);
+void qVectorMeshFaceFromScriptValue(const ScriptValue& array, QVector<MeshFace>& result);
 
 enum class StencilMaskMode;
-ScriptValuePointer stencilMaskModeToScriptValue(ScriptEngine* engine, const StencilMaskMode& stencilMode);
-void stencilMaskModeFromScriptValue(const ScriptValuePointer& object, StencilMaskMode& stencilMode);
+ScriptValue stencilMaskModeToScriptValue(ScriptEngine* engine, const StencilMaskMode& stencilMode);
+void stencilMaskModeFromScriptValue(const ScriptValue& object, StencilMaskMode& stencilMode);
 
 class MiniPromise;
-void promiseFromScriptValue(const ScriptValuePointer& object, std::shared_ptr<MiniPromise>& promise);
-ScriptValuePointer promiseToScriptValue(ScriptEngine* engine, const std::shared_ptr<MiniPromise>& promise);
+void promiseFromScriptValue(const ScriptValue& object, std::shared_ptr<MiniPromise>& promise);
+ScriptValue promiseToScriptValue(ScriptEngine* engine, const std::shared_ptr<MiniPromise>& promise);
 
 class EntityItemID;
-ScriptValuePointer EntityItemIDtoScriptValue(ScriptEngine* engine, const EntityItemID& properties);
-void EntityItemIDfromScriptValue(const ScriptValuePointer& object, EntityItemID& properties);
-QVector<EntityItemID> qVectorEntityItemIDFromScriptValue(const ScriptValuePointer& array);
+ScriptValue EntityItemIDtoScriptValue(ScriptEngine* engine, const EntityItemID& properties);
+void EntityItemIDfromScriptValue(const ScriptValue& object, EntityItemID& properties);
+QVector<EntityItemID> qVectorEntityItemIDFromScriptValue(const ScriptValue& array);
 
 #endif  // #define hifi_ScriptValueUtils_h
 
