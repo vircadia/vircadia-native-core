@@ -40,9 +40,9 @@ public:
     bool operator==(const SockAddr& rhsSockAddr) const;
     bool operator!=(const SockAddr& rhsSockAddr) const { return !(*this == rhsSockAddr); }
 
-    SocketType getSocketType() const { return _socketType; }
+    SocketType getType() const { return _socketType; }
     SocketType* getSocketTypePointer() { return &_socketType; }
-    void setSocketType(const SocketType socketType) { _socketType = socketType; }
+    void setType(const SocketType socketType) { _socketType = socketType; }
 
     const QHostAddress& getAddress() const { return _address; }
     QHostAddress* getAddressPointer() { return &_address; }

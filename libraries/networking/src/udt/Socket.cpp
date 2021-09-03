@@ -245,7 +245,7 @@ qint64 Socket::writeDatagram(const char* data, qint64 size, const SockAddr& sock
 }
 
 qint64 Socket::writeDatagram(const QByteArray& datagram, const SockAddr& sockAddr) {
-    auto socketType = sockAddr.getSocketType();
+    auto socketType = sockAddr.getType();
 
     // don't attempt to write the datagram if we're unbound.  Just drop it.
     // _networkSocket.writeDatagram will return an error anyway, but there are
