@@ -130,7 +130,7 @@ public:
      * @deprecated This function is deprecated and will be removed.
      */
     /// registers a global object by name
-    Q_INVOKABLE virtual void registerGlobalObject(const QString& name, QObject* object);
+    Q_INVOKABLE virtual void registerGlobalObject(const QString& name, QObject* object) override;
 
     /*@jsdoc
      * @function Script.registerGetterSetter
@@ -144,7 +144,10 @@ public:
     Q_INVOKABLE void registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,
                                           QScriptEngine::FunctionSignature setter, const QString& parent = QString(""));
 
-    Q_INVOKABLE virtual void registerGetterSetter(const QString& name, ScriptEngine::FunctionSignature getter, ScriptEngine::FunctionSignature setter, const QString& parent = QString(""));
+    Q_INVOKABLE virtual void registerGetterSetter(const QString& name,
+                                                  ScriptEngine::FunctionSignature getter,
+                                                  ScriptEngine::FunctionSignature setter,
+                                                  const QString& parent = QString("")) override;
 
     /*@jsdoc
      * @function Script.registerFunction
@@ -157,7 +160,9 @@ public:
     Q_INVOKABLE void registerFunction(const QString& name, QScriptEngine::FunctionSignature fun, int numArguments = -1);
 
 
-    Q_INVOKABLE virtual void registerFunction(const QString& name, ScriptEngine::FunctionSignature fun, int numArguments = -1);
+    Q_INVOKABLE virtual void registerFunction(const QString& name,
+                                              ScriptEngine::FunctionSignature fun,
+                                              int numArguments = -1) override;
 
     /*@jsdoc
      * @function Script.registerFunction
@@ -172,7 +177,10 @@ public:
                                       int numArguments = -1);
 
 
-    Q_INVOKABLE virtual void registerFunction(const QString& parent, const QString& name, ScriptEngine::FunctionSignature fun, int numArguments = -1);
+    Q_INVOKABLE virtual void registerFunction(const QString& parent,
+                                              const QString& name,
+                                              ScriptEngine::FunctionSignature fun,
+                                              int numArguments = -1) override;
 
     /*@jsdoc
      * @function Script.registerEnum
@@ -183,7 +191,7 @@ public:
     // WARNING: This function must be called after a registerGlobalObject that creates the namespace this enum is located in, or
     // the globalObject won't function. E.g., if you have a Foo object and a Foo.FooType enum, Foo must be registered first.
     /// registers a global enum
-    Q_INVOKABLE virtual void registerEnum(const QString& enumName, QMetaEnum newEnum);
+    Q_INVOKABLE virtual void registerEnum(const QString& enumName, QMetaEnum newEnum) override;
 
     /*@jsdoc
      * @function Script.registerValue
@@ -203,10 +211,11 @@ public:
      * @deprecated This function is deprecated and will be removed.
      */
     /// evaluate some code in the context of the ScriptEngineQtScript and return the result
-    Q_INVOKABLE virtual ScriptValue evaluate(const QString& program, const QString& fileName); // this is also used by the script tool widget
+    Q_INVOKABLE virtual ScriptValue evaluate(const QString& program,
+                                             const QString& fileName) override;  // this is also used by the script tool widget
 
 
-    Q_INVOKABLE virtual ScriptValue evaluate(const ScriptProgramPointer& program);
+    Q_INVOKABLE virtual ScriptValue evaluate(const ScriptProgramPointer& program) override;
 
     /*@jsdoc
      * @function Script.evaluateInClosure
@@ -215,7 +224,7 @@ public:
      * @returns {object} Object.
      * @deprecated This function is deprecated and will be removed.
      */
-    Q_INVOKABLE virtual ScriptValue evaluateInClosure(const ScriptValue& locals, const ScriptProgramPointer& program);
+    Q_INVOKABLE virtual ScriptValue evaluateInClosure(const ScriptValue& locals, const ScriptProgramPointer& program) override;
 
     /*@jsdoc
      * Checks whether the application was compiled as a debug build.
@@ -260,7 +269,7 @@ public:
      * @param {number} deltaSize - Delta size.
      * @deprecated This function is deprecated and will be removed.
      */
-    virtual void updateMemoryCost(const qint64& deltaSize);
+    virtual void updateMemoryCost(const qint64& deltaSize) override;
 
 signals:
 
@@ -381,10 +390,11 @@ signals:
     void entityScriptDetailsUpdated();
 
 public: // not for public use, but I don't like how Qt strings this along with private friend functions
-    virtual ScriptValue create(int type, const void* ptr);
-    virtual bool convert(const ScriptValue& value, int type, void* ptr);
+    virtual ScriptValue create(int type, const void* ptr) override;
+    virtual bool convert(const ScriptValue& value, int type, void* ptr) override;
     virtual void registerCustomType(int type, ScriptEngine::MarshalFunction marshalFunc,
-        ScriptEngine::DemarshalFunction demarshalFunc, const ScriptValue& prototype);
+                                    ScriptEngine::DemarshalFunction demarshalFunc,
+                                    const ScriptValue& prototype) override;
 
 protected:
     // like `newFunction`, but allows mapping inline C++ lambdas with captures as callable QScriptValues

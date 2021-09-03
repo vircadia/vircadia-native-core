@@ -12,6 +12,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QVariant>
 
+#include <ScriptEngine.h>
 #include <ScriptValue.h>
 
 class ScriptEngine;

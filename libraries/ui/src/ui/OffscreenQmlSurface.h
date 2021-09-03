@@ -13,7 +13,9 @@
 #include <QtGui/qevent.h>
 
 #include <QTouchEvent>
-#include "PointerEvent.h"
+
+#include <ScriptEngine.h>
+#include <PointerEvent.h>
 
 using QmlContextCallback = std::function<void(QQmlContext*)>;
 
