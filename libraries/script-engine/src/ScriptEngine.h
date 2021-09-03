@@ -36,6 +36,13 @@ using ScriptProgramPointer = QSharedPointer<ScriptProgram>;
 
 Q_DECLARE_METATYPE(ScriptEnginePointer);
 
+template <typename T>
+inline ScriptValue scriptValueFromValue(ScriptEngine* engine, const T& t);
+
+template <typename T>
+inline T scriptvalue_cast(const ScriptValue& value);
+
+
 /// [ScriptInterface] Provides an engine-independent interface for QScriptEngine
 class ScriptEngine {
 public:

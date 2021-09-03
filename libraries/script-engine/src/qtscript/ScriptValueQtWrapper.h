@@ -35,52 +35,53 @@ public: // construction
     static QScriptValue fullUnwrap(ScriptEngineQtScript* engine, const ScriptValue& value);
 
 public:
-    virtual void release();
-    virtual ScriptValueProxy* copy() const;
+    virtual void release() override;
+    virtual ScriptValueProxy* copy() const override;
 
 public:  // ScriptValue implementation
-    virtual ScriptValue call(const ScriptValue& thisObject = ScriptValue(), const ScriptValueList& args = ScriptValueList());
-    virtual ScriptValue call(const ScriptValue& thisObject, const ScriptValue& arguments);
-    virtual ScriptValue construct(const ScriptValueList& args = ScriptValueList());
-    virtual ScriptValue construct(const ScriptValue& arguments);
-    virtual ScriptValue data() const;
-    virtual ScriptEnginePointer engine() const;
-    virtual ScriptValueIteratorPointer newIterator() const;
+    virtual ScriptValue call(const ScriptValue& thisObject = ScriptValue(),
+                             const ScriptValueList& args = ScriptValueList()) override;
+    virtual ScriptValue call(const ScriptValue& thisObject, const ScriptValue& arguments) override;
+    virtual ScriptValue construct(const ScriptValueList& args = ScriptValueList()) override;
+    virtual ScriptValue construct(const ScriptValue& arguments) override;
+    virtual ScriptValue data() const override;
+    virtual ScriptEnginePointer engine() const override;
+    virtual ScriptValueIteratorPointer newIterator() const override;
     virtual ScriptValue property(const QString& name,
-        const ScriptValue::ResolveFlags& mode = ScriptValue::ResolvePrototype) const;
+                                 const ScriptValue::ResolveFlags& mode = ScriptValue::ResolvePrototype) const override;
     virtual ScriptValue property(quint32 arrayIndex,
-        const ScriptValue::ResolveFlags& mode = ScriptValue::ResolvePrototype) const;
-    virtual void setData(const ScriptValue& val);
+                                 const ScriptValue::ResolveFlags& mode = ScriptValue::ResolvePrototype) const override;
+    virtual void setData(const ScriptValue& val) override;
     virtual void setProperty(const QString& name,
                              const ScriptValue& value,
-                             const ScriptValue::PropertyFlags& flags = ScriptValue::KeepExistingFlags);
+                             const ScriptValue::PropertyFlags& flags = ScriptValue::KeepExistingFlags) override;
     virtual void setProperty(quint32 arrayIndex,
                              const ScriptValue& value,
-                             const ScriptValue::PropertyFlags& flags = ScriptValue::KeepExistingFlags);
-    virtual void setPrototype(const ScriptValue& prototype);
-    virtual bool strictlyEquals(const ScriptValue& other) const;
+                             const ScriptValue::PropertyFlags& flags = ScriptValue::KeepExistingFlags) override;
+    virtual void setPrototype(const ScriptValue& prototype) override;
+    virtual bool strictlyEquals(const ScriptValue& other) const override;
 
-    virtual bool equals(const ScriptValue& other) const;
-    virtual bool isArray() const;
-    virtual bool isBool() const;
-    virtual bool isError() const;
-    virtual bool isFunction() const;
-    virtual bool isNumber() const;
-    virtual bool isNull() const;
-    virtual bool isObject() const;
-    virtual bool isString() const;
-    virtual bool isUndefined() const;
-    virtual bool isValid() const;
-    virtual bool isVariant() const;
-    virtual bool toBool() const;
-    virtual qint32 toInt32() const;
-    virtual double toInteger() const;
-    virtual double toNumber() const;
-    virtual QString toString() const;
-    virtual quint16 toUInt16() const;
-    virtual quint32 toUInt32() const;
-    virtual QVariant toVariant() const;
-    virtual QObject* toQObject() const;
+    virtual bool equals(const ScriptValue& other) const override;
+    virtual bool isArray() const override;
+    virtual bool isBool() const override;
+    virtual bool isError() const override;
+    virtual bool isFunction() const override;
+    virtual bool isNumber() const override;
+    virtual bool isNull() const override;
+    virtual bool isObject() const override;
+    virtual bool isString() const override;
+    virtual bool isUndefined() const override;
+    virtual bool isValid() const override;
+    virtual bool isVariant() const override;
+    virtual bool toBool() const override;
+    virtual qint32 toInt32() const override;
+    virtual double toInteger() const override;
+    virtual double toNumber() const override;
+    virtual QString toString() const override;
+    virtual quint16 toUInt16() const override;
+    virtual quint32 toUInt32() const override;
+    virtual QVariant toVariant() const override;
+    virtual QObject* toQObject() const override;
 
 private: // helper functions
     QScriptValue fullUnwrap(const ScriptValue& value) const;

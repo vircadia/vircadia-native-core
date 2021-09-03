@@ -32,16 +32,16 @@ public: // construction
     inline QScriptContext* toQtValue() const { return _context; }
 
 public: // ScriptContext implementation
-    virtual int argumentCount() const;
-    virtual ScriptValue argument(int index) const;
-    virtual QStringList backtrace() const;
-    virtual ScriptValue callee() const;
-    virtual ScriptEnginePointer engine() const;
-    virtual ScriptFunctionContextPointer functionContext() const;
-    virtual ScriptContextPointer parentContext() const;
-    virtual ScriptValue thisObject() const;
-    virtual ScriptValue throwError(const QString& text);
-    virtual ScriptValue throwValue(const ScriptValue& value);
+    virtual int argumentCount() const override;
+    virtual ScriptValue argument(int index) const override;
+    virtual QStringList backtrace() const override;
+    virtual ScriptValue callee() const override;
+    virtual ScriptEnginePointer engine() const override;
+    virtual ScriptFunctionContextPointer functionContext() const override;
+    virtual ScriptContextPointer parentContext() const override;
+    virtual ScriptValue thisObject() const override;
+    virtual ScriptValue throwError(const QString& text) override;
+    virtual ScriptValue throwValue(const ScriptValue& value) override;
 
 private: // storage
     QScriptContext* _context;
@@ -53,10 +53,10 @@ public:  // construction
     inline ScriptFunctionContextQtWrapper(QScriptContext* context) : _value(context) {}
 
 public:  // ScriptFunctionContext implementation
-    virtual QString fileName() const;
-    virtual QString functionName() const;
-    virtual FunctionType functionType() const;
-    virtual int lineNumber() const;
+    virtual QString fileName() const override;
+    virtual QString functionName() const override;
+    virtual FunctionType functionType() const override;
+    virtual int lineNumber() const override;
 
 private: // storage
     QScriptContextInfo _value;

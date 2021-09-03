@@ -45,55 +45,55 @@ class ScriptEngineQtScript : public QScriptEngine, public ScriptEngine, public Q
     Q_OBJECT
 
 public:  // ScriptEngine implementation
-    virtual void abortEvaluation();
-    virtual void clearExceptions();
-    virtual ScriptValue cloneUncaughtException(const QString& detail = QString());
-    virtual ScriptContext* currentContext() const;
-    //virtual ScriptValue evaluate(const QString& program, const QString& fileName = QString());
-    //virtual ScriptValue evaluate(const ScriptProgramPointer &program);
-    //virtual ScriptValue evaluateInClosure(const ScriptValue& locals, const ScriptProgramPointer& program);
-    virtual ScriptValue globalObject() const;
-    virtual bool hasUncaughtException() const;
-    virtual bool isEvaluating() const;
-    virtual ScriptValue lintScript(const QString& sourceCode, const QString& fileName, const int lineNumber = 1);
-    virtual ScriptValue makeError(const ScriptValue& other, const QString& type = "Error");
-    virtual ScriptManager* manager() const;
+    virtual void abortEvaluation() override;
+    virtual void clearExceptions() override;
+    virtual ScriptValue cloneUncaughtException(const QString& detail = QString()) override;
+    virtual ScriptContext* currentContext() const override;
+    //virtual ScriptValue evaluate(const QString& program, const QString& fileName = QString()) override;
+    //virtual ScriptValue evaluate(const ScriptProgramPointer &program) override;
+    //virtual ScriptValue evaluateInClosure(const ScriptValue& locals, const ScriptProgramPointer& program) override;
+    virtual ScriptValue globalObject() const override;
+    virtual bool hasUncaughtException() const override;
+    virtual bool isEvaluating() const override;
+    virtual ScriptValue lintScript(const QString& sourceCode, const QString& fileName, const int lineNumber = 1) override;
+    virtual ScriptValue makeError(const ScriptValue& other, const QString& type = "Error") override;
+    virtual ScriptManager* manager() const override;
 
     // if there is a pending exception and we are at the top level (non-recursive) stack frame, this emits and resets it
-    virtual bool maybeEmitUncaughtException(const QString& debugHint = QString());
+    virtual bool maybeEmitUncaughtException(const QString& debugHint = QString()) override;
 
-    virtual ScriptValue newArray(uint length = 0);
-    virtual ScriptValue newArrayBuffer(const QByteArray& message);
-    virtual ScriptValue newFunction(ScriptEngine::FunctionSignature fun, int length = 0);
-    virtual ScriptValue newObject();
-    virtual ScriptProgramPointer newProgram(const QString& sourceCode, const QString& fileName);
+    virtual ScriptValue newArray(uint length = 0) override;
+    virtual ScriptValue newArrayBuffer(const QByteArray& message) override;
+    virtual ScriptValue newFunction(ScriptEngine::FunctionSignature fun, int length = 0) override;
+    virtual ScriptValue newObject() override;
+    virtual ScriptProgramPointer newProgram(const QString& sourceCode, const QString& fileName) override;
     virtual ScriptValue newQObject(QObject *object, ScriptEngine::ValueOwnership ownership = ScriptEngine::QtOwnership,
-        const ScriptEngine::QObjectWrapOptions &options = ScriptEngine::QObjectWrapOptions());
-    virtual ScriptValue newValue(bool value);
-    virtual ScriptValue newValue(int value);
-    virtual ScriptValue newValue(uint value);
-    virtual ScriptValue newValue(double value);
-    virtual ScriptValue newValue(const QString& value);
-    virtual ScriptValue newValue(const QLatin1String& value);
-    virtual ScriptValue newValue(const char* value);
-    virtual ScriptValue newVariant(const QVariant& value);
-    virtual ScriptValue nullValue();
-    virtual bool raiseException(const ScriptValue& exception);
-    //virtual void registerEnum(const QString& enumName, QMetaEnum newEnum);
-    //Q_INVOKABLE virtual void registerFunction(const QString& name, ScriptEngine::FunctionSignature fun, int numArguments = -1);
-    //Q_INVOKABLE virtual void registerFunction(const QString& parent, const QString& name, ScriptEngine::FunctionSignature fun, int numArguments = -1);
-    //Q_INVOKABLE virtual void registerGetterSetter(const QString& name, ScriptEngine::FunctionSignature getter, ScriptEngine::FunctionSignature setter, const QString& parent = QString(""));
-    //virtual void registerGlobalObject(const QString& name, QObject* object);
-    virtual void setDefaultPrototype(int metaTypeId, const ScriptValue& prototype);
-    virtual void setObjectName(const QString& name);
-    virtual bool setProperty(const char* name, const QVariant& value);
-    virtual void setProcessEventsInterval(int interval);
-    virtual QThread* thread() const;
-    virtual void setThread(QThread* thread);
-    virtual ScriptValue undefinedValue();
-    virtual ScriptValue uncaughtException() const;
-    virtual QStringList uncaughtExceptionBacktrace() const;
-    virtual int uncaughtExceptionLineNumber() const;
+        const ScriptEngine::QObjectWrapOptions& options = ScriptEngine::QObjectWrapOptions()) override;
+    virtual ScriptValue newValue(bool value) override;
+    virtual ScriptValue newValue(int value) override;
+    virtual ScriptValue newValue(uint value) override;
+    virtual ScriptValue newValue(double value) override;
+    virtual ScriptValue newValue(const QString& value) override;
+    virtual ScriptValue newValue(const QLatin1String& value) override;
+    virtual ScriptValue newValue(const char* value) override;
+    virtual ScriptValue newVariant(const QVariant& value) override;
+    virtual ScriptValue nullValue() override;
+    virtual bool raiseException(const ScriptValue& exception) override;
+    //virtual void registerEnum(const QString& enumName, QMetaEnum newEnum) override;
+    //Q_INVOKABLE virtual void registerFunction(const QString& name, ScriptEngine::FunctionSignature fun, int numArguments = -1) override;
+    //Q_INVOKABLE virtual void registerFunction(const QString& parent, const QString& name, ScriptEngine::FunctionSignature fun, int numArguments = -1) override;
+    //Q_INVOKABLE virtual void registerGetterSetter(const QString& name, ScriptEngine::FunctionSignature getter, ScriptEngine::FunctionSignature setter, const QString& parent = QString("")) override;
+    //virtual void registerGlobalObject(const QString& name, QObject* object) override;
+    virtual void setDefaultPrototype(int metaTypeId, const ScriptValue& prototype) override;
+    virtual void setObjectName(const QString& name) override;
+    virtual bool setProperty(const char* name, const QVariant& value) override;
+    virtual void setProcessEventsInterval(int interval) override;
+    virtual QThread* thread() const override;
+    virtual void setThread(QThread* thread) override;
+    virtual ScriptValue undefinedValue() override;
+    virtual ScriptValue uncaughtException() const override;
+    virtual QStringList uncaughtExceptionBacktrace() const override;
+    virtual int uncaughtExceptionLineNumber() const override;
 
     // helper to detect and log warnings when other code invokes QScriptEngine/BaseScriptEngine in thread-unsafe ways
     inline bool IS_THREADSAFE_INVOCATION(const QString& method) { return ScriptEngine::IS_THREADSAFE_INVOCATION(method); }

@@ -41,7 +41,7 @@ inline ScriptValue scriptValueFromValue<QVariant>(ScriptEngine* engine, const QV
 }
 
 template <typename T>
-T scriptvalue_cast(const ScriptValue& value) {
+inline T scriptvalue_cast(const ScriptValue& value) {
     T t;
     const int id = qMetaTypeId<T>();
 

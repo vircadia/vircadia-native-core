@@ -89,10 +89,10 @@ public:
     inline void setProperty(quint32 arrayIndex,
                              const ScriptValue& value,
                              const PropertyFlags& flags = KeepExistingFlags);
-    template <typename TYP>
+    template <typename TYP, class ScriptEnginePointer = ScriptEnginePointer>
     inline void setProperty(const QString& name, const TYP& value,
                              const PropertyFlags& flags = KeepExistingFlags);
-    template <typename TYP>
+    template <typename TYP, class ScriptEnginePointer = ScriptEnginePointer>
     inline void setProperty(quint32 arrayIndex, const TYP& value,
                              const PropertyFlags& flags = KeepExistingFlags);
     inline void setPrototype(const ScriptValue& prototype);
@@ -165,14 +165,16 @@ public:
     virtual QObject* toQObject() const = 0;
 };
 
-template <typename TYP>
+// the second template parameter is used to defer evaluation of calls to the engine until ScriptEngine isn't forward-declared
+template <typename TYP, class ScriptEnginePointer>
 void ScriptValue::setProperty(const QString& name, const TYP& value, const PropertyFlags& flags) {
-    setProperty(name, engine()->newValue(value), flags);
+    setProperty(name, static_cast<const ScriptEnginePointer&>(engine())->newValue(value), flags);
 }
 
-template <typename TYP>
+// the second template parameter is used to defer evaluation of calls to the engine until ScriptEngine isn't forward-declared
+template <typename TYP, class ScriptEnginePointer>
 void ScriptValue::setProperty(quint32 arrayIndex, const TYP& value, const PropertyFlags& flags) {
-    setProperty(arrayIndex, engine()->newValue(value), flags);
+    setProperty(arrayIndex, static_cast<const ScriptEnginePointer&>(engine())->newValue(value), flags);
 }
 
 ScriptValue::ScriptValue(const ScriptValue& src) : _proxy(src.ptr()->copy()) {

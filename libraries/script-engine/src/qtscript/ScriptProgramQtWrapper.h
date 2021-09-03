@@ -32,9 +32,9 @@ public: // construction
     inline const QScriptProgram& toQtValue() const { return _value; }
 
 public: // ScriptProgram implementation
-    virtual ScriptSyntaxCheckResultPointer checkSyntax() const;
-    virtual QString fileName() const;
-    virtual QString sourceCode() const;
+    virtual ScriptSyntaxCheckResultPointer checkSyntax() const override;
+    virtual QString fileName() const override;
+    virtual QString sourceCode() const override;
 
 private: // storage
     QPointer<ScriptEngineQtScript> _engine;
@@ -47,10 +47,10 @@ public: // construction
         _value(std::move(value)) {}
 
 public: // ScriptSyntaxCheckResult implementation
-    virtual int errorColumnNumber() const;
-    virtual int errorLineNumber() const;
-    virtual QString errorMessage() const;
-    virtual State state() const;
+    virtual int errorColumnNumber() const override;
+    virtual int errorLineNumber() const override;
+    virtual QString errorMessage() const override;
+    virtual State state() const override;
 
 private: // storage
     QScriptSyntaxCheckResult _value;

@@ -31,11 +31,11 @@ public: // construction
         _engine(engine), _value(object) {}
 
 public:  // ScriptValueIterator implementation
-    virtual ScriptValue::PropertyFlags flags() const;
-    virtual bool hasNext() const;
-    virtual QString name() const;
-    virtual void next();
-    virtual ScriptValue value() const;
+    virtual ScriptValue::PropertyFlags flags() const override;
+    virtual bool hasNext() const override;
+    virtual QString name() const override;
+    virtual void next() override;
+    virtual ScriptValue value() const override;
 
 private: // storage
     QPointer<ScriptEngineQtScript> _engine;
