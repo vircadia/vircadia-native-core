@@ -434,7 +434,7 @@ DomainServer::~DomainServer() {
         _contentManager->aboutToFinish();
         _contentManager->terminate();
     }
-    
+
     if (_httpMetadataExporterManager) {
         _httpMetadataExporterManager->close();
         delete _httpMetadataExporterManager;
@@ -2123,23 +2123,25 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
     // Check if we should redirect/prevent access to the wizard
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
-        const QString URI_WIZARD = "/wizard/";
+        const QString URI_WIZARD_PATH = "/web-new/dist/spa/index.html";
+        const QString URI_WIZARD_FRAG = "wizard";
         const QString WIZARD_COMPLETED_ONCE_KEY_PATH = "wizard.completed_once";
         QVariant wizardCompletedOnce = _settingsManager.valueForKeyPath(WIZARD_COMPLETED_ONCE_KEY_PATH);
         const bool completedOnce = wizardCompletedOnce.isValid() && wizardCompletedOnce.toBool();
 
-        if (url.path() != URI_WIZARD && url.path().endsWith('/') && !completedOnce) {
+        if (url.path() != URI_WIZARD_PATH && url.path().endsWith('/') && !completedOnce) {
             // First visit, redirect to the wizard
             QUrl redirectedURL = url;
-            redirectedURL.setPath(URI_WIZARD);
+            redirectedURL.setPath(URI_WIZARD_PATH);
+            redirectedURL.setFragment(URI_WIZARD_FRAG);
 
             Headers redirectHeaders;
-            redirectHeaders.insert("Location", redirectedURL.toEncoded());
+            redirectHeaders.insert("Location", redirectedURL.toEncoded(QUrl::None));
 
             connection->respond(HTTPConnection::StatusCode302,
                                 QByteArray(), HTTPConnection::DefaultContentType, redirectHeaders);
             return true;
-        } else if (url.path() == URI_WIZARD && completedOnce) {
+        } else if (url.path() == URI_WIZARD_PATH && completedOnce) {
             // Wizard already completed, return 404
             connection->respond(HTTPConnection::StatusCode404, "Resource not found.");
             return true;
@@ -3150,9 +3152,9 @@ void DomainServer::initializeExporter() {
         qCInfo(domain_server) << "Starting Prometheus exporter on port " << exporterPort;
         _httpExporterManager = new HTTPManager
         (
-            QHostAddress::Any, 
-            (quint16)exporterPort, 
-            QString("%1/resources/prometheus_exporter/").arg(QCoreApplication::applicationDirPath()), 
+            QHostAddress::Any,
+            (quint16)exporterPort,
+            QString("%1/resources/prometheus_exporter/").arg(QCoreApplication::applicationDirPath()),
             &_exporter
         );
     }
@@ -3176,9 +3178,9 @@ void DomainServer::initializeMetadataExporter() {
         qCInfo(domain_server) << "Starting Metadata exporter on port" << metadataExporterPort;
         _httpMetadataExporterManager = new HTTPManager
         (
-            QHostAddress::Any, 
-            (quint16)metadataExporterPort, 
-            QString("%1/resources/metadata_exporter/").arg(QCoreApplication::applicationDirPath()), 
+            QHostAddress::Any,
+            (quint16)metadataExporterPort,
+            QString("%1/resources/metadata_exporter/").arg(QCoreApplication::applicationDirPath()),
             _metadata
         );
     }
@@ -3800,7 +3802,7 @@ void DomainServer::screensharePresence(QString roomname, QUuid avatarID, int exp
     callbackParams.jsonCallbackMethod = "handleSuccessfulScreensharePresence";
     callbackParams.errorCallbackMethod = "handleFailedScreensharePresence";
     // Construct `callbackData`, which is data that will be available to the callback functions.
-    // In this case, the "success" callback needs access to the "roomname" (the zone ID) and the 
+    // In this case, the "success" callback needs access to the "roomname" (the zone ID) and the
     // relevant avatar's UUID.
     QJsonObject callbackData;
     callbackData.insert("roomname", roomname);
