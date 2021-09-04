@@ -48,7 +48,7 @@
 const QString GRABBABLE_USER_DATA = "{\"grabbableKey\":{\"grabbable\":true}}";
 const QString NOT_GRABBABLE_USER_DATA = "{\"grabbableKey\":{\"grabbable\":false}}";
 
-static void staticScriptInitializer(ScriptManager* manager) {
+void staticEntityScriptInitializer(ScriptManager* manager) {
     auto scriptEngine = manager->engine().data();
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
@@ -76,7 +76,7 @@ static void staticScriptInitializer(ScriptManager* manager) {
     manager->connect(manager, &ScriptManager::releaseEntityPacketSenderMessages, entityScriptingInterface.data(),
                      &EntityScriptingInterface::releaseEntityPacketSenderMessages, Qt::DirectConnection);
 }
-STATIC_SCRIPT_INITIALIZER(staticScriptInitializer);
+STATIC_SCRIPT_INITIALIZER(staticEntityScriptInitializer);
 
 EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership) :
     _entityTree(nullptr),
@@ -2433,7 +2433,7 @@ void EntityScriptingInterface::getMeshes(const QUuid& entityID, const ScriptValu
     EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
     if (!entity) {
         qCDebug(entities) << "EntityScriptingInterface::getMeshes no entity with ID" << entityID;
-        ScriptValueList args { engine->undefinedValue(), false };
+        ScriptValueList args{ engine->undefinedValue(), engine->newValue(false) };
         callback.call(ScriptValue(), args);
         return;
     }
@@ -2446,7 +2446,7 @@ void EntityScriptingInterface::getMeshes(const QUuid& entityID, const ScriptValu
         ScriptValueList args{ resultAsScriptValue, engine->newValue(true) };
         callback.call(ScriptValue(), args);
     } else {
-        ScriptValueList args { engine->undefinedValue(), engine->newValue(false) };
+        ScriptValueList args{ engine->undefinedValue(), engine->newValue(false) };
         callback.call(ScriptValue(), args);
     }
 }

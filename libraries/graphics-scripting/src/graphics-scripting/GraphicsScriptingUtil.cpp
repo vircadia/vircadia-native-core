@@ -114,7 +114,7 @@ ScriptValue jsBindCallback(const ScriptValue& value) {
 template <typename T>
 T this_qobject_cast(ScriptEngine* engine) {
     auto context = engine ? engine->currentContext() : nullptr;
-    return scriptvalue_cast<T>(context ? context->thisObject() : ScriptValue::NullValue);
+    return scriptvalue_cast<T>(context ? context->thisObject() : engine ? engine->nullValue() : ScriptValue());
 }
 QString toDebugString(QObject* tmp) {
     QString s;

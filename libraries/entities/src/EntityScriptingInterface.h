@@ -2541,7 +2541,7 @@ protected:
 
 private:
     void attachDefaultEventHandlers(ScriptManager* manager);  // called on first call to Script.addEventHandler
-    friend void staticScriptInitializer(ScriptManager* manager);
+    friend void staticEntityScriptInitializer(ScriptManager* manager);
 
 private slots:
     void releaseEntityPacketSenderMessages(bool wait);
