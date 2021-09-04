@@ -131,12 +131,13 @@ void WDCDataChannelObserver::OnMessage(const DataBuffer& buffer) {
 }
 
 
-WDCConnection::WDCConnection(WebRTCDataChannels* parent, quint16 webSocketID) :
+WDCConnection::WDCConnection(WebRTCDataChannels* parent, quint16 webSocketID, int dataChannelID) :
     _parent(parent),
-    _webSocketID(webSocketID)
+    _webSocketID(webSocketID),
+    _dataChannelID(dataChannelID)
 {
 #ifdef WEBRTC_DEBUG
-    qCDebug(networking_webrtc) << "WDCConnection::WDCConnection() :" << webSocketID;
+    qCDebug(networking_webrtc) << "WDCConnection::WDCConnection() :" << webSocketID << dataChannelID;
 #endif
 
     // Create observers.
@@ -288,7 +289,6 @@ void WDCConnection::onDataChannelOpened(rtc::scoped_refptr<DataChannelInterface>
 #endif
 
     _dataChannel = dataChannel;
-    _dataChannelID = _parent->getNewDataChannelID();  // Not dataChannel->id() because it's only unique per peer connection.
     _dataChannel->RegisterObserver(_dataChannelObserver.get());
 
 #ifdef WEBRTC_DEBUG
@@ -432,7 +432,21 @@ void WebRTCDataChannels::reset() {
 quint16 WebRTCDataChannels::getNewDataChannelID() {
     static const int QUINT16_LIMIT = std::numeric_limits<uint16_t>::max() + 1;
     _lastDataChannelID = std::max((_lastDataChannelID + 1) % QUINT16_LIMIT, 1);
+#ifdef WEBRTC_DEBUG
+    qCDebug(networking_webrtc) << "WebRTCDataChannels::getNewDataChannelID() :" << _lastDataChannelID;
+#endif
     return _lastDataChannelID;
+}
+
+int WebRTCDataChannels::getDataChannelIDForWebSocket(quint16 webSocketID) const {
+#ifdef WEBRTC_DEBUG
+    qCDebug(networking_webrtc) << "WebRTCDataChannels::getDataChannelIDForWebSocket() :" << webSocketID;
+#endif
+    auto connection = _connectionsByWebSocket.value(webSocketID);
+    if (!connection) {
+        return 0;
+    }
+    return connection->getDataChannelID();
 }
 
 void WebRTCDataChannels::onDataChannelOpened(WDCConnection* connection, quint16 dataChannelID) {
@@ -444,7 +458,7 @@ void WebRTCDataChannels::onDataChannelOpened(WDCConnection* connection, quint16 
 
 void WebRTCDataChannels::onSignalingMessage(const QJsonObject& message) {
 #ifdef WEBRTC_DEBUG
-    qCDebug(networking_webrtc) << "WebRTCDataChannel::onSignalingMessage()" << message;
+    qCDebug(networking_webrtc) << "WebRTCDataChannel::onSignalingMessage()" << message << message.value("channel");
 #endif
 
     // Validate message.
@@ -452,8 +466,9 @@ void WebRTCDataChannels::onSignalingMessage(const QJsonObject& message) {
     auto data = message.value("data").isObject() ? message.value("data").toObject() : QJsonObject();
     int from = message.value("from").isDouble() ? (quint16)(message.value("from").toInt()) : 0;
     auto to = NodeType::fromChar(message.value("to").toString().at(0));
+    int channel = message.value("channel").isDouble() ? (int)(message.value("channel").toInt()) : 0;
 
-    if (from <= 0 || from > MAXUINT16 || to == NodeType::Unassigned
+    if (from <= 0 || from > MAXUINT16 || to == NodeType::Unassigned || channel < 0 || channel > MAXUINT16
             || !data.contains("description") && !data.contains("candidate")) {
         qCWarning(networking_webrtc) << "Unexpected signaling message:"
             << QJsonDocument(message).toJson(QJsonDocument::Compact).left(MAX_DEBUG_DETAIL_LENGTH);
@@ -468,7 +483,12 @@ void WebRTCDataChannels::onSignalingMessage(const QJsonObject& message) {
     if (_connectionsByWebSocket.contains(from)) {
         connection = _connectionsByWebSocket.value(from);
     } else {
-        connection = new WDCConnection(this, from);
+        // Assignment clients use the same data channel ID as the domain server, which is provided in the "channel" property.
+        // The domain server creates a new data channel ID.
+        if (channel == 0) {
+            channel = getNewDataChannelID();  
+        }
+        connection = new WDCConnection(this, from, channel);
         _connectionsByWebSocket.insert(from, connection);
     }
 

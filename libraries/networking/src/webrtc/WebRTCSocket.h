@@ -120,6 +120,12 @@ public:
     /// @return The description of the error that last occurred.
     QString errorString() const;
 
+
+    /// @brief Gets the data channel ID associated with a WebSocket.
+    /// @param webSocketID
+    /// @return The data channel ID associated with the WebSocket if found, `0` if the WebSocket was not found.
+    int getDataChannelIDForWebSocket(quint16 webSocketID) const;
+
 public slots:
 
     /// @brief Handles the WebRTC data channel receiving a message.

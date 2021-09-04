@@ -153,4 +153,9 @@ void WebRTCSocket::onDataChannelReceivedMessage(int dataChannelID, const QByteAr
     emit readyRead();
 }
 
+
+int WebRTCSocket::getDataChannelIDForWebSocket(quint16 webSocketID) const {
+    return _dataChannels.getDataChannelIDForWebSocket(webSocketID);
+}
+
 #endif // WEBRTC_DATA_CHANNELS

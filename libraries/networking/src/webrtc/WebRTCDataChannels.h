@@ -129,7 +129,8 @@ public:
     /// @brief Constructs a new WDCConnection and opens a WebRTC data connection.
     /// @param parent The parent WebRTCDataChannels object.
     /// @param webSocketID The signaling channel that initiated the opening of the WebRTC data channel.
-    WDCConnection(WebRTCDataChannels* parent, quint16 webSocketID);
+    /// @param dataChannelID - The WebRTC data channel ID to assign to this connection.
+    WDCConnection(WebRTCDataChannels* parent, quint16 webSocketID, int dataChannelID);
 
     /// @brief Gets the WebSocket ID.
     /// @return The ID of the WebSocket.
@@ -241,11 +242,16 @@ public:
     /// @brief Immediately closes all connections and resets the socket.
     void reset();
     
-    /// @brief Get a new data channel ID to uniquely identify a WDCConnection.
+    /// @brief Gets a new data channel ID to uniquely identify a WDCConnection.
     /// @details This ID is assigned by WebRTCDataChannels; it is <em>not</em> the WebRTC data channel ID because that is only
     ///     unique within a peer connection.
     /// @return A new data channel ID.
     quint16 getNewDataChannelID();
+
+    /// @brief Gets the data channel ID associated with a WebSocket.
+    /// @param webSocketID The WebSocket.
+    /// @return The data channel ID associated with the WebSocket if found, `0` if the WebSocket was not found.
+    int getDataChannelIDForWebSocket(quint16 webSocketID) const;
 
     /// @brief Handles a WebRTC data channel opening.
     /// @param connection The WebRTC data channel connection.
