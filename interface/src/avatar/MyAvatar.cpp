@@ -379,7 +379,6 @@ MyAvatar::MyAvatar(QThread* thread) :
 
 MyAvatar::~MyAvatar() {
     _lookAtTargetAvatar.reset();
-    _scriptEngine.reset();
     if (_addAvatarEntitiesToTreeTimer.isActive()) {
         _addAvatarEntitiesToTreeTimer.stop();
     }

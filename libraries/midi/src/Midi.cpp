@@ -140,8 +140,6 @@ STATIC_SCRIPT_INITIALIZER(+[](ScriptManager* manager) {
     scriptEngine->registerGlobalObject("Midi", DependencyManager::get<Midi>().data());
 });
 
-
-
 void CALLBACK MidiOutProc(HMIDIOUT hmo, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2) {
     switch (wMsg) {
         case MOM_OPEN:

@@ -48,7 +48,7 @@
 #include <ViewFrustum.h>
 #include <shared/RateCounter.h>
 #include <udt/SequenceNumber.h>
-#include "Scriptable.h"
+#include <Scriptable.h>
 #include <ScriptValue.h>
 
 #include "AABox.h"

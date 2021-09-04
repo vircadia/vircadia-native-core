@@ -10,8 +10,6 @@
 
 #include <QtCore/QThread>
 
-#include <ScriptValue.h>
-
 using namespace controller;
 
 bool ScriptConditional::satisfied() {
