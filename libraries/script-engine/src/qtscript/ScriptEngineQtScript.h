@@ -33,6 +33,7 @@
 #include "ArrayBufferClass.h"
 
 class ScriptContextQtWrapper;
+class ScriptContextQtAgent;
 class ScriptEngineQtScript;
 class ScriptManager;
 using ScriptEngineQtScriptPointer = QSharedPointer<ScriptEngineQtScript>;
@@ -432,6 +433,8 @@ protected:
     qint64 _lastUpdate;
 
     ArrayBufferClass* _arrayBufferClass;
+
+    ScriptContextQtAgent* _contextAgent{ nullptr };
 };
 
 // Lambda helps create callable QScriptValues out of std::functions:

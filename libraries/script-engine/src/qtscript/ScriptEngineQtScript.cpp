@@ -51,6 +51,7 @@
 #include "ScriptContextQtWrapper.h"
 #include "ScriptProgramQtWrapper.h"
 #include "ScriptValueQtWrapper.h"
+#include "ScriptContextQtAgent.h"
 
 static const int MAX_DEBUG_VALUE_LENGTH { 80 };
 
@@ -348,6 +349,9 @@ ScriptEngineQtScript::ScriptEngineQtScript(ScriptManager* scriptManager) :
     _undefinedValue = ScriptValue(new ScriptValueQtWrapper(const_cast<ScriptEngineQtScript*>(this), std::move(undefined)));
 
     QScriptEngine::setProcessEventsInterval(MSECS_PER_SECOND);
+
+    _contextAgent = new ScriptContextQtAgent(this, agent());
+    setAgent(_contextAgent);
 }
 
 bool ScriptEngineQtScript::isDebugMode() const {
@@ -358,7 +362,9 @@ bool ScriptEngineQtScript::isDebugMode() const {
 #endif
 }
 
-ScriptEngineQtScript::~ScriptEngineQtScript() {}
+ScriptEngineQtScript::~ScriptEngineQtScript() {
+    delete _contextAgent;
+}
 
 void ScriptEngineQtScript::disconnectNonEssentialSignals() {
     disconnect();

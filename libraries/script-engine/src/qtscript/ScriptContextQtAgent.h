@@ -19,9 +19,9 @@
 #include "ScriptEngineQtScript.h"
 
 class QScriptContext;
-class QScriptEngine;
 class QScriptValue;
 class ScriptContextQtWrapper;
+class ScriptEngineQtScript;
 using ScriptContextQtPointer = QSharedPointer<ScriptContextQtWrapper>;
 
 class ScriptContextQtAgent final : public QScriptEngineAgent {
