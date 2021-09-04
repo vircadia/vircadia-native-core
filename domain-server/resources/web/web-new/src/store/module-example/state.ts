@@ -5,7 +5,7 @@ export interface ExampleStateInterface {
 function state (): ExampleStateInterface {
     return {
         prop: false
-    }
+    };
 }
 
-export default state
+export default state;

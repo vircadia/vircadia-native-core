@@ -8,7 +8,7 @@
 
 /* eslint-env node */
 /* eslint-disable @typescript-eslint/no-var-requires */
-const { configure } = require('quasar/wrappers')
+const { configure } = require('quasar/wrappers');
 
 module.exports = configure(function (ctx) {
     return {
@@ -105,7 +105,7 @@ module.exports = configure(function (ctx) {
 
         // animations: 'all', // --- includes all animations
         // https://v2.quasar.dev/options/animations
-        animations: [],
+        animations: 'all',
 
         // https://v2.quasar.dev/quasar-cli/developing-ssr/configuring-ssr
         ssr: {
@@ -224,5 +224,5 @@ module.exports = configure(function (ctx) {
                 // extendWebpackPreload also available besides this chainWebpackPreload
             }
         }
-    }
-})
+    };
+});
