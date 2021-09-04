@@ -470,10 +470,12 @@ void NodeList::sendDomainServerCheckIn() {
             QByteArray compressedSystemInfo = qCompress(systemInfo);
 
             if (compressedSystemInfo.size() > MAX_SYSTEM_INFO_SIZE) {
+                // FIXME
                 // Highly unlikely, as not even unreasonable machines will
                 // overflow the max size, but prevent MTU overflow anyway.
                 // We could do something sophisticated like clearing specific
                 // values if they're too big, but we'll save that for later.
+                // Alternative solution would be to write system info at the end of the packet, only if there is space.
                 compressedSystemInfo.clear();
             }
 

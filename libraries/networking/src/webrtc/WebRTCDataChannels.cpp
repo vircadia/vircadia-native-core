@@ -430,6 +430,7 @@ void WebRTCDataChannels::reset() {
 }
 
 quint16 WebRTCDataChannels::getNewDataChannelID() {
+    // The first data channel ID is 1.
     static const int QUINT16_LIMIT = std::numeric_limits<uint16_t>::max() + 1;
     _lastDataChannelID = std::max((_lastDataChannelID + 1) % QUINT16_LIMIT, 1);
 #ifdef WEBRTC_DEBUG
@@ -533,7 +534,7 @@ bool WebRTCDataChannels::sendDataMessage(int dataChannelID, const QByteArray& by
 
     // Find connection.
     if (!_connectionsByDataChannel.contains(dataChannelID)) {
-        qCWarning(networking_webrtc) << "Could not find data channel to send message on!";
+        qCWarning(networking_webrtc) << "Could not find WebRTC data channel to send message on!";
         return false;
     }
 

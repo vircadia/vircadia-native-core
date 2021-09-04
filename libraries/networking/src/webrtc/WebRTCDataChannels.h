@@ -332,7 +332,7 @@ private:
 
     rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> _peerConnectionFactory { nullptr };
 
-    quint16 _lastDataChannelID { 0 };  // First data channel ID is 1.
+    quint16 _lastDataChannelID { 0 };
 
     QHash<quint16, WDCConnection*> _connectionsByWebSocket;
     QHash<quint16, WDCConnection*> _connectionsByDataChannel;

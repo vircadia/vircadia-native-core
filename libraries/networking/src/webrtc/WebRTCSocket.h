@@ -71,13 +71,11 @@ public:
     void abort();
 
     /// @brief Nominally gets the host port number.
-    /// @details 
     /// Included for compatibility with the QUdpSocket interface.
     /// @return <code>0</code> 
     quint16 localPort() const { return 0; }
 
     /// @brief Nominally gets the socket descriptor.
-    /// @details 
     /// Included for compatibility with the QUdpSocket interface.
     /// @return <code>-1</code>
     qintptr socketDescriptor() const { return -1; }
