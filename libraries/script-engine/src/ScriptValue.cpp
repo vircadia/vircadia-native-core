@@ -14,7 +14,7 @@
 #include "ScriptEngineLogging.h"
 
 
-class ScriptValueProxyNull : public ScriptValueProxy {
+class ScriptValueProxyNull final : public ScriptValueProxy {
 public:
     virtual void release() override;
     virtual ScriptValueProxy* copy() const override;
@@ -43,7 +43,7 @@ public:
                                  const ScriptValue::ResolveFlags& mode = ScriptValue::ResolvePrototype) const override;
     virtual ScriptValue property(quint32 arrayIndex,
                                  const ScriptValue::ResolveFlags& mode = ScriptValue::ResolvePrototype) const override;
-    virtual void setData(const ScriptValue& val);
+    virtual void setData(const ScriptValue& val) override;
     virtual void setProperty(const QString& name,
                              const ScriptValue& value,
                              const ScriptValue::PropertyFlags& flags = ScriptValue::KeepExistingFlags) override;

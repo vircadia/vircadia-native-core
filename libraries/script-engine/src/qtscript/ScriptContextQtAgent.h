@@ -24,17 +24,17 @@ class QScriptValue;
 class ScriptContextQtWrapper;
 using ScriptContextQtPointer = QSharedPointer<ScriptContextQtWrapper>;
 
-class ScriptContextQtAgent : public QScriptEngineAgent {
+class ScriptContextQtAgent final : public QScriptEngineAgent {
 public: // construction
     inline ScriptContextQtAgent(ScriptEngineQtScript* engine, QScriptEngineAgent* prevAgent) :
         QScriptEngineAgent(engine), _engine(engine), _prevAgent(prevAgent) {}
     virtual ~ScriptContextQtAgent() {}
 
 public: // QScriptEngineAgent implementation
-    virtual void contextPop();
-    virtual void contextPush();
-    virtual void functionEntry(qint64 scriptId);
-    virtual void functionExit(qint64 scriptId, const QScriptValue& returnValue);
+    virtual void contextPop() override;
+    virtual void contextPush() override;
+    virtual void functionEntry(qint64 scriptId) override;
+    virtual void functionExit(qint64 scriptId, const QScriptValue& returnValue) override;
 
 private: // storage
     bool _contextActive = false;

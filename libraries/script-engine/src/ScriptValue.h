@@ -163,6 +163,9 @@ public:
     virtual quint32 toUInt32() const = 0;
     virtual QVariant toVariant() const = 0;
     virtual QObject* toQObject() const = 0;
+
+protected:
+    ~ScriptValueProxy() {}  // prevent explicit deletion of base class
 };
 
 // the second template parameter is used to defer evaluation of calls to the engine until ScriptEngine isn't forward-declared
@@ -178,155 +181,193 @@ void ScriptValue::setProperty(quint32 arrayIndex, const TYP& value, const Proper
 }
 
 ScriptValue::ScriptValue(const ScriptValue& src) : _proxy(src.ptr()->copy()) {
+    Q_ASSERT(_proxy != nullptr);
 }
 
 ScriptValue::~ScriptValue() {
+    Q_ASSERT(_proxy != nullptr);
     _proxy->release();
 }
 
 ScriptValue& ScriptValue::operator=(const ScriptValue& other) {
+    Q_ASSERT(_proxy != nullptr);
     _proxy->release();
     _proxy = other.ptr()->copy();
     return *this;
 }
 
 ScriptValue ScriptValue::call(const ScriptValue& thisObject, const ScriptValueList& args) const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->call(thisObject, args);
 }
 
 ScriptValue ScriptValue::call(const ScriptValue& thisObject, const ScriptValue& arguments) const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->call(thisObject, arguments);
 }
 
 ScriptValue ScriptValue::construct(const ScriptValueList& args) const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->construct(args);
 }
 
 ScriptValue ScriptValue::construct(const ScriptValue& arguments) const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->construct(arguments);
 }
 
 ScriptValue ScriptValue::data() const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->data();
 }
 
 ScriptEnginePointer ScriptValue::engine() const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->engine();
 }
 
 bool ScriptValue::equals(const ScriptValue& other) const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->equals(other);
 }
 
 bool ScriptValue::isArray() const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->isArray();
 }
 
 bool ScriptValue::isBool() const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->isBool();
 }
 
 bool ScriptValue::isError() const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->isError();
 }
 
 bool ScriptValue::isFunction() const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->isFunction();
 }
 
 bool ScriptValue::isNumber() const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->isNumber();
 }
 
 bool ScriptValue::isNull() const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->isNull();
 }
 
 bool ScriptValue::isObject() const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->isObject();
 }
 
 bool ScriptValue::isString() const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->isString();
 }
 
 bool ScriptValue::isUndefined() const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->isUndefined();
 }
 
 bool ScriptValue::isValid() const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->isValid();
 }
 
 bool ScriptValue::isVariant() const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->isVariant();
 }
 
 ScriptValueIteratorPointer ScriptValue::newIterator() const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->newIterator();
 }
 
 ScriptValue ScriptValue::property(const QString& name, const ResolveFlags& mode) const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->property(name, mode);
 }
 
 ScriptValue ScriptValue::property(quint32 arrayIndex, const ResolveFlags& mode) const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->property(arrayIndex, mode);
 }
 
 void ScriptValue::setData(const ScriptValue& val) {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->setData(val);
 }
 
 void ScriptValue::setProperty(const QString& name, const ScriptValue& value, const PropertyFlags& flags) {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->setProperty(name, value, flags);
 }
 
 void ScriptValue::setProperty(quint32 arrayIndex, const ScriptValue& value, const PropertyFlags& flags) {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->setProperty(arrayIndex, value, flags);
 }
 
 void ScriptValue::setPrototype(const ScriptValue& prototype) {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->setPrototype(prototype);
 }
 
 bool ScriptValue::strictlyEquals(const ScriptValue& other) const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->strictlyEquals(other);
 }
 
 bool ScriptValue::toBool() const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->toBool();
 }
 
 qint32 ScriptValue::toInt32() const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->toInt32();
 }
 
 double ScriptValue::toInteger() const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->toInteger();
 }
 
 double ScriptValue::toNumber() const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->toNumber();
 }
 
 QString ScriptValue::toString() const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->toString();
 }
 
 quint16 ScriptValue::toUInt16() const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->toUInt16();
 }
 
 quint32 ScriptValue::toUInt32() const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->toUInt32();
 }
 
 QVariant ScriptValue::toVariant() const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->toVariant();
 }
 
 QObject* ScriptValue::toQObject() const {
+    Q_ASSERT(_proxy != nullptr);
     return _proxy->toQObject();
 }
 

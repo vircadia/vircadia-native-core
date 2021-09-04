@@ -24,7 +24,7 @@
 #include "ScriptEngineQtScript.h"
 
 /// [QtScript] Implements ScriptValue for QtScript and translates calls for QScriptValue
-class ScriptValueQtWrapper : public ScriptValueProxy {
+class ScriptValueQtWrapper final : public ScriptValueProxy {
 public: // construction
     inline ScriptValueQtWrapper(ScriptEngineQtScript* engine, const QScriptValue& value) :
         _engine(engine), _value(value) {}

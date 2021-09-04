@@ -57,7 +57,6 @@
 
 #include <Profile.h>
 
-#include "../../midi/src/Midi.h"        // FIXME why won't a simpler include work?
 #include "MIDIEvent.h"
 
 #include "SettingHandle.h"
@@ -674,8 +673,6 @@ void ScriptManager::init() {
 
     scriptRegisterMetaType(scriptEngine, externalResourceBucketToScriptValue, externalResourceBucketFromScriptValue);
     scriptEngine->registerEnum("Script.ExternalPaths", QMetaEnum::fromType<ExternalResource::Bucket>());
-
-    scriptEngine->registerGlobalObject("Midi", DependencyManager::get<Midi>().data());
 
     scriptEngine->registerGlobalObject("Quat", &_quatLibrary);
     scriptEngine->registerGlobalObject("Vec3", &_vec3Library);

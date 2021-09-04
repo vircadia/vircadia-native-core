@@ -11,14 +11,12 @@
 
 #include "Scriptable.h"
 
-#include <QtCore/QThreadStorage>
-
-static QThreadStorage<ScriptContext*> ScriptContextStore;
+static thread_local ScriptContext* ScriptContextStore;
 
 ScriptContext* Scriptable::context() {
-    return ScriptContextStore.localData();
+    return ScriptContextStore;
 }
 
 void Scriptable::setContext(ScriptContext* context) {
-    ScriptContextStore.setLocalData(context);
+    ScriptContextStore = context;
 }

@@ -23,7 +23,7 @@
 #include "ScriptValueQtWrapper.h"
 
 /// [QtScript] Implements ScriptValueIterator for QtScript and translates calls for QScriptValueIterator
-class ScriptValueIteratorQtWrapper : public ScriptValueIterator {
+class ScriptValueIteratorQtWrapper final : public ScriptValueIterator {
 public: // construction
     inline ScriptValueIteratorQtWrapper(ScriptEngineQtScript* engine, const ScriptValue& object) :
         _engine(engine), _value(ScriptValueQtWrapper::fullUnwrap(engine, object)) {}

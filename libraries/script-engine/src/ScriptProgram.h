@@ -28,6 +28,9 @@ public:
     virtual ScriptSyntaxCheckResultPointer checkSyntax() const = 0;
     virtual QString fileName() const = 0;
     virtual QString sourceCode() const = 0;
+
+protected:
+    ~ScriptProgram() {}  // prevent explicit deletion of base class
 };
 
 /// [ScriptInterface] Provides an engine-independent interface for QScriptSyntaxCheckResult
@@ -45,6 +48,9 @@ public:
     virtual int errorLineNumber() const = 0;
     virtual QString errorMessage() const = 0;
     virtual State state() const = 0;
+
+protected:
+    ~ScriptSyntaxCheckResult() {}  // prevent explicit deletion of base class
 };
 
 #endif // hifi_ScriptProgram_h

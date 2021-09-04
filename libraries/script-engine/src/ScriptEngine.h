@@ -136,6 +136,9 @@ public: // not for public use, but I don't like how Qt strings this along with p
     virtual ScriptValue create(int type, const void* ptr) = 0;
     virtual bool convert(const ScriptValue& value, int type, void* ptr) = 0;
     virtual void registerCustomType(int type, MarshalFunction mf, DemarshalFunction df, const ScriptValue& prototype) = 0;
+
+protected:
+    ~ScriptEngine() {}  // prevent explicit deletion of base class
 };
 Q_DECLARE_OPERATORS_FOR_FLAGS(ScriptEngine::QObjectWrapOptions);
 

@@ -25,9 +25,9 @@ class QScriptContext;
 class ScriptEngineQtScript;
 
 /// [QtScript] Implements ScriptContext for QtScript and translates calls for QScriptContextInfo
-class ScriptContextQtWrapper : public ScriptContext {
+class ScriptContextQtWrapper final : public ScriptContext {
 public: // construction
-    inline ScriptContextQtWrapper(ScriptEngineQtScript* engine, QScriptContext* context) : _engine(engine), _context(context) {}
+    inline ScriptContextQtWrapper(ScriptEngineQtScript* engine, QScriptContext* context) : _context(context) , _engine(engine) {}
     static ScriptContextQtWrapper* unwrap(ScriptContext* val);
     inline QScriptContext* toQtValue() const { return _context; }
 

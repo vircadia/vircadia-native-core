@@ -31,6 +31,9 @@ public:
     virtual QString name() const = 0;
     virtual void next() = 0;
     virtual ScriptValue value() const = 0;
+
+protected:
+    ~ScriptValueIterator() {}  // prevent explicit deletion of base class
 };
 
 #endif  // hifi_ScriptValueIterator_h

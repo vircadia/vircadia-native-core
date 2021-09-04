@@ -41,7 +41,9 @@ using ScriptContextQtPointer = QSharedPointer<ScriptContextQtWrapper>;
 Q_DECLARE_METATYPE(ScriptEngineQtScriptPointer);
 
 /// [QtScript] Implements ScriptEngine for QtScript and translates calls for QScriptEngine
-class ScriptEngineQtScript : public QScriptEngine, public ScriptEngine, public QEnableSharedFromThis<ScriptEngineQtScript> {
+class ScriptEngineQtScript final : public QScriptEngine,
+                                   public ScriptEngine,
+                                   public QEnableSharedFromThis<ScriptEngineQtScript> {
     Q_OBJECT
 
 public:  // ScriptEngine implementation

@@ -22,7 +22,7 @@
 #include "ScriptEngineQtScript.h"
 
 /// [QtScript] Implements ScriptProgram for QtScript and translates calls for QScriptProgram
-class ScriptProgramQtWrapper : public ScriptProgram {
+class ScriptProgramQtWrapper final : public ScriptProgram {
 public: // construction
     inline ScriptProgramQtWrapper(ScriptEngineQtScript* engine, const QScriptProgram& value) :
         _engine(engine), _value(value) {}
@@ -41,7 +41,7 @@ private: // storage
     QScriptProgram _value;
 };
 
-class ScriptSyntaxCheckResultQtWrapper : public ScriptSyntaxCheckResult {
+class ScriptSyntaxCheckResultQtWrapper final : public ScriptSyntaxCheckResult {
 public: // construction
     inline ScriptSyntaxCheckResultQtWrapper(QScriptSyntaxCheckResult&& value) :
         _value(std::move(value)) {}

@@ -43,6 +43,9 @@ public:
     virtual QString functionName() const = 0;
     virtual FunctionType functionType() const = 0;
     virtual int lineNumber() const = 0;
+
+protected:
+    ~ScriptFunctionContext() {} // prevent explicit deletion of base class
 };
 
 /// [ScriptInterface] Provides an engine-independent interface for QScriptContext
@@ -58,6 +61,9 @@ public:
     virtual ScriptValue thisObject() const = 0;
     virtual ScriptValue throwError(const QString& text) = 0;
     virtual ScriptValue throwValue(const ScriptValue& value) = 0;
+
+protected:
+    ~ScriptContext() {}  // prevent explicit deletion of base class
 };
 
 #endif // hifi_ScriptContext_h

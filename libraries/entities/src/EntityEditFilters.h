@@ -43,10 +43,10 @@ public:
         bool wantsZoneBoundingBox { false };
 
         std::function<bool()> uncaughtExceptions;
-        ScriptEngine* engine;
+        ScriptEnginePointer engine;
         bool rejectAll;
         
-        FilterData(): engine(nullptr), rejectAll(false) {};
+        FilterData(): rejectAll(false) {};
         bool valid() { return (rejectAll || (engine != nullptr && filterFn.isFunction() && uncaughtExceptions)); }
     };
 

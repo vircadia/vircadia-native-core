@@ -79,7 +79,7 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
             auto oldProperties = propertiesIn.getDesiredProperties();
             auto specifiedProperties = propertiesIn.getChangedProperties();
             propertiesIn.setDesiredProperties(specifiedProperties);
-            ScriptValue inputValues = propertiesIn.copyToScriptValue(filterData.engine, false, true, true);
+            ScriptValue inputValues = propertiesIn.copyToScriptValue(filterData.engine.get(), false, true, true);
             propertiesIn.setDesiredProperties(oldProperties);
 
             auto in = QJsonValue::fromVariant(inputValues.toVariant()); // grab json copy now, because the inputValues might be side effected by the filter.
@@ -91,7 +91,7 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
             // get the current properties for then entity and include them for the filter call
             if (existingEntity && filterData.wantsOriginalProperties) {
                 auto currentProperties = existingEntity->getProperties(filterData.includedOriginalProperties);
-                ScriptValue currentValues = currentProperties.copyToScriptValue(filterData.engine, false, true, true);
+                ScriptValue currentValues = currentProperties.copyToScriptValue(filterData.engine.get(), false, true, true);
                 args << currentValues;
             }
 
@@ -101,17 +101,17 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
                 auto zoneEntity = _tree->findEntityByEntityItemID(id);
                 if (zoneEntity) {
                     auto zoneProperties = zoneEntity->getProperties(filterData.includedZoneProperties);
-                    ScriptValue zoneValues = zoneProperties.copyToScriptValue(filterData.engine, false, true, true);
+                    ScriptValue zoneValues = zoneProperties.copyToScriptValue(filterData.engine.get(), false, true, true);
 
                     if (filterData.wantsZoneBoundingBox) {
                         bool success = true;
                         AABox aaBox = zoneEntity->getAABox(success);
                         if (success) {
                             ScriptValue boundingBox = filterData.engine->newObject();
-                            ScriptValue bottomRightNear = vec3ToScriptValue(filterData.engine, aaBox.getCorner());
-                            ScriptValue topFarLeft = vec3ToScriptValue(filterData.engine, aaBox.calcTopFarLeft());
-                            ScriptValue center = vec3ToScriptValue(filterData.engine, aaBox.calcCenter());
-                            ScriptValue boundingBoxDimensions = vec3ToScriptValue(filterData.engine, aaBox.getDimensions());
+                            ScriptValue bottomRightNear = vec3ToScriptValue(filterData.engine.get(), aaBox.getCorner());
+                            ScriptValue topFarLeft = vec3ToScriptValue(filterData.engine.get(), aaBox.calcTopFarLeft());
+                            ScriptValue center = vec3ToScriptValue(filterData.engine.get(), aaBox.calcCenter());
+                            ScriptValue boundingBoxDimensions = vec3ToScriptValue(filterData.engine.get(), aaBox.getDimensions());
                             boundingBox.setProperty("brn", bottomRightNear);
                             boundingBox.setProperty("tfl", topFarLeft);
                             boundingBox.setProperty("center", center);
@@ -169,10 +169,6 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
 
 void EntityEditFilters::removeFilter(EntityItemID entityID) {
     QWriteLocker writeLock(&_lock);
-    FilterData filterData = _filterDataMap.value(entityID);
-    if (filterData.valid()) {
-        delete filterData.engine;
-    }
     _filterDataMap.remove(entityID);
 }
 
@@ -273,7 +269,7 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
             if (!hadUncaughtExceptions(*engine, urlString)) {
                 // put the engine in the engine map (so we don't leak them, etc...)
                 FilterData filterData;
-                filterData.engine = engine.get();
+                filterData.engine = engine;
                 filterData.rejectAll = false;
                 
                 // define the uncaughtException function
