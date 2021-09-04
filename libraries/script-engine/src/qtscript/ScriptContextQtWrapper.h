@@ -48,7 +48,7 @@ private: // storage
     ScriptEngineQtScript* _engine;
 };
 
-class ScriptFunctionContextQtWrapper : public ScriptFunctionContext {
+class ScriptFunctionContextQtWrapper final : public ScriptFunctionContext {
 public:  // construction
     inline ScriptFunctionContextQtWrapper(QScriptContext* context) : _value(context) {}
 

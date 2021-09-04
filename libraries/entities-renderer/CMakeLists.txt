@@ -1,11 +1,10 @@
 set(TARGET_NAME entities-renderer)
 setup_hifi_library(Network)
-link_hifi_libraries(shared workload gpu shaders procedural graphics material-networking model-networking script-engine render render-utils image qml ui pointers)
+link_hifi_libraries(shared workload gpu shaders procedural graphics material-networking model-networking script-engine render render-utils image qml ui pointers entities)
 include_hifi_library_headers(animation)
 include_hifi_library_headers(audio)
 include_hifi_library_headers(avatars)
 include_hifi_library_headers(controllers)
-include_hifi_library_headers(entities)
 include_hifi_library_headers(gl)
 include_hifi_library_headers(graphics-scripting) # for Forward.h
 include_hifi_library_headers(hfm)
