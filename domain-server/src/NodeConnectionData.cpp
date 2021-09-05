@@ -17,7 +17,7 @@
 NodeConnectionData NodeConnectionData::fromDataStream(QDataStream& dataStream, const SockAddr& senderSockAddr,
                                                       bool isConnectRequest) {
     NodeConnectionData newHeader;
-    
+
     if (isConnectRequest) {
         dataStream >> newHeader.connectUUID;
 
@@ -58,16 +58,21 @@ NodeConnectionData NodeConnectionData::fromDataStream(QDataStream& dataStream, c
     newHeader.publicSockAddr.setType(publicSocketType);
     newHeader.localSockAddr.setType(localSocketType);
 
-    // For WebRTC connections, the user client doesn't know the WebRTC data channel ID that the domain server is using as its
-    // SockAddr port, so set the port values here.
+    // For WebRTC connections, the user client's signaling channel WebSocket address is used instead of the actual data 
+    // channel's address.
     if (senderSockAddr.getType() == SocketType::WebRTC) {
         if (newHeader.publicSockAddr.getType() != SocketType::WebRTC
             || newHeader.localSockAddr.getType() != SocketType::WebRTC) {
             qDebug() << "Inconsistent WebRTC socket types!";
         }
 
-        newHeader.publicSockAddr.setPort(senderSockAddr.getPort());  // We don't know whether it's a public or local connection
-        newHeader.localSockAddr.setPort(senderSockAddr.getPort());   // so set both ports.
+        // We don't know whether it's a public or local connection so set both the same.
+        auto address = senderSockAddr.getAddress();
+        auto port = senderSockAddr.getPort();
+        newHeader.publicSockAddr.setAddress(address);
+        newHeader.publicSockAddr.setPort(port);
+        newHeader.localSockAddr.setAddress(address);
+        newHeader.localSockAddr.setPort(port);
     }
 
     newHeader.senderSockAddr = senderSockAddr;
