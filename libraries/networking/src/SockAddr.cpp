@@ -116,6 +116,10 @@ QString SockAddr::toString() const {
     return socketTypeToString(_socketType) + " " + _address.toString() + ":" + QString::number(_port);
 }
 
+QString SockAddr::toShortString() const {
+    return _address.toString() + ":" + QString::number(_port);
+}
+
 bool SockAddr::hasPrivateAddress() const {
     // an address is private if it is loopback or falls in any of the RFC1918 address spaces
     const QPair<QHostAddress, int> TWENTY_FOUR_BIT_BLOCK = { QHostAddress("10.0.0.0"), 8 };

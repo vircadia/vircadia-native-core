@@ -891,16 +891,7 @@ void DomainServer::routeWebRTCSignalingMessage(const QJsonObject& json) {
     if (json.value("to").toString() == NodeType::DomainServer) {
         emit webrtcSignalingMessageForDomainServer(json);
     } else {
-        // Insert the WebRTC data channel ID for the assignment client to use.
-        auto webrtcSocket = DependencyManager::get<LimitedNodeList>()->getWebRTCSocket();
-        auto channelID = webrtcSocket->getDataChannelIDForWebSocket((quint16)json.value("from").toInt());
-        if (channelID == 0 && json.value("echo").isUndefined()) {  // Let echo messages through without a domain connection.
-            qCritical() << "WebRTC data channel ID not found for assignment client signaling!";
-            return;
-        }
-        QJsonObject jsonModified = json;
-        jsonModified.insert("channel", QJsonValue(channelID));
-        sendWebRTCSignalingMessageToAssignmentClient(jsonModified);
+        sendWebRTCSignalingMessageToAssignmentClient(json);
     }
 }
 

@@ -39,19 +39,20 @@
 /// signaling `data` payload or an `echo` request:
 ///
 /// | Interface -> Server ||
-/// | -------- | -----------------------|
-/// | `to`     | NodeType               |
-/// | `from`   | WebSocket port number* |
-/// | [`data`] | WebRTC payload         |
-/// | [`echo`] | Echo request           |
-/// * The `from` field is filled in by the WebRTCSignalingServer.
+/// | -------- | ---------------------------------------- |
+/// | `to`     | NodeType                                 |
+/// | `from`   | WebSocket IP address & port, "n.n.n.n:n" |
+/// | [`data`] | WebRTC signaling payload                 |
+/// | [`echo`] | Echo request                             |
+///
+/// `*` The `from` field is filled in upon receipt by the WebRTCSignalingServer.
 ///
 /// | Server -> Interface ||
-/// | -------- | ---------------------  |
-/// | `to`     | WebSocket port number  |
-/// | `from`   | NodeType               |
-/// | [`data`] | WebRTC payload         |
-/// | [`echo`] | Echo response          |
+/// | -------- | ---------------------------------------- |
+/// | `to`     | WebSocket IP address & port, "n.n.n.n:n" |
+/// | `from`   | NodeType                                 |
+/// | [`data`] | WebRTC signaling payload                 |
+/// | [`echo`] | Echo response                            |
 ///
 class WebRTCSignalingServer : public QObject {
     Q_OBJECT
@@ -97,7 +98,9 @@ private:
     QHostAddress _address;
     quint16 _port { 0 };
 
-    QHash<quint16, QWebSocket*> _webSockets;  // client WebSocket port, client WebSocket object
+    QHash<QString, QWebSocket*> _webSockets;  // <client WebSocket IP address and port, client connection WebSocket object>
+    // The WebSocket IP address and port is formatted as "n.n.n.n:n".
+    // A QString is used rather than a SockAddr, to make signaling easier.
 
     QTimer* _isWebSocketServerListeningTimer;
 };

@@ -133,7 +133,7 @@ qint64 NetworkSocket::writeDatagram(const QByteArray& datagram, const SockAddr& 
         return _udpSocket.writeDatagram(datagram, sockAddr.getAddress(), sockAddr.getPort());
 #if defined(WEBRTC_DATA_CHANNELS)
     case SocketType::WebRTC:
-        return _webrtcSocket.writeDatagram(datagram, sockAddr.getPort());
+        return _webrtcSocket.writeDatagram(datagram, sockAddr);
 #endif
     default:
         qCCritical(networking) << "Socket type not specified in writeDatagram() address";
@@ -141,13 +141,13 @@ qint64 NetworkSocket::writeDatagram(const QByteArray& datagram, const SockAddr& 
     }
 }
 
-qint64 NetworkSocket::bytesToWrite(SocketType socketType, quint16 port) const {
+qint64 NetworkSocket::bytesToWrite(SocketType socketType, const SockAddr& address) const {
     switch (socketType) {
     case SocketType::UDP:
         return _udpSocket.bytesToWrite();
 #if defined(WEBRTC_DATA_CHANNELS)
     case SocketType::WebRTC:
-        return _webrtcSocket.bytesToWrite(port);
+        return _webrtcSocket.bytesToWrite(address);
 #endif
     default:
         qCCritical(networking) << "Socket type not specified in bytesToWrite()";

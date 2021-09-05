@@ -256,7 +256,7 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const SockAddr& sockAdd
     }
     qint64 bytesWritten = _networkSocket.writeDatagram(datagram, sockAddr);
 
-    int pending = _networkSocket.bytesToWrite(socketType, sockAddr.getPort());
+    int pending = _networkSocket.bytesToWrite(socketType, sockAddr);
     if (bytesWritten < 0 || pending) {
         int wsaError = 0;
         static std::atomic<int> previousWsaError (0);

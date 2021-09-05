@@ -56,6 +56,7 @@ public:
     static int unpackSockAddr(const unsigned char* packetData, SockAddr& unpackDestSockAddr);
 
     QString toString() const;
+    QString toShortString() const;
 
     bool hasPrivateAddress() const; // checks if the address behind this sock addr is private per RFC 1918
 
