@@ -13,6 +13,7 @@
 const Log = (function () {
     enum types {
         OTHER = "[OTHER]",
+        DOMAIN = "[DOMAIN]",
         METAVERSE = "[METAVERSE]"
     }
 

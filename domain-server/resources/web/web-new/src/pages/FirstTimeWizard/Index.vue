@@ -1,3 +1,13 @@
+<!--
+//  Index.vue
+//
+//  Created by Kalila L. on Sep. 4th, 2021.
+//  Copyright 2021 Vircadia contributors.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+-->
+
 <style lang="scss" scoped>
     $firstTimeWizardContainerBGstart: rgba(0, 0, 0, 0.0);
     $firstTimeWizardContainerBGend: rgba(0, 0, 0, 0.75);
@@ -196,7 +206,7 @@
 
                         <q-step
                             :name="4"
-                            title="Metaverse"
+                            :title="connectMetaverseSuccess ? 'Metaverse (Connected ✔️)' : 'Metaverse'"
                             caption="Optional"
                             :done="mainWizardStep > 4"
                         >
@@ -213,21 +223,22 @@
                                         @click="connectMetaverseTriggered"
                                         class="q-mb-md"
                                         size="md"
-                                        outline
+                                        :outline="!connectMetaverseSuccess"
+                                        :color="connectMetaverseSuccess ? 'green' : ''"
                                         text-color="white"
-                                        icon-right="cloud"
+                                        :icon-right="connectMetaverseSuccess ? 'done' : 'cloud'"
                                     >
-                                        Connect
+                                        {{ connectMetaverseSuccess ? 'Connected' : 'Connect' }}
                                     </q-btn>
                                     <q-btn
                                         @click="$refs.stepper.next()"
                                         class="q-mb-md"
-                                        size="sm"
+                                        :size="connectMetaverseSuccess ? 'md' : 'sm'"
                                         outline
                                         text-color="white"
                                         icon-right="chevron_right"
                                     >
-                                        Skip
+                                        {{ connectMetaverseSuccess ? 'Next' : 'Skip' }}
                                     </q-btn>
                                     <q-btn
                                         @click="$refs.stepper.previous()"
@@ -246,9 +257,45 @@
                                     style="background: rgba(0, 0, 0, 0.95);"
                                     dark
                                 >
-                                    <ConnectMetaverse></ConnectMetaverse>
+                                    <ConnectMetaverse @connectionResult="onMetaverseConnectionAttempted"></ConnectMetaverse>
                                 </q-card>
                             </q-dialog>
+                        </q-step>
+
+                        <q-step
+                            :name="5"
+                            title="Security"
+                            caption="Optional"
+                            :done="mainWizardStep > 5"
+                        >
+                            <q-card
+                                class="wizardCard"
+                            >
+                                <q-card-section>
+                                    <div class="text-h6 text-weight-light text-center">Let's configure some security settings for your world.</div>
+                                </q-card-section>
+
+                                <q-card-actions vertical align="right">
+                                    <q-btn
+                                        @click="saveSecuritySettings"
+                                        class="q-mb-md"
+                                        size="md"
+                                        outline
+                                        text-color="white"
+                                        icon-right="chevron_right"
+                                    >
+                                        Next
+                                    </q-btn>
+                                    <q-btn
+                                        @click="$refs.stepper.previous()"
+                                        size="sm"
+                                        flat
+                                        icon-left="chevron_left"
+                                    >
+                                        Back
+                                    </q-btn>
+                                </q-card-actions>
+                            </q-card>
                         </q-step>
                     </q-stepper>
                 </transition>
@@ -276,9 +323,11 @@ export default defineComponent({
             welcomeText: true,
             mainWizard: true,
             mainWizardStep: ref(1),
+            // TODO: Needs to be based off of the actual state of the server's connection (using Vuex and retrieving settings on page load.)
+            connectMetaverseSuccess: true,
             connectMetaverseDialog: false,
             // Consts
-            WELCOME_TEXT_TIMEOUT: 2000,
+            WELCOME_TEXT_TIMEOUT: 4000,
             MAIN_WIZARD_TRANSITION_TIME: 1000,
             DEFAULT_METAVERSE_URL: "https://metaverse.vircadia.com/live"
         };
@@ -293,6 +342,15 @@ export default defineComponent({
     methods: {
         connectMetaverseTriggered () {
             this.connectMetaverseDialog = true;
+        },
+
+        onMetaverseConnectionAttempted () {
+            this.connectMetaverseSuccess = true;
+            this.mainWizardStep++;
+        },
+
+        saveSecuritySettings () {
+            // TODO
         }
     }
 });

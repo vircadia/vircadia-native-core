@@ -1,11 +1,18 @@
 import { boot } from "quasar/wrappers";
 import axios, { AxiosInstance } from "axios";
+import Log from "../modules/utilities/log";
 
 declare module "@vue/runtime-core" {
     interface ComponentCustomProperties {
         $axios: AxiosInstance;
     }
 }
+
+Log.info(Log.types.OTHER, "Bootstrapping Axios.");
+
+axios.defaults.headers.common = {
+    "x-vircadia-error-handle": "badrequest"
+};
 
 // Be careful when using SSR for cross-request state pollution
 // due to creating a Singleton instance here;

@@ -51,6 +51,7 @@
 </template>
 
 <script>
+// FIXME: Needs to be done correctly. Also universally? Maybe window.axios?
 const axios = require("axios");
 
 import Log from "../../../modules/utilities/log";
@@ -64,43 +65,27 @@ export default {
         username: "",
         password: "",
         showPassword: false,
+        // TODO: Needs to be stored somewhere central.
         DEFAULT_METAVERSE_URL: "https://metaverse.vircadia.com/live"
     }),
 
     methods: {
         async onSubmit () {
-            try {
-                const metaverseURL = await this.retrieveMetaverseUrl();
-                const result = await this.attemptLogin(metaverseURL, this.username, this.password);
+            const metaverseURL = await this.retrieveMetaverseUrl();
+            const result = await this.attemptLogin(metaverseURL, this.username, this.password);
 
-                this.$q.notify({
-                    type: "positive",
-                    textColor: "white",
-                    icon: "cloud_done",
-                    message: `Welcome ${this.username}.`
-                });
-
-                this.$emit("loginResult", true, result);
-            } catch (result) {
-                this.$q.notify({
-                    type: "negative",
-                    textColor: "white",
-                    icon: "warning",
-                    message: `Login attempted failed: ${result.error}`
-                });
-
-                this.$emit("loginResult", false, result);
-            }
+            this.$emit("loginResult", { "success": result.success, "metaverse": metaverseURL, "data": result.response });
         },
 
+        // TODO: This needs to be addressed in a more modular fashion to reuse and save state across multiple components.
         async retrieveMetaverseUrl () {
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve) => {
                 axios.get("/api/metaverse_info")
                     .then((response) => {
-                        Log.info(Log.types.METAVERSE, `Retrieved Metaverse URL ${response.metaverse_url}.`);
-                        resolve(response.metaverse_url);
+                        Log.info(Log.types.METAVERSE, `Retrieved Metaverse URL ${response.data.metaverse_url}.`);
+                        resolve(response.data.metaverse_url);
                     }, (error) => {
-                        Log.error(Log.types.METAVERSE, `Failed to retrieve Metaverse URL, using default URL ${this.DEFAULT_METAVERSE_URL} instead.`);
+                        Log.error(Log.types.METAVERSE, `Failed to retrieve Metaverse URL, using default URL ${this.DEFAULT_METAVERSE_URL} instead. Error: ${error}`);
                         resolve(this.DEFAULT_METAVERSE_URL);
                     });
             });
@@ -109,7 +94,7 @@ export default {
         async attemptLogin (metaverse, username, password) {
             Log.info(Log.types.METAVERSE, `Attempting to login as ${username}.`);
 
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve) => {
                 axios.post(`${metaverse}/oauth/token`, {
                     grant_type: "password",
                     scope: "owner", // as opposed to 'domain', we're asking for a user token
@@ -118,13 +103,15 @@ export default {
                 })
                     .then((response) => {
                         Log.info(Log.types.METAVERSE, `Successfully got key and details for ${username}.`);
-                        resolve(response.data);
+                        resolve({ "success": true, "response": response.data });
                     }, (error) => {
                         Log.error(Log.types.METAVERSE, `Failed to get key and details for ${username}.`);
                         if (error.response && error.response.data) {
-                            reject(error.response.data);
+                            resolve({ "success": false, "response": error.response.data });
+                        } else if (error) {
+                            resolve({ "success": false, "response": error });
                         } else {
-                            reject("Unknown reason.");
+                            resolve({ "success": false, "response": "Unknown reason." });
                         }
                     });
             });
