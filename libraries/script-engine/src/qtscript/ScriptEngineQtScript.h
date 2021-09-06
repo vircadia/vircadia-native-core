@@ -46,6 +46,14 @@ class ScriptEngineQtScript final : public QScriptEngine,
                                    public QEnableSharedFromThis<ScriptEngineQtScript> {
     Q_OBJECT
 
+public:  // construction
+    ScriptEngineQtScript(ScriptManager* scriptManager = nullptr);
+    ~ScriptEngineQtScript();
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // NOTE - these are NOT intended to be public interfaces available to scripts, the are only Q_INVOKABLE so we can
+    //        properly ensure they are only called on the correct thread
+
 public:  // ScriptEngine implementation
     virtual void abortEvaluation() override;
     virtual void clearExceptions() override;
@@ -120,14 +128,7 @@ protected: // brought over from BaseScriptEngine
     // helper to detect and log warnings when other code invokes QScriptEngine/BaseScriptEngine in thread-unsafe ways
     static bool IS_THREADSAFE_INVOCATION(const QThread* thread, const QString& method);
 
-public:
-    ScriptEngineQtScript(ScriptManager* scriptManager = nullptr);
-    ~ScriptEngineQtScript();
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // NOTE - these are NOT intended to be public interfaces available to scripts, the are only Q_INVOKABLE so we can
-    //        properly ensure they are only called on the correct thread
-
+public: // public non-interface methods for other QtScript-specific classes to use
     /// registers a global getter/setter
     Q_INVOKABLE void registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,
                                           QScriptEngine::FunctionSignature setter, const QString& parent = QString(""));
