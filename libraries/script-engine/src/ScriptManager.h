@@ -411,7 +411,7 @@ public:
     QVariantMap fetchModuleSource(const QString& modulePath, const bool forceDownload = false);
     ScriptValue instantiateModule(const ScriptValue& module, const QString& sourceCode);
 
-    Q_INVOKABLE ScriptValue evaluate(const QString& program, const QString& fileName = QString());
+    ScriptValue evaluate(const QString& program, const QString& fileName = QString());
 
     /*@jsdoc
      * Calls a function repeatedly, at a set interval.
@@ -533,6 +533,13 @@ public:
     }
     QVariant cloneEntityScriptDetails(const EntityItemID& entityID);
     QFuture<QVariant> getLocalEntityScriptDetails(const EntityItemID& entityID) override;
+
+    /*@jsdoc
+     * Manually runs the JavaScript garbage collector which reclaims memory by disposing of objects that are no longer 
+     * reachable.
+     * @function Script.requestGarbageCollection
+     */
+    Q_INVOKABLE void requestGarbageCollection();
 
     /*@jsdoc
      * @function Script.loadEntityScript
@@ -721,14 +728,6 @@ signals:
      * @deprecated This signal is deprecated and will be removed.
      */
     void finished(const QString& fileNameString, ScriptManagerPointer);
-
-    /*@jsdoc
-     * @function Script.cleanupMenuItem
-     * @param {string} menuItem - Menu item.
-     * @returns {Signal}
-     * @deprecated This signal is deprecated and will be removed.
-     */
-    void cleanupMenuItem(const QString& menuItemString);
 
     /*@jsdoc
      * Triggered when the script prints a message to the program log via {@link  print}, {@link Script.print},

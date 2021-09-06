@@ -2470,3 +2470,7 @@ QString ScriptManager::formatException(const ScriptValue& exception, bool includ
 ScriptValue ScriptManager::evaluate(const QString& program, const QString& fileName) {
     return _engine->evaluate(program, fileName);
 }
+
+void ScriptManager::requestGarbageCollection() {
+    _engine->requestCollectGarbage();
+}

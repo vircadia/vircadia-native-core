@@ -354,35 +354,8 @@ ScriptEngineQtScript::ScriptEngineQtScript(ScriptManager* scriptManager) :
     setAgent(_contextAgent);
 }
 
-bool ScriptEngineQtScript::isDebugMode() const {
-#if defined(DEBUG)
-    return true;
-#else
-    return false;
-#endif
-}
-
 ScriptEngineQtScript::~ScriptEngineQtScript() {
     delete _contextAgent;
-}
-
-void ScriptEngineQtScript::disconnectNonEssentialSignals() {
-    disconnect();
-    QThread* workerThread;
-    // Ensure the thread should be running, and does exist
-    if (_isRunning && _isThreaded && (workerThread = QScriptEngine::thread())) {
-        connect(this, &QObject::destroyed, workerThread, &QThread::quit);
-        connect(workerThread, &QThread::finished, workerThread, &QObject::deleteLater);
-    }
-}
-
-void ScriptEngineQtScript::executeOnScriptThread(std::function<void()> function, const Qt::ConnectionType& type ) {
-    if (QThread::currentThread() != QScriptEngine::thread()) {
-        QMetaObject::invokeMethod(this, "executeOnScriptThread", type, Q_ARG(std::function<void()>, function));
-        return;
-    }
-
-    function();
 }
 
 void ScriptEngineQtScript::registerEnum(const QString& enumName, QMetaEnum newEnum) {
@@ -766,16 +739,6 @@ void ScriptEngineQtScript::updateMemoryCost(const qint64& deltaSize) {
         reportAdditionalMemoryCost(deltaSize);
 #endif
     }
-}
-
-void ScriptEngineQtScript::print(const QString& message) {
-    QString filename;
-    auto scriptManager = manager();
-    if (scriptManager) {
-        filename = scriptManager->getFilename();
-    }
-
-    emit printedMessage(message, filename);
 }
 
 
