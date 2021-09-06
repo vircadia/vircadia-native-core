@@ -63,6 +63,10 @@
     .q-dialog__inner div {
         box-shadow: none !important;
     }
+
+    .q-dialog__inner div {
+        border: none !important;
+    }
 </style>
 
 <template>
@@ -166,7 +170,7 @@
                                         text-color="white"
                                         icon-right="chevron_right"
                                     >
-                                        Continue
+                                        Skip
                                     </q-btn>
                                     <q-btn
                                         class="q-mb-md"
@@ -235,6 +239,16 @@
                                     </q-btn>
                                 </q-card-actions>
                             </q-card>
+
+                            <q-dialog v-model="connectMetaverseDialog">
+                                <q-card
+                                    class="column no-wrap items-stretch q-pa-md"
+                                    style="background: rgba(0, 0, 0, 0.95);"
+                                    dark
+                                >
+                                    <ConnectMetaverse></ConnectMetaverse>
+                                </q-card>
+                            </q-dialog>
                         </q-step>
                     </q-stepper>
                 </transition>
@@ -244,10 +258,17 @@
 </template>
 
 <script>
-import { defineComponent, ref } from 'vue';
+import { defineComponent, ref } from "vue";
+
+import ConnectMetaverse from "../../components/dialogs/ConnectMetaverse.vue";
 
 export default defineComponent({
-    name: 'Index',
+    name: "Index",
+
+    components: {
+        ConnectMetaverse
+    },
+
     data () {
         return {
             mainOverlay: true,
@@ -255,33 +276,23 @@ export default defineComponent({
             welcomeText: true,
             mainWizard: true,
             mainWizardStep: ref(1),
+            connectMetaverseDialog: false,
             // Consts
             WELCOME_TEXT_TIMEOUT: 2000,
             MAIN_WIZARD_TRANSITION_TIME: 1000,
             DEFAULT_METAVERSE_URL: "https://metaverse.vircadia.com/live"
         };
     },
+
     mounted () {
         setTimeout(() => {
             this.mainWizardStep++;
         }, this.WELCOME_TEXT_TIMEOUT);
     },
+
     methods: {
         connectMetaverseTriggered () {
-            const axios = require('axios');
-
-            axios.get('/api/metaverse')
-                .then(function (response) {
-                    // handle success
-                    console.log(response);
-                })
-                .catch(function (error) {
-                    // handle error
-                    console.log(error);
-                })
-                .then(function () {
-                    // always executed
-                });
+            this.connectMetaverseDialog = true;
         }
     }
 });

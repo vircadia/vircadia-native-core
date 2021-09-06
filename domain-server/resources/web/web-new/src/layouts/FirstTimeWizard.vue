@@ -9,12 +9,12 @@
 </template>
 
 <script>
-import { defineComponent } from 'vue';
+import { defineComponent } from "vue";
 
-import * as THREE from 'three';
+import * as THREE from "three";
 
 export default defineComponent({
-    name: 'FirstTimeWizard',
+    name: "FirstTimeWizard",
     data () {
         return {
             vantaBG: null,
@@ -25,11 +25,11 @@ export default defineComponent({
     },
     async mounted () {
         window.THREE = THREE;
-        this.vantaRings = (await import('vanta/dist/vanta.rings.min')).default;
+        this.vantaRings = (await import("vanta/dist/vanta.rings.min")).default;
 
         this.initVanta();
 
-        visualViewport.addEventListener('resize', this.onResize);
+        visualViewport.addEventListener("resize", this.onResize);
     },
     methods: {
         onResize () {
@@ -48,7 +48,7 @@ export default defineComponent({
             }
 
             this.vantaBG = this.vantaRings({
-                el: '#vantaBG',
+                el: "#vantaBG",
                 mouseControls: false,
                 touchControls: false,
                 gyroControls: false,
