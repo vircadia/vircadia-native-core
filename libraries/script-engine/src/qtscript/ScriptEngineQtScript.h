@@ -51,9 +51,9 @@ public:  // ScriptEngine implementation
     virtual void clearExceptions() override;
     virtual ScriptValue cloneUncaughtException(const QString& detail = QString()) override;
     virtual ScriptContext* currentContext() const override;
-    //virtual ScriptValue evaluate(const QString& program, const QString& fileName = QString()) override;
-    //virtual ScriptValue evaluate(const ScriptProgramPointer &program) override;
-    //virtual ScriptValue evaluateInClosure(const ScriptValue& locals, const ScriptProgramPointer& program) override;
+    Q_INVOKABLE virtual ScriptValue evaluate(const QString& program, const QString& fileName = QString()) override;
+    Q_INVOKABLE virtual ScriptValue evaluate(const ScriptProgramPointer& program) override;
+    Q_INVOKABLE virtual ScriptValue evaluateInClosure(const ScriptValue& locals, const ScriptProgramPointer& program) override;
     virtual ScriptValue globalObject() const override;
     virtual bool hasUncaughtException() const override;
     virtual bool isEvaluating() const override;
@@ -81,11 +81,19 @@ public:  // ScriptEngine implementation
     virtual ScriptValue newVariant(const QVariant& value) override;
     virtual ScriptValue nullValue() override;
     virtual bool raiseException(const ScriptValue& exception) override;
-    //virtual void registerEnum(const QString& enumName, QMetaEnum newEnum) override;
-    //Q_INVOKABLE virtual void registerFunction(const QString& name, ScriptEngine::FunctionSignature fun, int numArguments = -1) override;
-    //Q_INVOKABLE virtual void registerFunction(const QString& parent, const QString& name, ScriptEngine::FunctionSignature fun, int numArguments = -1) override;
-    //Q_INVOKABLE virtual void registerGetterSetter(const QString& name, ScriptEngine::FunctionSignature getter, ScriptEngine::FunctionSignature setter, const QString& parent = QString("")) override;
-    //virtual void registerGlobalObject(const QString& name, QObject* object) override;
+    Q_INVOKABLE virtual void registerEnum(const QString& enumName, QMetaEnum newEnum) override;
+    Q_INVOKABLE virtual void registerFunction(const QString& name,
+                                              ScriptEngine::FunctionSignature fun,
+                                              int numArguments = -1) override;
+    Q_INVOKABLE virtual void registerFunction(const QString& parent,
+                                              const QString& name,
+                                              ScriptEngine::FunctionSignature fun,
+                                              int numArguments = -1) override;
+    Q_INVOKABLE virtual void registerGetterSetter(const QString& name,
+                                                  ScriptEngine::FunctionSignature getter,
+                                                  ScriptEngine::FunctionSignature setter,
+                                                  const QString& parent = QString("")) override;
+    Q_INVOKABLE virtual void registerGlobalObject(const QString& name, QObject* object) override;
     virtual void setDefaultPrototype(int metaTypeId, const ScriptValue& prototype) override;
     virtual void setObjectName(const QString& name) override;
     virtual bool setProperty(const char* name, const QVariant& value) override;
@@ -120,52 +128,19 @@ public:
     // NOTE - these are NOT intended to be public interfaces available to scripts, the are only Q_INVOKABLE so we can
     //        properly ensure they are only called on the correct thread
 
-    /// registers a global object by name
-    Q_INVOKABLE virtual void registerGlobalObject(const QString& name, QObject* object) override;
-
     /// registers a global getter/setter
     Q_INVOKABLE void registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,
                                           QScriptEngine::FunctionSignature setter, const QString& parent = QString(""));
 
-    Q_INVOKABLE virtual void registerGetterSetter(const QString& name,
-                                                  ScriptEngine::FunctionSignature getter,
-                                                  ScriptEngine::FunctionSignature setter,
-                                                  const QString& parent = QString("")) override;
-
     /// register a global function
     Q_INVOKABLE void registerFunction(const QString& name, QScriptEngine::FunctionSignature fun, int numArguments = -1);
-
-
-    Q_INVOKABLE virtual void registerFunction(const QString& name,
-                                              ScriptEngine::FunctionSignature fun,
-                                              int numArguments = -1) override;
 
     /// register a function as a method on a previously registered global object
     Q_INVOKABLE void registerFunction(const QString& parent, const QString& name, QScriptEngine::FunctionSignature fun,
                                       int numArguments = -1);
 
-
-    Q_INVOKABLE virtual void registerFunction(const QString& parent,
-                                              const QString& name,
-                                              ScriptEngine::FunctionSignature fun,
-                                              int numArguments = -1) override;
-
-    // WARNING: This function must be called after a registerGlobalObject that creates the namespace this enum is located in, or
-    // the globalObject won't function. E.g., if you have a Foo object and a Foo.FooType enum, Foo must be registered first.
-    /// registers a global enum
-    Q_INVOKABLE virtual void registerEnum(const QString& enumName, QMetaEnum newEnum) override;
-
     /// registers a global object by name
     Q_INVOKABLE void registerValue(const QString& valueName, QScriptValue value);
-
-    /// evaluate some code in the context of the ScriptEngineQtScript and return the result
-    Q_INVOKABLE virtual ScriptValue evaluate(const QString& program,
-                                             const QString& fileName) override;  // this is also used by the script tool widget
-
-
-    Q_INVOKABLE virtual ScriptValue evaluate(const ScriptProgramPointer& program) override;
-
-    Q_INVOKABLE virtual ScriptValue evaluateInClosure(const ScriptValue& locals, const ScriptProgramPointer& program) override;
 
     // NOTE - this is used by the TypedArray implementation. we need to review this for thread safety
     inline ArrayBufferClass* getArrayBufferClass() { return _arrayBufferClass; }
