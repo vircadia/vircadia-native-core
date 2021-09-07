@@ -19,6 +19,8 @@ module.exports = {
     "ignoreLabels": [
         "enhancement",
         "bugfix",
+        "CMake",
+        "unmerged-dev",
         "CR Approved",
         "QA Approved",
         "allow-build-upload",
@@ -33,11 +35,12 @@ module.exports = {
         "rebuild",
         "merge right before snip"
     ],
-    "onlyMilestones": true,
+    "onlyMilestones": false,
     "groupBy": {
         "Enhancements": ["enhancement"],
         "Bug Fixes": ["bugfix"],
-        "Docs": ["docs"]
+        "Docs": ["docs"],
+        "In Development": ["unmerged-dev"]
     },
     "changelogFilename": "CHANGELOG.md"
 }
