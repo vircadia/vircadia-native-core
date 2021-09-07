@@ -508,12 +508,11 @@ void MultiSphereShape::connectEdges(std::vector<std::pair<glm::vec3, glm::vec3>>
 }
 
 void MultiSphereShape::calculateChamferBox(std::vector<std::pair<glm::vec3, glm::vec3>>& outLines, const std::vector<float>& radiuses, const std::vector<glm::vec3>& axes, const glm::vec3& translation) {
-    std::vector<std::pair<glm::vec3, glm::vec3>> sphereLines;
-
     if (radiuses.size() == 0) {
         return;
     }
 
+    std::vector<std::pair<glm::vec3, glm::vec3>> sphereLines;
     calculateSphereLines(sphereLines, glm::vec3(0.0f), radiuses[0]);
 
     std::vector<SphereRegion> regions = {
