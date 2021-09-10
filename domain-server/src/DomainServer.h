@@ -228,6 +228,7 @@ private:
     bool processPendingContent(HTTPConnection* connection, QString itemName, QString filename, QByteArray dataChunk);
 
     bool forwardMetaverseAPIRequest(HTTPConnection* connection,
+                                    const QUrl& requestUrl,
                                     const QString& metaversePath,
                                     const QString& requestSubobject,
                                     std::initializer_list<QString> requiredData = { },

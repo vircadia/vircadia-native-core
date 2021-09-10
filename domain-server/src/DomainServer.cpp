@@ -87,6 +87,7 @@ QString DomainServer::_userConfigFilename;
 int DomainServer::_parentPID { -1 };
 
 bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
+                                              const QUrl& requestUrl,
                                               const QString& metaversePath,
                                               const QString& requestSubobjectKey,
                                               std::initializer_list<QString> requiredData,
@@ -101,22 +102,42 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
 
     QJsonObject subobject;
 
-    auto params = connection->parseUrlEncodedForm();
+    if (requestUrl.hasQuery()) {
+        QUrlQuery query(requestUrl);
 
-    for (auto& key : requiredData) {
-        auto it = params.find(key);
-        if (it == params.end()) {
-            auto error = "Bad request, expected param '" + key + "'";
-            connection->respond(HTTPConnection::StatusCode400, error.toLatin1());
-            return true;
+        for (auto& key : requiredData) {
+            if (query.hasQueryItem(key)) {
+                subobject.insert(key, query.queryItemValue(key));
+            } else {
+                auto error = "Domain Server: Bad request, expected param '" + key + "'";
+                connection->respond(HTTPConnection::StatusCode400, error.toLatin1());
+                return true;
+            }
         }
-        subobject.insert(key, it.value());
-    }
 
-    for (auto& key : optionalData) {
-        auto it = params.find(key);
-        if (it != params.end()) {
+        for (auto& key : optionalData) {
+            if (query.hasQueryItem(key)) {
+                subobject.insert(key, query.queryItemValue(key));
+            }
+        }
+    } else {
+        auto params = connection->parseUrlEncodedForm();
+
+        for (auto& key : requiredData) {
+            auto it = params.find(key);
+            if (it == params.end()) {
+                auto error = "Domain Server: Bad request, expected param '" + key + "'";
+                connection->respond(HTTPConnection::StatusCode400, error.toLatin1());
+                return true;
+            }
             subobject.insert(key, it.value());
+        }
+
+        for (auto& key : optionalData) {
+            auto it = params.find(key);
+            if (it != params.end()) {
+                subobject.insert(key, it.value());
+            }
         }
     }
 
@@ -2296,12 +2317,12 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
             return true;
         } else if (url.path() == URI_API_DOMAINS) {
-            return forwardMetaverseAPIRequest(connection, "/api/v1/domains", "");
+            return forwardMetaverseAPIRequest(connection, url, "/api/v1/domains", "");
         } else if (url.path().startsWith(URI_API_DOMAINS_ID)) {
             auto id = url.path().mid(URI_API_DOMAINS_ID.length());
-            return forwardMetaverseAPIRequest(connection, "/api/v1/domains/" + id, "", {}, {}, false);
+            return forwardMetaverseAPIRequest(connection, url, "/api/v1/domains/" + id, "", {}, {}, false);
         } else if (url.path() == URI_API_PLACES) {
-            return forwardMetaverseAPIRequest(connection, "/api/v1/user/places", "");
+            return forwardMetaverseAPIRequest(connection, url, "/api/v1/user/places", "");
         } else {
             // check if this is for json stats for a node
             const QString NODE_JSON_REGEX_STRING = QString("\\%1\\/(%2).json\\/?$").arg(URI_NODES).arg(UUID_REGEX_STRING);
@@ -2438,7 +2459,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             }
 
         } else if (url.path() == URI_API_DOMAINS) {
-            return forwardMetaverseAPIRequest(connection, "/api/v1/domains", "domain", { "label" });
+            return forwardMetaverseAPIRequest(connection, url, "/api/v1/domains", "domain", { "label" });
 
         } else if (url.path().startsWith(URI_API_BACKUPS_RECOVER)) {
             auto id = url.path().mid(QString(URI_API_BACKUPS_RECOVER).length());
@@ -2465,7 +2486,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                 return true;
             }
             auto domainID = domainSetting.toString();
-            return forwardMetaverseAPIRequest(connection, "/api/v1/domains/" + domainID, "domain",
+            return forwardMetaverseAPIRequest(connection, url, "/api/v1/domains/" + domainID, "domain",
                                               { }, { "network_address", "network_port", "label" });
         }  else if (url.path() == URI_API_PLACES) {
             auto accessTokenVariant = _settingsManager.valueForKeyPath(ACCESS_TOKEN_KEY_PATH);

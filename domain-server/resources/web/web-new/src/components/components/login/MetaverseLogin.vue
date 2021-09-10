@@ -73,10 +73,10 @@ export default {
 
     methods: {
         async onSubmit () {
-            const metaverseURL = await this.retrieveMetaverseUrl();
-            const result = await this.attemptLogin(metaverseURL, this.username, this.password);
+            const metaverseUrl = await this.retrieveMetaverseUrl();
+            const result = await this.attemptLogin(metaverseUrl, this.username, this.password);
 
-            this.$emit("loginResult", { "success": result.success, "metaverse": metaverseURL, "data": result.response });
+            this.$emit("loginResult", { "success": result.success, "metaverse": metaverseUrl, "data": result.response });
         },
 
         // TODO: This needs to be addressed in a more modular fashion to reuse and save state across multiple components.

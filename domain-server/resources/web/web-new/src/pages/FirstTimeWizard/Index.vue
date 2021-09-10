@@ -232,7 +232,7 @@
                                         {{ connectMetaverseSuccess ? 'Connected' : 'Connect' }}
                                     </q-btn>
                                     <q-btn
-                                        @click="$refs.stepper.next()"
+                                        @click="connectMetaverseSuccess ? $refs.stepper.next() : mainWizardStep = 6"
                                         class="q-mb-md"
                                         :size="connectMetaverseSuccess ? 'md' : 'sm'"
                                         outline
@@ -265,9 +265,58 @@
 
                         <q-step
                             :name="5"
-                            title="Access"
+                            title="Configure Metaverse"
                             caption="Recommended"
                             :done="mainWizardStep > 5"
+                        >
+                            <q-card
+                                class="wizardCard"
+                            >
+                                <q-card-section>
+                                    <div class="text-h6 text-weight-light text-center">Let's give your Domain a label.</div>
+                                    <div class="text-h7 text-weight-light text-center">This is to help you identify your Domains in your Metaverse account.</div>
+                                </q-card-section>
+
+                                <q-card-section>
+                                    <q-input
+                                        v-model="domainLabel"
+                                        filled
+                                        dark
+                                        label="Label"
+                                        hint="Enter a nickname for your Domain."
+                                        lazy-rules
+                                        :rules="[ val => val && val.length > 0 || 'Please enter a label.']"
+                                    />
+                                </q-card-section>
+
+                                <q-card-actions vertical align="right">
+                                    <q-btn
+                                        @click="saveMetaverseConfiguration"
+                                        class="q-mb-md"
+                                        size="md"
+                                        outline
+                                        text-color="white"
+                                        icon-right="chevron_right"
+                                    >
+                                        Next
+                                    </q-btn>
+                                    <q-btn
+                                        @click="$refs.stepper.previous()"
+                                        size="sm"
+                                        flat
+                                        icon="chevron_left"
+                                    >
+                                        Back
+                                    </q-btn>
+                                </q-card-actions>
+                            </q-card>
+                        </q-step>
+
+                        <q-step
+                            :name="6"
+                            title="Access"
+                            caption="Recommended"
+                            :done="mainWizardStep > 6"
                         >
                             <q-card
                                 class="wizardCard"
@@ -276,7 +325,7 @@
                                     <div class="text-h6 text-weight-light text-center">Let's configure some security settings for your world.</div>
                                 </q-card-section>
 
-                                <q-card-section>
+                                <q-card-section v-show="connectMetaverseSuccess">
                                     <div class="text-h6 text-weight-light text-center">Who should be an <b>in-world admin</b> of your Domain?</div>
                                     <q-select
                                         label="Metaverse usernames (press enter)"
@@ -323,7 +372,7 @@
                                         Next
                                     </q-btn>
                                     <q-btn
-                                        @click="$refs.stepper.previous()"
+                                        @click="connectMetaverseSuccess ? $refs.stepper.previous() : mainWizardStep = 4"
                                         size="sm"
                                         flat
                                         icon="chevron_left"
@@ -335,10 +384,10 @@
                         </q-step>
 
                         <q-step
-                            :name="6"
+                            :name="7"
                             title="Administrator"
                             caption="Highly Recommended"
-                            :done="mainWizardStep > 6"
+                            :done="mainWizardStep > 7"
                         >
                             <q-card
                                 class="wizardCard"
@@ -444,10 +493,10 @@
                         </q-step>
 
                         <q-step
-                            :name="7"
+                            :name="8"
                             title="Performance"
                             caption=""
-                            :done="mainWizardStep > 7"
+                            :done="mainWizardStep > 8"
                         >
                             <q-card
                                 class="wizardCard"
@@ -492,10 +541,10 @@
                         </q-step>
 
                         <q-step
-                            :name="8"
+                            :name="9"
                             title="Done!"
                             caption=""
-                            :done="mainWizardStep > 8"
+                            :done="mainWizardStep > 9"
                         >
                             <q-card
                                 class="wizardCard"
@@ -615,6 +664,8 @@ export default defineComponent({
             // TODO: Needs to be based off of the actual state of the server's connection (using Vuex and retrieving settings on page load.)
             connectMetaverseSuccess: false,
             connectMetaverseDialog: false,
+            // Metaverse Configuration
+            domainLabel: "",
             // Security Step
             administratorsListSecurityModel: [],
             connectionSecurityModel: ref(["everyone"]),
@@ -658,10 +709,10 @@ export default defineComponent({
             // Starter Content
             starterContentToggle: true,
             // Consts
-            WELCOME_TEXT_TIMEOUT: 4500,
+            WELCOME_TEXT_TIMEOUT: 500,
             MAIN_WIZARD_TRANSITION_TIME: 1000,
             DEFAULT_METAVERSE_URL: "https://metaverse.vircadia.com/live",
-            FINAL_WIZARD_STEP: 8,
+            FINAL_WIZARD_STEP: 9,
             COMPLETE_WIZARD_REDIRECT_DELAY: 4000
         };
     },
@@ -683,6 +734,67 @@ export default defineComponent({
             if (result.success === true) {
                 this.connectMetaverseSuccess = true;
                 this.mainWizardStep++;
+            }
+        },
+
+        saveMetaverseConfiguration () {
+            this.mainWizardStep++;
+            // TODO: Put this path in a constant somewhere.
+            axios.post(`/api/domains`, { "domain": { "label": this.domainLabel } },
+                {
+                    params: {
+                        label: this.domainLabel
+                    },
+                    headers: {
+                        'content-type': 'application/x-www-form-urlencoded;charset=utf-8'
+                    }
+                }
+            )
+                .then((response) => {
+                    Log.info(Log.types.METAVERSE, "Successfully configured Domain with Metaverse.");
+                    console.info("received", response);
+                    const settingsToCommit = {
+                        "metaverse": {
+                            "automatic_networking": "full",
+                            "id": response.data.domain.domainId
+                        },
+                        "descriptors": {
+                            "world_name": this.domainLabel
+                        }
+                    };
+
+                    this.commitMetaverseConfig(settingsToCommit);
+                })
+                .catch((error) => {
+                    Log.error(Log.types.METAVERSE, `Failed to configure Domain with Metaverse: ${error}`);
+                    this.$q.notify({
+                        type: "negative",
+                        textColor: "white",
+                        icon: "warning",
+                        message: `Failed to label your Domain on the Metaverse: ${error}`
+                    });
+                });
+        },
+
+        async commitMetaverseConfig (jsonToCommit) {
+            const committed = await this.commitSettings(jsonToCommit);
+
+            if (committed === true) {
+                Log.info(Log.types.METAVERSE, "Successfully committed Domain server config for the Metaverse.");
+                this.$q.notify({
+                    type: "positive",
+                    textColor: "white",
+                    icon: "cloud_done",
+                    message: "Successfully labeled your Domain on your Metaverse account."
+                });
+            } else {
+                Log.error(Log.types.METAVERSE, "Failed to configure server with Metaverse: Could not commit config to settings.");
+                this.$q.notify({
+                    type: "negative",
+                    textColor: "white",
+                    icon: "warning",
+                    message: "Domain label with Metaverse attempt failed because the settings were unable to be saved."
+                });
             }
         },
 
