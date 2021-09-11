@@ -148,7 +148,7 @@
                                         Start
                                     </q-btn>
                                     <q-btn
-                                        @click="mainWizardStep = FINAL_WIZARD_STEP"
+                                        @click="skipWizardDialog = true"
                                         size="sm"
                                         flat
                                     >
@@ -156,6 +156,32 @@
                                     </q-btn>
                                 </q-card-actions>
                             </q-card>
+
+                            <q-dialog v-model="skipWizardDialog">
+                                <q-card
+                                    class="column no-wrap items-stretch q-pa-md"
+                                    style="background: rgba(0, 0, 0, 0.95);"
+                                    dark
+                                >
+                                <q-card-section>
+                                    <div class="text-h6 text-weight-light text-center">Are you sure you want to skip the wizard?</div>
+                                </q-card-section>
+
+                                <q-card-actions align="right">
+                                    <q-btn
+                                        @click="skipWizardDialog = false"
+                                    >
+                                        No
+                                    </q-btn>
+                                    <q-btn
+                                        @click="mainWizardStep = FINAL_WIZARD_STEP; skipWizardDialog = false;"
+                                        size="md"
+                                    >
+                                        Skip
+                                    </q-btn>
+                                </q-card-actions>
+                                </q-card>
+                            </q-dialog>
                         </q-step>
 
                         <q-step
@@ -661,6 +687,8 @@ export default defineComponent({
             welcomeText: true,
             mainWizard: true,
             mainWizardStep: ref(1),
+            // Skip Wizard Dialog
+            skipWizardDialog: false,
             // TODO: Needs to be based off of the actual state of the server's connection (using Vuex and retrieving settings on page load.)
             connectMetaverseSuccess: false,
             connectMetaverseDialog: false,
@@ -709,7 +737,7 @@ export default defineComponent({
             // Starter Content
             starterContentToggle: true,
             // Consts
-            WELCOME_TEXT_TIMEOUT: 500,
+            WELCOME_TEXT_TIMEOUT: 4500,
             MAIN_WIZARD_TRANSITION_TIME: 1000,
             DEFAULT_METAVERSE_URL: "https://metaverse.vircadia.com/live",
             FINAL_WIZARD_STEP: 9,
@@ -746,7 +774,7 @@ export default defineComponent({
                         label: this.domainLabel
                     },
                     headers: {
-                        'content-type': 'application/x-www-form-urlencoded;charset=utf-8'
+                        "content-type": "application/x-www-form-urlencoded;charset=utf-8"
                     }
                 }
             )
