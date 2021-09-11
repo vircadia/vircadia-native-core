@@ -1288,7 +1288,7 @@ void RenderablePolyVoxEntityItem::recomputeMesh() {
     auto entity = std::static_pointer_cast<RenderablePolyVoxEntityItem>(getThisPointer());
 
     QtConcurrent::run([entity, voxelSurfaceStyle] {
-        graphics::MeshPointer mesh(new graphics::Mesh());
+        graphics::MeshPointer mesh(std::make_shared<graphics::Mesh>());
 
         // A mesh object to hold the result of surface extraction
         PolyVox::SurfaceMesh<PolyVox::PositionMaterialNormal> polyVoxMesh;

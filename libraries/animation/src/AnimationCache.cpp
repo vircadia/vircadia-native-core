@@ -37,11 +37,11 @@ AnimationPointer AnimationCache::getAnimation(const QUrl& url) {
 }
 
 QSharedPointer<Resource> AnimationCache::createResource(const QUrl& url) {
-    return QSharedPointer<Resource>(new Animation(url), &Resource::deleter);
+    return QSharedPointer<Animation>(new Animation(url), &Resource::deleter);
 }
 
 QSharedPointer<Resource> AnimationCache::createResourceCopy(const QSharedPointer<Resource>& resource) {
-    return QSharedPointer<Resource>(new Animation(*resource.staticCast<Animation>()), &Resource::deleter);
+    return QSharedPointer<Animation>(new Animation(*resource.staticCast<Animation>()), &Resource::deleter);
 }
 
 AnimationReader::AnimationReader(const QUrl& url, const QByteArray& data) :

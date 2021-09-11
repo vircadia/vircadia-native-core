@@ -34,11 +34,11 @@ SharedSoundPointer SoundCache::getSound(const QUrl& url) {
 }
 
 QSharedPointer<Resource> SoundCache::createResource(const QUrl& url) {
-    auto resource = QSharedPointer<Resource>(new Sound(url), &Resource::deleter);
+    auto resource = QSharedPointer<Sound>(new Sound(url), &Resource::deleter);
     resource->setLoadPriority(this, SOUNDS_LOADING_PRIORITY);
     return resource;
 }
 
 QSharedPointer<Resource> SoundCache::createResourceCopy(const QSharedPointer<Resource>& resource) {
-    return QSharedPointer<Resource>(new Sound(*resource.staticCast<Sound>()), &Resource::deleter);
+    return QSharedPointer<Sound>(new Sound(*resource.staticCast<Sound>()), &Resource::deleter);
 }

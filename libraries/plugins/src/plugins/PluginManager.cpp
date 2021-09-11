@@ -124,7 +124,7 @@ int PluginManager::instantiate() {
 
             for (auto plugin : candidates) {
                 qCDebug(plugins) << "Attempting plugin" << qPrintable(plugin);
-                QSharedPointer<QPluginLoader> loader(new QPluginLoader(pluginPath + plugin));
+                auto loader = QSharedPointer<QPluginLoader>::create(pluginPath + plugin);
                 const QJsonObject pluginMetaData = loader->metaData();
 #if defined(HIFI_PLUGINMANAGER_DEBUG)
                 QJsonDocument metaDataDoc(pluginMetaData);

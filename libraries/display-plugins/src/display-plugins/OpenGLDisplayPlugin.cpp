@@ -382,7 +382,7 @@ void OpenGLDisplayPlugin::customizeContext() {
     }
 
     if (!_linearToSRGBPipeline) {
-        gpu::StatePointer blendState = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer blendState = std::make_shared<gpu::State>();
         blendState->setDepthTest(gpu::State::DepthTest(false));
         blendState->setBlendFunction(true,
                                      gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD,
@@ -390,7 +390,7 @@ void OpenGLDisplayPlugin::customizeContext() {
                                      gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD,
                                      gpu::State::ONE);
 
-        gpu::StatePointer scissorState = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer scissorState = std::make_shared<gpu::State>();
         scissorState->setDepthTest(gpu::State::DepthTest(false));
         scissorState->setScissorEnable(true);
 

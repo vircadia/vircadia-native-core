@@ -30,7 +30,7 @@ public:
         static std::once_flag once;
         std::call_once(once, [&] {
 
-            CodecPluginPointer opusCodec(new AthenaOpusCodec());
+            CodecPluginPointer opusCodec(std::make_shared<AthenaOpusCodec>());
             if (opusCodec->isSupported()) {
                 _codecPlugins.push_back(opusCodec);
             }

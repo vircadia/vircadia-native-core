@@ -228,7 +228,7 @@ const gpu::PipelinePointer& LinearDepthPass::getLinearDepthPipeline(const render
     if (!_linearDepthPipeline) {
         program = gpu::Shader::createProgram(shader::render_utils::program::surfaceGeometry_makeLinearDepth);
 
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
 
         // Stencil test the curvature pass for objects pixels only, not the background
         PrepareStencil::testShape(*state);
@@ -248,7 +248,7 @@ const gpu::PipelinePointer& LinearDepthPass::getDownsamplePipeline(const render:
     if (!_downsamplePipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::surfaceGeometry_downsampleDepthNormal);
 
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
         PrepareStencil::testShape(*state);
 
         state->setColorWriteMask(true, true, true, false);
@@ -536,7 +536,7 @@ const gpu::PipelinePointer& SurfaceGeometryPass::getCurvaturePipeline(const rend
     if (!_curvaturePipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::surfaceGeometry_makeCurvature);
 
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
 
 #ifdef USE_STENCIL_TEST
         // Stencil test the curvature pass for objects pixels only, not the background

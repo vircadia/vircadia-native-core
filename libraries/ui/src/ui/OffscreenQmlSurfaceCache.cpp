@@ -45,7 +45,7 @@ void OffscreenQmlSurfaceCache::release(const QString& rootSource, const QSharedP
 }
 
 QSharedPointer<OffscreenQmlSurface> OffscreenQmlSurfaceCache::buildSurface(const QString& rootSource) {
-    auto surface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface());
+    auto surface = QSharedPointer<OffscreenQmlSurface>::create();
 
     QObject::connect(surface.data(), &hifi::qml::OffscreenSurface::rootContextCreated, [this, rootSource](QQmlContext* surfaceContext) {
         if (_onRootContextCreated) {

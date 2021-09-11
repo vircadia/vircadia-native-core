@@ -30,7 +30,7 @@ public:
     virtual InputPluginList getInputPlugins() override {
         static std::once_flag once;
         std::call_once(once, [&] {
-            InputPluginPointer plugin(new OscPlugin());
+            InputPluginPointer plugin(std::make_shared<OscPlugin>());
             if (plugin->isSupported()) {
                 _inputPlugins.push_back(plugin);
             }

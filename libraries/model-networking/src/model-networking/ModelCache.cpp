@@ -377,11 +377,11 @@ ModelCache::ModelCache() {
 }
 
 QSharedPointer<Resource> ModelCache::createResource(const QUrl& url) {
-    return QSharedPointer<Resource>(new GeometryResource(url, _modelLoader), &GeometryResource::deleter);
+    return QSharedPointer<GeometryResource>(new GeometryResource(url, _modelLoader), &GeometryResource::deleter);
 }
 
 QSharedPointer<Resource> ModelCache::createResourceCopy(const QSharedPointer<Resource>& resource) {
-    return QSharedPointer<Resource>(new GeometryResource(*resource.staticCast<GeometryResource>()), &GeometryResource::deleter);
+    return QSharedPointer<GeometryResource>(new GeometryResource(*resource.staticCast<GeometryResource>()), &GeometryResource::deleter);
 }
 
 GeometryResource::Pointer ModelCache::getGeometryResource(const QUrl& url, const GeometryMappingPair& mapping, const QUrl& textureBaseUrl) {
