@@ -17,6 +17,7 @@
 
 #include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QUrl>
 #include <QtCore/QTimer>
 #include <QUuid>

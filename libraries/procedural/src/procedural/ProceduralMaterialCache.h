@@ -8,6 +8,8 @@
 #ifndef hifi_MaterialCache_h
 #define hifi_MaterialCache_h
 
+#include <QtCore/QSharedPointer>
+
 #include "glm/glm.hpp"
 
 #include <ResourceCache.h>

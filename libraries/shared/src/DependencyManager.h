@@ -15,7 +15,7 @@
 #include <QtGlobal>
 #include <QDebug>
 #include <QHash>
-#include <QSharedPointer>
+#include <QtCore/QSharedPointer>
 #include <QWeakPointer>
 #include <QMutex>
 

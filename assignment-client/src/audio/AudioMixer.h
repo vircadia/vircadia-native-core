@@ -12,6 +12,8 @@
 #ifndef hifi_AudioMixer_h
 #define hifi_AudioMixer_h
 
+#include <QtCore/QSharedPointer>
+
 #include <AABox.h>
 #include <AudioHRTF.h>
 #include <AudioRingBuffer.h>

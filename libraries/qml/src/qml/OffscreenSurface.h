@@ -17,7 +17,6 @@
 #include <QtCore/QUrl>
 #include <QtCore/QSize>
 #include <QtCore/QPointF>
-#include <QtCore/QSharedPointer>
 #include <QtCore/QTimer>
 
 #include <QtQml/QJSValue>

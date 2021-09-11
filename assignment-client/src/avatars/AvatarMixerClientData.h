@@ -19,6 +19,7 @@
 #include <queue>
 
 #include <QtCore/QJsonObject>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QUrl>
 
 #include "MixerAvatar.h"

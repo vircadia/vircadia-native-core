@@ -14,6 +14,8 @@
 #ifndef hifi_OctreeInboundPacketProcessor_h
 #define hifi_OctreeInboundPacketProcessor_h
 
+#include <QtCore/QSharedPointer>
+
 #include <ReceivedPacketProcessor.h>
 
 #include "SequenceNumberStats.h"

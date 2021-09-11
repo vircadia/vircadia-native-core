@@ -14,6 +14,7 @@
 #include <memory>
 
 #include <QNetworkReply>
+#include <QtCore/QSharedPointer>
 #include <QString>
 #include <QUrl>
 

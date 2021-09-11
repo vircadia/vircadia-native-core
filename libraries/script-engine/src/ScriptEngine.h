@@ -22,6 +22,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 #include <QtCore/QSet>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QWaitCondition>
 #include <QtCore/QStringList>
 #include <QMap>

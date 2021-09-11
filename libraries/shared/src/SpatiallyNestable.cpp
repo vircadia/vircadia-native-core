@@ -11,6 +11,8 @@
 
 #include "SpatiallyNestable.h"
 
+#include <QtCore/QSharedPointer>
+
 #include <queue>
 
 #include "DependencyManager.h"

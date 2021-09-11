@@ -16,7 +16,6 @@
 
 #include <QtCore/QHash>
 #include <QtCore/QObject>
-#include <QtCore/QSharedPointer>
 
 #include <AvatarHashMap.h>
 #include <PhysicsEngine.h>

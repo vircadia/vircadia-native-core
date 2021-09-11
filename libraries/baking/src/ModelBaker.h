@@ -17,6 +17,7 @@
 #include <QtCore/QUrl>
 #include <QtNetwork/QNetworkReply>
 #include <QJsonArray>
+#include <QtCore/QSharedPointer>
 
 #include "Baker.h"
 #include "MaterialBaker.h"

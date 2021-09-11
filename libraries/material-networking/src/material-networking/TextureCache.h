@@ -18,6 +18,7 @@
 #include <QMap>
 #include <QColor>
 #include <QMetaEnum>
+#include <QtCore/QSharedPointer>
 
 #include <DependencyManager.h>
 #include <ResourceCache.h>

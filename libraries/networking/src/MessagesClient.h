@@ -15,6 +15,7 @@
 
 #include <QString>
 #include <QByteArray>
+#include <QtCore/QSharedPointer>
 
 #include <DependencyManager.h>
 
