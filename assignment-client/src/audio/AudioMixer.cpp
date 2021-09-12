@@ -76,7 +76,7 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     };
     pluginManager->setPluginFilter(codecPluginFilter);
 
-    auto codecPlugins = pluginManager->getCodecPlugins();
+    const auto& codecPlugins = pluginManager->getCodecPlugins();
     for_each(codecPlugins.cbegin(), codecPlugins.cend(),
         [&](const CodecPluginPointer& codec) {
             _availableCodecs[codec->getName()] = codec;
