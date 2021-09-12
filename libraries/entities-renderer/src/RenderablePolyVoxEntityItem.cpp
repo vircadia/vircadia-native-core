@@ -163,7 +163,8 @@ void loop3(const T& start, const T& end, F f) {
 }
 
 EntityItemPointer RenderablePolyVoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    std::shared_ptr<RenderablePolyVoxEntityItem> entity(new RenderablePolyVoxEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
+    std::shared_ptr<RenderablePolyVoxEntityItem> entity(new RenderablePolyVoxEntityItem(entityID),
+                                                        [](RenderablePolyVoxEntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     entity->initializePolyVox();
     return entity;

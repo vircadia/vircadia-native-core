@@ -4155,7 +4155,7 @@ std::map<QString, QString> Application::prepareServerlessDomainContents(QUrl dom
     nodeList->setPermissions(permissions);
 
     // FIXME: Lock the main tree and import directly into it.
-    EntityTreePointer tmpTree(new EntityTree());
+    EntityTreePointer tmpTree(std::make_shared<EntityTree>());
     tmpTree->setIsServerlessMode(true);
     tmpTree->createRootElement();
     auto myAvatar = getMyAvatar();
