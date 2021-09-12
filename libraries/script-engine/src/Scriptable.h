@@ -15,13 +15,13 @@
 #ifndef hifi_Scriptable_h
 #define hifi_Scriptable_h
 
-#include <QtCore/QSharedPointer>
+#include <memory>
 
 #include "ScriptContext.h"
 #include "ScriptValue.h"
 
 class ScriptEngine;
-using ScriptEnginePointer = QSharedPointer<ScriptEngine>;
+using ScriptEnginePointer = std::shared_ptr<ScriptEngine>;
 
 /// [ScriptInterface] Provides an engine-independent interface for QScriptable
 class Scriptable {

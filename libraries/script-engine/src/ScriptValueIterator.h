@@ -15,13 +15,14 @@
 #ifndef hifi_ScriptValueIterator_h
 #define hifi_ScriptValueIterator_h
 
-#include <QtCore/QSharedPointer>
+#include <memory>
+
 #include <QtCore/QString>
 
 #include "ScriptValue.h"
 
 class ScriptValueIterator;
-using ScriptValueIteratorPointer = QSharedPointer<ScriptValueIterator>;
+using ScriptValueIteratorPointer = std::shared_ptr<ScriptValueIterator>;
 
 /// [ScriptInterface] Provides an engine-independent interface for QScriptValueIterator
 class ScriptValueIterator {

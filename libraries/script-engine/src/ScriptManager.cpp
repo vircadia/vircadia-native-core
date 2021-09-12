@@ -133,7 +133,7 @@ static ScriptValue debugPrint(ScriptContext* context, ScriptEngine* engine) {
         ScriptContextPointer parentContext; // using this variable to maintain parent variable lifespan
         while (userContext && userContext->functionContext()->functionType() == ScriptFunctionContext::NativeFunction) {
             parentContext = userContext->parentContext();
-            userContext = parentContext.data();
+            userContext = parentContext.get();
         }
         QString location;
         if (userContext) {
@@ -211,7 +211,8 @@ ScriptManagerPointer scriptManagerFactory(ScriptManager::Context context,
 ScriptManagerPointer newScriptManager(ScriptManager::Context context,
                                       const QString& scriptContents,
                                       const QString& fileNameString) {
-    ScriptManagerPointer manager(new ScriptManager(context, scriptContents, fileNameString), &QObject::deleteLater);
+    ScriptManagerPointer manager(new ScriptManager(context, scriptContents, fileNameString),
+                                 [](ScriptManager* obj) { obj->deleteLater(); });
     ScriptEnginePointer engine = newScriptEngine(manager.get());
     manager->_engine = engine;
     return manager;
@@ -559,7 +560,7 @@ static ScriptValue createScriptableResourcePrototype(ScriptManagerPointer manage
     auto prototype = engine->newObject();
 
     // Expose enum State to JS/QML via properties
-    QObject* state = new QObject(manager.data());
+    QObject* state = new QObject(manager.get());
     state->setObjectName("ResourceState");
     auto metaEnum = QMetaEnum::fromType<ScriptableResource::State>();
     for (int i = 0; i < metaEnum.keyCount(); ++i) {
@@ -623,7 +624,7 @@ void ScriptManager::init() {
     _isInitialized = true;
     runStaticInitializers(this);
 
-    auto scriptEngine = _engine.data();
+    auto scriptEngine = _engine.get();
 
     // register various meta-types
     registerMIDIMetaTypes(scriptEngine);
@@ -693,7 +694,7 @@ void ScriptManager::init() {
     scriptEngine->registerFunction("console", "groupEnd", ConsoleScriptingInterface::groupEnd, 0);
 
     // Scriptable cache access
-    auto resourcePrototype = createScriptableResourcePrototype(qSharedPointerCast<ScriptManager>(sharedFromThis()));
+    auto resourcePrototype = createScriptableResourcePrototype(shared_from_this());
     scriptEngine->globalObject().setProperty("Resource", resourcePrototype);
     scriptEngine->setDefaultPrototype(qMetaTypeId<ScriptableResource*>(), resourcePrototype);
     scriptRegisterMetaType(scriptEngine, scriptableResourceToScriptValue, scriptableResourceFromScriptValue);
@@ -960,7 +961,7 @@ void ScriptManager::run() {
 
     emit releaseEntityPacketSenderMessages(true);
 
-    emit finished(_fileNameString, qSharedPointerCast<ScriptManager>(sharedFromThis()));
+    emit finished(_fileNameString, shared_from_this());
 
     // Don't leave our local-file-access flag laying around, reset it to false when the scriptengine 
     // thread is finished
@@ -1117,7 +1118,7 @@ QUrl ScriptManager::resolvePath(const QString& include) const {
         auto contextInfo = context->functionContext();
         parentURL = QUrl(contextInfo->fileName());
         parentContext = context->parentContext();
-        context = parentContext.data();
+        context = parentContext.get();
     } while (parentURL.isRelative() && context);
 
     if (parentURL.isRelative()) {
@@ -1258,7 +1259,8 @@ ScriptValue ScriptManager::currentModule() {
     auto cache = jsRequire.property("cache");
     ScriptValue candidate;
     ScriptContextPointer parentContext;  // using this variable to maintain parent variable lifespan
-    for (auto context = _engine->currentContext(); context && !candidate.isObject(); parentContext = context->parentContext(), context = parentContext.data()) {
+    for (auto context = _engine->currentContext(); context && !candidate.isObject();
+         parentContext = context->parentContext(), context = parentContext.get()) {
         auto contextInfo = context->functionContext();
         candidate = cache.property(contextInfo->fileName());
     }
@@ -1808,10 +1810,10 @@ void ScriptManager::loadEntityScript(const EntityItemID& entityID, const QString
 
     auto scriptCache = DependencyManager::get<ScriptCache>();
     // note: see EntityTreeRenderer.cpp for shared pointer lifecycle management
-    QWeakPointer<ScriptManager> weakRef(sharedFromThis());
+    std::weak_ptr<ScriptManager> weakRef(shared_from_this());
     scriptCache->getScriptContents(entityScript,
         [this, weakRef, entityScript, entityID](const QString& url, const QString& contents, bool isURL, bool success, const QString& status) {
-            QSharedPointer<ScriptManager> strongRef(weakRef);
+            std::shared_ptr<ScriptManager> strongRef(weakRef);
             if (!strongRef) {
                 qCWarning(scriptengine) << "loadEntityScript.contentAvailable -- ScriptManager was deleted during getScriptContents!!";
                 return;
@@ -1929,7 +1931,7 @@ void ScriptManager::entityScriptContentAvailable(const EntityItemID& entityID, c
         return;
     }
     auto program = _engine->newProgram( contents, fileName );
-    if (program.isNull()) {
+    if (!program) {
         setError("Bad program (isNull)", EntityScriptStatus::ERROR_RUNNING_SCRIPT);
         emit unhandledException(_engine->makeError(_engine->newValue("program.isNull")));
         return; // done processing script
@@ -2337,7 +2339,7 @@ void ScriptManager::callEntityScriptMethod(const EntityItemID& entityID, const Q
         }
 
         if (callAllowed && entityScript.property(methodName).isFunction()) {
-            auto scriptEngine = engine().data();
+            auto scriptEngine = engine().get();
 
             ScriptValueList args;
             args << EntityItemIDtoScriptValue(scriptEngine, entityID);
@@ -2380,7 +2382,7 @@ void ScriptManager::callEntityScriptMethod(const EntityItemID& entityID, const Q
         }
         ScriptValue entityScript = details.scriptObject;  // previously loaded
         if (entityScript.property(methodName).isFunction()) {
-            auto scriptEngine = engine().data();
+            auto scriptEngine = engine().get();
 
             ScriptValueList args;
             args << EntityItemIDtoScriptValue(scriptEngine, entityID);
@@ -2420,7 +2422,7 @@ void ScriptManager::callEntityScriptMethod(const EntityItemID& entityID, const Q
         }
         ScriptValue entityScript = details.scriptObject;  // previously loaded
         if (entityScript.property(methodName).isFunction()) {
-            auto scriptEngine = engine().data();
+            auto scriptEngine = engine().get();
 
             ScriptValueList args;
             args << EntityItemIDtoScriptValue(scriptEngine, entityID);

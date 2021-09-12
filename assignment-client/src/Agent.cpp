@@ -606,7 +606,7 @@ void Agent::setIsAvatar(bool isAvatar) {
             // start the timer
             _avatarQueryTimer->start(AVATAR_VIEW_PACKET_SEND_INTERVAL_MSECS);
 
-            connect(_scriptManager.data(), &ScriptManager::update,
+            connect(_scriptManager.get(), &ScriptManager::update,
                     scriptableAvatar.data(), &ScriptableAvatar::update, Qt::QueuedConnection);
 
             // tell the avatarAudioTimer to start ticking
@@ -642,7 +642,7 @@ void Agent::setIsAvatar(bool isAvatar) {
                 nodeList->sendPacket(std::move(packet), *node);
             });
 
-            disconnect(_scriptManager.data(), &ScriptManager::update,
+            disconnect(_scriptManager.get(), &ScriptManager::update,
                        scriptableAvatar.data(), &ScriptableAvatar::update);
 
             QMetaObject::invokeMethod(&_avatarAudioTimer, "stop");
@@ -879,7 +879,7 @@ void Agent::aboutToFinish() {
 
     // drop our shared pointer to the script engine, then ask ScriptEngines to shutdown scripting
     // this ensures that the ScriptEngine goes down before ScriptEngines
-    _scriptManager.clear();
+    _scriptManager.reset();
 
     {
         DependencyManager::get<ScriptEngines>()->shutdownScripting();

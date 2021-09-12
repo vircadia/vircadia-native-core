@@ -16,12 +16,12 @@
 #ifndef hifi_ScriptEngineQtScript_h
 #define hifi_ScriptEngineQtScript_h
 
+#include <memory>
+
 #include <QtCore/QByteArray>
-#include <QtCore/QEnableSharedFromThis>
 #include <QtCore/QMetaEnum>
 #include <QtCore/QObject>
 #include <QtCore/QPointer>
-#include <QtCore/QSharedPointer>
 #include <QtCore/QString>
 
 #include <QtScript/QScriptEngine>
@@ -35,15 +35,15 @@ class ScriptContextQtWrapper;
 class ScriptContextQtAgent;
 class ScriptEngineQtScript;
 class ScriptManager;
-using ScriptEngineQtScriptPointer = QSharedPointer<ScriptEngineQtScript>;
-using ScriptContextQtPointer = QSharedPointer<ScriptContextQtWrapper>;
+using ScriptEngineQtScriptPointer = std::shared_ptr<ScriptEngineQtScript>;
+using ScriptContextQtPointer = std::shared_ptr<ScriptContextQtWrapper>;
 
 Q_DECLARE_METATYPE(ScriptEngineQtScriptPointer);
 
 /// [QtScript] Implements ScriptEngine for QtScript and translates calls for QScriptEngine
 class ScriptEngineQtScript final : public QScriptEngine,
                                    public ScriptEngine,
-                                   public QEnableSharedFromThis<ScriptEngineQtScript> {
+                                   public std::enable_shared_from_this<ScriptEngineQtScript> {
     Q_OBJECT
 
 public:  // construction

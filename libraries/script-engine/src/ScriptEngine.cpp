@@ -17,7 +17,7 @@
 #include "qtscript/ScriptEngineQtScript.h"
 
 ScriptEnginePointer newScriptEngine(ScriptManager* manager) {
-    return QSharedPointer<ScriptEngineQtScript>(new ScriptEngineQtScript(manager));
+    return std::make_shared<ScriptEngineQtScript>(manager);
 }
 
 ScriptValue makeScopedHandlerObject(const ScriptValue& scopeOrCallback, const ScriptValue& methodOrName) {

@@ -68,7 +68,7 @@ static const float DEFAULT_AVATAR_DENSITY = 1000.0f; // density of water
 #define ASSERT(COND)  do { if (!(COND)) { abort(); } } while(0)
 
 STATIC_SCRIPT_INITIALIZER(+[](ScriptManager* manager) {
-    auto scriptEngine = manager->engine().data();
+    auto scriptEngine = manager->engine().get();
 
     registerAvatarTypes(scriptEngine);
     scriptRegisterMetaType(scriptEngine, RayToAvatarIntersectionResultToScriptValue, RayToAvatarIntersectionResultFromScriptValue);

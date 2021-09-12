@@ -12,6 +12,8 @@
 #ifndef hifi_EntityTreeRenderer_h
 #define hifi_EntityTreeRenderer_h
 
+#include <memory>
+
 #include <QtCore/QSet>
 #include <QtCore/QStack>
 #include <QtGui/QMouseEvent>
@@ -35,8 +37,8 @@ class ZoneEntityItem;
 class EntityItem;
 class ScriptEngine;
 class ScriptManager;
-using ScriptEnginePointer = QSharedPointer<ScriptEngine>;
-using ScriptManagerPointer = QSharedPointer<ScriptManager>;
+using ScriptEnginePointer = std::shared_ptr<ScriptEngine>;
+using ScriptManagerPointer = std::shared_ptr<ScriptManager>;
 
 namespace render { namespace entities {
     class EntityRenderer;

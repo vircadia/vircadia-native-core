@@ -641,7 +641,7 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
 
 QVariantMap Overlays::convertEntityToOverlayProperties(const EntityItemProperties& properties) {
     ScriptEnginePointer scriptEngine = newScriptEngine();
-    QVariantMap overlayProps = EntityItemPropertiesToScriptValue(scriptEngine.data(), properties).toVariant().toMap();
+    QVariantMap overlayProps = EntityItemPropertiesToScriptValue(scriptEngine.get(), properties).toVariant().toMap();
 
     QString type = overlayProps["type"].toString();
     overlayProps["type"] = entityToOverlayType(type);

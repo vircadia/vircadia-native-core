@@ -19,7 +19,7 @@
 #include <OBJWriter.h>
 
 STATIC_SCRIPT_INITIALIZER(+[](ScriptManager* manager) {
-    auto scriptEngine = manager->engine().data();
+    auto scriptEngine = manager->engine();
 
     scriptEngine->registerGlobalObject("Model", new ModelScriptingInterface(manager));
 });

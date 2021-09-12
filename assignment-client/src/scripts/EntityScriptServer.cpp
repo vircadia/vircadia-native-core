@@ -459,12 +459,12 @@ void EntityScriptServer::resetEntitiesScriptEngine() {
 
     // connect this script engines printedMessage signal to the global ScriptEngines these various messages
     auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
-    connect(newManager.data(), &ScriptManager::printedMessage, scriptEngines, &ScriptEngines::onPrintedMessage);
-    connect(newManager.data(), &ScriptManager::errorMessage, scriptEngines, &ScriptEngines::onErrorMessage);
-    connect(newManager.data(), &ScriptManager::warningMessage, scriptEngines, &ScriptEngines::onWarningMessage);
-    connect(newManager.data(), &ScriptManager::infoMessage, scriptEngines, &ScriptEngines::onInfoMessage);
+    connect(newManager.get(), &ScriptManager::printedMessage, scriptEngines, &ScriptEngines::onPrintedMessage);
+    connect(newManager.get(), &ScriptManager::errorMessage, scriptEngines, &ScriptEngines::onErrorMessage);
+    connect(newManager.get(), &ScriptManager::warningMessage, scriptEngines, &ScriptEngines::onWarningMessage);
+    connect(newManager.get(), &ScriptManager::infoMessage, scriptEngines, &ScriptEngines::onInfoMessage);
 
-    connect(newManager.data(), &ScriptManager::update, this, [this] {
+    connect(newManager.get(), &ScriptManager::update, this, [this] {
         _entityViewer.queryOctree();
         _entityViewer.getTree()->preUpdate();
         _entityViewer.getTree()->update();
@@ -472,18 +472,18 @@ void EntityScriptServer::resetEntitiesScriptEngine() {
 
     scriptEngines->runScriptInitializers(newManager);
     newManager->runInThread();
-    auto newEngineSP = qSharedPointerCast<EntitiesScriptEngineProvider>(newManager);
+    std::shared_ptr<EntitiesScriptEngineProvider> newEngineSP = newManager;
     // On the entity script server, these are the same
     DependencyManager::get<EntityScriptingInterface>()->setPersistentEntitiesScriptEngine(newEngineSP);
     DependencyManager::get<EntityScriptingInterface>()->setNonPersistentEntitiesScriptEngine(newEngineSP);
 
     if (_entitiesScriptManager) {
-        disconnect(_entitiesScriptManager.data(), &ScriptManager::entityScriptDetailsUpdated,
+        disconnect(_entitiesScriptManager.get(), &ScriptManager::entityScriptDetailsUpdated,
                    this, &EntityScriptServer::updateEntityPPS);
     }
 
     _entitiesScriptManager.swap(newManager);
-    connect(_entitiesScriptManager.data(), &ScriptManager::entityScriptDetailsUpdated,
+    connect(_entitiesScriptManager.get(), &ScriptManager::entityScriptDetailsUpdated,
             this, &EntityScriptServer::updateEntityPPS);
 }
 
@@ -516,7 +516,7 @@ void EntityScriptServer::shutdownScriptEngine() {
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
     scriptEngines->shutdownScripting();
 
-    _entitiesScriptManager.clear();
+    _entitiesScriptManager.reset();
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     // our entity tree is going to go away so tell that to the EntityScriptingInterface

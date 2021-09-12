@@ -2943,7 +2943,7 @@ bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElementPointer
     entityDescription["DataVersion"] = _persistDataVersion;
     entityDescription["Id"] = _persistID;
     ScriptEnginePointer engine = newScriptEngine();
-    RecurseOctreeToMapOperator theOperator(entityDescription, element, engine.data(), skipDefaultValues,
+    RecurseOctreeToMapOperator theOperator(entityDescription, element, engine.get(), skipDefaultValues,
                                             skipThoseWithBadParents, _myAvatar);
     withReadLock([&] {
         recurseTreeWithOperator(&theOperator);
@@ -3268,7 +3268,7 @@ bool EntityTree::readFromMap(QVariantMap& map, const bool isImport) {
 
 bool EntityTree::writeToJSON(QString& jsonString, const OctreeElementPointer& element) {
     ScriptEnginePointer engine = newScriptEngine();
-    RecurseOctreeToJSONOperator theOperator(element, engine.data(), jsonString);
+    RecurseOctreeToJSONOperator theOperator(element, engine.get(), jsonString);
     withReadLock([&] {
         recurseTreeWithOperator(&theOperator);
     });

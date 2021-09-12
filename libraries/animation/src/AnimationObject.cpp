@@ -19,7 +19,7 @@
 #include "AnimationCache.h"
 
 STATIC_SCRIPT_INITIALIZER(+[](ScriptManager* manager) {
-    registerAnimationTypes(manager->engine().data());
+    registerAnimationTypes(manager->engine().get());
 });
 
 QStringList AnimationObject::getJointNames() const {

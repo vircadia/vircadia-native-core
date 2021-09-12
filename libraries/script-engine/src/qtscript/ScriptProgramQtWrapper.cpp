@@ -26,7 +26,7 @@ ScriptProgramQtWrapper* ScriptProgramQtWrapper::unwrap(ScriptProgramPointer val)
 
 ScriptSyntaxCheckResultPointer ScriptProgramQtWrapper::checkSyntax() const {
     QScriptSyntaxCheckResult result = _engine->checkSyntax(_value.sourceCode());
-    return ScriptSyntaxCheckResultPointer(new ScriptSyntaxCheckResultQtWrapper(std::move(result)));
+    return std::make_shared<ScriptSyntaxCheckResultQtWrapper>(std::move(result));
 }
 
 QString ScriptProgramQtWrapper::fileName() const {

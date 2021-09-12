@@ -15,7 +15,8 @@
 #ifndef hifi_ScriptContext_h
 #define hifi_ScriptContext_h
 
-#include <QtCore/QSharedPointer>
+#include <memory>
+
 #include <QtCore/QString>
 #include <QtCore/QStringList>
 
@@ -24,9 +25,9 @@
 class ScriptContext;
 class ScriptEngine;
 class ScriptFunctionContext;
-using ScriptContextPointer = QSharedPointer<ScriptContext>;
-using ScriptFunctionContextPointer = QSharedPointer<ScriptFunctionContext>;
-using ScriptEnginePointer = QSharedPointer<ScriptEngine>;
+using ScriptContextPointer = std::shared_ptr<ScriptContext>;
+using ScriptFunctionContextPointer = std::shared_ptr<ScriptFunctionContext>;
+using ScriptEnginePointer = std::shared_ptr<ScriptEngine>;
 
 /// [ScriptInterface] Provides an engine-independent interface for QScriptContextInfo
 class ScriptFunctionContext {

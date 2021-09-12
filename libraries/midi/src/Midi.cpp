@@ -135,7 +135,7 @@ void CALLBACK MidiInProc(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWORD
 }
 
 STATIC_SCRIPT_INITIALIZER(+[](ScriptManager* manager) {
-    auto scriptEngine = manager->engine().data();
+    auto scriptEngine = manager->engine();
 
     scriptEngine->registerGlobalObject("Midi", DependencyManager::get<Midi>().data());
 });

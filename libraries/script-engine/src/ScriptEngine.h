@@ -16,9 +16,10 @@
 #ifndef hifi_ScriptEngine_h
 #define hifi_ScriptEngine_h
 
+#include <memory>
+
 #include <QtCore/QFlags>
 #include <QtCore/QObject>
-#include <QtCore/QSharedPointer>
 
 #include "ScriptValue.h"
 
@@ -31,8 +32,8 @@ class ScriptContext;
 class ScriptEngine;
 class ScriptManager;
 class ScriptProgram;
-using ScriptEnginePointer = QSharedPointer<ScriptEngine>;
-using ScriptProgramPointer = QSharedPointer<ScriptProgram>;
+using ScriptEnginePointer = std::shared_ptr<ScriptEngine>;
+using ScriptProgramPointer = std::shared_ptr<ScriptProgram>;
 
 Q_DECLARE_METATYPE(ScriptEnginePointer);
 

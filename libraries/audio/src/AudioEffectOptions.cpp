@@ -16,7 +16,7 @@
 #include <ScriptValue.h>
 
 STATIC_SCRIPT_INITIALIZER(+[](ScriptManager* manager) {
-    auto scriptEngine = manager->engine().data();
+    auto scriptEngine = manager->engine();
 
     ScriptValue audioEffectOptionsConstructorValue = scriptEngine->newFunction(AudioEffectOptions::constructor);
     scriptEngine->globalObject().setProperty("AudioEffectOptions", audioEffectOptionsConstructorValue);

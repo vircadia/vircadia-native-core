@@ -12,9 +12,10 @@
 #ifndef hifi_JSConsole_h
 #define hifi_JSConsole_h
 
+#include <memory>
+
 #include <QFutureWatcher>
 #include <QObject>
-#include <QSharedPointer>
 #include <QCompleter>
 #include <QtCore/QJsonArray>
 #include <ScriptValue.h>
@@ -23,7 +24,7 @@
 
 class QStandardItemModel;
 class ScriptManager;
-using ScriptManagerPointer = QSharedPointer<ScriptManager>;
+using ScriptManagerPointer = std::shared_ptr<ScriptManager>;
 
 const QString CONSOLE_TITLE = "Scripting Console";
 const float CONSOLE_WINDOW_OPACITY = 0.95f;

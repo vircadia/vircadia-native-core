@@ -161,42 +161,52 @@ int EntityTreeRenderer::_entitiesScriptEngineCount = 0;
 void EntityTreeRenderer::setupEntityScriptEngineSignals(const ScriptManagerPointer& scriptManager) {
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::mousePressOnEntity, scriptManager.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::mousePressOnEntity, scriptManager.get(),
+            [&](const EntityItemID& entityID, const PointerEvent& event) {
         scriptManager->callEntityScriptMethod(entityID, "mousePressOnEntity", event);
     });
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseDoublePressOnEntity, scriptManager.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseDoublePressOnEntity, scriptManager.get(),
+            [&](const EntityItemID& entityID, const PointerEvent& event) {
         scriptManager->callEntityScriptMethod(entityID, "mouseDoublePressOnEntity", event);
     });
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseMoveOnEntity, scriptManager.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseMoveOnEntity, scriptManager.get(),
+            [&](const EntityItemID& entityID, const PointerEvent& event) {
         scriptManager->callEntityScriptMethod(entityID, "mouseMoveOnEntity", event);
         // FIXME: this is a duplicate of mouseMoveOnEntity, but it seems like some scripts might use this naming
         scriptManager->callEntityScriptMethod(entityID, "mouseMoveEvent", event);
     });
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseReleaseOnEntity, scriptManager.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseReleaseOnEntity, scriptManager.get(),
+            [&](const EntityItemID& entityID, const PointerEvent& event) {
         scriptManager->callEntityScriptMethod(entityID, "mouseReleaseOnEntity", event);
     });
 
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickDownOnEntity, scriptManager.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickDownOnEntity, scriptManager.get(),
+            [&](const EntityItemID& entityID, const PointerEvent& event) {
         scriptManager->callEntityScriptMethod(entityID, "clickDownOnEntity", event);
     });
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::holdingClickOnEntity, scriptManager.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::holdingClickOnEntity, scriptManager.get(),
+            [&](const EntityItemID& entityID, const PointerEvent& event) {
         scriptManager->callEntityScriptMethod(entityID, "holdingClickOnEntity", event);
     });
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickReleaseOnEntity, scriptManager.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickReleaseOnEntity, scriptManager.get(),
+            [&](const EntityItemID& entityID, const PointerEvent& event) {
         scriptManager->callEntityScriptMethod(entityID, "clickReleaseOnEntity", event);
     });
 
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverEnterEntity, scriptManager.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverEnterEntity, scriptManager.get(),
+            [&](const EntityItemID& entityID, const PointerEvent& event) {
         scriptManager->callEntityScriptMethod(entityID, "hoverEnterEntity", event);
     });
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverOverEntity, scriptManager.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverOverEntity, scriptManager.get(),
+            [&](const EntityItemID& entityID, const PointerEvent& event) {
         scriptManager->callEntityScriptMethod(entityID, "hoverOverEntity", event);
     });
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverLeaveEntity, scriptManager.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverLeaveEntity, scriptManager.get(),
+            [&](const EntityItemID& entityID, const PointerEvent& event) {
         scriptManager->callEntityScriptMethod(entityID, "hoverLeaveEntity", event);
     });
 
-    connect(scriptManager.data(), &ScriptManager::entityScriptPreloadFinished, [&](const EntityItemID& entityID) {
+    connect(scriptManager.get(), &ScriptManager::entityScriptPreloadFinished, [&](const EntityItemID& entityID) {
         EntityItemPointer entity = getTree()->findEntityByID(entityID);
         if (entity) {
             entity->setScriptHasFinishedPreload(true);
@@ -215,7 +225,7 @@ void EntityTreeRenderer::resetPersistentEntitiesScriptEngine() {
                                                 QString("about:Entities %1").arg(++_entitiesScriptEngineCount));
     DependencyManager::get<ScriptEngines>()->runScriptInitializers(_persistentEntitiesScriptManager);
     _persistentEntitiesScriptManager->runInThread();
-    auto entitiesScriptEngineProvider = qSharedPointerCast<EntitiesScriptEngineProvider>(_persistentEntitiesScriptManager);
+    std::shared_ptr<EntitiesScriptEngineProvider> entitiesScriptEngineProvider = _persistentEntitiesScriptManager;
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     entityScriptingInterface->setPersistentEntitiesScriptEngine(entitiesScriptEngineProvider);
 
@@ -233,7 +243,7 @@ void EntityTreeRenderer::resetNonPersistentEntitiesScriptEngine() {
                                                 QString("about:Entities %1").arg(++_entitiesScriptEngineCount));
     DependencyManager::get<ScriptEngines>()->runScriptInitializers(_nonPersistentEntitiesScriptManager);
     _nonPersistentEntitiesScriptManager->runInThread();
-    auto entitiesScriptEngineProvider = qSharedPointerCast<EntitiesScriptEngineProvider>(_nonPersistentEntitiesScriptManager);
+    std::shared_ptr<EntitiesScriptEngineProvider> entitiesScriptEngineProvider = _nonPersistentEntitiesScriptManager;
     DependencyManager::get<EntityScriptingInterface>()->setNonPersistentEntitiesScriptEngine(entitiesScriptEngineProvider);
 
     setupEntityScriptEngineSignals(_nonPersistentEntitiesScriptManager);

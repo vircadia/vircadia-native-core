@@ -7544,10 +7544,10 @@ void Application::registerScriptEngineWithApplicationServices(const ScriptManage
 
     ClipboardScriptingInterface* clipboardScriptable = new ClipboardScriptingInterface();
     scriptEngine->registerGlobalObject("Clipboard", clipboardScriptable);
-    connect(scriptManager.data(), &ScriptManager::finished, clipboardScriptable, &ClipboardScriptingInterface::deleteLater);
+    connect(scriptManager.get(), &ScriptManager::finished, clipboardScriptable, &ClipboardScriptingInterface::deleteLater);
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
-    scriptRegisterMetaType(scriptEngine.data(), RayToOverlayIntersectionResultToScriptValue,
+    scriptRegisterMetaType(scriptEngine.get(), RayToOverlayIntersectionResultToScriptValue,
                             RayToOverlayIntersectionResultFromScriptValue);
 
     bool clientScript = scriptManager->isClientScript();
@@ -7565,13 +7565,13 @@ void Application::registerScriptEngineWithApplicationServices(const ScriptManage
     }
 #endif
 
-    scriptRegisterMetaType(scriptEngine.data(), wrapperToScriptValue<ToolbarProxy>, wrapperFromScriptValue<ToolbarProxy>);
-    scriptRegisterMetaType(scriptEngine.data(),
+    scriptRegisterMetaType(scriptEngine.get(), wrapperToScriptValue<ToolbarProxy>, wrapperFromScriptValue<ToolbarProxy>);
+    scriptRegisterMetaType(scriptEngine.get(),
                             wrapperToScriptValue<ToolbarButtonProxy>, wrapperFromScriptValue<ToolbarButtonProxy>);
     scriptEngine->registerGlobalObject("Toolbars", DependencyManager::get<ToolbarScriptingInterface>().data());
 
-    scriptRegisterMetaType(scriptEngine.data(), wrapperToScriptValue<TabletProxy>, wrapperFromScriptValue<TabletProxy>);
-    scriptRegisterMetaType(scriptEngine.data(),
+    scriptRegisterMetaType(scriptEngine.get(), wrapperToScriptValue<TabletProxy>, wrapperFromScriptValue<TabletProxy>);
+    scriptRegisterMetaType(scriptEngine.get(),
                             wrapperToScriptValue<TabletButtonProxy>, wrapperFromScriptValue<TabletButtonProxy>);
     scriptEngine->registerGlobalObject("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
     // FIXME remove these deprecated names for the tablet scripting interface
@@ -7622,12 +7622,12 @@ void Application::registerScriptEngineWithApplicationServices(const ScriptManage
     scriptEngine->registerGlobalObject("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
     scriptEngine->registerGlobalObject("GlobalServices", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
     scriptEngine->registerGlobalObject("AccountServices", AccountServicesScriptingInterface::getInstance());
-    scriptRegisterMetaType(scriptEngine.data(), DownloadInfoResultToScriptValue, DownloadInfoResultFromScriptValue);
+    scriptRegisterMetaType(scriptEngine.get(), DownloadInfoResultToScriptValue, DownloadInfoResultFromScriptValue);
 
     scriptEngine->registerGlobalObject("AvatarManager", DependencyManager::get<AvatarManager>().data());
 
     scriptEngine->registerGlobalObject("LODManager", DependencyManager::get<LODManager>().data());
-    scriptRegisterMetaType(scriptEngine.data(), worldDetailQualityToScriptValue, worldDetailQualityFromScriptValue);
+    scriptRegisterMetaType(scriptEngine.get(), worldDetailQualityToScriptValue, worldDetailQualityFromScriptValue);
 
     scriptEngine->registerGlobalObject("Keyboard", DependencyManager::get<KeyboardScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Performance", new PerformanceScriptingInterface());
@@ -7642,7 +7642,7 @@ void Application::registerScriptEngineWithApplicationServices(const ScriptManage
     scriptEngine->registerGlobalObject("Render", RenderScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Workload", _gameWorkload._engine->getConfiguration().get());
 
-    GraphicsScriptingInterface::registerMetaTypes(scriptEngine.data());
+    GraphicsScriptingInterface::registerMetaTypes(scriptEngine.get());
     scriptEngine->registerGlobalObject("Graphics", DependencyManager::get<GraphicsScriptingInterface>().data());
 
     scriptEngine->registerGlobalObject("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
@@ -7654,11 +7654,11 @@ void Application::registerScriptEngineWithApplicationServices(const ScriptManage
     scriptEngine->registerGlobalObject("GooglePoly", DependencyManager::get<GooglePolyScriptingInterface>().data());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
-        scriptEngine->registerGlobalObject("Steam", new SteamScriptingInterface(scriptManager.data(), steamClient.get()));
+        scriptEngine->registerGlobalObject("Steam", new SteamScriptingInterface(scriptManager.get(), steamClient.get()));
     }
     auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
     scriptEngine->registerGlobalObject("Controller", scriptingInterface.data());
-    UserInputMapper::registerControllerTypes(scriptEngine.data());
+    UserInputMapper::registerControllerTypes(scriptEngine.get());
 
     auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
     scriptEngine->registerGlobalObject("Recording", recordingInterface.data());
@@ -7674,18 +7674,18 @@ void Application::registerScriptEngineWithApplicationServices(const ScriptManage
     scriptEngine->registerGlobalObject("HifiAbout", AboutUtil::getInstance());  // Deprecated.
     scriptEngine->registerGlobalObject("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
 
-    registerInteractiveWindowMetaType(scriptEngine.data());
+    registerInteractiveWindowMetaType(scriptEngine.get());
 
     auto pickScriptingInterface = DependencyManager::get<PickScriptingInterface>();
-    pickScriptingInterface->registerMetaTypes(scriptEngine.data());
+    pickScriptingInterface->registerMetaTypes(scriptEngine.get());
 
     // connect this script engines printedMessage signal to the global ScriptEngines these various messages
     auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
-    connect(scriptManager.data(), &ScriptManager::printedMessage, scriptEngines, &ScriptEngines::onPrintedMessage);
-    connect(scriptManager.data(), &ScriptManager::errorMessage, scriptEngines, &ScriptEngines::onErrorMessage);
-    connect(scriptManager.data(), &ScriptManager::warningMessage, scriptEngines, &ScriptEngines::onWarningMessage);
-    connect(scriptManager.data(), &ScriptManager::infoMessage, scriptEngines, &ScriptEngines::onInfoMessage);
-    connect(scriptManager.data(), &ScriptManager::clearDebugWindow, scriptEngines, &ScriptEngines::onClearDebugWindow);
+    connect(scriptManager.get(), &ScriptManager::printedMessage, scriptEngines, &ScriptEngines::onPrintedMessage);
+    connect(scriptManager.get(), &ScriptManager::errorMessage, scriptEngines, &ScriptEngines::onErrorMessage);
+    connect(scriptManager.get(), &ScriptManager::warningMessage, scriptEngines, &ScriptEngines::onWarningMessage);
+    connect(scriptManager.get(), &ScriptManager::infoMessage, scriptEngines, &ScriptEngines::onInfoMessage);
+    connect(scriptManager.get(), &ScriptManager::clearDebugWindow, scriptEngines, &ScriptEngines::onClearDebugWindow);
 
 }
 

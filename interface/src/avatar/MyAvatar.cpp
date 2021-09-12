@@ -448,8 +448,8 @@ void MyAvatar::registerMetaTypes(ScriptEnginePointer engine) {
     }
     engine->globalObject().setProperty("DriveKeys", driveKeys);
 
-    scriptRegisterMetaType(engine.data(), audioListenModeToScriptValue, audioListenModeFromScriptValue);
-    scriptRegisterMetaType(engine.data(), driveKeysToScriptValue, driveKeysFromScriptValue);
+    scriptRegisterMetaType(engine.get(), audioListenModeToScriptValue, audioListenModeFromScriptValue);
+    scriptRegisterMetaType(engine.get(), driveKeysToScriptValue, driveKeysFromScriptValue);
 }
 
 void MyAvatar::setOrientationVar(const QVariant& newOrientationVar) {
@@ -2669,7 +2669,7 @@ QVariantList MyAvatar::getAvatarEntitiesVariant() {
             EntityItemProperties entityProperties = entity->getProperties(desiredProperties);
             {
                 std::lock_guard<std::mutex> guard(_scriptEngineLock);
-                ScriptValue scriptProperties = EntityItemPropertiesToScriptValue(_scriptEngine.data(), entityProperties);
+                ScriptValue scriptProperties = EntityItemPropertiesToScriptValue(_scriptEngine.get(), entityProperties);
                 avatarEntityData["properties"] = scriptProperties.toVariant();
             }
             avatarEntitiesData.append(QVariant(avatarEntityData));

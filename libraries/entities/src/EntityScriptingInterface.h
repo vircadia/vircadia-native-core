@@ -15,6 +15,8 @@
 #ifndef hifi_EntityScriptingInterface_h
 #define hifi_EntityScriptingInterface_h
 
+#include <memory>
+
 #include <QtCore/QObject>
 #include <QtCore/QStringList>
 #include <QtQml/QJSValue>
@@ -184,8 +186,8 @@ public:
 
     void setEntityTree(EntityTreePointer modelTree);
     EntityTreePointer getEntityTree() { return _entityTree; }
-    void setPersistentEntitiesScriptEngine(QSharedPointer<EntitiesScriptEngineProvider> manager);
-    void setNonPersistentEntitiesScriptEngine(QSharedPointer<EntitiesScriptEngineProvider> manager);
+    void setPersistentEntitiesScriptEngine(std::shared_ptr<EntitiesScriptEngineProvider> manager);
+    void setNonPersistentEntitiesScriptEngine(std::shared_ptr<EntitiesScriptEngineProvider> manager);
 
     void resetActivityTracking();
     ActivityTracking getActivityTracking() const { return _activityTracking; }
@@ -2531,7 +2533,7 @@ signals:
     void webEventReceived(const EntityItemID& entityItemID, const QVariant& message);
 
 protected:
-    void withEntitiesScriptEngine(std::function<void(QSharedPointer<EntitiesScriptEngineProvider>)> function, const EntityItemID& id) {
+    void withEntitiesScriptEngine(std::function<void(std::shared_ptr<EntitiesScriptEngineProvider>)> function, const EntityItemID& id) {
         auto entity = getEntityTree()->findEntityByEntityItemID(id);
         if (entity) {
             std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
@@ -2572,8 +2574,8 @@ private:
     EntityTreePointer _entityTree;
 
     std::recursive_mutex _entitiesScriptEngineLock;
-    QSharedPointer<EntitiesScriptEngineProvider> _persistentEntitiesScriptManager;
-    QSharedPointer<EntitiesScriptEngineProvider> _nonPersistentEntitiesScriptManager;
+    std::shared_ptr<EntitiesScriptEngineProvider> _persistentEntitiesScriptManager;
+    std::shared_ptr<EntitiesScriptEngineProvider> _nonPersistentEntitiesScriptManager;
 
     bool _bidOnSimulationOwnership { false };
 

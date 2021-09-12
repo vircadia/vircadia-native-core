@@ -49,7 +49,7 @@ const QString GRABBABLE_USER_DATA = "{\"grabbableKey\":{\"grabbable\":true}}";
 const QString NOT_GRABBABLE_USER_DATA = "{\"grabbableKey\":{\"grabbable\":false}}";
 
 void staticEntityScriptInitializer(ScriptManager* manager) {
-    auto scriptEngine = manager->engine().data();
+    auto scriptEngine = manager->engine().get();
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     entityScriptingInterface->init();
@@ -145,7 +145,8 @@ void EntityScriptingInterface::attachDefaultEventHandlers(ScriptManager* manager
     using SingleEntityHandler = std::function<void(const EntityItemID&)>;
     auto makeSingleEntityHandler = [manager](QString eventName) -> SingleEntityHandler {
         return [manager, eventName](const EntityItemID& entityItemID) {
-            manager->forwardHandlerCall(entityItemID, eventName, { EntityItemIDtoScriptValue(manager->engine().data(), entityItemID) });
+            manager->forwardHandlerCall(entityItemID, eventName,
+                                        { EntityItemIDtoScriptValue(manager->engine().get(), entityItemID) });
         };
     };
 
@@ -159,7 +160,7 @@ void EntityScriptingInterface::attachDefaultEventHandlers(ScriptManager* manager
     auto makePointerHandler = [manager](QString eventName) -> PointerHandler {
         return [manager, eventName](const EntityItemID& entityItemID, const PointerEvent& event) {
             if (!EntityTree::areEntityClicksCaptured()) {
-                ScriptEngine* engine = manager->engine().data();
+                ScriptEngine* engine = manager->engine().get();
                 manager->forwardHandlerCall(entityItemID, eventName,
                                             { EntityItemIDtoScriptValue(engine, entityItemID), event.toScriptValue(engine) });
             }
@@ -176,7 +177,7 @@ void EntityScriptingInterface::attachDefaultEventHandlers(ScriptManager* manager
     using CollisionHandler = std::function<void(const EntityItemID&, const EntityItemID&, const Collision&)>;
     auto makeCollisionHandler = [manager](QString eventName) -> CollisionHandler {
         return [manager, eventName](const EntityItemID& idA, const EntityItemID& idB, const Collision& collision) {
-            ScriptEngine* engine = manager->engine().data();
+            ScriptEngine* engine = manager->engine().get();
             manager->forwardHandlerCall(idA, eventName,
                                         { EntityItemIDtoScriptValue(engine, idA),
                                           EntityItemIDtoScriptValue(engine, idB),
@@ -1234,12 +1235,12 @@ QSizeF EntityScriptingInterface::textSize(const QUuid& id, const QString& text) 
     return EntityTree::textSize(id, text);
 }
 
-void EntityScriptingInterface::setPersistentEntitiesScriptEngine(QSharedPointer<EntitiesScriptEngineProvider> manager) {
+void EntityScriptingInterface::setPersistentEntitiesScriptEngine(std::shared_ptr<EntitiesScriptEngineProvider> manager) {
     std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
     _persistentEntitiesScriptManager = manager;
 }
 
-void EntityScriptingInterface::setNonPersistentEntitiesScriptEngine(QSharedPointer<EntitiesScriptEngineProvider> manager) {
+void EntityScriptingInterface::setNonPersistentEntitiesScriptEngine(std::shared_ptr<EntitiesScriptEngineProvider> manager) {
     std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
     _nonPersistentEntitiesScriptManager = manager;
 }
@@ -1528,7 +1529,7 @@ bool EntityPropertyMetadataRequest::script(EntityItemID entityID, const ScriptVa
         request->deleteLater();
     });
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-    entityScriptingInterface->withEntitiesScriptEngine([&](QSharedPointer<EntitiesScriptEngineProvider> entitiesScriptEngine) {
+    entityScriptingInterface->withEntitiesScriptEngine([&](std::shared_ptr<EntitiesScriptEngineProvider> entitiesScriptEngine) {
         if (entitiesScriptEngine) {
             request->setFuture(entitiesScriptEngine->getLocalEntityScriptDetails(entityID));
         }
@@ -2442,7 +2443,7 @@ void EntityScriptingInterface::getMeshes(const QUuid& entityID, const ScriptValu
     bool success = entity->getMeshes(result);
 
     if (success) {
-        ScriptValue resultAsScriptValue = meshesToScriptValue(engine.data(), result);
+        ScriptValue resultAsScriptValue = meshesToScriptValue(engine.get(), result);
         ScriptValueList args{ resultAsScriptValue, engine->newValue(true) };
         callback.call(ScriptValue(), args);
     } else {

@@ -421,7 +421,7 @@ void ScriptEngines::stopAllScripts(bool restart) {
             _isReloading = true;
             ScriptManager::Type type = scriptManager->getType();
 
-            connect(scriptManager.data(), &ScriptManager::finished, this, [this, type, isOverrideScript](QString scriptName) {
+            connect(scriptManager.get(), &ScriptManager::finished, this, [this, type, isOverrideScript](QString scriptName) {
                 reloadScript(scriptName, !isOverrideScript)->setType(type);
             });
         }
@@ -457,7 +457,7 @@ bool ScriptEngines::stopScript(const QString& rawScriptURL, bool restart) {
                 scriptCache->deleteScript(scriptURL);
 
                 if (!scriptManager->isStopping()) {
-                    connect(scriptManager.data(), &ScriptManager::finished,
+                    connect(scriptManager.get(), &ScriptManager::finished,
                             this, [this, isUserLoaded, type](QString scriptName, ScriptManagerPointer manager) {
                             reloadScript(scriptName, isUserLoaded)->setType(type);
                     });
@@ -522,12 +522,12 @@ ScriptManagerPointer ScriptEngines::loadScript(const QUrl& scriptFilename, bool 
         launchScriptEngine(scriptManager);
     } else {
         // connect to the appropriate signals of this script engine
-        connect(scriptManager.data(), &ScriptManager::scriptLoaded, this, &ScriptEngines::onScriptEngineLoaded);
-        connect(scriptManager.data(), &ScriptManager::errorLoadingScript, this, &ScriptEngines::onScriptEngineError);
+        connect(scriptManager.get(), &ScriptManager::scriptLoaded, this, &ScriptEngines::onScriptEngineLoaded);
+        connect(scriptManager.get(), &ScriptManager::errorLoadingScript, this, &ScriptEngines::onScriptEngineError);
 
         // Shutdown Interface when script finishes, if requested
         if (quitWhenFinished) {
-            connect(scriptManager.data(), &ScriptManager::finished, this, &ScriptEngines::quitWhenFinished);
+            connect(scriptManager.get(), &ScriptManager::finished, this, &ScriptEngines::quitWhenFinished);
         }
 
         // get the script engine object to load the script at the designated script URL
@@ -553,7 +553,7 @@ ScriptManagerPointer ScriptEngines::getScriptEngine(const QUrl& rawScriptURL) {
 // FIXME - change to new version of ScriptCache loading notification
 void ScriptEngines::onScriptEngineLoaded(const QString& rawScriptURL) {
     UserActivityLogger::getInstance().loadedScript(rawScriptURL);
-    ScriptManagerPointer scriptEngine = qobject_cast<ScriptManager*>(sender())->sharedFromThis();
+    ScriptManagerPointer scriptEngine = qobject_cast<ScriptManager*>(sender())->shared_from_this();
 
     launchScriptEngine(scriptEngine);
 
@@ -574,16 +574,18 @@ void ScriptEngines::quitWhenFinished() {
 }
 
 int ScriptEngines::runScriptInitializers(ScriptManagerPointer scriptManager) {
-    auto nativeCount = DependencyManager::get<ScriptInitializers>()->runScriptInitializers(scriptManager->engine().data());
+    auto nativeCount = DependencyManager::get<ScriptInitializers>()->runScriptInitializers(scriptManager->engine().get());
     return nativeCount + ScriptInitializerMixin<ScriptManagerPointer>::runScriptInitializers(scriptManager);
 }
 
 void ScriptEngines::launchScriptEngine(ScriptManagerPointer scriptManager) {
-    connect(scriptManager.data(), &ScriptManager::finished, this, &ScriptEngines::onScriptFinished, Qt::DirectConnection);
-    connect(scriptManager.data(), &ScriptManager::loadScript, [this](const QString& scriptName, bool userLoaded) {
+    connect(scriptManager.get(), &ScriptManager::finished, this, &ScriptEngines::onScriptFinished, Qt::DirectConnection);
+    connect(scriptManager.get(), &ScriptManager::loadScript,
+            [this](const QString& scriptName, bool userLoaded) {
         loadScript(scriptName, userLoaded);
     });
-    connect(scriptManager.data(), &ScriptManager::reloadScript, [this](const QString& scriptName, bool userLoaded) {
+    connect(scriptManager.get(), &ScriptManager::reloadScript,
+            [this](const QString& scriptName, bool userLoaded) {
         loadScript(scriptName, userLoaded, false, false, true);
     });
 

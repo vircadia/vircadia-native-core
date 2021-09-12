@@ -777,7 +777,7 @@ ScriptValue ScriptEngineQtScript::newObject() {
 
 ScriptProgramPointer ScriptEngineQtScript::newProgram(const QString& sourceCode, const QString& fileName) {
     QScriptProgram result(sourceCode, fileName);
-    return ScriptProgramPointer(new ScriptProgramQtWrapper(this, result));
+    return std::make_shared<ScriptProgramQtWrapper>(this, result);
 }
 
 ScriptValue ScriptEngineQtScript::newQObject(QObject* object,
@@ -857,7 +857,7 @@ ScriptContext* ScriptEngineQtScript::currentContext() const {
         return nullptr;
     }
     if (!_currContext || _currContext->toQtValue() != localCtx) {
-        _currContext = ScriptContextQtPointer(new ScriptContextQtWrapper(const_cast<ScriptEngineQtScript*>(this), localCtx));
+        _currContext = std::make_shared<ScriptContextQtWrapper>(const_cast<ScriptEngineQtScript*>(this), localCtx);
     }
     return _currContext.get();
 }

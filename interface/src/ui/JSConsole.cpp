@@ -308,7 +308,7 @@ void JSConsole::highlightedCompletion(const QModelIndex& completion) {
 
 JSConsole::~JSConsole() {
     if (_scriptManager) {
-        disconnect(_scriptManager.data(), nullptr, this, nullptr);
+        disconnect(_scriptManager.get(), nullptr, this, nullptr);
         _scriptManager.reset();
     }
     delete _ui;
@@ -319,21 +319,21 @@ void JSConsole::setScriptManager(const ScriptManagerPointer& scriptManager) {
         return;
     }
     if (scriptManager != nullptr) {
-        disconnect(_scriptManager.data(), nullptr, this, nullptr);
+        disconnect(_scriptManager.get(), nullptr, this, nullptr);
         _scriptManager.reset();
     }
 
     // if scriptEngine is nullptr then create one and keep track of it using _ownScriptEngine
-    if (scriptManager.isNull()) {
+    if (!scriptManager) {
         _scriptManager = DependencyManager::get<ScriptEngines>()->loadScript(_consoleFileName, false);
     } else {
         _scriptManager = scriptManager;
     }
 
-    connect(_scriptManager.data(), &ScriptManager::printedMessage, this, &JSConsole::handlePrint);
-    connect(_scriptManager.data(), &ScriptManager::infoMessage, this, &JSConsole::handleInfo);
-    connect(_scriptManager.data(), &ScriptManager::warningMessage, this, &JSConsole::handleWarning);
-    connect(_scriptManager.data(), &ScriptManager::errorMessage, this, &JSConsole::handleError);
+    connect(_scriptManager.get(), &ScriptManager::printedMessage, this, &JSConsole::handlePrint);
+    connect(_scriptManager.get(), &ScriptManager::infoMessage, this, &JSConsole::handleInfo);
+    connect(_scriptManager.get(), &ScriptManager::warningMessage, this, &JSConsole::handleWarning);
+    connect(_scriptManager.get(), &ScriptManager::errorMessage, this, &JSConsole::handleError);
 }
 
 void JSConsole::executeCommand(const QString& command) {
@@ -349,13 +349,13 @@ void JSConsole::executeCommand(const QString& command) {
 
     appendMessage(">", "<span style='" + COMMAND_STYLE + "'>" + command.toHtmlEscaped() + "</span>");
 
-    QWeakPointer<ScriptManager> weakScriptManager = _scriptManager;
+    std::weak_ptr<ScriptManager> weakScriptManager = _scriptManager;
     auto consoleFileName = _consoleFileName;
     QFuture<ScriptValue> future = QtConcurrent::run([weakScriptManager, consoleFileName, command]() -> ScriptValue {
         ScriptValue result;
         auto scriptManager = weakScriptManager.lock();
         if (scriptManager) {
-            BLOCKING_INVOKE_METHOD(scriptManager.data(), "evaluate",
+            BLOCKING_INVOKE_METHOD(scriptManager.get(), "evaluate",
                 Q_RETURN_ARG(ScriptValue, result),
                 Q_ARG(const QString&, command),
                 Q_ARG(const QString&, consoleFileName));

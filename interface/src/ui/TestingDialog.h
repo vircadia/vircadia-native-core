@@ -12,12 +12,13 @@
 #ifndef hifi_TestingDialog_h
 #define hifi_TestingDialog_h
 
+#include <memory>
+
 #include <QDialog>
-#include <QtCore/QSharedPointer>
 #include "JSConsole.h"
 
 class ScriptManager;
-using ScriptManagerPointer = QSharedPointer<ScriptManager>;
+using ScriptManagerPointer = std::shared_ptr<ScriptManager>;
 
 const QString windowLabel = "Client Script Tests";
 const QString testRunnerRelativePath = "/scripts/developer/tests/unit_tests/testRunner.js";

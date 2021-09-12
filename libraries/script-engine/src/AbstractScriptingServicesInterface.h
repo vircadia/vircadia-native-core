@@ -15,10 +15,10 @@
 #ifndef hifi_AbstractScriptingServicesInterface_h
 #define hifi_AbstractScriptingServicesInterface_h
 
-#include <QtCore/QSharedPointer>
+#include <memory>
 
 class ScriptManager;
-using ScriptManagerPointer = QSharedPointer<ScriptManager>;
+using ScriptManagerPointer = std::shared_ptr<ScriptManager>;
 
 /// Interface provided by Application to other objects that need access to scripting services of the application
 class AbstractScriptingServicesInterface {

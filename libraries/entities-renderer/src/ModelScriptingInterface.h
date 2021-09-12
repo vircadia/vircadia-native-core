@@ -15,14 +15,15 @@
 #ifndef hifi_ModelScriptingInterface_h
 #define hifi_ModelScriptingInterface_h
 
+#include <memory>
+
 #include <QtCore/QObject>
-#include <QtCore/QSharedPointer>
 
 #include <RegisteredMetaTypes.h>
 #include <ScriptValue.h>
 
 class ScriptEngine;
-using ScriptEnginePointer = QSharedPointer<ScriptEngine>;
+using ScriptEnginePointer = std::shared_ptr<ScriptEngine>;
 
 /*@jsdoc
  * The <code>Model</code> API provides the ability to manipulate meshes. You can get the meshes for an entity using 
@@ -101,7 +102,7 @@ public:
     Q_INVOKABLE ScriptValue getVertex(MeshProxy* meshProxy, int vertexIndex);
 
 private:
-    ScriptEnginePointer _modelScriptEngine { nullptr };
+    ScriptEnginePointer _modelScriptEngine;
 };
 
 #endif // hifi_ModelScriptingInterface_h

@@ -21,7 +21,7 @@ void ScriptContextQtAgent::contextPop() {
     if (_prevAgent) {
         _prevAgent->contextPop();
     }
-    if (_engine->currentContext() == _currContext) {
+    if (_engine->currentContext() == _currContext.get()) {
         _currContext.reset();
         if (!_contextActive && !_contextStack.empty()) {
             _currContext = _contextStack.back();
@@ -50,7 +50,7 @@ void ScriptContextQtAgent::functionEntry(qint64 scriptId) {
         return;
     }
     if (!_currContext) {
-        _currContext = ScriptContextQtPointer(new ScriptContextQtWrapper(_engine, static_cast<QScriptEngine*>(_engine)->currentContext()));
+        _currContext = std::make_shared<ScriptContextQtWrapper>(_engine, static_cast<QScriptEngine*>(_engine)->currentContext());
     }
     Scriptable::setContext(_currContext.get());
     _contextActive = true;

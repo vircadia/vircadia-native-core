@@ -43,16 +43,16 @@ ScriptValue ScriptContextQtWrapper::callee() const {
 }
 
 ScriptEnginePointer ScriptContextQtWrapper::engine() const {
-    return _engine->sharedFromThis();
+    return _engine->shared_from_this();
 }
 
 ScriptFunctionContextPointer ScriptContextQtWrapper::functionContext() const {
-    return ScriptFunctionContextPointer(new ScriptFunctionContextQtWrapper(_context));
+    return std::make_shared<ScriptFunctionContextQtWrapper>(_context);
 }
 
 ScriptContextPointer ScriptContextQtWrapper::parentContext() const {
     QScriptContext* result = _context->parentContext();
-    return result ? ScriptContextPointer(new ScriptContextQtWrapper(_engine, result)) : ScriptContextPointer();
+    return result ? std::make_shared<ScriptContextQtWrapper>(_engine, result) : ScriptContextPointer();
 }
 
 ScriptValue ScriptContextQtWrapper::thisObject() const {

@@ -25,7 +25,7 @@ void avatarDataFromScriptValue(const ScriptValue& object, ScriptAvatarData*& out
 }
 
 STATIC_SCRIPT_INITIALIZER(+[](ScriptManager* manager) {
-    auto scriptEngine = manager->engine().data();
+    auto scriptEngine = manager->engine().get();
 
     scriptRegisterMetaType(scriptEngine, avatarDataToScriptValue, avatarDataFromScriptValue);
 });

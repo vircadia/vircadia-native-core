@@ -15,10 +15,11 @@
 #ifndef hifi_ScriptValue_h
 #define hifi_ScriptValue_h
 
+#include <memory>
+
 #include <QtCore/QObject>
 #include <QtCore/QFlags>
 #include <QtCore/QList>
-#include <QtCore/QSharedPointer>
 #include <QtCore/QString>
 #include <QtCore/QVariant>
 
@@ -26,9 +27,9 @@ class ScriptEngine;
 class ScriptValue;
 class ScriptValueIterator;
 class ScriptValueProxy;
-using ScriptEnginePointer = QSharedPointer<ScriptEngine>;
+using ScriptEnginePointer = std::shared_ptr<ScriptEngine>;
 using ScriptValueList = QList<ScriptValue>;
-using ScriptValueIteratorPointer = QSharedPointer<ScriptValueIterator>;
+using ScriptValueIteratorPointer = std::shared_ptr<ScriptValueIterator>;
 
 /// [ScriptInterface] Provides an engine-independent interface for QScriptValue
 class ScriptValue {

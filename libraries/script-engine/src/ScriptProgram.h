@@ -15,12 +15,12 @@
 #ifndef hifi_ScriptProgram_h
 #define hifi_ScriptProgram_h
 
-#include <QtCore/QSharedPointer>
+#include <memory>
 
 class ScriptProgram;
 class ScriptSyntaxCheckResult;
-using ScriptProgramPointer = QSharedPointer<ScriptProgram>;
-using ScriptSyntaxCheckResultPointer = QSharedPointer<ScriptSyntaxCheckResult>;
+using ScriptProgramPointer = std::shared_ptr<ScriptProgram>;
+using ScriptSyntaxCheckResultPointer = std::shared_ptr<ScriptSyntaxCheckResult>;
 
 /// [ScriptInterface] Provides an engine-independent interface for QScriptProgram
 class ScriptProgram {

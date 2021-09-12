@@ -84,11 +84,11 @@ ScriptEnginePointer ScriptValueQtWrapper::engine() const {
     if (!_engine) {
         return ScriptEnginePointer();
     }
-    return _engine->sharedFromThis();
+    return _engine->shared_from_this();
 }
 
 ScriptValueIteratorPointer ScriptValueQtWrapper::newIterator() const {
-    return ScriptValueIteratorPointer(new ScriptValueIteratorQtWrapper(_engine, _value));
+    return std::make_shared<ScriptValueIteratorQtWrapper>(_engine, _value);
 }
 
 ScriptValue ScriptValueQtWrapper::property(const QString& name, const ScriptValue::ResolveFlags& mode) const {

@@ -26,7 +26,7 @@ TestingDialog::TestingDialog(QWidget* parent) :
 
     _manager = DependencyManager::get<ScriptEngines>()->loadScript(qApp->applicationDirPath() + testRunnerRelativePath);
     _console->setScriptManager(_manager);
-    connect(_manager.data(), &ScriptManager::finished, this, &TestingDialog::onTestingFinished);
+    connect(_manager.get(), &ScriptManager::finished, this, &TestingDialog::onTestingFinished);
 }
 
 void TestingDialog::onTestingFinished(const QString& scriptPath) {

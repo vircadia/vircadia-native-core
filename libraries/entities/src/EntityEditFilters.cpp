@@ -264,7 +264,7 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
             engine->setProperty("fileName", urlString);
             engine->setProperty("entityID", entityID);
             engine->globalObject().setProperty("Script", engine->newQObject(manager.get()));
-            DependencyManager::get<ScriptInitializers>()->runScriptInitializers(engine.data());
+            DependencyManager::get<ScriptInitializers>()->runScriptInitializers(engine.get());
             engine->evaluate(scriptContents, urlString);
             if (!hadUncaughtExceptions(*engine, urlString)) {
                 // put the engine in the engine map (so we don't leak them, etc...)

@@ -12,8 +12,9 @@
 #ifndef hifi_ScriptContextQtAgent_h
 #define hifi_ScriptContextQtAgent_h
 
+#include <memory>
+
 #include <QtCore/QList>
-#include <QtCore/QSharedPointer>
 #include <QtScript/QScriptEngineAgent>
 
 #include "ScriptEngineQtScript.h"
@@ -22,7 +23,7 @@ class QScriptContext;
 class QScriptValue;
 class ScriptContextQtWrapper;
 class ScriptEngineQtScript;
-using ScriptContextQtPointer = QSharedPointer<ScriptContextQtWrapper>;
+using ScriptContextQtPointer = std::shared_ptr<ScriptContextQtWrapper>;
 
 class ScriptContextQtAgent final : public QScriptEngineAgent {
 public: // construction
