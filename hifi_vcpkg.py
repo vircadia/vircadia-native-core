@@ -61,7 +61,10 @@ endif()
             self.noClean = True
         else:
             defaultBasePath = os.path.expanduser('~/vircadia-files/vcpkg')
-            self.basePath = os.getenv('HIFI_VCPKG_BASE', defaultBasePath)
+            if 'CI_WORKSPACE' in os.environ:
+                self.basePath = os.path.join(os.getenv('CI_WORKSPACE'), 'vircadia-files/vcpkg')
+            else:
+                self.basePath = os.getenv('HIFI_VCPKG_BASE', defaultBasePath)
             if self.args.android:
                 self.basePath = os.path.join(self.basePath, 'android')
             if (not os.path.isdir(self.basePath)):
