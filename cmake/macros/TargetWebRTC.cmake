@@ -13,6 +13,9 @@ macro(TARGET_WEBRTC)
         # set(WEBRTC_LIBRARY_DEBUG ${INSTALL_DIR}/debug/lib/libwebrtc.a)
         # set(WEBRTC_LIBRARY_RELEASE ${INSTALL_DIR}/lib/libwebrtc.a)
         # select_library_configurations(WEBRTC)
+    elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+        # WebRTC is basically impossible to build on aarch64 Linux.
+        # I am looking at https://gitlab.freedesktop.org/pulseaudio/webrtc-audio-processing for an alternative.
     else()
         set(WEBRTC_INCLUDE_DIRS "${VCPKG_INSTALL_ROOT}/include/webrtc")
         target_include_directories(${TARGET_NAME} SYSTEM PUBLIC ${WEBRTC_INCLUDE_DIRS})
