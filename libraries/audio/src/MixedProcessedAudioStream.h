@@ -34,7 +34,7 @@ public:
 
 protected:
     int writeDroppableSilentFrames(int silentFrames) override;
-    int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties) override;
+    int parseAudioData(const QByteArray& packetAfterStreamProperties) override;
     int lostAudioData(int numPackets) override;
 
 private:
