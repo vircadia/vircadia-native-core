@@ -420,17 +420,17 @@
                             >
                                 <q-card-section>
                                     <div class="text-h6 text-weight-light text-center">Let's create a username and password for your Domain's administrator web panel.</div>
-                                    <div class="text-h7 q-mt-sm text-weight-light text-center">Warning: Immediately after saving the credentials, you will be prompted to enter them into your browser to continue.</div>
+                                    <div class="text-h7 q-mt-sm text-weight-light text-red text-center">Warning: Immediately after saving the credentials, you will be prompted to enter them into your browser to continue.</div>
                                 </q-card-section>
 
                                 <q-card-section>
                                     <q-form
-                                        @submit="onAdminStepSubmit"
+                                        @submit="saveAdminCredentialsDialog = true"
                                         @reset="onAdminStepReset"
                                         class="q-gutter-md"
                                     >
                                         <q-input
-                                            v-model="username"
+                                            v-model="adminCredentialsUsername"
                                             filled
                                             label="Username"
                                             hint="Enter your username."
@@ -439,37 +439,37 @@
                                         />
 
                                         <q-input
-                                            v-model="password"
+                                            v-model="adminCredentialsPassword"
                                             filled
                                             label="Password"
-                                            :type="showPassword ? 'text' : 'password'"
+                                            :type="adminCredentialsShowPassword ? 'text' : 'password'"
                                             hint="Enter your password."
                                             lazy-rules
                                             :rules="[ val => val && val.length > 0 || 'Please enter a password.']"
                                         >
                                             <template v-slot:append>
                                                 <q-icon
-                                                    :name="showPassword ? 'visibility' : 'visibility_off'"
+                                                    :name="adminCredentialsShowPassword ? 'visibility' : 'visibility_off'"
                                                     class="cursor-pointer"
-                                                    @click="showPassword = !showPassword"
+                                                    @click="adminCredentialsShowPassword = !adminCredentialsShowPassword"
                                                 />
                                             </template>
                                         </q-input>
 
                                         <q-input
-                                            v-model="confirmPassword"
+                                            v-model="adminCredentialsConfirmPassword"
                                             filled
                                             label="Confirm Password"
-                                            :type="showConfirmPassword ? 'text' : 'password'"
+                                            :type="adminCredentialsShowConfirmPassword ? 'text' : 'password'"
                                             hint="Enter your password again."
                                             lazy-rules
-                                            :rules="[ val => val && val.length > 0 && val === password || 'Please ensure your passwords match.']"
+                                            :rules="[ val => val && val.length > 0 && val === adminCredentialsPassword || 'Please ensure your passwords match.']"
                                         >
                                             <template v-slot:append>
                                                 <q-icon
-                                                    :name="showConfirmPassword ? 'visibility' : 'visibility_off'"
+                                                    :name="adminCredentialsShowConfirmPassword ? 'visibility' : 'visibility_off'"
                                                     class="cursor-pointer"
-                                                    @click="showConfirmPassword = !showConfirmPassword"
+                                                    @click="adminCredentialsShowConfirmPassword = !adminCredentialsShowConfirmPassword"
                                                 />
                                             </template>
                                         </q-input>
@@ -483,29 +483,28 @@
                                                 flat
                                             />
                                             <q-btn
-                                                label="Save"
+                                                :label="adminCredentialsSaved ? 'Saved' : 'Save'"
                                                 type="submit"
                                                 class="q-mb-md"
                                                 size="md"
-                                                outline
                                                 text-color="white"
-                                                icon-right="key"
+                                                :outline="!adminCredentialsSaved"
+                                                :color="adminCredentialsSaved ? 'green' : ''"
+                                                :icon-right="adminCredentialsSaved ? 'done' : 'key'"
                                             />
                                         </div>
                                     </q-form>
                                 </q-card-section>
-
                                 <q-card-actions vertical align="right">
                                     <q-btn
                                         @click="$refs.stepper.next()"
                                         class="q-mb-md"
-                                        size="sm"
+                                        :label="adminCredentialsSaved ? 'Next' : 'Skip'"
+                                        :size="adminCredentialsSaved ? 'md' : 'sm'"
                                         outline
                                         text-color="white"
                                         icon-right="chevron_right"
-                                    >
-                                        Skip
-                                    </q-btn>
+                                    />
                                     <q-btn
                                         @click="$refs.stepper.previous()"
                                         size="sm"
@@ -516,6 +515,32 @@
                                     </q-btn>
                                 </q-card-actions>
                             </q-card>
+
+                            <q-dialog v-model="saveAdminCredentialsDialog">
+                                <q-card
+                                    class="column no-wrap items-stretch q-pa-md"
+                                    style="background: rgba(0, 0, 0, 0.95);"
+                                    dark
+                                >
+                                <q-card-section>
+                                    <div class="text-h6 text-weight-light text-center">Are you sure you want to save these credentials?</div>
+                                </q-card-section>
+
+                                <q-card-actions align="right">
+                                    <q-btn
+                                        @click="saveAdminCredentialsDialog = false"
+                                    >
+                                        No
+                                    </q-btn>
+                                    <q-btn
+                                        @click="onAdminStepSubmit(); saveAdminCredentialsDialog = false;"
+                                        size="md"
+                                    >
+                                        Save
+                                    </q-btn>
+                                </q-card-actions>
+                                </q-card>
+                            </q-dialog>
                         </q-step>
 
                         <q-step
@@ -727,11 +752,13 @@ export default defineComponent({
                 }
             ],
             // Administrator
-            username: "",
-            password: "",
-            confirmPassword: "",
-            showPassword: false,
-            showConfirmPassword: false,
+            adminCredentialsUsername: "",
+            adminCredentialsPassword: "",
+            adminCredentialsConfirmPassword: "",
+            adminCredentialsShowPassword: false,
+            adminCredentialsShowConfirmPassword: false,
+            adminCredentialsSaved: false,
+            saveAdminCredentialsDialog: false,
             // Performance
             performanceMode: true,
             // Starter Content
@@ -768,7 +795,7 @@ export default defineComponent({
         saveMetaverseConfiguration () {
             this.mainWizardStep++;
             // TODO: Put this path in a constant somewhere.
-            axios.post(`/api/domains`, { "domain": { "label": this.domainLabel } },
+            axios.post("/api/domains", { "domain": { "label": this.domainLabel } },
                 {
                     params: {
                         label: this.domainLabel
@@ -936,8 +963,8 @@ export default defineComponent({
         async onAdminStepSubmit () {
             const settingsToCommit = {
                 "security": {
-                    "http_username": this.username,
-                    "http_password": sha256.hex(this.confirmPassword)
+                    "http_username": this.adminCredentialsUsername,
+                    "http_password": sha256.hex(this.adminCredentialsConfirmPassword)
                 }
             };
 
@@ -952,6 +979,8 @@ export default defineComponent({
                     message: "Successfully saved your administrator credentials."
                 });
 
+                this.adminCredentialsSaved = true;
+
                 this.mainWizardStep++;
             } else {
                 Log.error(Log.types.METAVERSE, "Failed to save Domain server administrator details.");
@@ -965,9 +994,9 @@ export default defineComponent({
         },
 
         onAdminStepReset () {
-            this.username = "";
-            this.password = "";
-            this.confirmPassword = "";
+            this.adminCredentialsUsername = "";
+            this.adminCredentialsPassword = "";
+            this.adminCredentialsConfirmPassword = "";
         },
 
         async completeWizard () {
@@ -1114,6 +1143,18 @@ export default defineComponent({
                     message: "Failed to save performance mode setting."
                 });
             }
+        },
+
+        adminCredentialsUsername () {
+            this.adminCredentialsSaved = false;
+        },
+
+        adminCredentialsPassword () {
+            this.adminCredentialsSaved = false;
+        },
+
+        adminCredentialsConfirmPassword () {
+            this.adminCredentialsSaved = false;
         }
     }
 });
