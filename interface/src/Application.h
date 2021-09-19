@@ -18,6 +18,7 @@
 #include <QtCore/QHash>
 #include <QtCore/QPointer>
 #include <QtCore/QSet>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QStringList>
 #include <QtQuick/QQuickItem>
 

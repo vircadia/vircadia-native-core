@@ -16,6 +16,8 @@
 #ifndef hifi_AvatarMixer_h
 #define hifi_AvatarMixer_h
 
+#include <QtCore/QSharedPointer>
+
 #include <set>
 #include <shared/RateCounter.h>
 #include <PortableHighResolutionClock.h>

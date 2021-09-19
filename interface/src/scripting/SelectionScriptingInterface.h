@@ -14,6 +14,7 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QMap>
+#include <QtCore/QSharedPointer>
 #include <DependencyManager.h>
 
 #include <AbstractViewStateInterface.h>

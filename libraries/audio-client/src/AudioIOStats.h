@@ -15,6 +15,7 @@
 #include "MovingMinMaxAvg.h"
 
 #include <QObject>
+#include <QtCore/QSharedPointer>
 
 #include <AudioStreamStats.h>
 #include <Node.h>

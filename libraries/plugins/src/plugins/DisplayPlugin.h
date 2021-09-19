@@ -18,6 +18,7 @@
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QJsonObject>
 #include <QtCore/QMutex>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QWaitCondition>
 
 #include <GLMHelpers.h>

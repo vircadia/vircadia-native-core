@@ -11,6 +11,8 @@
 
 #include "InterfaceParentFinder.h"
 
+#include <QtCore/QSharedPointer>
+
 #include <Application.h>
 #include <AvatarData.h>
 #include <avatar/AvatarManager.h>

@@ -12,6 +12,7 @@
 #ifndef hifi_NLPacketList_h
 #define hifi_NLPacketList_h
 
+#include <QtCore/QSharedPointer>
 #include "udt/PacketList.h"
 
 #include "NLPacket.h"

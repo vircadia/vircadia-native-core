@@ -15,6 +15,7 @@
 #include <QStandardItemModel>
 #include <QtQml/QJSEngine>
 #include <QString>
+#include <QtCore/QSharedPointer>
 
 #include <map>
 

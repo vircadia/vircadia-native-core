@@ -9,6 +9,7 @@
 #ifndef hifi_ShaderCache_h
 #define hifi_ShaderCache_h
 
+#include <QtCore/QSharedPointer>
 #include <ResourceCache.h>
 
 class NetworkShader : public Resource {

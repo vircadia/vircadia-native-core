@@ -17,6 +17,7 @@
 #include <QtCore/qpointer.h>
 #include <QtCore/QProcess>
 #include <QtCore/QDateTime>
+#include <QtCore/QSharedPointer>
 #include <QDir>
 
 #include <Assignment.h>

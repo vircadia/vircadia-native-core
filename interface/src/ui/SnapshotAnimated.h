@@ -12,6 +12,7 @@
 #ifndef hifi_SnapshotAnimated_h
 #define hifi_SnapshotAnimated_h
 
+#include <QtCore/QSharedPointer>
 #include <QtCore/QVector>
 #include <Application.h>
 #include <DependencyManager.h>

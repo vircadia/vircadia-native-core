@@ -13,6 +13,7 @@
 #define hifi_EntityScriptServerLogClient_h
 
 #include <QObject>
+#include <QtCore/QSharedPointer>
 
 #include <NodeList.h>
 

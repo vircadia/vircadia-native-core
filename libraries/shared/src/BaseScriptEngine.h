@@ -14,6 +14,7 @@
 
 #include <functional>
 #include <QtCore/QDebug>
+#include <QtCore/QSharedPointer>
 #include <QtScript/QScriptEngine>
 
 class ScriptEngine;
