@@ -155,8 +155,8 @@ struct Source {
     static const Source& get(uint32_t shaderId);
 
 private:
-    // Disallow copy construction and assignment
-    Source(const Source& other) = default;
+    // Disallow copy construction
+    Source(const Source& other) = delete;
 
     static Source::Pointer loadSource(uint32_t shaderId) ;
 

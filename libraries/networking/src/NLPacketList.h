@@ -27,11 +27,10 @@ public:
     qint64 getMaxSegmentSize() const override { return NLPacket::maxPayloadSize(_packetType, _isOrdered); }
     
 private:
+    Q_DISABLE_COPY(NLPacketList)
     NLPacketList(PacketType packetType, QByteArray extendedHeader = QByteArray(), bool isReliable = false,
                  bool isOrdered = false);
     NLPacketList(udt::PacketList&& packetList);
-    NLPacketList(const NLPacketList& other) = delete;
-    NLPacketList& operator=(const NLPacketList& other) = delete;
 
     virtual std::unique_ptr<udt::Packet> createPacket() override;
 

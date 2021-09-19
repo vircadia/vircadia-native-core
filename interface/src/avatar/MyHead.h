@@ -23,8 +23,8 @@ public:
 
 private:
     // disallow copies of the Head, copy of owning Avatar is disallowed too
-    MyHead(const Head&);
-    MyHead& operator= (const MyHead&);
+    MyHead(const Head&) = delete;
+    MyHead& operator= (const MyHead&) = delete;
 };
 
 #endif // hifi_MyHead_h
