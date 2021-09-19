@@ -356,6 +356,7 @@
                                     <q-select
                                         label="Metaverse usernames (press enter)"
                                         filled
+                                        dark
                                         v-model="administratorsListSecurityModel"
                                         use-input
                                         use-chips
@@ -372,6 +373,7 @@
                                         v-model="connectionSecurityModel"
                                         :options="connectionSecurityOptions"
                                         color="primary"
+                                        dark
                                         type="checkbox"
                                     />
                                 </q-card-section>
@@ -382,6 +384,7 @@
                                         v-model="rezSecurityModel"
                                         :options="rezSecurityOptions"
                                         color="primary"
+                                        dark
                                         type="checkbox"
                                     />
                                 </q-card-section>
@@ -432,6 +435,7 @@
                                         <q-input
                                             v-model="adminCredentialsUsername"
                                             filled
+                                            dark
                                             label="Username"
                                             hint="Enter your username."
                                             lazy-rules
@@ -441,6 +445,7 @@
                                         <q-input
                                             v-model="adminCredentialsPassword"
                                             filled
+                                            dark
                                             label="Password"
                                             :type="adminCredentialsShowPassword ? 'text' : 'password'"
                                             hint="Enter your password."
@@ -459,6 +464,7 @@
                                         <q-input
                                             v-model="adminCredentialsConfirmPassword"
                                             filled
+                                            dark
                                             label="Confirm Password"
                                             :type="adminCredentialsShowConfirmPassword ? 'text' : 'password'"
                                             hint="Enter your password again."
