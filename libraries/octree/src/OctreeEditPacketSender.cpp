@@ -91,7 +91,7 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, std::uniqu
     QSharedPointer<NodeList> nodeList = DependencyManager::get<NodeList>();
     if (nodeUUID.isNull()) {
         QMutexLocker lock(&_packetsQueueLock);
-        nodeList->eachNode([&](const SharedNodePointer& node) { queueMessage(node); });
+        nodeList->eachNode(queueMessage);
     } else {
         SharedNodePointer node = nodeList->nodeWithUUID(nodeUUID);
         if (node) {
@@ -116,7 +116,7 @@ void OctreeEditPacketSender::queuePacketListToNode(const QUuid& nodeUUID, std::u
 
     QSharedPointer<NodeList> nodeList = DependencyManager::get<NodeList>();
     if (nodeUUID.isNull()) {
-        nodeList->eachNode([&](const SharedNodePointer& node) { queueMessage(node); });
+        nodeList->eachNode(queueMessage);
     } else {
         SharedNodePointer node = nodeList->nodeWithUUID(nodeUUID);
         if (node) {
