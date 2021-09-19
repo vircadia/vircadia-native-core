@@ -86,6 +86,14 @@ bool DomainServer::_getTempName { false };
 QString DomainServer::_userConfigFilename;
 int DomainServer::_parentPID { -1 };
 
+/// @brief Route a request to the Metaverse server.
+/// @param connection The HTTP connection object.
+/// @param requestUrl The full URL of the request.
+/// @param metaversePath The path on the Metaverse server to route to.
+/// @param requestSubobjectKey The parent object key that any data will be inserted into for the forwarded request.
+/// @param requiredData The data that is required to be forwarded with this request.
+/// @param optionalData Optional data that will be forwarded with this request if provided.
+/// @param requireAccessToken Require a valid access token to be sent with this request.
 bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
                                               const QUrl& requestUrl,
                                               const QString& metaversePath,
