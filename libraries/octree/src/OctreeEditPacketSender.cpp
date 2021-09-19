@@ -50,12 +50,10 @@ bool OctreeEditPacketSender::serversExist() const {
 void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, std::unique_ptr<NLPacket> packet) {
 
     bool wantDebug = false;
-    QMutexLocker lock(&_packetsQueueLock);
-    DependencyManager::get<NodeList>()->eachNode([&](const SharedNodePointer& node){
+
+    auto queueMessage = [&](const SharedNodePointer& node) {
         // only send to the NodeTypes that are getMyNodeType()
-        if (node->getType() == getMyNodeType()
-            && ((node->getUUID() == nodeUUID) || (nodeUUID.isNull()))
-            && node->getActiveSocket()) {
+        if (node->getType() == getMyNodeType() && node->getActiveSocket()) {
 
             // jump to the beginning of the payload
             packet->seek(0);
@@ -88,23 +86,43 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, std::uniqu
 
             queuePacketForSending(node, NLPacket::createCopy(*packet));
         }
-    });
+    };
+
+    QSharedPointer<NodeList> nodeList = DependencyManager::get<NodeList>();
+    if (nodeUUID.isNull()) {
+        QMutexLocker lock(&_packetsQueueLock);
+        nodeList->eachNode([&](const SharedNodePointer& node) { queueMessage(node); });
+    } else {
+        SharedNodePointer node = nodeList->nodeWithUUID(nodeUUID);
+        if (node) {
+            QMutexLocker lock(&_packetsQueueLock);
+            queueMessage(node);
+        }
+    }
 }
 
 // This method is called when the edit packet layer has determined that it has a fully formed packet destined for
 // a known nodeID.
 void OctreeEditPacketSender::queuePacketListToNode(const QUuid& nodeUUID, std::unique_ptr<NLPacketList> packetList) {
-    DependencyManager::get<NodeList>()->eachNode([&](const SharedNodePointer& node) {
+    auto queueMessage = [&](const SharedNodePointer& node) {
         // only send to the NodeTypes that are getMyNodeType()
-        if (node->getType() == getMyNodeType()
-            && ((node->getUUID() == nodeUUID) || (nodeUUID.isNull()))
-            && node->getActiveSocket()) {
+        if (node->getType() == getMyNodeType() && node->getActiveSocket()) {
 
             // NOTE: unlike packets, the packet lists don't get rewritten sequence numbers.
             // or do history for resend
             queuePacketListForSending(node, std::move(packetList));
         }
-    });
+    };
+
+    QSharedPointer<NodeList> nodeList = DependencyManager::get<NodeList>();
+    if (nodeUUID.isNull()) {
+        nodeList->eachNode([&](const SharedNodePointer& node) { queueMessage(node); });
+    } else {
+        SharedNodePointer node = nodeList->nodeWithUUID(nodeUUID);
+        if (node) {
+            queueMessage(node);
+        }
+    }
 }
 
 void OctreeEditPacketSender::processPreServerExistsPackets() {
