@@ -22,9 +22,7 @@ public:
     void simulate(float deltaTime) override;
 
 private:
-    // disallow copies of the Head, copy of owning Avatar is disallowed too
-    MyHead(const Head&) = delete;
-    MyHead& operator= (const MyHead&) = delete;
+    Q_DISABLE_COPY(MyHead)
 };
 
 #endif // hifi_MyHead_h
