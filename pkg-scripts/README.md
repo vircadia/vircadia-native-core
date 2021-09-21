@@ -16,7 +16,7 @@ and that the base folder can be reached by going to `../..`. This may not work i
 
 ## Ubuntu
 ```
-DEBVERSION="Semver e.g. 2021.1.0" DEBEMAIL="your-email@somewhere.com" DEBFULLNAME="Your Full Name" ./make-deb-server
+DEBVERSION="Semver e.g. 2021.1.3" DEBEMAIL="your-email@somewhere.com" DEBFULLNAME="Your Full Name" ./make-deb-server
 ```
 
 This script will retrieve the current git commit date and hash and append it to your specified version.
@@ -30,7 +30,7 @@ sudo yum install rpm-build
 ```
 Then, run the build script.
 ```
-RPMVERSION="Semver e.g. 2021.1.0" ./make-rpm-server
+RPMVERSION="Semver e.g. 2021.1.3" ./make-rpm-server
 ```
 
 This script will retrieve the current git commit date and hash and append it to your specified version.
