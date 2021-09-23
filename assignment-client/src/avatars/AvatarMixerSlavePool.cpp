@@ -48,15 +48,16 @@ void AvatarMixerSlaveThread::wait() {
 }
 
 void AvatarMixerSlaveThread::notify(bool stopping) {
-    {
-        Lock lock(_pool._mutex);
-        assert(_pool._numFinished < _pool._numThreads);
-        ++_pool._numFinished;
-        if (stopping) {
-            ++_pool._numStopped;
-        }
+    Lock lock(_pool._mutex);
+    assert(_pool._numFinished < _pool._numThreads);
+    ++_pool._numFinished;
+    if (stopping) {
+        ++_pool._numStopped;
     }
-    _pool._poolCondition.notify_one();
+
+    if(_pool._numFinished == _pool._numThreads) {
+        _pool._poolCondition.notify_one();
+    }
 }
 
 bool AvatarMixerSlaveThread::try_pop(SharedNodePointer& node) {
