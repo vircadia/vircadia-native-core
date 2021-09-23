@@ -25,7 +25,30 @@
 #include "AvatarMixerSlave.h"
 
 
-class AvatarMixerSlavePool;
+// Private slave pool data that is shared and accessible with the slave threads.  This describes
+// what information is needs to be thread-safe
+struct AvatarMixerSlavePoolData {
+    using Queue = tbb::concurrent_queue<SharedNodePointer>;
+    using Mutex = std::mutex;
+    using ConditionVariable = std::condition_variable;
+
+    // synchronization state
+    Mutex _poolMutex;
+    ConditionVariable _poolCondition;
+    Mutex _slaveMutex;  // subservient to _poolMutex, do not lock _poolMutex while holding _slaveMutex!
+    ConditionVariable _slaveCondition;
+
+    void (AvatarMixerSlave::*_function)(const SharedNodePointer& node);
+    std::function<void(AvatarMixerSlave&)> _configure;
+
+    int _numThreads{ 0 };
+    int _numStarted{ 0 };  // guarded by _slaveMutex
+    int _numFinished{ 0 };  // guarded by _poolMutex
+    int _numStopped{ 0 };   // guarded by _poolMutex
+
+    // frame state
+    Queue _queue;
+};
 
 class AvatarMixerSlaveThread : public QThread, public AvatarMixerSlave {
     Q_OBJECT
@@ -34,30 +57,26 @@ class AvatarMixerSlaveThread : public QThread, public AvatarMixerSlave {
     using Lock = std::unique_lock<Mutex>;
 
 public:
-    AvatarMixerSlaveThread(AvatarMixerSlavePool& pool, SlaveSharedData* slaveSharedData) :
+    AvatarMixerSlaveThread(AvatarMixerSlavePoolData& pool, SlaveSharedData* slaveSharedData) :
         AvatarMixerSlave(slaveSharedData), _pool(pool) {};
 
     void run() override final;
+    inline void stop() { _stop = true; }
 
 private:
-    friend class AvatarMixerSlavePool;
-
     void wait();
     void notify(bool stopping);
     bool try_pop(SharedNodePointer& node);
 
-    AvatarMixerSlavePool& _pool;
+    AvatarMixerSlavePoolData& _pool;
     void (AvatarMixerSlave::*_function)(const SharedNodePointer& node) { nullptr };
     bool _stop { false };
 };
 
 // Slave pool for avatar mixers
 //   AvatarMixerSlavePool is not thread-safe! It should be instantiated and used from a single thread.
-class AvatarMixerSlavePool {
-    using Queue = tbb::concurrent_queue<SharedNodePointer>;
-    using Mutex = std::mutex;
+class AvatarMixerSlavePool : private AvatarMixerSlavePoolData {
     using Lock = std::unique_lock<Mutex>;
-    using ConditionVariable = std::condition_variable;
 
 public:
     using ConstIter = NodeList::const_iterator;
@@ -90,28 +109,10 @@ private:
 
     std::vector<std::unique_ptr<AvatarMixerSlaveThread>> _slaves;
 
-    friend void AvatarMixerSlaveThread::wait();
-    friend void AvatarMixerSlaveThread::notify(bool stopping);
-    friend bool AvatarMixerSlaveThread::try_pop(SharedNodePointer& node);
-
-    // synchronization state
-    Mutex _poolMutex;
-    ConditionVariable _poolCondition;
-    Mutex _slaveMutex; // subservient to _poolMutex, do not lock _poolMutex while holding _slaveMutex!
-    ConditionVariable _slaveCondition;
-    void (AvatarMixerSlave::*_function)(const SharedNodePointer& node);
-    std::function<void(AvatarMixerSlave&)> _configure;
-
     // Set from Domain Settings:
     float _priorityReservedFraction { 0.4f };
-    int _numThreads { 0 };
-
-    int _numStarted { 0 }; // guarded by _slaveMutex
-    int _numFinished { 0 }; // guarded by _poolMutex
-    int _numStopped { 0 }; // guarded by _poolMutex
 
     // frame state
-    Queue _queue;
     ConstIter _begin;
     ConstIter _end;
 

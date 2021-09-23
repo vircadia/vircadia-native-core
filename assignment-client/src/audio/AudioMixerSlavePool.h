@@ -22,7 +22,30 @@
 
 #include "AudioMixerSlave.h"
 
-class AudioMixerSlavePool;
+// Private slave pool data that is shared and accessible with the slave threads.  This describes
+// what information is needs to be thread-safe
+struct AudioMixerSlavePoolData {
+    using Queue = tbb::concurrent_queue<SharedNodePointer>;
+    using Mutex = std::mutex;
+    using ConditionVariable = std::condition_variable;
+
+    // synchronization state
+    Mutex _poolMutex;
+    ConditionVariable _poolCondition;
+    Mutex _slaveMutex;  // subservient to _poolMutex, do not lock _poolMutex while holding _slaveMutex!
+    ConditionVariable _slaveCondition;
+
+    void (AudioMixerSlave::*_function)(const SharedNodePointer& node);
+    std::function<void(AudioMixerSlave&)> _configure;
+
+    int _numThreads{ 0 };
+    int _numStarted{ 0 };  // guarded by _slaveMutex
+    int _numFinished{ 0 };  // guarded by _poolMutex
+    int _numStopped{ 0 };   // guarded by _poolMutex
+
+    // frame state
+    Queue _queue;
+};
 
 class AudioMixerSlaveThread : public QThread, public AudioMixerSlave {
     Q_OBJECT
@@ -31,30 +54,26 @@ class AudioMixerSlaveThread : public QThread, public AudioMixerSlave {
     using Lock = std::unique_lock<Mutex>;
 
 public:
-    AudioMixerSlaveThread(AudioMixerSlavePool& pool, AudioMixerSlave::SharedData& sharedData)
+    AudioMixerSlaveThread(AudioMixerSlavePoolData& pool, AudioMixerSlave::SharedData& sharedData)
         : AudioMixerSlave(sharedData), _pool(pool) {}
 
     void run() override final;
+    inline void stop() { _stop = true; }
 
 private:
-    friend class AudioMixerSlavePool;
-
     void wait();
     void notify(bool stopping);
     bool try_pop(SharedNodePointer& node);
 
-    AudioMixerSlavePool& _pool;
+    AudioMixerSlavePoolData& _pool;
     void (AudioMixerSlave::*_function)(const SharedNodePointer& node) { nullptr };
     bool _stop { false };
 };
 
 // Slave pool for audio mixers
 //   AudioMixerSlavePool is not thread-safe! It should be instantiated and used from a single thread.
-class AudioMixerSlavePool {
-    using Queue = tbb::concurrent_queue<SharedNodePointer>;
-    using Mutex = std::mutex;
+class AudioMixerSlavePool : private AudioMixerSlavePoolData {
     using Lock = std::unique_lock<Mutex>;
-    using ConditionVariable = std::condition_variable;
 
 public:
     using ConstIter = NodeList::const_iterator;
@@ -85,24 +104,7 @@ private:
 
     std::vector<std::unique_ptr<AudioMixerSlaveThread>> _slaves;
 
-    friend void AudioMixerSlaveThread::wait();
-    friend void AudioMixerSlaveThread::notify(bool stopping);
-    friend bool AudioMixerSlaveThread::try_pop(SharedNodePointer& node);
-
-    // synchronization state
-    Mutex _poolMutex;
-    ConditionVariable _poolCondition;
-    Mutex _slaveMutex;  // subservient to _poolMutex, do not lock _poolMutex while holding _slaveMutex!
-    ConditionVariable _slaveCondition;
-    void (AudioMixerSlave::*_function)(const SharedNodePointer& node);
-    std::function<void(AudioMixerSlave&)> _configure;
-    int _numThreads { 0 };
-    int _numStarted { 0 }; // guarded by _slaveMutex
-    int _numFinished { 0 }; // guarded by _poolMutex
-    int _numStopped { 0 }; // guarded by _poolMutex
-
     // frame state
-    Queue _queue;
     ConstIter _begin;
     ConstIter _end;
 

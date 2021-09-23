@@ -180,7 +180,7 @@ void AudioMixerSlavePool::resize(int numThreads) {
         // mark slaves to stop...
         auto slave = extraBegin;
         while (slave != _slaves.end()) {
-            (*slave)->_stop = true;
+            (*slave)->stop();
             ++slave;
         }
 
