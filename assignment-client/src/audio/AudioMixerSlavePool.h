@@ -90,15 +90,16 @@ private:
     friend bool AudioMixerSlaveThread::try_pop(SharedNodePointer& node);
 
     // synchronization state
-    Mutex _mutex;
-    ConditionVariable _slaveCondition;
+    Mutex _poolMutex;
     ConditionVariable _poolCondition;
+    Mutex _slaveMutex;  // subservient to _poolMutex, do not lock _poolMutex while holding _slaveMutex!
+    ConditionVariable _slaveCondition;
     void (AudioMixerSlave::*_function)(const SharedNodePointer& node);
     std::function<void(AudioMixerSlave&)> _configure;
     int _numThreads { 0 };
-    int _numStarted { 0 }; // guarded by _mutex
-    int _numFinished { 0 }; // guarded by _mutex
-    int _numStopped { 0 }; // guarded by _mutex
+    int _numStarted { 0 }; // guarded by _slaveMutex
+    int _numFinished { 0 }; // guarded by _poolMutex
+    int _numStopped { 0 }; // guarded by _poolMutex
 
     // frame state
     Queue _queue;

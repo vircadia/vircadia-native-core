@@ -95,9 +95,10 @@ private:
     friend bool AvatarMixerSlaveThread::try_pop(SharedNodePointer& node);
 
     // synchronization state
-    Mutex _mutex;
-    ConditionVariable _slaveCondition;
+    Mutex _poolMutex;
     ConditionVariable _poolCondition;
+    Mutex _slaveMutex; // subservient to _poolMutex, do not lock _poolMutex while holding _slaveMutex!
+    ConditionVariable _slaveCondition;
     void (AvatarMixerSlave::*_function)(const SharedNodePointer& node);
     std::function<void(AvatarMixerSlave&)> _configure;
 
@@ -105,9 +106,9 @@ private:
     float _priorityReservedFraction { 0.4f };
     int _numThreads { 0 };
 
-    int _numStarted { 0 }; // guarded by _mutex
-    int _numFinished { 0 }; // guarded by _mutex
-    int _numStopped { 0 }; // guarded by _mutex
+    int _numStarted { 0 }; // guarded by _slaveMutex
+    int _numFinished { 0 }; // guarded by _poolMutex
+    int _numStopped { 0 }; // guarded by _poolMutex
 
     // frame state
     Queue _queue;

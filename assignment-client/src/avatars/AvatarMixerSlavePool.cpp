@@ -34,8 +34,8 @@ void AvatarMixerSlaveThread::run() {
 
 void AvatarMixerSlaveThread::wait() {
     {
-        Lock lock(_pool._mutex);
-        _pool._slaveCondition.wait(lock, [&] {
+        Lock slaveLock(_pool._slaveMutex);
+        _pool._slaveCondition.wait(slaveLock, [&] {
             assert(_pool._numStarted <= _pool._numThreads);
             return _pool._numStarted != _pool._numThreads;
         });
@@ -48,7 +48,7 @@ void AvatarMixerSlaveThread::wait() {
 }
 
 void AvatarMixerSlaveThread::notify(bool stopping) {
-    Lock lock(_pool._mutex);
+    Lock poolLock(_pool._poolMutex);
     assert(_pool._numFinished < _pool._numThreads);
     ++_pool._numFinished;
     if (stopping) {
@@ -93,19 +93,27 @@ void AvatarMixerSlavePool::run(ConstIter begin, ConstIter end) {
     });
 
     {
-        Lock lock(_mutex);
+        Lock poolLock(_poolMutex);
 
         // run
-        _numStarted = _numFinished = 0;
-        _slaveCondition.notify_all();
+        {
+            Lock slaveLock(_slaveMutex);
+            _numStarted = _numFinished = 0;
+            _slaveCondition.notify_all();
+        }
 
         // wait
-        _poolCondition.wait(lock, [&] {
+        _poolCondition.wait(poolLock, [&] {
             assert(_numFinished <= _numThreads);
             return _numFinished == _numThreads;
         });
 
-        assert(_numStarted == _numThreads);
+#ifndef NDEBUG
+        {
+            Lock slaveLock(_slaveMutex);
+            assert(_numStarted == _numThreads);
+        }
+#endif
     }
 
     assert(_queue.empty());
@@ -156,7 +164,7 @@ void AvatarMixerSlavePool::resize(int numThreads) {
 
     qDebug("%s: set %d threads (was %d)", __FUNCTION__, numThreads, _numThreads);
 
-    Lock lock(_mutex);
+    Lock poolLock(_poolMutex);
 
     if (numThreads > _numThreads) {
         // start new slaves
@@ -178,9 +186,12 @@ void AvatarMixerSlavePool::resize(int numThreads) {
         // ...cycle them until they do stop...
         _numStopped = 0;
         while (_numStopped != (_numThreads - numThreads)) {
-            _numStarted = _numFinished = _numStopped;
-            _slaveCondition.notify_all();
-            _poolCondition.wait(lock, [&] {
+            {
+                Lock slaveLock(_slaveMutex);
+                _numStarted = _numFinished = _numStopped;
+                _slaveCondition.notify_all();
+            }
+            _poolCondition.wait(poolLock, [&] {
                 assert(_numFinished <= _numThreads);
                 return _numFinished == _numThreads;
             });
@@ -199,6 +210,9 @@ void AvatarMixerSlavePool::resize(int numThreads) {
         _slaves.erase(extraBegin, _slaves.end());
     }
 
-    _numThreads = _numStarted = _numFinished = numThreads;
+    {
+        Lock slaveLock(_slaveMutex);
+        _numThreads = _numStarted = _numFinished = numThreads;
+    }
     assert(_numThreads == (int)_slaves.size());
 }
