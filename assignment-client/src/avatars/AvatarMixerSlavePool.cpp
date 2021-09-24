@@ -35,10 +35,12 @@ void AvatarMixerWorkerThread::run() {
 void AvatarMixerWorkerThread::wait() {
     {
         Lock workerLock(_pool.workerMutex);
-        _pool.workerCondition.wait(workerLock, [&] {
-            assert(_pool.numStarted <= _pool.numThreads);
-            return _pool.numStarted != _pool.numThreads;
-        });
+        if (_pool.numStarted == _pool.numThreads) {
+            _pool.workerCondition.wait(workerLock, [&] {
+                assert(_pool.numStarted <= _pool.numThreads);
+                return _pool.numStarted != _pool.numThreads;
+            });
+        }
     }
     ++_pool.numStarted;
 
@@ -57,6 +59,7 @@ void AvatarMixerWorkerThread::notify(bool stopping) {
     }
 
     if (numFinished == _pool.numThreads) {
+        Lock poolLock(_pool.poolMutex);
         _pool.poolCondition.notify_one();
     }
 }
@@ -93,16 +96,21 @@ void AvatarMixerSlavePool::run(ConstIter begin, ConstIter end) {
     });
 
     // run
-    _data.numStarted = _data.numFinished = 0;
-    _data.workerCondition.notify_all();
+    {
+        Lock workerLock(_data.workerMutex);
+        _data.numStarted = _data.numFinished = 0;
+        _data.workerCondition.notify_all();
+    }
 
     // wait
     {
         Lock poolLock(_data.poolMutex);
-        _data.poolCondition.wait(poolLock, [&] {
-            assert(_data.numFinished <= _data.numThreads);
-            return _data.numFinished == _data.numThreads;
-        });
+        if (_data.numFinished < _data.numThreads) {
+            _data.poolCondition.wait(poolLock, [&] {
+                assert(_data.numFinished <= _data.numThreads);
+                return _data.numFinished == _data.numThreads;
+            });
+        }
     }
     assert(_data.numStarted == _data.numThreads);
 
@@ -174,14 +182,21 @@ void AvatarMixerSlavePool::resize(int numThreads) {
         // ...cycle them until they do stop...
         _data.numStopped = 0;
         while (_data.numStopped != (_data.numThreads - numThreads)) {
-            _data.numStarted = _data.numFinished = 0;
-            _data.workerCondition.notify_all();
+            {
+                Lock workerLock(_data.workerMutex);
+                _data.numStarted = _data.numFinished = 0;
+                _data.workerCondition.notify_all();
+            }
             
-            Lock poolLock(_data.poolMutex);
-            _data.poolCondition.wait(poolLock, [&] {
-                assert(_data.numFinished <= _data.numThreads);
-                return _data.numFinished == _data.numThreads;
-            });
+            {
+                Lock poolLock(_data.poolMutex);
+                if (_data.numFinished < _data.numThreads) {
+                    _data.poolCondition.wait(poolLock, [&] {
+                        assert(_data.numFinished <= _data.numThreads);
+                        return _data.numFinished == _data.numThreads;
+                    });
+                }
+            }
             assert(_data.numStopped == (_data.numThreads - numThreads));
         }
 
