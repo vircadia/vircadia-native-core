@@ -18,6 +18,32 @@
 
 #include <ThreadHelpers.h>
 
+template <class _Mutex>
+class lock_anti_guard {
+public:
+    using mutex_type = _Mutex;
+
+    explicit lock_anti_guard(std::unique_lock<_Mutex>& lock) :
+        _MyMutex(*lock.mutex()), _Owns(lock.owns_lock()) {  // construct and unlock
+        if (_Owns) {
+            _MyMutex.unlock();
+        }
+    }
+
+    ~lock_anti_guard() noexcept {
+        if (_Owns) {
+            _MyMutex.lock();
+        }
+    }
+
+    lock_anti_guard(const lock_anti_guard&) = delete;
+    lock_anti_guard& operator=(const lock_anti_guard&) = delete;
+
+private:
+    _Mutex& _MyMutex;
+    bool _Owns;
+};
+
 void AudioMixerSlaveThread::run() {
     while (true) {
         wait();
@@ -40,11 +66,13 @@ void AudioMixerSlaveThread::wait() {
     {
         Lock slaveLock(_pool._slaveMutex);
         _pool._slaveCondition.wait(slaveLock, [&] {
+            shared_lock<RWMutex> activeLock(_pool._slavesActive);
             assert(_pool._numStarted <= _pool._numThreads);
             return _pool._numStarted != _pool._numThreads;
         });
-        ++_pool._numStarted;
     }
+    shared_lock<RWMutex> activeLock(_pool._slavesActive);
+    ++_pool._numStarted;
 
     if (_pool._configure) {
         _pool._configure(*this);
@@ -53,14 +81,14 @@ void AudioMixerSlaveThread::wait() {
 }
 
 void AudioMixerSlaveThread::notify(bool stopping) {
-    Lock poolLock(_pool._poolMutex);
+    shared_lock<RWMutex> activeLock(_pool._slavesActive);
     assert(_pool._numFinished < _pool._numThreads);
-    ++_pool._numFinished;
+    int numFinished = ++_pool._numFinished;
     if (stopping) {
         ++_pool._numStopped;
     }
 
-    if(_pool._numFinished == _pool._numThreads) {
+    if (numFinished == _pool._numThreads) {
         _pool._poolCondition.notify_one();
     }
 }
@@ -70,16 +98,20 @@ bool AudioMixerSlaveThread::try_pop(SharedNodePointer& node) {
 }
 
 void AudioMixerSlavePool::processPackets(ConstIter begin, ConstIter end) {
-    _function = &AudioMixerSlave::processPackets;
-    _configure = [](AudioMixerSlave& slave) {};
+    {
+        std::lock_guard<RWMutex> activeLock(_slavesActive);
+        _function = &AudioMixerSlave::processPackets;
+        _configure = [](AudioMixerSlave& slave) {};
+    }
     run(begin, end);
 }
 
 void AudioMixerSlavePool::mix(ConstIter begin, ConstIter end, unsigned int frame, int numToRetain) {
-    _function = &AudioMixerSlave::mix;
-    _configure = [=](AudioMixerSlave& slave) {
-        slave.configureMix(_begin, _end, frame, numToRetain);
-    };
+    {
+        std::lock_guard<RWMutex> activeLock(_slavesActive);
+        _function = &AudioMixerSlave::mix;
+        _configure = [=](AudioMixerSlave& slave) { slave.configureMix(_begin, _end, frame, numToRetain); };
+    }
 
     run(begin, end);
 }
@@ -94,27 +126,24 @@ void AudioMixerSlavePool::run(ConstIter begin, ConstIter end) {
     });
 
     {
-        Lock poolLock(_poolMutex);
+        std::unique_lock<RWMutex> activeLock(_slavesActive);
 
         // run
-        {
-            Lock slaveLock(_slaveMutex);
-            _numStarted = _numFinished = 0;
-            _slaveCondition.notify_all();
-        }
+        _numStarted = _numFinished = 0;
+        _slaveCondition.notify_all();
 
         // wait
-        _poolCondition.wait(poolLock, [&] {
-            assert(_numFinished <= _numThreads);
-            return _numFinished == _numThreads;
-        });
-
-#ifndef NDEBUG
         {
-            Lock slaveLock(_slaveMutex);
-            assert(_numStarted == _numThreads);
+            lock_anti_guard<RWMutex> releaseActiveLock(activeLock);
+            Lock poolLock(_poolMutex);
+            _poolCondition.wait(poolLock, [&] {
+                shared_lock<RWMutex> activeLock(_slavesActive);
+                assert(_numFinished <= _numThreads);
+                return _numFinished == _numThreads;
+            });
         }
-#endif
+
+        assert(_numStarted == _numThreads);
     }
 
     assert(_queue.empty());
@@ -160,11 +189,10 @@ void AudioMixerSlavePool::setNumThreads(int numThreads) {
 }
 
 void AudioMixerSlavePool::resize(int numThreads) {
-    assert(_numThreads == (int)_slaves.size());
-
     qDebug("%s: set %d threads (was %d)", __FUNCTION__, numThreads, _numThreads);
 
-    Lock poolLock(_poolMutex);
+    std::unique_lock<RWMutex> activeLock(_slavesActive);
+    assert(_numThreads == (int)_slaves.size());
 
     if (numThreads > _numThreads) {
         // start new slaves
@@ -187,12 +215,13 @@ void AudioMixerSlavePool::resize(int numThreads) {
         // ...cycle them until they do stop...
         _numStopped = 0;
         while (_numStopped != (_numThreads - numThreads)) {
-            {
-                Lock slaveLock(_slaveMutex);
-                _numStarted = _numFinished = _numStopped;
-                _slaveCondition.notify_all();
-            }
+            _numStarted = _numFinished = _numStopped.load();
+            _slaveCondition.notify_all();
+
+            lock_anti_guard<RWMutex> releaseActiveLock(activeLock);
+            Lock poolLock(_poolMutex);
             _poolCondition.wait(poolLock, [&] {
+                shared_lock<RWMutex> activeLock(_slavesActive);
                 assert(_numFinished <= _numThreads);
                 return _numFinished == _numThreads;
             });
@@ -211,9 +240,6 @@ void AudioMixerSlavePool::resize(int numThreads) {
         _slaves.erase(extraBegin, _slaves.end());
     }
 
-    {
-        Lock slaveLock(_slaveMutex);
-        _numThreads = _numStarted = _numFinished = numThreads;
-    }
+    _numThreads = _numStarted = _numFinished = numThreads;
     assert(_numThreads == (int)_slaves.size());
 }

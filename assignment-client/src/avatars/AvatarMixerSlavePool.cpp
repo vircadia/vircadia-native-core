@@ -14,6 +14,32 @@
 #include <assert.h>
 #include <algorithm>
 
+template<class _Mutex>
+class lock_anti_guard {
+public:
+    using mutex_type = _Mutex;
+
+    explicit lock_anti_guard(std::unique_lock<_Mutex>& lock) :
+        _MyMutex(*lock.mutex()), _Owns(lock.owns_lock()) {  // construct and unlock
+        if (_Owns) {
+            _MyMutex.unlock();
+        }
+    }
+
+    ~lock_anti_guard() noexcept {
+        if (_Owns) {
+            _MyMutex.lock();
+        }
+    }
+
+    lock_anti_guard(const lock_anti_guard&) = delete;
+    lock_anti_guard& operator=(const lock_anti_guard&) = delete;
+
+private:
+    _Mutex& _MyMutex;
+    bool _Owns;
+};
+
 void AvatarMixerSlaveThread::run() {
     while (true) {
         wait();
@@ -36,11 +62,14 @@ void AvatarMixerSlaveThread::wait() {
     {
         Lock slaveLock(_pool._slaveMutex);
         _pool._slaveCondition.wait(slaveLock, [&] {
+            shared_lock<RWMutex> activeLock(_pool._slavesActive);
             assert(_pool._numStarted <= _pool._numThreads);
             return _pool._numStarted != _pool._numThreads;
         });
-        ++_pool._numStarted;
     }
+    shared_lock<RWMutex> activeLock(_pool._slavesActive);
+    ++_pool._numStarted;
+
     if (_pool._configure) {
         _pool._configure(*this);
     }
@@ -48,14 +77,14 @@ void AvatarMixerSlaveThread::wait() {
 }
 
 void AvatarMixerSlaveThread::notify(bool stopping) {
-    Lock poolLock(_pool._poolMutex);
+    shared_lock<RWMutex> activeLock(_pool._slavesActive);
     assert(_pool._numFinished < _pool._numThreads);
-    ++_pool._numFinished;
+    int numFinished = ++_pool._numFinished;
     if (stopping) {
         ++_pool._numStopped;
     }
 
-    if(_pool._numFinished == _pool._numThreads) {
+    if (numFinished == _pool._numThreads) {
         _pool._poolCondition.notify_one();
     }
 }
@@ -65,21 +94,25 @@ bool AvatarMixerSlaveThread::try_pop(SharedNodePointer& node) {
 }
 
 void AvatarMixerSlavePool::processIncomingPackets(ConstIter begin, ConstIter end) {
-    _function = &AvatarMixerSlave::processIncomingPackets;
-    _configure = [=](AvatarMixerSlave& slave) { 
-        slave.configure(begin, end);
-    };
+    {
+        std::lock_guard<RWMutex> activeLock(_slavesActive);
+        _function = &AvatarMixerSlave::processIncomingPackets;
+        _configure = [=](AvatarMixerSlave& slave) { slave.configure(begin, end); };
+    }
     run(begin, end);
 }
 
 void AvatarMixerSlavePool::broadcastAvatarData(ConstIter begin, ConstIter end, 
                                                p_high_resolution_clock::time_point lastFrameTimestamp,
                                                float maxKbpsPerNode, float throttlingRatio) {
-    _function = &AvatarMixerSlave::broadcastAvatarData;
-    _configure = [=](AvatarMixerSlave& slave) { 
-        slave.configureBroadcast(begin, end, lastFrameTimestamp, maxKbpsPerNode, throttlingRatio,
-            _priorityReservedFraction);
-   };
+    {
+        std::lock_guard<RWMutex> activeLock(_slavesActive);
+        _function = &AvatarMixerSlave::broadcastAvatarData;
+        _configure = [=](AvatarMixerSlave& slave) {
+            slave.configureBroadcast(begin, end, lastFrameTimestamp, maxKbpsPerNode, throttlingRatio,
+                                     _priorityReservedFraction);
+        };
+    }
     run(begin, end);
 }
 
@@ -93,27 +126,24 @@ void AvatarMixerSlavePool::run(ConstIter begin, ConstIter end) {
     });
 
     {
-        Lock poolLock(_poolMutex);
+        std::unique_lock<RWMutex> activeLock(_slavesActive);
 
         // run
-        {
-            Lock slaveLock(_slaveMutex);
-            _numStarted = _numFinished = 0;
-            _slaveCondition.notify_all();
-        }
+        _numStarted = _numFinished = 0;
+        _slaveCondition.notify_all();
 
         // wait
-        _poolCondition.wait(poolLock, [&] {
-            assert(_numFinished <= _numThreads);
-            return _numFinished == _numThreads;
-        });
-
-#ifndef NDEBUG
         {
-            Lock slaveLock(_slaveMutex);
-            assert(_numStarted == _numThreads);
+            lock_anti_guard<RWMutex> releaseActiveLock(activeLock);
+            Lock poolLock(_poolMutex);
+            _poolCondition.wait(poolLock, [&] {
+                shared_lock<RWMutex> activeLock(_slavesActive);
+                assert(_numFinished <= _numThreads);
+                return _numFinished == _numThreads;
+            });
         }
-#endif
+
+        assert(_numStarted == _numThreads);
     }
 
     assert(_queue.empty());
@@ -160,11 +190,10 @@ void AvatarMixerSlavePool::setNumThreads(int numThreads) {
 }
 
 void AvatarMixerSlavePool::resize(int numThreads) {
-    assert(_numThreads == (int)_slaves.size());
-
     qDebug("%s: set %d threads (was %d)", __FUNCTION__, numThreads, _numThreads);
 
-    Lock poolLock(_poolMutex);
+    std::unique_lock<RWMutex> activeLock(_slavesActive);
+    assert(_numThreads == (int)_slaves.size());
 
     if (numThreads > _numThreads) {
         // start new slaves
@@ -186,12 +215,13 @@ void AvatarMixerSlavePool::resize(int numThreads) {
         // ...cycle them until they do stop...
         _numStopped = 0;
         while (_numStopped != (_numThreads - numThreads)) {
-            {
-                Lock slaveLock(_slaveMutex);
-                _numStarted = _numFinished = _numStopped;
-                _slaveCondition.notify_all();
-            }
+            _numStarted = _numFinished = _numStopped.load();
+            _slaveCondition.notify_all();
+            
+            lock_anti_guard<RWMutex> releaseActiveLock(activeLock);
+            Lock poolLock(_poolMutex);
             _poolCondition.wait(poolLock, [&] {
+                shared_lock<RWMutex> activeLock(_slavesActive);
                 assert(_numFinished <= _numThreads);
                 return _numFinished == _numThreads;
             });
@@ -210,9 +240,6 @@ void AvatarMixerSlavePool::resize(int numThreads) {
         _slaves.erase(extraBegin, _slaves.end());
     }
 
-    {
-        Lock slaveLock(_slaveMutex);
-        _numThreads = _numStarted = _numFinished = numThreads;
-    }
+    _numThreads = _numStarted = _numFinished = numThreads;
     assert(_numThreads == (int)_slaves.size());
 }
