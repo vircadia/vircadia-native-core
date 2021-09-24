@@ -189,13 +189,14 @@ void AudioMixerSlavePool::resize(int numThreads) {
         while (_numStopped != (_numThreads - numThreads)) {
             {
                 Lock slaveLock(_slaveMutex);
-                _numStarted = _numFinished = _numStopped;
+                _numStarted = _numFinished = 0;
                 _slaveCondition.notify_all();
             }
             _poolCondition.wait(poolLock, [&] {
                 assert(_numFinished <= _numThreads);
                 return _numFinished == _numThreads;
             });
+            assert(_numStopped == (_numThreads - numThreads));
         }
 
         // ...wait for threads to finish...
