@@ -19,7 +19,6 @@
 #include <QThread>
 #include <shared/QtHelpers.h>
 #include <TBBHelpers.h>
-#include <SharedMutex.h>
 
 #include "AudioMixerSlave.h"
 
@@ -29,32 +28,35 @@ struct AudioMixerSlavePoolData {
     using Queue = tbb::concurrent_queue<SharedNodePointer>;
     using Mutex = std::mutex;
     using ConditionVariable = std::condition_variable;
-    using RWMutex = shared_mutex;
 
     // synchronization state
-    shared_mutex _slavesActive;  // shared_lock by slaves while running, lock by pool when configuring
-    Mutex _poolMutex;            // only used for _poolCondition at the moment
-    ConditionVariable _poolCondition;
-    Mutex _slaveMutex;  // only used for _slaveCondition at the moment
-    ConditionVariable _slaveCondition;
+    Mutex _poolMutex;                   // only used for _poolCondition at the moment
+    ConditionVariable _poolCondition;   // woken when work has been completed (_numStarted = _numFinished = _numThreads)
+    Mutex _slaveMutex;                  // only used for _slaveCondition at the moment
+    ConditionVariable _slaveCondition;  // woken when work needs to be done (_numStarted < _numThreads)
 
-    void (AudioMixerSlave::*_function)(const SharedNodePointer& node);  // guarded by _slavesActive: r/o when shared, r/w when locked
-    std::function<void(AudioMixerSlave&)> _configure;  // guarded by _slavesActive: r/o when shared, r/w when locked
+    // The variables below this point are alternately owned by the pool or by the slaves collectively.
+    // When idle they are owned by the pool.
+    // Moving ownership to the slaves is done by setting _numStarted = _numFinished = 0 and waking _slaveCondition
+    // Moving ownership to the pool is done when _numFinished == _numThreads and is done by waking _poolCondition
+
+    void (AudioMixerSlave::*_function)(const SharedNodePointer& node);  // r/o when owned by slaves, r/w when owned by pool
+    std::function<void(AudioMixerSlave&)> _configure;  // r/o when owned by slaves, r/w when owned by pool
 
     // Number of currently-running slave threads
-    // guarded by _slavesActive: r/o when shared, r/w when locked
+    // r/o when owned by slaves, r/w when owned by pool
     int _numThreads{ 0 };
 
     // Number of slave threads "awake" and processing the current request (0 <= _numStarted <= _numThreads)
-    // guarded by _slavesActive: incremented when shared, r/w when locked
+    // incremented when owned by slaves, r/w when owned by pool
     std::atomic<int> _numStarted{ 0 };
 
-    // Number of slave threads finished with the current request (0 <= _numStarted <= _numThreads)
-    // guarded by _slavesActive: incremented when shared, r/w when locked
+    // Number of slave threads finished with the current request (0 <= _numFinished <= _numStarted)
+    // incremented when owned by slaves, r/w when owned by pool
     std::atomic<int> _numFinished{ 0 };
 
-    // Number of slave threads shutting down when asked to (0 <= _numStarted <= _numThreads)
-    // guarded by _slavesActive: incremented when shared, r/w when locked
+    // Number of slave threads shutting down when asked to (0 <= _numStopped <= _numFinished)
+    // incremented when owned by slaves, r/w when owned by pool
     std::atomic<int> _numStopped{ 0 };
 
     // frame state
@@ -66,7 +68,6 @@ class AudioMixerSlaveThread : public QThread, public AudioMixerSlave {
     using ConstIter = NodeList::const_iterator;
     using Mutex = std::mutex;
     using Lock = std::unique_lock<Mutex>;
-    using RWMutex = shared_mutex;
 
 public:
     AudioMixerSlaveThread(AudioMixerSlavePoolData& pool, AudioMixerSlave::SharedData& sharedData)
