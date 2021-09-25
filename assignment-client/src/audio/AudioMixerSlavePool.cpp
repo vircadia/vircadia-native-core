@@ -213,5 +213,5 @@ void AudioMixerSlavePool::resize(int numThreads) {
     }
 
     _data.numThreads = _data.numStarted = _data.numFinished = numThreads;
-    assert(_data.numThreads == (int)_slaves.size());
+    assert(_data.numThreads == (int)_workers.size());
 }
