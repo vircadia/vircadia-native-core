@@ -38,38 +38,38 @@ void AudioMixerWorkerThread::run() {
 
 void AudioMixerWorkerThread::wait() {
     {
-        Lock workerLock(_pool.workerMutex);
-        if (_pool.numStarted == _pool.numThreads) {
-            _pool.workerCondition.wait(workerLock, [&] {
-                assert(_pool.numStarted <= _pool.numThreads);
-                return _pool.numStarted != _pool.numThreads;
+        Lock workerLock(_data.workerMutex);
+        if (_data.numStarted == _data.numThreads) {
+            _data.workerCondition.wait(workerLock, [&] {
+                assert(_data.numStarted <= _data.numThreads);
+                return _data.numStarted != _data.numThreads;
             });
         }
     }
-    ++_pool.numStarted;
+    ++_data.numStarted;
 
-    if (_pool.configure) {
-        _pool.configure(*this);
+    if (_data.configure) {
+        _data.configure(*this);
     }
-    _function = _pool.function;
+    _function = _data.function;
 }
 
 void AudioMixerWorkerThread::notify(bool stopping) {
-    assert(_pool.numFinished < _pool.numThreads && _pool.numFinished <= _pool.numStarted);
-    int numFinished = ++_pool.numFinished;
+    assert(_data.numFinished < _data.numThreads && _data.numFinished <= _data.numStarted);
+    int numFinished = ++_data.numFinished;
     if (stopping) {
-        ++_pool.numStopped;
-        assert(_pool.numStopped <= _pool.numFinished);
+        ++_data.numStopped;
+        assert(_data.numStopped <= _data.numFinished);
     }
 
-    if (numFinished == _pool.numThreads) {
-        Lock poolLock(_pool.poolMutex);
-        _pool.poolCondition.notify_one();
+    if (numFinished == _data.numThreads) {
+        Lock poolLock(_data.poolMutex);
+        _data.poolCondition.notify_one();
     }
 }
 
 bool AudioMixerWorkerThread::try_pop(SharedNodePointer& node) {
-    return _pool.queue.try_pop(node);
+    return _data.queue.try_pop(node);
 }
 
 void AudioMixerSlavePool::processPackets(ConstIter begin, ConstIter end) {

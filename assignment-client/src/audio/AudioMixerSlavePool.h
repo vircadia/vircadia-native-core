@@ -17,7 +17,7 @@
 #include <vector>
 
 #include <QThread>
-#include <shared/QtHelpers.h>
+#include <shared/QtHelpers.h> // for DEBUG_EVENT_QUEUE
 #include <TBBHelpers.h>
 
 #include "AudioMixerSlave.h"
@@ -70,8 +70,8 @@ class AudioMixerWorkerThread : public QThread, public AudioMixerSlave {
     using Lock = std::unique_lock<Mutex>;
 
 public:
-    AudioMixerWorkerThread(AudioMixerWorkerPoolData& pool, AudioMixerSlave::SharedData& sharedData)
-        : AudioMixerSlave(sharedData), _pool(pool) {}
+    AudioMixerWorkerThread(AudioMixerWorkerPoolData& data, AudioMixerSlave::SharedData& sharedData) :
+        AudioMixerSlave(sharedData), _data(data) {}
 
     void run() override final;
     inline void stop() { _stop = true; }
@@ -81,7 +81,7 @@ private:
     void notify(bool stopping);
     bool try_pop(SharedNodePointer& node);
 
-    AudioMixerWorkerPoolData& _pool;
+    AudioMixerWorkerPoolData& _data;
     void (AudioMixerSlave::*_function)(const SharedNodePointer& node) { nullptr };
     bool _stop { false };
 };

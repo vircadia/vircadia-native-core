@@ -20,7 +20,7 @@
 
 #include <TBBHelpers.h>
 #include <NodeList.h>
-#include <shared/QtHelpers.h>
+#include <shared/QtHelpers.h> // for DEBUG_EVENT_QUEUE
 
 #include "AvatarMixerSlave.h"
 
@@ -73,8 +73,8 @@ class AvatarMixerWorkerThread : public QThread, public AvatarMixerSlave {
     using Lock = std::unique_lock<Mutex>;
 
 public:
-    AvatarMixerWorkerThread(AvatarMixerWorkerPoolData& pool, SlaveSharedData* slaveSharedData) :
-        AvatarMixerSlave(slaveSharedData), _pool(pool) {};
+    AvatarMixerWorkerThread(AvatarMixerWorkerPoolData& data, SlaveSharedData* slaveSharedData) :
+        AvatarMixerSlave(slaveSharedData), _data(data){};
 
     void run() override final;
     inline void stop() { _stop = true; }
@@ -84,7 +84,7 @@ private:
     void notify(bool stopping);
     bool try_pop(SharedNodePointer& node);
 
-    AvatarMixerWorkerPoolData& _pool;
+    AvatarMixerWorkerPoolData& _data;
     void (AvatarMixerSlave::*_function)(const SharedNodePointer& node) { nullptr };
     bool _stop { false };
 };
