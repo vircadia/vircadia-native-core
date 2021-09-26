@@ -164,12 +164,23 @@ void AvatarMixerSlavePool::resize(int numThreads) {
     qDebug("%s: set %d threads (was %d)", __FUNCTION__, numThreads, _data.numThreads);
 
     if (numThreads > _data.numThreads) {
+        assert(_data.numFinished == _data.numThreads);
+
         // start new slaves
         while (numThreads > _data.numThreads) {
             _data.numThreads++;
             auto worker = new AvatarMixerWorkerThread(_data, _slaveSharedData);
             worker->start();
             _workers.emplace_back(worker);
+        }
+
+        // wait for the new workers to wake up and enter the wait
+        Lock poolLock(_data.poolMutex);
+        if (_data.numFinished < _data.numThreads) {
+            _data.poolCondition.wait(poolLock, [&] {
+                assert(_data.numFinished <= _data.numThreads);
+                return _data.numFinished == _data.numThreads;
+            });
         }
     } else if (numThreads < _data.numThreads) {
         auto extraBegin = _workers.begin() + numThreads;
