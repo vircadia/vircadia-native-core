@@ -55,7 +55,8 @@ void AudioMixerWorkerThread::wait() {
 }
 
 void AudioMixerWorkerThread::notify(bool stopping) {
-    assert(_data.numFinished < _data.numThreads && _data.numFinished <= _data.numStarted);
+    assert(_data.numFinished < _data.numThreads);
+    assert(_data.numFinished <= _data.numStarted);
     int numFinished = ++_data.numFinished;
     if (stopping) {
         ++_data.numStopped;
@@ -164,7 +165,8 @@ void AudioMixerSlavePool::resize(int numThreads) {
 
     if (numThreads > _data.numThreads) {
         // start new slaves
-        for (int i = 0; i < numThreads - _data.numThreads; ++i) {
+        while (numThreads > _data.numThreads) {
+            _data.numThreads++;
             auto worker = new AudioMixerWorkerThread(_data, _workerSharedData);
             QObject::connect(worker, &QThread::started, [] { setThreadName("AudioMixerSlaveThread"); });
             worker->start();
