@@ -26,5 +26,6 @@ function(LINK_HIFI_LIBRARIES)
   endforeach()
 
   setup_memory_debugger()
+  setup_thread_debugger()
 
 endfunction()

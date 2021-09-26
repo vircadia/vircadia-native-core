@@ -11,7 +11,11 @@ macro(SETUP_HIFI_CLIENT_SERVER_PLUGIN)
   setup_hifi_library()
 
   if (BUILD_CLIENT)
-    add_dependencies(interface ${TARGET_NAME})
+    if (APPLE)
+      add_dependencies(Vircadia ${TARGET_NAME})
+    else()
+      add_dependencies(interface ${TARGET_NAME})
+    endif()
   endif()
 
   if (BUILD_SERVER)

@@ -14,6 +14,7 @@
 
 #include <QRunnable>
 #include <QtCore/QObject>
+#include <QtCore/QSharedPointer>
 #include <QtNetwork/QNetworkReply>
 #include <QtScript/qscriptengine.h>
 
@@ -120,7 +121,7 @@ private:
 
 typedef QSharedPointer<Sound> SharedSoundPointer;
 
-/**jsdoc
+/*@jsdoc
  * An audio resource, created by {@link SoundCache.getSound}, to be played back using {@link Audio.playSound}.
  * <p>Supported formats:</p>
  * <ul>
@@ -155,7 +156,7 @@ public:
     bool isReady() const { return _sound ? _sound->isReady() : false; }
     float getDuration() { return _sound ? _sound->getDuration() : 0.0f; }
 
-/**jsdoc
+/*@jsdoc
  * Triggered when the sound has been downloaded and is ready to be played.
  * @function SoundObject.ready
  * @returns {Signal}

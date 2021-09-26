@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2/15/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -33,7 +34,7 @@
 #include "AccountManager.h"
 #include "AssetClient.h"
 #include "Assignment.h"
-#include "HifiSockAddr.h"
+#include "SockAddr.h"
 #include "NetworkLogging.h"
 #include "udt/Packet.h"
 #include "HMACAuth.h"
@@ -103,7 +104,7 @@ LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
     _nodeSocket.setMessageHandler([this](std::unique_ptr<udt::Packet> packet) {
             _packetReceiver->handleVerifiedMessagePacket(std::move(packet));
     });
-    _nodeSocket.setMessageFailureHandler([this](HifiSockAddr from,
+    _nodeSocket.setMessageFailureHandler([this](SockAddr from,
                                                 udt::Packet::MessageNumber messageNumber) {
             _packetReceiver->handleMessageFailure(from, messageNumber);
     });
@@ -120,7 +121,7 @@ LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
 
     if (_stunSockAddr.getAddress().isNull()) {
         // we don't know the stun server socket yet, add it to unfiltered once known
-        connect(&_stunSockAddr, &HifiSockAddr::lookupCompleted, this, &LimitedNodeList::addSTUNHandlerToUnfiltered);
+        connect(&_stunSockAddr, &SockAddr::lookupCompleted, this, &LimitedNodeList::addSTUNHandlerToUnfiltered);
     } else {
         // we know the stun server socket, add it to unfiltered now
         addSTUNHandlerToUnfiltered();
@@ -198,6 +199,10 @@ void LimitedNodeList::setPermissions(const NodePermissions& newPermissions) {
         newPermissions.can(NodePermissions::Permission::canGetAndSetPrivateUserData)) {
         emit canGetAndSetPrivateUserDataChanged(_permissions.can(NodePermissions::Permission::canGetAndSetPrivateUserData));
     }
+    if (originalPermissions.can(NodePermissions::Permission::canRezAvatarEntities) !=
+        newPermissions.can(NodePermissions::Permission::canRezAvatarEntities)) {
+        emit canRezAvatarEntitiesChanged(_permissions.can(NodePermissions::Permission::canRezAvatarEntities));
+    }
 }
 
 void LimitedNodeList::setSocketLocalPort(quint16 socketLocalPort) {
@@ -244,11 +249,11 @@ bool LimitedNodeList::packetVersionMatch(const udt::Packet& packet) {
     if (headerVersion != versionForPacketType(headerType)) {
 
         static QMultiHash<QUuid, PacketType> sourcedVersionDebugSuppressMap;
-        static QMultiHash<HifiSockAddr, PacketType> versionDebugSuppressMap;
+        static QMultiHash<SockAddr, PacketType> versionDebugSuppressMap;
 
         bool hasBeenOutput = false;
         QString senderString;
-        const HifiSockAddr& senderSockAddr = packet.getSenderSockAddr();
+        const SockAddr& senderSockAddr = packet.getSenderSockAddr();
         QUuid sourceID;
 
         if (PacketTypeEnum::getNonSourcedPackets().contains(headerType)) {
@@ -409,7 +414,7 @@ qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const Node&
     return sendUnreliablePacket(packet, *destinationNode.getActiveSocket(), destinationNode.getAuthenticateHash());
 }
 
-qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr,
+qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const SockAddr& sockAddr,
         HMACAuth* hmacAuth) {
     Q_ASSERT(!packet.isPartOfMessage());
     Q_ASSERT_X(!packet.isReliable(), "LimitedNodeList::sendUnreliablePacket",
@@ -442,7 +447,7 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
     }
 }
 
-qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr,
+qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const SockAddr& sockAddr,
                                    HMACAuth* hmacAuth) {
     Q_ASSERT(!packet->isPartOfMessage());
     if (packet->isReliable()) {
@@ -493,7 +498,7 @@ qint64 LimitedNodeList::sendUnreliableUnorderedPacketList(NLPacketList& packetLi
     }
 }
 
-qint64 LimitedNodeList::sendUnreliableUnorderedPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr,
+qint64 LimitedNodeList::sendUnreliableUnorderedPacketList(NLPacketList& packetList, const SockAddr& sockAddr,
                                                           HMACAuth* hmacAuth) {
     qint64 bytesSent = 0;
 
@@ -507,7 +512,7 @@ qint64 LimitedNodeList::sendUnreliableUnorderedPacketList(NLPacketList& packetLi
     return bytesSent;
 }
 
-qint64 LimitedNodeList::sendPacketList(std::unique_ptr<NLPacketList> packetList, const HifiSockAddr& sockAddr) {
+qint64 LimitedNodeList::sendPacketList(std::unique_ptr<NLPacketList> packetList, const SockAddr& sockAddr) {
     // close the last packet in the list
     packetList->closeCurrentPacket();
 
@@ -539,7 +544,7 @@ qint64 LimitedNodeList::sendPacketList(std::unique_ptr<NLPacketList> packetList,
 }
 
 qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode,
-                                   const HifiSockAddr& overridenSockAddr) {
+                                   const SockAddr& overridenSockAddr) {
     if (overridenSockAddr.isNull() && !destinationNode.getActiveSocket()) {
         qCDebug(networking) << "LimitedNodeList::sendPacket called without active socket for node"
                             << destinationNode.getUUID() << ". Not sending.";
@@ -671,7 +676,7 @@ void LimitedNodeList::handleNodeKill(const SharedNodePointer& node, ConnectionID
 }
 
 SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
-                                                   const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
+                                                   const SockAddr& publicSocket, const SockAddr& localSocket,
                                                    Node::LocalID localID, bool isReplicated, bool isUpstream,
                                                    const QUuid& connectionSecret, const NodePermissions& permissions) {
     auto matchingNode = nodeWithUUID(uuid);
@@ -1101,7 +1106,7 @@ void LimitedNodeList::processSTUNResponse(std::unique_ptr<udt::BasePacket> packe
                     _publicSockAddr.getAddress().toString().toLocal8Bit().constData(),
                     _publicSockAddr.getPort());
 
-            _publicSockAddr = HifiSockAddr(newPublicAddress, newPublicPort);
+            _publicSockAddr = SockAddr(newPublicAddress, newPublicPort);
 
             if (!_hasCompletedInitialSTUN) {
                 // if we're here we have definitely completed our initial STUN sequence
@@ -1129,10 +1134,10 @@ void LimitedNodeList::startSTUNPublicSocketUpdate() {
         if (_stunSockAddr.getAddress().isNull()) {
 
             // if we fail to lookup the socket then timeout the STUN address lookup
-            connect(&_stunSockAddr, &HifiSockAddr::lookupFailed, this, &LimitedNodeList::possiblyTimeoutSTUNAddressLookup);
+            connect(&_stunSockAddr, &SockAddr::lookupFailed, this, &LimitedNodeList::possiblyTimeoutSTUNAddressLookup);
 
             // immediately send a STUN request once we know the socket
-            connect(&_stunSockAddr, &HifiSockAddr::lookupCompleted, this, &LimitedNodeList::sendSTUNRequest);
+            connect(&_stunSockAddr, &SockAddr::lookupCompleted, this, &LimitedNodeList::sendSTUNRequest);
 
             // start the initial STUN timer once we know the socket
             connect(&_stunSockAddr, SIGNAL(lookupCompleted()), _initialSTUNTimer, SLOT(start()));
@@ -1182,7 +1187,7 @@ void LimitedNodeList::stopInitialSTUNUpdate(bool success) {
         qCDebug(networking) << "LimitedNodeList public socket will be set with local port and null QHostAddress.";
 
         // reset the public address and port to a null address
-        _publicSockAddr = HifiSockAddr(QHostAddress(), _nodeSocket.localPort());
+        _publicSockAddr = SockAddr(QHostAddress(), _nodeSocket.localPort());
 
         // we have changed the publicSockAddr, so emit our signal
         emit publicSockAddrChanged(_publicSockAddr);
@@ -1209,7 +1214,7 @@ void LimitedNodeList::stopInitialSTUNUpdate(bool success) {
 void LimitedNodeList::updateLocalSocket() {
     // when update is called, if the local socket is empty then start with the guessed local socket
     if (_localSockAddr.isNull()) {
-        setLocalSocket(HifiSockAddr { getGuessedLocalAddress(), _nodeSocket.localPort() });
+        setLocalSocket(SockAddr { getGuessedLocalAddress(), _nodeSocket.localPort() });
     }
 
     // attempt to use Google's DNS to confirm that local IP
@@ -1219,8 +1224,7 @@ void LimitedNodeList::updateLocalSocket() {
     QTcpSocket* localIPTestSocket = new QTcpSocket;
 
     connect(localIPTestSocket, &QTcpSocket::connected, this, &LimitedNodeList::connectedForLocalSocketTest);
-    connect(localIPTestSocket, static_cast<void(QTcpSocket::*)(QAbstractSocket::SocketError)>(&QTcpSocket::error),
-        this, &LimitedNodeList::errorTestingLocalSocket);
+    connect(localIPTestSocket, &QTcpSocket::errorOccurred, this, &LimitedNodeList::errorTestingLocalSocket);
 
     // attempt to connect to our reliable host
     localIPTestSocket->connectToHost(RELIABLE_LOCAL_IP_CHECK_HOST, RELIABLE_LOCAL_IP_CHECK_PORT);
@@ -1233,7 +1237,7 @@ void LimitedNodeList::connectedForLocalSocketTest() {
         auto localHostAddress = localIPTestSocket->localAddress();
 
         if (localHostAddress.protocol() == QAbstractSocket::IPv4Protocol) {
-            setLocalSocket(HifiSockAddr { localHostAddress, _nodeSocket.localPort() });
+            setLocalSocket(SockAddr { localHostAddress, _nodeSocket.localPort() });
             _hasTCPCheckedLocalSocket = true;
         }
 
@@ -1249,7 +1253,7 @@ void LimitedNodeList::errorTestingLocalSocket() {
         // error connecting to the test socket - if we've never set our local socket using this test socket
         // then use our possibly updated guessed local address as fallback
         if (!_hasTCPCheckedLocalSocket) {
-            setLocalSocket(HifiSockAddr { getGuessedLocalAddress(), _nodeSocket.localPort() });
+            setLocalSocket(SockAddr { getGuessedLocalAddress(), _nodeSocket.localPort() });
             qCCritical(networking) << "PAGE: Can't connect to Google DNS service via TCP, falling back to guessed local address"
                 << getLocalSockAddr();
         }
@@ -1258,7 +1262,7 @@ void LimitedNodeList::errorTestingLocalSocket() {
     }
 }
 
-void LimitedNodeList::setLocalSocket(const HifiSockAddr& sockAddr) {
+void LimitedNodeList::setLocalSocket(const SockAddr& sockAddr) {
     if (sockAddr.getAddress() != _localSockAddr.getAddress()) {
 
         if (_localSockAddr.isNull()) {
@@ -1279,12 +1283,12 @@ void LimitedNodeList::setLocalSocket(const HifiSockAddr& sockAddr) {
     }
 }
 
-void LimitedNodeList::sendPeerQueryToIceServer(const HifiSockAddr& iceServerSockAddr, const QUuid& clientID,
+void LimitedNodeList::sendPeerQueryToIceServer(const SockAddr& iceServerSockAddr, const QUuid& clientID,
                                                const QUuid& peerID) {
     sendPacketToIceServer(PacketType::ICEServerQuery, iceServerSockAddr, clientID, peerID);
 }
 
-SharedNodePointer LimitedNodeList::findNodeWithAddr(const HifiSockAddr& addr) {
+SharedNodePointer LimitedNodeList::findNodeWithAddr(const SockAddr& addr) {
     QReadLocker locker(&_nodeMutex);
     auto it = std::find_if(std::begin(_nodeHash), std::end(_nodeHash), [&addr](const UUIDNodePair& pair) {
         return pair.second->getPublicSocket() == addr
@@ -1294,7 +1298,7 @@ SharedNodePointer LimitedNodeList::findNodeWithAddr(const HifiSockAddr& addr) {
     return (it != std::end(_nodeHash)) ? it->second : SharedNodePointer();
 }
 
-bool LimitedNodeList::sockAddrBelongsToNode(const HifiSockAddr& sockAddr) {
+bool LimitedNodeList::sockAddrBelongsToNode(const SockAddr& sockAddr) {
     QReadLocker locker(&_nodeMutex);
     auto it = std::find_if(std::begin(_nodeHash), std::end(_nodeHash), [&sockAddr](const UUIDNodePair& pair) {
         return pair.second->getPublicSocket() == sockAddr
@@ -1304,7 +1308,7 @@ bool LimitedNodeList::sockAddrBelongsToNode(const HifiSockAddr& sockAddr) {
     return it != std::end(_nodeHash);
 }
 
-void LimitedNodeList::sendPacketToIceServer(PacketType packetType, const HifiSockAddr& iceServerSockAddr,
+void LimitedNodeList::sendPacketToIceServer(PacketType packetType, const SockAddr& iceServerSockAddr,
                                             const QUuid& clientID, const QUuid& peerID) {
     auto icePacket = NLPacket::create(packetType);
 
@@ -1396,7 +1400,7 @@ void LimitedNodeList::flagTimeForConnectionStep(ConnectionStep connectionStep, q
     }
 }
 
-void LimitedNodeList::clientConnectionToSockAddrReset(const HifiSockAddr& sockAddr) {
+void LimitedNodeList::clientConnectionToSockAddrReset(const SockAddr& sockAddr) {
     // for certain reliable channels higher level classes may need to know if the udt::Connection has been reset
     auto matchingNode = findNodeWithAddr(sockAddr);
 

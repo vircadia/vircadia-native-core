@@ -8,7 +8,7 @@
 
 #include "GpuHelpers.h"
 
-/**jsdoc
+/*@jsdoc
  * <p>The interpretation of mesh elements.</p>
  * <table>
  *   <thead>

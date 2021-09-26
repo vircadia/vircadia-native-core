@@ -9,11 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_TypedArrayPrototype_h
 #define hifi_TypedArrayPrototype_h
 
 #include "ArrayBufferViewClass.h"
 
+/// The javascript functions associated with a <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray">TypedArray</a></code> instance prototype
 class TypedArrayPrototype : public QObject, public QScriptable {
     Q_OBJECT
 public:
@@ -31,3 +35,5 @@ private:
 };
 
 #endif // hifi_TypedArrayPrototype_h
+
+/// @}

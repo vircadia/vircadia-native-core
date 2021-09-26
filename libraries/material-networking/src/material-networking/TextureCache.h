@@ -18,6 +18,7 @@
 #include <QMap>
 #include <QColor>
 #include <QMetaEnum>
+#include <QtCore/QSharedPointer>
 
 #include <DependencyManager.h>
 #include <ResourceCache.h>
@@ -39,6 +40,12 @@ class Texture {
 public:
     gpu::TexturePointer getGPUTexture() const { return _textureSource->getGPUTexture(); }
     gpu::TextureSourcePointer _textureSource;
+
+    static std::function<gpu::TexturePointer()> getTextureForUUIDOperator(const QUuid& uuid);
+    static void setUnboundTextureForUUIDOperator(std::function<gpu::TexturePointer(const QUuid&)> textureForUUIDOperator);
+
+private:
+    static std::function<gpu::TexturePointer(const QUuid&)> _unboundTextureForUUIDOperator;
 };
 
 /// A texture loaded from the network.
@@ -52,10 +59,10 @@ public:
 
     QString getType() const override { return "NetworkTexture"; }
 
-    int getOriginalWidth() const { return _originalWidth; }
-    int getOriginalHeight() const { return _originalHeight; }
-    int getWidth() const { return _width; }
-    int getHeight() const { return _height; }
+    int getOriginalWidth() const { return _textureSource->getGPUTexture() ? _textureSource->getGPUTexture()->getOriginalWidth() : 0; }
+    int getOriginalHeight() const { return _textureSource->getGPUTexture() ? _textureSource->getGPUTexture()->getOriginalHeight() : 0; }
+    int getWidth() const { return _textureSource->getGPUTexture() ? _textureSource->getGPUTexture()->getWidth() : 0; }
+    int getHeight() const { return _textureSource->getGPUTexture() ? _textureSource->getGPUTexture()->getHeight() : 0; }
     image::TextureUsage::Type getTextureType() const { return _type; }
 
     gpu::TexturePointer getFallbackTexture() const;
@@ -86,6 +93,7 @@ protected:
     Q_INVOKABLE void loadTextureContent(const QByteArray& content);
 
     Q_INVOKABLE void setImage(gpu::TexturePointer texture, int originalWidth, int originalHeight);
+    void setImageOperator(std::function<gpu::TexturePointer()> textureOperator);
 
     Q_INVOKABLE void startRequestForNextMipLevel();
 
@@ -136,8 +144,6 @@ private:
     // mip offsets to change.
     ktx::KTXDescriptorPointer _originalKtxDescriptor;
 
-    int _originalWidth { 0 };
-    int _originalHeight { 0 };
     int _width { 0 };
     int _height { 0 };
     int _maxNumPixels { ABSOLUTE_MAX_TEXTURE_NUM_PIXELS };
@@ -183,14 +189,16 @@ public:
         const QByteArray& content = QByteArray(), int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS,
         image::ColorChannel sourceChannel = image::ColorChannel::NONE);
 
-    gpu::TexturePointer getTextureByHash(const std::string& hash);
-    gpu::TexturePointer cacheTextureByHash(const std::string& hash, const gpu::TexturePointer& texture);
+    std::pair<gpu::TexturePointer, glm::ivec2> getTextureByHash(const std::string& hash);
+    std::pair<gpu::TexturePointer, glm::ivec2> cacheTextureByHash(const std::string& hash, const std::pair<gpu::TexturePointer, glm::ivec2>& textureAndSize);
 
     NetworkTexturePointer getResourceTexture(const QUrl& resourceTextureUrl);
     const gpu::FramebufferPointer& getHmdPreviewFramebuffer(int width, int height);
     const gpu::FramebufferPointer& getSpectatorCameraFramebuffer();
     const gpu::FramebufferPointer& getSpectatorCameraFramebuffer(int width, int height);
     void updateSpectatorCameraNetworkTexture();
+
+    NetworkTexturePointer getTextureByUUID(const QString& uuid);
 
     static const int DEFAULT_SPECTATOR_CAM_WIDTH { 2048 };
     static const int DEFAULT_SPECTATOR_CAM_HEIGHT { 1024 };
@@ -226,7 +234,7 @@ private:
     std::shared_ptr<cache::FileCache> _ktxCache { std::make_shared<KTXCache>(KTX_DIRNAME, KTX_EXT) };
 
     // Map from image hashes to texture weak pointers
-    std::unordered_map<std::string, std::weak_ptr<gpu::Texture>> _texturesByHashes;
+    std::unordered_map<std::string, std::pair<std::weak_ptr<gpu::Texture>, glm::ivec2>> _texturesByHashes;
     std::mutex _texturesByHashesMutex;
 
     gpu::TexturePointer _permutationNormalTexture;

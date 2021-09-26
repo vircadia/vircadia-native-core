@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2/15/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -57,7 +58,7 @@ public:
     NodeType_t getOwnerType() const { return _ownerType.load(); }
     void setOwnerType(NodeType_t ownerType) { _ownerType.store(ownerType); }
 
-    Q_INVOKABLE qint64 sendStats(QJsonObject statsObject, HifiSockAddr destination);
+    Q_INVOKABLE qint64 sendStats(QJsonObject statsObject, SockAddr destination);
     Q_INVOKABLE qint64 sendStatsToDomainServer(QJsonObject statsObject);
 
     DomainHandler& getDomainHandler() { return _domainHandler; }
@@ -67,8 +68,10 @@ public:
     void addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes);
     void resetNodeInterestSet() { _nodeTypesOfInterest.clear(); }
 
-    void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
+    void setAssignmentServerSocket(const SockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
+
+    void disableDomainPortAutoDiscovery(bool disabled = false) { _domainPortAutoDiscovery = !disabled; };
 
     void setIsShuttingDown(bool isShuttingDown) { _isShuttingDown = isShuttingDown; }
 
@@ -86,7 +89,7 @@ public:
     void setInjectorGain(float gain);
     float getInjectorGain();
 
-    void kickNodeBySessionID(const QUuid& nodeID);
+    void kickNodeBySessionID(const QUuid& nodeID, unsigned int banFlags);
     void muteNodeBySessionID(const QUuid& nodeID);
     void requestUsernameFromSessionID(const QUuid& nodeID);
     bool getRequestsDomainListData() { return _requestsDomainListData; }
@@ -100,12 +103,12 @@ public:
     virtual bool isDomainServer() const override { return false; }
     virtual QUuid getDomainUUID() const override { return _domainHandler.getUUID(); }
     virtual Node::LocalID getDomainLocalID() const override { return _domainHandler.getLocalID(); }
-    virtual HifiSockAddr getDomainSockAddr() const override { return _domainHandler.getSockAddr(); }
+    virtual SockAddr getDomainSockAddr() const override { return _domainHandler.getSockAddr(); }
 
 public slots:
     void reset(QString reason, bool skipDomainHandlerReset = false);
     void resetFromDomainHandler() { reset("Reset from Domain Handler", true); }
-    
+
     void sendDomainServerCheckIn();
     void handleDSPathQuery(const QString& newPath);
 
@@ -122,6 +125,11 @@ public slots:
     void processICEPingPacket(QSharedPointer<ReceivedMessage> message);
 
     void processUsernameFromIDReply(QSharedPointer<ReceivedMessage> message);
+
+    // FIXME: Can remove these work-arounds in version 2021.2.0. (New protocol version implies a domain server upgrade.)
+    bool adjustCanRezAvatarEntitiesPermissions(const QJsonObject& domainSettingsObject, NodePermissions& permissions,
+        bool notify);
+    void adjustCanRezAvatarEntitiesPerSettings(const QJsonObject& domainSettingsObject);
 
 #if (PR_BUILD || DEV_BUILD)
     void toggleSendNewerDSConnectVersion(bool shouldSendNewerVersion) { _shouldSendNewerVersion = shouldSendNewerVersion; }
@@ -148,10 +156,9 @@ private slots:
     void maybeSendIgnoreSetToNode(SharedNodePointer node);
 
 private:
+    Q_DISABLE_COPY(NodeList)
     NodeList() : LimitedNodeList(INVALID_PORT, INVALID_PORT) { assert(false); } // Not implemented, needed for DependencyManager templates compile
     NodeList(char ownerType, int socketListenPort = INVALID_PORT, int dtlsListenPort = INVALID_PORT);
-    NodeList(NodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
-    void operator=(NodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
 
     void processDomainServerAuthRequest(const QByteArray& packet);
     void requestAuthForDomainServer();
@@ -164,17 +171,18 @@ private:
 
     void pingPunchForInactiveNode(const SharedNodePointer& node);
 
-    bool sockAddrBelongsToDomainOrNode(const HifiSockAddr& sockAddr);
+    bool sockAddrBelongsToDomainOrNode(const SockAddr& sockAddr);
 
     std::atomic<NodeType_t> _ownerType;
     NodeSet _nodeTypesOfInterest;
     DomainHandler _domainHandler;
-    HifiSockAddr _assignmentServerSocket;
+    SockAddr _assignmentServerSocket;
     bool _isShuttingDown { false };
     QTimer _keepAlivePingTimer;
     bool _requestsDomainListData { false };
 
     bool _sendDomainServerCheckInEnabled { true };
+    bool _domainPortAutoDiscovery { true };
 
     mutable QReadWriteLock _ignoredSetLock;
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDs;

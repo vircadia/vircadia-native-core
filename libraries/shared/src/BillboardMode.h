@@ -16,7 +16,7 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/quaternion.hpp"
 
-/**jsdoc
+/*@jsdoc
  * <p>How an entity is billboarded.</p>
  * <table>
  *   <thead>

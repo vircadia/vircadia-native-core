@@ -44,13 +44,14 @@ endif()
         self.assets_url = self.readVar('EXTERNAL_BUILD_ASSETS')
 
         # The noClean flag indicates we're doing weird dependency maintenance stuff
-        # i.e. we've got an explicit checkout of vcpkg and we don't want the script to 
-        # do stuff it might otherwise do.  It typically indicates that we're using our 
+        # i.e. we've got an explicit checkout of vcpkg and we don't want the script to
+        # do stuff it might otherwise do.  It typically indicates that we're using our
         # own git checkout of vcpkg and manually managing it
         self.noClean = False
 
         # OS dependent information
         system = platform.system()
+        machine = platform.machine()
 
         if 'HIFI_VCPKG_PATH' in os.environ:
             self.path = os.environ['HIFI_VCPKG_PATH']
@@ -59,7 +60,7 @@ endif()
             self.path = args.vcpkg_root
             self.noClean = True
         else:
-            defaultBasePath = os.path.expanduser('~/hifi/vcpkg')
+            defaultBasePath = os.path.expanduser('~/vircadia-files/vcpkg')
             self.basePath = os.getenv('HIFI_VCPKG_BASE', defaultBasePath)
             if self.args.android:
                 self.basePath = os.path.join(self.basePath, 'android')
@@ -105,6 +106,12 @@ endif()
             self.bootstrapEnv['CXXFLAGS'] = '-D_CTERMID_H_'
             if usePrebuilt:
                 self.prebuiltArchive = self.assets_url + "/dependencies/vcpkg/builds/vcpkg-osx.tgz%3FversionId=6JrIMTdvpBF3MAsjA92BMkO79Psjzs6Z"
+        elif 'Linux' == system and 'aarch64' == machine:
+            self.exe = os.path.join(self.path, 'vcpkg')
+            self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '-disableMetrics' ]
+            self.vcpkgUrl = 'http://motofckr9k.ddns.net/vircadia_packages/vcpkg-2020.11-1_arm64.tar.xz'
+            self.vcpkgHash = 'f39fa1c34d2ba820954b8ce4acc05e3d0ce5fa5efe5440516ba910ff222c85c658ba4bbfc92b3fa6cbb594f99be115cda69ebe44ed38d4d3988058fb1faefbb3'
+            self.hostTriplet = 'arm64-linux'
         else:
             self.exe = os.path.join(self.path, 'vcpkg')
             self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '-disableMetrics' ]

@@ -11,6 +11,8 @@
 
 #include "SpatiallyNestable.h"
 
+#include <QtCore/QSharedPointer>
+
 #include <queue>
 
 #include "DependencyManager.h"
@@ -754,6 +756,17 @@ const Transform SpatiallyNestable::getTransform(bool& success, int depth) const 
     return result;
 }
 
+const Transform SpatiallyNestable::getTransformWithOnlyLocalRotation(bool& success, int depth) const {
+    Transform result;
+    // return a world-space transform for this object's location
+    Transform parentTransform = getParentTransform(success, depth);
+    _transformLock.withReadLock([&] {
+        Transform::mult(result, parentTransform, _transform);
+        result.setRotation(_transform.getRotation());
+    });
+    return result;
+}
+
 const Transform SpatiallyNestable::getTransform() const {
     bool success;
     Transform result = getTransform(success);
@@ -1396,7 +1409,7 @@ SpatiallyNestablePointer SpatiallyNestable::findByID(QUuid id, bool& success) {
     return parentWP.lock();
 }
 
-/**jsdoc
+/*@jsdoc
  * <p>An in-world item may be one of the following types:</p>
  * <table>
  *   <thead>

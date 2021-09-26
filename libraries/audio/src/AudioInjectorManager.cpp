@@ -12,9 +12,11 @@
 #include "AudioInjectorManager.h"
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QSharedPointer>
 
 #include <SharedUtil.h>
 #include <shared/QtHelpers.h>
+#include <ThreadHelpers.h>
 
 #include "AudioConstants.h"
 #include "AudioInjector.h"
@@ -54,11 +56,14 @@ AudioInjectorManager::~AudioInjectorManager() {
 }
 
 void AudioInjectorManager::createThread() {
-    _thread = new QThread;
+    _thread = new QThread();
     _thread->setObjectName("Audio Injector Thread");
 
     // when the thread is started, have it call our run to handle injection of audio
-    connect(_thread, &QThread::started, this, &AudioInjectorManager::run, Qt::DirectConnection);
+    connect(_thread, &QThread::started, this, [this] {
+        setThreadName("AudioInjectorManager");
+        run();
+    }, Qt::DirectConnection);
 
     moveToThread(_thread);
 

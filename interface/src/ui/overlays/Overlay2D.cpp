@@ -25,7 +25,7 @@ AABox Overlay2D::getBounds() const {
 
 // JSDoc for copying to @typedefs of overlay types that inherit Overlay2D.
 // QmlOverlay-derived classes don't support getProperty().
-/**jsdoc
+/*@jsdoc
  * @property {Rect} bounds - The position and size of the rectangle. <em>Write-only.</em>
  * @property {number} x - Integer left, x-coordinate value = <code>bounds.x</code>. <em>Write-only.</em>
  * @property {number} y - Integer top, y-coordinate value = <code>bounds.y</code>. <em>Write-only.</em>

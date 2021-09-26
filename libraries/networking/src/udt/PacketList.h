@@ -4,6 +4,7 @@
 //
 //  Created by Clement on 7/13/15.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -50,7 +51,7 @@ public:
 
     virtual qint64 getMaxSegmentSize() const { return Packet::maxPayloadSize(_isOrdered); }
 
-    HifiSockAddr getSenderSockAddr() const;
+    SockAddr getSenderSockAddr() const;
     
     void closeCurrentPacket(bool shouldSendEmpty = false);
 
@@ -83,9 +84,8 @@ private:
     friend class PacketQueue;
     friend class SendQueue;
     friend class Socket;
-    
-    PacketList(const PacketList& other) = delete;
-    PacketList& operator=(const PacketList& other) = delete;
+
+    Q_DISABLE_COPY(PacketList)
     
     // Takes the first packet of the list and returns it.
     template<typename T> std::unique_ptr<T> takeFront();

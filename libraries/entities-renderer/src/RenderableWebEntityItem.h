@@ -10,6 +10,7 @@
 #ifndef hifi_RenderableWebEntityItem_h
 #define hifi_RenderableWebEntityItem_h
 
+#include <QtCore/QSharedPointer>
 #include <WebEntityItem.h>
 #include "RenderableEntityItem.h"
 
@@ -54,6 +55,8 @@ public:
 
     virtual void setProxyWindow(QWindow* proxyWindow) override;
     virtual QObject* getEventHandler() override;
+
+    gpu::TexturePointer getTexture() override { return _texture; }
 
 protected:
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;

@@ -24,7 +24,7 @@ class SoundCacheScriptingInterface : public ScriptableResourceCache, public Depe
 
     // Properties are copied over from ResourceCache (see ResourceCache.h for reason).
 
-    /**jsdoc
+    /*@jsdoc
      * The <code>SoundCache</code> API manages sound cache resources.
      *
      * @namespace SoundCache
@@ -53,7 +53,7 @@ class SoundCacheScriptingInterface : public ScriptableResourceCache, public Depe
 public:
     SoundCacheScriptingInterface();
 
-    /**jsdoc
+    /*@jsdoc
      * Loads the content of an audio file into a {@link SoundObject}, ready for playback by {@link Audio.playSound}.
      * @function SoundCache.getSound
      * @param {string} url - The URL of the audio file to load &mdash; Web, ATP, or file. See {@link SoundObject} for supported 

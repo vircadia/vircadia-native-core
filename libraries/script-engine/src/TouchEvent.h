@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_TouchEvent_h
 #define hifi_TouchEvent_h
 
@@ -20,6 +23,7 @@
 class QScriptValue;
 class QScriptEngine;
 
+/// Represents a display or device event to the scripting engine. Exposed as <code><a href="https://apidocs.vircadia.dev/global.html#TouchEvent">TouchEvent</a></code>
 class TouchEvent {
 public:
     TouchEvent();
@@ -60,3 +64,5 @@ private:
 Q_DECLARE_METATYPE(TouchEvent)
 
 #endif // hifi_TouchEvent_h
+
+/// @}

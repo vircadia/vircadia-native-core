@@ -142,7 +142,7 @@ void unpackAndroidAssets() {
         if (!file.open(QIODevice::ReadWrite | QIODevice::Truncate)) {
             throw std::runtime_error("Can't write date stamp");
         }
-        QTextStream(&file) << "touch" << endl;
+        QTextStream(&file) << "touch" << Qt::endl;
         file.close();
     }
 }

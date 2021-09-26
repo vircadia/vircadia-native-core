@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 1/10/2014.
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -41,7 +42,8 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
                                                  const unsigned int maxAssignmentClientForks,
                                                  Assignment::Type requestAssignmentType, QString assignmentPool,
                                                  quint16 listenPort, quint16 childMinListenPort, QUuid walletUUID, QString assignmentServerHostname,
-                                                 quint16 assignmentServerPort, quint16 httpStatusServerPort, QString logDirectory) :
+                                                 quint16 assignmentServerPort, quint16 httpStatusServerPort, QString logDirectory,
+                                                 bool disableDomainPortAutoDiscovery) :
     _httpManager(QHostAddress::LocalHost, httpStatusServerPort, "", this),
     _numAssignmentClientForks(numAssignmentClientForks),
     _minAssignmentClientForks(minAssignmentClientForks),
@@ -51,7 +53,8 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
     _walletUUID(walletUUID),
     _assignmentServerHostname(assignmentServerHostname),
     _assignmentServerPort(assignmentServerPort),
-    _childMinListenPort(childMinListenPort)
+    _childMinListenPort(childMinListenPort),
+    _disableDomainPortAutoDiscovery(disableDomainPortAutoDiscovery)
 {
     qDebug() << "_requestAssignmentType =" << _requestAssignmentType;
 
@@ -198,6 +201,9 @@ void AssignmentClientMonitor::spawnChildClient() {
         _childArguments.append("--" + ASSIGNMENT_TYPE_OVERRIDE_OPTION);
         _childArguments.append(QString::number(_requestAssignmentType));
     }
+    if (_disableDomainPortAutoDiscovery) {
+        _childArguments.append("--" + ASSIGNMENT_DISABLE_DOMAIN_AUTO_PORT_DISCOVERY);
+    }
 
     if (listenPort) {
         _childArguments.append("-" + ASSIGNMENT_CLIENT_LISTEN_PORT_OPTION);
@@ -266,7 +272,7 @@ void AssignmentClientMonitor::spawnChildClient() {
             stderrPath = stderrPathTemp;
             stderrFilename = stderrFilenameTemp;
         }
-        
+
         qDebug() << "Child stdout being written to: " << stdoutFilename;
         qDebug() << "Child stderr being written to: " << stderrFilename;
     }
@@ -331,7 +337,7 @@ void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<ReceivedMes
     auto nodeList = DependencyManager::get<NodeList>();
 
     SharedNodePointer matchingNode = nodeList->nodeWithUUID(senderID);
-    const HifiSockAddr& senderSockAddr = message->getSenderSockAddr();
+    const SockAddr& senderSockAddr = message->getSenderSockAddr();
 
     AssignmentClientChildData* childData = nullptr;
 

@@ -29,6 +29,7 @@
 #include "RenderControl.h"
 #include "RenderEventHandler.h"
 #include "TextureCache.h"
+#include <ThreadHelpers.h>
 
 // Time between receiving a request to render the offscreen UI actually triggering
 // the render.  Could possibly be increased depending on the framerate we expect to
@@ -162,7 +163,9 @@ void SharedObject::setRootItem(QQuickItem* rootItem) {
 
     // Create the render thread
     _renderThread = new QThread();
-    _renderThread->setObjectName(objectName());
+    QString name = objectName();
+    _renderThread->setObjectName(name);
+    QObject::connect(_renderThread, &QThread::started, [name] { setThreadName("QML SharedObject " + name.toStdString()); });
     _renderThread->start();
 
     // Create event handler for the render thread

@@ -14,6 +14,7 @@
 
 #include <functional>
 #include <QtCore/QDebug>
+#include <QtCore/QSharedPointer>
 #include <QtScript/QScriptEngine>
 
 class ScriptEngine;
@@ -31,7 +32,7 @@ public:
 
     BaseScriptEngine() {}
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.lintScript
      * @param {string} sourceCode - Source code.
      * @param {string} fileName - File name.
@@ -41,7 +42,7 @@ public:
      */
     Q_INVOKABLE QScriptValue lintScript(const QString& sourceCode, const QString& fileName, const int lineNumber = 1);
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.makeError
      * @param {object} [other] - Other.
      * @param {string} [type="Error"] - Error.
@@ -50,7 +51,7 @@ public:
      */
     Q_INVOKABLE QScriptValue makeError(const QScriptValue& other = QScriptValue(), const QString& type = "Error");
     
-    /**jsdoc
+    /*@jsdoc
      * @function Script.formatExecption
      * @param {object} exception - Exception.
      * @param {boolean} inludeExtendeDetails - Include extended details.
@@ -72,7 +73,7 @@ public:
     // helper to detect and log warnings when other code invokes QScriptEngine/BaseScriptEngine in thread-unsafe ways
     static bool IS_THREADSAFE_INVOCATION(const QThread *thread, const QString& method);
 signals:
-    /**jsdoc
+    /*@jsdoc
      * @function Script.signalHandlerException
      * @param {object} exception - Exception.
      * @returns {Signal}
@@ -80,7 +81,7 @@ signals:
      */
     // Script.signalHandlerException is exposed by QScriptEngine.
     
-    /**jsdoc
+    /*@jsdoc
      * Triggered when a script generates an unhandled exception.
      * @function Script.unhandledException
      * @param {object} exception - The details of the exception.

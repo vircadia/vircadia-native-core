@@ -53,7 +53,7 @@ local message_positions = {
 
 local packet_types = {
   [0] = "Unknown",
-  [1] = "StunResponse",
+  [1] = "DomainConnectRequestPending",
   [2] = "DomainList",
   [3] = "Ping",
   [4] = "PingReply",

@@ -12,6 +12,8 @@
 #ifndef hifi_ModelCache_h
 #define hifi_ModelCache_h
 
+#include <QtCore/QSharedPointer>
+
 #include <DependencyManager.h>
 #include <ResourceCache.h>
 

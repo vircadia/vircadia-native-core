@@ -595,7 +595,7 @@ void TabletProxy::gotoMenuScreen(const QString& submenu) {
 }
 
 void TabletProxy::loadQMLOnTopImpl(const QVariant& path, bool localSafeContext) {
-     if (QThread::currentThread() != thread()) {
+    if (QThread::currentThread() != thread()) {
         qCWarning(uiLogging) << __FUNCTION__ << "may not be called directly by scripts";
         return;
     }
@@ -1013,7 +1013,7 @@ const QString OBJECT_NAME_KEY = "objectName";
 const QString STABLE_ORDER_KEY = "stableOrder";
 static int s_stableOrder = 1;
 
-/**jsdoc
+/*@jsdoc
  * Properties of a tablet button.
  *
  * @typedef {object} TabletButtonProxy.ButtonProperties

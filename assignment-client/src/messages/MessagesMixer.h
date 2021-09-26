@@ -15,6 +15,8 @@
 #ifndef hifi_MessagesMixer_h
 #define hifi_MessagesMixer_h
 
+#include <QtCore/QSharedPointer>
+
 #include <ThreadedAssignment.h>
 
 /// Handles assignments of type MessagesMixer - distribution of avatar data to various clients
@@ -32,9 +34,21 @@ private slots:
     void handleMessages(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleMessagesSubscribe(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleMessagesUnsubscribe(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+    void parseDomainServerSettings(const QJsonObject& domainSettings);
+    void domainSettingsRequestComplete();
+
+    void startMaxMessagesProcessor();
+    void stopMaxMessagesProcessor();
+    void processMaxMessagesContainer();
 
 private:
-    QHash<QString,QSet<QUuid>> _channelSubscribers;
+    QHash<QString, QSet<QUuid>> _channelSubscribers;
+    QHash<QUuid, int> _allSubscribers;
+
+    const int DEFAULT_NODE_MESSAGES_PER_SECOND = 1000;
+    int _maxMessagesPerSecond { 0 };
+
+    QTimer* _maxMessagesTimer { nullptr };
 };
 
 #endif // hifi_MessagesMixer_h

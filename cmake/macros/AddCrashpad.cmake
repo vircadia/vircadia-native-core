@@ -11,24 +11,29 @@
 
 macro(add_crashpad)
   set (USE_CRASHPAD TRUE)
+  message(STATUS "Checking crashpad config")
+
   if ("$ENV{CMAKE_BACKTRACE_URL}" STREQUAL "")
+    message(STATUS "Checking crashpad config - CMAKE_BACKTRACE_URL is not set, disabled.")
     set(USE_CRASHPAD FALSE)
   else()
     set(CMAKE_BACKTRACE_URL $ENV{CMAKE_BACKTRACE_URL})
   endif()
 
   if ("$ENV{CMAKE_BACKTRACE_TOKEN}" STREQUAL "")
+    message(STATUS "Checking crashpad config - CMAKE_BACKTRACE_TOKEN is not set, disabled.")
     set(USE_CRASHPAD FALSE)
   else()
     set(CMAKE_BACKTRACE_TOKEN $ENV{CMAKE_BACKTRACE_TOKEN})
   endif()
 
-  if ((WIN32 OR APPLE) AND USE_CRASHPAD)
+  if (USE_CRASHPAD)
+    message(STATUS "Checking crashpad config - enabled.")
     get_property(CRASHPAD_CHECKED GLOBAL PROPERTY CHECKED_FOR_CRASHPAD_ONCE)
     if (NOT CRASHPAD_CHECKED)
 
       add_dependency_external_projects(crashpad)
-      find_package(crashpad REQUIRED)
+      find_package(Crashpad REQUIRED)
 
       set_property(GLOBAL PROPERTY CHECKED_FOR_CRASHPAD_ONCE TRUE)
     endif()
@@ -38,7 +43,7 @@ macro(add_crashpad)
     add_definitions(-DCMAKE_BACKTRACE_TOKEN=\"${CMAKE_BACKTRACE_TOKEN}\")
 
     target_include_directories(${TARGET_NAME} PRIVATE ${CRASHPAD_INCLUDE_DIRS})
-    target_link_libraries(${TARGET_NAME} ${CRASHPAD_LIBRARY} ${CRASHPAD_BASE_LIBRARY} ${CRASHPAD_UTIL_LIBRARY})
+    target_link_libraries(${TARGET_NAME} ${CRASHPAD_LIBRARY} ${CRASHPAD_UTIL_LIBRARY} ${CRASHPAD_BASE_LIBRARY})
 
     if (WIN32)
       set_target_properties(${TARGET_NAME} PROPERTIES LINK_FLAGS "/ignore:4099")

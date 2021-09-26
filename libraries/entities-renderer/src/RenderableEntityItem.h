@@ -56,8 +56,16 @@ public:
 
     const uint64_t& getUpdateTime() const { return _updateTime; }
 
+    enum class Pipeline {
+        SIMPLE,
+        MATERIAL,
+        PROCEDURAL
+    };
     virtual void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
     virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
+    virtual graphics::MaterialPointer getTopMaterial();
+    static Pipeline getPipelineType(const graphics::MultiMaterial& materials);
+    virtual gpu::TexturePointer getTexture() { return nullptr; }
 
     virtual scriptable::ScriptableModelBase getScriptableModel() override { return scriptable::ScriptableModelBase(); }
 
@@ -102,7 +110,7 @@ protected:
     virtual void doRender(RenderArgs* args) = 0;
 
     virtual bool isFading() const { return _isFading; }
-    virtual void updateModelTransformAndBound();
+    virtual void updateModelTransformAndBound(const EntityItemPointer& entity);
     virtual bool isTransparent() const { return _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f : false; }
     inline bool isValidRenderItem() const { return _renderItemID != Item::INVALID_ITEM_ID; }
 
@@ -110,15 +118,21 @@ protected:
     virtual void setRenderLayer(RenderLayer value) { _renderLayer = value; }
     virtual void setCullWithParent(bool value) { _cullWithParent = value; }
 
-signals:
-    void requestRenderUpdate();
-
-protected:
     template<typename T>
     std::shared_ptr<T> asTypedEntity() { return std::static_pointer_cast<T>(_entity); }
 
     static void makeStatusGetters(const EntityItemPointer& entity, Item::Status::Getters& statusGetters);
     const Transform& getModelTransform() const;
+
+    Transform getTransformToCenterWithMaybeOnlyLocalRotation(const EntityItemPointer& entity, bool& success) const;
+
+    // Shared methods for entities that support materials
+    using MaterialMap = std::unordered_map<std::string, graphics::MultiMaterial>;
+    bool needsRenderUpdateFromMaterials() const;
+    void updateMaterials(bool baseMaterialChanged = false);
+    bool materialsTransparent() const;
+    Item::Bound getMaterialBound(RenderArgs* args);
+    void updateShapeKeyBuilderFromMaterials(ShapeKey::Builder& builder);
 
     Item::Bound _bound;
     SharedSoundPointer _collisionSound;
@@ -135,14 +149,14 @@ protected:
     RenderLayer _renderLayer { RenderLayer::WORLD };
     PrimitiveMode _primitiveMode { PrimitiveMode::SOLID };
     QVector<QUuid> _renderWithZones;
-    BillboardMode _billboardMode;
+    BillboardMode _billboardMode { BillboardMode::NONE };
     bool _cauterized { false };
     bool _moving { false };
     Transform _renderTransform;
     Transform _prevRenderTransform; // each subclass is responsible for updating this after they render because they all handle transforms differently
 
-    std::unordered_map<std::string, graphics::MultiMaterial> _materials;
-    std::mutex _materialsLock;
+    MaterialMap _materials;
+    mutable std::mutex _materialsLock;
 
     quint64 _created;
 
@@ -156,6 +170,9 @@ protected:
     const EntityItemPointer _entity;
 
     QUuid _entityID;
+
+signals:
+    void requestRenderUpdate();
 };
 
 template <typename T>

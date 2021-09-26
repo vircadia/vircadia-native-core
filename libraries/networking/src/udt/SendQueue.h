@@ -4,6 +4,7 @@
 //
 //  Created by Clement on 7/21/15.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -25,7 +26,7 @@
 
 #include <PortableHighResolutionClock.h>
 
-#include "../HifiSockAddr.h"
+#include "../SockAddr.h"
 
 #include "Constants.h"
 #include "PacketQueue.h"
@@ -50,7 +51,7 @@ public:
         Stopped
     };
     
-    static std::unique_ptr<SendQueue> create(Socket* socket, HifiSockAddr destination,
+    static std::unique_ptr<SendQueue> create(Socket* socket, SockAddr destination,
                                              SequenceNumber currentSequenceNumber, MessageNumber currentMessageNumber,
                                              bool hasReceivedHandshakeACK);
 
@@ -75,7 +76,7 @@ public slots:
     void ack(SequenceNumber ack);
     void fastRetransmit(SequenceNumber ack);
     void handshakeACK();
-    void updateDestinationAddress(HifiSockAddr newAddress);
+    void updateDestinationAddress(SockAddr newAddress);
 
 signals:
     void packetSent(int wireSize, int payloadSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint);
@@ -89,10 +90,9 @@ private slots:
     void run();
     
 private:
-    SendQueue(Socket* socket, HifiSockAddr dest, SequenceNumber currentSequenceNumber,
+    Q_DISABLE_COPY_MOVE(SendQueue)
+    SendQueue(Socket* socket, SockAddr dest, SequenceNumber currentSequenceNumber,
               MessageNumber currentMessageNumber, bool hasReceivedHandshakeACK);
-    SendQueue(SendQueue& other) = delete;
-    SendQueue(SendQueue&& other) = delete;
     
     void sendHandshake();
     
@@ -113,7 +113,7 @@ private:
     PacketQueue _packets;
     
     Socket* _socket { nullptr }; // Socket to send packet on
-    HifiSockAddr _destination; // Destination addr
+    SockAddr _destination; // Destination addr
     
     std::atomic<uint32_t> _lastACKSequenceNumber { 0 }; // Last ACKed sequence number
     

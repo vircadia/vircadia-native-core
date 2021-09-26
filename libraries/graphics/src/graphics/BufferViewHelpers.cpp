@@ -34,7 +34,7 @@ namespace buffer_helpers {
 const std::array<const char*, 4> XYZW = { { "x", "y", "z", "w" } };
 const std::array<const char*, 4> ZERO123 = { { "0", "1", "2", "3" } };
 
-/**jsdoc
+/*@jsdoc
  * <p>The type name of a graphics buffer.</p>
  * <table>
  *   <thead>
@@ -56,7 +56,7 @@ const std::array<const char*, 4> ZERO123 = { { "0", "1", "2", "3" } };
  * </table>
  * @typedef {string} Graphics.BufferTypeName
  */
-/**jsdoc
+/*@jsdoc
  * <p>The type of a graphics buffer value as accessed by JavaScript.</p>
  * <table>
  *   <thead>

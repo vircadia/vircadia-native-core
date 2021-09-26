@@ -32,7 +32,7 @@
 #include <PointerManager.h>
 #include "MainWindow.h"
 
-/**jsdoc
+/*@jsdoc
  * The <code>OffscreenFlags</code> API enables gamepad joystick navigation of UI.
  *
  * <p><em>This API currently has no effect and is not used.</em></p>
@@ -78,14 +78,14 @@ public:
     
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>navigationFocused</code> property changes.
      * @function OffscreenFlags.navigationFocusedChanged
      * @returns {Signal}
      */
     void navigationFocusedChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the value of the <code>navigationFocusDisabled</code> property changes.
      * @function OffscreenFlags.navigationFocusDisabledChanged
      * @returns {Signal}

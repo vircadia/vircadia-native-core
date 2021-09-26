@@ -32,6 +32,8 @@ void withLock(QMutex& lock, F function) {
     function();
 }
 
+void setThreadName(const std::string& name);
+
 void moveToNewNamedThread(QObject* object, const QString& name, 
     std::function<void(QThread*)> preStartCallback, 
     std::function<void()> startCallback, 

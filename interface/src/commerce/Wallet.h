@@ -14,6 +14,8 @@
 #ifndef hifi_Wallet_h
 #define hifi_Wallet_h
 
+#include <QtCore/QSharedPointer>
+
 #include <DependencyManager.h>
 #include <Node.h>
 #include <ReceivedMessage.h>
@@ -55,7 +57,7 @@ public:
 
     void getWalletStatus();
     
-    /**jsdoc
+    /*@jsdoc
      * <p>A <code>WalletStatus</code> may have one of the following values:</p>
      * <table>
      *   <thead>

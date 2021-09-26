@@ -8,8 +8,6 @@
 
 #include "AbstractAudioInterface.h"
 
-#include <QtCore/QSharedPointer>
-
 #include <Node.h>
 #include <NodeType.h>
 #include <DependencyManager.h>

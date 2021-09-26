@@ -12,6 +12,8 @@
 #ifndef hifi_MaterialBaker_h
 #define hifi_MaterialBaker_h
 
+#include <QtCore/QSharedPointer>
+
 #include "Baker.h"
 
 #include "TextureBaker.h"

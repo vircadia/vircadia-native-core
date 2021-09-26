@@ -20,6 +20,7 @@
 
 #include <QtCore/QObject>
 #include <QtNetwork/QNetworkReply>
+#include <QtCore/QSharedPointer>
 
 #include <DomainHandler.h>
 
@@ -47,7 +48,7 @@ public:
 
     Node::LocalID findOrCreateLocalID(const QUuid& uuid);
 
-    static void sendProtocolMismatchConnectionDenial(const HifiSockAddr& senderSockAddr);
+    static void sendProtocolMismatchConnectionDenial(const SockAddr& senderSockAddr);
 public slots:
     void processConnectRequestPacket(QSharedPointer<ReceivedMessage> message);
     void processICEPingPacket(QSharedPointer<ReceivedMessage> message);
@@ -90,19 +91,19 @@ private:
     SharedNodePointer addVerifiedNodeFromConnectRequest(const NodeConnectionData& nodeConnection);
     
     bool verifyUserSignature(const QString& username, const QByteArray& usernameSignature,
-                             const HifiSockAddr& senderSockAddr);
+                             const SockAddr& senderSockAddr);
     
     bool needToVerifyDomainUserIdentity(const QString& username, const QString& accessToken, const QString& refreshToken);
     bool verifyDomainUserIdentity(const QString& username, const QString& accessToken, const QString& refreshToken,
-                                  const HifiSockAddr& senderSockAddr);
+                                  const SockAddr& senderSockAddr);
 
     bool isWithinMaxCapacity();
     
     bool shouldAllowConnectionFromNode(const QString& username, const QByteArray& usernameSignature,
-                                       const HifiSockAddr& senderSockAddr);
+                                       const SockAddr& senderSockAddr);
     
-    void sendConnectionTokenPacket(const QString& username, const HifiSockAddr& senderSockAddr);
-    static void sendConnectionDeniedPacket(const QString& reason, const HifiSockAddr& senderSockAddr,
+    void sendConnectionTokenPacket(const QString& username, const SockAddr& senderSockAddr);
+    static void sendConnectionDeniedPacket(const QString& reason, const SockAddr& senderSockAddr,
             DomainHandler::ConnectionRefusedReason reasonCode = DomainHandler::ConnectionRefusedReason::Unknown,
             QString extraInfo = QString());
     

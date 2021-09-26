@@ -4,6 +4,7 @@
 //
 //  Created by Clement on 1/16/15.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -23,7 +24,7 @@
 #include <render/Args.h>
 
 
-/**jsdoc
+/*@jsdoc
  * <p>The world detail quality rendered.</p>
  * <table>
  *   <thead>
@@ -44,10 +45,12 @@ enum WorldDetailQuality {
 };
 Q_DECLARE_METATYPE(WorldDetailQuality);
 
+const bool DEFAULT_LOD_AUTO_ADJUST = false; // true for auto, false for manual.
+
 #ifdef Q_OS_ANDROID
-const float LOD_DEFAULT_QUALITY_LEVEL = 0.2f; // default quality level setting is High (lower framerate)
+const float DEFAULT_LOD_QUALITY_LEVEL = 0.2f; // default quality level setting is High (lower framerate)
 #else
-const float LOD_DEFAULT_QUALITY_LEVEL = 0.5f; // default quality level setting is Mid
+const float DEFAULT_LOD_QUALITY_LEVEL = 0.5f; // default quality level setting is Mid
 #endif
 
 #ifdef Q_OS_ANDROID
@@ -65,7 +68,7 @@ const float LOD_OFFSET_FPS = 5.0f; // offset of FPS to add for computing the tar
 class AABox;
 
 
-/**jsdoc
+/*@jsdoc
  * The <code>LODManager</code> API manages the Level of Detail displayed in Interface. If the LOD is being automatically 
  * adjusted, the LOD is decreased if the measured frame rate is lower than the target FPS, and increased if the measured frame 
  * rate is greater than the target FPS.
@@ -162,14 +165,14 @@ class LODManager : public QObject, public Dependency {
 
 public:
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether the LOD should be automatically adjusted.
      * @function LODManager.setAutomaticLODAdjust
      * @param {boolean} value - <code>true</code> to automatically adjust the LOD, <code>false</code> to manually adjust it.
      */
     Q_INVOKABLE void setAutomaticLODAdjust(bool value);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether the LOD is being automatically adjusted.
      * @function LODManager.getAutomaticLODAdjust
      * @returns {boolean} <code>true</code> if the LOD is being automatically adjusted, <code>false</code> if it is being 
@@ -177,14 +180,14 @@ public:
      */
     Q_INVOKABLE bool getAutomaticLODAdjust() const { return _automaticLODAdjust; }
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the target desktop LOD FPS.
      * @function LODManager.setDesktopLODTargetFPS
      * @param {number} value - The target desktop LOD FPS, in Hz.
      */
     Q_INVOKABLE void setDesktopLODTargetFPS(float value);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the target desktop LOD FPS.
      * @function LODManager.getDesktopLODTargetFPS
      * @returns {number}  The target desktop LOD FPS, in Hz.
@@ -192,7 +195,7 @@ public:
 
     Q_INVOKABLE float getDesktopLODTargetFPS() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the target HMD LOD FPS.
      * @function LODManager.setHMDLODTargetFPS
      * @param {number} value - The target HMD LOD FPS, in Hz.
@@ -200,7 +203,7 @@ public:
 
     Q_INVOKABLE void setHMDLODTargetFPS(float value);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the target HMD LOD FPS.
      * The target FPS in HMD mode. The LOD is adjusted to ...
      * @function LODManager.getHMDLODTargetFPS
@@ -211,7 +214,7 @@ public:
 
     // User Tweakable LOD Items
 
-    /**jsdoc
+    /*@jsdoc
      * Gets a text description of the current level of detail rendered.
      * @function LODManager.getLODFeedbackText
      * @returns {string} A text description of the current level of detail rendered.
@@ -220,41 +223,40 @@ public:
      */
     Q_INVOKABLE QString getLODFeedbackText();
 
-    /**jsdoc
+    /*@jsdoc
      * @function LODManager.setOctreeSizeScale
      * @param {number} sizeScale - The octree size scale.
      * @deprecated This function is deprecated and will be removed. Use the <code>lodAngleDeg</code> property instead.
      */
     Q_INVOKABLE void setOctreeSizeScale(float sizeScale);
 
-    /**jsdoc
+    /*@jsdoc
      * @function LODManager.getOctreeSizeScale
      * @returns {number} The octree size scale.
      * @deprecated This function is deprecated and will be removed. Use the <code>lodAngleDeg</code> property instead.
      */
     Q_INVOKABLE float getOctreeSizeScale() const;
 
-    /**jsdoc
+    /*@jsdoc
      * @function LODManager.setBoundaryLevelAdjust
      * @param {number} boundaryLevelAdjust - The boundary level adjust factor.
      * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE void setBoundaryLevelAdjust(int boundaryLevelAdjust);
 
-    /**jsdoc
+    /*@jsdoc
      * @function LODManager.getBoundaryLevelAdjust
      * @returns {number} The boundary level adjust factor.
      * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
 
-    /**jsdoc
+    /*@jsdoc
      * The target LOD FPS per the current desktop or HMD display mode, capped by the target refresh rate.
      * @function LODManager.getLODTargetFPS
      * @returns {number} The target LOD FPS, in Hz.
      */
     Q_INVOKABLE float getLODTargetFPS() const;
-
 
     float getPresentTime() const { return _presentTime; }
     float getEngineRunTime() const { return _engineRunTime; }
@@ -307,7 +309,7 @@ public:
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * <em>Not triggered.</em>
      * @function LODManager.LODIncreased
      * @returns {Signal}
@@ -315,7 +317,7 @@ signals:
      */
     void LODIncreased();
 
-    /**jsdoc
+    /*@jsdoc
      * <em>Not triggered.</em>
      * @function LODManager.LODDecreased
      * @returns {Signal}
@@ -323,14 +325,14 @@ signals:
      */
     void LODDecreased();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when whether or not the LOD is being automatically adjusted changes. 
      * @function LODManager.autoLODChanged
      * @returns {Signal}
      */
     void autoLODChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the <code>lodQualityLevel</code> property value changes.
      * @function LODManager.lodQualityLevelChanged
      * @returns {Signal}
@@ -338,7 +340,7 @@ signals:
      */
     void lodQualityLevelChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the world detail quality changes.
      * @function LODManager.worldDetailQualityChanged
      * @returns {Signal}
@@ -351,7 +353,7 @@ private:
     void setWorldDetailQuality(WorldDetailQuality quality, bool isHMDMode);
 
     std::mutex _automaticLODLock;
-    bool _automaticLODAdjust = true;
+    bool _automaticLODAdjust = DEFAULT_LOD_AUTO_ADJUST;
 
     float _presentTime{ 0.0f }; // msec
     float _engineRunTime{ 0.0f }; // msec
@@ -362,7 +364,7 @@ private:
     float _smoothScale{ 10.0f }; // smooth is evaluated over 10 times longer than now
     float _smoothRenderTime{ 0.0f }; // msec
 
-    float _lodQualityLevel{ LOD_DEFAULT_QUALITY_LEVEL };
+    float _lodQualityLevel{ DEFAULT_LOD_QUALITY_LEVEL };
 
     WorldDetailQuality _desktopWorldDetailQuality { DEFAULT_WORLD_DETAIL_QUALITY };
     WorldDetailQuality _hmdWorldDetailQuality { DEFAULT_WORLD_DETAIL_QUALITY };

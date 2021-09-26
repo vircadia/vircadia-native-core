@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_WebSocketServerClass_h
 #define hifi_WebSocketServerClass_h
 
@@ -17,7 +20,7 @@
 #include <QWebSocketServer>
 #include "WebSocketClass.h"
 
-/**jsdoc
+/*@jsdoc
  * Manages {@link WebSocket}s in server entity and assignment client scripts.
  *
  * <p>Create using <code>new WebSocketServer(...)</code>.</p>
@@ -73,6 +76,7 @@
  *     webSocket.send(TEST_MESSAGE);
  * };
  */
+/// Provides the <code><a href="https://apidocs.vircadia.dev/WebSocketServer.html">WebSocketServer</a></code> scripting interface
 class WebSocketServerClass : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString url READ getURL)
@@ -91,7 +95,7 @@ public:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * Closes all connections and closes the WebSocketServer.
      * @function WebSocketServer.close
      */
@@ -107,7 +111,7 @@ private slots:
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when there is a new connection.
      * @function WebSocketServer.newConnection
      * @param {WebSocket} webSocket - The {@link WebSocket} for the new connection.
@@ -118,3 +122,5 @@ signals:
 };
 
 #endif // hifi_WebSocketServerClass_h
+
+/// @}

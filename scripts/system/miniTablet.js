@@ -563,7 +563,7 @@
 
             // Tablet targets.
             isGoto = false,
-            TABLET_ADDRESS_DIALOG = "hifi/tablet/TabletAddressDialog.qml",
+            TABLET_EXPLORE_APP_UI = Script.resolvePath("../communityScripts/explore/explore.html"),
 
             // Trigger values.
             leftTriggerOn = 0,
@@ -907,7 +907,7 @@
             var miniTabletProperties;
 
             if (isGoto) {
-                tablet.loadQMLSource(TABLET_ADDRESS_DIALOG);
+                tablet.gotoWebScreen(TABLET_EXPLORE_APP_UI);
             } else {
                 tablet.gotoHomeScreen();
             }

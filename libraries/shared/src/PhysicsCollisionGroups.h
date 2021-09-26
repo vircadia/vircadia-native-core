@@ -71,7 +71,7 @@ const int32_t BULLET_COLLISION_MASK_DETAILED_RAY = BULLET_COLLISION_GROUP_DETAIL
 // COLLISIONLESS gets an empty mask.
 const int32_t BULLET_COLLISION_MASK_COLLISIONLESS = 0;
 
-/**jsdoc
+/*@jsdoc
  * <p>A collision may occur with the following types of items:</p>
  * <table>
  *   <thead>

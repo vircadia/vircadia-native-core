@@ -33,7 +33,7 @@ namespace controller {
         return std::make_shared<ActionEndpoint>(input);
     }
 
-    /**jsdoc
+    /*@jsdoc
      * <p>The <code>Controller.Actions</code> object has properties representing predefined actions on the user's avatar and 
      * Interface. The property values are integer IDs, uniquely identifying each action. <em>Read-only.</em></p>
      * <p>These actions can be used as end points in the routes of a {@link MappingObject}. The data item routed to each action 

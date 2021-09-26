@@ -15,7 +15,6 @@
 #include <QtCore/QHash>
 #include <QtCore/QReadWriteLock>
 #include <QtCore/QSet>
-#include <QtCore/QSharedPointer>
 
 #if !defined(Q_OS_ANDROID)
 #include <QtWebEngine/QQuickWebEngineProfile>

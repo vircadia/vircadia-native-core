@@ -35,7 +35,7 @@ typedef EntityItemPointer (*EntityTypeFactory)(const EntityItemID& entityID, con
 
 class EntityTypes {
 public:
-    /**jsdoc
+    /*@jsdoc
      * <p>An entity may be one of the following types:</p>
      * <table>
      *   <thead>

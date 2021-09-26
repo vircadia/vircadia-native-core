@@ -114,7 +114,8 @@ Transform Model::getTransform() const {
         return transform;
     } else if (_spatiallyNestableOverride) {
         bool success;
-        Transform transform = _spatiallyNestableOverride->getTransform(success);
+        Transform transform = _billboardMode == BillboardMode::NONE ? _spatiallyNestableOverride->getTransform(success) :
+            _spatiallyNestableOverride->getTransformWithOnlyLocalRotation(success);
         if (success) {
             transform.setScale(getScale());
             return transform;
@@ -151,6 +152,7 @@ void Model::setOffset(const glm::vec3& offset) {
     // if someone manually sets our offset, then we are no longer snapped to center
     _snapModelToRegistrationPoint = false;
     _snappedToRegistrationPoint = false;
+    _forceOffset = true;
 }
 
 void Model::calculateTextureInfo() {
@@ -441,7 +443,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
             }
         }
 
-        /**jsdoc
+        /*@jsdoc
          * A submesh intersection point.
          * @typedef {object} SubmeshIntersection
          * @property {Vec3} worldIntersectionPoint - The intersection point in world coordinates.
@@ -1622,7 +1624,7 @@ std::set<unsigned int> Model::getMeshIDsFromMaterialID(QString parentMaterialNam
         };
 
         if (parentMaterialName.length() > 2 && parentMaterialName.startsWith("[") && parentMaterialName.endsWith("]")) {
-            QStringList list = parentMaterialName.split(",", QString::SkipEmptyParts);
+            QStringList list = parentMaterialName.split(",", Qt::SkipEmptyParts);
             for (int i = 0; i < list.length(); i++) {
                 auto& target = list[i];
                 if (i == 0) {

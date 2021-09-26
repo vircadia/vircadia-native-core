@@ -14,7 +14,6 @@
 
 #include <QFutureWatcher>
 #include <QObject>
-#include <QSharedPointer>
 #include <QCompleter>
 #include <QtCore/QJsonArray>
 

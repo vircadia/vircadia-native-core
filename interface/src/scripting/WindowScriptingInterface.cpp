@@ -139,9 +139,9 @@ void WindowScriptingInterface::disconnectedFromDomain() {
 void WindowScriptingInterface::openUrl(const QUrl& url) {
     if (!url.isEmpty()) {
         auto scheme = url.scheme();
-        if (scheme == URL_SCHEME_HIFI) {
+        if (scheme == URL_SCHEME_VIRCADIA) {
             DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
-        } else if (scheme == URL_SCHEME_HIFIAPP) {
+        } else if (scheme == URL_SCHEME_VIRCADIAAPP) {
             DependencyManager::get<QmlCommerce>()->openSystemApp(url.path());
         } else {
 #if defined(Q_OS_ANDROID)
@@ -517,7 +517,7 @@ int WindowScriptingInterface::openMessageBox(QString title, QString text, int bu
     return createMessageBox(title, text, buttons, defaultButton);
 }
 
-/**jsdoc
+/*@jsdoc
  * <p>The buttons that may be included in a message box created by {@link Window.openMessageBox|openMessageBox} are defined by
  * numeric values:
  * <table>

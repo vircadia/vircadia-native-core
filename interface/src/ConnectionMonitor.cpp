@@ -35,6 +35,7 @@ void ConnectionMonitor::init() {
     connect(&domainHandler, &DomainHandler::connectedToDomain, this, &ConnectionMonitor::stopTimer);
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &ConnectionMonitor::stopTimer);
     connect(&domainHandler, &DomainHandler::redirectToErrorDomainURL, this, &ConnectionMonitor::stopTimer);
+    connect(&domainHandler, &DomainHandler::confirmConnectWithoutAvatarEntities, this, &ConnectionMonitor::stopTimer);
     connect(this, &ConnectionMonitor::setRedirectErrorState, &domainHandler, &DomainHandler::setRedirectErrorState);
     auto accountManager = DependencyManager::get<AccountManager>();
     connect(accountManager.data(), &AccountManager::loginComplete, this, &ConnectionMonitor::startTimer);

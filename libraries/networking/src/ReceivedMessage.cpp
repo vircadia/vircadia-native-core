@@ -4,6 +4,7 @@
 //
 //  Created by Ryan Huffman on 2015/09/17
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -13,8 +14,6 @@
 
 #include <algorithm>
 #include <chrono>
-
-#include "QSharedPointer"
 
 int receivedMessageMetaTypeId = qRegisterMetaType<ReceivedMessage*>("ReceivedMessage*");
 int sharedPtrReceivedMessageMetaTypeId = qRegisterMetaType<QSharedPointer<ReceivedMessage>>("QSharedPointer<ReceivedMessage>");
@@ -49,7 +48,7 @@ ReceivedMessage::ReceivedMessage(NLPacket& packet)
 }
 
 ReceivedMessage::ReceivedMessage(QByteArray byteArray, PacketType packetType, PacketVersion packetVersion,
-                const HifiSockAddr& senderSockAddr, NLPacket::LocalID sourceID) :
+                const SockAddr& senderSockAddr, NLPacket::LocalID sourceID) :
     _data(byteArray),
     _headData(_data.mid(0, HEAD_DATA_SIZE)),
     _numPackets(1),

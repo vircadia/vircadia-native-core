@@ -338,7 +338,7 @@ bool ObjectActionTractor::updateArguments(QVariantMap arguments) {
     return true;
 }
 
-/**jsdoc
+/*@jsdoc
  * The <code>"tractor"</code> {@link Entities.ActionType|ActionType} moves and rotates an entity to a target position and
  * orientation, optionally relative to another entity.
  * It has arguments in addition to the common {@link Entities.ActionArguments|ActionArguments}:

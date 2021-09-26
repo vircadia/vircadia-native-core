@@ -19,6 +19,7 @@
 #include <queue>
 
 #include <QtCore/QJsonObject>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QUrl>
 
 #include "MixerAvatar.h"
@@ -132,6 +133,7 @@ public:
     int processPackets(const SlaveSharedData& slaveSharedData); // returns number of packets processed
 
     void processSetTraitsMessage(ReceivedMessage& message, const SlaveSharedData& slaveSharedData, Node& sendingNode);
+    void emulateDeleteEntitiesTraitsMessage(const QList<QUuid>& avatarEntityIDs);
     void processBulkAvatarTraitsAckMessage(ReceivedMessage& message);
     void checkSkeletonURLAgainstWhitelist(const SlaveSharedData& slaveSharedData, Node& sendingNode,
                                           AvatarTraits::TraitVersion traitVersion);

@@ -68,7 +68,7 @@ EntityTree::~EntityTree() {
 }
 
 void EntityTree::setEntityScriptSourceWhitelist(const QString& entityScriptSourceWhitelist) { 
-    _entityScriptSourceWhitelist = entityScriptSourceWhitelist.split(',', QString::SkipEmptyParts);
+    _entityScriptSourceWhitelist = entityScriptSourceWhitelist.split(',', Qt::SkipEmptyParts);
 }
 
 
@@ -2751,6 +2751,47 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
     return map.values().toVector();
 }
 
+QJsonValue replaceEntityIDsInJSONHelper(const QJsonValue& jsonValue, std::function<EntityItemID(EntityItemID)> getMapped) {
+    if (jsonValue.isString()) {
+        QString stringValue = jsonValue.toString();
+        QUuid oldID = stringValue;
+        if (!oldID.isNull()) {
+            return QJsonValue(getMapped(oldID).toString());
+        }
+        return stringValue;
+    } else if (jsonValue.isArray()) {
+        QJsonArray jsonArray = jsonValue.toArray();
+        for (int i = 0; i < jsonArray.count(); i++) {
+            jsonArray[i] = replaceEntityIDsInJSONHelper(jsonArray[i], getMapped);
+        }
+        return jsonArray;
+    } else if (jsonValue.isObject()) {
+        QJsonObject jsonObject = jsonValue.toObject();
+        auto keys = jsonObject.keys();
+        for (auto& key : keys) {
+            auto value = jsonObject.value(key);
+            jsonObject[key] = replaceEntityIDsInJSONHelper(value, getMapped);
+        }
+        return jsonObject;
+    } else {
+        return jsonValue;
+    }
+}
+
+QString replaceEntityIDsInJSON(const QString& json, std::function<EntityItemID(EntityItemID)> getMapped) {
+    QJsonDocument document = QJsonDocument::fromJson(json.toUtf8());
+    if (!document.isNull() && document.isObject()) {
+        QJsonObject jsonObject = document.object();
+        auto keys = jsonObject.keys();
+        for (auto& key : keys) {
+            auto value = jsonObject.value(key);
+            jsonObject[key] = replaceEntityIDsInJSONHelper(value, getMapped);
+        }
+        document = QJsonDocument(jsonObject);
+    }
+    return document.toJson();
+}
+
 bool EntityTree::sendEntitiesOperation(const OctreeElementPointer& element, void* extraData) {
     SendEntitiesOperationArgs* args = static_cast<SendEntitiesOperationArgs*>(extraData);
     EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
@@ -2818,6 +2859,61 @@ bool EntityTree::sendEntitiesOperation(const OctreeElementPointer& element, void
 
         QByteArray actionData = properties.getActionData();
         properties.setActionData(remapActionDataIDs(actionData, *args->map));
+
+        {
+            QString materialURL = properties.getMaterialURL();
+            QString uuidString = materialURL;
+            QString materialName = "";
+
+            if (materialURL.contains("?")) {
+                QStringList split = materialURL.split("?");
+                uuidString = split[0];
+                if (split.length() > 1) {
+                    materialName = split[1];
+                }
+            } else if (materialURL.contains("#")) {
+                QStringList split = materialURL.split("#");
+                uuidString = split[0];
+                if (split.length() > 1) {
+                    materialName = split[1];
+                }
+            }
+
+            QUuid oldID = uuidString;
+            if (!oldID.isNull()) {
+                uuidString = getMapped(oldID).toString();
+            }
+            QUuid oldMaterialName = materialName;
+            if (!oldMaterialName.isNull()) {
+                materialName = getMapped(oldMaterialName).toString();
+            }
+
+            if (!materialName.isEmpty()) {
+                properties.setMaterialURL(uuidString + "?" + materialName);
+            } else {
+                properties.setMaterialURL(uuidString);
+            }
+        }
+
+        QString imageURL = properties.getImageURL();
+        if (imageURL.startsWith("{")) {
+            QUuid oldID = imageURL;
+            if (!oldID.isNull()) {
+                properties.setImageURL(getMapped(oldID).toString());
+            }
+        }
+
+        QString materialData = properties.getMaterialData();
+        if (!materialData.isEmpty()) {
+            materialData = replaceEntityIDsInJSON(materialData, getMapped);
+            properties.setMaterialData(materialData);
+        }
+
+        QString userData = properties.getUserData();
+        if (!userData.isEmpty()) {
+            userData = replaceEntityIDsInJSON(userData, getMapped);
+            properties.setUserData(userData);
+        }
 
         // set creation time to "now" for imported entities
         properties.setCreated(usecTimestampNow());

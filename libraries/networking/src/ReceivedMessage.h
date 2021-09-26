@@ -4,6 +4,7 @@
 //
 //  Created by Ryan Huffman on 2015/09/15
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -14,6 +15,7 @@
 
 #include <QByteArray>
 #include <QObject>
+#include <QtCore/QSharedPointer>
 
 #include <atomic>
 
@@ -25,7 +27,7 @@ public:
     ReceivedMessage(const NLPacketList& packetList);
     ReceivedMessage(NLPacket& packet);
     ReceivedMessage(QByteArray byteArray, PacketType packetType, PacketVersion packetVersion,
-                    const HifiSockAddr& senderSockAddr, NLPacket::LocalID sourceID = NLPacket::NULL_LOCAL_ID);
+                    const SockAddr& senderSockAddr, NLPacket::LocalID sourceID = NLPacket::NULL_LOCAL_ID);
 
     QByteArray getMessage() const { return _data; }
     const char* getRawMessage() const { return _data.constData(); }
@@ -41,7 +43,7 @@ public:
     bool isComplete() const { return _isComplete; }
 
     NLPacket::LocalID getSourceID() const { return _sourceID; }
-    const HifiSockAddr& getSenderSockAddr() { return _senderSockAddr; }
+    const SockAddr& getSenderSockAddr() { return _senderSockAddr; }
 
     qint64 getPosition() const { return _position; }
 
@@ -99,7 +101,7 @@ private:
     NLPacket::LocalID _sourceID { NLPacket::NULL_LOCAL_ID };
     PacketType _packetType;
     PacketVersion _packetVersion;
-    HifiSockAddr _senderSockAddr;
+    SockAddr _senderSockAddr;
 
     std::atomic<bool> _isComplete { true };  
     std::atomic<bool> _failed { false };

@@ -20,7 +20,7 @@
 #include <TransformNode.h>
 #include <PickFilter.h>
 
-/**jsdoc
+/*@jsdoc
  * <p>The type of an intersection.</p>
  * <table>
  *   <thead>
@@ -76,7 +76,7 @@ public:
     PickQuery(const PickFilter& filter, const float maxDistance, const bool enabled);
     virtual ~PickQuery() = default;
 
-    /**jsdoc
+    /*@jsdoc
      * The <code>PickType</code> API provides constant numeric values that represent different types of picks.
      *
      * @namespace PickType
@@ -93,7 +93,7 @@ public:
      *     collisions.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * <p>A type of pick.</p>
      * <table>
      *   <thead>

@@ -14,6 +14,8 @@
 
 #include "../octree/OctreeServer.h"
 
+#include <QtCore/QSharedPointer>
+
 #include <memory>
 
 #include <EntityItem.h>

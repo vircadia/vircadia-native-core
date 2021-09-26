@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2/15/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -27,7 +28,7 @@
 
 #include <TBBHelpers.h>
 
-#include "HifiSockAddr.h"
+#include "SockAddr.h"
 #include "NetworkPeer.h"
 #include "NodeData.h"
 #include "NodeType.h"
@@ -44,7 +45,7 @@ public:
     using Stats = udt::ConnectionStats::Stats;
 
     Node(const QUuid& uuid, NodeType_t type,
-         const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
+         const SockAddr& publicSocket, const SockAddr& localSocket,
          QObject* parent = nullptr);
 
     bool operator==(const Node& otherNode) const { return _uuid == otherNode._uuid; }
@@ -84,6 +85,7 @@ public:
     bool getCanKick() const { return _permissions.can(NodePermissions::Permission::canKick); }
     bool getCanReplaceContent() const { return _permissions.can(NodePermissions::Permission::canReplaceDomainContent); }
     bool getCanGetAndSetPrivateUserData() const { return _permissions.can(NodePermissions::Permission::canGetAndSetPrivateUserData); }
+    bool getCanRezAvatarEntities() const { return _permissions.can(NodePermissions::Permission::canRezAvatarEntities); }
 
     using NodesIgnoredPair = std::pair<std::vector<QUuid>, bool>;
 
@@ -107,9 +109,7 @@ public:
     float getOutboundKbps() const;
 
 private:
-    // privatize copy and assignment operator to disallow Node copying
-    Node(const Node &otherNode);
-    Node& operator=(Node otherNode);
+    Q_DISABLE_COPY(Node)
 
     NodeType_t _type;
 

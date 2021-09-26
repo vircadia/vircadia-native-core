@@ -11,6 +11,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_Mat4_h
 #define hifi_Mat4_h
 
@@ -21,7 +24,7 @@
 #include <glm/glm.hpp>
 #include "RegisteredMetaTypes.h"
 
-/**jsdoc
+/*@jsdoc
  * The <code>Mat4</code> API provides facilities for generating and using 4 x 4 matrices. These matrices are typically used to 
  * represent transforms (scale, rotate, and translate) that convert one coordinate system into another, or perspective 
  * transforms that convert 3D points into screen coordinates.
@@ -35,14 +38,13 @@
  * @hifi-server-entity
  * @hifi-assignment-client
  */
-
-/// Scriptable Mat4 object.  Used exclusively in the JavaScript API
+/// Provides the <code><a href="https://apidocs.vircadia.dev/Mat4.html">Mat4</a></code> scripting interface
 class Mat4 : public QObject, protected QScriptable {
     Q_OBJECT
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * Multiplies two matrices.
      * @function Mat4(0).multiply
      * @param {Mat4} m1 - The first matrix.
@@ -52,7 +54,7 @@ public slots:
     glm::mat4 multiply(const glm::mat4& m1, const glm::mat4& m2) const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * Creates a matrix that represents a rotation and translation.
      * @function Mat4(0).createFromRotAndTrans
      * @param {Quat} rot - The rotation.
@@ -70,7 +72,7 @@ public slots:
      */
     glm::mat4 createFromRotAndTrans(const glm::quat& rot, const glm::vec3& trans) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Creates a matrix that represents a scale, rotation, and translation.
      * @function Mat4(0).createFromScaleRotAndTrans
      * @param {Vec3} scale - The scale.
@@ -90,7 +92,7 @@ public slots:
      */
     glm::mat4 createFromScaleRotAndTrans(const glm::vec3& scale, const glm::quat& rot, const glm::vec3& trans) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Creates a matrix from columns of values.
      * @function Mat4(0).createFromColumns
      * @param {Vec4} col0 - Column 0 values.
@@ -112,7 +114,7 @@ public slots:
      */
     glm::mat4 createFromColumns(const glm::vec4& col0, const glm::vec4& col1, const glm::vec4& col2, const glm::vec4& col3) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Creates a matrix from an array of values.
      * @function Mat4(0).createFromArray
      * @param {number[]} arr  - The array of values, starting with column 0.
@@ -134,7 +136,7 @@ public slots:
     glm::mat4 createFromArray(const QVector<float>& floats) const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * Extracts the translation from a matrix.
      * @function Mat4(0).extractTranslation
      * @param {Mat4} m - The matrix.
@@ -151,7 +153,7 @@ public slots:
      */
     glm::vec3 extractTranslation(const glm::mat4& m) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Extracts the rotation from a matrix.
      * @function Mat4(0).extractRotation
      * @param {Mat4} m - The matrix.
@@ -168,7 +170,7 @@ public slots:
      */
     glm::quat extractRotation(const glm::mat4& m) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Extracts the scale from a matrix.
      * @function Mat4(0).extractScale
      * @param {Mat4} m - The matrix.
@@ -186,7 +188,7 @@ public slots:
     glm::vec3 extractScale(const glm::mat4& m) const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * Transforms a point into a new coordinate system: the point value is scaled, rotated, and translated.
      * @function Mat4(0).transformPoint
      * @param {Mat4} m - The transform to the new coordinate system.
@@ -205,7 +207,7 @@ public slots:
      */
     glm::vec3 transformPoint(const glm::mat4& m, const glm::vec3& point) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Transforms a vector into a new coordinate system: the vector is scaled and rotated.
      * @function Mat4(0).transformVector
      * @param {Mat4} m - The transform to the new coordinate system.
@@ -225,7 +227,7 @@ public slots:
     glm::vec3 transformVector(const glm::mat4& m, const glm::vec3& vector) const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * Calculates the inverse of a matrix.
      * @function Mat4(0).inverse
      * @param {Mat4} m - The matrix.
@@ -246,7 +248,7 @@ public slots:
     glm::mat4 inverse(const glm::mat4& m) const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the "forward" direction that the camera would face if its orientation was set to the rotation contained in a 
      * matrix. The High Fidelity camera has axes x = right, y = up, -z = forward. 
      * <p>Synonym for {@link Mat4(0).getForward|getForward}.</p>
@@ -257,7 +259,7 @@ public slots:
     // redundant, calls getForward which better describes the returned vector as a direction
     glm::vec3 getFront(const glm::mat4& m) const { return getForward(m); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the "forward" direction that the camera would face if its orientation was set to the rotation contained in a
      * matrix. The High Fidelity camera has axes x = right, y = up, -z = forward.
      * @function Mat4(0).getForward
@@ -273,7 +275,7 @@ public slots:
      */
     glm::vec3 getForward(const glm::mat4& m) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the "right" direction that the camera would have if its orientation was set to the rotation contained in a matrix. 
      * The High Fidelity camera has axes x = right, y = up, -z = forward.
      * @function Mat4(0).getRight
@@ -282,7 +284,7 @@ public slots:
      */
     glm::vec3 getRight(const glm::mat4& m) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the "up" direction that the camera would have if its orientation was set to the rotation contained in a matrix. The 
      * High Fidelity camera has axes x = right, y = up, -z = forward.
      * @function Mat4(0).getUp
@@ -292,7 +294,7 @@ public slots:
     glm::vec3 getUp(const glm::mat4& m) const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * Prints a matrix to the program log as a label followed by the matrix's values.
      * @function Mat4(0).print
      * @param {string} label - The label to print.
@@ -321,3 +323,5 @@ public slots:
 };
 
 #endif // hifi_Mat4_h
+
+/// @}

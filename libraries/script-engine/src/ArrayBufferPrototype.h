@@ -9,12 +9,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_ArrayBufferPrototype_h
 #define hifi_ArrayBufferPrototype_h
 
 #include <QtCore/QObject>
 #include <QtScript/QScriptable>
 
+/// The javascript functions associated with an <code><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer">ArrayBuffer</a></code> instance prototype
 class ArrayBufferPrototype : public QObject, public QScriptable {
     Q_OBJECT
 public:
@@ -31,3 +35,5 @@ private:
 };
 
 #endif // hifi_ArrayBufferPrototype_h
+
+/// @}

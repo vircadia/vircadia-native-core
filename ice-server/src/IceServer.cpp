@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2014-10-01.
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -18,6 +19,7 @@
 #include <QtCore/QTimer>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
+#include <QtCore/QSharedPointer>
 
 #include <LimitedNodeList.h>
 #include <NetworkAccessManager.h>
@@ -97,7 +99,7 @@ void IceServer::processPacket(std::unique_ptr<udt::Packet> packet) {
             heartbeatStream >> senderUUID;
             
             // pull the public and private sock addrs for this peer
-            HifiSockAddr publicSocket, localSocket;
+            SockAddr publicSocket, localSocket;
             heartbeatStream >> publicSocket >> localSocket;
             
             // check if this node also included a UUID that they would like to connect to
@@ -129,7 +131,7 @@ SharedNetworkPeer IceServer::addOrUpdateHeartbeatingPeer(NLPacket& packet) {
 
     // pull the UUID, public and private sock addrs for this peer
     QUuid senderUUID;
-    HifiSockAddr publicSocket, localSocket;
+    SockAddr publicSocket, localSocket;
     QByteArray signature;
 
     QDataStream heartbeatStream(&packet);
@@ -288,7 +290,7 @@ void IceServer::publicKeyReplyFinished(QNetworkReply* reply) {
     reply->deleteLater();
 }
 
-void IceServer::sendPeerInformationPacket(const NetworkPeer& peer, const HifiSockAddr* destinationSockAddr) {
+void IceServer::sendPeerInformationPacket(const NetworkPeer& peer, const SockAddr* destinationSockAddr) {
     auto peerPacket = NLPacket::create(PacketType::ICEServerPeerInformation);
 
     // get the byte array for this peer

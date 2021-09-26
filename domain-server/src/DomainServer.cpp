@@ -60,11 +60,13 @@
 #include <Gzip.h>
 
 #include <OctreeDataUtils.h>
+#include <ThreadHelpers.h>
 
 using namespace std::chrono;
 
 Q_LOGGING_CATEGORY(domain_server, "hifi.domain_server")
 Q_LOGGING_CATEGORY(domain_server_ice, "hifi.domain_server.ice")
+Q_LOGGING_CATEGORY(domain_server_auth, "vircadia.domain_server.auth")
 
 const QString ACCESS_TOKEN_KEY_PATH = "metaverse.access_token";
 const QString DomainServer::REPLACEMENT_FILE_EXTENSION = ".replace";
@@ -659,7 +661,7 @@ bool DomainServer::isPacketVerified(const udt::Packet& packet) {
 
     // if this is a mismatching connect packet, we can't simply drop it on the floor
     // send back a packet to the interface that tells them we refuse connection for a mismatch
-    if (headerType == PacketType::DomainConnectRequest
+    if ((headerType == PacketType::DomainConnectRequest || headerType == PacketType::DomainConnectRequestPending)
         && headerVersion != versionForPacketType(PacketType::DomainConnectRequest)) {
         DomainGatekeeper::sendProtocolMismatchConnectionDenial(packet.getSenderSockAddr());
     }
@@ -775,7 +777,7 @@ void DomainServer::setupNodeListAndAssignments() {
     connect(nodeList.data(), &LimitedNodeList::nodeAdded, this, &DomainServer::nodeAdded);
     connect(nodeList.data(), &LimitedNodeList::nodeKilled, this, &DomainServer::nodeKilled);
     connect(nodeList.data(), &LimitedNodeList::localSockAddrChanged, this,
-        [this](const HifiSockAddr& localSockAddr) {
+        [this](const SockAddr& localSockAddr) {
         DependencyManager::get<LimitedNodeList>()->putLocalPortIntoSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this, localSockAddr.getPort());
     });
 
@@ -805,6 +807,8 @@ void DomainServer::setupNodeListAndAssignments() {
     // register the gatekeeper for the packets it needs to receive
     packetReceiver.registerListener(PacketType::DomainConnectRequest,
         PacketReceiver::makeUnsourcedListenerReference<DomainGatekeeper>(&_gatekeeper, &DomainGatekeeper::processConnectRequestPacket));
+    packetReceiver.registerListener(PacketType::DomainConnectRequestPending,
+        PacketReceiver::makeUnsourcedListenerReference<DomainGatekeeper>(&_gatekeeper, &DomainGatekeeper::processConnectRequestPacket));
     packetReceiver.registerListener(PacketType::ICEPing,
         PacketReceiver::makeUnsourcedListenerReference<DomainGatekeeper>(&_gatekeeper, &DomainGatekeeper::processICEPingPacket));
     packetReceiver.registerListener(PacketType::ICEPingReply,
@@ -830,9 +834,11 @@ void DomainServer::setupNodeListAndAssignments() {
     // set a custom packetVersionMatch as the verify packet operator for the udt::Socket
     nodeList->setPacketFilterOperator(&DomainServer::isPacketVerified);
 
-    _assetClientThread.setObjectName("AssetClient Thread");
+    QString name = "AssetClient Thread";
+    _assetClientThread.setObjectName(name);
     auto assetClient = DependencyManager::set<AssetClient>();
     assetClient->moveToThread(&_assetClientThread);
+    connect(&_assetClientThread, &QThread::started, [name] { setThreadName(name.toStdString()); });
     _assetClientThread.start();
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();
@@ -1219,7 +1225,7 @@ void DomainServer::handleConnectedNode(SharedNodePointer newNode, quint64 reques
     broadcastNewNode(newNode);
 }
 
-void DomainServer::sendDomainListToNode(const SharedNodePointer& node, quint64 requestPacketReceiveTime, const HifiSockAddr &senderSockAddr, bool newConnection) {
+void DomainServer::sendDomainListToNode(const SharedNodePointer& node, quint64 requestPacketReceiveTime, const SockAddr &senderSockAddr, bool newConnection) {
     const int NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES = NUM_BYTES_RFC4122_UUID + NLPacket::NUM_BYTES_LOCALID +
         NUM_BYTES_RFC4122_UUID + NLPacket::NUM_BYTES_LOCALID + 4;
 
@@ -1495,7 +1501,7 @@ void DomainServer::transactionJSONCallback(const QJsonObject& data) {
     }
 }
 
-QJsonObject jsonForDomainSocketUpdate(const HifiSockAddr& socket) {
+QJsonObject jsonForDomainSocketUpdate(const SockAddr& socket) {
     const QString SOCKET_NETWORK_ADDRESS_KEY = "network_address";
     const QString SOCKET_PORT_KEY = "port";
 
@@ -1506,7 +1512,7 @@ QJsonObject jsonForDomainSocketUpdate(const HifiSockAddr& socket) {
     return socketObject;
 }
 
-void DomainServer::performIPAddressPortUpdate(const HifiSockAddr& newPublicSockAddr) {
+void DomainServer::performIPAddressPortUpdate(const SockAddr& newPublicSockAddr) {
     const QString& DOMAIN_SERVER_SETTINGS_KEY = "domain_server";
     const QString& publicSocketAddress = newPublicSockAddr.getAddress().toString();
     const int publicSocketPort = newPublicSockAddr.getPort();
@@ -1542,9 +1548,9 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress, const
 
     static const QString PORT_SETTINGS_KEY = "domain_server." + PUBLIC_SOCKET_PORT_KEY;
     const int portFromSettings = _settingsManager.valueForKeyPath(PORT_SETTINGS_KEY).toInt();
-    if (port != NULL) {
+    if (port != 0) {
         domainObject[PUBLIC_SOCKET_PORT_KEY] = port;
-    } else if (portFromSettings != NULL) {
+    } else if (portFromSettings != 0) {
         domainObject[PUBLIC_SOCKET_PORT_KEY] = portFromSettings;
     }
 
@@ -1764,7 +1770,7 @@ void DomainServer::sendHeartbeatToIceServer() {
             QDataStream heartbeatStream(_iceServerHeartbeatPacket.get());
 
             QUuid senderUUID;
-            HifiSockAddr publicSocket, localSocket;
+            SockAddr publicSocket, localSocket;
             heartbeatStream >> senderUUID >> publicSocket >> localSocket;
 
             if (senderUUID != limitedNodeList->getSessionUUID()
@@ -1922,7 +1928,7 @@ void DomainServer::processNodeJSONStatsPacket(QSharedPointer<ReceivedMessage> pa
     }
 }
 
-QJsonObject DomainServer::jsonForSocket(const HifiSockAddr& socket) {
+QJsonObject DomainServer::jsonForSocket(const SockAddr& socket) {
     QJsonObject socketJSON;
 
     socketJSON["ip"] = socket.getAddress().toString();
@@ -2768,6 +2774,20 @@ void DomainServer::profileRequestFinished() {
     }
 }
 
+QString DomainServer::operationToString(const QNetworkAccessManager::Operation &op) {
+    switch(op) {
+        case QNetworkAccessManager::Operation::HeadOperation: return "HEAD";
+        case QNetworkAccessManager::Operation::GetOperation: return "GET";
+        case QNetworkAccessManager::Operation::PutOperation: return "PUT";
+        case QNetworkAccessManager::Operation::PostOperation: return "POST";
+        case QNetworkAccessManager::Operation::DeleteOperation: return "DELETE";
+        case QNetworkAccessManager::Operation::CustomOperation: return "CUSTOM";
+        case QNetworkAccessManager::Operation::UnknownOperation:
+        default:
+            return "UNKNOWN";
+    }
+}
+
 std::pair<bool, QString>  DomainServer::isAuthenticatedRequest(HTTPConnection* connection) {
 
     static const QByteArray HTTP_COOKIE_HEADER_KEY = "Cookie";
@@ -2781,6 +2801,9 @@ std::pair<bool, QString>  DomainServer::isAuthenticatedRequest(HTTPConnection* c
 
     QVariant adminUsersVariant = _settingsManager.valueForKeyPath(ADMIN_USERS_CONFIG_KEY);
     QVariant adminRolesVariant = _settingsManager.valueForKeyPath(ADMIN_ROLES_CONFIG_KEY);
+    QString httpPeerAddress = connection->peerAddress().toString();
+    QString httpOperation = operationToString(connection->requestOperation());
+
 
     if (_oauthEnable) {
         QString cookieString = connection->requestHeader(HTTP_COOKIE_HEADER_KEY);
@@ -2814,11 +2837,15 @@ std::pair<bool, QString>  DomainServer::isAuthenticatedRequest(HTTPConnection* c
                 foreach(const QString& userRole, sessionData.getRoles()) {
                     if (adminRolesArray.contains(userRole)) {
                         // this user has a role that allows them to administer the domain-server
+                        qCInfo(domain_server_auth) << httpPeerAddress << "- OAuth:" << profileUsername << " - "
+                                                   << httpOperation << " " << connection->requestUrl();
                         return { true, profileUsername };
                     }
                 }
             }
 
+            qCWarning(domain_server_auth) << httpPeerAddress << "- OAuth authentication failed for " << profileUsername << "-"
+                                          << httpOperation << " " << connection->requestUrl();
             connection->respond(HTTPConnection::StatusCode401, UNAUTHENTICATED_BODY);
 
             // the user does not have allowed username or role, return 401
@@ -2830,6 +2857,9 @@ std::pair<bool, QString>  DomainServer::isAuthenticatedRequest(HTTPConnection* c
             if (connection->requestHeader(REQUESTED_WITH_HEADER) == XML_REQUESTED_WITH) {
                 // unauthorized XHR requests get a 401 and not a 302, since there isn't an XHR
                 // path to OAuth authorize
+
+                qCWarning(domain_server_auth) << httpPeerAddress << "- OAuth unauthorized XHR -"
+                                              << httpOperation << " " << connection->requestUrl();
                 connection->respond(HTTPConnection::StatusCode401, UNAUTHENTICATED_BODY);
             } else {
                 // re-direct this user to OAuth page
@@ -2846,6 +2876,8 @@ std::pair<bool, QString>  DomainServer::isAuthenticatedRequest(HTTPConnection* c
 
                 redirectHeaders.insert("Location", authURL.toEncoded());
 
+                qCWarning(domain_server_auth) << httpPeerAddress << "- OAuth redirecting -"
+                                              << httpOperation << " " << connection->requestUrl();
                 connection->respond(HTTPConnection::StatusCode302,
                                     QByteArray(), HTTPConnection::DefaultContentType, redirectHeaders);
             }
@@ -2880,7 +2912,12 @@ std::pair<bool, QString>  DomainServer::isAuthenticatedRequest(HTTPConnection* c
                         "" : QCryptographicHash::hash(headerPassword.toUtf8(), QCryptographicHash::Sha256).toHex();
 
                     if (settingsUsername == headerUsername && hexHeaderPassword == settingsPassword) {
+                        qCInfo(domain_server_auth) << httpPeerAddress << "- Basic:" << headerUsername << "-"
+                                                   << httpOperation << " " << connection->requestUrl();
                         return { true, headerUsername };
+                    } else {
+                        qCWarning(domain_server_auth) << httpPeerAddress << "- Basic auth failed for" << headerUsername << "-"
+                                                      << httpOperation << " " << connection->requestUrl();
                     }
                 }
             }
@@ -2901,11 +2938,13 @@ std::pair<bool, QString>  DomainServer::isAuthenticatedRequest(HTTPConnection* c
         connection->respond(HTTPConnection::StatusCode401, UNAUTHENTICATED_BODY,
                             HTTPConnection::DefaultContentType, basicAuthHeader);
 
+        qCWarning(domain_server_auth) << httpPeerAddress << "- Basic auth required -" << httpOperation << " " << connection->requestUrl();
         // not authenticated, bubble up false
         return { false, QString() };
 
     } else {
         // we don't have an OAuth URL + admin roles/usernames, so all users are authenticated
+        qCWarning(domain_server_auth) << httpPeerAddress << "- OPEN ACCESS -" << httpOperation << " " << connection->requestUrl();
         return { true, QString() };
     }
 }
@@ -2978,7 +3017,7 @@ static const QString BROADCASTING_SETTINGS_KEY = "broadcasting";
 
 struct ReplicationServerInfo {
     NodeType_t nodeType;
-    HifiSockAddr sockAddr;
+    SockAddr sockAddr;
 };
 
 ReplicationServerInfo serverInformationFromSettings(QVariantMap serverMap, ReplicationServerDirection direction) {
@@ -2999,7 +3038,7 @@ ReplicationServerInfo serverInformationFromSettings(QVariantMap serverMap, Repli
             serverInfo.nodeType = NodeType::downstreamType(nodeType);
         }
 
-        // read the address and port and construct a HifiSockAddr from them
+        // read the address and port and construct a SockAddr from them
         serverInfo.sockAddr = {
             serverMap[REPLICATION_SERVER_ADDRESS].toString(),
             (quint16) serverMap[REPLICATION_SERVER_PORT].toString().toInt()
@@ -3008,7 +3047,7 @@ ReplicationServerInfo serverInformationFromSettings(QVariantMap serverMap, Repli
         return serverInfo;
     }
 
-    return { NodeType::Unassigned, HifiSockAddr() };
+    return { NodeType::Unassigned, SockAddr() };
 }
 
 void DomainServer::updateReplicationNodes(ReplicationServerDirection direction) {
@@ -3017,7 +3056,7 @@ void DomainServer::updateReplicationNodes(ReplicationServerDirection direction) 
 
     if (broadcastSettingsVariant.isValid()) {
         auto nodeList = DependencyManager::get<LimitedNodeList>();
-        std::vector<HifiSockAddr> replicationNodesInSettings;
+        std::vector<SockAddr> replicationNodesInSettings;
 
         auto replicationSettings = broadcastSettingsVariant.toMap();
 
@@ -3027,7 +3066,7 @@ void DomainServer::updateReplicationNodes(ReplicationServerDirection direction) 
         if (replicationSettings.contains(serversKey)) {
             auto serversSettings = replicationSettings.value(serversKey).toList();
 
-            std::vector<HifiSockAddr> knownReplicationNodes;
+            std::vector<SockAddr> knownReplicationNodes;
             nodeList->eachNode([direction, &knownReplicationNodes](const SharedNodePointer& otherNode) {
                 if ((direction == Upstream && NodeType::isUpstream(otherNode->getType()))
                     || (direction == Downstream && NodeType::isDownstream(otherNode->getType()))) {
@@ -3581,7 +3620,7 @@ void DomainServer::randomizeICEServerAddress(bool shouldTriggerHostLookup) {
         indexToTry = distribution(generator);
     }
 
-    _iceServerSocket = HifiSockAddr { candidateICEAddresses[indexToTry], ICE_SERVER_DEFAULT_PORT };
+    _iceServerSocket = SockAddr { candidateICEAddresses[indexToTry], ICE_SERVER_DEFAULT_PORT };
     qCInfo(domain_server_ice) << "Set candidate ice-server socket to" << _iceServerSocket;
 
     // clear our number of hearbeat denials, this should be re-set on ice-server change

@@ -55,7 +55,7 @@ signals:
 namespace InteractiveWindowEnums {
     Q_NAMESPACE
 
-    /**jsdoc
+    /*@jsdoc
      * <p>A set of  flags controlling <code>InteractiveWindow</code> behavior. The value is constructed by using the 
      * <code>|</code> (bitwise OR) operator on the individual flag values.</p>
      * <table>
@@ -76,7 +76,7 @@ namespace InteractiveWindowEnums {
     };
     Q_ENUM_NS(InteractiveWindowFlags);
 
-    /**jsdoc
+    /*@jsdoc
      * <p>A display mode for an <code>InteractiveWindow</code>.</p>
      * <table>
      *   <thead>
@@ -97,7 +97,7 @@ namespace InteractiveWindowEnums {
     };
     Q_ENUM_NS(InteractiveWindowPresentationMode);
 
-    /**jsdoc
+    /*@jsdoc
      * <p>A docking location of an <code>InteractiveWindow</code>.</p>
      * <table>
      *   <thead>
@@ -120,7 +120,7 @@ namespace InteractiveWindowEnums {
     };
     Q_ENUM_NS(DockArea);
 
-    /**jsdoc
+    /*@jsdoc
      * <p>The anchor for a relative position of an <code>InteractiveWindow</code>.</p>
      * <table>
      *   <thead>
@@ -150,7 +150,7 @@ namespace InteractiveWindowEnums {
 
 using namespace InteractiveWindowEnums;
 
-/**jsdoc
+/*@jsdoc
  * An <code>InteractiveWindow</code> can display either inside Interface or in its own window separate from the Interface 
  * window. The window content is defined by a QML file, which can optionally include a <code>WebView</code> control that embeds 
  * an HTML web page. (The <code>WebView</code> control is defined by a "WebView.qml" file included in the Interface install.)
@@ -229,7 +229,7 @@ private:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * Sends a message to the QML page. To receive the message, the QML page must implement a function:
      * <pre class="prettyprint"><code>function fromScript(message) {
      *   ...
@@ -278,7 +278,7 @@ public slots:
     // Scripts can use this to send a message to the QML object
     void sendToQml(const QVariant& message);
 
-    /**jsdoc
+    /*@jsdoc
      * Sends a message to an embedded HTML web page. To receive the message, the HTML page's script must connect to the 
      * <code>EventBridge</code> that is automatically provided for the script:
      * <pre class="prettyprint"><code>EventBridge.scriptEventReceived.connect(function(message) {
@@ -290,26 +290,26 @@ public slots:
     // QmlWindow content may include WebView requiring EventBridge.
     void emitScriptEvent(const QVariant& scriptMessage);
 
-    /**jsdoc
+    /*@jsdoc
      * @function InteractiveWindow.emitWebEvent
      * @param {object|string} message - Message.
      * @deprecated This function is deprecated and will be removed.
      */
     void emitWebEvent(const QVariant& webMessage);
 
-    /**jsdoc
+    /*@jsdoc
      * Closes the window. It can then no longer be used.
      * @function InteractiveWindow.close
      */
     Q_INVOKABLE void close();
 
-    /**jsdoc
+    /*@jsdoc
      * Makes the window visible and raises it to the top.
      * @function InteractiveWindow.show
      */
     Q_INVOKABLE void show();
 
-    /**jsdoc
+    /*@jsdoc
      * Raises the window to the top.
      * @function InteractiveWindow.raise
      */
@@ -317,49 +317,49 @@ public slots:
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the window is made visible or invisible, or is closed.
      * @function InteractiveWindow.visibleChanged
      * @returns {Signal}
      */
     void visibleChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the window's position changes.
      * @function InteractiveWindow.positionChanged
      * @returns {Signal}
      */
     void positionChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the window's size changes.
      * @function InteractiveWindow.sizeChanged
      * @returns {Signal}
      */
     void sizeChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the window's presentation mode changes.
      * @function InteractiveWindow.presentationModeChanged
      * @returns {Signal}
      */
     void presentationModeChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when window's title changes.
      * @function InteractiveWindow.titleChanged
      * @returns {Signal}
      */
     void titleChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the window is closed.
      * @function InteractiveWindow.closed
      * @returns {Signal}
      */
     void closed();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when a message from the QML page is received. The QML page can send a message (string or object) by calling:
      * <pre class="prettyprint"><code>sendToScript(message);</code></pre>
      * @function InteractiveWindow.fromQml
@@ -369,7 +369,7 @@ signals:
     // Scripts can connect to this signal to receive messages from the QML object
     void fromQml(const QVariant& message);
 
-    /**jsdoc
+    /*@jsdoc
      * @function InteractiveWindow.scriptEventReceived
      * @param {object} message - Message.
      * @returns {Signal}
@@ -378,7 +378,7 @@ signals:
     // InteractiveWindow content may include WebView requiring EventBridge.
     void scriptEventReceived(const QVariant& message);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when a message from an embedded HTML web page is received. The HTML web page can send a message by calling:
      * <pre class="prettyprint"><code>EventBridge.emitWebEvent(message);</code></pre>
      * @function InteractiveWindow.webEventReceived
@@ -388,7 +388,7 @@ signals:
     void webEventReceived(const QVariant& message);
 
 protected slots:
-    /**jsdoc
+    /*@jsdoc
      * @function InteractiveWindow.qmlToScript
      * @param {object} message - Message.
      * @deprecated This method is deprecated and will be removed.

@@ -1,6 +1,15 @@
 include(vcpkg_common_functions)
 
-file(READ "${VCPKG_ROOT_DIR}/_env/QT_CMAKE_PREFIX_PATH.txt" QT_CMAKE_PREFIX_PATH)
+if(EXISTS "${VCPKG_ROOT_DIR}/_env/QT_CMAKE_PREFIX_PATH.txt")
+    # This environment var file only exists if we're overridding the default Qt location,
+    # which happens when using Qt from vcpkg, or using Qt from custom location
+    file(READ "${VCPKG_ROOT_DIR}/_env/QT_CMAKE_PREFIX_PATH.txt" QT_CMAKE_PREFIX_PATH)
+    set(QUAZIP_EXTRA_OPTS "-DCMAKE_PREFIX_PATH=${QT_CMAKE_PREFIX_PATH}")
+else()
+    # In the case of using system Qt, don't pass anything.
+    set(QUAZIP_EXTRA_OPTS "")
+endif()
+
 file(READ "${VCPKG_ROOT_DIR}/_env/EXTERNAL_BUILD_ASSETS.txt" EXTERNAL_BUILD_ASSETS)
 
 vcpkg_download_distfile(
@@ -19,7 +28,7 @@ vcpkg_extract_source_archive_ex(
 vcpkg_configure_cmake(
   SOURCE_PATH ${SOURCE_PATH}
   PREFER_NINJA
-  OPTIONS -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_PREFIX_PATH=${QT_CMAKE_PREFIX_PATH} -DBUILD_WITH_QT4=OFF
+  OPTIONS -DCMAKE_POSITION_INDEPENDENT_CODE=ON ${QUAZIP_EXTRA_OPTS} -DBUILD_WITH_QT4=OFF
 )
 
 vcpkg_install_cmake()

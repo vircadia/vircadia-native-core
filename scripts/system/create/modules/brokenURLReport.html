@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<!--//
+//  brokenURLReport.html
+//
+//  Created by Alezia Kurdis on February 22, 2021.
+//  Copyright 2021 Vircadia contributors.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//-->
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <style>
+            body {
+                background-color:#000000;
+                color:#ffffff;
+                font-family: Helvetica, Arial, Sans-Serif;
+                font-weight: 700;
+                font-size: 12px;
+                text-align: center;
+                width: 100%;
+            }
+            h1 {
+                font-size: 18px;
+                font-weight: 900;
+            }
+            table {
+                text-align: left;
+                width:96%;
+                border: 1px solid #DDDDDD;
+                border-collapse: collapse;
+            }
+            td {
+                border: 1px solid #DDDDDD;
+                padding: 3px;
+            }
+            td.superheader {
+                font-size: 18px;
+                text-align: center;
+                font-weight: 900;
+                background-color:#999999;
+            }
+            td.header {
+                font-weight: 900;
+                background-color:#777777;
+            }
+            a {
+                font-size: 22px;
+                font-weight: 500;
+            }
+            a:link {
+                color: #00b3ff;
+                background-color: transparent;
+                text-decoration: none;
+            }
+
+            a:visited {
+                color: #00b3ff;
+                background-color: transparent;
+                text-decoration: none;
+            }
+
+            a:hover {
+                color: #99e1ff;
+                background-color: transparent;
+                text-decoration: none;
+            }
+
+            a:active {
+                color: #99e1ff;
+                background-color: transparent;
+                text-decoration: none;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="report">
+            <div style='text-align: center; width: 100%;'>
+                <h1>
+                    <br>
+                    <br>
+                    Testing in progress...
+                </h1>
+                <br>
+                <img src='../assets/images/processing.gif'>
+            </div>
+        </div>
+    </body>
+    <script>
+        EventBridge.scriptEventReceived.connect(function (message) {
+            document.getElementById("report").innerHTML = message;
+        });
+
+        function selectEntity(id) {
+            EventBridge.emitWebEvent(JSON.stringify({
+                "action": "select",
+                "entityID": id
+            }));
+        }
+    </script>
+</html>

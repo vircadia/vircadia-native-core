@@ -21,6 +21,7 @@
 #include "GLMHelpers.h"
 
 #include "DeferredLightingEffect.h"
+#include "RenderPipelines.h"
 
 using namespace render;
 using namespace render::entities;
@@ -36,6 +37,8 @@ TextEntityRenderer::TextEntityRenderer(const EntityItemPointer& entity) :
     if (geometryCache) {
         _geometryID = geometryCache->allocateID();
     }
+    _material->setCullFaceMode(graphics::MaterialKey::CullFaceMode::CULL_NONE);
+    addMaterial(graphics::MaterialLayer(_material, 0), "0");
 }
 
 TextEntityRenderer::~TextEntityRenderer() {
@@ -45,41 +48,8 @@ TextEntityRenderer::~TextEntityRenderer() {
     }
 }
 
-bool TextEntityRenderer::isTransparent() const {
-    return Parent::isTransparent() || _backgroundAlpha < 1.0f || _pulseProperties.getAlphaMode() != PulseMode::NONE;
-}
-
-bool TextEntityRenderer::isTextTransparent() const {
-    return resultWithReadLock<bool>([&] {
-        return Parent::isTransparent() || _textAlpha < 1.0f || _pulseProperties.getAlphaMode() != PulseMode::NONE;
-    });
-}
-
-ItemKey TextEntityRenderer::getKey() {
-    return ItemKey::Builder(Parent::getKey()).withMetaCullGroup();
-}
-
-ShapeKey TextEntityRenderer::getShapeKey() {
-    auto builder = render::ShapeKey::Builder().withoutCullFace();
-    if (isTransparent()) {
-        builder.withTranslucent();
-    }
-    if (_unlit) {
-        builder.withUnlit();
-    }
-    if (_primitiveMode == PrimitiveMode::LINES) {
-        builder.withWireframe();
-    }
-    return builder.build();
-}
-
-uint32_t TextEntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) const {
-    auto parentSubs = Parent::metaFetchMetaSubItems(subItems);
-    if (Item::isValidID(_textRenderID)) {
-        subItems.emplace_back(_textRenderID);
-        return parentSubs + 1;
-    }
-    return parentSubs;
+bool TextEntityRenderer::needsRenderUpdate() const {
+    return needsRenderUpdateFromMaterials() || Parent::needsRenderUpdate();
 }
 
 void TextEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
@@ -99,38 +69,101 @@ void TextEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointe
     _lineHeight = entity->getLineHeight();
     _textColor = toGlm(entity->getTextColor());
     _textAlpha = entity->getTextAlpha();
-    _backgroundColor = toGlm(entity->getBackgroundColor());
-    _backgroundAlpha = entity->getBackgroundAlpha();
     _leftMargin = entity->getLeftMargin();
     _rightMargin = entity->getRightMargin();
     _topMargin = entity->getTopMargin();
     _bottomMargin = entity->getBottomMargin();
-    _unlit = entity->getUnlit();
     _font = entity->getFont();
     _effect = entity->getTextEffect();
     _effectColor = toGlm(entity->getTextEffectColor());
     _effectThickness = entity->getTextEffectThickness();
+    _alignment = entity->getAlignment();
+
+    bool materialChanged = false;
+    glm::vec3 color = toGlm(entity->getBackgroundColor());
+    if (_backgroundColor != color) {
+        _backgroundColor = color;
+        _material->setAlbedo(color);
+        materialChanged = true;
+    }
+
+    float alpha = entity->getBackgroundAlpha();
+    if (_backgroundAlpha != alpha) {
+        _backgroundAlpha = alpha;
+        _material->setOpacity(alpha);
+        materialChanged = true;
+    }
+
+    auto unlit = entity->getUnlit();
+    if (_unlit != unlit) {
+        _unlit = unlit;
+        _material->setUnlit(_unlit);
+        materialChanged = true;
+    }
+
+    updateMaterials(materialChanged);
+
     updateTextRenderItem();
+}
+
+bool TextEntityRenderer::isTransparent() const {
+    bool backgroundTransparent = _backgroundAlpha < 1.0f || _pulseProperties.getAlphaMode() != PulseMode::NONE;
+    return backgroundTransparent || Parent::isTransparent() || materialsTransparent();
+}
+
+bool TextEntityRenderer::isTextTransparent() const {
+    return Parent::isTransparent() || _textAlpha < 1.0f || _pulseProperties.getAlphaMode() != PulseMode::NONE;
+}
+
+Item::Bound TextEntityRenderer::getBound(RenderArgs* args) {
+    return Parent::getMaterialBound(args);
+}
+
+ItemKey TextEntityRenderer::getKey() {
+    return ItemKey::Builder(Parent::getKey()).withMetaCullGroup();
+}
+
+ShapeKey TextEntityRenderer::getShapeKey() {
+    auto builder = render::ShapeKey::Builder().withDepthBias();
+    updateShapeKeyBuilderFromMaterials(builder);
+    return builder.build();
+}
+
+uint32_t TextEntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) const {
+    auto parentSubs = Parent::metaFetchMetaSubItems(subItems);
+    if (Item::isValidID(_textRenderID)) {
+        subItems.emplace_back(_textRenderID);
+        return parentSubs + 1;
+    }
+    return parentSubs;
 }
 
 void TextEntityRenderer::doRender(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableTextEntityItem::render");
     Q_ASSERT(args->_batch);
-    gpu::Batch& batch = *args->_batch;
 
-    glm::vec4 backgroundColor;
-    Transform transform;
-    withReadLock([&] {
-        transform = _renderTransform;
+    graphics::MultiMaterial materials;
+    {
+        std::lock_guard<std::mutex> lock(_materialsLock);
+        materials = _materials["0"];
+    }
 
-        float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
-        backgroundColor = glm::vec4(_backgroundColor, fadeRatio * _backgroundAlpha);
-    });
+    auto& schema = materials.getSchemaBuffer().get<graphics::MultiMaterial::Schema>();
+    glm::vec4 backgroundColor = glm::vec4(ColorUtils::tosRGBVec3(schema._albedo), schema._opacity);
     backgroundColor = EntityRenderer::calculatePulseColor(backgroundColor, _pulseProperties, _created);
 
     if (backgroundColor.a <= 0.0f) {
         return;
     }
+
+    gpu::Batch& batch = *args->_batch;
+
+    bool transparent;
+    Transform transform;
+    withReadLock([&] {
+        transparent = isTransparent();
+        transform = _renderTransform;
+    });
 
     transform.setRotation(BillboardModeHelpers::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
         args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
@@ -139,20 +172,26 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
         _prevRenderTransform = transform;
     }
 
+    Pipeline pipelineType = getPipelineType(materials);
+    if (pipelineType == Pipeline::PROCEDURAL) {
+        auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(materials.top().material);
+        transparent |= procedural->isFading();
+        procedural->prepare(batch, transform.getTranslation(), transform.getScale(), transform.getRotation(), _created, ProceduralProgramKey(transparent));
+    } else if (pipelineType == Pipeline::MATERIAL) {
+        if (RenderPipelines::bindMaterials(materials, batch, args->_renderMode, args->_enableTexturing)) {
+            args->_details._materialSwitches++;
+        }
+    }
+
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    // FIXME: we want to use instanced rendering here, but if textAlpha < 1 and backgroundAlpha < 1, the transparency sorting will be wrong
-    //render::ShapePipelinePointer pipeline = geometryCache->getShapePipelinePointer(backgroundColor.a < 1.0f, _unlit,
-    //    _renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD);
-    //if (render::ShapeKey(args->_globalShapeKey).isWireframe() || _primitiveMode == PrimitiveMode::LINES) {
-    //    geometryCache->renderWireShapeInstance(args, batch, GeometryCache::Quad, backgroundColor, pipeline);
-    //} else {
-    //    geometryCache->renderSolidShapeInstance(args, batch, GeometryCache::Quad, backgroundColor, pipeline);
-    //}
+    if (pipelineType == Pipeline::SIMPLE) {
+        geometryCache->renderQuad(batch, glm::vec2(-0.5f), glm::vec2(0.5f), backgroundColor, _geometryID);
+    } else {
+        geometryCache->renderQuad(batch, glm::vec2(-0.5f), glm::vec2(0.5f), glm::vec2(0.0f), glm::vec2(1.0f), backgroundColor, _geometryID);
+    }
 
-    geometryCache->renderQuad(batch, glm::vec2(-0.5), glm::vec2(0.5), backgroundColor, _geometryID);
-
-    const int TRIANBLES_PER_QUAD = 2;
-    args->_details._trianglesRendered += TRIANBLES_PER_QUAD;
+    const int TRIANGLES_PER_QUAD = 2;
+    args->_details._trianglesRendered += TRIANGLES_PER_QUAD;
 }
 
 QSizeF TextEntityRenderer::textSize(const QString& text) const {
@@ -296,12 +335,12 @@ void entities::TextPayload::render(RenderArgs* args) {
     }
     auto textRenderable = std::static_pointer_cast<TextEntityRenderer>(renderable);
 
-    Transform modelTransform;
+    Transform transform;
     glm::vec3 dimensions;
 
     glm::vec4 textColor;
     textRenderable->withReadLock([&] {
-        modelTransform = textRenderable->_renderTransform;
+        transform = textRenderable->_renderTransform;
         dimensions = textRenderable->_dimensions;
 
         float fadeRatio = textRenderable->_isFading ? Interpolate::calculateFadeRatio(textRenderable->_fadeStartTime) : 1.0f;
@@ -317,21 +356,22 @@ void entities::TextPayload::render(RenderArgs* args) {
         return;
     }
 
-    modelTransform.setRotation(BillboardModeHelpers::getBillboardRotation(modelTransform.getTranslation(), modelTransform.getRotation(), textRenderable->_billboardMode,
+    transform.setRotation(BillboardModeHelpers::getBillboardRotation(transform.getTranslation(), transform.getRotation(), textRenderable->_billboardMode,
         args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition()));
 
     float scale = textRenderable->_lineHeight / textRenderer->getFontSize();
-    modelTransform.postTranslate(glm::vec3(-0.5, 0.5, 1.0f + EPSILON / dimensions.z));
-    modelTransform.setScale(scale);
-    batch.setModelTransform(modelTransform, _prevRenderTransform);
+
+    transform.postTranslate(glm::vec3(-0.5, 0.5, 1.0f + EPSILON / dimensions.z));
+    transform.setScale(scale);
+    batch.setModelTransform(transform, _prevRenderTransform);
     if (args->_renderMode == Args::RenderMode::DEFAULT_RENDER_MODE || args->_renderMode == Args::RenderMode::MIRROR_RENDER_MODE) {
-        _prevRenderTransform = modelTransform;
+        _prevRenderTransform = transform;
     }
 
     glm::vec2 bounds = glm::vec2(dimensions.x - (textRenderable->_leftMargin + textRenderable->_rightMargin), dimensions.y - (textRenderable->_topMargin + textRenderable->_bottomMargin));
     textRenderer->draw(batch, textRenderable->_leftMargin / scale, -textRenderable->_topMargin / scale, bounds / scale, scale,
                        textRenderable->_text, textRenderable->_font, textColor, effectColor, textRenderable->_effectThickness, textRenderable->_effect,
-                       textRenderable->_unlit, forward);
+                       textRenderable->_alignment, textRenderable->_unlit, forward);
 }
 
 namespace render {

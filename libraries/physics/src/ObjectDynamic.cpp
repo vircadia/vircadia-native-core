@@ -11,6 +11,8 @@
 
 #include "ObjectDynamic.h"
 
+#include <QtCore/QSharedPointer>
+
 #include "EntitySimulation.h"
 
 #include "PhysicsLogging.h"
@@ -93,7 +95,7 @@ bool ObjectDynamic::updateArguments(QVariantMap arguments) {
     return somethingChanged;
 }
 
-/**jsdoc
+/*@jsdoc
  * Different entity action types have different arguments: some common to all actions (listed in the table) and some specific 
  * to each {@link Entities.ActionType|ActionType} (linked to below).
  *

@@ -21,7 +21,7 @@
 
 namespace entity {
 
-    /**jsdoc
+    /*@jsdoc
      * <p>A <code>"Shape"</code>, <code>"Box"</code>, or <code>"Sphere"</code> {@link Entities.EntityType|EntityType} may 
      * display as one of the following geometrical shapes:</p>
      * <table>
@@ -277,9 +277,10 @@ bool ShapeEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const
                                                   float& distance, BoxFace& face, glm::vec3& surfaceNormal,
                                                   QVariantMap& extraInfo, bool precisionPicking) const {
     glm::vec3 dimensions = getScaledDimensions();
-    glm::quat rotation = getWorldOrientation();
+    BillboardMode billboardMode = getBillboardMode();
+    glm::quat rotation = billboardMode == BillboardMode::NONE ? getWorldOrientation() : getLocalOrientation();
     glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
-    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, getBillboardMode(), viewFrustumPos);
+    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, billboardMode, viewFrustumPos);
 
     // determine the ray in the frame of the entity transformed from a unit sphere
     glm::mat4 entityToWorldMatrix = glm::translate(position) * glm::mat4_cast(rotation) * glm::scale(dimensions);
@@ -309,9 +310,10 @@ bool ShapeEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, 
                                                        BoxFace& face, glm::vec3& surfaceNormal,
                                                        QVariantMap& extraInfo, bool precisionPicking) const {
     glm::vec3 dimensions = getScaledDimensions();
-    glm::quat rotation = getWorldOrientation();
+    BillboardMode billboardMode = getBillboardMode();
+    glm::quat rotation = billboardMode == BillboardMode::NONE ? getWorldOrientation() : getLocalOrientation();
     glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
-    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, getBillboardMode(), viewFrustumPos);
+    rotation = BillboardModeHelpers::getBillboardRotation(position, rotation, billboardMode, viewFrustumPos);
 
     // determine the parabola in the frame of the entity transformed from a unit sphere
     glm::mat4 entityToWorldMatrix = glm::translate(position) * glm::mat4_cast(rotation) * glm::scale(dimensions);
@@ -337,7 +339,7 @@ bool ShapeEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, 
 
 bool ShapeEntityItem::getRotateForPicking() const {
     auto shape = getShape();
-    return getBillboardMode() != BillboardMode::NONE && (_shape < entity::Shape::Cube || _shape > entity::Shape::Icosahedron);
+    return getBillboardMode() != BillboardMode::NONE && (shape < entity::Shape::Cube || shape > entity::Shape::Icosahedron);
 }
 
 void ShapeEntityItem::debugDump() const {

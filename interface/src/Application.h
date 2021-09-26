@@ -18,6 +18,7 @@
 #include <QtCore/QHash>
 #include <QtCore/QPointer>
 #include <QtCore/QSet>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QStringList>
 #include <QtQuick/QQuickItem>
 
@@ -50,6 +51,8 @@
 #include <shared/ConicalViewFrustum.h>
 #include <shared/FileLogger.h>
 #include <RunningMarker.h>
+#include <ModerationFlags.h>
+#include <OffscreenUi.h>
 
 #include "avatar/MyAvatar.h"
 #include "FancyCamera.h"
@@ -324,6 +327,8 @@ public:
 
     int getOtherAvatarsReplicaCount() { return DependencyManager::get<AvatarHashMap>()->getReplicaCount(); }
     void setOtherAvatarsReplicaCount(int count) { DependencyManager::get<AvatarHashMap>()->setReplicaCount(count); }
+
+    void confirmConnectWithoutAvatarEntities();
 
     bool getLoginDialogPoppedUp() const { return _loginDialogPoppedUp; }
     void createLoginDialog();
@@ -608,7 +613,7 @@ private:
     void toggleTabletUI(bool shouldOpen = false) const;
     bool shouldCaptureMouse() const;
 
-    void userKickConfirmation(const QUuid& nodeID);
+    void userKickConfirmation(const QUuid& nodeID, unsigned int banFlags = ModerationFlags::getDefaultBanFlags());
 
     MainWindow* _window;
     QElapsedTimer& _sessionRunTimer;
@@ -722,6 +727,8 @@ private:
 
     bool _loginDialogPoppedUp{ false };
     bool _desktopRootItemCreated{ false };
+
+    ModalDialogListener* _confirmConnectWithoutAvatarEntitiesDialog { nullptr };
 
     bool _developerMenuVisible{ false };
     QString _previousAvatarSkeletonModel;

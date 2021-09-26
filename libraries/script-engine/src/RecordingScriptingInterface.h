@@ -6,6 +6,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_RecordingScriptingInterface_h
 #define hifi_RecordingScriptingInterface_h
 
@@ -13,6 +16,7 @@
 #include <mutex>
 
 #include <QtCore/QObject>
+#include <QtCore/QSharedPointer>
 
 #include <BaseScriptEngine.h>
 #include <DependencyManager.h>
@@ -23,7 +27,7 @@
 class QScriptEngine;
 class QScriptValue;
 
-/**jsdoc
+/*@jsdoc
  * The <code>Recording</code> API makes and plays back recordings of voice and avatar movements. Playback may be done on a 
  * user's avatar or an assignment client agent (see the {@link Agent} API).
  *
@@ -34,6 +38,7 @@ class QScriptValue;
  * @hifi-avatar
  * @hifi-assignment-client
  */
+/// Provides the <code><a href="https://apidocs.vircadia.dev/Recording.html">Recording</a></code> scripting interface
 class RecordingScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 
@@ -42,14 +47,14 @@ public:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * Called when a {@link Recording.loadRecording} call is complete.
      * @callback Recording~loadRecordingCallback
      * @param {boolean} success - <code>true</code> if the recording has successfully been loaded, <code>false</code> if it 
      *     hasn't.
      * @param {string} url - The URL of the recording that was requested to be loaded.
      */
-    /**jsdoc
+    /*@jsdoc
      * Loads a recording so that it is ready for playing.
      * @function Recording.loadRecording
      * @param {string} url - The ATP, HTTP, or file system URL of the recording to load.
@@ -71,33 +76,33 @@ public slots:
     void loadRecording(const QString& url, QScriptValue callback = QScriptValue());
 
 
-    /**jsdoc
+    /*@jsdoc
      * Starts playing the recording currently loaded or paused.
      * @function Recording.startPlaying
      */
     void startPlaying();
 
-    /**jsdoc
+    /*@jsdoc
      * Pauses playback of the recording currently playing. Use {@link Recording.startPlaying|startPlaying} to resume playback 
      * or {@link Recording.stopPlaying|stopPlaying} to stop playback.
      * @function Recording.pausePlayer
      */
     void pausePlayer();
 
-    /**jsdoc
+    /*@jsdoc
      * Stops playing the recording currently playing or paused.
      * @function Recording.stopPlaying
      */
     void stopPlaying();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether a recording is currently playing.
      * @function Recording.isPlaying
      * @returns {boolean} <code>true</code> if a recording is being played, <code>false</code> if one isn't.
      */
     bool isPlaying() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether recording playback is currently paused.
      * @function Recording.isPaused
      * @returns {boolean} <code>true</code> if recording playback is currently paused, <code>false</code> if it isn't.
@@ -105,14 +110,14 @@ public slots:
     bool isPaused() const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the current playback time in the loaded recording, in seconds.
      * @function Recording.playerElapsed
      * @returns {number} The current playback time in the loaded recording, in seconds.
      */
     float playerElapsed() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the length of the loaded recording, in seconds.
      * @function Recording.playerLength
      * @returns {number} The length of the recording currently loaded, in seconds
@@ -120,28 +125,28 @@ public slots:
     float playerLength() const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the playback audio volume.
      * @function Recording.setPlayerVolume
      * @param {number} volume - The playback audio volume, range <code>0.0</code> &ndash; <code>1.0</code>.
      */
     void setPlayerVolume(float volume);
 
-    /**jsdoc
+    /*@jsdoc
      * <p class="important">Not implemented: This method is not implemented yet.</p>
      * @function Recording.setPlayerAudioOffset
      * @param {number} audioOffset - Audio offset.
      */
     void setPlayerAudioOffset(float audioOffset);
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the current playback time in the loaded recording.
      * @function Recording.setPlayerTime
      * @param {number} time - The current playback time, in seconds.
      */
     void setPlayerTime(float time);
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether playback should repeat in a loop.
      * @function Recording.setPlayerLoop
      * @param {boolean} loop - <code>true</code> if playback should repeat, <code>false</code> if it shouldn't.
@@ -149,7 +154,7 @@ public slots:
     void setPlayerLoop(bool loop);
 
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether recording playback will use the display name that the recording was made with.
      * @function Recording.setPlayerUseDisplayName
      * @param {boolean} useDisplayName - <code>true</code> to have recording playback use the display name that the recording 
@@ -157,7 +162,7 @@ public slots:
      */
     void setPlayerUseDisplayName(bool useDisplayName);
 
-    /**jsdoc
+    /*@jsdoc
      * <p><em>Not used.</em></p>
      * @function Recording.setPlayerUseAttachments
      * @param {boolean} useAttachments - Use attachments.
@@ -165,7 +170,7 @@ public slots:
      */
     void setPlayerUseAttachments(bool useAttachments);
 
-    /**jsdoc
+    /*@jsdoc
      * <p><em>Not used.</em></p>
      * @function Recording.setPlayerUseHeadModel
      * @param {boolean} useHeadModel - Use head model.
@@ -173,7 +178,7 @@ public slots:
      */
     void setPlayerUseHeadModel(bool useHeadModel);
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether recording playback will use the avatar model that the recording was made with.
      * @function Recording.setPlayerUseSkeletonModel
      * @param {boolean} useSkeletonModel - <code>true</code> to have recording playback use the avatar model that the recording 
@@ -181,7 +186,7 @@ public slots:
      */
     void setPlayerUseSkeletonModel(bool useSkeletonModel);
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether recordings are played at the current avatar location or the recorded location.
      * @function Recording.setPlayFromCurrentLocation
      * @param {boolean} playFromCurrentLocation - <code>true</code> to play recordings at the current avatar location, 
@@ -190,7 +195,7 @@ public slots:
     void setPlayFromCurrentLocation(bool playFromCurrentLocation);
 
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether recording playback will use the display name that the recording was made with.
      * @function Recording.getPlayerUseDisplayName
      * @returns {boolean} <code>true</code> if recording playback will use the display name that the recording was made with, 
@@ -198,7 +203,7 @@ public slots:
      */
     bool getPlayerUseDisplayName() { return _useDisplayName; }
 
-    /**jsdoc
+    /*@jsdoc
      * <p><em>Not used.</em></p>
      * @function Recording.getPlayerUseAttachments
      * @returns {boolean} Use attachments.
@@ -206,7 +211,7 @@ public slots:
      */
     bool getPlayerUseAttachments() { return _useAttachments; }
 
-    /**jsdoc
+    /*@jsdoc
      * <p><em>Not used.</em></p>
      * @function Recording.getPlayerUseHeadModel
      * @returns {boolean} Use head model.
@@ -214,7 +219,7 @@ public slots:
      */
     bool getPlayerUseHeadModel() { return _useHeadModel; }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether recording playback will use the avatar model that the recording was made with.
      * @function Recording.getPlayerUseSkeletonModel
      * @returns {boolean} <code>true</code> if recording playback will use the avatar model that the recording was made with, 
@@ -222,7 +227,7 @@ public slots:
      */
     bool getPlayerUseSkeletonModel() { return _useSkeletonModel; }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether recordings are played at the current avatar location or the recorded location.
      * @function Recording.getPlayFromCurrentLocation
      * @returns {boolean} <code>true</code> if recordings are played at the current avatar location, <code>false</code> if 
@@ -231,13 +236,13 @@ public slots:
     bool getPlayFromCurrentLocation() { return _playFromCurrentLocation; }
 
 
-    /**jsdoc
+    /*@jsdoc
      * Starts making a recording.
      * @function Recording.startRecording
      */
     void startRecording();
 
-    /**jsdoc
+    /*@jsdoc
      * Stops making a recording. The recording may be saved using {@link Recording.saveRecording|saveRecording} or 
      * {@link Recording.saveRecordingToAsset|saveRecordingToAsset}, or immediately played back with 
      * {@link Recording.loadLastRecording|loadLastRecording}.
@@ -245,7 +250,7 @@ public slots:
      */
     void stopRecording();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether a recording is currently being made.
      * @function Recording.isRecording
      * @returns {boolean} <code>true</code> if a recording is currently being made, <code>false</code> if one isn't.
@@ -253,7 +258,7 @@ public slots:
     bool isRecording() const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the duration of the recording currently being made or recently made, in seconds.
      * @function Recording.recorderElapsed
      * @returns {number} The duration of the recording currently being made or recently made, in seconds.
@@ -261,7 +266,7 @@ public slots:
     float recorderElapsed() const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the default directory that recordings are saved in.
      * @function Recording.getDefaultRecordingSaveDirectory
      * @returns {string} The default recording save directory.
@@ -270,7 +275,7 @@ public slots:
      */
     QString getDefaultRecordingSaveDirectory();
 
-    /**jsdoc
+    /*@jsdoc
      * Saves the most recently made recording to a file.
      * @function Recording.saveRecording
      * @param {string} filename - The path and name of the file to save the recording to.
@@ -289,13 +294,13 @@ public slots:
      */
     void saveRecording(const QString& filename);
 
-    /**jsdoc
+    /*@jsdoc
      * Called when a {@link Recording.saveRecordingToAsset} call is complete.
      * @callback Recording~saveRecordingToAssetCallback
      * @param {string} url - The URL of the recording stored in the asset server if successful, <code>""</code> if 
      *     unsuccessful. The URL has <code>atp:</code> as the scheme and the SHA256 hash as the filename (with no extension).
      */
-    /**jsdoc
+    /*@jsdoc
      * Saves the most recently made recording to the domain's asset server.
      * @function Recording.saveRecordingToAsset
      * @param {Recording~saveRecordingToAssetCallback} callback - The function to call upon completion.
@@ -334,7 +339,7 @@ public slots:
      */
     bool saveRecordingToAsset(QScriptValue getClipAtpUrl);
 
-    /**jsdoc
+    /*@jsdoc
      * Loads the most recently made recording and plays it back on your avatar.
      * @function Recording.loadLastRecording
      * @example <caption>Make a 5 second recording and immediately play it back on your avatar.</caption>
@@ -369,3 +374,5 @@ private:
 };
 
 #endif // hifi_RecordingScriptingInterface_h
+
+/// @}

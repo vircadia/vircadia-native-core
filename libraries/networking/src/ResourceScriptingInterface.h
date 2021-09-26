@@ -17,7 +17,7 @@
 
 #include <DependencyManager.h>
 
-/**jsdoc
+/*@jsdoc
  * The <code>Resources</code> API enables the default location for different resource types to be overridden.
  *
  * @namespace Resources
@@ -33,7 +33,7 @@ class ResourceScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 public:
 
-    /**jsdoc
+    /*@jsdoc
      * Overrides a path prefix with an alternative path.
      * @function Resources.overrideUrlPrefix
      * @param {string} prefix - The path prefix to override, e.g., <code>"atp:/"</code>.
@@ -41,7 +41,7 @@ public:
      */
     Q_INVOKABLE void overrideUrlPrefix(const QString& prefix, const QString& replacement);
 
-    /**jsdoc
+    /*@jsdoc
      * Restores the default path for a specified prefix.
      * @function Resources.restoreUrlPrefix
      * @param {string} prefix - The prefix of the resource to restore the path for.

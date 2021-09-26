@@ -168,20 +168,20 @@ void TextureBaker::processTexture() {
             gpu::BackendTarget::GLES32
         }};
         for (auto target : BACKEND_TARGETS) {
-            auto processedTexture = image::processImage(buffer, _textureURL.toString().toStdString(), image::ColorChannel::NONE,
-                                                        ABSOLUTE_MAX_TEXTURE_NUM_PIXELS, _textureType, true,
-                                                        target, _abortProcessing);
-            if (!processedTexture) {
+            auto processedTextureAndSize = image::processImage(buffer, _textureURL.toString().toStdString(), image::ColorChannel::NONE,
+                                                               ABSOLUTE_MAX_TEXTURE_NUM_PIXELS, _textureType, true,
+                                                               target, _abortProcessing);
+            if (!processedTextureAndSize.first) {
                 handleError("Could not process texture " + _textureURL.toString());
                 return;
             }
-            processedTexture->setSourceHash(hash);
+            processedTextureAndSize.first->setSourceHash(hash);
 
             if (shouldStop()) {
                 return;
             }
 
-            auto memKTX = gpu::Texture::serialize(*processedTexture);
+            auto memKTX = gpu::Texture::serialize(*processedTextureAndSize.first, processedTextureAndSize.second);
             if (!memKTX) {
                 handleError("Could not serialize " + _textureURL.toString() + " to KTX");
                 return;
@@ -211,19 +211,19 @@ void TextureBaker::processTexture() {
     // Uncompressed KTX
     if (_textureType == image::TextureUsage::Type::SKY_TEXTURE || _textureType == image::TextureUsage::Type::AMBIENT_TEXTURE) {
         buffer->reset();
-        auto processedTexture = image::processImage(std::move(buffer), _textureURL.toString().toStdString(), image::ColorChannel::NONE,
-                                                    ABSOLUTE_MAX_TEXTURE_NUM_PIXELS, _textureType, false, gpu::BackendTarget::GL45, _abortProcessing);
-        if (!processedTexture) {
+        auto processedTextureAndSize = image::processImage(std::move(buffer), _textureURL.toString().toStdString(), image::ColorChannel::NONE,
+                                                           ABSOLUTE_MAX_TEXTURE_NUM_PIXELS, _textureType, false, gpu::BackendTarget::GL45, _abortProcessing);
+        if (!processedTextureAndSize.first) {
             handleError("Could not process texture " + _textureURL.toString());
             return;
         }
-        processedTexture->setSourceHash(hash);
+        processedTextureAndSize.first->setSourceHash(hash);
 
         if (shouldStop()) {
             return;
         }
 
-        auto memKTX = gpu::Texture::serialize(*processedTexture);
+        auto memKTX = gpu::Texture::serialize(*processedTextureAndSize.first, processedTextureAndSize.second);
         if (!memKTX) {
             handleError("Could not serialize " + _textureURL.toString() + " to KTX");
             return;

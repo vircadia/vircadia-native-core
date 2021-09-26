@@ -22,7 +22,7 @@
 #include <DependencyManager.h>
 #include <OffscreenUi.h>
 
-/**jsdoc
+/*@jsdoc
  * The possible docking locations of an <code>InteractiveWindow</code>.
  * @typedef {object} InteractiveWindow.DockAreas
  * @property {InteractiveWindow.DockArea} TOP - Dock to the top edge of the Interface window.
@@ -37,7 +37,7 @@ static const QVariantMap DOCK_AREA {
     { "RIGHT", DockArea::RIGHT }
 };
 
-/**jsdoc
+/*@jsdoc
  * The possible relative position anchors of an <code>InteractiveWindow</code> relative to the Interface window.
  * @typedef {object} InteractiveWindow.RelativePositionAnchors
  * @property {InteractiveWindow.RelativePositionAnchor} NO_ANCHOR - Position is not relative to any part of the Interface 
@@ -70,7 +70,7 @@ int DesktopScriptingInterface::getHeight() {
     return size.height();
 }
 
-/**jsdoc
+/*@jsdoc
  * The possible display modes for an <code>InteractiveWindow</code>.
  * @typedef {object} InteractiveWindow.PresentationModes
  * @property {InteractiveWindow.PresentationMode} VIRTUAL - The window is displayed inside Interface: in the desktop window in 

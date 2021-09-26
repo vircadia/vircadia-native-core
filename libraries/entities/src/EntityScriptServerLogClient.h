@@ -13,10 +13,11 @@
 #define hifi_EntityScriptServerLogClient_h
 
 #include <QObject>
+#include <QtCore/QSharedPointer>
 
 #include <NodeList.h>
 
-/**jsdoc
+/*@jsdoc
  * The <code>EntityScriptServerLog</code> API makes server log file output written by server entity scripts available to client 
  * scripts.
  *
@@ -34,7 +35,7 @@ public:
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when one or more lines are written to the server log by server entity scripts.
      * @function EntityScriptServerLog.receivedNewLogLines
      * @param {string} logLines - The server log lines written by server entity scripts. If there are multiple lines they are 

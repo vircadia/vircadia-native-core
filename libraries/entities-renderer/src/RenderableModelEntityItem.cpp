@@ -116,11 +116,12 @@ bool RenderableModelEntityItem::needsUpdateModelBounds() const {
     }
 
     bool success;
-    auto transform = getTransform(success);
+    auto transform = getBillboardMode() == BillboardMode::NONE ? getTransform(success) : getTransformWithOnlyLocalRotation(success);
     if (success) {
         if (model->getTranslation() != transform.getTranslation()) {
             return true;
         }
+
         if (model->getRotation() != transform.getRotation()) {
             return true;
         }
@@ -172,7 +173,7 @@ void RenderableModelEntityItem::updateModelBounds() {
     }
 
     bool success;
-    auto transform = getTransform(success);
+    auto transform = getBillboardMode() == BillboardMode::NONE ? getTransform(success) : getTransformWithOnlyLocalRotation(success);
     if (success && (model->getTranslation() != transform.getTranslation() ||
             model->getRotation() != transform.getRotation())) {
         model->setTransformNoUpdateRenderItems(transform);
@@ -1254,13 +1255,13 @@ void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
     if (_hasModel && !model) {
         model = std::make_shared<Model>(nullptr, entity.get(), _created);
         connect(model.get(), &Model::requestRenderUpdate, this, &ModelEntityRenderer::requestRenderUpdate);
-        connect(model.get(), &Model::setURLFinished, this, [&](bool didVisualGeometryRequestSucceed) {
+        connect(model.get(), &Model::setURLFinished, this, [=](bool didVisualGeometryRequestSucceed) {
             _didLastVisualGeometryRequestSucceed = didVisualGeometryRequestSucceed;
             const render::ScenePointer& scene = AbstractViewStateInterface::instance()->getMain3DScene();
             render::Transaction transaction;
-            transaction.updateItem<PayloadProxyInterface>(_renderItemID, [&](PayloadProxyInterface& self) {
+            transaction.updateItem<PayloadProxyInterface>(_renderItemID, [=](PayloadProxyInterface& self) {
                 const render::ScenePointer& scene = AbstractViewStateInterface::instance()->getMain3DScene();
-                withWriteLock([&] {
+                withWriteLock([=] {
                     setKey(didVisualGeometryRequestSucceed, _model);
                     _model->setVisibleInScene(_visible, scene);
                     _model->setCauterized(_cauterized, scene);

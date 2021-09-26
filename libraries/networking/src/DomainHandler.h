@@ -17,6 +17,7 @@
 
 #include <QtCore/QJsonObject>
 #include <QtCore/QObject>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QTimer>
 #include <QtCore/QUuid>
 #include <QtCore/QUrl>
@@ -25,7 +26,7 @@
 #include <shared/ReadWriteLockable.h>
 #include <SettingHandle.h>
 
-#include "HifiSockAddr.h"
+#include "SockAddr.h"
 #include "NetworkPeer.h"
 #include "NLPacket.h"
 #include "NLPacketList.h"
@@ -98,6 +99,7 @@ public:
     Node::LocalID getLocalID() const { return _localID; }
     void setLocalID(Node::LocalID localID) { _localID = localID; }
 
+    QString getScheme() const { return _domainURL.scheme(); }
     QString getHostname() const { return _domainURL.host(); }
 
     QUrl getErrorDomainURL(){ return _errorDomainURL; }
@@ -108,8 +110,8 @@ public:
     const QHostAddress& getIP() const { return _sockAddr.getAddress(); }
     void setIPToLocalhost() { _sockAddr.setAddress(QHostAddress(QHostAddress::LocalHost)); }
 
-    const HifiSockAddr& getSockAddr() const { return _sockAddr; }
-    void setSockAddr(const HifiSockAddr& sockAddr, const QString& hostname);
+    const SockAddr& getSockAddr() const { return _sockAddr; }
+    void setSockAddr(const SockAddr& sockAddr, const QString& hostname);
 
     unsigned short getPort() const { return _sockAddr.getPort(); }
     void setPort(quint16 port) { _sockAddr.setPort(port); }
@@ -125,7 +127,7 @@ public:
     const QUuid& getICEClientID() const { return _iceClientID; }
 
     bool requiresICE() const { return !_iceServerSockAddr.isNull(); }
-    const HifiSockAddr& getICEServerSockAddr() const { return _iceServerSockAddr; }
+    const SockAddr& getICEServerSockAddr() const { return _iceServerSockAddr; }
     NetworkPeer& getICEPeer() { return _icePeer; }
     void activateICELocalSocket();
     void activateICEPublicSocket();
@@ -133,7 +135,10 @@ public:
     bool isConnected() const { return _isConnected; }
     void setIsConnected(bool isConnected);
 
-    bool isServerless() const { return _domainURL.scheme() != URL_SCHEME_HIFI; }
+    void setCanConnectWithoutAvatarEntities(bool canConnect);
+    bool canConnectWithoutAvatarEntities();
+
+    bool isServerless() const { return _domainURL.scheme() != URL_SCHEME_VIRCADIA; }
     bool getInterstitialModeEnabled() const;
     void setInterstitialModeEnabled(bool enableInterstitialMode);
 
@@ -159,7 +164,11 @@ public:
     bool checkInPacketTimeout();
     void clearPendingCheckins() { _checkInPacketsSinceLastReply = 0; }
 
-    /**jsdoc
+    void resetConfirmConnectWithoutAvatarEntities() {
+        _haveAskedConnectWithoutAvatarEntities = false;
+    }
+
+    /*@jsdoc
      * <p>The reasons that you may be refused connection to a domain are defined by numeric values:</p>
      * <table>
      *   <thead>
@@ -252,6 +261,7 @@ signals:
     void completedSocketDiscovery();
 
     void resetting();
+    void confirmConnectWithoutAvatarEntities();
     void connectedToDomain(QUrl domainURL);
     void disconnectedFromDomain();
 
@@ -279,14 +289,16 @@ private:
     Node::LocalID _localID;
     QUrl _domainURL;
     QUrl _errorDomainURL;
-    HifiSockAddr _sockAddr;
+    SockAddr _sockAddr;
     QUuid _assignmentUUID;
     QUuid _connectionToken;
     QUuid _pendingDomainID; // ID of domain being connected to, via ICE or direct connection
     QUuid _iceClientID;
-    HifiSockAddr _iceServerSockAddr;
+    SockAddr _iceServerSockAddr;
     NetworkPeer _icePeer;
     bool _isConnected { false };
+    bool _haveAskedConnectWithoutAvatarEntities { false };
+    bool _canConnectWithoutAvatarEntities { false };
     bool _isInErrorState { false };
     QJsonObject _settingsObject;
     QString _pendingPath;
