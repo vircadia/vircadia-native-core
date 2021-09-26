@@ -43,8 +43,8 @@ struct AvatarMixerWorkerPoolData {
     // Moving ownership to the workers is done by setting _numStarted = _numFinished = 0 and waking _slaveCondition
     // Moving ownership to the pool is done when _numFinished == _numThreads and is done by waking _poolCondition
 
-    void (AvatarMixerSlave::*function)(const SharedNodePointer& node);   // r/o when owned by workers, r/w when owned by pool
-    std::function<void(AvatarMixerSlave&)> configure;  // r/o when owned by workers, r/w when owned by pool
+    void (AvatarMixerSlave::*function)(const SharedNodePointer& node){ nullptr };   // r/o when owned by workers, r/w when owned by pool
+    std::function<void(AvatarMixerSlave&)> configure{ nullptr };  // r/o when owned by workers, r/w when owned by pool
 
     // Number of currently-running worker threads
     // r/o when owned by workers, r/w when owned by pool

@@ -40,8 +40,8 @@ struct AudioMixerWorkerPoolData {
     // Moving ownership to the workers is done by setting _numStarted = _numFinished = 0 and waking _workerCondition
     // Moving ownership to the pool is done when _numFinished == _numThreads and is done by waking _poolCondition
 
-    void (AudioMixerSlave::*function)(const SharedNodePointer& node);  // r/o when owned by workers, r/w when owned by pool
-    std::function<void(AudioMixerSlave&)> configure;  // r/o when owned by workers, r/w when owned by pool
+    void (AudioMixerSlave::*function)(const SharedNodePointer& node){ nullptr };  // r/o when owned by workers, r/w when owned by pool
+    std::function<void(AudioMixerSlave&)> configure{ nullptr };  // r/o when owned by workers, r/w when owned by pool
 
     // Number of currently-running worker threads
     // r/o when owned by workersves, r/w when owned by pool

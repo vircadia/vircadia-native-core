@@ -25,6 +25,7 @@ void AudioMixerWorkerThread::run() {
         // iterate over all available nodes
         SharedNodePointer node;
         while (try_pop(node)) {
+            assert(_function);
             (this->*_function)(node);
         }
 
@@ -52,6 +53,7 @@ void AudioMixerWorkerThread::wait() {
         _data.configure(*this);
     }
     _function = _data.function;
+    assert(_function);
 }
 
 void AudioMixerWorkerThread::notify(bool stopping) {

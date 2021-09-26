@@ -21,6 +21,7 @@ void AvatarMixerWorkerThread::run() {
         // iterate over all available nodes
         SharedNodePointer node;
         while (try_pop(node)) {
+            assert(_function);
             (this->*_function)(node);
         }
 
@@ -48,6 +49,7 @@ void AvatarMixerWorkerThread::wait() {
         _data.configure(*this);
     }
     _function = _data.function;
+    assert(_function);
 }
 
 void AvatarMixerWorkerThread::notify(bool stopping) {
