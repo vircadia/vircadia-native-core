@@ -83,7 +83,7 @@ private:
 
     AudioMixerWorkerPoolData& _data;
     void (AudioMixerSlave::*_function)(const SharedNodePointer& node) { nullptr };
-    bool _stop { false };
+    volatile bool _stop { false }; // using volatile here mostly for compiler hinting, recognize it has minimal meaning
 };
 
 // Worker pool for audio mixers

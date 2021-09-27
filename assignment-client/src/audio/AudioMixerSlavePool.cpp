@@ -19,25 +19,32 @@
 #include <ThreadHelpers.h>
 
 void AudioMixerWorkerThread::run() {
+    assert(_data.numStarted < _data.numThreads);
+    _data.numStarted++;
+
     while (true) {
-        wait();
-
-        // iterate over all available nodes
-        SharedNodePointer node;
-        while (try_pop(node)) {
-            assert(_function);
-            (this->*_function)(node);
-        }
-
         bool stopping = _stop;
         notify(stopping);
         if (stopping) {
             return;
         }
+
+        wait();
+        assert(_function);
+
+        if (_function) {
+            // iterate over all available nodes
+            SharedNodePointer node;
+            while (try_pop(node)) {
+                (this->*_function)(node);
+            }
+        }
     }
 }
 
 void AudioMixerWorkerThread::wait() {
+    assert(_data.numStarted <= _data.numThreads);
+
     {
         Lock workerLock(_data.workerMutex);
         if (_data.numStarted == _data.numThreads) {
@@ -47,7 +54,7 @@ void AudioMixerWorkerThread::wait() {
             });
         }
     }
-    ++_data.numStarted;
+    _data.numStarted++;
 
     if (_data.configure) {
         _data.configure(*this);
@@ -61,7 +68,7 @@ void AudioMixerWorkerThread::notify(bool stopping) {
     assert(_data.numFinished <= _data.numStarted);
     int numFinished = ++_data.numFinished;
     if (stopping) {
-        ++_data.numStopped;
+        _data.numStopped++;
         assert(_data.numStopped <= _data.numFinished);
     }
 
