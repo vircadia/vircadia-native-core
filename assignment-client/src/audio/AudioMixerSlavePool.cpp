@@ -178,12 +178,15 @@ void AudioMixerSlavePool::resize(int numThreads) {
         assert(_data.numFinished == _data.numThreads);
 
         // start new slaves
-        while (numThreads > _data.numThreads) {
-            _data.numThreads++;
-            auto worker = new AudioMixerWorkerThread(_data, _workerSharedData);
-            QObject::connect(worker, &QThread::started, [] { setThreadName("AudioMixerSlaveThread"); });
-            worker->start();
-            _workers.emplace_back(worker);
+        {
+            Lock workerLock(_data.workerMutex);
+            while (numThreads > _data.numThreads) {
+                _data.numThreads++;
+                auto worker = new AudioMixerWorkerThread(_data, _workerSharedData);
+                QObject::connect(worker, &QThread::started, [] { setThreadName("AudioMixerSlaveThread"); });
+                worker->start();
+                _workers.emplace_back(worker);
+            }
         }
 
         // wait for the new workers to wake up and enter the wait
