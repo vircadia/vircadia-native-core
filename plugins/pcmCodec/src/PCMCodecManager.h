@@ -83,6 +83,7 @@ public:
     }
 
     virtual void lostFrame(QByteArray& decodedBuffer) override {
+        decodedBuffer.resize(AudioConstants::NETWORK_FRAME_BYTES_STEREO);
         memset(decodedBuffer.data(), 0, decodedBuffer.size());
     }
 
