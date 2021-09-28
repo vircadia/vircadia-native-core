@@ -77,7 +77,7 @@ public:
     inline void stop() { _stop = true; }
 
 private:
-    void wait();
+    void wait(bool starting);
     void notify(bool stopping);
     bool try_pop(SharedNodePointer& node);
 

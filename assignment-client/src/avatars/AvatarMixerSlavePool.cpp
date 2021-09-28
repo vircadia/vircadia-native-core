@@ -18,6 +18,7 @@ void AvatarMixerWorkerThread::run() {
     assert(_data.numStarted < _data.numThreads);
     _data.numStarted++;
 
+    bool starting = true;
     while (true) {
         bool stopping = _stop;
         notify(stopping);
@@ -25,7 +26,8 @@ void AvatarMixerWorkerThread::run() {
             return;
         }
 
-        wait();
+        wait(starting);
+        starting = false;
         assert(_function);
 
         if (_function) {
@@ -38,19 +40,19 @@ void AvatarMixerWorkerThread::run() {
     }
 }
 
-void AvatarMixerWorkerThread::wait() {
+void AvatarMixerWorkerThread::wait(bool starting) {
     assert(_data.numStarted <= _data.numThreads);
 
     {
         Lock workerLock(_data.workerMutex);
-        if (_data.numStarted == _data.numThreads) {
+        if (starting || _data.numStarted == _data.numThreads) {
             _data.workerCondition.wait(workerLock, [&] {
                 assert(_data.numStarted <= _data.numThreads);
                 return _data.numStarted != _data.numThreads;
             });
         }
+        _data.numStarted++;
     }
-    _data.numStarted++;
 
     if (_data.configure) {
         _data.configure(*this);
@@ -237,4 +239,5 @@ void AvatarMixerSlavePool::resize(int numThreads) {
 
     _data.numThreads = _data.numStarted = _data.numFinished = numThreads;
     assert(_data.numThreads == (int)_workers.size());
+    qDebug("%s: completed", __FUNCTION__);
 }
