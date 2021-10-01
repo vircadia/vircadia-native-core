@@ -18,12 +18,20 @@ declare module "@vue/runtime-core" {
 
 Log.info(Log.types.OTHER, "Bootstrapping Axios.");
 
-// This is a necessary header to be passed to the Metaverse server in order for
-// it to fail with an HTTP error code instead of succeeding and returning
-// the error in JSON only.
-axios.defaults.headers.common = {
-    "x-vircadia-error-handle": "badrequest"
-};
+// TODO: This needs to be centralized and not hardcoded.
+const METAVERSE_URL = "https://metaverse.vircadia.com/live";
+axios.interceptors.request.use((config) => {
+    // This is a necessary header to be passed to the Metaverse server in order for
+    // it to fail with an HTTP error code instead of succeeding and returning
+    // the error in JSON only.
+    if (config.url?.includes(METAVERSE_URL)) {
+        config.headers["x-vircadia-error-handle"] = "badrequest";
+    }
+    console.info("config", config);
+    return config;
+}, (error) => {
+    return Promise.reject(error);
+});
 
 // Be careful when using SSR for cross-request state pollution
 // due to creating a Singleton instance here;
