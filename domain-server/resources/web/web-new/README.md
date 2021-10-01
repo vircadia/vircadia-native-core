@@ -2,22 +2,29 @@
 
 The Domain dashboard for Vircadia virtual worlds.
 
-## Install the dependencies
+## Maintainer Instructions
+
+If you have made changes to the dashboard, you must build it and commit those built files. It is also necessary to build it if you wish to have your changes reflected in a packaged Domain server.
+
+## Install the Dependencies
 ```bash
 npm install
 ```
 
-### Start the app in development mode (hot-code reloading, error reporting, etc.)
+### Start the Dashboard in Development Mode (hot-code reloading, error reporting, etc.)
 ```bash
 quasar dev
 ```
 
-### Lint the files
+### Lint the Files
 ```bash
 npm run lint
 ```
 
-### Build the app for production
+## Build the Dashboard
+
+This automatically places the compiled dashboard into the right directory (`/dist/spa`) to be used by the Domain server after it is packaged.
+
 ```bash
 quasar build
 ```
