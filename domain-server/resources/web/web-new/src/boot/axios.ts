@@ -18,6 +18,9 @@ declare module "@vue/runtime-core" {
 
 Log.info(Log.types.OTHER, "Bootstrapping Axios.");
 
+// This is a necessary header to be passed to the Metaverse server in order for
+// it to fail with an HTTP error code instead of succeeding and returning
+// the error in JSON only.
 axios.defaults.headers.common = {
     "x-vircadia-error-handle": "badrequest"
 };

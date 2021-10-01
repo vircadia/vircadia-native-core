@@ -633,58 +633,6 @@
                                 </q-card-actions>
                             </q-card>
                         </q-step>
-
-                        <!-- <q-step
-                            :name="8"
-                            title="Starter Content"
-                            caption=""
-                            :done="mainWizardStep > 8"
-                        >
-                            <q-card
-                                class="wizardCard"
-                            >
-                                <q-card-section>
-                                    <div class="text-h6 text-weight-light text-center">Would you like a starter island in your Domain?</div>
-
-                                    <q-img
-                                        src="../../assets/hq1.jpg"
-                                        style="max-width: 400px; height: 200px;"
-                                        fit="cover"
-                                    ></q-img>
-                                </q-card-section>
-
-                                <q-card-section>
-                                    <q-toggle
-                                        v-model="starterContentToggle"
-                                        checked-icon="check"
-                                        color="red"
-                                        label="Starter Content"
-                                        unchecked-icon="clear"
-                                    />
-                                </q-card-section>
-
-                                <q-card-actions vertical align="right">
-                                    <q-btn
-                                        @click="$refs.stepper.next()"
-                                        class="q-mb-md"
-                                        size="md"
-                                        outline
-                                        text-color="white"
-                                        icon-right="chevron_right"
-                                    >
-                                        Next
-                                    </q-btn>
-                                    <q-btn
-                                        @click="$refs.stepper.previous()"
-                                        size="sm"
-                                        flat
-                                        icon="chevron_left"
-                                    >
-                                        Back
-                                    </q-btn>
-                                </q-card-actions>
-                            </q-card>
-                        </q-step> -->
                     </q-stepper>
                 </transition>
             </div>
