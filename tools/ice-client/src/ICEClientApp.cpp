@@ -15,6 +15,7 @@
 #include <QDataStream>
 #include <QLoggingCategory>
 #include <QCommandLineParser>
+#include <QtCore/QSharedPointer>
 
 #include <PathUtils.h>
 #include <LimitedNodeList.h>

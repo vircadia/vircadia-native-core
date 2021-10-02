@@ -9,6 +9,7 @@
 #include "CursorManager.h"
 
 #include <QCursor>
+#include <QtCore/QSharedPointer>
 #include <QWidget>
 #include <QUrl>
 

@@ -11,7 +11,6 @@
 #ifndef hifi_LoginStateManager_h
 #define hifi_LoginStateManager_h
 #include <QtCore/QList>
-#include <QtCore/QSharedPointer>
 #include <QtCore/QVariant>
 
 #include <PointerEvent.h>

@@ -19,6 +19,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QMutex>
 #include <QtCore/QReadWriteLock>
+#include <QtCore/QUrl>
 
 #include <SettingHandle.h>
 #include <DependencyManager.h>

@@ -15,6 +15,8 @@
 #ifndef hifi_MessagesMixer_h
 #define hifi_MessagesMixer_h
 
+#include <QtCore/QSharedPointer>
+
 #include <ThreadedAssignment.h>
 
 /// Handles assignments of type MessagesMixer - distribution of avatar data to various clients

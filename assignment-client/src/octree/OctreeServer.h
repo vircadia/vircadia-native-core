@@ -17,6 +17,7 @@
 #include <QStringList>
 #include <QDateTime>
 #include <QtCore/QCoreApplication>
+#include <QtCore/QSharedPointer>
 
 #include <HTTPManager.h>
 

@@ -20,6 +20,7 @@
 
 #include <QtCore/QObject>
 #include <QtNetwork/QNetworkReply>
+#include <QtCore/QSharedPointer>
 
 #include <DomainHandler.h>
 

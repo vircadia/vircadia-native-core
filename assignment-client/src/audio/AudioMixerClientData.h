@@ -20,6 +20,7 @@
 #endif
 
 #include <QtCore/QJsonObject>
+#include <QtCore/QSharedPointer>
 
 #include <AABox.h>
 #include <AudioHRTF.h>

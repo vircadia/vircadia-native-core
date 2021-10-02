@@ -14,7 +14,6 @@
 
 #include <QtCore/QMutex>
 #include <QtCore/QObject>
-#include <QtCore/QSharedPointer>
 
 #include "NetworkPeer.h"
 #include "NLPacket.h"

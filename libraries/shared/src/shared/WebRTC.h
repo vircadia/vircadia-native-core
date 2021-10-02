@@ -34,10 +34,16 @@
 // #  define WEBRTC_AUDIO 1
 // #  define WEBRTC_POSIX 1
 // #  define WEBRTC_LEGACY 1
-#elif defined(Q_OS_LINUX)
+#elif defined(Q_OS_LINUX) && defined(Q_PROCESSOR_X86_64)
 #  define WEBRTC_AUDIO 1
 #  define WEBRTC_POSIX 1
 #  define WEBRTC_LEGACY 1
+#elif defined(Q_OS_LINUX) && defined(Q_PROCESSOR_ARM)
+// WebRTC is basically impossible to build on aarch64 Linux.
+// I am looking at https://gitlab.freedesktop.org/pulseaudio/webrtc-audio-processing for an alternative.
+// #  define WEBRTC_AUDIO 1
+// #  define WEBRTC_POSIX 1
+// #  define WEBRTC_LEGACY 1
 #endif
 
 #endif // hifi_WebRTC_h

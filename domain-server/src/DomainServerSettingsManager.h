@@ -17,6 +17,7 @@
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonDocument>
 #include <QtNetwork/QNetworkReply>
+#include <QtCore/QSharedPointer>
 
 #include <HifiConfigVariantMap.h>
 #include <HTTPManager.h>

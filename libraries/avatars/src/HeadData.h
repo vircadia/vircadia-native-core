@@ -128,9 +128,7 @@ protected:
     AvatarData* _owningAvatar;
 
 private:
-    // privatize copy ctor and assignment operator so copies of this object cannot be made
-    HeadData(const HeadData&);
-    HeadData& operator= (const HeadData&);
+    Q_DISABLE_COPY(HeadData)
 
     void setHeadOrientation(const glm::quat& orientation);
 };

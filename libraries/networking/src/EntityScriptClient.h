@@ -12,6 +12,8 @@
 #ifndef hifi_EntityScriptClient_h
 #define hifi_EntityScriptClient_h
 
+#include <QtCore/QSharedPointer>
+
 #include "ClientServerUtils.h"
 #include "LimitedNodeList.h"
 #include "ReceivedMessage.h"

@@ -12,6 +12,8 @@
 #ifndef hifi_SoundCache_h
 #define hifi_SoundCache_h
 
+#include <QtCore/QSharedPointer>
+
 #include <ResourceCache.h>
 
 #include "Sound.h"

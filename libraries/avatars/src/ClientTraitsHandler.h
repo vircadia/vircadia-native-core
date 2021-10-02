@@ -12,6 +12,8 @@
 #ifndef hifi_ClientTraitsHandler_h
 #define hifi_ClientTraitsHandler_h
 
+#include <QtCore/QSharedPointer>
+
 #include <ReceivedMessage.h>
 
 #include "AssociatedTraitValues.h"
