@@ -17,7 +17,7 @@ WebRTC Information:
 
 ## Windows - M84
 
-WebRTC's M84 release is currently used because it corresponded to Microsoft's latest WinRTC release at the time of develeopment,
+WebRTC's M84 release is currently used because it corresponded to Microsoft's latest WinRTC release at the time of development,
 and WinRTC is a source of potentially useful patches.
 
 The following notes document how the M84-based Windows VCPKG was created, using Visual Studio 2019.
