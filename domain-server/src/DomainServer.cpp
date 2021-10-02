@@ -86,7 +86,7 @@ bool DomainServer::_getTempName { false };
 QString DomainServer::_userConfigFilename;
 int DomainServer::_parentPID { -1 };
 
-/// @brief Route a request to the Metaverse server.
+/// @brief The Domain server can proxy requests to the Metaverse server, this function handles those forwarding requests.
 /// @param connection The HTTP connection object.
 /// @param requestUrl The full URL of the request. e.g. https://google.com/api/v1/test
 /// @param metaversePath The path on the Metaverse server to route to.
