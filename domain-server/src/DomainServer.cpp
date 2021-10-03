@@ -90,9 +90,9 @@ int DomainServer::_parentPID { -1 };
 /// @param connection The HTTP connection object.
 /// @param requestUrl The full URL of the request. e.g. https://google.com/api/v1/test
 /// @param metaversePath The path on the Metaverse server to route to.
-/// @param requestSubobjectKey The parent object key that any data will be inserted into for the forwarded request.
-/// @param requiredData The data that is required to be forwarded with this request.
-/// @param optionalData Optional data that will be forwarded with this request if provided.
+/// @param requestSubobjectKey (Optional) The parent object key that any data will be inserted into for the forwarded request.
+/// @param requiredData (Optional) This data is required to be present for the request.
+/// @param optionalData (Optional) If provided, this optional data will be forwarded with the request.
 /// @param requireAccessToken Require a valid access token to be sent with this request.
 bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
                                               const QUrl& requestUrl,
@@ -2325,12 +2325,12 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
             return true;
         } else if (url.path() == URI_API_DOMAINS) {
-            return forwardMetaverseAPIRequest(connection, url, "/api/v1/domains", "");
+            return forwardMetaverseAPIRequest(connection, url, "/api/v1/domains");
         } else if (url.path().startsWith(URI_API_DOMAINS_ID)) {
             auto id = url.path().mid(URI_API_DOMAINS_ID.length());
             return forwardMetaverseAPIRequest(connection, url, "/api/v1/domains/" + id, "", {}, {}, false);
         } else if (url.path() == URI_API_PLACES) {
-            return forwardMetaverseAPIRequest(connection, url, "/api/v1/user/places", "");
+            return forwardMetaverseAPIRequest(connection, url, "/api/v1/user/places");
         } else {
             // check if this is for json stats for a node
             const QString NODE_JSON_REGEX_STRING = QString("\\%1\\/(%2).json\\/?$").arg(URI_NODES).arg(UUID_REGEX_STRING);
