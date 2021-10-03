@@ -36,9 +36,9 @@ jobs:
           include:
             - os: windows-latest
               build_type: full
-            - os: macOS-latest
+            - os: macOS-10.15
               build_type: full
-            - os: macOS-latest
+            - os: macOS-10.15
               build_type: client
             - os: ubuntu-18.04
               build_type: full
