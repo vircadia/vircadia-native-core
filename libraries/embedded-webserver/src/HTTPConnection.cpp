@@ -176,7 +176,7 @@ QList<FormData> HTTPConnection::parseFormData() const {
             break;
         }
     }
-    
+
     QByteArray start = "--" + boundary;
     QByteArray end = "\r\n--" + boundary + "--\r\n";
 
@@ -394,6 +394,6 @@ void HTTPConnection::readContent() {
     if (_requestContent->bytesLeftToWrite() == 0) {
         _socket->disconnect(this, SLOT(readContent()));
 
-        _parentManager->handleHTTPRequest(this, _requestUrl.path());
+        _parentManager->handleHTTPRequest(this, _requestUrl);
     }
 }
