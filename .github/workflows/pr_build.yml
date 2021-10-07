@@ -81,7 +81,7 @@ jobs:
           fi
         fi
         # Mac build variables
-        if [ "${{ matrix.os }}" = "macOS-latest" ]; then
+        if [ "${{ matrix.os }}" = "macOS-10.15" ]; then
           echo "PYTHON_EXEC=python3" >> $GITHUB_ENV
           echo "INSTALLER_EXT=dmg" >> $GITHUB_ENV
           if [ "${{ matrix.build_type }}" = "full" ]; then
