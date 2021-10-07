@@ -80,9 +80,10 @@ public:
     /// @brief Gets the number of bytes waiting to be written.
     /// @details For UDP, there's a single buffer used for all destinations. For WebRTC, each destination has its own buffer.
     /// @param socketType The type of socket for which to get the number of bytes waiting to be written.
-    /// @param port If a WebRTC socket, the data channel for which to get the number of bytes waiting.
+    /// @param address If a WebRTCSocket, the destination address for which to get the number of bytes waiting.
+    /// @param port If a WebRTC socket, the destination port for which to get the number of bytes waiting.
     /// @return The number of bytes waiting to be written.
-    qint64 bytesToWrite(SocketType socketType, quint16 port = 0) const;
+    qint64 bytesToWrite(SocketType socketType, const SockAddr& address = SockAddr()) const;
 
 
     /// @brief Gets whether there is a pending datagram waiting to be read.

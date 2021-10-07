@@ -131,12 +131,12 @@ void WDCDataChannelObserver::OnMessage(const DataBuffer& buffer) {
 }
 
 
-WDCConnection::WDCConnection(WebRTCDataChannels* parent, quint16 webSocketID) :
+WDCConnection::WDCConnection(WebRTCDataChannels* parent, const QString& dataChannelID) :
     _parent(parent),
-    _webSocketID(webSocketID)
+    _dataChannelID(dataChannelID)
 {
 #ifdef WEBRTC_DEBUG
-    qCDebug(networking_webrtc) << "WDCConnection::WDCConnection() :" << webSocketID;
+    qCDebug(networking_webrtc) << "WDCConnection::WDCConnection() :" << dataChannelID;
 #endif
 
     // Create observers.
@@ -196,7 +196,7 @@ void WDCConnection::sendAnswer(SessionDescriptionInterface* description) {
 
     QJsonObject jsonObject;
     jsonObject.insert("from", QString(_parent->getNodeType()));
-    jsonObject.insert("to", _webSocketID);
+    jsonObject.insert("to", _dataChannelID);
     jsonObject.insert("data", jsonWebRTCPayload);
 
     _parent->sendSignalingMessage(jsonObject);
@@ -250,7 +250,7 @@ void WDCConnection::sendIceCandidate(const IceCandidateInterface* candidate) {
 
     QJsonObject jsonObject;
     jsonObject.insert("from", QString(_parent->getNodeType()));
-    jsonObject.insert("to", _webSocketID);
+    jsonObject.insert("to", _dataChannelID);
     jsonObject.insert("data", jsonWebRTCData);
     QJsonDocument jsonDocument = QJsonDocument(jsonObject);
 
@@ -288,7 +288,6 @@ void WDCConnection::onDataChannelOpened(rtc::scoped_refptr<DataChannelInterface>
 #endif
 
     _dataChannel = dataChannel;
-    _dataChannelID = _parent->getNewDataChannelID();  // Not dataChannel->id() because it's only unique per peer connection.
     _dataChannel->RegisterObserver(_dataChannelObserver.get());
 
 #ifdef WEBRTC_DEBUG
@@ -328,7 +327,13 @@ void WDCConnection::onDataChannelMessageReceived(const DataBuffer& buffer) {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "Echo message back";
 #endif
-        _parent->sendDataMessage(_dataChannelID, byteArray);  // Use parent method to exercise the code stack.
+        auto addressParts = _dataChannelID.split(":");
+        if (addressParts.length() != 2) {
+            qCWarning(networking_webrtc) << "Invalid dataChannelID:" << _dataChannelID;
+            return;
+        }
+        auto address = SockAddr(SocketType::WebRTC, QHostAddress(addressParts[0]), addressParts[1].toInt());
+        _parent->sendDataMessage(address, byteArray);  // Use parent method to exercise the code stack.
         return;
     }
 
@@ -420,26 +425,19 @@ WebRTCDataChannels::~WebRTCDataChannels() {
 }
 
 void WebRTCDataChannels::reset() {
-    QHashIterator<quint16, WDCConnection*> i(_connectionsByDataChannel);
+    QHashIterator<QString, WDCConnection*> i(_connectionsByID);
     while (i.hasNext()) {
         i.next();
         delete i.value();
     }
-    _connectionsByWebSocket.clear();
-    _connectionsByDataChannel.clear();
+    _connectionsByID.clear();
 }
 
-quint16 WebRTCDataChannels::getNewDataChannelID() {
-    static const int QUINT16_LIMIT = std::numeric_limits<uint16_t>::max() + 1;
-    _lastDataChannelID = std::max((_lastDataChannelID + 1) % QUINT16_LIMIT, 1);
-    return _lastDataChannelID;
-}
-
-void WebRTCDataChannels::onDataChannelOpened(WDCConnection* connection, quint16 dataChannelID) {
+void WebRTCDataChannels::onDataChannelOpened(WDCConnection* connection, const QString& dataChannelID) {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WebRTCDataChannels::onDataChannelOpened() :" << dataChannelID;
 #endif
-    _connectionsByDataChannel.insert(dataChannelID, connection);
+    _connectionsByID.insert(dataChannelID, connection);
 }
 
 void WebRTCDataChannels::onSignalingMessage(const QJsonObject& message) {
@@ -449,13 +447,13 @@ void WebRTCDataChannels::onSignalingMessage(const QJsonObject& message) {
 
     // Validate message.
     const int MAX_DEBUG_DETAIL_LENGTH = 64;
+    const QRegularExpression DATA_CHANNEL_ID_REGEX{ "^[1-9]\\d*\\.\\d+\\.\\d+\\.\\d+:\\d+$" };
     auto data = message.value("data").isObject() ? message.value("data").toObject() : QJsonObject();
-    int from = message.value("from").isDouble() ? (quint16)(message.value("from").toInt()) : 0;
+    auto from = message.value("from").toString();
     auto to = NodeType::fromChar(message.value("to").toString().at(0));
-
-    if (from <= 0 || from > MAXUINT16 || to == NodeType::Unassigned
+    if (!DATA_CHANNEL_ID_REGEX.match(from).hasMatch() || to == NodeType::Unassigned 
             || !data.contains("description") && !data.contains("candidate")) {
-        qCWarning(networking_webrtc) << "Unexpected signaling message:"
+        qCWarning(networking_webrtc) << "Invalid or unexpected signaling message:"
             << QJsonDocument(message).toJson(QJsonDocument::Compact).left(MAX_DEBUG_DETAIL_LENGTH);
         return;
     }
@@ -465,11 +463,11 @@ void WebRTCDataChannels::onSignalingMessage(const QJsonObject& message) {
 
     // Find or create a connection.
     WDCConnection* connection;
-    if (_connectionsByWebSocket.contains(from)) {
-        connection = _connectionsByWebSocket.value(from);
+    if (_connectionsByID.contains(from)) {
+        connection = _connectionsByID.value(from);
     } else {
         connection = new WDCConnection(this, from);
-        _connectionsByWebSocket.insert(from, connection);
+        _connectionsByID.insert(from, connection);
     }
 
     // Set the remote description and reply with an answer.
@@ -498,35 +496,45 @@ void WebRTCDataChannels::sendSignalingMessage(const QJsonObject& message) {
     emit signalingMessage(message);
 }
 
-void WebRTCDataChannels::emitDataMessage(int dataChannelID, const QByteArray& byteArray) {
+void WebRTCDataChannels::emitDataMessage(const QString& dataChannelID, const QByteArray& byteArray) {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WebRTCDataChannels::emitDataMessage() :" << dataChannelID << byteArray.toHex()
         << byteArray.length();
 #endif
-    emit dataMessage(dataChannelID, byteArray);
+    auto addressParts = dataChannelID.split(":");
+    if (addressParts.length() != 2) {
+        qCWarning(networking_webrtc) << "Invalid dataChannelID:" << dataChannelID;
+        return;
+    }
+    auto address = SockAddr(SocketType::WebRTC, QHostAddress(addressParts[0]), addressParts[1].toInt());
+    emit dataMessage(address, byteArray);
 }
 
-bool WebRTCDataChannels::sendDataMessage(int dataChannelID, const QByteArray& byteArray) {
+bool WebRTCDataChannels::sendDataMessage(const SockAddr& destination, const QByteArray& byteArray) {
+    auto dataChannelID = destination.toShortString();
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WebRTCDataChannels::sendDataMessage() :" << dataChannelID;
 #endif
 
-    // Find connection.
-    if (!_connectionsByDataChannel.contains(dataChannelID)) {
-        qCWarning(networking_webrtc) << "Could not find data channel to send message on!";
+    if (!_connectionsByID.contains(dataChannelID)) {
+        qCWarning(networking_webrtc) << "Could not find WebRTC data channel to send message on!";
         return false;
     }
 
-    auto connection = _connectionsByDataChannel.value(dataChannelID);
+    auto connection = _connectionsByID.value(dataChannelID);
     DataBuffer buffer(byteArray.toStdString(), true);
     return connection->sendDataMessage(buffer);
 }
 
-/// @brief Gets the number of bytes waiting to be written on a data channel.
-/// @param port The data channel ID.
-/// @return The number of bytes waiting to be written on the data channel.
-qint64 WebRTCDataChannels::getBufferedAmount(int dataChannelID) const {
-    auto connection = _connectionsByDataChannel.value(dataChannelID);
+qint64 WebRTCDataChannels::getBufferedAmount(const SockAddr& address) const {
+    auto dataChannelID = address.toShortString();
+    if (!_connectionsByID.contains(dataChannelID)) {
+#ifdef WEBRTC_DEBUG
+        qCDebug(networking_webrtc) << "WebRTCDataChannels::getBufferedAmount() : Channel doesn't exist:" << dataChannelID;
+#endif
+        return 0;
+    }
+    auto connection = _connectionsByID.value(dataChannelID);
     return connection->getBufferedAmount();
 }
 
@@ -573,10 +581,9 @@ void WebRTCDataChannels::closePeerConnectionNow(WDCConnection* connection) {
 
     // Delete the WDCConnection.
 #ifdef WEBRTC_DEBUG
-    qCDebug(networking_webrtc) << "Dispose of connection for channel ID:" << connection->getDataChannelID();
+    qCDebug(networking_webrtc) << "Dispose of connection for channel:" << connection->getDataChannelID();
 #endif
-    _connectionsByWebSocket.remove(connection->getWebSocketID());
-    _connectionsByDataChannel.remove(connection->getDataChannelID());
+    _connectionsByID.remove(connection->getDataChannelID());
     delete connection;
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "Disposed of connection";

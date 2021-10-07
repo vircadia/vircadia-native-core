@@ -78,17 +78,17 @@ void WebRTCSocket::abort() {
 }
 
 
-qint64 WebRTCSocket::writeDatagram(const QByteArray& datagram, quint16 port) {
+qint64 WebRTCSocket::writeDatagram(const QByteArray& datagram, const SockAddr& destination) {
     clearError();
-    if (_dataChannels.sendDataMessage(port, datagram)) {
+    if (_dataChannels.sendDataMessage(destination, datagram)) {
         return datagram.length();
     }
     setError(QAbstractSocket::SocketError::UnknownSocketError, "Failed to write datagram");
     return -1;
 }
 
-qint64 WebRTCSocket::bytesToWrite(quint16 port) const {
-    return _dataChannels.getBufferedAmount(port);
+qint64 WebRTCSocket::bytesToWrite(const SockAddr& destination) const {
+    return _dataChannels.getBufferedAmount(destination);
 }
 
 
@@ -114,12 +114,11 @@ qint64 WebRTCSocket::readDatagram(char* data, qint64 maxSize, QHostAddress* addr
         }
 
         if (address) {
-            // WEBRTC TODO: Use signaling channel's remote WebSocket address? Or remote data channel address?
-            *address = QHostAddress::AnyIPv4;
+            *address = datagram.first.getAddress();
         }
 
         if (port) {
-            *port = datagram.first;
+            *port = datagram.first.getPort();
         }
 
         return length;
@@ -148,8 +147,8 @@ void WebRTCSocket::clearError() {
 }
 
 
-void WebRTCSocket::onDataChannelReceivedMessage(int dataChannelID, const QByteArray& message) {
-    _receivedQueue.enqueue(QPair<int, QByteArray>(dataChannelID, message));
+void WebRTCSocket::onDataChannelReceivedMessage(const SockAddr& source, const QByteArray& message) {
+    _receivedQueue.enqueue(QPair<SockAddr, QByteArray>(source, message));
     emit readyRead();
 }
 

@@ -62,7 +62,8 @@ void WebRTCSignalingServer::webSocketTextMessageReceived(const QString& message)
             source->sendTextMessage(echo);
         } else {
             // WebRTC message or assignment client echo request. (Send both to target.)
-            json.insert("from", source->peerPort());
+            auto from = source->peerAddress().toString() + ":" + QString::number(source->peerPort());
+            json.insert("from", from);
             emit messageReceived(json);
         }
     } else {
@@ -71,9 +72,9 @@ void WebRTCSignalingServer::webSocketTextMessageReceived(const QString& message)
 }
 
 void WebRTCSignalingServer::sendMessage(const QJsonObject& message) {
-    quint16 destinationPort = message.value("to").toInt();
-    if (_webSockets.contains(destinationPort)) {
-        _webSockets.value(destinationPort)->sendTextMessage(QString(QJsonDocument(message).toJson()));
+    auto destinationAddress = message.value("to").toString();
+    if (_webSockets.contains(destinationAddress)) {
+        _webSockets.value(destinationAddress)->sendTextMessage(QString(QJsonDocument(message).toJson()));
     } else {
         qCWarning(networking_webrtc) << "Failed to find WebSocket for outgoing WebRTC signaling message.";
     }
@@ -82,7 +83,9 @@ void WebRTCSignalingServer::sendMessage(const QJsonObject& message) {
 void WebRTCSignalingServer::webSocketDisconnected() {
     auto source = qobject_cast<QWebSocket*>(sender());
     if (source) {
-        _webSockets.remove(source->peerPort());
+        auto address = source->peerAddress().toString() + ":" + QString::number(source->peerPort());
+        delete _webSockets.value(address);
+        _webSockets.remove(address);
     }
 }
 
@@ -90,7 +93,8 @@ void WebRTCSignalingServer::newWebSocketConnection() {
     auto webSocket = _webSocketServer->nextPendingConnection();
     connect(webSocket, &QWebSocket::textMessageReceived, this, &WebRTCSignalingServer::webSocketTextMessageReceived);
     connect(webSocket, &QWebSocket::disconnected, this, &WebRTCSignalingServer::webSocketDisconnected);
-    _webSockets.insert(webSocket->peerPort(), webSocket);
+    auto webSocketAddress = webSocket->peerAddress().toString() + ":" + QString::number(webSocket->peerPort());
+    _webSockets.insert(webSocketAddress, webSocket);
 }
 
 #endif // WEBRTC_DATA_CHANNELS

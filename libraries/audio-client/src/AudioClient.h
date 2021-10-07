@@ -217,7 +217,7 @@ public slots:
     void audioMixerKilled();
 
     void setMuted(bool muted, bool emitSignal = true);
-    bool isMuted() { return _muted; }
+    bool isMuted() { return _isMuted; }
 
     virtual bool setIsStereoInput(bool stereo) override;
     virtual bool isStereoInput() override { return _isStereoInput; }
@@ -410,7 +410,7 @@ private:
     float _timeSinceLastClip{ -1.0f };
     int _totalInputAudioSamples;
 
-    bool _muted{ false };
+    bool _isMuted{ false };
     bool _shouldEchoLocally{ false };
     bool _shouldEchoToServer{ false };
     bool _isNoiseGateEnabled{ true };

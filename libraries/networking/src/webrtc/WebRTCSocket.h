@@ -24,6 +24,10 @@
 
 
 /// @brief Provides a QUdpSocket-style interface for using WebRTCDataChannels.
+///
+/// @details A WebRTC data channel is identified by the IP address and port of the client WebSocket that was used when opening
+/// the data channel - this is considered to be the WebRTC data channel's address. The IP address and port of the actual WebRTC
+/// connection is not used.
 class WebRTCSocket : public QObject {
     Q_OBJECT
 
@@ -71,28 +75,26 @@ public:
     void abort();
 
     /// @brief Nominally gets the host port number.
-    /// @details 
     /// Included for compatibility with the QUdpSocket interface.
     /// @return <code>0</code> 
     quint16 localPort() const { return 0; }
 
     /// @brief Nominally gets the socket descriptor.
-    /// @details 
     /// Included for compatibility with the QUdpSocket interface.
     /// @return <code>-1</code>
     qintptr socketDescriptor() const { return -1; }
 
 
-    /// @brief Sends a datagram to the host on a data channel.
+    /// @brief Sends a datagram.
     /// @param datagram The datagram to send.
-    /// @param port The data channel ID.
+    /// @param destination The destination WebRTC data channel address.
     /// @return The number of bytes if successfully sent, otherwise <code>-1</code>.
-    qint64 writeDatagram(const QByteArray& datagram, quint16 port);
+    qint64 writeDatagram(const QByteArray& datagram, const SockAddr& destination);
 
     /// @brief Gets the number of bytes waiting to be written.
-    /// @param port The data channel ID.
+    /// @param destination The destination WebRTC data channel address.
     /// @return The number of bytes waiting to be written.
-    qint64 bytesToWrite(quint16 port) const;
+    qint64 bytesToWrite(const SockAddr& destination) const;
 
     /// @brief Gets whether there's a datagram waiting to be read.
     /// @return <code>true</code> if there's a datagram waiting to be read, <code>false</code> if there isn't.
@@ -106,8 +108,8 @@ public:
     /// @details Any remaining data in the datagram is lost.
     /// @param data The destination to read the datagram into.
     /// @param maxSize The maximum number of bytes to read.
-    /// @param address The destination to put the IP address that the datagram was read from. (Not currently set.)
-    /// @param port The destination to put the data channel ID that the datagram was read from.
+    /// @param address The destination to put the WebRTC data channel's IP address.
+    /// @param port The destination to put the WebRTC data channel's port.
     /// @return The number of bytes read on success; <code>-1</code> if reading unsuccessful.
     qint64 readDatagram(char* data, qint64 maxSize, QHostAddress* address = nullptr, quint16* port = nullptr);
 
@@ -124,9 +126,9 @@ public slots:
 
     /// @brief Handles the WebRTC data channel receiving a message.
     /// @details Queues the message to be read via readDatagram.
-    /// @param dataChannelID The data channel that the message was received on.
+    /// @param source The WebRTC data channel that the message was received on.
     /// @param message The message that was received.
-    void onDataChannelReceivedMessage(int dataChannelID, const QByteArray& message);
+    void onDataChannelReceivedMessage(const SockAddr& source, const QByteArray& message);
 
 signals:
 
@@ -155,7 +157,7 @@ private:
 
     bool _isBound { false };
 
-    QQueue<QPair<int, QByteArray>> _receivedQueue;  // Messages received are queued for reading from the "socket".
+    QQueue<QPair<SockAddr, QByteArray>> _receivedQueue;  // Messages received are queued for reading from the "socket".
 
     QAbstractSocket::SocketError _lastErrorType { QAbstractSocket::UnknownSocketError };
     QString _lastErrorString;

@@ -126,14 +126,14 @@ qintptr NetworkSocket::socketDescriptor(SocketType socketType) const {
 
 
 qint64 NetworkSocket::writeDatagram(const QByteArray& datagram, const SockAddr& sockAddr) {
-    switch (sockAddr.getSocketType()) {
+    switch (sockAddr.getType()) {
     case SocketType::UDP:
         // WEBRTC TODO: The Qt documentation says that the following call shouldn't be used if the UDP socket is connected!!!
         // https://doc.qt.io/qt-5/qudpsocket.html#writeDatagram
         return _udpSocket.writeDatagram(datagram, sockAddr.getAddress(), sockAddr.getPort());
 #if defined(WEBRTC_DATA_CHANNELS)
     case SocketType::WebRTC:
-        return _webrtcSocket.writeDatagram(datagram, sockAddr.getPort());
+        return _webrtcSocket.writeDatagram(datagram, sockAddr);
 #endif
     default:
         qCCritical(networking) << "Socket type not specified in writeDatagram() address";
@@ -141,13 +141,13 @@ qint64 NetworkSocket::writeDatagram(const QByteArray& datagram, const SockAddr& 
     }
 }
 
-qint64 NetworkSocket::bytesToWrite(SocketType socketType, quint16 port) const {
+qint64 NetworkSocket::bytesToWrite(SocketType socketType, const SockAddr& address) const {
     switch (socketType) {
     case SocketType::UDP:
         return _udpSocket.bytesToWrite();
 #if defined(WEBRTC_DATA_CHANNELS)
     case SocketType::WebRTC:
-        return _webrtcSocket.bytesToWrite(port);
+        return _webrtcSocket.bytesToWrite(address);
 #endif
     default:
         qCCritical(networking) << "Socket type not specified in bytesToWrite()";
@@ -197,7 +197,7 @@ qint64 NetworkSocket::readDatagram(char* data, qint64 maxSize, SockAddr* sockAdd
         _lastSocketTypeRead = SocketType::UDP;
         _pendingDatagramSizeSocketType = SocketType::Unknown;
         if (sockAddr) {
-            sockAddr->setSocketType(SocketType::UDP);
+            sockAddr->setType(SocketType::UDP);
             return _udpSocket.readDatagram(data, maxSize, sockAddr->getAddressPointer(), sockAddr->getPortPointer());
         } else {
             return _udpSocket.readDatagram(data, maxSize);
@@ -206,7 +206,7 @@ qint64 NetworkSocket::readDatagram(char* data, qint64 maxSize, SockAddr* sockAdd
         _lastSocketTypeRead = SocketType::WebRTC;
         _pendingDatagramSizeSocketType = SocketType::Unknown;
         if (sockAddr) {
-            sockAddr->setSocketType(SocketType::WebRTC);
+            sockAddr->setType(SocketType::WebRTC);
             return _webrtcSocket.readDatagram(data, maxSize, sockAddr->getAddressPointer(), sockAddr->getPortPointer());
         } else {
             return _webrtcSocket.readDatagram(data, maxSize);
@@ -214,7 +214,7 @@ qint64 NetworkSocket::readDatagram(char* data, qint64 maxSize, SockAddr* sockAdd
     }
 #else
     if (sockAddr) {
-        sockAddr->setSocketType(SocketType::UDP);
+        sockAddr->setType(SocketType::UDP);
         return _udpSocket.readDatagram(data, maxSize, sockAddr->getAddressPointer(), sockAddr->getPortPointer());
     } else {
         return _udpSocket.readDatagram(data, maxSize);

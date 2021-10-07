@@ -116,6 +116,10 @@ QString SockAddr::toString() const {
     return socketTypeToString(_socketType) + " " + _address.toString() + ":" + QString::number(_port);
 }
 
+QString SockAddr::toShortString() const {
+    return _address.toString() + ":" + QString::number(_port);
+}
+
 bool SockAddr::hasPrivateAddress() const {
     // an address is private if it is loopback or falls in any of the RFC1918 address spaces
     const QPair<QHostAddress, int> TWENTY_FOUR_BIT_BLOCK = { QHostAddress("10.0.0.0"), 8 };
@@ -129,27 +133,22 @@ bool SockAddr::hasPrivateAddress() const {
 }
 
 QDebug operator<<(QDebug debug, const SockAddr& sockAddr) {
-    debug.nospace() << socketTypeToString(sockAddr._socketType).toLocal8Bit().constData() << " " 
+    debug.nospace() 
+        << (sockAddr._socketType != SocketType::Unknown 
+            ? (socketTypeToString(sockAddr._socketType) + " ").toLocal8Bit().constData() : "")
         << sockAddr._address.toString().toLocal8Bit().constData() << ":" << sockAddr._port;
     return debug.space();
 }
 
 QDataStream& operator<<(QDataStream& dataStream, const SockAddr& sockAddr) {
-    // Don't include socketType because it can be implied from the type of connection used.
-    // WEBRTC TODO: Reconsider this.
+    // Don't include socket type because ICE packets must not have it.
     dataStream << sockAddr._address << sockAddr._port;
     return dataStream;
 }
 
 QDataStream& operator>>(QDataStream& dataStream, SockAddr& sockAddr) {
-    // Don't include socketType because it can be implied from the type of connection used.
-    // WEBRTC TODO: Reconsider this.
+    // Don't include socket type because ICE packets must not have it.
     dataStream >> sockAddr._address >> sockAddr._port;
-
-    // Set default for non-WebRTC code.
-    // WEBRTC TODO: Reconsider this.
-    sockAddr.setSocketType(SocketType::UDP);
-
     return dataStream;
 }
 

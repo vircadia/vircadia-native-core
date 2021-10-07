@@ -61,7 +61,7 @@ int MixedProcessedAudioStream::lostAudioData(int numPackets) {
     return 0;
 }
 
-int MixedProcessedAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties) {
+int MixedProcessedAudioStream::parseAudioData(const QByteArray& packetAfterStreamProperties) {
     QByteArray decodedBuffer;
 
     // may block on the real-time thread, which is acceptible as 

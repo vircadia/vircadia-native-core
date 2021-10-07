@@ -22,6 +22,7 @@
 #define emit
 
 #include "../NodeType.h"
+#include "../SockAddr.h"
 
 class WebRTCDataChannels;
 class WDCConnection;
@@ -128,16 +129,12 @@ public:
 
     /// @brief Constructs a new WDCConnection and opens a WebRTC data connection.
     /// @param parent The parent WebRTCDataChannels object.
-    /// @param webSocketID The signaling channel that initiated the opening of the WebRTC data channel.
-    WDCConnection(WebRTCDataChannels* parent, quint16 webSocketID);
+    /// @param dataChannelID The data channel ID.
+    WDCConnection(WebRTCDataChannels* parent, const QString& dataChannelID);
 
-    /// @brief Gets the WebSocket ID.
-    /// @return The ID of the WebSocket.
-    quint16 getWebSocketID() const { return _webSocketID; }
-
-    /// @brief Gets the WebRTC data channel ID.
-    /// @return The WebRTC data channel ID. `-1` if not open yet.
-    int getDataChannelID() const { return _dataChannelID; }
+    /// @brief Gets the data channel ID.
+    /// @return The data channel ID.
+    QString getDataChannelID() const { return _dataChannelID; }
 
 
     /// @brief Sets the remote session description received from the remote client via the signaling channel.
@@ -159,7 +156,7 @@ public:
     /// @param data The ICE candidate.
     void addIceCandidate(QJsonObject& data);
 
-    /// @brief Sends an ICE candidate to the remote vlient via the signaling channel.
+    /// @brief Sends an ICE candidate to the remote client via the signaling channel.
     /// @param candidate The ICE candidate.
     void sendIceCandidate(const webrtc::IceCandidateInterface* candidate);
 
@@ -194,8 +191,7 @@ public:
     
 private:
     WebRTCDataChannels* _parent;
-    quint16 _webSocketID { 0 };
-    int _dataChannelID { -1 };
+    QString _dataChannelID;
 
     rtc::scoped_refptr<WDCSetSessionDescriptionObserver> _setSessionDescriptionObserver { nullptr };
     rtc::scoped_refptr<WDCCreateSessionDescriptionObserver> _createSessionDescriptionObserver { nullptr };
@@ -220,6 +216,9 @@ private:
 /// Additionally, for debugging purposes, instead of containing a Vircadia protocol payload, a WebRTC message may be an echo
 /// request. This is bounced back to the client.
 /// 
+/// A WebRTC data channel is identified by the IP address and port of the client WebSocket that was used when opening the data
+/// channel - this is considered to be the WebRTC data channel's address. The IP address and port of the actual WebRTC
+/// connection is not used.
 class WebRTCDataChannels : public QObject {
     Q_OBJECT
 
@@ -241,36 +240,30 @@ public:
     /// @brief Immediately closes all connections and resets the socket.
     void reset();
     
-    /// @brief Get a new data channel ID to uniquely identify a WDCConnection.
-    /// @details This ID is assigned by WebRTCDataChannels; it is <em>not</em> the WebRTC data channel ID because that is only
-    ///     unique within a peer connection.
-    /// @return A new data channel ID.
-    quint16 getNewDataChannelID();
-
     /// @brief Handles a WebRTC data channel opening.
     /// @param connection The WebRTC data channel connection.
-    /// @param dataChannelID The WebRTC data channel ID.
-    void onDataChannelOpened(WDCConnection* connection, quint16 dataChannelID);
+    /// @param dataChannelID The IP address and port of the signaling WebSocket that the client used to connect, `"n.n.n.n:n"`.
+    void onDataChannelOpened(WDCConnection* connection, const QString& dataChannelID);
 
     /// @brief Emits a signalingMessage to be sent to the Interface client.
     /// @param message The WebRTC signaling message to send.
     void sendSignalingMessage(const QJsonObject& message);
 
     /// @brief Emits a dataMessage received from the Interface client.
-    /// @param dataChannelID The WebRTC data channel the message was received on.
+    /// @param dataChannelID The IP address and port of the signaling WebSocket that the client used to connect, `"n.n.n.n:n"`.
     /// @param byteArray The data message received.
-    void emitDataMessage(int dataChannelID, const QByteArray& byteArray);
+    void emitDataMessage(const QString& dataChannelID, const QByteArray& byteArray);
 
     /// @brief Sends a data message to an Interface client.
-    /// @param dataChannelID The WebRTC channel ID of the Interface client.
+    /// @param dataChannelID The IP address and port of the signaling WebSocket that the client used to connect, `"n.n.n.n:n"`.
     /// @param message The data message to send.
     /// @return `true` if the data message was sent, otherwise `false`.
-    bool sendDataMessage(int dataChannelID, const QByteArray& message);
+    bool sendDataMessage(const SockAddr& destination, const QByteArray& message);
 
     /// @brief Gets the number of bytes waiting to be sent on a data channel.
-    /// @param dataChannelID The data channel ID.
+    /// @param address The address of the signaling WebSocket that the client used to connect.
     /// @return The number of bytes waiting to be sent on the data channel.
-    qint64 getBufferedAmount(int dataChannelID) const;
+    qint64 getBufferedAmount(const SockAddr& address) const;
 
     /// @brief Creates a new WebRTC peer connection for connecting to an Interface client.
     /// @param peerConnectionObserver An observer to monitor the WebRTC peer connection.
@@ -305,9 +298,9 @@ signals:
 
     /// @brief A WebRTC data message received from the Interface client.
     /// @details This message is for handling at a higher level in the Vircadia protocol.
-    /// @param dataChannelID The WebRTC data channel ID.
+    /// @param address The address of the signaling WebSocket that the client used to connect.
     /// @param byteArray The Vircadia protocol message.
-    void dataMessage(int dataChannelID, const QByteArray& byteArray);
+    void dataMessage(const SockAddr& address, const QByteArray& byteArray);
 
     /// @brief Signals that the peer connection for a WebRTC data channel should be closed.
     /// @details Used by {@link WebRTCDataChannels.closePeerConnection}.
@@ -326,10 +319,9 @@ private:
 
     rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> _peerConnectionFactory { nullptr };
 
-    quint16 _lastDataChannelID { 0 };  // First data channel ID is 1.
-
-    QHash<quint16, WDCConnection*> _connectionsByWebSocket;
-    QHash<quint16, WDCConnection*> _connectionsByDataChannel;
+    QHash<QString, WDCConnection*> _connectionsByID;  // <client data channel ID, WDCConnection>
+    // The client's WebSocket IP and port is used as the data channel ID to uniquely identify each.
+    // The WebSocket IP address and port is formatted as "n.n.n.n:n", the same as used in WebRTCSignalingServer.
 };
 
 

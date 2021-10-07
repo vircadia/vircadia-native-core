@@ -368,7 +368,13 @@ enum class DomainConnectRequestVersion : PacketVersion {
     HasTimestamp,
     HasReason,
     HasSystemInfo,
-    HasCompressedSystemInfo
+    HasCompressedSystemInfo,
+    SocketTypes
+};
+
+enum class DomainListRequestVersion : PacketVersion {
+    PreSocketTypes = 22,
+    SocketTypes
 };
 
 enum class DomainConnectionDeniedVersion : PacketVersion {
@@ -379,7 +385,8 @@ enum class DomainConnectionDeniedVersion : PacketVersion {
 
 enum class DomainServerAddedNodeVersion : PacketVersion {
     PrePermissionsGrid = 17,
-    PermissionsGrid
+    PermissionsGrid,
+    SocketTypes
 };
 
 enum class DomainListVersion : PacketVersion {
@@ -389,7 +396,8 @@ enum class DomainListVersion : PacketVersion {
     GetMachineFingerprintFromUUIDSupport,
     AuthenticationOptional,
     HasTimestamp,
-    HasConnectReason
+    HasConnectReason,
+    SocketTypes
 };
 
 enum class AudioVersion : PacketVersion {
