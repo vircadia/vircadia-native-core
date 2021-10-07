@@ -29,7 +29,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-latest, macOS-latest, ubuntu-18.04]
+        os: [windows-latest, macOS-10.15, ubuntu-18.04]
         # build_type: [full, client]
         build_type: [full]
         include:
@@ -59,12 +59,12 @@ jobs:
           echo "CMAKE_EXTRA=-DBUILD_TOOLS:BOOLEAN=FALSE -DHIFI_PYTHON_EXEC:FILEPATH=$(which python3)" >> $GITHUB_ENV
         fi
         # Mac build variables
-        if [ "${{ matrix.os }}" = "macOS-latest" ]; then
+        if [ "${{ matrix.os }}" = "macOS-10.15" ]; then
           echo "PYTHON_EXEC=python3" >> $GITHUB_ENV
           echo "ZIP_COMMAND=zip" >> $GITHUB_ENV
           echo "ZIP_ARGS=-r" >> $GITHUB_ENV
           echo "INSTALLER_EXT=dmg" >> $GITHUB_ENV
-          echo "CMAKE_EXTRA=-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode" >> $GITHUB_ENV
+          echo "CMAKE_EXTRA=-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DOPENSSL_LIBRARIES=/usr/local/opt/openssl/lib -G Xcode" >> $GITHUB_ENV
           echo "::set-output name=symbols_archive::${BUILD_NUMBER}-${{ matrix.build_type }}-mac-symbols.zip"
           echo "APP_TARGET_NAME=Vircadia" >> $GITHUB_ENV
         fi

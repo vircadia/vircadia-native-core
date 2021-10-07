@@ -36,9 +36,9 @@ jobs:
           include:
             - os: windows-latest
               build_type: full
-            - os: macOS-latest
+            - os: macOS-10.15
               build_type: full
-            - os: macOS-latest
+            - os: macOS-10.15
               build_type: client
             - os: ubuntu-18.04
               build_type: full
@@ -81,13 +81,13 @@ jobs:
           fi
         fi
         # Mac build variables
-        if [ "${{ matrix.os }}" = "macOS-latest" ]; then
+        if [ "${{ matrix.os }}" = "macOS-10.15" ]; then
           echo "PYTHON_EXEC=python3" >> $GITHUB_ENV
           echo "INSTALLER_EXT=dmg" >> $GITHUB_ENV
           if [ "${{ matrix.build_type }}" = "full" ]; then
-            echo "CMAKE_EXTRA=-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode" >> $GITHUB_ENV
+            echo "CMAKE_EXTRA=-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DOPENSSL_LIBRARIES=/usr/local/opt/openssl/lib -G Xcode" >> $GITHUB_ENV
           else
-            echo "CMAKE_EXTRA=-DCLIENT_ONLY=1 -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode" >> $GITHUB_ENV
+            echo "CMAKE_EXTRA=-DCLIENT_ONLY=1 -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DOPENSSL_LIBRARIES=/usr/local/opt/openssl/lib -G Xcode" >> $GITHUB_ENV
           fi
           echo "APP_TARGET_NAME=Vircadia" >> $GITHUB_ENV
         fi
@@ -163,7 +163,7 @@ jobs:
       if: always()
       shell: bash
       run: |
-        if [ "${{ matrix.os }}" == "macOS-latest" ]; then
+        if [ "${{ matrix.os }}" == "macOS-10.15" ]; then
           TAR=gtar
         else
           TAR=tar
