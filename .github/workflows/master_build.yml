@@ -64,7 +64,7 @@ jobs:
           echo "ZIP_COMMAND=zip" >> $GITHUB_ENV
           echo "ZIP_ARGS=-r" >> $GITHUB_ENV
           echo "INSTALLER_EXT=dmg" >> $GITHUB_ENV
-          echo "CMAKE_EXTRA=-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode" >> $GITHUB_ENV
+          echo "CMAKE_EXTRA=-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DOPENSSL_LIBRARIES=/usr/local/opt/openssl/lib -G Xcode" >> $GITHUB_ENV
           echo "::set-output name=symbols_archive::${BUILD_NUMBER}-${{ matrix.build_type }}-mac-symbols.zip"
           echo "APP_TARGET_NAME=Vircadia" >> $GITHUB_ENV
         fi
