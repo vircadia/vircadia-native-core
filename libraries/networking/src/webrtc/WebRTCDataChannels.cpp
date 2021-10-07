@@ -328,6 +328,10 @@ void WDCConnection::onDataChannelMessageReceived(const DataBuffer& buffer) {
     qCDebug(networking_webrtc) << "Echo message back";
 #endif
         auto addressParts = _dataChannelID.split(":");
+        if (addressParts.length() != 2) {
+            qCWarning(networking_webrtc) << "Invalid dataChannelID:" << _dataChannelID;
+            return;
+        }
         auto address = SockAddr(SocketType::WebRTC, QHostAddress(addressParts[0]), addressParts[1].toInt());
         _parent->sendDataMessage(address, byteArray);  // Use parent method to exercise the code stack.
         return;
@@ -498,6 +502,10 @@ void WebRTCDataChannels::emitDataMessage(const QString& dataChannelID, const QBy
         << byteArray.length();
 #endif
     auto addressParts = dataChannelID.split(":");
+    if (addressParts.length() != 2) {
+        qCWarning(networking_webrtc) << "Invalid dataChannelID:" << dataChannelID;
+        return;
+    }
     auto address = SockAddr(SocketType::WebRTC, QHostAddress(addressParts[0]), addressParts[1].toInt());
     emit dataMessage(address, byteArray);
 }
