@@ -151,13 +151,21 @@ void GLBackend::init() {
         GPUIdent* gpu = GPUIdent::getInstance(vendor, renderer);
         unsigned int mem;
 
+// Do not try to get texture memory information on unsupported systems.
+#if defined(Q_OS_ANDROID) || defined(USE_GLES) || defined(Q_OS_DARWIN)
+        qCDebug(gpugllogging) << "Automatic texture memory not supported in this configuration";
+        _videoCard = Unknown;
+        _dedicatedMemory = gpu->getMemory() * BYTES_PER_MIB;
+        _totalMemory = _dedicatedMemory;
+#endif
+
+#if !defined(Q_OS_ANDROID) && !defined(USE_GLES) && !defined(Q_OS_DARWIN)
         if (vendor.contains("NVIDIA") ) {
             qCDebug(gpugllogging) << "NVIDIA card detected";
-#if !defined(Q_OS_ANDROID) && !defined(USE_GLES)
+
             GL_GET_INTEGER(GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX);
             GL_GET_INTEGER(GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX);
             GL_GET_INTEGER(GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX);
-#endif
 
             qCDebug(gpugllogging) << "GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX: " << GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX;
             qCDebug(gpugllogging) << "GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX: " << GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX;
@@ -170,10 +178,10 @@ void GLBackend::init() {
 
         } else if (vendor.contains("ATI")) {
             qCDebug(gpugllogging) << "ATI card detected";
-#if !defined(Q_OS_ANDROID) && !defined(USE_GLES)
-            GL_GET_INTEGER(TEXTURE_FREE_MEMORY_ATI);
-#endif
 
+            GL_GET_INTEGER(TEXTURE_FREE_MEMORY_ATI);
+
+            // We are actually getting free memory instead of total memory
             _totalMemory = TEXTURE_FREE_MEMORY_ATI * BYTES_PER_KIB;
             _dedicatedMemory = _totalMemory;
             _videoCard = ATI;
@@ -187,9 +195,10 @@ void GLBackend::init() {
         } else {
             qCCritical(gpugllogging) << "Don't know how to get memory for OpenGL vendor " << vendor << "; renderer " << renderer << ", trying fallback";
             _videoCard = Unknown;
-            _dedicatedMemory = gpu->getMemory();
+            _dedicatedMemory = gpu->getMemory() * BYTES_PER_MIB;
             _totalMemory = _dedicatedMemory;
         }
+#endif
 
         qCDebug(gpugllogging) << "dedicated: " << _dedicatedMemory;
         qCDebug(gpugllogging) << "total: " << _totalMemory;
