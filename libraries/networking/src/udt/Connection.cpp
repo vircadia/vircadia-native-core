@@ -417,9 +417,6 @@ void Connection::resetReceiveState() {
     // clear the loss list
     _lossList.clear();
     
-    // clear sync variables
-    _connectionStart = p_high_resolution_clock::now();
-    
     // clear any pending received messages
     for (auto& pendingMessage : _pendingReceivedMessages) {
         _parentSocket->messageFailed(this, pendingMessage.first);
@@ -451,12 +448,6 @@ void PendingReceivedMessage::enqueuePacket(std::unique_ptr<Packet> packet) {
                "PendingReceivedMessage::enqueuePacket",
                "called with a packet that is not part of a message");
     
-    if (packet->getPacketPosition() == Packet::PacketPosition::LAST ||
-        packet->getPacketPosition() == Packet::PacketPosition::ONLY) {
-        _hasLastPacket = true;
-        _numPackets = packet->getMessagePartNumber() + 1;
-    }
-
     // Insert into the packets list in sorted order. Because we generally expect to receive packets in order, begin
     // searching from the end of the list.
     auto messagePartNumber = packet->getMessagePartNumber();
