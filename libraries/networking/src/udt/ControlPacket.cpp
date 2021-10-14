@@ -98,10 +98,11 @@ void ControlPacket::writeType() {
 void ControlPacket::readType() {
     ControlBitAndType bitAndType = *reinterpret_cast<ControlBitAndType*>(_packet.get());
     
-    Q_ASSERT_X(bitAndType & CONTROL_BIT_MASK, "ControlPacket::readHeader()", "This should be a control packet");
+    Q_ASSERT_X(bitAndType & CONTROL_BIT_MASK, "ControlPacket::readType()", "This should be a control packet");
     
     uint16_t packetType = (bitAndType & ~CONTROL_BIT_MASK) >> (8 * sizeof(Type));
-    Q_ASSERT_X(packetType <= ControlPacket::Type::HandshakeRequest, "ControlPacket::readType()", "Received a control packet with wrong type");
+    Q_ASSERT_X(packetType <= ControlPacket::Type::HandshakeRequest, "ControlPacket::readType()",
+        "Received a control packet with invalid type");
     
     // read the type
     _type = (Type) packetType;
