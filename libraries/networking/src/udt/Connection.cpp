@@ -54,7 +54,7 @@ Connection::Connection(Socket* parentSocket, SockAddr destination, std::unique_p
     static std::mt19937 generator(rd());
     static std::uniform_int_distribution<> distribution(0, SequenceNumber::MAX);
 
-    // randomize the intial sequence number
+    // randomize the initial sequence number
     _initialSequenceNumber = SequenceNumber(distribution(generator));
 }
 
