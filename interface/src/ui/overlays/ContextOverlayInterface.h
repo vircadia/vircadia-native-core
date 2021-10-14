@@ -15,6 +15,7 @@
 
 #include <QtCore/QObject>
 #include <QUuid>
+#include <QtCore/QSharedPointer>
 
 #include <DependencyManager.h>
 #include <PointerEvent.h>

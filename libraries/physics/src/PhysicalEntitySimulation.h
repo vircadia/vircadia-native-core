@@ -129,7 +129,7 @@ private:
 
     QList<EntityDynamicPointer> _dynamicsToAdd;
     QSet<QUuid> _dynamicsToRemove;
-    QMutex _dynamicsMutex { QMutex::Recursive };
+    QRecursiveMutex _dynamicsMutex;
 
     workload::SpacePointer _space;
     uint64_t _nextBidExpiry;

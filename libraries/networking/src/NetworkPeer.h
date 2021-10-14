@@ -16,6 +16,7 @@
 #include <atomic>
 
 #include <QtCore/QObject>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QTimer>
 #include <QtCore/QUuid>
 

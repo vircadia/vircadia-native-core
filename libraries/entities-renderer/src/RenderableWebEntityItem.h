@@ -10,6 +10,7 @@
 #ifndef hifi_RenderableWebEntityItem_h
 #define hifi_RenderableWebEntityItem_h
 
+#include <QtCore/QSharedPointer>
 #include <WebEntityItem.h>
 #include "RenderableEntityItem.h"
 

@@ -93,7 +93,7 @@ protected:
     int _maxPendingMessages;
     bool _releaseQueuedMessagesPending;
     QMutex _pendingPacketsLock;
-    QMutex _packetsQueueLock{ QMutex::Recursive }; // don't let different threads release the queue while another thread is writing to it
+    QRecursiveMutex _packetsQueueLock; // don't let different threads release the queue while another thread is writing to it
     std::list<EditMessagePair> _preServerEdits; // these will get packed into other larger packets
     std::list<std::unique_ptr<NLPacket>> _preServerSingleMessagePackets; // these will go out as is
 

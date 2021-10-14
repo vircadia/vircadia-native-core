@@ -13,6 +13,7 @@
 #define hifi_AnimationCache_h
 
 #include <QtCore/QRunnable>
+#include <QtCore/QSharedPointer>
 #include <QtScript/QScriptEngine>
 #include <QtScript/QScriptValue>
 

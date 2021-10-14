@@ -16,6 +16,7 @@
 #include <mutex>
 
 #include <QtCore/QObject>
+#include <QtCore/QSharedPointer>
 
 #include <BaseScriptEngine.h>
 #include <DependencyManager.h>

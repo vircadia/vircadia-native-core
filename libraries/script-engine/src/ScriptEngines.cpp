@@ -9,6 +9,7 @@
 #include "ScriptEngines.h"
 
 #include <QtCore/QStandardPaths>
+#include <QtCore/QSharedPointer>
 
 #include <QtWidgets/QApplication>
 

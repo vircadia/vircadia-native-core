@@ -109,9 +109,7 @@ public:
     float getOutboundKbps() const;
 
 private:
-    // privatize copy and assignment operator to disallow Node copying
-    Node(const Node &otherNode);
-    Node& operator=(Node otherNode);
+    Q_DISABLE_COPY(Node)
 
     NodeType_t _type;
 

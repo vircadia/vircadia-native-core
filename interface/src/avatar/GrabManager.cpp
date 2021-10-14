@@ -11,6 +11,7 @@
 
 
 #include "GrabManager.h"
+#include <QtCore/QSharedPointer>
 
 void GrabManager::simulateGrabs() {
     QSharedPointer<AvatarManager> avatarManager = DependencyManager::get<AvatarManager>();

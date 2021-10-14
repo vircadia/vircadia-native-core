@@ -8,6 +8,8 @@
 #ifndef hifi_CollisionPick_h
 #define hifi_CollisionPick_h
 
+#include <QtCore/QSharedPointer>
+
 #include <PhysicsEngine.h>
 #include <model-networking/ModelCache.h>
 #include <RegisteredMetaTypes.h>

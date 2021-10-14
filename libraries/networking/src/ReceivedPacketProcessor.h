@@ -12,6 +12,7 @@
 #ifndef hifi_ReceivedPacketProcessor_h
 #define hifi_ReceivedPacketProcessor_h
 
+#include <QtCore/QSharedPointer>
 #include <QWaitCondition>
 
 #include "NodeList.h"
