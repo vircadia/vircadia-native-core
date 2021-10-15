@@ -73,8 +73,10 @@ Vircadia consists of many projects and codebases with its unifying structure's g
 - [The Metaverse Server Dashboard (Codename Iamus)](https://github.com/vircadia/project-iamus-dashboard/)
 - [The Launcher (Codename Pantheon)](https://github.com/vircadia/pantheon-launcher/) - Currently Windows only.
 
-#### Child Projects
+#### Tools
 - [Vircadia Builder for Linux](https://github.com/vircadia/vircadia-builder/)
+
+#### Documentation
 - [User Documentation](https://github.com/vircadia/vircadia-docs-sphinx/)
 - [Developer Documentation](https://github.com/vircadia/vircadia-dev-docs/)
 
@@ -92,6 +94,6 @@ Keep in mind that Vircadia consists of multiple smaller projects that might have
 
 #### Supporters of the Vircadia Project
 
-| [Karol Suprynowicz - 74hc595](https://github.com/ksuprynowicz) |
+| [ksuprynowicz (74hc595)](https://github.com/ksuprynowicz) |
 | --- |
 | <p align="center">[<img src="https://vircadia.com/wp-content/uploads/2021/07/74hc595_profile_2-1.png" width="80" alt="ksuprynowicz" />](https://github.com/ksuprynowicz)</p>
