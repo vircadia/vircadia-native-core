@@ -122,10 +122,10 @@ jobs:
           sudo apt install -y ${{ matrix.apt-dependencies }} || exit 1
         else # macOS
           echo "Downloading MacOSX10.12 SDK.."
-          curl --progress-bar -L -O https://github.com/phracker/MacOSX-SDKs/releases/download/11.3/MacOSX10.12.sdk.tar.xz || exit 1
+          curl --progress-bar -L -O https://athena-public.s3.amazonaws.com/dependencies/macOS_SDK10.12.4.tar.xz || exit 1
           echo "  done\n"
           echo "Extracting MacOSX10.12 SDK.."
-          tar -xf MacOSX10.12.sdk.tar.xz || exit 1
+          tar -xf macOS_SDK10.12.4.tar.xz || exit 1
           echo "  done\n"
           echo "Installing MacOSX10.12 SDK.."
           # cp always sets an error code while copying the SDK so we return 0 when that happens.
