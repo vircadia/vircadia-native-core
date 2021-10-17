@@ -20,6 +20,8 @@ env:
 
   # OSX-specific variables
   DEVELOPER_DIR: /Applications/Xcode_11.2.app/Contents/Developer
+  # We are using macOS SDK 10.12 to work around a lot of OpenGL issues in newer SDKs.
+  # There is crashes on startup, crashes on window resize, etc. on newer macOS SDKs.
   MACOSX_DEPLOYMENT_TARGET: '10.12'
 
   # WIN-specific variables
