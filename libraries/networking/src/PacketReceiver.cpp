@@ -161,7 +161,7 @@ void PacketReceiver::handleVerifiedMessagePacket(std::unique_ptr<udt::Packet> pa
         if (!message->isComplete()) {
             _pendingMessages[key] = message;
         }
-        handleVerifiedMessage(message, true);
+        handleVerifiedMessage(message, true);  // Handler may handle first message packet immediately when it arrives.
     } else {
         message = it->second;
         message->appendPacket(*nlPacket);
