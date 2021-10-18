@@ -25,7 +25,7 @@ else ()
     vcpkg_download_distfile(
         WEBRTC_SOURCE_ARCHIVE
         URLS "${EXTERNAL_BUILD_ASSETS}/dependencies/vcpkg/webrtc-m84-gcc-linux.tar.xz"
-        SHA512 13f311f0d6b8fc986e1f6eea426030e6ad961c98d012d79a66eb263b923c5a4894553c55f793cf70a3a7af6cd2252e733ead9eb54e24d729e2f73c2426b39a55
+        SHA512 dd08efb3e46d9e049f15bee8113b6630d969a3f98d757e6afaa62598a64658ae59b58f7b3f03658dc0fd94a010e76de71fe3fa3eed723bd8f7250433acfa936f
         FILENAME webrtc-m84-gcc-linux.tar.xz
     )
 endif ()
