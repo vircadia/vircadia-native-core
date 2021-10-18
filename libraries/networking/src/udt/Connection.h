@@ -110,8 +110,6 @@ private:
     bool _hasReceivedHandshakeACK { false }; // flag for receipt of handshake ACK from client
     bool _didRequestHandshake { false }; // flag for request of handshake from server
    
-    p_high_resolution_clock::time_point _lastReceiveTime; // holds the last time we received anything from sender
-
     SequenceNumber _initialSequenceNumber; // Randomized on Connection creation, identifies connection during re-connect requests
     SequenceNumber _initialReceiveSequenceNumber; // Randomized by peer Connection on creation, identifies connection during re-connect requests
 

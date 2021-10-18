@@ -255,9 +255,6 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
         return false;
     }
     
-    // mark our last receive time as now (to push the potential expiry farther)
-    _lastReceiveTime = p_high_resolution_clock::now();
-    
     // If this is not the next sequence number, report loss
     if (sequenceNumber > _lastReceivedSequenceNumber + 1) {
         if (_lastReceivedSequenceNumber + 1 == sequenceNumber - 1) {
