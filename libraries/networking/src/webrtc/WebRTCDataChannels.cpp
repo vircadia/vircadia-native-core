@@ -21,7 +21,7 @@
 // - https://webrtc.github.io/webrtc-org/native-code/native-apis/
 // - https://webrtc.googlesource.com/src/+/master/api/peer_connection_interface.h
 
-const std::string ICE_SERVER_URI = "stun://ice.vircadia.com:7337";
+const std::string ICE_SERVER_URI = "stun:ice.vircadia.com:7337";
 const int MAX_WEBRTC_BUFFER_SIZE = 16777216;  // 16MB
 
 #define WEBRTC_DEBUG
