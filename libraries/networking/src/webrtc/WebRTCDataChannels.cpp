@@ -405,11 +405,15 @@ WebRTCDataChannels::WebRTCDataChannels(QObject* parent) :
     _peerConnectionFactory = CreateModularPeerConnectionFactory(std::move(dependencies));
     if (_peerConnectionFactory) {
         auto enableEncryption = QProcessEnvironment::systemEnvironment().value("VIRCADIA_WEBRTC_CRYPTO", "1") == "1";
+        auto enableSCTP = QProcessEnvironment::systemEnvironment().value("VIRCADIA_WEBRTC_SCTP", "1") == "1";
 #ifdef WEBRTC_DEBUG
         qCDebug(networking_webrtc) << "Peer connection encryption enabled =" << enableEncryption;
 #endif
         PeerConnectionFactoryInterface::Options pc_options;
+
         pc_options.disable_encryption = !enableEncryption;
+        pc_options.disable_sctp_data_channels = !enableSCTP;
+
         _peerConnectionFactory->SetOptions(pc_options);
     } else {
         qCWarning(networking_webrtc) << "Failed to create WebRTC peer connection factory";
