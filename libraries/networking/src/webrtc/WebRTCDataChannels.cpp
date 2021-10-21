@@ -14,6 +14,8 @@
 #include <QJsonObject>
 #include <QProcessEnvironment>
 
+#include <rtc_base/ssl_adapter.h>
+
 #include "../NetworkLogging.h"
 
 
@@ -402,10 +404,18 @@ WebRTCDataChannels::WebRTCDataChannels(QObject* parent) :
     dependencies.network_thread = _rtcNetworkThread.get();
     dependencies.worker_thread = _rtcWorkerThread.get();
     dependencies.signaling_thread = _rtcSignalingThread.get();
+
+    auto initializeSSL = QProcessEnvironment::systemEnvironment().value("VIRCADIA_WEBRTC_INITSSL", "1") == "0";
+    if (initializeSSL) {
+        rtc::InitializeSSL();
+    }
+
     _peerConnectionFactory = CreateModularPeerConnectionFactory(std::move(dependencies));
     if (_peerConnectionFactory) {
+
         auto enableEncryption = QProcessEnvironment::systemEnvironment().value("VIRCADIA_WEBRTC_CRYPTO", "1") == "1";
         auto enableSCTP = QProcessEnvironment::systemEnvironment().value("VIRCADIA_WEBRTC_SCTP", "1") == "1";
+
 #ifdef WEBRTC_DEBUG
         qCDebug(networking_webrtc) << "Peer connection encryption enabled =" << enableEncryption;
 #endif
@@ -428,6 +438,12 @@ WebRTCDataChannels::~WebRTCDataChannels() {
     qCDebug(networking_webrtc) << "WebRTCDataChannels::~WebRTCDataChannels()";
 #endif
     reset();
+
+    auto initializeSSL = QProcessEnvironment::systemEnvironment().value("VIRCADIA_WEBRTC_INITSSL", "1") == "0";
+    if (initializeSSL) {
+        rtc::CleanupSSL();
+    }
+
     _peerConnectionFactory = nullptr;
     _rtcSignalingThread->Stop();
     _rtcSignalingThread = nullptr;
