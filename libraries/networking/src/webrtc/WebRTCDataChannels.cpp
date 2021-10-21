@@ -575,7 +575,14 @@ rtc::scoped_refptr<PeerConnectionInterface> WebRTCDataChannels::createPeerConnec
 
     PeerConnectionInterface::RTCConfiguration configuration;
     PeerConnectionInterface::IceServer iceServer;
-    iceServer.uri = ICE_SERVER_URI;
+
+    auto stunURI = QProcessEnvironment::systemEnvironment().value("VIRCADIA_WEBRTC_STUN", "");
+    if (!stunURI.isEmpty()) {
+        iceServer.uri = stunURI;
+    } else {
+        iceServer.uri = ICE_SERVER_URI;
+    }
+
     configuration.servers.push_back(iceServer);
 
 #ifdef WEBRTC_DEBUG
