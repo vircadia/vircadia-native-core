@@ -207,7 +207,7 @@ qint64 Socket::writePacketList(std::unique_ptr<PacketList> packetList, const Soc
         return 0;
     }
 
-    // Unerliable and Unordered
+    // Unreliable and Unordered
     qint64 totalBytesSent = 0;
     while (!packetList->_packets.empty()) {
         totalBytesSent += writePacket(packetList->takeFront<Packet>(), sockAddr);

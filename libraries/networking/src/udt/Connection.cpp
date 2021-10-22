@@ -54,7 +54,7 @@ Connection::Connection(Socket* parentSocket, SockAddr destination, std::unique_p
     static std::mt19937 generator(rd());
     static std::uniform_int_distribution<> distribution(0, SequenceNumber::MAX);
 
-    // randomize the intial sequence number
+    // randomize the initial sequence number
     _initialSequenceNumber = SequenceNumber(distribution(generator));
 }
 
@@ -255,9 +255,6 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
         return false;
     }
     
-    // mark our last receive time as now (to push the potential expiry farther)
-    _lastReceiveTime = p_high_resolution_clock::now();
-    
     // If this is not the next sequence number, report loss
     if (sequenceNumber > _lastReceivedSequenceNumber + 1) {
         if (_lastReceivedSequenceNumber + 1 == sequenceNumber - 1) {
@@ -417,9 +414,6 @@ void Connection::resetReceiveState() {
     // clear the loss list
     _lossList.clear();
     
-    // clear sync variables
-    _connectionStart = p_high_resolution_clock::now();
-    
     // clear any pending received messages
     for (auto& pendingMessage : _pendingReceivedMessages) {
         _parentSocket->messageFailed(this, pendingMessage.first);
@@ -451,12 +445,6 @@ void PendingReceivedMessage::enqueuePacket(std::unique_ptr<Packet> packet) {
                "PendingReceivedMessage::enqueuePacket",
                "called with a packet that is not part of a message");
     
-    if (packet->getPacketPosition() == Packet::PacketPosition::LAST ||
-        packet->getPacketPosition() == Packet::PacketPosition::ONLY) {
-        _hasLastPacket = true;
-        _numPackets = packet->getMessagePartNumber() + 1;
-    }
-
     // Insert into the packets list in sorted order. Because we generally expect to receive packets in order, begin
     // searching from the end of the list.
     auto messagePartNumber = packet->getMessagePartNumber();

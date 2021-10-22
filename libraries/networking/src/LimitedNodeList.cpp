@@ -505,8 +505,8 @@ qint64 LimitedNodeList::sendUnreliableUnorderedPacketList(NLPacketList& packetLi
         }
         return bytesSent;
     } else {
-        qCDebug(networking) << "LimitedNodeList::sendPacketList called without active socket for node" << destinationNode
-            << " - not sending.";
+        qCDebug(networking) << "LimitedNodeList::sendUnreliableUnorderedPacketList called without active socket for node" 
+            << destinationNode << " - not sending.";
         return ERROR_SENDING_PACKET_BYTES;
     }
 }
