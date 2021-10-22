@@ -23,7 +23,8 @@
 // - https://webrtc.github.io/webrtc-org/native-code/native-apis/
 // - https://webrtc.googlesource.com/src/+/master/api/peer_connection_interface.h
 
-const std::string ICE_SERVER_URI = "stun:ice.vircadia.com:7337";
+//const std::string ICE_SERVER_URI = "stun:ice.vircadia.com:7337";
+const std::string ICE_SERVER_URI = "stun1.l.google.com:19302";
 const int MAX_WEBRTC_BUFFER_SIZE = 16777216;  // 16MB
 
 #define WEBRTC_DEBUG
@@ -391,6 +392,16 @@ WebRTCDataChannels::WebRTCDataChannels(QObject* parent) :
 
     // Create a peer connection factory.
 #ifdef WEBRTC_DEBUG
+    // Report environment variable values.
+    qCDebug(networking_webrtc) << "VIRCADIA_WEBRTC_STUN:"
+        << QProcessEnvironment::systemEnvironment().value("VIRCADIA_WEBRTC_STUN");
+    qCDebug(networking_webrtc) << "VIRCADIA_WEBRTC_INITSSL:"
+        << QProcessEnvironment::systemEnvironment().value("VIRCADIA_WEBRTC_INITSSL");
+    qCDebug(networking_webrtc) << "VIRCADIA_WEBRTC_CRYPTO:"
+        << QProcessEnvironment::systemEnvironment().value("VIRCADIA_WEBRTC_CRYPTO");
+    qCDebug(networking_webrtc) << "VIRCADIA_WEBRTC_SCTP:"
+        << QProcessEnvironment::systemEnvironment().value("VIRCADIA_WEBRTC_SCTP");
+
     // Numbers are per WebRTC's peer_connection_interface.h.
     qCDebug(networking_webrtc) << "1. Create a new PeerConnectionFactoryInterface";
 #endif
@@ -405,8 +416,11 @@ WebRTCDataChannels::WebRTCDataChannels(QObject* parent) :
     dependencies.worker_thread = _rtcWorkerThread.get();
     dependencies.signaling_thread = _rtcSignalingThread.get();
 
-    auto initializeSSL = QProcessEnvironment::systemEnvironment().value("VIRCADIA_WEBRTC_INITSSL", "1") == "0";
+    auto initializeSSL = QProcessEnvironment::systemEnvironment().value("VIRCADIA_WEBRTC_INITSSL", "0") == "1";
     if (initializeSSL) {
+#ifdef WEBRTC_DEBUG
+        qCDebug(networking_webrtc) << "InitializeSSL()";
+#endif
         rtc::InitializeSSL();
     }
 
@@ -415,12 +429,11 @@ WebRTCDataChannels::WebRTCDataChannels(QObject* parent) :
 
         auto enableEncryption = QProcessEnvironment::systemEnvironment().value("VIRCADIA_WEBRTC_CRYPTO", "1") == "1";
         auto enableSCTP = QProcessEnvironment::systemEnvironment().value("VIRCADIA_WEBRTC_SCTP", "1") == "1";
-
 #ifdef WEBRTC_DEBUG
         qCDebug(networking_webrtc) << "Peer connection encryption enabled =" << enableEncryption;
+        qCDebug(networking_webrtc) << "SCTP enabled =" << enableSCTP;
 #endif
         PeerConnectionFactoryInterface::Options pc_options;
-
         pc_options.disable_encryption = !enableEncryption;
         pc_options.disable_sctp_data_channels = !enableSCTP;
 
@@ -439,8 +452,11 @@ WebRTCDataChannels::~WebRTCDataChannels() {
 #endif
     reset();
 
-    auto initializeSSL = QProcessEnvironment::systemEnvironment().value("VIRCADIA_WEBRTC_INITSSL", "1") == "0";
+    auto initializeSSL = QProcessEnvironment::systemEnvironment().value("VIRCADIA_WEBRTC_INITSSL", "1") == "1";
     if (initializeSSL) {
+#ifdef WEBRTC_DEBUG
+        qCDebug(networking_webrtc) << "CleanupSSL()";
+#endif
         rtc::CleanupSSL();
     }
 
@@ -582,6 +598,9 @@ rtc::scoped_refptr<PeerConnectionInterface> WebRTCDataChannels::createPeerConnec
     } else {
         iceServer.uri = ICE_SERVER_URI;
     }
+#ifdef WEBRTC_DEBUG
+    qCDebug(networking_webrtc) << "Using ICE server:" << QString::fromStdString(iceServer.uri);
+#endif
 
     configuration.servers.push_back(iceServer);
 
