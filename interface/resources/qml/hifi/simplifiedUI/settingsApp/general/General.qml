@@ -176,6 +176,15 @@ Flickable {
 
                 SimplifiedControls.RadioButton {
                     id: performanceLow
+                    text: "Low Power Quality" + (PlatformInfo.getTierProfiled() === PerformanceEnums.LOW_POWER ? " (Recommended)" : "")
+                    checked: Performance.getPerformancePreset() === PerformanceEnums.LOW_POWER
+                    onClicked: {
+                        Performance.setPerformancePreset(PerformanceEnums.LOW_POWER);
+                    }
+                }
+
+                SimplifiedControls.RadioButton {
+                    id: performanceLow
                     text: "Low Quality" + (PlatformInfo.getTierProfiled() === PerformanceEnums.LOW ? " (Recommended)" : "")
                     checked: Performance.getPerformancePreset() === PerformanceEnums.LOW
                     onClicked: {

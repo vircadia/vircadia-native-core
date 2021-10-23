@@ -53,6 +53,20 @@ Item {
                 spacing: 0
 
                 HifiControlsUit.RadioButton {
+                    id: performanceLowPower
+                    colorScheme: hifi.colorSchemes.dark
+                    height: 18
+                    fontSize: 16
+                    leftPadding: 0
+                    text: "Low Power"
+                    checked: Performance.getPerformancePreset() === PerformanceEnums.LOW_POWER
+                    onClicked: {
+                        Performance.setPerformancePreset(PerformanceEnums.LOW_POWER);
+                        root.refreshAllDropdowns();
+                    }
+                }
+
+                HifiControlsUit.RadioButton {
                     id: performanceLow
                     colorScheme: hifi.colorSchemes.dark
                     height: 18
