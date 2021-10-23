@@ -14,7 +14,7 @@ Please read the [general build guide](BUILD.md) for information on dependencies 
 brew install cmake openssl npm
 ```
 
-**Note:** CMake versions > 3.18.x have known problems building Vircadia, so alternatively you can download cmake 3.18.4 (or earlier versions) from [Github](https://github.com/Kitware/CMake/releases).
+**Note:** You can also download alternative CMake versions from [Github](https://github.com/Kitware/CMake/releases) if needed.
 
 ### Python 3
 
