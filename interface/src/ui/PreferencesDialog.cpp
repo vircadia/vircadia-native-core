@@ -365,7 +365,7 @@ void setupPreferences() {
         preference->setMin(0.1f);
         preference->setMax(5.0f);
         preference->setStep(0.1f);
-        preference->setDecimals(1);
+        preference->setDecimals(1.0f);
         preferences->addPreference(preference);
     }
     {

@@ -189,7 +189,10 @@ void ImageEntityRenderer::doRender(RenderArgs* args) {
         }
         transform.setScale(scale);
     }
-    batch->setModelTransform(transform);
+    batch->setModelTransform(transform, _prevRenderTransform);
+    if (args->_renderMode == Args::RenderMode::DEFAULT_RENDER_MODE || args->_renderMode == Args::RenderMode::MIRROR_RENDER_MODE) {
+        _prevRenderTransform = transform;
+    }
 
     Pipeline pipelineType = getPipelineType(materials);
     if (pipelineType == Pipeline::PROCEDURAL) {
