@@ -79,12 +79,12 @@ endif()
 # It's used to determine build flags for main codebase and for VCPKG dependencies.
 # Should be set to false to get completely unoptimized build for easier line-by-line debugging
 
-if(NOT DEFINED VIRCADIA_OPTIMIZE)
-    message("Enabling code optimization for Vircadia and compiled dependencies")
-    set(VIRCADIA_OPTIMIZE true CACHE BOOL "Enable code optimization for Vircadia and compiled dependencies")
-endif()
-
 if( NOT WIN32 )
+    if(NOT DEFINED VIRCADIA_OPTIMIZE)
+        message("Enabling code optimization for Vircadia and compiled dependencies")
+        set(VIRCADIA_OPTIMIZE true CACHE BOOL "Enable code optimization for Vircadia and compiled dependencies")
+    endif()
+
     #compiler needs to be detected before building VCPKG dependencies
     set(CMAKE_PLATFORM_INFO_DIR "${CMAKE_CURRENT_BINARY_DIR}")
     include(CMakeDetermineCXXCompiler)
@@ -130,9 +130,10 @@ if( NOT WIN32 )
 
     set(ENV{CXXFLAGS} "$ENV{CXXFLAGS} ${VIRCADIA_OPTIMIZE_FLAGS}")
     set(ENV{CFLAGS} "$ENV{CFLAGS} ${VIRCADIA_OPTIMIZE_FLAGS}")
+    message($ENV{CXXFLAGS})
 endif()
 
-message($ENV{CXXFLAGS})
+
 
 if (HIFI_ANDROID)
     execute_process(
