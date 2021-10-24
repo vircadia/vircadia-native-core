@@ -358,6 +358,67 @@ Item {
                     }
                 }
             }
+
+            ColumnLayout {
+                Layout.topMargin: 20
+                Layout.preferredWidth: parent.width
+                spacing: 0
+    
+                Item {
+                    Layout.preferredWidth: parent.width
+                    Layout.preferredHeight: 35
+    
+                    HifiStylesUit.RalewayRegular {
+                        id: antialiasingHeader
+                        text: "Anti-aliasing"
+                        anchors.left: parent.left
+                        anchors.top: parent.top
+                        width: 130
+                        height: parent.height
+                        size: 16
+                        color: "#FFFFFF"
+                    }
+    
+                    ListModel {
+                        id: antialiasingModel
+    
+                        ListElement {
+                            text: "None"
+                        }
+                        ListElement {
+                            text: "TAA"
+                        }
+                        ListElement {
+                            text: "FXAA"
+                        }
+                    }
+    
+                    HifiControlsUit.ComboBox {
+                        id: antialiasingDropdown
+                        anchors.left: antialiasingHeader.right
+                        anchors.leftMargin: 20
+                        anchors.top: parent.top
+                        width: 280
+                        height: parent.height
+                        colorScheme: hifi.colorSchemes.dark
+                        model: antialiasingModel
+                        currentIndex: -1
+    
+                        function refreshAntialiasingDropdown() {
+                            antialiasingDropdown.currentIndex = Render.antialiasingMode;
+                        }
+    
+                        Component.onCompleted: {
+                            antialiasingDropdown.refreshAntialiasingDropdown();
+                        }
+    
+                        onCurrentIndexChanged: {
+                            Render.antialiasingMode = currentIndex;
+                            antialiasingDropdown.displayText = model.get(currentIndex).text;
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -365,5 +426,6 @@ Item {
         worldDetailDropdown.refreshWorldDetailDropdown();
         renderingEffectsDropdown.refreshRenderingEffectsDropdownDisplay();
         refreshRateDropdown.refreshRefreshRateDropdownDisplay();
+        antialiasingDropdown.refreshAntialiasingDropdown();
     }
 }

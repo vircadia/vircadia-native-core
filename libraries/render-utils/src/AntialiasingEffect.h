@@ -110,7 +110,7 @@ public:
     AntialiasingConfig() : render::Job::Config(true) {}
 
     enum Mode {
-        OFF = 0,
+        NONE = 0,
         TAA,
         FXAA,
         MODE_COUNT
@@ -144,6 +144,7 @@ public:
 signals:
     void dirty();
 };
+Q_DECLARE_METATYPE(AntialiasingConfig::Mode);
 
 #define SET_BIT(bitfield, bitIndex, value) bitfield = ((bitfield) & ~(1 << (bitIndex))) | ((value) << (bitIndex))
 #define GET_BIT(bitfield, bitIndex) ((bitfield) & (1 << (bitIndex)))

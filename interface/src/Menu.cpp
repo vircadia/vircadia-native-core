@@ -405,8 +405,8 @@ Menu::Menu() {
     // Developer > Render >>>
     MenuWrapper* renderOptionsMenu = developerMenu->addMenu("Render");
 
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::AntiAliasing, 0, RenderScriptingInterface::getInstance()->getAntialiasingEnabled(),
-        RenderScriptingInterface::getInstance(), SLOT(setAntialiasingEnabled(bool)));
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::AntiAliasing, 0, RenderScriptingInterface::getInstance()->getAntialiasingMode(),
+        RenderScriptingInterface::getInstance(), SLOT(setAntialiasingMode(int)));
 
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Shadows, 0, RenderScriptingInterface::getInstance()->getShadowsEnabled(),
         RenderScriptingInterface::getInstance(), SLOT(setShadowsEnabled(bool)));
