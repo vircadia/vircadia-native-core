@@ -234,7 +234,7 @@ Item {
                                 checked: Render.shadowsEnabled
                                 boxSize: 16
                                 text: "Shadows"
-				spacing: -1
+                                spacing: -1
                                 colorScheme: hifi.colorSchemes.dark
                                 anchors.left: parent.left
                                 anchors.top: parent.top
