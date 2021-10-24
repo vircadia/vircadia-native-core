@@ -212,7 +212,7 @@ Item {
                             height: 18
                             fontSize: 16
                             leftPadding: 0
-                            text: "Enabled (local lights, fog, bloom)"
+                            text: "Enabled"
                             checked: Render.renderMethod === 0
                             onClicked: {
                                 Render.renderMethod = 0; // "DEFERRED"
@@ -224,9 +224,9 @@ Item {
                             Layout.preferredWidth: parent.width
                             anchors.left: parent.left
                             anchors.leftMargin: 24
-                            anchors.bottom: parent.bottom
-                            anchors.bottomMargin: 5
                             anchors.topMargin: 8
+                            anchors.bottom: parent.bottom
+                            anchors.bottomMargin: Layout.topMargin
                             enabled: performanceCustom.checked && renderingEffectsEnabled.checked
 
                             HifiControlsUit.CheckBox {
@@ -242,6 +242,51 @@ Item {
                                     Render.shadowsEnabled = renderingEffectShadows.checked;
                                 }
                             }
+                            HifiControlsUit.CheckBox {
+                                id: renderingEffectLocalLights
+                                enabled: false
+                                //checked: Render.localLightsEnabled
+                                checked: renderingEffectsEnabled.checked
+                                boxSize: 16
+                                text: "Local lights"
+                                spacing: -1
+                                colorScheme: hifi.colorSchemes.dark
+                                anchors.left: parent.left
+                                anchors.top: renderingEffectShadows.bottom
+                                //onCheckedChanged: {
+                                //    Render.localLightsEnabled = renderingEffectLocalLightsEnabled.checked;
+                                //}
+                            }
+                            HifiControlsUit.CheckBox {
+                                id: renderingEffectFog
+                                enabled: false
+                                //checked: Render.fogEnabled
+                                checked: renderingEffectsEnabled.checked
+                                boxSize: 16
+                                text: "Fog"
+                                spacing: -1
+                                colorScheme: hifi.colorSchemes.dark
+                                anchors.left: parent.left
+                                anchors.top: renderingEffectLocalLights.bottom
+                                //onCheckedChanged: {
+                                //    Render.fogEnabled = renderingEffectFogEnabled.checked;
+                                //}
+                            }
+                            HifiControlsUit.CheckBox {
+                                id: renderingEffectBloom
+                                enabled: false
+                                //checked: Render.bloomEnabled
+                                checked: renderingEffectsEnabled.checked
+                                boxSize: 16
+                                text: "Bloom"
+                                spacing: -1
+                                colorScheme: hifi.colorSchemes.dark
+                                anchors.left: parent.left
+                                anchors.top: renderingEffectFog.bottom
+                                //onCheckedChanged: {
+                                //    Render.bloomEnabled = renderingEffectBloomEnabled.checked;
+                                //}
+                            }
                         }
                     }
                 }
@@ -249,7 +294,7 @@ Item {
                 Item {
                     Layout.preferredWidth: parent.width
                     Layout.preferredHeight: 35
-                    Layout.topMargin: 20
+                    Layout.topMargin: 10
 
                     HifiStylesUit.RalewayRegular {
                         id: refreshRateHeader
