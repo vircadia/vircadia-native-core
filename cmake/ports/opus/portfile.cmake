@@ -13,7 +13,7 @@ vcpkg_from_github(
   master)
 
 if(WIN32)
-    set(VIRCADIA_BULLET_OPTIONS "")
+    set(VIRCADIA_OPUS_OPTIONS "")
 else()
     if(EXISTS "${VCPKG_ROOT_DIR}/_env/VIRCADIA_OPTIMIZE.txt")
         file(READ "${VCPKG_ROOT_DIR}/_env/VIRCADIA_OPTIMIZE.txt" VIRCADIA_OPTIMIZE)
