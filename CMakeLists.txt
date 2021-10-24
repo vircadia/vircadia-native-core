@@ -84,51 +84,53 @@ if(NOT DEFINED VIRCADIA_OPTIMIZE)
     set(VIRCADIA_OPTIMIZE true CACHE BOOL "Enable code optimization for Vircadia and compiled dependencies")
 endif()
 
-#compiler needs to be detected before building VCPKG dependencies
-set(CMAKE_PLATFORM_INFO_DIR "${CMAKE_CURRENT_BINARY_DIR}")
-include(CMakeDetermineCXXCompiler)
+if( NOT WIN32 )
+    #compiler needs to be detected before building VCPKG dependencies
+    set(CMAKE_PLATFORM_INFO_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+    include(CMakeDetermineCXXCompiler)
 
-set(VIRCADIA_OPTIMIZE_FLAGS "")
+    set(VIRCADIA_OPTIMIZE_FLAGS "")
 
-if(VIRCADIA_OPTIMIZE)
-    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/_env/VIRCADIA_OPTIMIZE.txt" "${VIRCADIA_OPTIMIZE}")
-    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        message("Clang compiler detected, adding -O3 -fPIC flags")
-        set(VIRCADIA_OPTIMIZE_FLAGS "-O3 -fPIC")
-    elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-        message("GCC compiler detected, adding -O3 -fPIC flags")
-        set(VIRCADIA_OPTIMIZE_FLAGS "-O3 -fPIC")
-    elseif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-        message("MSVC compiler detected, adding /O2 flag")
-        set(VIRCADIA_OPTIMIZE_FLAGS "/O2")
+            set(VIRCADIA_OPTIMIZE_FLAGS "-O3 -fPIC")
+    if(VIRCADIA_OPTIMIZE)
+
+        file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/_env/VIRCADIA_OPTIMIZE.txt" "${VIRCADIA_OPTIMIZE}")
+        if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+            message("Clang compiler detected, adding -O3 -fPIC flags")
+        elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+            message("GCC compiler detected, adding -O3 -fPIC flags")
+            set(VIRCADIA_OPTIMIZE_FLAGS "-O3 -fPIC")
+        else()
+            message("No predefined optimization flags for compiler ${CMAKE_CXX_COMPILER_ID}")
+        endif()
     endif()
-endif()
-MESSAGE(STATUS "VIRCADIA_OPTIMIZE: ${VIRCADIA_OPTIMIZE}")
+    MESSAGE(STATUS "VIRCADIA_OPTIMIZE: ${VIRCADIA_OPTIMIZE}")
 
-# VIRCADIA_CPU_ARCHITECTURE
-# Variable determining CPU architecture for which Vircadia will be built.
-# If defined, it's appended to CXXFLAGS and CFLAGS for both Vircadia and VCPKG dependencies
+    # VIRCADIA_CPU_ARCHITECTURE
+    # Variable determining CPU architecture for which Vircadia will be built.
+    # If defined, it's appended to CXXFLAGS and CFLAGS for both Vircadia and VCPKG dependencies
 
-#Assume -march=native for compilers that allow it if architecture is not specified
-if(NOT DEFINED VIRCADIA_CPU_ARCHITECTURE)
-    if(VIRCADIA_OPTIMIZE AND ( (CMAKE_CXX_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID MATCHES "GNU") ) )
-        message("Optimization is enabled, but architecture is not specified. Assuming native build")
-        set(VIRCADIA_CPU_ARCHITECTURE "-march=native -mtune=native" CACHE STRING "Specify architecture dependent compiler flags here")
+    #Assume -march=native for compilers that allow it if architecture is not specified
+    if(NOT DEFINED VIRCADIA_CPU_ARCHITECTURE)
+        if(VIRCADIA_OPTIMIZE AND ( (CMAKE_CXX_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID MATCHES "GNU") ) )
+            message("Optimization is enabled, but architecture is not specified. Assuming native build")
+            set(VIRCADIA_CPU_ARCHITECTURE "-march=native -mtune=native" CACHE STRING "Specify architecture dependent compiler flags here")
+        endif()
     endif()
+
+    if(DEFINED VIRCADIA_CPU_ARCHITECTURE)
+        file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/_env/VIRCADIA_CPU_ARCHITECTURE.txt" "${VIRCADIA_CPU_ARCHITECTURE}")
+        set(VIRCADIA_OPTIMIZE_FLAGS "${VIRCADIA_OPTIMIZE_FLAGS} ${VIRCADIA_CPU_ARCHITECTURE}")
+        message("Adding CPU architecture flags: ${VIRCADIA_CPU_ARCHITECTURE}")
+        MESSAGE(STATUS "VIRCADIA_CPU_ARCHITECTURE: ${VIRCADIA_CPU_ARCHITECTURE}")
+    endif()
+
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${VIRCADIA_OPTIMIZE_FLAGS}")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${VIRCADIA_OPTIMIZE_FLAGS}")
+
+    set(ENV{CXXFLAGS} "$ENV{CXXFLAGS} ${VIRCADIA_OPTIMIZE_FLAGS}")
+    set(ENV{CFLAGS} "$ENV{CFLAGS} ${VIRCADIA_OPTIMIZE_FLAGS}")
 endif()
-
-if(DEFINED VIRCADIA_CPU_ARCHITECTURE)
-    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/_env/VIRCADIA_CPU_ARCHITECTURE.txt" "${VIRCADIA_CPU_ARCHITECTURE}")
-    set(VIRCADIA_OPTIMIZE_FLAGS "${VIRCADIA_OPTIMIZE_FLAGS} ${VIRCADIA_CPU_ARCHITECTURE}")
-    message("Adding CPU architecture flags: ${VIRCADIA_CPU_ARCHITECTURE}")
-    MESSAGE(STATUS "VIRCADIA_CPU_ARCHITECTURE: ${VIRCADIA_CPU_ARCHITECTURE}")
-endif()
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${VIRCADIA_OPTIMIZE_FLAGS}")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${VIRCADIA_OPTIMIZE_FLAGS}")
-
-set(ENV{CXXFLAGS} "$ENV{CXXFLAGS} ${VIRCADIA_OPTIMIZE_FLAGS}")
-set(ENV{CFLAGS} "$ENV{CFLAGS} ${VIRCADIA_OPTIMIZE_FLAGS}")
 
 message($ENV{CXXFLAGS})
 
