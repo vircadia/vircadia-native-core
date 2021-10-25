@@ -66,60 +66,80 @@ int main(int argc, const char* argv[]) {
 
     setupHifiApplication(BuildInfo::INTERFACE_NAME);
 
-    QStringList arguments;
+    /*QStringList arguments;
     for (int i = 0; i < argc; ++i) {
         arguments << argv[i];
-    }
+    }*/
+
+    // grep -E 'getCmdOption|QCommandLineOption|cmdOptionExists' 'interface/src/Application.cpp'
 
     QCommandLineParser parser;
     parser.setApplicationDescription("Vircadia");
-    QCommandLineOption versionOption = parser.addVersionOption();
     QCommandLineOption helpOption = parser.addHelpOption();
+    QCommandLineOption versionOption = parser.addVersionOption();
 
-    QCommandLineOption urlOption("url", "", "value");
-    QCommandLineOption noLauncherOption("no-launcher", "Do not execute the launcher");
-    QCommandLineOption noUpdaterOption("no-updater", "Do not show auto-updater");
-    QCommandLineOption checkMinSpecOption("checkMinSpec", "Check if machine meets minimum specifications");
-    QCommandLineOption runServerOption("runServer", "Whether to run the server");
-    QCommandLineOption serverContentPathOption("serverContentPath", "Where to find server content <path>", "serverContentPath");
-    QCommandLineOption allowMultipleInstancesOption("allowMultipleInstances", "Allow multiple instances to run");
-    QCommandLineOption overrideAppLocalDataPathOption("cache", "set test cache <dir>", "dir");
+    QCommandLineOption urlOption("url", "Start at specified URL location.", "value");
+    QCommandLineOption protocolVersionOption("protocolVersion", "Displays the protocol version.");
+    QCommandLineOption noUpdaterOption("no-updater", "Do not show auto-updater.");
+    QCommandLineOption checkMinSpecOption("checkMinSpec", "Check if machine meets minimum specifications.");
+    QCommandLineOption runServerOption("runServer", "Whether to run the server.");
+    QCommandLineOption listenPortOption("listenPort", "Port to listen on.");
+    QCommandLineOption serverContentPathOption("serverContentPath", "Where to find server content <path>.", "serverContentPath"); // This data type will not be familiar to users.
+    QCommandLineOption overrideAppLocalDataPathOption("cache", "set test cache <dir>.", "dir");
+    //QCommandLineOption scriptsOption("scripts", "Set path for defaultScripts.", "dir"); // Use this once SCRIPTS_SWITCH is removed.
+    QCommandLineOption allowMultipleInstancesOption("allowMultipleInstances", "Allow multiple instances to run.");
+    QCommandLineOption displaysOption("display", "Preferred display.", "displays");
+    QCommandLineOption disableDisplaysOption("disable-displays", "Displays to disable.");
+    QCommandLineOption disableInputsOption("disable-inputs", "Inputs to disable.");
+    QCommandLineOption suppressSettingsResetOption("suppress-settings-reset", "Suppress the prompt to reset interface settings.");
+    QCommandLineOption oculusStoreOption("oculus-store", "Let the Oculus plugin know if interface was run from the Oculus Store.");
+    QCommandLineOption standaloneOption("standalone", "Emulate a standalone device.");
+    QCommandLineOption disableWatchdogOption("disableWatchdog", "Disable the watchdog thread. The interface will crash on deadlocks.");
+    QCommandLineOption systemCursorOption("system-cursor", "Needs clarification!");
+    QCommandLineOption concurrentDownloadsOption("concurrent-downloads", "Maximum concurrent resource downloads. Default is 16, except for Android where it is 4.");
+    QCommandLineOption avatarURLOption("avatarURL", "Override the avatar U.R.L.");
+    QCommandLineOption replaceAvatarURLOption("replace-avatar-url", "Replaces the avatar U.R.L. When used with --avatarURL, this takes precedence.");
+    QCommandLineOption setBookmarkOption("setBookmark", "Set bookmark as key=value pair. Including the '=' symbol in either string is unsupported.", "string");
+    QCommandLineOption forceCrashReportingOption("forceCrashReporting", "Force crash reporting to initialize.");
+    // The documented "--disable-lod" does not seem to exist.
+    // Below are undocumented.
+    QCommandLineOption noLauncherOption("no-launcher", "Do not execute the launcher.");
     QCommandLineOption overrideScriptsPathOption(SCRIPTS_SWITCH, "set scripts <path>", "path");
-    QCommandLineOption responseTokensOption("tokens", "set response tokens <json>", "json");
-    QCommandLineOption displayNameOption("displayName", "set user display name <string>", "string");
-    QCommandLineOption setBookmarkOption("setBookmark", "set bookmark key=value pair", "string");
-    QCommandLineOption defaultScriptOverrideOption("defaultScriptsOverride", "override defaultsScripts.js", "string");
-    QCommandLineOption forceCrashReportingOption("forceCrashReporting", "Force crash reporting to initialize");
+    QCommandLineOption responseTokensOption("tokens", "set response tokens <json>.", "json");
+    QCommandLineOption displayNameOption("displayName", "set user display name <string>.", "string");
+    QCommandLineOption defaultScriptOverrideOption("defaultScriptsOverride", "override defaultsScripts.js.", "string");
+    // "--qmljsdebugger", which appears in output from "--help-all".
 
     parser.addOption(urlOption);
-    parser.addOption(noLauncherOption);
+    parser.addOption(protocolVersionOption);
     parser.addOption(noUpdaterOption);
     parser.addOption(checkMinSpecOption);
     parser.addOption(runServerOption);
+    parser.addOption(listenPortOption);
     parser.addOption(serverContentPathOption);
     parser.addOption(overrideAppLocalDataPathOption);
-    parser.addOption(overrideScriptsPathOption);
+    //parser.addOption(scriptsOption); // Use this once SCRIPTS_SWITCH is removed.
     parser.addOption(allowMultipleInstancesOption);
+    parser.addOption(displaysOption);
+    parser.addOption(disableDisplaysOption);
+    parser.addOption(disableInputsOption);
+    parser.addOption(suppressSettingsResetOption);
+    parser.addOption(oculusStoreOption);
+    parser.addOption(standaloneOption);
+    parser.addOption(disableWatchdogOption);
+    parser.addOption(systemCursorOption);
+    parser.addOption(concurrentDownloadsOption);
+    parser.addOption(avatarURLOption);
+    parser.addOption(replaceAvatarURLOption);
+    parser.addOption(setBookmarkOption);
+    parser.addOption(forceCrashReportingOption);
+    parser.addOption(noLauncherOption);
+    parser.addOption(overrideScriptsPathOption); // Remove this along with SCRIPTS_SWITCH.
     parser.addOption(responseTokensOption);
     parser.addOption(displayNameOption);
-    parser.addOption(setBookmarkOption);
     parser.addOption(defaultScriptOverrideOption);
-    parser.addOption(forceCrashReportingOption);
 
-    if (!parser.parse(arguments)) {
-        std::cout << parser.errorText().toStdString() << std::endl; // Avoid Qt log spam
-    }
-
-    if (parser.isSet(versionOption)) {
-        parser.showVersion();
-        Q_UNREACHABLE();
-    }
-    if (parser.isSet(helpOption)) {
-        QCoreApplication mockApp(argc, const_cast<char**>(argv)); // required for call to showHelp()
-        parser.showHelp();
-        Q_UNREACHABLE();
-    }
-
+    QStringList arguments;
     QString applicationPath;
     // A temporary application instance is needed to get the location of the running executable
     // Tests using high_resolution_clock show that this takes about 30-50 microseconds (on my machine, YMMV)
@@ -127,6 +147,10 @@ int main(int argc, const char* argv[]) {
     // cross-platform implementation.
     {
         QCoreApplication tempApp(argc, const_cast<char**>(argv));
+
+        parser.process(QCoreApplication::arguments()); // Must be run after QCoreApplication is initalised.
+        arguments = parser.positionalArguments(); // Must be run after parser processes arguments.
+
 #ifdef Q_OS_OSX
         if (QFileInfo::exists(QCoreApplication::applicationDirPath() + "/../../../config.json")) {
             applicationPath = QCoreApplication::applicationDirPath() + "/../../../";
@@ -137,6 +161,18 @@ int main(int argc, const char* argv[]) {
         applicationPath = QCoreApplication::applicationDirPath();
 #endif
     }
+
+    // Act on arguments for early termination.
+    if (parser.isSet(versionOption)) {
+        parser.showVersion();
+        Q_UNREACHABLE();
+    }
+    if (parser.isSet(helpOption)) {
+        QCoreApplication mockApp(argc, const_cast<char**>(argv)); // required for call to showHelp()
+        parser.showHelp();
+        Q_UNREACHABLE();
+    }
+
     static const QString APPLICATION_CONFIG_FILENAME = "config.json";
     QDir applicationDir(applicationPath);
     QString configFileName = applicationDir.filePath(APPLICATION_CONFIG_FILENAME);
@@ -330,6 +366,7 @@ int main(int argc, const char* argv[]) {
     // Oculus initialization MUST PRECEDE OpenGL context creation.
     // The nature of the Application constructor means this has to be either here,
     // or in the main window ctor, before GL startup.
+    //Application::initPlugins(arguments);
     Application::initPlugins(arguments);
 
 #ifdef Q_OS_WIN
