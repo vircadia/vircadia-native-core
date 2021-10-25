@@ -378,10 +378,11 @@ Item {
                         size: 16
                         color: "#FFFFFF"
                     }
-    
+
                     ListModel {
                         id: antialiasingModel
-    
+
+                        // Maintain same order as "AntialiasingConfig::Mode".
                         ListElement {
                             text: "None"
                         }

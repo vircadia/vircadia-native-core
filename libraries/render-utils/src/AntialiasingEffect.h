@@ -217,10 +217,10 @@ private:
 };
 
 
-#else 
-class AntiAliasingConfig : public render::Job::Config {
+#else // User setting for antialias mode will probably be broken.
+class AntiAliasingConfig : public render::Job::Config { // Not to be confused with AntialiasingConfig...
     Q_OBJECT
-    Q_PROPERTY(bool enabled MEMBER enabled)
+    Q_PROPERTY(bool enabled MEMBER enabled) // Not sure if still useful.
 public:
     AntiAliasingConfig() : render::Job::Config(true) {}
 };
@@ -237,7 +237,7 @@ public:
     
     const gpu::PipelinePointer& getAntialiasingPipeline();
     const gpu::PipelinePointer& getBlendPipeline();
-    
+
 private:
     gpu::FramebufferPointer _antialiasingBuffer;
     
