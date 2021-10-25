@@ -115,6 +115,7 @@ public:
         FXAA,
         MODE_COUNT
     };
+    Q_ENUM(Mode) // Stored as signed int.
 
     void setAAMode(int mode);
     int getAAMode() const { return _mode; }
@@ -122,7 +123,7 @@ public:
     void setDebugFXAA(bool debug) { debugFXAAX = (debug ? 0.0f : 1.0f); emit dirty();}
     bool debugFXAA() const { return (debugFXAAX == 0.0f ? true : false); }
 
-    int _mode{ TAA };
+    int _mode{ TAA }; // '_' prefix but not private?
 
     float blend{ 0.25f };
     float sharpen{ 0.05f };
@@ -144,7 +145,6 @@ public:
 signals:
     void dirty();
 };
-Q_DECLARE_METATYPE(AntialiasingConfig::Mode);
 
 #define SET_BIT(bitfield, bitIndex, value) bitfield = ((bitfield) & ~(1 << (bitIndex))) | ((value) << (bitIndex))
 #define GET_BIT(bitfield, bitIndex) ((bitfield) & (1 << (bitIndex)))
