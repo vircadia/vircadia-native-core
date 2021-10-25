@@ -142,6 +142,7 @@ void RenderScriptingInterface::forceAntialiasingMode(AntialiasingConfig::Mode mo
 	    switch (mode) {
                 case AntialiasingConfig::Mode::NONE:
                     mainViewJitterCamConfig->none();
+                    mainViewAntialiasingConfig->blend = 1;
                     mainViewAntialiasingConfig->setDebugFXAA(false);
                     break;
                 case AntialiasingConfig::TAA:
