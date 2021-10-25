@@ -489,7 +489,7 @@ void WebRTCDataChannels::onSignalingMessage(const QJsonObject& message) {
 
     // Add a remote ICE candidate.
     if (data.contains("candidate")) {
-        connection->addIceCandidate(data);
+        connection->addIceCandidate(data.value("candidate").toObject());
     }
 
 }
