@@ -20,10 +20,15 @@
 // - https://webrtc.github.io/webrtc-org/native-code/native-apis/
 // - https://webrtc.googlesource.com/src/+/master/api/peer_connection_interface.h
 
-const std::string ICE_SERVER_URI = "stun://ice.vircadia.com:7337";
+// FIXME: stun:ice.vircadia.com:7337 doesn't work for WebRTC.
+const std::list<std::string> ICE_SERVER_URIS = { 
+    "stun:stun1.l.google.com:19302",
+    "stun:stun4.l.google.com:19302",
+    "stun:stun.schlund.de"
+};
 const int MAX_WEBRTC_BUFFER_SIZE = 16777216;  // 16MB
 
-// #define WEBRTC_DEBUG
+#define WEBRTC_DEBUG
 
 using namespace webrtc;
 
@@ -545,9 +550,11 @@ rtc::scoped_refptr<PeerConnectionInterface> WebRTCDataChannels::createPeerConnec
 #endif
 
     PeerConnectionInterface::RTCConfiguration configuration;
-    PeerConnectionInterface::IceServer iceServer;
-    iceServer.uri = ICE_SERVER_URI;
-    configuration.servers.push_back(iceServer);
+    for (const auto& uri : ICE_SERVER_URIS) {
+        PeerConnectionInterface::IceServer iceServer;
+        iceServer.uri = uri;
+        configuration.servers.push_back(iceServer);
+    }
 
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "2. Create a new peer connection";
