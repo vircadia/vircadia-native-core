@@ -551,6 +551,8 @@ void DomainServerSettingsManager::setupConfigMap(const QString& userConfigFilena
             packPermissions();
         }
 
+        // No migration needed to version 2.6.
+
         // write the current description version to our settings
         *versionVariant = _descriptionVersion;
 

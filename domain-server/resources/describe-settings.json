@@ -1,5 +1,5 @@
 {
-  "version": 2.5,
+  "version": 2.6,
   "settings": [
     {
       "name": "metaverse",
@@ -69,6 +69,20 @@
           "help": "This is the port where the Metaverse exporter accepts connections. It listens both on IPv4 and IPv6 and can be accessed remotely, so you should make sure to restrict access with a firewall as needed.",
           "default": "9704",
           "type": "int",
+          "advanced": true
+        }
+      ]
+    },
+    {
+      "name": "webrtc",
+      "label": "Networking / WebRTC",
+      "settings": [
+        {
+          "name": "enable_webrtc",
+          "label": "Enable WebRTC Client Connections",
+          "help": "Allow web clients to connect over WebRTC data channels.",
+          "type": "checkbox",
+          "default": false,
           "advanced": true
         }
       ]

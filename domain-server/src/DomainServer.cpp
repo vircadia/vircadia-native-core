@@ -196,10 +196,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _gatekeeper(this),
     _httpManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTP_PORT,
         QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this)
-#if defined(WEBRTC_DATA_CHANNELS)
-    ,
-    _webrtcSignalingServer(this)
-#endif
 {
     if (_parentPID != -1) {
         watchParentProcess(_parentPID);
@@ -275,6 +271,17 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     _settingsManager.apiRefreshGroupInformation();
 
+#if defined(WEBRTC_DATA_CHANNELS)
+    const QString WEBRTC_ENABLE = "webrtc.enable_webrtc";
+    bool isWebRTCEnabled = _settingsManager.valueForKeyPath(WEBRTC_ENABLE).toBool();
+    qDebug() << "WebRTC enabled:" << isWebRTCEnabled;
+    // The domain server's WebRTC signaling server is used by the domain server and the assignment clients, so disabling it
+    // disables WebRTC for the server as a whole.
+    if (isWebRTCEnabled) {
+        _webrtcSignalingServer.reset(new WebRTCSignalingServer(this));
+    }
+#endif
+
     setupNodeListAndAssignments();
 
     updateReplicatedNodes();
@@ -282,7 +289,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     updateUpstreamNodes();
 
 #if defined(WEBRTC_DATA_CHANNELS)
-    setUpWebRTCSignalingServer();
+    if (isWebRTCEnabled) {
+        setUpWebRTCSignalingServer();
+    }
 #endif
 
     if (_type != NonMetaverse) {
@@ -889,7 +898,7 @@ void DomainServer::setupNodeListAndAssignments() {
 // Sets up the WebRTC signaling server that's hosted by the domain server.
 void DomainServer::setUpWebRTCSignalingServer() {
     // Bind the WebRTC signaling server's WebSocket to its port.
-    bool isBound = _webrtcSignalingServer.bind(QHostAddress::AnyIPv4, DEFAULT_DOMAIN_SERVER_WS_PORT);
+    bool isBound = _webrtcSignalingServer->bind(QHostAddress::AnyIPv4, DEFAULT_DOMAIN_SERVER_WS_PORT);
     if (!isBound) {
         qWarning() << "WebRTC signaling server not bound to port. WebRTC connections are not supported.";
         return;
@@ -898,13 +907,14 @@ void DomainServer::setUpWebRTCSignalingServer() {
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
     // Route inbound WebRTC signaling messages received from user clients.
-    connect(&_webrtcSignalingServer, &WebRTCSignalingServer::messageReceived, 
+    connect(_webrtcSignalingServer.get(), &WebRTCSignalingServer::messageReceived, 
         this, &DomainServer::routeWebRTCSignalingMessage);
 
     // Route domain server signaling messages.
     auto webrtcSocket = limitedNodeList->getWebRTCSocket();
     connect(this, &DomainServer::webrtcSignalingMessageForDomainServer, webrtcSocket, &WebRTCSocket::onSignalingMessage);
-    connect(webrtcSocket, &WebRTCSocket::sendSignalingMessage, &_webrtcSignalingServer, &WebRTCSignalingServer::sendMessage);
+    connect(webrtcSocket, &WebRTCSocket::sendSignalingMessage,
+        _webrtcSignalingServer.get(), &WebRTCSignalingServer::sendMessage);
 
     // Forward signaling messages received from assignment clients to user client.
     PacketReceiver& packetReceiver = limitedNodeList->getPacketReceiver();
@@ -912,7 +922,7 @@ void DomainServer::setUpWebRTCSignalingServer() {
         PacketReceiver::makeUnsourcedListenerReference<DomainServer>(this, 
             &DomainServer::forwardAssignmentClientSignalingMessageToUserClient));
     connect(this, &DomainServer::webrtcSignalingMessageForUserClient, 
-        &_webrtcSignalingServer, &WebRTCSignalingServer::sendMessage);
+        _webrtcSignalingServer.get(), &WebRTCSignalingServer::sendMessage);
 }
 
 // Routes an inbound WebRTC signaling message received from a client app to the appropriate recipient.
