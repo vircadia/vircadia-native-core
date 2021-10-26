@@ -209,7 +209,8 @@ int main(int argc, const char* argv[]) {
     );
     QCommandLineOption clockSkewOption(
        "clockSkew",
-       "Forces client instance's clock to skew for demonstration purposes."
+       "Forces client instance's clock to skew for demonstration purposes.",
+       "value"
     );
     // "--qmljsdebugger", which appears in output from "--help-all".
     // Those below don't seem to be optional.
@@ -461,10 +462,10 @@ int main(int argc, const char* argv[]) {
     // need to be in sync with any other network node. This forces clock
     // skew for the individual client
     if (parser.isSet(clockSkewOption)) {
-        const char* clockSkewOption = parser.value(clockSkewOption).toStdString().c_str();
-        qint64 clockSkew = atoll(clockSkewOption);
+        const char* clockSkewValue = parser.value(clockSkewOption).toStdString().c_str();
+        qint64 clockSkew = atoll(clockSkewValue);
         usecTimestampNowForceClockSkew(clockSkew);
-        qCDebug(interfaceapp) << "clockSkewOption=" << clockSkewOption << "clockSkew=" << clockSkew;
+        qCDebug(interfaceapp) << "clockSkewOption=" << clockSkewValue << "clockSkew=" << clockSkew;
     }
 
     // Oculus initialization MUST PRECEDE OpenGL context creation.
