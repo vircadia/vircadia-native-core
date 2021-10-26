@@ -78,36 +78,130 @@ int main(int argc, const char* argv[]) {
     QCommandLineOption helpOption = parser.addHelpOption();
     QCommandLineOption versionOption = parser.addVersionOption();
 
-    QCommandLineOption urlOption("url", "Start at specified URL location.", "value");
-    QCommandLineOption protocolVersionOption("protocolVersion", "Displays the protocol version.");
-    QCommandLineOption noUpdaterOption("no-updater", "Do not show auto-updater.");
-    QCommandLineOption checkMinSpecOption("checkMinSpec", "Check if machine meets minimum specifications.");
-    QCommandLineOption runServerOption("runServer", "Whether to run the server.");
-    QCommandLineOption listenPortOption("listenPort", "Port to listen on.");
-    QCommandLineOption serverContentPathOption("serverContentPath", "Where to find server content <path>.", "serverContentPath"); // This data type will not be familiar to users.
-    QCommandLineOption overrideAppLocalDataPathOption("cache", "set test cache <dir>.", "dir");
-    //QCommandLineOption scriptsOption("scripts", "Set path for defaultScripts.", "dir"); // Use this once SCRIPTS_SWITCH is removed.
-    QCommandLineOption allowMultipleInstancesOption("allowMultipleInstances", "Allow multiple instances to run.");
-    QCommandLineOption displaysOption("display", "Preferred display.", "displays");
-    QCommandLineOption disableDisplaysOption("disable-displays", "Displays to disable.");
-    QCommandLineOption disableInputsOption("disable-inputs", "Inputs to disable.");
-    QCommandLineOption suppressSettingsResetOption("suppress-settings-reset", "Suppress the prompt to reset interface settings.");
-    QCommandLineOption oculusStoreOption("oculus-store", "Let the Oculus plugin know if interface was run from the Oculus Store.");
-    QCommandLineOption standaloneOption("standalone", "Emulate a standalone device.");
-    QCommandLineOption disableWatchdogOption("disableWatchdog", "Disable the watchdog thread. The interface will crash on deadlocks.");
-    QCommandLineOption systemCursorOption("system-cursor", "Needs clarification!");
-    QCommandLineOption concurrentDownloadsOption("concurrent-downloads", "Maximum concurrent resource downloads. Default is 16, except for Android where it is 4.");
-    QCommandLineOption avatarURLOption("avatarURL", "Override the avatar U.R.L.");
-    QCommandLineOption replaceAvatarURLOption("replace-avatar-url", "Replaces the avatar U.R.L. When used with --avatarURL, this takes precedence.");
-    QCommandLineOption setBookmarkOption("setBookmark", "Set bookmark as key=value pair. Including the '=' symbol in either string is unsupported.", "string");
-    QCommandLineOption forceCrashReportingOption("forceCrashReporting", "Force crash reporting to initialize.");
+    QCommandLineOption urlOption(
+        "url",
+        "Start at specified URL location.",
+        "value"
+    );
+    QCommandLineOption protocolVersionOption(
+        "protocolVersion",
+        "Displays the protocol version."
+    );
+    QCommandLineOption noUpdaterOption(
+        "no-updater",
+        "Do not show auto-updater."
+    );
+    QCommandLineOption checkMinSpecOption(
+        "checkMinSpec",
+        "Check if machine meets minimum specifications."
+    );
+    QCommandLineOption runServerOption(
+        "runServer",
+        "Whether to run the server."
+    );
+    QCommandLineOption listenPortOption(
+        "listenPort",
+        "Port to listen on."
+    );
+    QCommandLineOption serverContentPathOption(
+        "serverContentPath",
+        "Where to find server content <path>.",
+        "serverContentPath"
+    ); // This data type will not be familiar to users.
+    QCommandLineOption overrideAppLocalDataPathOption(
+        "cache",
+        "set test cache <dir>.",
+        "dir"
+    );
+    //QCommandLineOption scriptsOption(
+    //    "scripts",
+    //    "Set path for defaultScripts.",
+    //    "dir"
+    //); // Use this once SCRIPTS_SWITCH is removed.
+    QCommandLineOption allowMultipleInstancesOption(
+        "allowMultipleInstances",
+        "Allow multiple instances to run."
+    );
+    QCommandLineOption displaysOption(
+        "display",
+        "Preferred display.",
+        "displays"
+    );
+    QCommandLineOption disableDisplaysOption(
+        "disable-displays",
+        "Displays to disable."
+    );
+    QCommandLineOption disableInputsOption(
+        "disable-inputs",
+        "Inputs to disable."
+    );
+    QCommandLineOption suppressSettingsResetOption(
+        "suppress-settings-reset",
+        "Suppress the prompt to reset interface settings."
+    );
+    QCommandLineOption oculusStoreOption(
+        "oculus-store",
+        "Let the Oculus plugin know if interface was run from the Oculus Store."
+    );
+    QCommandLineOption standaloneOption(
+        "standalone",
+        "Emulate a standalone device."
+    );
+    QCommandLineOption disableWatchdogOption(
+        "disableWatchdog",
+        "Disable the watchdog thread. The interface will crash on deadlocks."
+    );
+    QCommandLineOption systemCursorOption(
+        "system-cursor",
+        "Needs clarification!"
+    );
+    QCommandLineOption concurrentDownloadsOption(
+        "concurrent-downloads",
+        "Maximum concurrent resource downloads. Default is 16, except for Android where it is 4."
+    );
+    QCommandLineOption avatarURLOption(
+        "avatarURL",
+        "Override the avatar U.R.L."
+    );
+    QCommandLineOption replaceAvatarURLOption(
+        "replace-avatar-url",
+        "Replaces the avatar U.R.L. When used with --avatarURL, this takes precedence."
+    );
+    QCommandLineOption setBookmarkOption(
+        "setBookmark",
+        "Set bookmark as key=value pair. Including the '=' symbol in either string is unsupported.",
+        "string"
+    );
+    QCommandLineOption forceCrashReportingOption(
+        "forceCrashReporting",
+        "Force crash reporting to initialize."
+    );
     // The documented "--disable-lod" does not seem to exist.
     // Below are undocumented.
-    QCommandLineOption noLauncherOption("no-launcher", "Do not execute the launcher.");
-    QCommandLineOption overrideScriptsPathOption(SCRIPTS_SWITCH, "set scripts <path>", "path");
-    QCommandLineOption responseTokensOption("tokens", "set response tokens <json>.", "json");
-    QCommandLineOption displayNameOption("displayName", "set user display name <string>.", "string");
-    QCommandLineOption defaultScriptOverrideOption("defaultScriptsOverride", "override defaultsScripts.js.", "string");
+    QCommandLineOption noLauncherOption(
+       "no-launcher",
+       "Do not execute the launcher."
+    );
+    QCommandLineOption overrideScriptsPathOption(
+       SCRIPTS_SWITCH,
+       "set scripts <path>",
+       "path"
+    );
+    QCommandLineOption responseTokensOption(
+       "tokens",
+       "set response tokens <json>.",
+       "json"
+    );
+    QCommandLineOption displayNameOption(
+       "displayName",
+       "set user display name <string>.",
+       "string"
+    );
+    QCommandLineOption defaultScriptOverrideOption(
+       "defaultScriptsOverride",
+       "override defaultsScripts.js.",
+       "string"
+    );
     // "--qmljsdebugger", which appears in output from "--help-all".
 
     parser.addOption(urlOption);
