@@ -66,11 +66,6 @@ int main(int argc, const char* argv[]) {
 
     setupHifiApplication(BuildInfo::INTERFACE_NAME);
 
-    /*QStringList arguments;
-    for (int i = 0; i < argc; ++i) {
-        arguments << argv[i];
-    }*/
-
     // grep -E 'getCmdOption|QCommandLineOption|cmdOptionExists' 'interface/src/Application.cpp'
 
     QCommandLineParser parser;
@@ -460,7 +455,6 @@ int main(int argc, const char* argv[]) {
     // Oculus initialization MUST PRECEDE OpenGL context creation.
     // The nature of the Application constructor means this has to be either here,
     // or in the main window ctor, before GL startup.
-    //Application::initPlugins(arguments);
     Application::initPlugins(arguments);
 
 #ifdef Q_OS_WIN
