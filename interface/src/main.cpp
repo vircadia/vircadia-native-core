@@ -218,7 +218,7 @@ int main(int argc, const char* argv[]) {
        "clockSkew",
        "Forces client instance's clock to skew for demonstration purposes.",
        "value"
-    );
+    ); // This should probably be removed.
     QCommandLineOption testScriptOption(
        "testScript",
        "Undocumented. Accepts parameter as U.R.L.",

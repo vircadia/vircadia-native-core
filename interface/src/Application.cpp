@@ -757,10 +757,7 @@ bool setupEssentials(int& argc, char** argv, const QCommandLineParser* parser, b
     reportAndQuit("--protocolVersion", [&](FILE* fp) {
         auto version = protocolVersionsSignatureBase64();
         fputs(version.toLatin1().data(), fp);
-    }); // This doesn't seem to work.
-    /*reportAndQuit("--version", [&](FILE* fp) {
-        fputs(BuildInfo::VERSION.toLatin1().data(), fp);
-    });*/
+    });
 
     const int listenPort = parser->isSet("listenPort") ? parser->value("listenPort").toInt() : INVALID_PORT;
 
