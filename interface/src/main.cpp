@@ -179,28 +179,40 @@ int main(int argc, const char* argv[]) {
     );
     QCommandLineOption overrideScriptsPathOption(
        SCRIPTS_SWITCH,
-       "set scripts <path>",
+       "Set scripts <path>",
        "path"
+    );
+    QCommandLineOption defaultScriptOverrideOption(
+       "defaultScriptsOverride",
+       "Override defaultsScripts.js.",
+       "string"
     );
     QCommandLineOption responseTokensOption(
        "tokens",
-       "set response tokens <json>.",
+       "Set response tokens <json>.",
        "json"
     );
     QCommandLineOption displayNameOption(
        "displayName",
-       "set user display name <string>.",
+       "Set user display name <string>.",
        "string"
     );
-    QCommandLineOption defaultScriptOverrideOption(
-       "defaultScriptsOverride",
-       "override defaultsScripts.js.",
-       "string"
+    QCommandLineOption traceFileOption(
+       "traceFile",
+       "Probably writes a trace to a file?",
+       "path"
+    );
+    QCommandLineOption traceDurationOption(
+       "traceDuration",
+       "Only works if \"--traceFile\" is provided.",
+       "value"
+    );
+    QCommandLineOption clockSkewOption(
+       "clockSkew",
+       "Forces client instance's clock to skew for demonstration purposes."
     );
     // "--qmljsdebugger", which appears in output from "--help-all".
-    // Those below are found in this file but have not yet been moved here.
-    //     --traceFile
-    //     --clockSkew
+    // Those below don't seem to be optional.
     //     --ignore-gpu-blacklist
     //     --suppress-settings-reset
 
@@ -232,6 +244,9 @@ int main(int argc, const char* argv[]) {
     parser.addOption(responseTokensOption);
     parser.addOption(displayNameOption);
     parser.addOption(defaultScriptOverrideOption);
+    parser.addOption(traceFileOption);
+    parser.addOption(traceDurationOption);
+    parser.addOption(clockSkewOption);
 
     QStringList arguments;
     QString applicationPath;
@@ -305,18 +320,14 @@ int main(int argc, const char* argv[]) {
     // Early check for --traceFile argument 
     auto tracer = DependencyManager::set<tracing::Tracer>();
     const char * traceFile = nullptr;
-    const QString traceFileFlag("--traceFile");
-    float traceDuration = 0.0f;
-    for (int a = 1; a < argc; ++a) {
-        if (traceFileFlag == argv[a] && argc > a + 1) {
-            traceFile = argv[a + 1];
-            if (argc > a + 2) {
-                traceDuration = atof(argv[a + 2]);
-            }
-            break;
+    float traceDuration;
+    if (parser.isSet(traceFileOption)) {
+        traceFile = parser.value(traceFileOption).toStdString().c_str();
+	if (parser.isSet(traceDurationOption)) {
+            traceDuration = parser.value(traceDurationOption).toFloat();
+        } else {
+            traceDuration = 0.0f;
         }
-    }
-    if (traceFile != nullptr) {
         tracer->startTracing();
     }
    
@@ -449,9 +460,8 @@ int main(int argc, const char* argv[]) {
     // Debug option to demonstrate that the client's local time does not
     // need to be in sync with any other network node. This forces clock
     // skew for the individual client
-    const char* CLOCK_SKEW = "--clockSkew";
-    const char* clockSkewOption = getCmdOption(argc, argv, CLOCK_SKEW);
-    if (clockSkewOption) {
+    if (parser.isSet(clockSkewOption)) {
+        const char* clockSkewOption = parser.value(clockSkewOption).toStdString().c_str();
         qint64 clockSkew = atoll(clockSkewOption);
         usecTimestampNowForceClockSkew(clockSkew);
         qCDebug(interfaceapp) << "clockSkewOption=" << clockSkewOption << "clockSkew=" << clockSkew;
