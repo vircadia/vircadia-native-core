@@ -323,7 +323,7 @@ int main(int argc, const char* argv[]) {
     float traceDuration;
     if (parser.isSet(traceFileOption)) {
         traceFile = parser.value(traceFileOption).toStdString().c_str();
-	if (parser.isSet(traceDurationOption)) {
+        if (parser.isSet(traceDurationOption)) {
             traceDuration = parser.value(traceDurationOption).toFloat();
         } else {
             traceDuration = 0.0f;
