@@ -198,6 +198,11 @@ int main(int argc, const char* argv[]) {
        "string"
     );
     // "--qmljsdebugger", which appears in output from "--help-all".
+    // Those below are found in this file but have not yet been moved here.
+    //     --traceFile
+    //     --clockSkew
+    //     --ignore-gpu-blacklist
+    //     --suppress-settings-reset
 
     parser.addOption(urlOption);
     parser.addOption(protocolVersionOption);
