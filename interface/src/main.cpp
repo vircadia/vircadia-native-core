@@ -80,7 +80,8 @@ int main(int argc, const char* argv[]) {
     );
     QCommandLineOption protocolVersionOption(
         "protocolVersion",
-        "Displays the protocol version."
+        "Writes the protocol version base64 signature to a file?",
+        "path" // Why??
     );
     QCommandLineOption noUpdaterOption(
         "no-updater",
@@ -108,11 +109,11 @@ int main(int argc, const char* argv[]) {
         "set test cache <dir>.",
         "dir"
     );
-    //QCommandLineOption scriptsOption(
-    //    "scripts",
-    //    "Set path for defaultScripts.",
-    //    "dir"
-    //); // Use this once SCRIPTS_SWITCH is removed.
+    QCommandLineOption scriptsOption(
+        "scripts",
+        "Set path for defaultScripts.",
+        "dir"
+    );
     QCommandLineOption allowMultipleInstancesOption(
         "allowMultipleInstances",
         "Allow multiple instances to run."
@@ -124,11 +125,13 @@ int main(int argc, const char* argv[]) {
     );
     QCommandLineOption disableDisplaysOption(
         "disable-displays",
-        "Displays to disable."
+        "Displays to disable.",
+        "string"
     );
     QCommandLineOption disableInputsOption(
         "disable-inputs",
-        "Inputs to disable."
+        "Inputs to disable.",
+        "string"
     );
     QCommandLineOption suppressSettingsResetOption(
         "suppress-settings-reset",
@@ -177,11 +180,11 @@ int main(int argc, const char* argv[]) {
        "no-launcher",
        "Do not execute the launcher."
     );
-    QCommandLineOption overrideScriptsPathOption(
+    /*QCommandLineOption overrideScriptsPathOption(
        SCRIPTS_SWITCH,
        "Set scripts <path>",
        "path"
-    );
+    );*/
     QCommandLineOption defaultScriptOverrideOption(
        "defaultScriptsOverride",
        "Override defaultsScripts.js.",
@@ -196,6 +199,10 @@ int main(int argc, const char* argv[]) {
        "displayName",
        "Set user display name <string>.",
        "string"
+    );
+    QCommandLineOption noLoginOption(
+       "no-login-suggestion",
+       "Do not show log-in dialogue."
     );
     QCommandLineOption traceFileOption(
        "traceFile",
@@ -212,6 +219,24 @@ int main(int argc, const char* argv[]) {
        "Forces client instance's clock to skew for demonstration purposes.",
        "value"
     );
+    QCommandLineOption testScriptOption(
+       "testScript",
+       "Undocumented. Accepts parameter as U.R.L.",
+       "string"
+    );
+    QCommandLineOption testResultsLocationOption(
+       "testResultsLocation",
+       "Undocumented",
+       "path"
+    );
+    QCommandLineOption quitWhenFinishedOption(
+       "quitWhenFinished",
+       "Only works if \"--testScript\" is provided."
+    ); // Should probably also work on testResultsLocationOption.
+    QCommandLineOption fastHeartbeatOption(
+       "fast-heartbeat",
+       "Change stats polling interval from 10000ms to 1000ms."
+    );
     // "--qmljsdebugger", which appears in output from "--help-all".
     // Those below don't seem to be optional.
     //     --ignore-gpu-blacklist
@@ -225,7 +250,7 @@ int main(int argc, const char* argv[]) {
     parser.addOption(listenPortOption);
     parser.addOption(serverContentPathOption);
     parser.addOption(overrideAppLocalDataPathOption);
-    //parser.addOption(scriptsOption); // Use this once SCRIPTS_SWITCH is removed.
+    parser.addOption(scriptsOption); // Also known as "overrideScriptsPathOption"?
     parser.addOption(allowMultipleInstancesOption);
     parser.addOption(displaysOption);
     parser.addOption(disableDisplaysOption);
@@ -241,15 +266,17 @@ int main(int argc, const char* argv[]) {
     parser.addOption(setBookmarkOption);
     parser.addOption(forceCrashReportingOption);
     parser.addOption(noLauncherOption);
-    parser.addOption(overrideScriptsPathOption); // Remove this along with SCRIPTS_SWITCH.
     parser.addOption(responseTokensOption);
     parser.addOption(displayNameOption);
     parser.addOption(defaultScriptOverrideOption);
     parser.addOption(traceFileOption);
     parser.addOption(traceDurationOption);
     parser.addOption(clockSkewOption);
+    parser.addOption(testScriptOption);
+    parser.addOption(testResultsLocationOption);
+    parser.addOption(quitWhenFinishedOption);
+    parser.addOption(fastHeartbeatOption);
 
-    QStringList arguments;
     QString applicationPath;
     // A temporary application instance is needed to get the location of the running executable
     // Tests using high_resolution_clock show that this takes about 30-50 microseconds (on my machine, YMMV)
@@ -259,7 +286,6 @@ int main(int argc, const char* argv[]) {
         QCoreApplication tempApp(argc, const_cast<char**>(argv));
 
         parser.process(QCoreApplication::arguments()); // Must be run after QCoreApplication is initalised.
-        arguments = parser.positionalArguments(); // Must be run after parser processes arguments.
 
 #ifdef Q_OS_OSX
         if (QFileInfo::exists(QCoreApplication::applicationDirPath() + "/../../../config.json")) {
@@ -388,12 +414,13 @@ int main(int argc, const char* argv[]) {
     // this needs to be done here in main, as the mechanism for setting the
     // scripts directory appears not to work.  See the bug report
     // https://highfidelity.fogbugz.com/f/cases/5759/Issues-changing-scripts-directory-in-ScriptsEngine
-    if (parser.isSet(overrideScriptsPathOption)) {
+    // It is currently also done in "Application.cpp". Not sure if necessary.
+    /*if (parser.isSet(overrideScriptsPathOption)) {
         QDir scriptsPath(parser.value(overrideScriptsPathOption));
         if (scriptsPath.exists()) {
             PathUtils::defaultScriptsLocation(scriptsPath.path());
         }
-    }
+    }*/
 
     if (instanceMightBeRunning) {
         // Try to connect and send message to existing interface instance
@@ -471,7 +498,7 @@ int main(int argc, const char* argv[]) {
     // Oculus initialization MUST PRECEDE OpenGL context creation.
     // The nature of the Application constructor means this has to be either here,
     // or in the main window ctor, before GL startup.
-    Application::initPlugins(arguments);
+    Application::initPlugins(&parser);
 
 #ifdef Q_OS_WIN
     // If we're running in steam mode, we need to do an explicit check to ensure we're up to the required min spec
@@ -519,7 +546,7 @@ int main(int argc, const char* argv[]) {
 
         PROFILE_SYNC_END(startup, "main startup", "");
         PROFILE_SYNC_BEGIN(startup, "app full ctor", "");
-        Application app(argcExtended, const_cast<char**>(argvExtended.data()), startupTime, runningMarkerExisted);
+        Application app(argcExtended, const_cast<char**>(argvExtended.data()), &parser, startupTime, runningMarkerExisted);
         PROFILE_SYNC_END(startup, "app full ctor", "");
 
 #if defined(Q_OS_LINUX)
