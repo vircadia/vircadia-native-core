@@ -21,9 +21,9 @@
 // - https://webrtc.googlesource.com/src/+/master/api/peer_connection_interface.h
 
 // FIXME: stun:ice.vircadia.com:7337 doesn't work for WebRTC.
-const std::list<std::string> ICE_SERVER_URIS = { 
+// Firefox warns: "WebRTC: Using more than two STUN/TURN servers slows down discovery"
+const std::list<std::string> ICE_SERVER_URIS = {
     "stun:stun1.l.google.com:19302",
-    "stun:stun4.l.google.com:19302",
     "stun:stun.schlund.de"
 };
 const int MAX_WEBRTC_BUFFER_SIZE = 16777216;  // 16MB
