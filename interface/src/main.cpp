@@ -178,8 +178,13 @@ int main(int argc, const char* argv[]) {
        "no-launcher",
        "Do not execute the launcher."
     );
+    QCommandLineOption overrideScriptsPathOption(
+       "overrideScriptsPath",
+       "Probably specifies where to look for scripts.",
+       "string"
+    );
     QCommandLineOption defaultScriptOverrideOption(
-       "defaultScriptsOverride",
+       "defaultScriptOverride",
        "Override defaultsScripts.js.",
        "string"
     );
@@ -243,7 +248,7 @@ int main(int argc, const char* argv[]) {
     parser.addOption(listenPortOption);
     parser.addOption(serverContentPathOption);
     parser.addOption(overrideAppLocalDataPathOption);
-    parser.addOption(scriptsOption); // Also known as "overrideScriptsPathOption"?
+    parser.addOption(scriptsOption);
     parser.addOption(allowMultipleInstancesOption);
     parser.addOption(displaysOption);
     parser.addOption(disableDisplaysOption);
@@ -261,6 +266,7 @@ int main(int argc, const char* argv[]) {
     parser.addOption(noLauncherOption);
     parser.addOption(responseTokensOption);
     parser.addOption(displayNameOption);
+    parser.addOption(overrideScriptsPathOption);
     parser.addOption(defaultScriptOverrideOption);
     parser.addOption(traceFileOption);
     parser.addOption(traceDurationOption);
@@ -419,13 +425,12 @@ int main(int argc, const char* argv[]) {
     // this needs to be done here in main, as the mechanism for setting the
     // scripts directory appears not to work.  See the bug report (dead link)
     // https://highfidelity.fogbugz.com/f/cases/5759/Issues-changing-scripts-directory-in-ScriptsEngine
-    // It is currently also done in "Application.cpp". Not sure if necessary.
-    /*if (parser.isSet(overrideScriptsPathOption)) {
+    if (parser.isSet(overrideScriptsPathOption)) {
         QDir scriptsPath(parser.value(overrideScriptsPathOption));
         if (scriptsPath.exists()) {
             PathUtils::defaultScriptsLocation(scriptsPath.path());
         }
-    }*/
+    }
 
     if (instanceMightBeRunning) {
         // Try to connect and send message to existing interface instance
