@@ -1925,7 +1925,7 @@ Application::Application(
     }
 
     if (parser->isSet("scripts")) {
-        _defaultScriptsLocation.setPath(parser->value("scripts")); // Already done in "main.cpp".
+        _defaultScriptsLocation.setPath(parser->value("scripts")); // Might need to be done in "main.cpp".
 	_overrideDefaultScriptsLocation = true;
     } else {
 	_overrideDefaultScriptsLocation = false;
