@@ -278,7 +278,10 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     // The domain server's WebRTC signaling server is used by the domain server and the assignment clients, so disabling it
     // disables WebRTC for the server as a whole.
     if (isWebRTCEnabled) {
-        _webrtcSignalingServer.reset(new WebRTCSignalingServer(this));
+        const QString WEBRTC_WSS_ENABLE = "webrtc.enable_webrtc_websocket_ssl";
+        bool isWebRTCEnabled = _settingsManager.valueForKeyPath(WEBRTC_WSS_ENABLE).toBool();
+        qDebug() << "WebRTC WSS enabled:" << isWebRTCEnabled;
+        _webrtcSignalingServer.reset(new WebRTCSignalingServer(this, isWebRTCEnabled));
     }
 #endif
 
