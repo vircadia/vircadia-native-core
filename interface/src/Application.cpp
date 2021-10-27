@@ -728,36 +728,11 @@ extern DisplayPluginList getDisplayPlugins();
 extern InputPluginList getInputPlugins();
 extern void saveInputPluginSettings(const InputPluginList& plugins);
 
-// Parameters used for running tests from the command line
-
 bool setupEssentials(int& argc, char** argv, const QCommandLineParser* parser, bool runningMarkerExisted) {
     const char** constArgv = const_cast<const char**>(argv);
 
     qInstallMessageHandler(messageHandler);
 
-    // HRS: I could not figure out how to move these any earlier in startup, so when using this option, be sure to also supply
-    // --allowMultipleInstances
-    auto reportAndQuit = [&](const char* commandSwitch, std::function<void(FILE* fp)> report) {
-        // Do something about this:
-        const char* reportfile = getCmdOption(argc, constArgv, commandSwitch);
-        // Reports to the specified file, because stdout is set up to be captured for logging.
-        if (reportfile) {
-            FILE* fp = fopen(reportfile, "w");
-            if (fp) {
-                report(fp);
-                fclose(fp);
-                if (!runningMarkerExisted) { // don't leave ours around
-                    RunningMarker runingMarker(RUNNING_MARKER_FILENAME);
-                    runingMarker.deleteRunningMarkerFile(); // happens in deleter, but making the side-effect explicit.
-                }
-                _exit(0);
-            }
-        }
-    };
-    reportAndQuit("--protocolVersion", [&](FILE* fp) {
-        auto version = protocolVersionsSignatureBase64();
-        fputs(version.toLatin1().data(), fp);
-    });
 
     const int listenPort = parser->isSet("listenPort") ? parser->value("listenPort").toInt() : INVALID_PORT;
 
