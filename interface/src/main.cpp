@@ -74,7 +74,7 @@ int main(int argc, const char* argv[]) {
     QCommandLineOption urlOption(
         "url",
         "Start at specified URL location.",
-        "value"
+        "string"
     );
     QCommandLineOption protocolVersionOption(
         "protocolVersion",
@@ -87,11 +87,11 @@ int main(int argc, const char* argv[]) {
     );
     QCommandLineOption checkMinSpecOption(
         "checkMinSpec",
-        "Check if machine meets minimum specifications."
+        "Check if machine meets minimum specifications. The program will run if check passes."
     );
     QCommandLineOption runServerOption(
         "runServer",
-        "Whether to run the server."
+        "Run the server."
     );
     QCommandLineOption listenPortOption(
         "listenPort",
@@ -99,12 +99,12 @@ int main(int argc, const char* argv[]) {
     );
     QCommandLineOption serverContentPathOption(
         "serverContentPath",
-        "Where to find server content <path>.",
+        "Path to find server content.", // What content??
         "serverContentPath"
     ); // This data type will not be familiar to users.
     QCommandLineOption overrideAppLocalDataPathOption(
         "cache",
-        "set test cache <dir>.",
+        "Set test cache.",
         "dir"
     );
     QCommandLineOption scriptsOption(
@@ -205,12 +205,12 @@ int main(int argc, const char* argv[]) {
     QCommandLineOption traceDurationOption(
        "traceDuration",
        "Probably a number of seconds? Only works if \"--traceFile\" is specified.",
-       "value"
+       "number"
     );
     QCommandLineOption clockSkewOption(
        "clockSkew",
        "Forces client instance's clock to skew for demonstration purposes.",
-       "value"
+       "integer"
     ); // This should probably be removed.
     QCommandLineOption testScriptOption(
        "testScript",
