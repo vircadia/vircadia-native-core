@@ -4,8 +4,8 @@ link_hifi_libraries(shared platform)
 
 target_openssl()
 target_tbb()
-if (WIN32)
-    # WEBRTC TODO: Add UNIX.
+
+if (WIN32 OR (UNIX AND NOT APPLE))
     target_webrtc()
 endif ()
 
