@@ -70,10 +70,6 @@ WebRTCSignalingServer::WebRTCSignalingServer(QObject* parent, bool isWSSEnabled)
         _webSocketServer = (new QWebSocketServer(QStringLiteral("WebRTC Signaling Server"), QWebSocketServer::NonSecureMode,
             this));
     }
-#ifdef WEBRTC_DEBUG
-    qCDebug(networking_webrtc) << "WebRTCSignalingServer mode =" << _webSocketServer->secureMode();
-#endif
-
     connect(_webSocketServer, &QWebSocketServer::newConnection, this, &WebRTCSignalingServer::newWebSocketConnection);
 
     // Automatically recover from network interruptions.
