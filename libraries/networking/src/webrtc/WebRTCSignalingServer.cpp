@@ -31,9 +31,9 @@ WebRTCSignalingServer::WebRTCSignalingServer(QObject* parent, bool isWSSEnabled)
             this));
 
         auto dsDirPath = PathUtils::getAppLocalDataPath();
-        const QString KEY_FILENAME = "cert.key";
-        const QString CRT_FILENAME = "cert.crt";
-        const QString CA_CRT_FILENAME = "cert-ca.crt";
+        const QString KEY_FILENAME = "vircadia-cert.key";
+        const QString CRT_FILENAME = "vircadia-cert.crt";
+        const QString CA_CRT_FILENAME = "vircadia-cert-ca.crt";
         qCDebug(networking_webrtc) << "WebSocket WSS key file:" << dsDirPath + KEY_FILENAME;
         qCDebug(networking_webrtc) << "WebSocket WSS cert file:" << dsDirPath + CRT_FILENAME;
         qCDebug(networking_webrtc) << "WebSocket WSS CA cert file:" << dsDirPath + CA_CRT_FILENAME;
