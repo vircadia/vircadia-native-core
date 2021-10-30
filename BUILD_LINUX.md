@@ -172,8 +172,8 @@ directory that vcpkg builds into with the `HIFI_VCPKG_BASE` environment variable
 For example, you might set `HIFI_VCPKG_BASE` to `/home/$USER/vcpkg`.
 By default, vcpkg will build in the system `/tmp` directory.
 
-If build is intended for packaging or creation of AppImage, VIRCADIA_CPU_ARCHITECTURE
+If build is intended for packaging or creation of AppImage, `VIRCADIA_CPU_ARCHITECTURE`
 CMake variable needs to be set to architecture specific value.
-It defaults to "-march=native -mtune=native", which yields builds optimized for particular
+It defaults to `-march=native -mtune=native`, which yields builds optimized for particular
 machine, but builds will not work on machines lacking same CPU instructions.
-For packaging and AppImage it is recommended to set it to different value, for example "-msse3".
+For packaging and AppImage it is recommended to set it to different value, for example `-msse3`.
