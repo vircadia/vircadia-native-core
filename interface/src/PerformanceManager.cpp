@@ -113,7 +113,7 @@ void PerformanceManager::applyPerformancePreset(PerformanceManager::PerformanceP
             RenderScriptingInterface::getInstance()->setShadowsEnabled(false);
             qApp->getRefreshRateManager().setRefreshRateProfile(RefreshRateManager::RefreshRateProfile::REALTIME);
 
-            RenderScriptingInterface::getInstance()->setViewportResolutionScale(recommandedPpiScale);
+            RenderScriptingInterface::getInstance()->setViewportResolutionScale(recommendedPpiScale);
 
             DependencyManager::get<LODManager>()->setWorldDetailQuality(WORLD_DETAIL_LOW);
 
