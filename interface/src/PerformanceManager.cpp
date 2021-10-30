@@ -128,8 +128,7 @@ void PerformanceManager::applyPerformancePreset(PerformanceManager::PerformanceP
             DependencyManager::get<LODManager>()->setWorldDetailQuality(WORLD_DETAIL_LOW);
 
             break;
-        case
-            PerformancePreset::UNKNOWN:
+        case PerformancePreset::UNKNOWN:
 	    // Intentionally unbroken.
         default:
             // Do nothing.
