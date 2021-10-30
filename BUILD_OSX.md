@@ -64,6 +64,14 @@ You can append `-j4` to assign more threads to build with. The number indicates 
 
 To package the installation, you can simply run `make package` afterwards.
 
+## Notes
+
+If build is intended for packaging or creation of AppImage, `VIRCADIA_CPU_ARCHITECTURE`
+CMake variable needs to be set to architecture specific value.
+It defaults to `-march=native -mtune=native`, which yields builds optimized for particular
+machine, but builds will not work on machines lacking same CPU instructions.
+For packaging and AppImage it is recommended to set it to different value, for example `-msse3`.
+
 ## FAQ
 
 1. **Problem:** Running the scheme `interface.app` from Xcode causes a crash for Interface related to `libgl`.
