@@ -220,7 +220,7 @@ private:
 #else // User setting for antialias mode will probably be broken.
 class AntiAliasingConfig : public render::Job::Config { // Not to be confused with AntialiasingConfig...
     Q_OBJECT
-    Q_PROPERTY(bool enabled MEMBER enabled) // Not sure if still useful.
+    Q_PROPERTY(bool enabled MEMBER enabled)
 public:
     AntiAliasingConfig() : render::Job::Config(true) {}
 };
