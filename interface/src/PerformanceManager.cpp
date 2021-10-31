@@ -69,15 +69,15 @@ void PerformanceManager::applyPerformancePreset(PerformanceManager::PerformanceP
     bool isDeferredCapable = platform::Profiler::isRenderMethodDeferredCapable();
     auto masterDisplay = platform::getDisplay(platform::getMasterDisplay());
     
-    // eval recommanded PPI and Scale
-    float recommandedPpiScale = 1.0f;
-    const float RECOMMANDED_PPI[] = { 200.0f, 120.f, 160.f, 250.f};
+    // eval recommended PPI and Scale
+    float recommendedPpiScale = 1.0f;
+    const float RECOMMENDED_PPI[] = { 200.0f, 120.f, 160.f, 250.f};
     if (!masterDisplay.empty() && masterDisplay.count(platform::keys::display::ppi)) {
         float ppi = masterDisplay[platform::keys::display::ppi];
         // only scale if the actual ppi is higher than the recommended ppi
-        if (ppi > RECOMMANDED_PPI[preset]) {
+        if (ppi > RECOMMENDED_PPI[preset]) {
             // make sure the scale is no less than a quarter
-            recommandedPpiScale = std::max(0.25f, RECOMMANDED_PPI[preset] / (float) ppi);
+            recommendedPpiScale = std::max(0.25f, RECOMMENDED_PPI[preset] / (float) ppi);
         }
     }
 
@@ -87,7 +87,7 @@ void PerformanceManager::applyPerformancePreset(PerformanceManager::PerformanceP
                 RenderScriptingInterface::RenderMethod::DEFERRED : 
                 RenderScriptingInterface::RenderMethod::FORWARD ) );
 
-            RenderScriptingInterface::getInstance()->setViewportResolutionScale(recommandedPpiScale);
+            RenderScriptingInterface::getInstance()->setViewportResolutionScale(recommendedPpiScale);
             
             RenderScriptingInterface::getInstance()->setShadowsEnabled(true);
             qApp->getRefreshRateManager().setRefreshRateProfile(RefreshRateManager::RefreshRateProfile::REALTIME);
@@ -100,7 +100,7 @@ void PerformanceManager::applyPerformancePreset(PerformanceManager::PerformanceP
                 RenderScriptingInterface::RenderMethod::DEFERRED :
                 RenderScriptingInterface::RenderMethod::FORWARD));
 
-            RenderScriptingInterface::getInstance()->setViewportResolutionScale(recommandedPpiScale);
+            RenderScriptingInterface::getInstance()->setViewportResolutionScale(recommendedPpiScale);
 
             RenderScriptingInterface::getInstance()->setShadowsEnabled(false);
             qApp->getRefreshRateManager().setRefreshRateProfile(RefreshRateManager::RefreshRateProfile::INTERACTIVE);
@@ -112,7 +112,7 @@ void PerformanceManager::applyPerformancePreset(PerformanceManager::PerformanceP
             RenderScriptingInterface::getInstance()->setShadowsEnabled(false);
             qApp->getRefreshRateManager().setRefreshRateProfile(RefreshRateManager::RefreshRateProfile::ECO);
 
-            RenderScriptingInterface::getInstance()->setViewportResolutionScale(recommandedPpiScale);
+            RenderScriptingInterface::getInstance()->setViewportResolutionScale(recommendedPpiScale);
 
             DependencyManager::get<LODManager>()->setWorldDetailQuality(WORLD_DETAIL_LOW);
 
