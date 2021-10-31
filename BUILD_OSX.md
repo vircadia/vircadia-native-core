@@ -71,6 +71,8 @@ CMake variable needs to be set to architecture specific value.
 It defaults to `-march=native -mtune=native`, which yields builds optimized for particular
 machine, but builds will not work on machines lacking same CPU instructions.
 For packaging and AppImage it is recommended to set it to different value, for example `-msse3`.
+Setting `VIRCADIA_CPU_ARCHITECTURE` to empty string will use default compiler settings and yield
+maximum compatibility.
 
 ## FAQ
 
