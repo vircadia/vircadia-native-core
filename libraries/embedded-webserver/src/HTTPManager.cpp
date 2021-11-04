@@ -166,7 +166,7 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QUrl& url,
                 localFileData = localFileString.toLocal8Bit();
             }
 
-            // if this is an shtml file just make the MIME type match HTML so browsers aren't confused
+            // if this is an shtml, html or htm file just make the MIME type match HTML so browsers aren't confused
             // otherwise use the mimeDatabase to look it up
             auto suffix = localFileInfo.suffix();
             auto mimeType = (suffix == "shtml" || suffix == "html" || suffix == "htm")
