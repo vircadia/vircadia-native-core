@@ -95,7 +95,8 @@ int main(int argc, const char* argv[]) {
     );
     QCommandLineOption listenPortOption(
         "listenPort",
-        "Port to listen on."
+        "Port to listen on.",
+        "port_number"
     );
     QCommandLineOption serverContentPathOption(
         "serverContentPath",
@@ -153,15 +154,18 @@ int main(int argc, const char* argv[]) {
     );
     QCommandLineOption concurrentDownloadsOption(
         "concurrent-downloads",
-        "Maximum concurrent resource downloads. Default is 16, except for Android where it is 4."
+        "Maximum concurrent resource downloads. Default is 16, except for Android where it is 4.",
+        "integer"
     );
     QCommandLineOption avatarURLOption(
         "avatarURL",
-        "Override the avatar U.R.L."
+        "Override the avatar U.R.L.",
+        "url"
     );
     QCommandLineOption replaceAvatarURLOption(
         "replace-avatar-url",
-        "Replaces the avatar U.R.L. When used with --avatarURL, this takes precedence."
+        "Replaces the avatar U.R.L. When used with --avatarURL, this takes precedence.",
+        "url"
     );
     QCommandLineOption setBookmarkOption(
         "setBookmark",
