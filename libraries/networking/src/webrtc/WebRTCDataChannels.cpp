@@ -28,7 +28,7 @@ const std::list<std::string> ICE_SERVER_URIS = {
 };
 const int MAX_WEBRTC_BUFFER_SIZE = 16777216;  // 16MB
 
-#define WEBRTC_DEBUG
+// #define WEBRTC_DEBUG
 
 using namespace webrtc;
 
