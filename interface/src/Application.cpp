@@ -1928,7 +1928,7 @@ Application::Application(
         _defaultScriptsLocation.setPath(parser->value("scripts")); // Might need to be done in "main.cpp".
         _overrideDefaultScriptsLocation = true;
     } else {
-	_overrideDefaultScriptsLocation = false;
+        _overrideDefaultScriptsLocation = false;
     }
 
     // Make sure we don't time out during slow operations at startup
