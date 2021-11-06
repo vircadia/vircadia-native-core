@@ -23,7 +23,6 @@
 #include <QtCore/QStringList>
 #include <QtQuick/QQuickItem>
 
-
 #include <QtGui/QImage>
 
 #include <QtWidgets/QApplication>
