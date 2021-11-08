@@ -28,7 +28,6 @@ void AvatarMixerWorkerThread::run() {
 
         wait(starting);
         starting = false;
-        assert(_function);
 
         if (_function) {
             // iterate over all available nodes
@@ -46,10 +45,9 @@ void AvatarMixerWorkerThread::wait(bool starting) {
     {
         Lock workerLock(_data.workerMutex);
         if (starting || _data.numStarted == _data.numThreads) {
-            _data.workerCondition.wait(workerLock, [&] {
-                assert(_data.numStarted <= _data.numThreads);
-                return _data.numStarted != _data.numThreads;
-            });
+            do {  // this is equivalent to the two-parameter "wait" call, except we're doing the test afterwards
+                _data.workerCondition.wait(workerLock);
+            } while (_data.numStarted == _data.numThreads);
         }
         _data.numStarted++;
     }
@@ -58,7 +56,6 @@ void AvatarMixerWorkerThread::wait(bool starting) {
         _data.configure(*this);
     }
     _function = _data.function;
-    assert(_function);
 }
 
 void AvatarMixerWorkerThread::notify(bool stopping) {
@@ -88,7 +85,7 @@ void AvatarMixerSlavePool::processIncomingPackets(ConstIter begin, ConstIter end
     run(begin, end);
 }
 
-void AvatarMixerSlavePool::broadcastAvatarData(ConstIter begin, ConstIter end, 
+void AvatarMixerSlavePool::broadcastAvatarData(ConstIter begin, ConstIter end,
                                                p_high_resolution_clock::time_point lastFrameTimestamp,
                                                float maxKbpsPerNode, float throttlingRatio) {
     _data.function = &AvatarMixerSlave::broadcastAvatarData;
@@ -129,7 +126,6 @@ void AvatarMixerSlavePool::run(ConstIter begin, ConstIter end) {
     assert(_data.queue.empty());
 }
 
-
 void AvatarMixerSlavePool::each(std::function<void(AvatarMixerSlave& slave)> functor) {
     for (auto& worker : _workers) {
         functor(*worker.get());
@@ -147,7 +143,7 @@ void AvatarMixerSlavePool::queueStats(QJsonObject& stats) {
         i++;
     }
 }
-#endif // DEBUG_EVENT_QUEUE
+#endif  // DEBUG_EVENT_QUEUE
 
 void AvatarMixerSlavePool::setNumThreads(int numThreads) {
     // clamp to allowed size
@@ -214,7 +210,7 @@ void AvatarMixerSlavePool::resize(int numThreads) {
                 _data.numStarted = _data.numFinished = 0;
                 _data.workerCondition.notify_all();
             }
-            
+
             {
                 Lock poolLock(_data.poolMutex);
                 if (_data.numFinished < _data.numThreads) {

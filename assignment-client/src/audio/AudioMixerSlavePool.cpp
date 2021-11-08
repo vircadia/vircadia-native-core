@@ -32,7 +32,6 @@ void AudioMixerWorkerThread::run() {
 
         wait(starting);
         starting = false;
-        assert(_function);
 
         if (_function) {
             // iterate over all available nodes
@@ -50,10 +49,9 @@ void AudioMixerWorkerThread::wait(bool starting) {
     {
         Lock workerLock(_data.workerMutex);
         if (starting || _data.numStarted == _data.numThreads) {
-            _data.workerCondition.wait(workerLock, [&] {
-                assert(_data.numStarted <= _data.numThreads);
-                return _data.numStarted != _data.numThreads;
-            });
+            do {  // this is equivalent to the two-parameter "wait" call, except we're doing the test afterwards
+                _data.workerCondition.wait(workerLock);
+            } while (_data.numStarted == _data.numThreads);
         }
         _data.numStarted++;
     }
@@ -62,7 +60,6 @@ void AudioMixerWorkerThread::wait(bool starting) {
         _data.configure(*this);
     }
     _function = _data.function;
-    assert(_function);
 }
 
 void AudioMixerWorkerThread::notify(bool stopping) {
@@ -147,7 +144,7 @@ void AudioMixerSlavePool::queueStats(QJsonObject& stats) {
         i++;
     }
 }
-#endif // DEBUG_EVENT_QUEUE
+#endif  // DEBUG_EVENT_QUEUE
 
 void AudioMixerSlavePool::setNumThreads(int numThreads) {
     // clamp to allowed size
