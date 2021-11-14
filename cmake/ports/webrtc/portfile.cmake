@@ -24,9 +24,9 @@ else ()
     # else Linux desktop
     vcpkg_download_distfile(
         WEBRTC_SOURCE_ARCHIVE
-        URLS "${EXTERNAL_BUILD_ASSETS}/seth/webrtc-20190626-linux.tar.gz"
-        SHA512 07d7776551aa78cb09a3ef088a8dee7762735c168c243053b262083d90a1d258cec66dc386f6903da5c4461921a3c2db157a1ee106a2b47e7756cb424b66cc43
-        FILENAME webrtc-20190626-linux.tar.gz
+        URLS "${EXTERNAL_BUILD_ASSETS}/dependencies/vcpkg/webrtc-m84-gcc-linux.tar.xz"
+        SHA512 f7c5f93566e2e79241cbb9628ab47302dd48739bb6a022c351be75553060fac4221892d094306a572cb3ec94c5031d7e812f07e7b3c0102be8c01b8c231f8ea0
+        FILENAME webrtc-m84-gcc-linux.tar.xz
     )
 endif ()
 
