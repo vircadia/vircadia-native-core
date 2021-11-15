@@ -33,7 +33,7 @@ public:
 
 private:
     std::unique_ptr<JSConsole> _console;
-    ScriptManagerPointer _manager;
+    ScriptManagerPointer _scriptManager;
 };
 
 #endif

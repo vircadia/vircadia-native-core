@@ -61,7 +61,7 @@ public:
         //ExcludeChildObjects	= 0x0001,	// The script object will not expose child objects as properties.
         ExcludeSuperClassMethods = 0x0002,	// The script object will not expose signals and slots inherited from the superclass.
         ExcludeSuperClassProperties	= 0x0004,	// The script object will not expose properties inherited from the superclass.
-        ExcludeSuperClassContents = 0x0006,	// Shorthand form for ExcludeSuperClassMethods | ExcludeSuperClassProperties
+        ExcludeSuperClassContents = ExcludeSuperClassMethods | ExcludeSuperClassProperties,
         //ExcludeDeleteLater = 0x0010,	// The script object will not expose the QObject::deleteLater() slot.
         ExcludeSlots = 0x0020,	// The script object will not expose the QObject's slots.
         AutoCreateDynamicProperties = 0x0100,	// Properties that don't already exist in the QObject will be created as dynamic properties of that object, rather than as properties of the script object.

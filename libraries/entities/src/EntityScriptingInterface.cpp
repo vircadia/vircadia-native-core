@@ -53,7 +53,7 @@ void staticEntityScriptInitializer(ScriptManager* manager) {
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     entityScriptingInterface->init();
-    auto ifacePtr = entityScriptingInterface.data(); // using this when we don't want to leak a reference
+    auto interfacePtr = entityScriptingInterface.data();  // using this when we don't want to leak a reference
 
     registerMetaTypes(scriptEngine);
 
@@ -71,7 +71,7 @@ void staticEntityScriptInitializer(ScriptManager* manager) {
     // so... yay lambdas everywhere to get the sender
     manager->connect(
         manager, &ScriptManager::attachDefaultEventHandlers, entityScriptingInterface.data(),
-        [ifacePtr, manager] { ifacePtr->attachDefaultEventHandlers(manager); },
+        [interfacePtr, manager] { interfacePtr->attachDefaultEventHandlers(manager); },
         Qt::DirectConnection);
     manager->connect(manager, &ScriptManager::releaseEntityPacketSenderMessages, entityScriptingInterface.data(),
                      &EntityScriptingInterface::releaseEntityPacketSenderMessages, Qt::DirectConnection);
@@ -99,7 +99,7 @@ EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership
 
 void EntityScriptingInterface::releaseEntityPacketSenderMessages(bool wait) {
     EntityEditPacketSender* entityPacketSender = getEntityPacketSender();
-    if (entityPacketSender->serversExist()) {
+    if (entityPacketSender && entityPacketSender->serversExist()) {
         // release the queue of edit entity messages.
         entityPacketSender->releaseQueuedMessages();
 
@@ -1513,17 +1513,17 @@ bool EntityPropertyMetadataRequest::script(EntityItemID entityID, const ScriptVa
     using LocalScriptStatusRequest = QFutureWatcher<QVariant>;
 
     LocalScriptStatusRequest* request = new LocalScriptStatusRequest;
-    QObject::connect(request, &LocalScriptStatusRequest::finished, _manager, [=]() mutable {
+    QObject::connect(request, &LocalScriptStatusRequest::finished, _scriptManager, [=]() mutable {
         auto details = request->result().toMap();
         ScriptValue err, result;
         if (details.contains("isError")) {
             if (!details.contains("message")) {
                 details["message"] = details["errorInfo"];
             }
-            err = _manager->engine()->makeError(_manager->engine()->toScriptValue(details));
+            err = _scriptManager->engine()->makeError(_scriptManager->engine()->toScriptValue(details));
         } else {
             details["success"] = true;
-            result = _manager->engine()->toScriptValue(details);
+            result = _scriptManager->engine()->toScriptValue(details);
         }
         callScopedHandlerObject(handler, err, result);
         request->deleteLater();
@@ -1546,9 +1546,9 @@ bool EntityPropertyMetadataRequest::script(EntityItemID entityID, const ScriptVa
 bool EntityPropertyMetadataRequest::serverScripts(EntityItemID entityID, const ScriptValue& handler) {
     auto client = DependencyManager::get<EntityScriptClient>();
     auto request = client->createScriptStatusRequest(entityID);
-    QPointer<ScriptManager> manager = _manager;
-    QObject::connect(request, &GetScriptStatusRequest::finished, _manager, [=](GetScriptStatusRequest* request) mutable {
-        auto manager = _manager;
+    QPointer<ScriptManager> manager = _scriptManager;
+    QObject::connect(request, &GetScriptStatusRequest::finished, _scriptManager, [=](GetScriptStatusRequest* request) mutable {
+        auto manager = _scriptManager;
         if (!manager) {
             qCDebug(entities) << __FUNCTION__ << " -- engine destroyed while inflight" << entityID;
             return;

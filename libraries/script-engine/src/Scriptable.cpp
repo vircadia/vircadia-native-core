@@ -11,12 +11,12 @@
 
 #include "Scriptable.h"
 
-static thread_local ScriptContext* ScriptContextStore;
+static thread_local ScriptContext* scriptContextStore;
 
 ScriptContext* Scriptable::context() {
-    return ScriptContextStore;
+    return scriptContextStore;
 }
 
 void Scriptable::setContext(ScriptContext* context) {
-    ScriptContextStore = context;
+    scriptContextStore = context;
 }

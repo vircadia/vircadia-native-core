@@ -38,7 +38,7 @@ public: // QScriptEngineAgent implementation
     virtual void functionExit(qint64 scriptId, const QScriptValue& returnValue) override;
 
 private: // storage
-    bool _contextActive = false;
+    bool _contextActive{ false };
     QList<ScriptContextQtPointer> _contextStack;
     ScriptContextQtPointer _currContext;
     ScriptEngineQtScript* _engine;

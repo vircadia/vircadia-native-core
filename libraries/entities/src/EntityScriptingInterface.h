@@ -55,11 +55,11 @@ extern const QString NOT_GRABBABLE_USER_DATA;
 // problems with their own Entity scripts.
 class EntityPropertyMetadataRequest {
 public:
-    EntityPropertyMetadataRequest(ScriptManager* manager) : _manager(manager == nullptr ? nullptr : manager){};
+    EntityPropertyMetadataRequest(ScriptManager* manager) : _scriptManager(manager){};
     bool script(EntityItemID entityID, const ScriptValue& handler);
     bool serverScripts(EntityItemID entityID, const ScriptValue& handler);
 private:
-    QPointer<ScriptManager> _manager;
+    QPointer<ScriptManager> _scriptManager;
 };
 
 /*@jsdoc

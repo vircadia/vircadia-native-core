@@ -229,11 +229,11 @@ bool ScriptEngineQtScript::raiseException(const QScriptValue& exception) {
         // we have an active context / JS stack frame so throw the exception per usual
         QScriptEngine::currentContext()->throwValue(makeError(exception));
         return true;
-    } else if(_manager) {
+    } else if (_scriptManager) {
         // we are within a pure C++ stack frame (ie: being called directly by other C++ code)
         // in this case no context information is available so just emit the exception for reporting
         QScriptValue thrown = makeError(exception);
-        emit _manager->unhandledException(ScriptValue(new ScriptValueQtWrapper(this, std::move(thrown))));
+        emit _scriptManager->unhandledException(ScriptValue(new ScriptValueQtWrapper(this, std::move(thrown))));
     }
     return false;
 }
@@ -242,8 +242,8 @@ bool ScriptEngineQtScript::maybeEmitUncaughtException(const QString& debugHint) 
     if (!IS_THREADSAFE_INVOCATION(thread(), __FUNCTION__)) {
         return false;
     }
-    if (!isEvaluating() && hasUncaughtException() && _manager) {
-        emit _manager->unhandledException(cloneUncaughtException(debugHint));
+    if (!isEvaluating() && hasUncaughtException() && _scriptManager) {
+        emit _scriptManager->unhandledException(cloneUncaughtException(debugHint));
         clearExceptions();
         return true;
     }
@@ -322,21 +322,21 @@ static void ScriptValueFromQScriptValue(const QScriptValue& src, ScriptValue& de
 
 ScriptEngineQtScript::ScriptEngineQtScript(ScriptManager* scriptManager) :
     QScriptEngine(),
-    _manager(scriptManager),
+    _scriptManager(scriptManager),
     _arrayBufferClass(new ArrayBufferClass(this))
 {
     qScriptRegisterMetaType(this, ScriptValueToQScriptValue, ScriptValueFromQScriptValue);
 
-    if (_manager) {
+    if (_scriptManager) {
         connect(this, &QScriptEngine::signalHandlerException, this, [this](const QScriptValue& exception) {
             if (hasUncaughtException()) {
                 // the engine's uncaughtException() seems to produce much better stack traces here
-                emit _manager->unhandledException(cloneUncaughtException("signalHandlerException"));
+                emit _scriptManager->unhandledException(cloneUncaughtException("signalHandlerException"));
                 clearExceptions();
             } else {
                 // ... but may not always be available -- so if needed we fallback to the passed exception
                 QScriptValue thrown = makeError(exception);
-                emit _manager->unhandledException(ScriptValue(new ScriptValueQtWrapper(this, std::move(thrown))));
+                emit _scriptManager->unhandledException(ScriptValue(new ScriptValueQtWrapper(this, std::move(thrown))));
             }
         }, Qt::DirectConnection);
         moveToThread(scriptManager->thread());
@@ -649,7 +649,7 @@ ScriptValue ScriptEngineQtScript::evaluateInClosure(const ScriptValue& _closure,
 }
 
 ScriptValue ScriptEngineQtScript::evaluate(const QString& sourceCode, const QString& fileName) {
-    if (_manager && _manager->isStopped()) {
+    if (_scriptManager && _scriptManager->isStopped()) {
         return undefinedValue(); // bail early
     }
 
@@ -692,7 +692,7 @@ ScriptValue ScriptEngineQtScript::evaluate(const QString& sourceCode, const QStr
 }
 
 Q_INVOKABLE ScriptValue ScriptEngineQtScript::evaluate(const ScriptProgramPointer& program) {
-    if (_manager && _manager->isStopped()) {
+    if (_scriptManager && _scriptManager->isStopped()) {
         return undefinedValue(); // bail early
     }
 
@@ -751,7 +751,7 @@ ScriptValue ScriptEngineQtScript::globalObject() const {
 }
 
 ScriptManager* ScriptEngineQtScript::manager() const {
-    return _manager;
+    return _scriptManager;
 }
 
 ScriptValue ScriptEngineQtScript::newArray(uint length) {

@@ -163,7 +163,7 @@ protected:
                                    const QScriptEngine::ValueOwnership& ownership = QScriptEngine::AutoOwnership);
 
 protected:
-    QPointer<ScriptManager> _manager;
+    QPointer<ScriptManager> _scriptManager;
 
     int _nextCustomType = 0;
     ScriptValue _nullValue;

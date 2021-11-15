@@ -37,26 +37,22 @@ public:
 
 ScriptEnginePointer Scriptable::engine() {
     ScriptContext* scriptContext = context();
-    if (!scriptContext) return nullptr;
-    return scriptContext->engine();
+    return scriptContext ? scriptContext->engine() : nullptr;
 }
 
 ScriptValue Scriptable::thisObject() {
     ScriptContext* scriptContext = context();
-    if (!scriptContext) return ScriptValue();
-    return scriptContext->thisObject();
+    return scriptContext ? scriptContext->thisObject() : ScriptValue();
 }
 
 int Scriptable::argumentCount() {
     ScriptContext* scriptContext = context();
-    if (!scriptContext) return 0;
-    return scriptContext->argumentCount();
+    return scriptContext ? scriptContext->argumentCount() : 0;
 }
 
 ScriptValue Scriptable::argument(int index) {
     ScriptContext* scriptContext = context();
-    if (!scriptContext) return ScriptValue();
-    return scriptContext->argument(index);
+    return scriptContext ? scriptContext->argument(index) : ScriptValue();
 }
 
 #endif // hifi_Scriptable_h

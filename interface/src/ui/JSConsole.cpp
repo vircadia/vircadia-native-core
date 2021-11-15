@@ -318,7 +318,7 @@ void JSConsole::setScriptManager(const ScriptManagerPointer& scriptManager) {
     if (_scriptManager == scriptManager && scriptManager != nullptr) {
         return;
     }
-    if (scriptManager != nullptr) {
+    if (_scriptManager != nullptr) {
         disconnect(_scriptManager.get(), nullptr, this, nullptr);
         _scriptManager.reset();
     }
