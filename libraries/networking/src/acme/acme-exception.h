@@ -1,4 +1,5 @@
-#pragma once
+#ifndef VIRCADIA_LIBRARIES_NETWORKING_SRC_ACME_ACME_EXCEPTION_H
+#define VIRCADIA_LIBRARIES_NETWORKING_SRC_ACME_ACME_EXCEPTION_H
 
 #include <exception>
 #include <string>
@@ -18,3 +19,5 @@ private:
 };
 
 }
+
+#endif /* end of include guard */
