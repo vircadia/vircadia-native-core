@@ -2708,8 +2708,9 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         }
     }
 
-    // didn't process the request, let our DomainServerSettingsManager or HTTPManager handle
-    return _settingsManager.handleAuthenticatedHTTPRequest(connection, url);
+    // didn't process the request, let our DomainServerSettingsManager, DomainServerAcmeClient, or HTTPManager handle
+    return _settingsManager.handleAuthenticatedHTTPRequest(connection, url) ||
+        _acmeClient.handleAuthenticatedHTTPRequest(connection, url);
 }
 
 static const QString HIFI_SESSION_COOKIE_KEY = "DS_WEB_SESSION_UUID";

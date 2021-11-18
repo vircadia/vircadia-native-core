@@ -34,6 +34,7 @@
 #include "DomainGatekeeper.h"
 #include "DomainMetadata.h"
 #include "DomainServerSettingsManager.h"
+#include "DomainServerAcmeClient.h"
 #include "DomainServerWebSessionData.h"
 #include "WalletTransaction.h"
 #include "DomainContentBackupManager.h"
@@ -289,6 +290,7 @@ private:
     QString _automaticNetworkingSetting;
 
     DomainServerSettingsManager _settingsManager;
+    DomainServerAcmeClient _acmeClient;
 
     SockAddr _iceServerSocket;
     std::unique_ptr<NLPacket> _iceServerHeartbeatPacket;
