@@ -131,8 +131,9 @@ void WebRTCSignalingServer::webSocketDisconnected() {
     auto source = qobject_cast<QWebSocket*>(sender());
     if (source) {
         auto address = source->peerAddress().toString() + ":" + QString::number(source->peerPort());
-        delete _webSockets.value(address);
         _webSockets.remove(address);
+        source->abort();
+        source->deleteLater();
     }
 }
 
