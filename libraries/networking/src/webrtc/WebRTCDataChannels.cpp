@@ -355,13 +355,11 @@ void WDCConnection::onDataChannelStateChanged() {
         << DataChannelInterface::DataStateString(state);
 #endif
     if (state == DataChannelInterface::kClosed) {
-        // Close data channel.
+        // Finish with the data channel.
         _dataChannel->UnregisterObserver();
+        // Don't set _dataChannel = nullptr because it is a scoped_refptr.
         _dataChannelObserver = nullptr;
-        _dataChannel = nullptr;
-#ifdef WEBRTC_DEBUG
-        qCDebug(networking_webrtc) << "Disposed of data channel";
-#endif
+
         // Close peer connection.
         _parent->closePeerConnection(this);
     }
@@ -396,17 +394,21 @@ qint64 WDCConnection::getBufferedAmount() const {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WDCConnection::getBufferedAmount()";
 #endif
-    return _dataChannel ? _dataChannel->buffered_amount() : 0;
+    return _dataChannel && _dataChannel->state() != DataChannelInterface::kClosing 
+            && _dataChannel->state() != DataChannelInterface::kClosed 
+        ? _dataChannel->buffered_amount() : 0;
 }
 
 bool WDCConnection::sendDataMessage(const DataBuffer& buffer) {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WDCConnection::sendDataMessage()";
-    if (!_dataChannel) {
+    if (!_dataChannel || _dataChannel->state() == DataChannelInterface::kClosing
+        || _dataChannel->state() == DataChannelInterface::kClosed) {
         qCDebug(networking_webrtc) << "No data channel to send on";
     }
 #endif
-    if (!_dataChannel) {
+    if (!_dataChannel || _dataChannel->state() == DataChannelInterface::kClosing 
+            || _dataChannel->state() == DataChannelInterface::kClosed) {
         // Data channel may have been closed while message to send was being prepared.
         return false;
     } else if (_dataChannel->buffered_amount() + buffer.size() > MAX_WEBRTC_BUFFER_SIZE) {
@@ -422,7 +424,7 @@ void WDCConnection::closePeerConnection() {
     qCDebug(networking_webrtc) << "WDCConnection::closePeerConnection() :" << (int)_peerConnection->peer_connection_state();
 #endif
     _peerConnection->Close();
-    _peerConnection = nullptr;
+    // Don't set _peerConnection = nullptr because it is a scoped_refptr.
     _peerConnectionObserver = nullptr;
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "Disposed of peer connection";
