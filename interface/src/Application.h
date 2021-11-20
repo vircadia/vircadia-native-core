@@ -129,12 +129,12 @@ public:
     virtual DisplayPluginPointer getActiveDisplayPlugin() const override;
 
     // FIXME? Empty methods, do we still need them?
-    static void initPlugins(const QCommandLineParser* parser);
+    static void initPlugins(const QCommandLineParser& parser);
     static void shutdownPlugins();
 
     Application(
         int& argc, char** argv,
-        const QCommandLineParser* parser,
+        const QCommandLineParser& parser,
         QElapsedTimer& startup_time,
         bool runningMarkerExisted
     );
@@ -509,7 +509,7 @@ private slots:
 
     void notifyPacketVersionMismatch();
 
-    void loadSettings(const QCommandLineParser* parser);
+    void loadSettings(const QCommandLineParser& parser);
     void saveSettings() const;
     void setFailedToConnectToEntityServer();
 

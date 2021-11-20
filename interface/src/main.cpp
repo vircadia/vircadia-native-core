@@ -512,7 +512,7 @@ int main(int argc, const char* argv[]) {
     // Oculus initialization MUST PRECEDE OpenGL context creation.
     // The nature of the Application constructor means this has to be either here,
     // or in the main window ctor, before GL startup.
-    Application::initPlugins(&parser);
+    Application::initPlugins(parser);
 
 #ifdef Q_OS_WIN
     // If we're running in steam mode, we need to do an explicit check to ensure we're up to the required min spec
@@ -560,7 +560,7 @@ int main(int argc, const char* argv[]) {
 
         PROFILE_SYNC_END(startup, "main startup", "");
         PROFILE_SYNC_BEGIN(startup, "app full ctor", "");
-        Application app(argcExtended, const_cast<char**>(argvExtended.data()), &parser, startupTime, runningMarkerExisted);
+        Application app(argcExtended, const_cast<char**>(argvExtended.data()), parser, startupTime, runningMarkerExisted);
         PROFILE_SYNC_END(startup, "app full ctor", "");
 
 #if defined(Q_OS_LINUX)

@@ -728,24 +728,24 @@ extern DisplayPluginList getDisplayPlugins();
 extern InputPluginList getInputPlugins();
 extern void saveInputPluginSettings(const InputPluginList& plugins);
 
-bool setupEssentials(int& argc, char** argv, const QCommandLineParser* parser, bool runningMarkerExisted) {
+bool setupEssentials(int& argc, char** argv, const QCommandLineParser& parser, bool runningMarkerExisted) {
     const char** constArgv = const_cast<const char**>(argv);
 
     qInstallMessageHandler(messageHandler);
 
 
-    const int listenPort = parser->isSet("listenPort") ? parser->value("listenPort").toInt() : INVALID_PORT;
+    const int listenPort = parser.isSet("listenPort") ? parser.value("listenPort").toInt() : INVALID_PORT;
 
-    bool suppressPrompt = parser->isSet("suppress-settings-reset");
+    bool suppressPrompt = parser.isSet("suppress-settings-reset");
 
     // set the OCULUS_STORE property so the oculus plugin can know if we ran from the Oculus Store
-    qApp->setProperty(hifi::properties::OCULUS_STORE, parser->isSet("oculus-store"));
+    qApp->setProperty(hifi::properties::OCULUS_STORE, parser.isSet("oculus-store"));
 
     // emulate standalone device
-    qApp->setProperty(hifi::properties::STANDALONE, parser->isSet("standalone"));
+    qApp->setProperty(hifi::properties::STANDALONE, parser.isSet("standalone"));
 
     // Ignore any previous crashes if running from command line with a test script.
-    bool inTestMode = parser->isSet("testScript");
+    bool inTestMode = parser.isSet("testScript");
 
     bool previousSessionCrashed { false };
     if (!inTestMode) {
@@ -753,8 +753,8 @@ bool setupEssentials(int& argc, char** argv, const QCommandLineParser* parser, b
     }
 
     // get dir to use for cache
-    if (parser->isSet("cache")) {
-        qApp->setProperty(hifi::properties::APP_LOCAL_DATA_PATH, parser->value("cache"));
+    if (parser.isSet("cache")) {
+        qApp->setProperty(hifi::properties::APP_LOCAL_DATA_PATH, parser.value("cache"));
     }
 
     {
@@ -796,7 +796,7 @@ bool setupEssentials(int& argc, char** argv, const QCommandLineParser* parser, b
     QCoreApplication::addLibraryPath(audioDLLPath);
 #endif
 
-    QString defaultScriptsOverrideOption = parser->value("defaultScriptsOverride");
+    QString defaultScriptsOverrideOption = parser.value("defaultScriptsOverride");
 
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
@@ -922,7 +922,7 @@ bool setupEssentials(int& argc, char** argv, const QCommandLineParser* parser, b
     });
 
 
-    QString setBookmarkValue = parser->value("setBookmark");
+    QString setBookmarkValue = parser.value("setBookmark");
     if (!setBookmarkValue.isEmpty()) {
         // Bookmarks are expected to be in a name=url form.
         // An `=` character in the name or url is unsupported.
@@ -981,7 +981,7 @@ QSharedPointer<OffscreenUi> getOffscreenUI() {
 
 Application::Application(
     int& argc, char** argv,
-    const QCommandLineParser* parser,
+    const QCommandLineParser& parser,
     QElapsedTimer& startupTimer,
     bool runningMarkerExisted
 ) :
@@ -1028,8 +1028,8 @@ Application::Application(
     LogHandler::getInstance().setupRepeatedMessageFlusher();
 
     {
-        if (parser->isSet("testScript")) {
-                QString testScriptPath = parser->value("testScript");
+        if (parser.isSet("testScript")) {
+                QString testScriptPath = parser.value("testScript");
                 // If the URL scheme is http(s) or ftp, then use as is, else - treat it as a local file
                 // This is done so as not break previous command line scripts
                 if (testScriptPath.left(HIFI_URL_SCHEME_HTTP.length()) == HIFI_URL_SCHEME_HTTP ||
@@ -1040,20 +1040,20 @@ Application::Application(
                     setProperty(hifi::properties::TEST, QUrl::fromLocalFile(testScriptPath));
                 }
 
-                if (parser->isSet("quitWhenFinished")) {
+                if (parser.isSet("quitWhenFinished")) {
                     quitWhenFinished = true;
                 }
         }
-        if (parser->isSet("testResultsLocation")) {
+        if (parser.isSet("testResultsLocation")) {
             // Set test snapshot location only if it is a writeable directory
-            QString path = parser->value("testResultsLocation");
+            QString path = parser.value("testResultsLocation");
 
             QFileInfo fileInfo(path);
             if (fileInfo.isDir() && fileInfo.isWritable()) {
                 TestScriptingInterface::getInstance()->setTestResultsLocation(path);
             }
         }
-        _urlParam = parser->value("url");
+        _urlParam = parser.value("url");
     }
 
     {
@@ -1119,7 +1119,7 @@ Application::Application(
     auto addressManager = DependencyManager::get<AddressManager>();
     addressManager->moveToThread(nodeList->thread());
 
-    if (parser->isSet("disableWatchdog")) {
+    if (parser.isSet("disableWatchdog")) {
         DISABLE_WATCHDOG = true;
     }
     // Set up a watchdog thread to intentionally crash the application on deadlocks
@@ -1440,9 +1440,9 @@ Application::Application(
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
     connect(&_entityEditSender, &EntityEditPacketSender::addingEntityWithCertificate, this, &Application::addingEntityWithCertificate);
 
-    if (parser->isSet("concurrent-downloads")) {
+    if (parser.isSet("concurrent-downloads")) {
         bool success;
-        uint32_t concurrentDownloads = parser->value("concurrent-downloads").toUInt(&success);
+        uint32_t concurrentDownloads = parser.value("concurrent-downloads").toUInt(&success);
         if (!success) {
             concurrentDownloads = MAX_CONCURRENT_RESOURCE_DOWNLOADS;
         }
@@ -1451,15 +1451,15 @@ Application::Application(
 
     // perhaps override the avatar url.  Since we will test later for validity
     // we don't need to do so here.
-    if (parser->isSet("avatarURL")) {
-        _avatarOverrideUrl = QUrl::fromUserInput(parser->value("avatarURL"));
+    if (parser.isSet("avatarURL")) {
+        _avatarOverrideUrl = QUrl::fromUserInput(parser.value("avatarURL"));
     }
 
     // If someone specifies both --avatarURL and --replaceAvatarURL,
     // the replaceAvatarURL wins.  So only set the _overrideUrl if this
     // does have a non-empty string.
-    if (parser->isSet("replaceAvatarURL")) {
-        QString replaceURL = parser->value("replaceAvatarURL");
+    if (parser.isSet("replaceAvatarURL")) {
+        QString replaceURL = parser.value("replaceAvatarURL");
         _avatarOverrideUrl = QUrl::fromUserInput(replaceURL);
         _saveAvatarOverrideUrl = true;
     }
@@ -1477,7 +1477,7 @@ Application::Application(
     _glWidget->setFocusPolicy(Qt::StrongFocus);
     _glWidget->setFocus();
 
-    if (parser->isSet("system-cursor")) {
+    if (parser.isSet("system-cursor")) {
         _preferredCursor.set(Cursor::Manager::getIconName(Cursor::Icon::SYSTEM));
     }
     showCursor(Cursor::Manager::lookupIcon(_preferredCursor.get()));
@@ -1552,7 +1552,7 @@ Application::Application(
     });
 #else
     // Do not show login dialog if requested not to on the command line
-    if (_disableLoginScreen || parser->isSet("no-login-suggestion")) {
+    if (_disableLoginScreen || parser.isSet("no-login-suggestion")) {
         connect(offscreenUi.data(), &OffscreenUi::keyboardFocusActive, [this]() {
             resumeAfterLoginDialogActionTaken();
         });
@@ -1924,8 +1924,8 @@ Application::Application(
         userInputMapper->registerDevice(_touchscreenVirtualPadDevice->getInputDevice());
     }
 
-    if (parser->isSet("scripts")) {
-        _defaultScriptsLocation.setPath(parser->value("scripts")); // Might need to be done in "main.cpp".
+    if (parser.isSet("scripts")) {
+        _defaultScriptsLocation.setPath(parser.value("scripts")); // Might need to be done in "main.cpp".
         _overrideDefaultScriptsLocation = true;
     } else {
         _overrideDefaultScriptsLocation = false;
@@ -1987,7 +1987,7 @@ Application::Application(
     // If launched from Steam, let it handle updates
     bool buildCanUpdate = BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable
         || BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Master;
-    if (!parser->isSet("no-updater") && buildCanUpdate) {
+    if (!parser.isSet("no-updater") && buildCanUpdate) {
         constexpr auto INSTALLER_TYPE_CLIENT_ONLY = "client_only";
 
         auto applicationUpdater = DependencyManager::set<AutoUpdater>();
@@ -2157,7 +2157,7 @@ Application::Application(
 
     // setup the stats interval depending on if the 1s faster hearbeat was requested
     static int SEND_STATS_INTERVAL_MS;
-    if (parser->isSet("fast-heartbeat")) {
+    if (parser.isSet("fast-heartbeat")) {
         SEND_STATS_INTERVAL_MS = 1000;
     } else {
         SEND_STATS_INTERVAL_MS = 10000;
@@ -5478,7 +5478,7 @@ bool Application::exportEntities(const QString& filename, float x, float y, floa
     return exportEntities(filename, entities, &center);
 }
 
-void Application::loadSettings(const QCommandLineParser* parser) {
+void Application::loadSettings(const QCommandLineParser& parser) {
 
     sessionRunTime.set(0); // Just clean living. We're about to saveSettings, which will update value.
     DependencyManager::get<AudioClient>()->loadSettings();
@@ -5508,7 +5508,7 @@ void Application::loadSettings(const QCommandLineParser* parser) {
     }
 
     bool isFirstPerson = false;
-    if (parser->isSet("no-launcher")) {
+    if (parser.isSet("no-launcher")) {
         auto displayPlugins = pluginManager->getDisplayPlugins();
         for (auto& plugin : displayPlugins) {
             if (!plugin->isHmd()) {
@@ -8795,21 +8795,21 @@ void Application::sendLambdaEvent(const std::function<void()>& f) {
     }
 }
 
-void Application::initPlugins(const QCommandLineParser* parser) {
-    if (parser->isSet("display")) {
-        auto preferredDisplays = parser->value("display").split(',', Qt::SkipEmptyParts);
+void Application::initPlugins(const QCommandLineParser& parser) {
+    if (parser.isSet("display")) {
+        auto preferredDisplays = parser.value("display").split(',', Qt::SkipEmptyParts);
         qInfo() << "Setting prefered display plugins:" << preferredDisplays;
         PluginManager::getInstance()->setPreferredDisplayPlugins(preferredDisplays);
     }
 
-    if (parser->isSet("disable-displays")) {
-        auto disabledDisplays = parser->value("disableDisplays").split(',', Qt::SkipEmptyParts);
+    if (parser.isSet("disable-displays")) {
+        auto disabledDisplays = parser.value("disableDisplays").split(',', Qt::SkipEmptyParts);
         qInfo() << "Disabling following display plugins:"  << disabledDisplays;
         PluginManager::getInstance()->disableDisplays(disabledDisplays);
     }
 
-    if (parser->isSet("disable-inputs")) {
-        auto disabledInputs = parser->value("disableInputs").split(',', Qt::SkipEmptyParts);
+    if (parser.isSet("disable-inputs")) {
+        auto disabledInputs = parser.value("disableInputs").split(',', Qt::SkipEmptyParts);
         qInfo() << "Disabling following input plugins:" << disabledInputs;
         PluginManager::getInstance()->disableInputs(disabledInputs);
     }
