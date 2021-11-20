@@ -1,5 +1,5 @@
 {
-  "version": 2.5,
+  "version": 2.6,
   "settings": [
     {
       "name": "metaverse",
@@ -70,6 +70,28 @@
           "default": "9704",
           "type": "int",
           "advanced": true
+        }
+      ]
+    },
+    {
+      "name": "webrtc",
+      "label": "Networking / WebRTC",
+      "settings": [
+        {
+          "name": "enable_webrtc",
+          "label": "Enable WebRTC Client Connections",
+          "help": "Allow web clients to connect over WebRTC data channels.",
+          "type": "checkbox",
+          "default": false,
+          "advanced": true
+        },
+        {
+            "name": "enable_webrtc_websocket_ssl",
+            "label": "Enable WebRTC WebSocket SSL",
+            "help": "Use secure WebSocket (wss:// protocol) for WebRTC signaling channel. If \"on\", the key, cert, and CA files are expected to be in the local Vircadia app directory, in a /domain-server/ subdirectory with filenames vircadia-cert.key, vircadia-cert.crt, and vircadia-crt-ca.crt.",
+            "type": "checkbox",
+            "default": false,
+            "advanced": true
         }
       ]
     },

@@ -20,7 +20,12 @@
 // - https://webrtc.github.io/webrtc-org/native-code/native-apis/
 // - https://webrtc.googlesource.com/src/+/master/api/peer_connection_interface.h
 
-const std::string ICE_SERVER_URI = "stun://ice.vircadia.com:7337";
+// FIXME: stun:ice.vircadia.com:7337 doesn't work for WebRTC.
+// Firefox warns: "WebRTC: Using more than two STUN/TURN servers slows down discovery"
+const std::list<std::string> ICE_SERVER_URIS = {
+    "stun:stun1.l.google.com:19302",
+    "stun:stun.schlund.de"
+};
 const int MAX_WEBRTC_BUFFER_SIZE = 16777216;  // 16MB
 
 // #define WEBRTC_DEBUG
@@ -66,7 +71,7 @@ WDCPeerConnectionObserver::WDCPeerConnectionObserver(WDCConnection* parent) :
 
 void WDCPeerConnectionObserver::OnSignalingChange(PeerConnectionInterface::SignalingState newState) {
 #ifdef WEBRTC_DEBUG
-    QStringList states{
+    QStringList states {
         "Stable",
         "HaveLocalOffer",
         "HaveLocalPrAnswer",
@@ -74,7 +79,7 @@ void WDCPeerConnectionObserver::OnSignalingChange(PeerConnectionInterface::Signa
         "HaveRemotePrAnswer",
         "Closed"
     };
-    qCDebug(networking_webrtc) << "WDCPeerConnectionObserver::OnSignalingChange()" << newState << states[newState];
+    qCDebug(networking_webrtc) << "WDCPeerConnectionObserver::OnSignalingChange() :" << newState << states[newState];
 #endif
 }
 
@@ -86,7 +91,12 @@ void WDCPeerConnectionObserver::OnRenegotiationNeeded() {
 
 void WDCPeerConnectionObserver::OnIceGatheringChange(PeerConnectionInterface::IceGatheringState newState) {
 #ifdef WEBRTC_DEBUG
-    qCDebug(networking_webrtc) << "WDCPeerConnectionObserver::OnIceGatheringChange()" << newState;
+    QStringList states {
+        "New",
+        "Gathering",
+        "Complete"
+    };
+    qCDebug(networking_webrtc) << "WDCPeerConnectionObserver::OnIceGatheringChange() :" << newState << states[newState];
 #endif
 }
 
@@ -95,6 +105,39 @@ void WDCPeerConnectionObserver::OnIceCandidate(const IceCandidateInterface* cand
     qCDebug(networking_webrtc) << "WDCPeerConnectionObserver::OnIceCandidate()";
 #endif
     _parent->sendIceCandidate(candidate);
+}
+
+void WDCPeerConnectionObserver::OnIceConnectionChange(PeerConnectionInterface::IceConnectionState newState) {
+#ifdef WEBRTC_DEBUG
+    QStringList states {
+        "New",
+        "Checking",
+        "Connected",
+        "Completed",
+        "Failed",
+        "Disconnected",
+        "Closed",
+        "Max"
+    };
+    qCDebug(networking_webrtc) << "WDCPeerConnectionObserver::OnIceConnectionChange() :" << newState << states[newState];
+#endif
+}
+
+void WDCPeerConnectionObserver::OnStandardizedIceConnectionChange(PeerConnectionInterface::IceConnectionState newState) {
+#ifdef WEBRTC_DEBUG
+    QStringList states {
+        "New",
+        "Checking",
+        "Connected",
+        "Completed",
+        "Failed",
+        "Disconnected",
+        "Closed",
+        "Max"
+    };
+    qCDebug(networking_webrtc) << "WDCPeerConnectionObserver::OnStandardizedIceConnectionChange() :" << newState
+        << states[newState];
+#endif
 }
 
 void WDCPeerConnectionObserver::OnDataChannel(rtc::scoped_refptr<DataChannelInterface> dataChannel) {
@@ -106,7 +149,16 @@ void WDCPeerConnectionObserver::OnDataChannel(rtc::scoped_refptr<DataChannelInte
 
 void WDCPeerConnectionObserver::OnConnectionChange(PeerConnectionInterface::PeerConnectionState newState) {
 #ifdef WEBRTC_DEBUG
-    qCDebug(networking_webrtc) << "WDCPeerConnectionObserver::OnConnectionChange()" << (uint)newState;
+    QStringList states {
+        "New",
+        "Connecting",
+        "Connected",
+        "Disconnected",
+        "Failed",
+        "Closed"
+    };
+    qCDebug(networking_webrtc) << "WDCPeerConnectionObserver::OnConnectionChange() :" << (uint)newState
+        << states[(uint)newState];
 #endif
     _parent->onPeerConnectionStateChanged(newState);
 }
@@ -262,7 +314,7 @@ void WDCConnection::sendIceCandidate(const IceCandidateInterface* candidate) {
 
 void WDCConnection::onPeerConnectionStateChanged(PeerConnectionInterface::PeerConnectionState state) {
 #ifdef WEBRTC_DEBUG
-    const char* STATES[] = {
+    QStringList states {
         "New",
         "Connecting",
         "Connected",
@@ -270,7 +322,7 @@ void WDCConnection::onPeerConnectionStateChanged(PeerConnectionInterface::PeerCo
         "Failed",
         "Closed"
     };
-    qCDebug(networking_webrtc) << "WDCConnection::onPeerConnectionStateChanged() :" << (int)state << STATES[(int)state];
+    qCDebug(networking_webrtc) << "WDCConnection::onPeerConnectionStateChanged() :" << (int)state << states[(int)state];
 #endif
 }
 
@@ -303,13 +355,11 @@ void WDCConnection::onDataChannelStateChanged() {
         << DataChannelInterface::DataStateString(state);
 #endif
     if (state == DataChannelInterface::kClosed) {
-        // Close data channel.
+        // Finish with the data channel.
         _dataChannel->UnregisterObserver();
+        // Don't set _dataChannel = nullptr because it is a scoped_refptr.
         _dataChannelObserver = nullptr;
-        _dataChannel = nullptr;
-#ifdef WEBRTC_DEBUG
-        qCDebug(networking_webrtc) << "Disposed of data channel";
-#endif
+
         // Close peer connection.
         _parent->closePeerConnection(this);
     }
@@ -344,17 +394,21 @@ qint64 WDCConnection::getBufferedAmount() const {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WDCConnection::getBufferedAmount()";
 #endif
-    return _dataChannel ? _dataChannel->buffered_amount() : 0;
+    return _dataChannel && _dataChannel->state() != DataChannelInterface::kClosing 
+            && _dataChannel->state() != DataChannelInterface::kClosed 
+        ? _dataChannel->buffered_amount() : 0;
 }
 
 bool WDCConnection::sendDataMessage(const DataBuffer& buffer) {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WDCConnection::sendDataMessage()";
-    if (!_dataChannel) {
+    if (!_dataChannel || _dataChannel->state() == DataChannelInterface::kClosing
+        || _dataChannel->state() == DataChannelInterface::kClosed) {
         qCDebug(networking_webrtc) << "No data channel to send on";
     }
 #endif
-    if (!_dataChannel) {
+    if (!_dataChannel || _dataChannel->state() == DataChannelInterface::kClosing 
+            || _dataChannel->state() == DataChannelInterface::kClosed) {
         // Data channel may have been closed while message to send was being prepared.
         return false;
     } else if (_dataChannel->buffered_amount() + buffer.size() > MAX_WEBRTC_BUFFER_SIZE) {
@@ -367,10 +421,10 @@ bool WDCConnection::sendDataMessage(const DataBuffer& buffer) {
 
 void WDCConnection::closePeerConnection() {
 #ifdef WEBRTC_DEBUG
-    qCDebug(networking_webrtc) << "WDCConnection::closePeerConnection()";
+    qCDebug(networking_webrtc) << "WDCConnection::closePeerConnection() :" << (int)_peerConnection->peer_connection_state();
 #endif
     _peerConnection->Close();
-    _peerConnection = nullptr;
+    // Don't set _peerConnection = nullptr because it is a scoped_refptr.
     _peerConnectionObserver = nullptr;
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "Disposed of peer connection";
@@ -425,6 +479,9 @@ WebRTCDataChannels::~WebRTCDataChannels() {
 }
 
 void WebRTCDataChannels::reset() {
+#ifdef WEBRTC_DEBUG
+    qCDebug(networking_webrtc) << "WebRTCDataChannels::reset() :" << _connectionsByID.count();
+#endif
     QHashIterator<QString, WDCConnection*> i(_connectionsByID);
     while (i.hasNext()) {
         i.next();
@@ -484,7 +541,8 @@ void WebRTCDataChannels::onSignalingMessage(const QJsonObject& message) {
 
     // Add a remote ICE candidate.
     if (data.contains("candidate")) {
-        connection->addIceCandidate(data);
+        auto candidate = data.value("candidate").toObject();
+        connection->addIceCandidate(candidate);
     }
 
 }
@@ -545,9 +603,11 @@ rtc::scoped_refptr<PeerConnectionInterface> WebRTCDataChannels::createPeerConnec
 #endif
 
     PeerConnectionInterface::RTCConfiguration configuration;
-    PeerConnectionInterface::IceServer iceServer;
-    iceServer.uri = ICE_SERVER_URI;
-    configuration.servers.push_back(iceServer);
+    for (const auto& uri : ICE_SERVER_URIS) {
+        PeerConnectionInterface::IceServer iceServer;
+        iceServer.uri = uri;
+        configuration.servers.push_back(iceServer);
+    }
 
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "2. Create a new peer connection";

@@ -61,7 +61,8 @@ public:
 
     /// @brief Constructs a new WebRTCSignalingServer object.
     /// @param parent Qt parent object.
-    WebRTCSignalingServer(QObject* parent);
+    /// @param isWSSEnabled Whether the WebSocket used for WebRTC signaling should be secure (WSS protocol).
+    WebRTCSignalingServer(QObject* parent, bool isWSSEnabled);
 
     /// @brief Binds the WebRTC signaling server's WebSocket to an address and port.
     /// @param address The address to use for the WebSocket.

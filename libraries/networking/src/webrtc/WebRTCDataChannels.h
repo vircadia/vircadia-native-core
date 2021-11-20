@@ -88,6 +88,14 @@ public:
     /// @param candidate The new ICE candidate.
     void OnIceCandidate(const webrtc::IceCandidateInterface* candidate) override;
 
+    /// @brief Called when the legacy ICE connection state changes.
+    /// @param new_state The new ICE connection state.
+    virtual void OnIceConnectionChange(webrtc::PeerConnectionInterface::IceConnectionState newState) override;
+
+    /// @brief Called when the standards-compliant ICE connection state changes.
+    /// @param new_state The new ICE connection state. 
+    virtual void OnStandardizedIceConnectionChange(webrtc::PeerConnectionInterface::IceConnectionState newState) override;
+
     /// @brief Called when a remote peer opens a data channel.
     /// @param dataChannel The data channel.
     void OnDataChannel(rtc::scoped_refptr<webrtc::DataChannelInterface> dataChannel) override;

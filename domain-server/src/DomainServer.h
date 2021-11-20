@@ -333,7 +333,7 @@ private:
     QThread _assetClientThread;
 
 #if defined(WEBRTC_DATA_CHANNELS)
-    WebRTCSignalingServer _webrtcSignalingServer;
+    std::unique_ptr<WebRTCSignalingServer> _webrtcSignalingServer { nullptr };
 #endif
 };
 
