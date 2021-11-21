@@ -1342,25 +1342,27 @@ Application::Application(
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
 
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateThreadPoolCount);
-    connect(this, &Application::activeDisplayPluginChanged, this, [=](){
-        qApp->setProperty(hifi::properties::HMD, qApp->isHMDMode());
-        auto displayPlugin = qApp->getActiveDisplayPlugin();
+    if (parser.isSet("system-cursor")) {
+        _preferredCursor.set(Cursor::Manager::getIconName(Cursor::Icon::SYSTEM));
 
-        if (displayPlugin->isHmd()) {
-            if (_preferredCursor.get() == Cursor::Manager::getIconName(Cursor::Icon::RETICLE)) {
-                setPreferredCursor(Cursor::Manager::getIconName(Cursor::Icon::RETICLE));
-            }
-            else {
-                setPreferredCursor(Cursor::Manager::getIconName(Cursor::Icon::ARROW));
-            }
-        }
-        else {
-            setPreferredCursor(Cursor::Manager::getIconName(Cursor::Icon::SYSTEM));
-        }
+        connect(this, &Application::activeDisplayPluginChanged, this, [=](){
+            qApp->setProperty(hifi::properties::HMD, qApp->isHMDMode());
+            auto displayPlugin = qApp->getActiveDisplayPlugin();
 
-        setCrashAnnotation("display_plugin", displayPlugin->getName().toStdString());
-        setCrashAnnotation("hmd", displayPlugin->isHmd() ? "1" : "0");
-    });
+            if (displayPlugin->isHmd()) {
+                if (_preferredCursor.get() == Cursor::Manager::getIconName(Cursor::Icon::RETICLE)) {
+                    setPreferredCursor(Cursor::Manager::getIconName(Cursor::Icon::RETICLE));
+                } else {
+                    setPreferredCursor(Cursor::Manager::getIconName(Cursor::Icon::ARROW));
+                }
+            } else {
+                setPreferredCursor(Cursor::Manager::getIconName(Cursor::Icon::SYSTEM));
+            }
+
+            setCrashAnnotation("display_plugin", displayPlugin->getName().toStdString());
+            setCrashAnnotation("hmd", displayPlugin->isHmd() ? "1" : "0");
+        });
+    }
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateSystemTabletMode);
     connect(this, &Application::activeDisplayPluginChanged, this, [&](){
         if (getLoginDialogPoppedUp()) {
@@ -1477,9 +1479,9 @@ Application::Application(
     _glWidget->setFocusPolicy(Qt::StrongFocus);
     _glWidget->setFocus();
 
-    if (parser.isSet("system-cursor")) {
+    /*if (parser.isSet("system-cursor")) {	// This is now done above, since the conditional was needed anyway.
         _preferredCursor.set(Cursor::Manager::getIconName(Cursor::Icon::SYSTEM));
-    }
+    }*/
     showCursor(Cursor::Manager::lookupIcon(_preferredCursor.get()));
 
     // enable mouse tracking; otherwise, we only get drag events
@@ -5814,10 +5816,10 @@ void Application::resumeAfterLoginDialogActionTaken() {
 
         // if the --scripts command-line argument was used.
         if (_overrideDefaultScriptsLocation && _defaultScriptsLocation.exists()) {
-            scriptEngines->loadDefaultScripts();
+            scriptEngines->loadScripts();
             scriptEngines->defaultScriptsLocationOverridden(true);
         } else {
-            scriptEngines->loadScripts();
+            scriptEngines->loadDefaultScripts();
         }
     }
 

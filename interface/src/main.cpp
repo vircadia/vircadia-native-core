@@ -67,7 +67,7 @@ int main(int argc, const char* argv[]) {
     setupHifiApplication(BuildInfo::INTERFACE_NAME);
 
     QCommandLineParser parser;
-    parser.setApplicationDescription("Vircadia");
+    parser.setApplicationDescription("Vircadia -- A free/libre and open-source metaverse client");
     QCommandLineOption helpOption = parser.addHelpOption();
     QCommandLineOption versionOption = parser.addVersionOption();
 
@@ -150,7 +150,7 @@ int main(int argc, const char* argv[]) {
     );
     QCommandLineOption systemCursorOption(
         "system-cursor",
-        "Probably prevents changing the cursor when application has focus."
+        "Use the default system cursor."
     );
     QCommandLineOption concurrentDownloadsOption(
         "concurrent-downloads",
@@ -184,12 +184,12 @@ int main(int argc, const char* argv[]) {
     );
     QCommandLineOption overrideScriptsPathOption(
        "overrideScriptsPath",
-       "Probably specifies where to look for scripts.",
+       "Specifies path to default directory where the application will look for scripts to load.",
        "string"
     );
-    QCommandLineOption defaultScriptOverrideOption(
-       "defaultScriptOverride",
-       "Override defaultsScripts.js.",
+    QCommandLineOption defaultScriptsOverrideOption(
+       "defaultScriptsOverride",
+       "Override default script to run automatically on start. Default is \"defaultsScripts.js\".",
        "string"
     );
     QCommandLineOption responseTokensOption(
@@ -208,13 +208,13 @@ int main(int argc, const char* argv[]) {
     );
     QCommandLineOption traceFileOption(
        "traceFile",
-       "Probably writes a trace to a file? Only works if \"--traceDuration\" is specified.",
+       "Writes a trace to a file in the documents folder. Only works if \"--traceDuration\" is specified.",
        "path"
     );
     QCommandLineOption traceDurationOption(
        "traceDuration",
-       "Probably a number of seconds? Only works if \"--traceFile\" is specified.",
-       "number"
+       "Automatically quit interface after duration. Only works if \"--traceFile\" is specified.",
+       "seconds"
     );
     QCommandLineOption clockSkewOption(
        "clockSkew",
@@ -271,7 +271,7 @@ int main(int argc, const char* argv[]) {
     parser.addOption(responseTokensOption);
     parser.addOption(displayNameOption);
     parser.addOption(overrideScriptsPathOption);
-    parser.addOption(defaultScriptOverrideOption);
+    parser.addOption(defaultScriptsOverrideOption);
     parser.addOption(traceFileOption);
     parser.addOption(traceDurationOption);
     parser.addOption(clockSkewOption);
