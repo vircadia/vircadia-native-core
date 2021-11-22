@@ -140,7 +140,7 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
 #else
 
 void AntialiasingConfig::setAAMode(int mode) {
-    _mode = std::min((int)AntialiasingConfig::MODE_COUNT, std::max(0, mode));
+    _mode = std::min((int)AntialiasingConfig::MODE_COUNT, std::max(0, mode)); // Just use unsigned?
     emit dirty();
 }
 

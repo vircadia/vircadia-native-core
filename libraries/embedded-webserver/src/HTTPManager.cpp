@@ -31,7 +31,7 @@ HTTPManager::HTTPManager(const QHostAddress& listenAddress, quint16 port, const 
     _port(port)
 {
     bindSocket();
-    
+
     _isListeningTimer = new QTimer(this);
     connect(_isListeningTimer, &QTimer::timeout, this, &HTTPManager::isTcpServerListening);
     _isListeningTimer->start(SOCKET_CHECK_INTERVAL_IN_MS);
@@ -39,7 +39,7 @@ HTTPManager::HTTPManager(const QHostAddress& listenAddress, quint16 port, const 
 
 void HTTPManager::incomingConnection(qintptr socketDescriptor) {
     QTcpSocket* socket = new QTcpSocket(this);
-    
+
     if (socket->setSocketDescriptor(socketDescriptor)) {
         new HTTPConnection(socket, this);
     } else {
@@ -60,7 +60,7 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QUrl& url,
         // so we don't need to attempt to do so in the document root
         return true;
     }
-    
+
     if (!_documentRoot.isEmpty()) {
         // check to see if there is a file to serve from the document root for this path
         QString subPath = url.path();
@@ -88,22 +88,22 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QUrl& url,
             // this could be a directory with a trailing slash
             // send a redirect to the path with a slash so we can
             QString redirectLocation = '/' + subPath + '/';
-            
+
             if (!url.query().isEmpty()) {
                 redirectLocation += "?" + url.query();
             }
-            
+
             QHash<QByteArray, QByteArray> redirectHeader;
             redirectHeader.insert(QByteArray("Location"), redirectLocation.toUtf8());
-            
+
             connection->respond(HTTPConnection::StatusCode302, "", HTTPConnection::DefaultContentType, redirectHeader);
             return true;
         }
-        
+
         // if the last thing is a trailing slash then we want to look for index file
         if (subPath.endsWith('/') || subPath.size() == 0) {
             QStringList possibleIndexFiles = QStringList() << "index.html" << "index.shtml";
-            
+
             foreach (const QString& possibleIndexFilename, possibleIndexFiles) {
                 if (QFileInfo(absoluteFilePath + possibleIndexFilename).exists()) {
                     filePath = absoluteFilePath + possibleIndexFilename;
@@ -111,64 +111,65 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QUrl& url,
                 }
             }
         }
-        
+
         if (!filePath.isEmpty()) {
             // file exists, serve it
             static QMimeDatabase mimeDatabase;
-            
+
             auto localFile = std::unique_ptr<QFile>(new QFile(filePath));
             localFile->open(QIODevice::ReadOnly);
             QByteArray localFileData;
-            
+
             QFileInfo localFileInfo(filePath);
-            
+
             if (localFileInfo.completeSuffix() == "shtml") {
                 localFileData = localFile->readAll();
                 // this is a file that may have some SSI statements
                 // the only thing we support is the include directive, but check the contents for that
-                
+
                 // setup our static QRegExp that will catch <!--#include virtual ... --> and <!--#include file .. --> directives
                 const QString includeRegExpString = "<!--\\s*#include\\s+(virtual|file)\\s?=\\s?\"(\\S+)\"\\s*-->";
                 QRegExp includeRegExp(includeRegExpString);
-                
+
                 int matchPosition = 0;
-                
+
                 QString localFileString(localFileData);
-                
+
                 while ((matchPosition = includeRegExp.indexIn(localFileString, matchPosition)) != -1) {
                     // check if this is a file or vitual include
                     bool isFileInclude = includeRegExp.cap(1) == "file";
-                    
+
                     // setup the correct file path for the included file
                     QString includeFilePath = isFileInclude
                     ? localFileInfo.canonicalPath() + "/" + includeRegExp.cap(2)
                     : _documentRoot + includeRegExp.cap(2);
-                    
+
                     QString replacementString;
-                    
+
                     if (QFileInfo(includeFilePath).isFile()) {
-                        
+
                         QFile includedFile(includeFilePath);
                         includedFile.open(QIODevice::ReadOnly);
-                        
+
                         replacementString = QString(includedFile.readAll());
                     } else {
                         qCDebug(embeddedwebserver) << "SSI include directive referenced a missing file:" << includeFilePath;
                     }
-                    
+
                     // replace the match with the contents of the file, or an empty string if the file was not found
                     localFileString.replace(matchPosition, includeRegExp.matchedLength(), replacementString);
-                    
+
                     // push the match position forward so we can check the next match
                     matchPosition += includeRegExp.matchedLength();
                 }
-                
+
                 localFileData = localFileString.toLocal8Bit();
             }
 
-            // if this is an shtml file just make the MIME type match HTML so browsers aren't confused
+            // if this is an shtml, html or htm file just make the MIME type match HTML so browsers aren't confused
             // otherwise use the mimeDatabase to look it up
-            auto mimeType = localFileInfo.suffix() == "shtml"
+            auto suffix = localFileInfo.suffix();
+            auto mimeType = (suffix == "shtml" || suffix == "html" || suffix == "htm")
                 ? QString { "text/html" }
                 : mimeDatabase.mimeTypeForFile(filePath).name();
 
@@ -181,10 +182,10 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QUrl& url,
             return true;
         }
     }
-    
+
     // respond with a 404
     connection->respond(HTTPConnection::StatusCode404, "Resource not found.");
-    
+
     return true;
 }
 
@@ -201,10 +202,10 @@ void HTTPManager::isTcpServerListening() {
 
 bool HTTPManager::bindSocket() {
     qCDebug(embeddedwebserver) << "Attempting to bind TCP socket on port " << QString::number(_port);
-    
+
     if (listen(_listenAddress, _port)) {
         qCDebug(embeddedwebserver) << "TCP socket is listening on" << serverAddress() << "and port" << serverPort();
-        
+
         return true;
     } else {
         QString errorMessage = "Failed to open HTTP server socket: " + errorString() + ", can't continue";

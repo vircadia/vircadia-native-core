@@ -8,7 +8,7 @@ link_hifi_libraries(embedded-webserver networking shared)
 package_libraries_for_deployment()
 
 # find OpenSSL
-find_package(OpenSSL REQUIRED)
+find_package(OpenSSL 1.1.0 REQUIRED)
 
 if (APPLE AND ${OPENSSL_INCLUDE_DIR} STREQUAL "/usr/include")
   # this is a user on OS X using system OpenSSL, which is going to throw warnings since they're deprecating for their common crypto
