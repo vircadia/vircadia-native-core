@@ -58,22 +58,6 @@ class TrackableLogger(logging.Logger):
 logging.setLoggerClass(TrackableLogger)
 logger = logging.getLogger('prebuild')
 
-def headSha():
-    if shutil.which('git') is None:
-        logger.warn("Unable to find git executable, can't caclulate commit ID")
-        return '0xDEADBEEF'
-    repo_dir = os.path.dirname(os.path.abspath(__file__))
-    git = subprocess.Popen(
-        'git rev-parse --short HEAD',
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        shell=True, cwd=repo_dir, universal_newlines=True,
-    )
-    stdout, _ = git.communicate()
-    sha = stdout.split('\n')[0]
-    if not sha:
-        raise RuntimeError("couldn't find git sha for repository {}".format(repo_dir))
-    return sha
-
 @contextmanager
 def timer(name):
     ''' Print the elapsed time a context's execution takes to execute '''
@@ -120,7 +104,6 @@ def main():
     if args.ci_build:
         logging.basicConfig(datefmt='%H:%M:%S', format='%(asctime)s %(guid)s %(message)s', level=logging.INFO)
 
-    logger.info('sha=%s' % headSha())
     logger.info('start')
 
     # OS dependent information

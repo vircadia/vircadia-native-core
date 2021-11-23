@@ -110,11 +110,12 @@ public:
     AntialiasingConfig() : render::Job::Config(true) {}
 
     enum Mode {
-        OFF = 0,
+        NONE = 0,
         TAA,
         FXAA,
         MODE_COUNT
     };
+    Q_ENUM(Mode) // Stored as signed int.
 
     void setAAMode(int mode);
     int getAAMode() const { return _mode; }
@@ -122,7 +123,7 @@ public:
     void setDebugFXAA(bool debug) { debugFXAAX = (debug ? 0.0f : 1.0f); emit dirty();}
     bool debugFXAA() const { return (debugFXAAX == 0.0f ? true : false); }
 
-    int _mode{ TAA };
+    int _mode{ TAA }; // '_' prefix but not private?
 
     float blend{ 0.25f };
     float sharpen{ 0.05f };
@@ -216,8 +217,8 @@ private:
 };
 
 
-#else 
-class AntiAliasingConfig : public render::Job::Config {
+#else // User setting for antialias mode will probably be broken.
+class AntiAliasingConfig : public render::Job::Config { // Not to be confused with AntialiasingConfig...
     Q_OBJECT
     Q_PROPERTY(bool enabled MEMBER enabled)
 public:
@@ -236,7 +237,7 @@ public:
     
     const gpu::PipelinePointer& getAntialiasingPipeline();
     const gpu::PipelinePointer& getBlendPipeline();
-    
+
 private:
     gpu::FramebufferPointer _antialiasingBuffer;
     

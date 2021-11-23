@@ -29,7 +29,7 @@ PerformanceScriptingInterface::PerformancePreset PerformanceScriptingInterface::
 }
 
 QStringList PerformanceScriptingInterface::getPerformancePresetNames() const {
-    static const QStringList performancePresetNames = { "UNKNOWN", "LOW", "MID", "HIGH" };
+    static const QStringList performancePresetNames = { "UNKNOWN", "LOW_POWER", "LOW", "MID", "HIGH" };
     return performancePresetNames;
 }
 
