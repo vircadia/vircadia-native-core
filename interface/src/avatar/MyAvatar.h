@@ -170,7 +170,7 @@ class MyAvatar : public Avatar {
      * @property {Vec3} skeletonOffset - Can be used to apply a translation offset between the avatar's position and the
      *     registration point of the 3D model.
      *
-     * @property {Vec3} qmlPosition - A synonym for <code>position</code> for use by QML.
+     * @property {Vec3} qmlPosition - A synonym for <code>position</code> for use by QML. This is deprecated.
      *
      * @property {Vec3} feetPosition - The position of the avatar's feet.
      * @property {boolean} shouldRenderLocally=true - If <code>true</code> then your avatar is rendered for you in Interface,
