@@ -12,6 +12,8 @@
 #ifndef hifi_OctreePacketProcessor_h
 #define hifi_OctreePacketProcessor_h
 
+#include <QtCore/QSharedPointer>
+
 #include <ReceivedPacketProcessor.h>
 #include <ReceivedMessage.h>
 

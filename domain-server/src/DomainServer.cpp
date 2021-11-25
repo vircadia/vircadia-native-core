@@ -86,7 +86,16 @@ bool DomainServer::_getTempName { false };
 QString DomainServer::_userConfigFilename;
 int DomainServer::_parentPID { -1 };
 
+/// @brief The Domain server can proxy requests to the Metaverse server, this function handles those forwarding requests.
+/// @param connection The HTTP connection object.
+/// @param requestUrl The full URL of the request. e.g. https://google.com/api/v1/test
+/// @param metaversePath The path on the Metaverse server to route to.
+/// @param requestSubobjectKey (Optional) The parent object key that any data will be inserted into for the forwarded request.
+/// @param requiredData (Optional) This data is required to be present for the request.
+/// @param optionalData (Optional) If provided, this optional data will be forwarded with the request.
+/// @param requireAccessToken Require a valid access token to be sent with this request.
 bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
+                                              const QUrl& requestUrl,
                                               const QString& metaversePath,
                                               const QString& requestSubobjectKey,
                                               std::initializer_list<QString> requiredData,
@@ -101,22 +110,42 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
 
     QJsonObject subobject;
 
-    auto params = connection->parseUrlEncodedForm();
+    if (requestUrl.hasQuery()) {
+        QUrlQuery query(requestUrl);
 
-    for (auto& key : requiredData) {
-        auto it = params.find(key);
-        if (it == params.end()) {
-            auto error = "Bad request, expected param '" + key + "'";
-            connection->respond(HTTPConnection::StatusCode400, error.toLatin1());
-            return true;
+        for (auto& key : requiredData) {
+            if (query.hasQueryItem(key)) {
+                subobject.insert(key, query.queryItemValue(key));
+            } else {
+                auto error = "Domain Server: Bad request, expected param '" + key + "'";
+                connection->respond(HTTPConnection::StatusCode400, error.toLatin1());
+                return true;
+            }
         }
-        subobject.insert(key, it.value());
-    }
 
-    for (auto& key : optionalData) {
-        auto it = params.find(key);
-        if (it != params.end()) {
+        for (auto& key : optionalData) {
+            if (query.hasQueryItem(key)) {
+                subobject.insert(key, query.queryItemValue(key));
+            }
+        }
+    } else {
+        auto params = connection->parseUrlEncodedForm();
+
+        for (auto& key : requiredData) {
+            auto it = params.find(key);
+            if (it == params.end()) {
+                auto error = "Domain Server: Bad request, expected param '" + key + "'";
+                connection->respond(HTTPConnection::StatusCode400, error.toLatin1());
+                return true;
+            }
             subobject.insert(key, it.value());
+        }
+
+        for (auto& key : optionalData) {
+            auto it = params.find(key);
+            if (it != params.end()) {
+                subobject.insert(key, it.value());
+            }
         }
     }
 
@@ -434,7 +463,7 @@ DomainServer::~DomainServer() {
         _contentManager->aboutToFinish();
         _contentManager->terminate();
     }
-    
+
     if (_httpMetadataExporterManager) {
         _httpMetadataExporterManager->close();
         delete _httpMetadataExporterManager;
@@ -2123,23 +2152,25 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
     // Check if we should redirect/prevent access to the wizard
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
-        const QString URI_WIZARD = "/wizard/";
+        const QString URI_WIZARD_PATH = "/web-new/dist/spa/index.html";
+        const QString URI_WIZARD_FRAG = "wizard";
         const QString WIZARD_COMPLETED_ONCE_KEY_PATH = "wizard.completed_once";
         QVariant wizardCompletedOnce = _settingsManager.valueForKeyPath(WIZARD_COMPLETED_ONCE_KEY_PATH);
         const bool completedOnce = wizardCompletedOnce.isValid() && wizardCompletedOnce.toBool();
 
-        if (url.path() != URI_WIZARD && url.path().endsWith('/') && !completedOnce) {
+        if (url.path() != URI_WIZARD_PATH && url.path().endsWith('/') && !completedOnce) {
             // First visit, redirect to the wizard
             QUrl redirectedURL = url;
-            redirectedURL.setPath(URI_WIZARD);
+            redirectedURL.setPath(URI_WIZARD_PATH);
+            redirectedURL.setFragment(URI_WIZARD_FRAG);
 
             Headers redirectHeaders;
-            redirectHeaders.insert("Location", redirectedURL.toEncoded());
+            redirectHeaders.insert("Location", redirectedURL.toEncoded(QUrl::None));
 
             connection->respond(HTTPConnection::StatusCode302,
                                 QByteArray(), HTTPConnection::DefaultContentType, redirectHeaders);
             return true;
-        } else if (url.path() == URI_WIZARD && completedOnce) {
+        } else if (url.path() == URI_WIZARD_PATH && completedOnce) {
             // Wizard already completed, return 404
             connection->respond(HTTPConnection::StatusCode404, "Resource not found.");
             return true;
@@ -2294,12 +2325,12 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
             return true;
         } else if (url.path() == URI_API_DOMAINS) {
-            return forwardMetaverseAPIRequest(connection, "/api/v1/domains", "");
+            return forwardMetaverseAPIRequest(connection, url, "/api/v1/domains");
         } else if (url.path().startsWith(URI_API_DOMAINS_ID)) {
             auto id = url.path().mid(URI_API_DOMAINS_ID.length());
-            return forwardMetaverseAPIRequest(connection, "/api/v1/domains/" + id, "", {}, {}, false);
+            return forwardMetaverseAPIRequest(connection, url, "/api/v1/domains/" + id, "", {}, {}, false);
         } else if (url.path() == URI_API_PLACES) {
-            return forwardMetaverseAPIRequest(connection, "/api/v1/user/places", "");
+            return forwardMetaverseAPIRequest(connection, url, "/api/v1/user/places");
         } else {
             // check if this is for json stats for a node
             const QString NODE_JSON_REGEX_STRING = QString("\\%1\\/(%2).json\\/?$").arg(URI_NODES).arg(UUID_REGEX_STRING);
@@ -2436,7 +2467,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             }
 
         } else if (url.path() == URI_API_DOMAINS) {
-            return forwardMetaverseAPIRequest(connection, "/api/v1/domains", "domain", { "label" });
+            return forwardMetaverseAPIRequest(connection, url, "/api/v1/domains", "domain", { "label" });
 
         } else if (url.path().startsWith(URI_API_BACKUPS_RECOVER)) {
             auto id = url.path().mid(QString(URI_API_BACKUPS_RECOVER).length());
@@ -2463,7 +2494,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                 return true;
             }
             auto domainID = domainSetting.toString();
-            return forwardMetaverseAPIRequest(connection, "/api/v1/domains/" + domainID, "domain",
+            return forwardMetaverseAPIRequest(connection, url, "/api/v1/domains/" + domainID, "domain",
                                               { }, { "network_address", "network_port", "label" });
         }  else if (url.path() == URI_API_PLACES) {
             auto accessTokenVariant = _settingsManager.valueForKeyPath(ACCESS_TOKEN_KEY_PATH);
@@ -3150,9 +3181,9 @@ void DomainServer::initializeExporter() {
         qCInfo(domain_server) << "Starting Prometheus exporter on port " << exporterPort;
         _httpExporterManager = new HTTPManager
         (
-            QHostAddress::Any, 
-            (quint16)exporterPort, 
-            QString("%1/resources/prometheus_exporter/").arg(QCoreApplication::applicationDirPath()), 
+            QHostAddress::Any,
+            (quint16)exporterPort,
+            QString("%1/resources/prometheus_exporter/").arg(QCoreApplication::applicationDirPath()),
             &_exporter
         );
     }
@@ -3176,9 +3207,9 @@ void DomainServer::initializeMetadataExporter() {
         qCInfo(domain_server) << "Starting Metadata exporter on port" << metadataExporterPort;
         _httpMetadataExporterManager = new HTTPManager
         (
-            QHostAddress::Any, 
-            (quint16)metadataExporterPort, 
-            QString("%1/resources/metadata_exporter/").arg(QCoreApplication::applicationDirPath()), 
+            QHostAddress::Any,
+            (quint16)metadataExporterPort,
+            QString("%1/resources/metadata_exporter/").arg(QCoreApplication::applicationDirPath()),
             _metadata
         );
     }
@@ -3800,7 +3831,7 @@ void DomainServer::screensharePresence(QString roomname, QUuid avatarID, int exp
     callbackParams.jsonCallbackMethod = "handleSuccessfulScreensharePresence";
     callbackParams.errorCallbackMethod = "handleFailedScreensharePresence";
     // Construct `callbackData`, which is data that will be available to the callback functions.
-    // In this case, the "success" callback needs access to the "roomname" (the zone ID) and the 
+    // In this case, the "success" callback needs access to the "roomname" (the zone ID) and the
     // relevant avatar's UUID.
     QJsonObject callbackData;
     callbackData.insert("roomname", roomname);

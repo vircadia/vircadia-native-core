@@ -14,7 +14,6 @@
 #define hifi_IceServer_h
 
 #include <QtCore/QCoreApplication>
-#include <QtCore/QSharedPointer>
 #include <QUdpSocket>
 
 #include <openssl/rsa.h>

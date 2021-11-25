@@ -13,6 +13,7 @@
 #include <atomic>
 
 #include <QtCore/QObject>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QUuid>
 #include <QtCore/QVariant>
 #include <QtCore/QAbstractListModel>

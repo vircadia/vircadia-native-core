@@ -64,8 +64,7 @@ protected:
     SequenceNumber _sendCurrSeqNum; // current maximum seq num sent out
     
 private:
-    CongestionControl(const CongestionControl& other) = delete;
-    CongestionControl& operator=(const CongestionControl& other) = delete;
+    Q_DISABLE_COPY(CongestionControl);
 };
     
     

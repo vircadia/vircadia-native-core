@@ -15,6 +15,7 @@
 #define hifi_BaseAssetScriptingInterface_h
 
 #include <QtCore/QObject>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QThread>
 #include "AssetClient.h"
 #include <shared/MiniPromises.h>

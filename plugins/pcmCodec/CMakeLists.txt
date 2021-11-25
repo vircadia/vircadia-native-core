@@ -8,7 +8,7 @@
 
 set(TARGET_NAME pcmCodec)
 setup_hifi_client_server_plugin()
-link_hifi_libraries(shared plugins)
+link_hifi_libraries(shared audio plugins)
 
 if (BUILD_SERVER)
   install_beside_console()

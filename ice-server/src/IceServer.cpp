@@ -19,6 +19,7 @@
 #include <QtCore/QTimer>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
+#include <QtCore/QSharedPointer>
 
 #include <LimitedNodeList.h>
 #include <NetworkAccessManager.h>

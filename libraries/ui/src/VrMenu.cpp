@@ -141,7 +141,7 @@ public:
     }
 
 private:
-    MenuUserData(const MenuUserData&);
+    Q_DISABLE_COPY(MenuUserData);
 
     QMetaObject::Connection _shutdownConnection;
     QMetaObject::Connection _changedConnection;

@@ -237,7 +237,7 @@ target_openssl()
 
 target_bullet()
 
-set(OpenGL_GL_PREFERENCE "LEGACY")
+set(OpenGL_GL_PREFERENCE "GLVND")
 target_opengl()
 add_crashpad()
 target_breakpad()

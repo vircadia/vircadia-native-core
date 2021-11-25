@@ -15,6 +15,7 @@
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QPointer>
+#include <QtCore/QSharedPointer>
 
 #include "ThreadedAssignment.h"
 

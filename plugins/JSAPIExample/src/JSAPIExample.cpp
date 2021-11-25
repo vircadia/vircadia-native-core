@@ -14,6 +14,7 @@
 #include <QtCore/QByteArray>
 #include <QtCore/QDir>
 #include <QtCore/QFileInfo>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QJsonObject>
 #include <QtCore/QLoggingCategory>
 #include <QtCore/QSharedPointer>

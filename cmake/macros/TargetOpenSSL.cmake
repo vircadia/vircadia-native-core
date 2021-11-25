@@ -12,7 +12,7 @@ macro(TARGET_OPENSSL)
         set(OPENSSL_LIBRARIES "${OPENSSL_INSTALL_DIR}/lib/libcrypto.a;${OPENSSL_INSTALL_DIR}/lib/libssl.a" CACHE STRING INTERNAL)
     else()
     	# using VCPKG for OpenSSL
-        find_package(OpenSSL REQUIRED)
+        find_package(OpenSSL 1.1.0 REQUIRED)
     endif()
 
     include_directories(SYSTEM "${OPENSSL_INCLUDE_DIR}")

@@ -12,6 +12,7 @@
 #include "AudioInjectorManager.h"
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QSharedPointer>
 
 #include <SharedUtil.h>
 #include <shared/QtHelpers.h>

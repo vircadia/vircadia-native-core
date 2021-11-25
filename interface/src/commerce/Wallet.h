@@ -14,6 +14,8 @@
 #ifndef hifi_Wallet_h
 #define hifi_Wallet_h
 
+#include <QtCore/QSharedPointer>
+
 #include <DependencyManager.h>
 #include <Node.h>
 #include <ReceivedMessage.h>

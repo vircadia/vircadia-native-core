@@ -15,6 +15,7 @@
 
 #include <QByteArray>
 #include <QObject>
+#include <QtCore/QSharedPointer>
 
 #include <atomic>
 

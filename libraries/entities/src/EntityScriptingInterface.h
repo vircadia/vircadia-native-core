@@ -19,6 +19,7 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QStringList>
+#include <QtCore/QSharedPointer>
 #include <QtQml/QJSValue>
 #include <QtQml/QJSValueList>
 #include <QtCore/QSharedPointer>

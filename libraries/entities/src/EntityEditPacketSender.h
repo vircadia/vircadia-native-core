@@ -12,6 +12,8 @@
 #ifndef hifi_EntityEditPacketSender_h
 #define hifi_EntityEditPacketSender_h
 
+#include <QtCore/QSharedPointer>
+
 #include <OctreeEditPacketSender.h>
 
 #include <mutex>

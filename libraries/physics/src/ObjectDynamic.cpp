@@ -11,6 +11,8 @@
 
 #include "ObjectDynamic.h"
 
+#include <QtCore/QSharedPointer>
+
 #include "EntitySimulation.h"
 
 #include "PhysicsLogging.h"

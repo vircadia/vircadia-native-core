@@ -14,6 +14,7 @@
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QBuffer>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
 #include <QtCore/QFileInfo>

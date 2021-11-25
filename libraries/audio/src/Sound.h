@@ -14,6 +14,7 @@
 
 #include <QRunnable>
 #include <QtCore/QObject>
+#include <QtCore/QSharedPointer>
 #include <QtNetwork/QNetworkReply>
 #include <QtCore/QSharedPointer>
 

@@ -228,8 +228,9 @@ private:
     bool processPendingContent(HTTPConnection* connection, QString itemName, QString filename, QByteArray dataChunk);
 
     bool forwardMetaverseAPIRequest(HTTPConnection* connection,
+                                    const QUrl& requestUrl,
                                     const QString& metaversePath,
-                                    const QString& requestSubobject,
+                                    const QString& requestSubobjectKey = "",
                                     std::initializer_list<QString> requiredData = { },
                                     std::initializer_list<QString> optionalData = { },
                                     bool requireAccessToken = true);
@@ -246,7 +247,7 @@ private:
     HTTPManager _httpManager;
     HTTPManager* _httpExporterManager { nullptr };
     HTTPManager* _httpMetadataExporterManager { nullptr };
-    
+
     std::unique_ptr<HTTPSManager> _httpsManager;
 
     QHash<QUuid, SharedAssignmentPointer> _allAssignments;
