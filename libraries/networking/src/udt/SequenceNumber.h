@@ -25,8 +25,8 @@ public:
     using UType = uint32_t;
     
     // Values are for 27 bit SequenceNumber
-    static const Type THRESHOLD = 0x03FFFFFF; // threshold for comparing sequence numbers
-    static const Type MAX = 0x07FFFFFF; // maximum sequence number used in UDT
+    static const Type THRESHOLD = 0x03FFFFFF;  // Threshold for comparing sequence numbers.
+    static const Type MAX = 0x07FFFFFF;  // Maximum sequence number used in UDT.
     
     SequenceNumber() = default;
     SequenceNumber(const SequenceNumber& other) : _value(other._value) {}

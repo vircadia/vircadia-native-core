@@ -58,6 +58,12 @@
 #include "AudioFileWav.h"
 #include "HifiAudioDeviceInfo.h"
 
+#if defined(WEBRTC_AUDIO)
+#  define WEBRTC_APM_DEBUG_DUMP 0
+#  include <modules/audio_processing/include/audio_processing.h>
+#  include "modules/audio_processing/audio_processing_impl.h"
+#endif
+
 #ifdef _WIN32
 #pragma warning( push )
 #pragma warning( disable : 4273 )
@@ -212,7 +218,7 @@ public slots:
     void audioMixerKilled();
 
     void setMuted(bool muted, bool emitSignal = true);
-    bool isMuted() { return _muted; }
+    bool isMuted() { return _isMuted; }
 
     virtual bool setIsStereoInput(bool stereo) override;
     virtual bool isStereoInput() override { return _isStereoInput; }
@@ -405,7 +411,7 @@ private:
     float _timeSinceLastClip{ -1.0f };
     int _totalInputAudioSamples;
 
-    bool _muted{ false };
+    bool _isMuted{ false };
     bool _shouldEchoLocally{ false };
     bool _shouldEchoToServer{ false };
     bool _isNoiseGateEnabled{ true };
@@ -452,7 +458,7 @@ private:
     void updateReverbOptions();
     void handleLocalEchoAndReverb(QByteArray& inputByteArray);
 
-#if defined(WEBRTC_ENABLED)
+#if defined(WEBRTC_AUDIO)
     static const int WEBRTC_SAMPLE_RATE_MAX = 96000;
     static const int WEBRTC_CHANNELS_MAX = 2;
     static const int WEBRTC_FRAMES_MAX = webrtc::AudioProcessing::kChunkSizeMs * WEBRTC_SAMPLE_RATE_MAX / 1000;
