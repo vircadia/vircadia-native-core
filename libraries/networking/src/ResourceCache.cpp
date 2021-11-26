@@ -329,7 +329,7 @@ QVariantList ResourceCache::getResourceList() {
         QList<QUrl> resources;
         {
             QReadLocker locker(&_resourcesLock);
-            resources = _resources.uniqueKeys();
+            resources = _resources.keys();
         }
         list.reserve(resources.size());
         for (auto& resource : resources) {
