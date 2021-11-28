@@ -182,7 +182,7 @@ void runTimingTests() {
     const int EXTRA_JUNK_SIZE = 200;
     extraJunk.append((unsigned char)255);
     for (int i = 0; i < EXTRA_JUNK_SIZE; i++) {
-        extraJunk.append(QString("junk"));
+        extraJunk.append(QString("junk").toUtf8());
     }
 
     {
@@ -257,17 +257,17 @@ void runUnitTests() {
 
     quint64 LAST_TEST = 10;
     quint64 SKIP_BY = 1;
-    
+
     for (quint64 value = 0; value <= LAST_TEST; value += SKIP_BY) {
         qDebug() << "value:" << value;
 
         ByteCountCoded<quint64> codedValue = value;
-    
+
         QByteArray codedValueBuffer = codedValue;
-        
+
         codedValueBuffer.append((unsigned char)255);
-        codedValueBuffer.append(QString("junk"));
-        
+        codedValueBuffer.append(QString("junk").toUtf8());
+
         qDebug() << "codedValueBuffer:";
         outputBufferBits((const unsigned char*)codedValueBuffer.constData(), codedValueBuffer.size());
 
@@ -276,7 +276,7 @@ void runUnitTests() {
         quint64 valueDecoded = valueDecoder;
         qDebug() << "valueDecoded:" << valueDecoded;
         qDebug() << "bytesConsumed:" << bytesConsumed;
-        
+
 
         if (value == valueDecoded) {
             qDebug() << "SUCCESS!";

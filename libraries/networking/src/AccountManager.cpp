@@ -235,7 +235,7 @@ QNetworkRequest AccountManager::createRequest(QString path, AccountManagerAuth::
     } else {
         requestURL.setPath(getMetaverseServerURLPath(true) + path.left(queryStringLocation));
     }
-    
+
     // qCDebug(networking) << "Creating request path" << requestURL;
     // qCDebug(networking) << "requestURL.isValid()" << requestURL.isValid();
     // qCDebug(networking) << "requestURL.errorString()" << requestURL.errorString();
@@ -569,7 +569,7 @@ void AccountManager::requestAccessToken(const QString& login, const QString& pas
     postData.append("grant_type=password&");
     postData.append("username=" + QUrl::toPercentEncoding(login) + "&");
     postData.append("password=" + QUrl::toPercentEncoding(password) + "&");
-    postData.append("scope=" + ACCOUNT_MANAGER_REQUESTED_SCOPE);
+    postData.append(QString("scope=%1").arg(ACCOUNT_MANAGER_REQUESTED_SCOPE).toUtf8());
 
     request.setUrl(grantURL);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
@@ -590,10 +590,10 @@ void AccountManager::requestAccessTokenWithAuthCode(const QString& authCode, con
 
     QByteArray postData;
     postData.append("grant_type=authorization_code&");
-    postData.append("client_id=" + clientId + "&");
-    postData.append("client_secret=" + clientSecret + "&");
-    postData.append("code=" + authCode + "&");
-    postData.append("redirect_uri=" + QUrl::toPercentEncoding(redirectUri));
+    postData.append(QString("client_id=%1&").arg(clientId).toUtf8());
+    postData.append(QString("client_secret=%1&").arg(clientSecret).toUtf8());
+    postData.append(QString("code=%1&").arg(authCode).toUtf8());
+    postData.append(QByteArray("redirect_uri=") + QUrl::toPercentEncoding(redirectUri));
 
     request.setUrl(grantURL);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
@@ -613,8 +613,8 @@ void AccountManager::requestAccessTokenWithSteam(QByteArray authSessionTicket) {
 
     QByteArray postData;
     postData.append("grant_type=password&");
-    postData.append("steam_auth_ticket=" + QUrl::toPercentEncoding(authSessionTicket) + "&");
-    postData.append("scope=" + ACCOUNT_MANAGER_REQUESTED_SCOPE);
+    postData.append(QByteArray("steam_auth_ticket=") + QUrl::toPercentEncoding(authSessionTicket) + "&");
+    postData.append(QString("scope=%1").arg(ACCOUNT_MANAGER_REQUESTED_SCOPE).toUtf8());
 
     request.setUrl(grantURL);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
@@ -635,9 +635,9 @@ void AccountManager::requestAccessTokenWithOculus(const QString& nonce, const QS
 
     QByteArray postData;
     postData.append("grant_type=password&");
-    postData.append("oculus_nonce=" + nonce + "&");
-    postData.append("oculus_id=" + oculusID + "&");
-    postData.append("scope=" + ACCOUNT_MANAGER_REQUESTED_SCOPE);
+    postData.append(QString("oculus_nonce=%1&").arg(nonce).toUtf8());
+    postData.append(QString("oculus_id=%1&").arg(oculusID).toUtf8());
+    postData.append(QString("scope=%1").arg(ACCOUNT_MANAGER_REQUESTED_SCOPE).toUtf8());
 
     request.setUrl(grantURL);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
@@ -666,8 +666,8 @@ void AccountManager::refreshAccessToken() {
 
         QByteArray postData;
         postData.append("grant_type=refresh_token&");
-        postData.append("refresh_token=" + QUrl::toPercentEncoding(_accountInfo.getAccessToken().refreshToken) + "&");
-        postData.append("scope=" + ACCOUNT_MANAGER_REQUESTED_SCOPE);
+        postData.append(QByteArray("refresh_token=") + QUrl::toPercentEncoding(_accountInfo.getAccessToken().refreshToken) + "&");
+        postData.append(QString("scope=%1").arg(ACCOUNT_MANAGER_REQUESTED_SCOPE).toUtf8());
 
         request.setUrl(grantURL);
         request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
