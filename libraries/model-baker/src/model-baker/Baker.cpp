@@ -38,7 +38,8 @@ namespace baker {
             auto& blendshapesPerMesh = output.edit3();
             blendshapesPerMesh.reserve(hfmModelIn->meshes.size());
             for (int i = 0; i < hfmModelIn->meshes.size(); i++) {
-                blendshapesPerMesh.push_back(std::vector<hfm::Blendshape>(hfmModelIn->meshes[i].blendshapes.begin(), hfmModelIn->meshes[i].blendshapes.end()));
+                auto &blendshapes = hfmModelIn->meshes[i].blendshapes;
+                blendshapesPerMesh.push_back(std::vector<hfm::Blendshape>(blendshapes.begin(), blendshapes.end()));
             }
             output.edit4() = std::vector<hfm::Joint>(hfmModelIn->joints.begin(), hfmModelIn->joints.end());
         }
