@@ -14,10 +14,11 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QTimer>
+#include <QLoggingCategory>
 
 #include <HTTPConnection.h>
 
-#include "acme/acme-lw.hpp"
+Q_DECLARE_LOGGING_CATEGORY(acme_client)
 
 class DomainServerAcmeClient : public QObject {
     Q_OBJECT
@@ -35,7 +36,6 @@ private slots:
 private:
 
     QTimer _expiryTimer;
-    // acme_lf::AcmeClient _client;
 };
 
 

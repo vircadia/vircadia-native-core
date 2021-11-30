@@ -29,8 +29,6 @@
 #include <list>
 #include <utility>
 
-#include <iostream> // TODO: remove
-
 using namespace std;
 
 namespace acme_lw
@@ -258,7 +256,7 @@ inline EVP_PKEYptr makePrivateKey() {
         throw acme_lw::AcmeException("Failure in EVP_PKEY_assign_RSA");
     }
 
-    return std::move(key);
+    return key;
 
 }
 
@@ -605,6 +603,15 @@ struct AcmeClientImpl
 
 };
 
+// TODO: c++17 fold expressions replace this
+template<bool...> struct conjunction;
+template<> struct conjunction<> : std::true_type { };
+template<bool B1, bool... Bn>
+struct conjunction<B1, Bn...>
+{constexpr static bool value = B1 && conjunction<Bn...>::value;};
+template <bool... Bn>
+constexpr static bool conjunction_v = conjunction<Bn...>::value;
+
 template <typename Body, typename Next>
 struct ForwardAcmeError
 {
@@ -617,15 +624,19 @@ struct ForwardAcmeError
         next(std::move(error));
     }
 
-    template <typename T,
-        std::enable_if_t<not std::is_same<T,AcmeException>{}>* = nullptr>
-    void operator()(T&& value) {
-        body(std::move(next), std::forward<T>(value));
+    void operator()(AcmeClient client, AcmeException error) const {
+        next(std::move(client), std::move(error));
+    }
+
+    template <typename... Ts,
+        std::enable_if_t<conjunction_v<not std::is_same<Ts,AcmeException>::value...>>* = nullptr>
+    void operator()(Ts&&... values) {
+        body(std::move(next), std::forward<Ts>(values)...);
     }
 
     private:
-    Next next;
     Body body;
+    Next next;
 };
 
 template <typename Body, typename Next>
@@ -660,34 +671,6 @@ CaptureAcmeClient<F> captureAcmeClient(AcmeClient client, F&& f) {
     return {std::move(client), std::forward<F>(f)};
 }
 
-template <typename Body, typename Next>
-struct ForwardAcmeClientError
-{
-    ForwardAcmeClientError(Body body, Next next) :
-        body(std::move(body)),
-        next(std::move(next))
-    {}
-
-    void operator()(AcmeClient client, AcmeException error) {
-        next(std::move(client), std::move(error));
-    }
-
-    template <typename T>
-    void operator()(AcmeClient client, T&& value) {
-        body(std::move(next), std::move(client), std::forward<T>(value));
-    }
-
-    private:
-    Body body;
-    Next next;
-};
-
-template <typename Body, typename Next>
-ForwardAcmeClientError<Body, Next> forwardAcmeClientError(Body&& body, Next&& next) {
-    return {std::forward<Body>(body), std::forward<Next>(next)};
-}
-
-
 template <typename Callback>
 void init(Callback callback, std::string signingKey, std::string directoryUrl) {
     acme_lw_internal::doGet(forwardAcmeError(
@@ -696,7 +679,6 @@ void init(Callback callback, std::string signingKey, std::string directoryUrl) {
         (auto next, acme_lw_internal::Response result) {
             try {
                 auto json = nlohmann::json::parse(result.response_);
-                std::cout << json.dump(1) << '\n';
                 AcmeClient client(
                     std::move(signingKey),
                     json.at("newAccount"),
@@ -718,7 +700,7 @@ void sendRequest(Callback callback, AcmeClient client,
     auto nonseUrl = client.impl_->newNonceUrl();
     acme_lw_internal::getHeader(
         captureAcmeClient(std::move(client),
-            forwardAcmeClientError(
+            forwardAcmeError(
                 [url = std::move(url), payload = std::move(payload), header]
                 (auto next, auto client, auto replyNonce) {
 
@@ -737,7 +719,8 @@ void sendRequest(Callback callback, AcmeClient client,
                                     u8R"("payload": ")" + payld + "\"," +
                                     u8R"("signature": ")" + signature + "\"}";
 
-                    doPost(captureAcmeClient(std::move(client), std::move(next)), std::move(url), std::move(body), header);
+                    acme_lw_internal::doPost(captureAcmeClient(std::move(client), std::move(next)),
+                        std::move(url), std::move(body), header);
 
                 },
             std::move(callback))
@@ -751,7 +734,7 @@ void createAccount(Callback callback, AcmeClient client) {
     std::pair<std::string, std::string> header = make_pair("location"s, ""s);
     auto newAccountUrl = client.impl_->newAccountUrl();
     sendRequest(
-        forwardAcmeClientError([](auto next, auto client, auto response){
+        forwardAcmeError([](auto next, auto client, auto response){
             client.impl_->headerSuffix = u8R"(
                     "alg": "RS256",
                     "kid": ")" + response.headerValue_ + "\"}";
@@ -772,16 +755,16 @@ template <typename Range>
 class InStack
 {
     public:
-    InStack(Range range) : range_(range), top_(std::begin(range_))
+    InStack(Range range) : range_(range), top_()
     {}
 
-    bool empty() { return top == std::end(range_); };
-    auto& top() { return *top_; }
+    bool empty() { return top_ == std::end(range_) - std::begin(range_); };
+    auto& top() { return *(std::begin(range_) + top_); }
     auto& pop() { return ++top_; }
 
     private:
     Range range_;
-    typename Range::iterator top_;
+    typename Range::difference_type top_;
 };
 
 template <typename Range>
@@ -814,16 +797,16 @@ template <typename Callback, typename ChallengeCallback, typename In>
 void processAuthorizations(Callback callback, ChallengeCallback challengeCallback, AcmeClient client, InStack<In> input, OutStack<std::string> output)
 {
     if(input.empty()) {
-        callback(client, std::move(output));
+        callback(std::move(client), std::move(output));
         return;
     }
 
     std::string in = std::move(input.top());
     input.pop();
     sendRequest(
-        forwardAcmeClientError(
+        forwardAcmeError(
             [input = std::move(input), output = std::move(output), challengeCallback = std::move( challengeCallback)]
-            (auto next, auto client, auto response) {
+            (auto next, auto client, auto response) mutable {
                 // TODO: lots of potential json parsing exceptions here, need to wrap them in high level acme exceptions and pass to callback
                 auto authz = nlohmann::json::parse(response.response_);
                 /**
@@ -848,7 +831,7 @@ void processAuthorizations(Callback callback, ChallengeCallback challengeCallbac
                 std::string domain = authz.at("identifier").at("value");
 
                 auto challenges = authz.at("challenges");
-                auto httpChallenge = std::find(challenges.begin(), challenges.end(),
+                auto httpChallenge = std::find_if(challenges.begin(), challenges.end(),
                     [](auto challenge){ return challenge.at("type") == "http-01"; });
 
                 if(httpChallenge == challenges.end()) {
@@ -903,12 +886,12 @@ void orderCertificate(Callback callback, ChallengeCallback challengeCallback, Ac
     std::pair<std::string, std::string> header = make_pair("location"s, ""s);
     auto newOrderUrl = client.impl_->newOrderUrl();
     sendRequest(
-        forwardAcmeClientError(
+        forwardAcmeError(
             [
                 challengeCallback = std::move(challengeCallback),
                 domains = std::move(domains)
             ]
-            (auto next, auto client, auto response) {
+            (auto next, auto client, auto response) mutable {
 
                 std::string currentOrderUrl = response.headerValue_;
 
@@ -917,9 +900,9 @@ void orderCertificate(Callback callback, ChallengeCallback challengeCallback, Ac
                 auto authorizations = json.at("authorizations");
 
                 processAuthorizations(
-                    forwardAcmeClientError(
+                    forwardAcmeError(
                         [domains = std::move(domains), currentOrderUrl = std::move(response.headerValue_), finalizeUrl = json.at("finalize")]
-                        (auto next, auto client, auto challenges){
+                        (auto next, auto client, auto challenges) mutable {
                             next(std::move(client), std::move(challenges), std::move(domains), std::move(finalizeUrl), std::move(currentOrderUrl));
                         },
                         std::move(next)
@@ -929,8 +912,8 @@ void orderCertificate(Callback callback, ChallengeCallback challengeCallback, Ac
 
             },
             std::move(callback)
-        ).
-        newOrderUrl, payload, "location"
+        ),
+        std::move(client), newOrderUrl, payload, "location"
     );
 }
 
