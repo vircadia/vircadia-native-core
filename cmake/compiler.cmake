@@ -110,3 +110,5 @@ if (APPLE)
     set(CMAKE_OSX_SYSROOT ${_OSX_DESIRED_SDK_PATH}/MacOSX${OSX_SDK}.sdk)
   endif ()
 endif ()
+
+message("CXXFLAGS: ${CXXFLAGS}")

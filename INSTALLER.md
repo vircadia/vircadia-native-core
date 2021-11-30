@@ -187,13 +187,13 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
     ```bash
     cd ../Vircadia/source/pkg-scripts/
     ```
-17. Generate the .rpm package. Set `RPMVERSION` to the same version you entered for the `Release number` on Vircadia Builder. *Advanced users: the version cannot begin with a letter and cannot include underscores or dashes in it.*
+17. Generate the .deb package. Set `DEBVERSION` to the same version you entered for the `Release number` on Vircadia Builder. Set `DEBEMAIL` and `DEBFULLNAME` to your own information to be packaged with the release. *The version cannot begin with a letter and cannot include underscores or dashes in it.*
     ```bash
     DEBVERSION="2021.1.0" DEBEMAIL="your-email@somewhere.com" DEBFULLNAME="Your Full Name" ./make-deb-server
     ```
 18. If successful, the generated .deb package will be in the `pkg-scripts` folder.
 
-##### Amazon Linux 2 | .rpm
+##### Amazon Linux 2 | .rpm (Deprecated)
 
 1. Ensure you are using an Amazon Linux 2 system. You will need many CPU cores to complete this process within a reasonable time. As an alternative to AWS EC2, you may use a [virtual machine](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/amazon-linux-2-virtual-machine.html). Here are the recommended specs:
     ```text
@@ -266,7 +266,7 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
     ```bash
     cd ../Vircadia/source/pkg-scripts/
     ```
-18. Generate the .rpm package. Set `RPMVERSION` to the same version you entered for the `Release number` on Vircadia Builder. *Advanced users: the version cannot begin with a letter and cannot include underscores or dashes in it.*
+18. Generate the .rpm package. Set `RPMVERSION` to the same version you entered for the `Release number` on Vircadia Builder. *The version cannot begin with a letter and cannot include underscores or dashes in it.*
     ```bash
     RPMVERSION="2021.1.0" ./make-rpm-server
     ```
