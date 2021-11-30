@@ -14,6 +14,7 @@
 
 #include <assert.h>
 
+#include <QJsonDocument>
 #include <QProcess>
 #include <QSharedMemory>
 #include <QThread>
@@ -84,7 +85,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
         _assignmentServerHostname = assignmentServerHostname;
     }
 
-    _assignmentServerSocket = SockAddr(_assignmentServerHostname, assignmentServerPort, true);
+    _assignmentServerSocket = SockAddr(SocketType::UDP, _assignmentServerHostname, assignmentServerPort, true);
     if (_assignmentServerSocket.isNull()) {
         qCCritical(assignment_client) << "PAGE: Couldn't resolve domain server address" << _assignmentServerHostname;
     }
@@ -119,7 +120,8 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
 
     // did we get an assignment-client monitor port?
     if (assignmentMonitorPort > 0) {
-        _assignmentClientMonitorSocket = SockAddr(DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME, assignmentMonitorPort);
+        _assignmentClientMonitorSocket = SockAddr(SocketType::UDP, DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME, 
+            assignmentMonitorPort);
         _assignmentClientMonitorSocket.setObjectName("AssignmentClientMonitor");
 
         qCDebug(assignment_client) << "Assignment-client monitor socket is" << _assignmentClientMonitorSocket;
@@ -132,6 +134,18 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
         PacketReceiver::makeUnsourcedListenerReference<AssignmentClient>(this, &AssignmentClient::handleCreateAssignmentPacket));
     packetReceiver.registerListener(PacketType::StopNode,
         PacketReceiver::makeUnsourcedListenerReference<AssignmentClient>(this, &AssignmentClient::handleStopNodePacket));
+
+#if defined(WEBRTC_DATA_CHANNELS)
+    auto webrtcSocket = nodeList->getWebRTCSocket();
+
+    // Route inbound WebRTC signaling messages from the Domain Server.
+    packetReceiver.registerListener(PacketType::WebRTCSignaling,
+        PacketReceiver::makeUnsourcedListenerReference<AssignmentClient>(this, &AssignmentClient::handleWebRTCSignalingPacket));
+    connect(this, &AssignmentClient::webrtcSignalingMessageFromUserClient, webrtcSocket, &WebRTCSocket::onSignalingMessage);
+
+    // Route outbound WebRTC signaling messages via the Domain Server to the user client.
+    connect(webrtcSocket, &WebRTCSocket::sendSignalingMessage, this, &AssignmentClient::sendSignalingMessageToUserClient);
+#endif
 }
 
 void AssignmentClient::stopAssignmentClient() {
@@ -340,3 +354,45 @@ void AssignmentClient::assignmentCompleted() {
 
     _isAssigned = false;
 }
+
+#if defined(WEBRTC_DATA_CHANNELS)
+
+void AssignmentClient::handleWebRTCSignalingPacket(QSharedPointer<ReceivedMessage> message) {
+    auto messageString = message->readString();
+    auto json = QJsonDocument::fromJson(messageString.toUtf8()).object();
+    if (json.keys().contains("echo")) {
+        // Echo message back to sender.
+
+        if (!json.keys().contains("to") || !json.keys().contains("from")) {
+            qCDebug(assignment_client) << "Invalid WebRTC signaling echo message received.";
+            return;
+        }
+
+        // Swap to/from.
+        auto to = json.value("to");
+        json.insert("to", json.value("from"));
+        json.insert("from", to);
+
+        // Send back to sender via the Domain Server.
+        auto packetList = NLPacketList::create(PacketType::WebRTCSignaling, QByteArray(), true, true);
+        packetList->writeString(QJsonDocument(json).toJson(QJsonDocument::Compact));
+        auto nodeList = DependencyManager::get<NodeList>();
+        auto domainServerAddress = nodeList->getDomainHandler().getSockAddr();
+        nodeList->sendPacketList(std::move(packetList), domainServerAddress);
+
+    } else {
+        // WebRTC signaling message.
+        emit webrtcSignalingMessageFromUserClient(json);
+    }
+}
+
+// Sends a signaling message from the assignment client to the user client via the Domain Server.
+void AssignmentClient::sendSignalingMessageToUserClient(const QJsonObject& json) {
+    auto packetList = NLPacketList::create(PacketType::WebRTCSignaling, QByteArray(), true, true);
+    packetList->writeString(QJsonDocument(json).toJson(QJsonDocument::Compact));
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto domainServerAddress = nodeList->getDomainHandler().getSockAddr();
+    nodeList->sendPacketList(std::move(packetList), domainServerAddress);
+}
+
+#endif

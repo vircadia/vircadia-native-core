@@ -338,6 +338,7 @@ void HTTPConnection::readHeaders() {
 
             QByteArray clength = requestHeader("Content-Length");
             if (clength.isEmpty()) {
+                _requestContent = MemoryStorage::make(0);
                 _parentManager->handleHTTPRequest(this, _requestUrl);
 
             } else {

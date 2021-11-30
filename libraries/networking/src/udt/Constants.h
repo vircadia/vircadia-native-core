@@ -26,6 +26,8 @@ namespace udt {
     static const int CONNECTION_SEND_BUFFER_SIZE_PACKETS = 8192;
     static const int UDP_SEND_BUFFER_SIZE_BYTES = 1048576;
     static const int UDP_RECEIVE_BUFFER_SIZE_BYTES = 1048576;
+    static const int WEBRTC_SEND_BUFFER_SIZE_BYTES = 1048576;
+    static const int WEBRTC_RECEIVE_BUFFER_SIZE_BYTES = 1048576;
     static const int DEFAULT_SYN_INTERVAL_USECS = 10 * 1000;
 
     

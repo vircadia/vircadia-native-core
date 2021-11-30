@@ -27,6 +27,8 @@
 #include <Assignment.h>
 #include <HTTPSConnection.h>
 #include <LimitedNodeList.h>
+#include <shared/WebRTC.h>
+#include <webrtc/WebRTCSignalingServer.h>
 
 #include "AssetsBackupHandler.h"
 #include "DomainGatekeeper.h"
@@ -141,11 +143,16 @@ private slots:
     void updateReplicatedNodes();
     void updateDownstreamNodes();
     void updateUpstreamNodes();
+
     void initializeExporter();
     void initializeMetadataExporter();
 
     void tokenGrantFinished();
     void profileRequestFinished();
+
+#if defined(WEBRTC_DATA_CHANNELS)
+    void forwardAssignmentClientSignalingMessageToUserClient(QSharedPointer<ReceivedMessage> message);
+#endif
 
     void aboutToQuit();
 
@@ -153,6 +160,12 @@ signals:
     void iceServerChanged();
     void userConnected();
     void userDisconnected();
+
+#if defined(WEBRTC_DATA_CHANNELS)
+    void webrtcSignalingMessageForDomainServer(const QJsonObject& json);
+    void webrtcSignalingMessageForUserClient(const QJsonObject& json);
+#endif
+
 
 private:
     QUuid getID();
@@ -235,6 +248,12 @@ private:
                                     std::initializer_list<QString> optionalData = { },
                                     bool requireAccessToken = true);
 
+#if defined(WEBRTC_DATA_CHANNELS)
+    void setUpWebRTCSignalingServer();
+    void routeWebRTCSignalingMessage(const QJsonObject& json);
+    void sendWebRTCSignalingMessageToAssignmentClient(const QJsonObject& json);
+#endif
+
     QString operationToString(const QNetworkAccessManager::Operation &op);
 
     SubnetList _acSubnetWhitelist;
@@ -312,6 +331,10 @@ private:
     std::unordered_map<int, std::unique_ptr<QTemporaryFile>> _pendingContentFiles;
 
     QThread _assetClientThread;
+
+#if defined(WEBRTC_DATA_CHANNELS)
+    std::unique_ptr<WebRTCSignalingServer> _webrtcSignalingServer { nullptr };
+#endif
 };
 
 

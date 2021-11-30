@@ -19,6 +19,7 @@ class Profiler {
 public:
     enum Tier {
         UNKNOWN = 0,
+        LOW_POWER,
         LOW,
         MID,
         HIGH,

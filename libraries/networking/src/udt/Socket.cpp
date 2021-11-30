@@ -42,16 +42,15 @@ using namespace udt;
 
 Socket::Socket(QObject* parent, bool shouldChangeSocketOptions) :
     QObject(parent),
-    _udpSocket(parent),
+    _networkSocket(parent),
     _readyReadBackupTimer(new QTimer(this)),
     _shouldChangeSocketOptions(shouldChangeSocketOptions)
 {
-    connect(&_udpSocket, &QUdpSocket::readyRead, this, &Socket::readPendingDatagrams);
+    connect(&_networkSocket, &NetworkSocket::readyRead, this, &Socket::readPendingDatagrams);
 
     // make sure we hear about errors and state changes from the underlying socket
-    connect(&_udpSocket, SIGNAL(error(QAbstractSocket::SocketError)),
-            this, SLOT(handleSocketError(QAbstractSocket::SocketError)));
-    connect(&_udpSocket, &QAbstractSocket::stateChanged, this, &Socket::handleStateChanged);
+    connect(&_networkSocket, &NetworkSocket::socketError, this, &Socket::handleSocketError);
+    connect(&_networkSocket, &NetworkSocket::stateChanged, this, &Socket::handleStateChanged);
 
     // in order to help track down the zombie server bug, add a timer to check if we missed a readyRead
     const int READY_READ_BACKUP_CHECK_MSECS = 2 * 1000;
@@ -59,19 +58,21 @@ Socket::Socket(QObject* parent, bool shouldChangeSocketOptions) :
     _readyReadBackupTimer->start(READY_READ_BACKUP_CHECK_MSECS);
 }
 
-void Socket::bind(const QHostAddress& address, quint16 port) {
-
-    _udpSocket.bind(address, port);
+void Socket::bind(SocketType socketType, const QHostAddress& address, quint16 port) {
+    _networkSocket.bind(socketType, address, port);
 
     if (_shouldChangeSocketOptions) {
-        setSystemBufferSizes();
+        setSystemBufferSizes(socketType);
+        if (socketType == SocketType::WebRTC) {
+            return;
+        }
 
 #if defined(Q_OS_LINUX)
-        auto sd = _udpSocket.socketDescriptor();
+        auto sd = _networkSocket.socketDescriptor(socketType);
         int val = IP_PMTUDISC_DONT;
         setsockopt(sd, IPPROTO_IP, IP_MTU_DISCOVER, &val, sizeof(val));
 #elif defined(Q_OS_WIN)
-        auto sd = _udpSocket.socketDescriptor();
+        auto sd = _networkSocket.socketDescriptor(socketType);
         int val = 0; // false
         if (setsockopt(sd, IPPROTO_IP, IP_DONTFRAGMENT, (const char *)&val, sizeof(val))) {
             auto wsaErr = WSAGetLastError();
@@ -81,16 +82,22 @@ void Socket::bind(const QHostAddress& address, quint16 port) {
     }
 }
 
-void Socket::rebind() {
-    rebind(_udpSocket.localPort());
+void Socket::rebind(SocketType socketType) {
+    rebind(socketType, _networkSocket.localPort(socketType));
 }
 
-void Socket::rebind(quint16 localPort) {
-    _udpSocket.abort();
-    bind(QHostAddress::AnyIPv4, localPort);
+void Socket::rebind(SocketType socketType, quint16 localPort) {
+    _networkSocket.abort(socketType);
+    bind(socketType, QHostAddress::AnyIPv4, localPort);
 }
 
-void Socket::setSystemBufferSizes() {
+#if defined(WEBRTC_DATA_CHANNELS)
+const WebRTCSocket* Socket::getWebRTCSocket() {
+    return _networkSocket.getWebRTCSocket();
+}
+#endif
+
+void Socket::setSystemBufferSizes(SocketType socketType) {
     for (int i = 0; i < 2; i++) {
         QAbstractSocket::SocketOption bufferOpt;
         QString bufferTypeString;
@@ -99,20 +106,22 @@ void Socket::setSystemBufferSizes() {
 
         if (i == 0) {
             bufferOpt = QAbstractSocket::SendBufferSizeSocketOption;
-            numBytes = udt::UDP_SEND_BUFFER_SIZE_BYTES;
+            numBytes = socketType == SocketType::UDP 
+                ? udt::UDP_SEND_BUFFER_SIZE_BYTES : udt::WEBRTC_SEND_BUFFER_SIZE_BYTES;
             bufferTypeString = "send";
 
         } else {
             bufferOpt = QAbstractSocket::ReceiveBufferSizeSocketOption;
-            numBytes = udt::UDP_RECEIVE_BUFFER_SIZE_BYTES;
+            numBytes = socketType == SocketType::UDP 
+                ? udt::UDP_RECEIVE_BUFFER_SIZE_BYTES : udt::WEBRTC_RECEIVE_BUFFER_SIZE_BYTES;
             bufferTypeString = "receive";
         }
 
-        int oldBufferSize = _udpSocket.socketOption(bufferOpt).toInt();
+        int oldBufferSize = _networkSocket.socketOption(socketType, bufferOpt).toInt();
 
         if (oldBufferSize < numBytes) {
-            _udpSocket.setSocketOption(bufferOpt, QVariant(numBytes));
-            int newBufferSize = _udpSocket.socketOption(bufferOpt).toInt();
+            _networkSocket.setSocketOption(socketType, bufferOpt, QVariant(numBytes));
+            int newBufferSize = _networkSocket.socketOption(socketType, bufferOpt).toInt();
 
             qCDebug(networking) << "Changed socket" << bufferTypeString << "buffer size from" << oldBufferSize << "to"
                 << newBufferSize << "bytes";
@@ -198,7 +207,7 @@ qint64 Socket::writePacketList(std::unique_ptr<PacketList> packetList, const Soc
         return 0;
     }
 
-    // Unerliable and Unordered
+    // Unreliable and Unordered
     qint64 totalBytesSent = 0;
     while (!packetList->_packets.empty()) {
         totalBytesSent += writePacket(packetList->takeFront<Packet>(), sockAddr);
@@ -236,16 +245,18 @@ qint64 Socket::writeDatagram(const char* data, qint64 size, const SockAddr& sock
 }
 
 qint64 Socket::writeDatagram(const QByteArray& datagram, const SockAddr& sockAddr) {
+    auto socketType = sockAddr.getType();
 
     // don't attempt to write the datagram if we're unbound.  Just drop it.
-    // _udpSocket.writeDatagram will return an error anyway, but there are
+    // _networkSocket.writeDatagram will return an error anyway, but there are
     // potential crashes in Qt when that happens.
-    if (_udpSocket.state() != QAbstractSocket::BoundState) {
+    if (_networkSocket.state(socketType) != QAbstractSocket::BoundState) {
         qCDebug(networking) << "Attempt to writeDatagram when in unbound state to" << sockAddr;
         return -1;
     }
-    qint64 bytesWritten = _udpSocket.writeDatagram(datagram, sockAddr.getAddress(), sockAddr.getPort());
-    int pending = _udpSocket.bytesToWrite();
+    qint64 bytesWritten = _networkSocket.writeDatagram(datagram, sockAddr);
+
+    int pending = _networkSocket.bytesToWrite(socketType, sockAddr);
     if (bytesWritten < 0 || pending) {
         int wsaError = 0;
         static std::atomic<int> previousWsaError (0);
@@ -253,8 +264,8 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const SockAddr& sockAdd
         wsaError = WSAGetLastError();
 #endif
         QString errorString;
-        QDebug(&errorString) << "udt::writeDatagram (" << _udpSocket.state() << sockAddr << ") error - "
-            << wsaError << _udpSocket.error() << "(" << _udpSocket.errorString() << ")"
+        QDebug(&errorString) << "udt::writeDatagram (" << _networkSocket.state(socketType) << sockAddr << ") error - "
+            << wsaError << _networkSocket.error(socketType) << "(" << _networkSocket.errorString(socketType) << ")"
             << (pending ? "pending bytes:" : "pending:") << pending;
 
         if (previousWsaError.exchange(wsaError) != wsaError) {
@@ -344,7 +355,7 @@ void Socket::messageFailed(Connection* connection, Packet::MessageNumber message
 }
 
 void Socket::checkForReadyReadBackup() {
-    if (_udpSocket.hasPendingDatagrams()) {
+    if (_networkSocket.hasPendingDatagrams()) {
         qCDebug(networking) << "Socket::checkForReadyReadBackup() detected blocked readyRead signal. Flushing pending datagrams.";
 
         // so that birarda can possibly figure out how the heck we get into this state in the first place
@@ -358,8 +369,8 @@ void Socket::checkForReadyReadBackup() {
 
         // drop all of the pending datagrams on the floor
         int droppedCount = 0;
-        while (_udpSocket.hasPendingDatagrams()) {
-            _udpSocket.readDatagram(nullptr, 0);
+        while (_networkSocket.hasPendingDatagrams()) {
+            _networkSocket.readDatagram(nullptr, 0);
             ++droppedCount;
         }
         qCDebug(networking) << "Flushed" << droppedCount << "Packets";
@@ -372,8 +383,8 @@ void Socket::readPendingDatagrams() {
     const auto abortTime = system_clock::now() + MAX_PROCESS_TIME;
     int packetSizeWithHeader = -1;
 
-    while (_udpSocket.hasPendingDatagrams() &&
-           (packetSizeWithHeader = _udpSocket.pendingDatagramSize()) != -1) {
+    while (_networkSocket.hasPendingDatagrams() &&
+           (packetSizeWithHeader = _networkSocket.pendingDatagramSize()) != -1) {
         if (system_clock::now() > abortTime) {
             // We've been running for too long, stop processing packets for now
             // Once we've processed the event queue, we'll come back to packet processing
@@ -398,8 +409,7 @@ void Socket::readPendingDatagrams() {
         auto buffer = std::unique_ptr<char[]>(new char[packetSizeWithHeader]);
 
         // pull the datagram
-        auto sizeRead = _udpSocket.readDatagram(buffer.get(), packetSizeWithHeader,
-                                                senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
+        auto sizeRead = _networkSocket.readDatagram(buffer.get(), packetSizeWithHeader, &senderSockAddr);
 
         // save information for this packet, in case it is the one that sticks readyRead
         _lastPacketSizeRead = sizeRead;
@@ -541,17 +551,17 @@ std::vector<SockAddr> Socket::getConnectionSockAddrs() {
     return addr;
 }
 
-void Socket::handleSocketError(QAbstractSocket::SocketError socketError) {
+void Socket::handleSocketError(SocketType socketType, QAbstractSocket::SocketError socketError) {
     int wsaError = 0;
     static std::atomic<int> previousWsaError(0);
 #ifdef WIN32
     wsaError = WSAGetLastError();
 #endif
-    int pending = _udpSocket.bytesToWrite();
+    int pending = _networkSocket.bytesToWrite(socketType);
     QString errorString;
-    QDebug(&errorString) << "udt::Socket (" << _udpSocket.state() << ") error - " << wsaError << socketError <<
-        "(" << _udpSocket.errorString() << ")" << (pending ? "pending bytes:" : "pending:")
-        << pending;
+    QDebug(&errorString) << "udt::Socket (" << socketTypeToString(socketType) << _networkSocket.state(socketType) 
+        << ") error - " << wsaError << socketError << "(" << _networkSocket.errorString(socketType) << ")" 
+        << (pending ? "pending bytes:" : "pending:") << pending;
 
     if (previousWsaError.exchange(wsaError) != wsaError) {
         qCDebug(networking).noquote() << errorString;
@@ -564,9 +574,9 @@ void Socket::handleSocketError(QAbstractSocket::SocketError socketError) {
     }
 }
 
-void Socket::handleStateChanged(QAbstractSocket::SocketState socketState) {
+void Socket::handleStateChanged(SocketType socketType, QAbstractSocket::SocketState socketState) {
     if (socketState != QAbstractSocket::BoundState) {
-        qCDebug(networking) << "udt::Socket state changed - state is now" << socketState;
+        qCDebug(networking) << socketTypeToString(socketType) << "socket state changed - state is now" << socketState;
     }
 }
 

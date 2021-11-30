@@ -112,7 +112,7 @@ public slots:
     void sendDomainServerCheckIn();
     void handleDSPathQuery(const QString& newPath);
 
-    void processDomainServerList(QSharedPointer<ReceivedMessage> message);
+    void processDomainList(QSharedPointer<ReceivedMessage> message);
     void processDomainServerAddedNode(QSharedPointer<ReceivedMessage> message);
     void processDomainServerRemovedNode(QSharedPointer<ReceivedMessage> message);
     void processDomainServerPathResponse(QSharedPointer<ReceivedMessage> message);
@@ -157,7 +157,9 @@ private slots:
 
 private:
     Q_DISABLE_COPY(NodeList)
-    NodeList() : LimitedNodeList(INVALID_PORT, INVALID_PORT) { assert(false); } // Not implemented, needed for DependencyManager templates compile
+    NodeList() : LimitedNodeList(INVALID_PORT, INVALID_PORT) { 
+        assert(false);  // Not implemented, needed for DependencyManager templates compile
+    }
     NodeList(char ownerType, int socketListenPort = INVALID_PORT, int dtlsListenPort = INVALID_PORT);
 
     void processDomainServerAuthRequest(const QByteArray& packet);
