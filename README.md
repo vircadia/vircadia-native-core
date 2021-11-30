@@ -97,3 +97,7 @@ Keep in mind that Vircadia consists of multiple smaller projects that might have
 | [ksuprynowicz (74hc595)](https://github.com/ksuprynowicz) |
 | --- |
 | <p align="center">[<img src="https://vircadia.com/wp-content/uploads/2021/07/74hc595_profile_2-1.png" width="80" alt="ksuprynowicz" />](https://github.com/ksuprynowicz)</p>
+
+#### Sponsors of Open Source
+
+<img src="https://vircadia.com/wp-content/uploads/2021/11/CBT_OS-logo_White-V.png" width="250" alt="CrossBrowserTesting" />
