@@ -3,8 +3,6 @@
 #include "acme-exception.h"
 #include "../NetworkAccessManager.h"
 
-#include <curl/curl.h>
-
 #include <cstring>
 #include <functional>
 
