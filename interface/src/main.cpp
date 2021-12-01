@@ -180,7 +180,7 @@ int main(int argc, const char* argv[]) {
     // Below are undocumented.
     QCommandLineOption noLauncherOption(
        "no-launcher",
-       "Do not execute the launcher."
+       "Supposedly does something for the server, unrelated to the application launcher. The feature may never have been implemented."
     );
     QCommandLineOption overrideScriptsPathOption(
        "overrideScriptsPath",
