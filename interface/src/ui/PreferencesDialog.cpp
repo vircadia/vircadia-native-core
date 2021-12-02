@@ -259,7 +259,7 @@ void setupPreferences() {
     {
         auto getter = []()->bool { return
             Menu::getInstance()->isOptionChecked(MenuOption::GenerateAndSubmitCrashReports)
-            && UserActivityLogger::getInstance().isCrashMonitorEnabled()	// Reset to unchecked if feature is disabled so users aren't locked in.
+            && UserActivityLogger::getInstance().isCrashMonitorEnabled()	// Display unchecked if feature is disabled so users aren't locked in.
         ;};
         auto setter = [](bool value) { Menu::getInstance()->setIsOptionChecked(MenuOption::GenerateAndSubmitCrashReports, !value); };
         auto preference = new CheckPreference("Privacy", "Send crashes - Vircadia can use information provided by your "
