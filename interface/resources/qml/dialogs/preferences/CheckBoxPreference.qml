@@ -18,6 +18,7 @@ Preference {
     height: spacer.height + Math.max(hifi.dimensions.controlLineHeight, checkBox.implicitHeight)
     property bool value: false
     Component.onCompleted: {
+        checkBox.enabled = preference.enabled;
         checkBox.checked = preference.value;
         value = checkBox.checked;
         preference.value = Qt.binding(function(){ return checkBox.checked; });

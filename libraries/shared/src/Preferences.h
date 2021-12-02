@@ -382,6 +382,7 @@ public:
 
 class CheckPreference : public BoolPreference {
     Q_OBJECT
+    Q_PROPERTY(bool enabled READ getEnabled CONSTANT)
     Q_PROPERTY(bool indented READ getIndented CONSTANT)
 public:
     using Getter = std::function<bool()>;
@@ -391,9 +392,13 @@ public:
         : BoolPreference(category, name, getter, setter) { }
     Type getType() override { return Checkbox; }
 
+    bool getEnabled() { return _isEnabled; }
+    void setEnabled(const bool enabled) { _isEnabled = enabled; }
+
     bool getIndented() { return _isIndented; }
     void setIndented(const bool indented) { _isIndented = indented; }
 protected:
+    bool _isEnabled { true };
     bool _isIndented { false };
 };
 
