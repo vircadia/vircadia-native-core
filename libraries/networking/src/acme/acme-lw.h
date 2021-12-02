@@ -96,17 +96,7 @@ void orderCertificate(Callback, ChallengeCallback, AcmeClient,
     std::vector<std::string> domains);
 
 template <typename Callback>
-void checkChallenge(Callback, AcmeClient, std::string url);
-
-template <typename Callback>
-void finalizeCertificateOrder(Callback callback, AcmeClient client,
-    std::vector<std::string> domains, std::string finalizeUrl, std::string orderUrl);
-
-template <typename Callback>
-void checkCertificate(Callback callback, AcmeClient, std::string url);
-
-template <typename Callback>
-void retrieveCertificate(Callback callback, AcmeClient, std::string url);
+void retrieveCertificate(Callback callback, AcmeClient, std::vector<std::string> domains, std::vector<std::string> challenges, std::string url, std::string finalizeUrl);
 
 }
 

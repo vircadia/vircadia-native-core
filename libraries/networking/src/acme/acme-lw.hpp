@@ -18,6 +18,7 @@
 #include <openssl/pem.h>
 #include <openssl/rsa.h>
 #include <openssl/x509v3.h>
+#include <QTimer>
 
 #include <algorithm>
 #include <ctype.h>
@@ -26,13 +27,15 @@
 #include <typeinfo>
 #include <unistd.h>
 #include <vector>
-#include <list>
+#include <string>
+#include <functional>
 #include <utility>
-
-using namespace std;
+#include <chrono>
 
 namespace acme_lw
 {
+
+using namespace std::literals;
 
 // Smart pointers for OpenSSL types
 template <typename T, void(*F)(T*)>
@@ -125,7 +128,7 @@ T toT(const std::vector<char>& v)
 }
 
 template<>
-inline std::string toT(const std::vector<char>& v)
+inline std::string toT<std::string>(const std::vector<char>& v)
 {
     return std::string(&v.front(), v.size());
 }
@@ -273,7 +276,7 @@ inline std::string toPemString(const EVP_PKEYptr& key) {
 }
 
 // returns pair<CSR, privateKey>
-inline std::pair<std::string, std::string> makeCertificateSigningRequest(const std::list<std::string>& domainNames) {
+inline std::pair<std::string, std::string> makeCertificateSigningRequest(const std::vector<std::string>& domainNames) {
 
     X509_REQptr req(X509_REQ_new());
 
@@ -365,7 +368,7 @@ inline std::string makeJwkThumbprint(const std::string& jwk)
 }
 
 template<typename T>
-T extractExpiryData(const acme_lw::Certificate& certificate, const function<T (const ASN1_TIME *)>& extractor)
+T extractExpiryData(const acme_lw::Certificate& certificate, const std::function<T (const ASN1_TIME *)>& extractor)
 {
     BIOptr bio(BIO_new(BIO_s_mem()));
     if (BIO_write(bio.get(), &certificate.fullchain.front(), certificate.fullchain.size()) <= 0)
@@ -458,133 +461,6 @@ struct AcmeClientImpl
 
         return urlSafeBase64Encode(signature);
     }
-
-#if 0
-    // https://tools.ietf.org/html/rfc8555#section-6.3
-    std::string doPostAsGet(const std::string& url)
-    {
-        return sendRequest<std::string>(url, "");
-    }
-
-    void wait(const std::string& url, const char * errorText)
-    {
-        // Poll waiting for response to the url be 'status': 'valid'
-        int counter = 0;
-        constexpr int count = 10;
-        do
-        {
-            ::usleep(1'000'000);    // sleep for a second
-            std::string response = doPostAsGet(url);
-            auto json = nlohmann::json::parse(response);
-            if (json.at("status") == "valid")
-            {
-                return;
-            }
-        } while (counter++ < count);
-
-        throw AcmeException(errorText);
-    }
-
-    // Throws if the challenge isn't accepted (or on timeout)
-    void verifyChallengePassed(const nlohmann::json& challenge)
-    {
-        // Tell the CA we're prepared for the challenge.
-        std::string verificationUrl = challenge.at("url");
-        auto response = nlohmann::json::parse(sendRequest<std::string>(verificationUrl, "{}"));
-        if (response.at("status") == "valid")
-        {
-            return;
-        }
-
-        std::string challengeStatusUrl = response.at("url");
-        wait(challengeStatusUrl, "Failure / timeout verifying challenge passed");
-    }
-
-    Certificate issueCertificate(const std::list<std::string>& domainNames, AcmeClient::Callback callback)
-    {
-        if (domainNames.empty())
-        {
-            throw AcmeException("There must be at least one domain name in a certificate");
-        }
-
-        // Create the order
-        std::string payload = u8R"({"identifiers": [)";
-        bool first = true;
-        for (const std::string& domain : domainNames)
-        {
-            if (!first)
-            {
-                payload += ",";
-            }
-            first = false;
-
-            payload += u8R"(
-                            {
-                                "type": "dns",
-                                "value": ")"s + domain + u8R"("
-                            }
-                           )";
-        }
-        payload += "]}";
-
-        std::pair<std::string, std::string> header = make_pair("location"s, ""s);
-        std::string response = sendRequest<std::string>(newOrderUrl, payload, &header);
-        std::string currentOrderUrl = header.second;
-
-        // Pass the challenges
-        auto json = nlohmann::json::parse(response);
-        auto authorizations = json.at("authorizations");
-        for (const auto& authorization : authorizations)
-        {
-            auto authz = nlohmann::json::parse(doPostAsGet(authorization));
-            /**
-             * If you pass a challenge, that's good for 300 days. The cert is only good for 90.
-             * This means for a while you can re-issue without passing another challenge, so we
-             * check to see if we need to validate again.
-             *
-             * Note that this introduces a race since it possible for the status to not be valid
-             * by the time the certificate is requested. The assumption is that client retries
-             * will deal with this.
-             */
-            if (authz.at("status") != "valid")
-            {
-                auto challenges = authz.at("challenges");
-                for (const auto& challenge : challenges)
-                {
-                    if (challenge.at("type") == "http-01")
-                    {
-                        std::string token = challenge.at("token");
-                        std::string domain = authz.at("identifier").at("value");
-                        std::string url = "http://"s + domain + "/.well-known/acme-challenge/" + token;
-                        std::string keyAuthorization = token + "." + jwkThumbprint_;
-                        callback(domain, url, keyAuthorization);
-
-                        verifyChallengePassed(challenge);
-                        break;
-                    }
-                }
-            }
-        }
-
-        // Request the certificate
-        auto r = makeCertificateSigningRequest(domainNames);
-        std::string csr = r.first;
-        std::string privateKey = r.second;
-        std::string certificateUrl = nlohmann::json::parse(sendRequest<std::vector<char>>(json.at("finalize"),
-                                                u8R"(   {
-                                                            "csr": ")"s + csr + u8R"("
-                                                        })")).at("certificate");
-
-        // Wait for the certificate to be produced
-        wait(currentOrderUrl, "Timeout / failure waiting for certificate to be produced");
-
-        // Retreive the certificate
-        Certificate cert;
-        cert.fullchain = doPostAsGet(certificateUrl);
-        cert.privkey = privateKey;
-        return cert;
-    }
-#endif
 
     const std::string& newAccountUrl() { return newAccountUrl_; }
     const std::string& newOrderUrl() { return newOrderUrl_; }
@@ -762,6 +638,10 @@ class InStack
     auto& top() { return *(std::begin(range_) + top_); }
     auto& pop() { return ++top_; }
 
+    operator Range() && {
+        return std::move(range_);
+    }
+
     private:
     Range range_;
     typename Range::difference_type top_;
@@ -794,18 +674,18 @@ class OutStack
 };
 
 template <typename Callback, typename ChallengeCallback, typename In>
-void processAuthorizations(Callback callback, ChallengeCallback challengeCallback, AcmeClient client, InStack<In> input, OutStack<std::string> output)
+void processAuthorizations(Callback callback, ChallengeCallback challengeCallback, AcmeClient client, InStack<In> autorizations, OutStack<std::string> challengeUrls)
 {
-    if(input.empty()) {
-        callback(std::move(client), std::move(output));
+    if(autorizations.empty()) {
+        callback(std::move(client), std::move(challengeUrls));
         return;
     }
 
-    std::string in = std::move(input.top());
-    input.pop();
+    std::string authUrl = std::move(autorizations.top());
+    autorizations.pop();
     sendRequest(
         forwardAcmeError(
-            [input = std::move(input), output = std::move(output), challengeCallback = std::move( challengeCallback)]
+            [autorizations = std::move(autorizations), challengeUrls = std::move(challengeUrls), challengeCallback = std::move( challengeCallback)]
             (auto next, auto client, auto response) mutable {
                 // TODO: lots of potential json parsing exceptions here, need to wrap them in high level acme exceptions and pass to callback
                 auto authz = nlohmann::json::parse(response.response_);
@@ -823,8 +703,8 @@ void processAuthorizations(Callback callback, ChallengeCallback challengeCallbac
                         std::move(next),
                         std::move(challengeCallback),
                         std::move(client),
-                        std::move(input),
-                        std::move(output));
+                        std::move(autorizations),
+                        std::move(challengeUrls));
                     return;
                 }
 
@@ -843,17 +723,17 @@ void processAuthorizations(Callback callback, ChallengeCallback challengeCallbac
                 std::string url = "http://"s + domain + "/.well-known/acme-challenge/" + token;
                 std::string keyAuthorization = token + "." + client.impl_->jwkThumbprint();
                 challengeCallback(domain, url, keyAuthorization);
-                output.push(httpChallenge->at("url"));
+                challengeUrls.push(httpChallenge->at("url"));
                 processAuthorizations(
                     std::move(next),
                     std::move(challengeCallback),
                     std::move(client),
-                    std::move(input),
-                    std::move(output));
+                    std::move(autorizations),
+                    std::move(challengeUrls));
             },
             std::move(callback)
         ),
-        std::move(client), in, ""
+        std::move(client), authUrl, ""
     );
 }
 
@@ -895,7 +775,6 @@ void orderCertificate(Callback callback, ChallengeCallback challengeCallback, Ac
 
                 std::string currentOrderUrl = response.headerValue_;
 
-                // Pass the challenges
                 auto json = nlohmann::json::parse(response.response_);
                 auto authorizations = json.at("authorizations");
 
@@ -915,6 +794,96 @@ void orderCertificate(Callback callback, ChallengeCallback challengeCallback, Ac
         ),
         std::move(client), newOrderUrl, payload, "location"
     );
+}
+
+template <typename Callback>
+void waitForValid(Callback callback, AcmeClient client, std::string url, std::chrono::milliseconds timeout) {
+    if(timeout <= 0ms) {
+        callback(std::move(client), AcmeException("Status check timeout: " + url));
+        return;
+    }
+
+    auto nextUrl = url; // explicit copy, since can't rely on order of evaluation of function parameters
+    sendRequest(
+        forwardAcmeError([url = nextUrl, timeout](auto next, auto client, auto response) mutable {
+             auto json = nlohmann::json::parse(response.response_);
+             if(json.at("status") == "valid") {
+                next(std::move(client));
+             } else {
+                QTimer::singleShot(1000, [next = std::move(next), client = std::move(client), url = std::move(url), timeout]() mutable {
+                    waitForValid(std::move(next), std::move(client), std::move(url), timeout - 1s);
+                });
+             }
+        }, std::move(callback)),
+    std::move(client), std::move(url), "");
+}
+
+template <typename Callback>
+void checkChallenges(Callback callback, AcmeClient client, InStack<std::vector<std::string>> challenges) {
+    if(challenges.empty()) {
+        callback(std::move(client));
+        return;
+    }
+
+    auto challenge = std::move(challenges.top());
+    challenges.pop();
+    sendRequest(forwardAcmeError(
+        [challenges = std::move(challenges)]
+        (auto next, auto client, auto response) mutable {
+            auto json = nlohmann::json::parse(response.response_);
+            if(json.at("status") == "valid") {
+                checkChallenges(std::move(next), std::move(client), std::move(challenges));
+                return;
+            }
+            // TODO: detect invalid status and use Retry-After header
+            waitForValid(
+                forwardAcmeError([challenges = std::move(challenges)](auto next, auto client){
+                    checkChallenges(std::move(next), std::move(client), std::move(challenges));
+                }, std::move(next)),
+            std::move(client), std::move(json.at("url")), 10s);
+        },
+    std::move(callback)), std::move(client), std::move(challenge), "{}");
+}
+
+template <typename Callback>
+void retrieveCertificate(Callback callback, AcmeClient client, std::vector<std::string> domains, std::vector<std::string> challenges, std::string orderUrl, std::string finalizeUrl){
+    checkChallenges(
+        forwardAcmeError([
+            domains = std::move(domains),
+            orderUrl = std::move(orderUrl),
+            finalizeUrl = std::move(finalizeUrl)
+        ](auto next, auto client) mutable {
+            auto r = makeCertificateSigningRequest(domains);
+            std::string csr = r.first;
+            std::string privateKey = r.second;
+            sendRequest(
+                forwardAcmeError([
+                    orderUrl = std::move(orderUrl),
+                    privateKey = std::move(privateKey)
+                ](auto next, auto client,  auto response) mutable {
+                    auto certUrl = nlohmann::json::parse(response.response_).at("certificate");
+                    waitForValid(forwardAcmeError([
+                        certUrl = std::move(certUrl),
+                        privateKey = std::move(privateKey)
+                    ](auto next, auto client) mutable {
+                        sendRequest(forwardAcmeError([
+                            privateKey = std::move(privateKey)
+                        ] (auto next, auto client, auto response) mutable {
+                            next(std::move(client), Certificate{
+                                toT<std::string>(response.response_),
+                                std::move(privateKey)
+                            });
+                        }, std::move(next)), std::move(client), std::move(certUrl), "");
+                    }, std::move(next)), std::move(client), std::move(orderUrl), 10s);
+                }, std::move(next)),
+                std::move(client),
+                std::move(finalizeUrl),
+                u8R"({
+                        "csr": ")"s + csr + u8R"("
+                     })"
+            );
+        }, std::move(callback)),
+    std::move(client), std::move(challenges));
 }
 
 }

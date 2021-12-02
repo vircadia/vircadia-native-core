@@ -19,13 +19,37 @@ int i = 0;
 
 DomainServerAcmeClient::DomainServerAcmeClient() {
 
-    struct clientCallback{
+    struct CertificateCallback{
+        std::string orderUrl;
+        std::string finalUrl;
+        std::vector<std::string> challenges;
+
+        void operator()(acme_lw::AcmeClient client, acme_lw::Certificate cert) const {
+            qCDebug(acme_client) << "Certificate retrieved\n"
+                << "Expires on:" << cert.getExpiryDisplay().c_str() << '\n'
+            ;
+        }
+        void operator()(acme_lw::AcmeClient client, acme_lw::AcmeException error) const {
+            qCCritical(acme_client) << error.what() << '\n';
+        }
+    };
+
+    struct OrderCallback{
         void operator()(acme_lw::AcmeClient client, std::vector<std::string> challenges, std::vector<std::string> domains, std::string finalUrl, std::string orderUrl) const {
             qCDebug(acme_client) << "Ordered certificate\n"
                 << "Order URL:" << orderUrl.c_str() << '\n'
                 << "Finalize URL:" << finalUrl.c_str() << '\n'
+                << "Number of domains:" << domains.size() << '\n'
                 << "Number of challenges:" << challenges.size() << '\n'
             ;
+            // some time to complete the challenge manually
+            QTimer::singleShot(120'000, [client = std::move(client), orderUrl, finalUrl, challenges, domains]() mutable {
+                auto callback = CertificateCallback{orderUrl, finalUrl, challenges};
+                retrieveCertificate(std::move(callback),
+                    std::move(client), std::move(domains), std::move(challenges),
+                    std::move(orderUrl), std::move(finalUrl)
+                );
+            });
         }
         void operator()(acme_lw::AcmeClient client, acme_lw::AcmeException error) const {
             qCCritical(acme_client) << error.what() << '\n';
@@ -44,7 +68,7 @@ DomainServerAcmeClient::DomainServerAcmeClient() {
                 ;
             }, std::move(client), {"example.com"});
         }, std::move(next)), std::move(client));
-    }, clientCallback{}), acme_lw::toPemString(acme_lw::makePrivateKey()));
+    }, OrderCallback{}), acme_lw::toPemString(acme_lw::makePrivateKey()));
 }
 
 void DomainServerAcmeClient::certificateExpiryTimerHandler() {
