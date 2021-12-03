@@ -1548,7 +1548,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
                     // Build list of blendshapes from FST and model.
                     typedef QPair<int, float> WeightedIndex;
-                    hifi::VariantHash blendshapeMappings = mapping.value("bs").toHash();
+                    hifi::VariantMultiHash blendshapeMappings = mapping.value("bs").toHash();
                     QMultiHash<QString, WeightedIndex> blendshapeIndices;
                     for (int i = 0;; ++i) {
                         auto blendshapeName = QString(BLENDSHAPE_NAMES[i]);
@@ -1583,7 +1583,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                         && fileTargetNames.contains("viseme_O")
                         && fileTargetNames.contains("mouthShrugLower");
                     if (blendshapeMappings.count() == 0 && likelyReadyPlayerMeFile) {
-                        QHash<QString, QPair<QString, float>>::const_iterator synonym 
+                        QHash<QString, QPair<QString, float>>::const_iterator synonym
                             = READYPLAYERME_BLENDSHAPES_MAP.constBegin();
                         while (synonym != READYPLAYERME_BLENDSHAPES_MAP.constEnd()) {
                             if (fileTargetNames.contains(synonym.key())) {
