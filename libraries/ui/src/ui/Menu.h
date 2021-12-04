@@ -94,7 +94,7 @@ public:
                                                     const char* member = NULL,
                                                     int menuItemLocation = UNSPECIFIED_POSITION,
                                                     const QString& grouping = QString(),
-                                                    const bool enabled = true);
+                                                    const bool functionalityEnabled = true);
 
     QAction* addCheckableActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
                                                     const QString& actionName,

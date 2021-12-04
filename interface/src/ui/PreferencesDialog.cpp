@@ -257,15 +257,14 @@ void setupPreferences() {
     }
 
     {
-        auto getter = []()->bool { return
-            Menu::getInstance()->isOptionChecked(MenuOption::GenerateAndSubmitCrashReports)
-            && UserActivityLogger::getInstance().isCrashMonitorEnabled()	// Display unchecked if feature is disabled so users aren't locked in.
-        ;};
+        auto getter = []()->bool { return Menu::getInstance()->isOptionChecked(MenuOption::GenerateAndSubmitCrashReports); };
         auto setter = [](bool value) { Menu::getInstance()->setIsOptionChecked(MenuOption::GenerateAndSubmitCrashReports, !value); };
         auto preference = new CheckPreference("Privacy", "Send crashes - Vircadia can use information provided by your "
                                 "client to improve the product through crash reports. By allowing developers to collect "
                                 "this information you are helping to improve the product. ", getter, setter);
-        preference->setEnabled(UserActivityLogger::getInstance().isCrashMonitorEnabled());
+        if (!UserActivityLogger::getInstance().isCrashMonitorEnabled()) {
+            preference->setFunctionalityDisabledTooltip("Your version of the application was not built with support for crash reporting.");
+        }
         preferences->addPreference(preference);
     }
 
