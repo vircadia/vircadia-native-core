@@ -176,7 +176,7 @@ QList<FormData> HTTPConnection::parseFormData() const {
             break;
         }
     }
-    
+
     QByteArray start = "--" + boundary;
     QByteArray end = "\r\n--" + boundary + "--\r\n";
 
@@ -338,6 +338,7 @@ void HTTPConnection::readHeaders() {
 
             QByteArray clength = requestHeader("Content-Length");
             if (clength.isEmpty()) {
+                _requestContent = MemoryStorage::make(0);
                 _parentManager->handleHTTPRequest(this, _requestUrl);
 
             } else {
@@ -394,6 +395,6 @@ void HTTPConnection::readContent() {
     if (_requestContent->bytesLeftToWrite() == 0) {
         _socket->disconnect(this, SLOT(readContent()));
 
-        _parentManager->handleHTTPRequest(this, _requestUrl.path());
+        _parentManager->handleHTTPRequest(this, _requestUrl);
     }
 }

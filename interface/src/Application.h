@@ -648,7 +648,7 @@ private:
 
     EntityTreePointer _entityClipboard;
 
-    mutable QMutex _viewMutex { QMutex::Recursive };
+    mutable QRecursiveMutex _viewMutex;
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
     ViewFrustum _displayViewFrustum;
 
@@ -774,7 +774,7 @@ private:
     bool _isMissingSequenceNumbers { false };
 
     void checkChangeCursor();
-    mutable QMutex _changeCursorLock { QMutex::Recursive };
+    mutable QRecursiveMutex _changeCursorLock;
     Qt::CursorShape _desiredCursor{ Qt::BlankCursor };
     bool _cursorNeedsChanging { false };
 

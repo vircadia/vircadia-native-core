@@ -57,6 +57,7 @@ public:
     // PerformanceManager PerformancePreset tri state level enums
     enum PerformancePreset {
         UNKNOWN = PerformanceManager::PerformancePreset::UNKNOWN,
+        LOW_POWER = PerformanceManager::PerformancePreset::LOW_POWER,
         LOW = PerformanceManager::PerformancePreset::LOW,
         MID = PerformanceManager::PerformancePreset::MID,
         HIGH = PerformanceManager::PerformancePreset::HIGH,

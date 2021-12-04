@@ -91,7 +91,7 @@ private:
 class ScriptableResource : public QObject {
 
     /*@jsdoc
-     * Information about a cached resource. Created by {@link AnimationCache.prefetch}, {@link MaterialCache.prefetch}, 
+     * Information about a cached resource. Created by {@link AnimationCache.prefetch}, {@link MaterialCache.prefetch},
      * {@link ModelCache.prefetch}, {@link SoundCache.prefetch}, or {@link TextureCache.prefetch}.
      *
      * @class ResourceObject
@@ -212,7 +212,7 @@ public:
 
     static void setRequestLimit(uint32_t limit);
     static uint32_t getRequestLimit() { return DependencyManager::get<ResourceCacheSharedItems>()->getRequestLimit(); }
-    
+
     void setUnusedResourceCacheSize(qint64 unusedResourcesMaxSize);
     qint64 getUnusedResourceCacheSize() const { return _unusedResourcesMaxSize; }
 
@@ -222,7 +222,7 @@ public:
 
     ResourceCache(QObject* parent = nullptr);
     virtual ~ResourceCache();
-    
+
     void refreshAll();
     void clearUnusedResources();
 
@@ -284,7 +284,7 @@ private:
     void resetResourceCounters();
 
     // Resources
-    QHash<QUrl, QHash<size_t, QWeakPointer<Resource>>> _resources;
+    QHash<QUrl, QMultiHash<size_t, QWeakPointer<Resource>>> _resources;
     QReadWriteLock _resourcesLock { QReadWriteLock::Recursive };
     int _lastLRUKey = 0;
 
@@ -304,7 +304,7 @@ private:
 class ScriptableResourceCache : public QObject {
     Q_OBJECT
 
-    // JSDoc 3.5.5 doesn't augment name spaces with @property definitions so the following properties JSDoc is copied to the 
+    // JSDoc 3.5.5 doesn't augment name spaces with @property definitions so the following properties JSDoc is copied to the
     // different exposed cache classes.
 
     /*@jsdoc
@@ -357,10 +357,10 @@ public:
      * @example <caption>Prefetch a resource and wait until it has loaded.</caption>
      * // Replace AnimationCache with MaterialCache, ModelCache, SoundCache, or TextureCache as appropriate.
      * // TextureCache has its own version of this function.
-     * 
+     *
      * var resourceURL = "https://cdn-1.vircadia.com/eu-c-1/vircadia-public/clement/production/animations/sitting_idle.fbx";
      * var resourceObject = AnimationCache.prefetch(resourceURL);
-     * 
+     *
      * function checkIfResourceLoaded(state) {
      *     if (state === Resource.State.FINISHED) {
      *         print("Resource loaded and ready.");
@@ -368,11 +368,11 @@ public:
      *         print("Resource not loaded.");
      *     }
      * }
-     * 
+     *
      * // Resource may have already been loaded.
      * print("Resource state: " + resourceObject.state);
      * checkIfResourceLoaded(resourceObject.state);
-     * 
+     *
      * // Resource may still be loading.
      * resourceObject.stateChanged.connect(function (state) {
      *     print("Resource state changed to: " + state);
@@ -380,7 +380,7 @@ public:
      * });
      */
     Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url) { return prefetch(url, nullptr, std::numeric_limits<size_t>::max()); }
-    
+
     // FIXME: This function variation shouldn't be in the API.
     Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, void* extra, size_t extraHash);
 
@@ -443,7 +443,7 @@ public:
 
     /// For loading resources, returns the number of bytes received.
     qint64 getBytesReceived() const { return _bytesReceived; }
-    
+
     /// For loading resources, returns the number of total bytes (<= zero if unknown).
     qint64 getBytesTotal() const { return _bytesTotal; }
 
@@ -452,7 +452,7 @@ public:
 
     /// For loading resources, returns the load progress.
     float getProgress() const { return (_bytesTotal <= 0) ? 0.0f : (float)_bytesReceived / _bytesTotal; }
-    
+
     /// Refreshes the resource.
     virtual void refresh();
 
@@ -461,7 +461,7 @@ public:
     void setCache(ResourceCache* cache) { _cache = cache; }
 
     virtual void deleter() { allReferencesCleared(); }
-    
+
     const QUrl& getURL() const { return _url; }
 
     unsigned int getDownloadAttempts() { return _attempts; }
@@ -557,15 +557,15 @@ public slots:
 private:
     friend class ResourceCache;
     friend class ScriptableResource;
-    
+
     void setLRUKey(int lruKey) { _lruKey = lruKey; }
-    
+
     void retry();
     void reinsert();
 
     bool isInScript() const { return _isInScript; }
     void setInScript(bool isInScript) { _isInScript = isInScript; }
-    
+
     int _lruKey{ 0 };
     QTimer* _replyTimer{ nullptr };
     unsigned int _attempts{ 0 };

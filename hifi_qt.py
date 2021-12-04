@@ -169,11 +169,9 @@ endif()
 
                 elif distro.id() == 'debian':
                     u_major = int( distro.major_version() )
-                    u_minor = int( distro.minor_version() )
 
                     if u_major == 10:
-                        #self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04-with-symbols.tar.gz'
-                        self.__no_qt_package_error()
+                        self.qtUrl = 'https://data.moto9000.moe/vircadia_packages/qt5-install-5.15.2-debian-10-aarch64.tar.xz'
                     elif u_major > 10:
                         self.__no_qt_package_error()
                     else:

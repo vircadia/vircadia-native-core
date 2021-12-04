@@ -132,7 +132,7 @@ protected:
 
     /// parses the audio data in the network packet.
     /// default implementation assumes packet contains raw audio samples after stream properties
-    virtual int parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties);
+    virtual int parseAudioData(const QByteArray& packetAfterStreamProperties);
 
     /// produces audio data for lost network packets.
     virtual int lostAudioData(int numPackets);

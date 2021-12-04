@@ -1,4 +1,4 @@
 Source: hifi-deps
 Version: 0.1.5-github-actions
 Description: Collected dependencies for High Fidelity applications
-Build-Depends: bullet3, draco, etc2comp, glad, glm, nvtt, openexr (!android), openssl (windows), opus, polyvox, tbb (!android), vhacd, webrtc (!android), zlib
+Build-Depends: bullet3, draco, etc2comp, glad, glm, nvtt, openexr (!android), openssl (windows), opus, polyvox, tbb (!android), vhacd, webrtc (!android|!(linux&arm)), zlib

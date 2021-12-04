@@ -301,7 +301,7 @@ void ResourceCache::refreshAll() {
     clearUnusedResources();
     resetUnusedResourceCounter();
 
-    QHash<QUrl, QHash<size_t, QWeakPointer<Resource>>> allResources;
+    QHash<QUrl, QMultiHash<size_t, QWeakPointer<Resource>>> allResources;
     {
         QReadLocker locker(&_resourcesLock);
         allResources = _resources;
@@ -329,7 +329,7 @@ QVariantList ResourceCache::getResourceList() {
         QList<QUrl> resources;
         {
             QReadLocker locker(&_resourcesLock);
-            resources = _resources.uniqueKeys();
+            resources = _resources.keys();
         }
         list.reserve(resources.size());
         for (auto& resource : resources) {
@@ -339,7 +339,7 @@ QVariantList ResourceCache::getResourceList() {
 
     return list;
 }
- 
+
 void ResourceCache::setRequestLimit(uint32_t limit) {
     auto sharedItems = DependencyManager::get<ResourceCacheSharedItems>();
     sharedItems->setRequestLimit(limit);
@@ -418,7 +418,7 @@ void ResourceCache::addUnusedResource(const QSharedPointer<Resource>& resource) 
         return;
     }
     reserveUnusedResource(resource->getBytes());
-    
+
     resource->setLRUKey(++_lastLRUKey);
 
     {
@@ -447,7 +447,7 @@ void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
            _unusedResourcesSize + resourceSize > _unusedResourcesMaxSize) {
         // unload the oldest resource
         QMap<int, QSharedPointer<Resource> >::iterator it = _unusedResources.begin();
-        
+
         it.value()->setCache(nullptr);
         auto size = it.value()->getBytes();
 
@@ -654,7 +654,7 @@ void Resource::refresh() {
         _request = nullptr;
         ResourceCache::requestCompleted(_self);
     }
-    
+
     _activeUrl = _url;
     init();
     ensureLoading();
@@ -668,7 +668,7 @@ void Resource::allReferencesCleared() {
     }
 
     if (_cache && isCacheable()) {
-        // create and reinsert new shared pointer 
+        // create and reinsert new shared pointer
         QSharedPointer<Resource> self(this, &Resource::deleter);
         setSelf(self);
         reinsert();
@@ -693,10 +693,10 @@ void Resource::init(bool resetLoaded) {
         _loaded = false;
     }
     _attempts = 0;
-    
+
     if (_url.isEmpty()) {
         _startedLoading = _loaded = true;
-        
+
     } else if (!(_url.isValid())) {
         _startedLoading = _failedToLoad = true;
     }
@@ -820,7 +820,7 @@ void Resource::handleReplyFinished() {
     } else {
         handleFailedRequest(result);
     }
-    
+
     _request->disconnect(this);
     _request->deleteLater();
     _request = nullptr;

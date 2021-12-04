@@ -167,7 +167,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
                 bool packetPCM = codecInPacket == "pcm" || codecInPacket == "";
                 if (codecInPacket == _selectedCodecName || (packetPCM && selectedPCM)) {
                     auto afterProperties = message.readWithoutCopy(message.getBytesLeftToRead());
-                    parseAudioData(message.getType(), afterProperties);
+                    parseAudioData(afterProperties);
                     _mismatchedAudioCodecCount = 0;
 
                 } else {
@@ -267,7 +267,7 @@ int InboundAudioStream::lostAudioData(int numPackets) {
     return 0;
 }
 
-int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties) {
+int InboundAudioStream::parseAudioData(const QByteArray& packetAfterStreamProperties) {
     QByteArray decodedBuffer;
 
     // may block on the real-time thread, which is acceptible as 

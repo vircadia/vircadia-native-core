@@ -20,14 +20,16 @@ struct sockaddr;
 
 #include <QtNetwork/QHostInfo>
 
+#include "SocketType.h"
+
+
 class SockAddr : public QObject {
     Q_OBJECT
 public:
     SockAddr();
-    SockAddr(const QHostAddress& address, quint16 port);
+    SockAddr(SocketType socketType, const QHostAddress& address, quint16 port);
     SockAddr(const SockAddr& otherSockAddr);
-    SockAddr(const QString& hostname, quint16 hostOrderPort, bool shouldBlockForLookup = false);
-    SockAddr(const sockaddr* sockaddr);
+    SockAddr(SocketType socketType, const QString& hostname, quint16 hostOrderPort, bool shouldBlockForLookup = false);
 
     bool isNull() const { return _address.isNull() && _port == 0; }
     void clear() { _address.clear(); _port = 0;}
@@ -37,6 +39,10 @@ public:
 
     bool operator==(const SockAddr& rhsSockAddr) const;
     bool operator!=(const SockAddr& rhsSockAddr) const { return !(*this == rhsSockAddr); }
+
+    SocketType getType() const { return _socketType; }
+    SocketType* getSocketTypePointer() { return &_socketType; }
+    void setType(const SocketType socketType) { _socketType = socketType; }
 
     const QHostAddress& getAddress() const { return _address; }
     QHostAddress* getAddressPointer() { return &_address; }
@@ -50,19 +56,21 @@ public:
     static int unpackSockAddr(const unsigned char* packetData, SockAddr& unpackDestSockAddr);
 
     QString toString() const;
+    QString toShortString() const;
 
     bool hasPrivateAddress() const; // checks if the address behind this sock addr is private per RFC 1918
 
     friend QDebug operator<<(QDebug debug, const SockAddr& sockAddr);
     friend QDataStream& operator<<(QDataStream& dataStream, const SockAddr& sockAddr);
     friend QDataStream& operator>>(QDataStream& dataStream, SockAddr& sockAddr);
-    
+
 private slots:
     void handleLookupResult(const QHostInfo& hostInfo);
 signals:
     void lookupCompleted();
     void lookupFailed();
 private:
+    SocketType _socketType { SocketType::Unknown };
     QHostAddress _address;
     quint16 _port;
 };
