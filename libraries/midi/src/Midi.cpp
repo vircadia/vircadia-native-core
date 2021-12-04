@@ -16,10 +16,9 @@
 #include <QtCore/QLoggingCategory>
 
 #if defined Q_OS_WIN32
-#include "Windows.h"
-#endif
+#include <Windows.h>
+#include <mmeapi.h>
 
-#if defined Q_OS_WIN32
 const int MIDI_BYTE_MASK = 0x0FF;
 const int MIDI_NIBBLE_MASK = 0x00F;
 const int MIDI_PITCH_BEND_MASK = 0x3F80;
