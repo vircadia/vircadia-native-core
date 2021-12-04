@@ -16,6 +16,7 @@
 
 #include <QtCore/QDataStream>
 #include <QtCore/QJsonDocument>
+#include <QtCore/QJsonObject>
 #include <QtCore/QTimer>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
@@ -39,7 +40,7 @@ IceServer::IceServer(int argc, char* argv[]) :
 {
     // start the ice-server socket
     qDebug() << "ice-server socket is listening on" << ICE_SERVER_DEFAULT_PORT;
-    _serverSocket.bind(QHostAddress::AnyIPv4, ICE_SERVER_DEFAULT_PORT);
+    _serverSocket.bind(SocketType::UDP, QHostAddress::AnyIPv4, ICE_SERVER_DEFAULT_PORT);
 
     // set processPacket as the verified packet callback for the udt::Socket
     _serverSocket.setPacketHandler([this](std::unique_ptr<udt::Packet> packet) { processPacket(std::move(packet));  });

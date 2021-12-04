@@ -199,7 +199,7 @@ void Stats::updateStats(bool force) {
     }
 
     // Second column: ping
-    STAT_UPDATE(audioPing, audioMixerNode ? audioMixerNode->getPingMs() : -1); 
+    STAT_UPDATE(audioPing, audioMixerNode ? audioMixerNode->getPingMs() : -1);
     const int mixerLossRate = (int)roundf(_audioStats->data()->getMixerStream()->lossRateWindow() * 100.0f);
     const int clientLossRate = (int)roundf(_audioStats->data()->getClientStream()->lossRateWindow() * 100.0f);
     const int largestLossRate = mixerLossRate > clientLossRate ? mixerLossRate : clientLossRate;
@@ -484,7 +484,7 @@ void Stats::updateStats(bool force) {
         // First iterate all the records, and for the ones that should be included, insert them into
         // a new Map sorted by average time...
         bool onlyDisplayTopTen = Menu::getInstance()->isOptionChecked(MenuOption::OnlyDisplayTopTen);
-        QMap<float, QString> sortedRecords;
+        QMultiMap<float, QString> sortedRecords;
         auto allRecords = PerformanceTimer::getAllTimerRecords();
         QMapIterator<QString, PerformanceTimerRecord> i(allRecords);
 
@@ -492,7 +492,7 @@ void Stats::updateStats(bool force) {
             i.next();
             if (includeTimingRecord(i.key())) {
                 float averageTime = (float)i.value().getMovingAverage() / (float)USECS_PER_MSEC;
-                sortedRecords.insertMulti(averageTime, i.key());
+                sortedRecords.insert(averageTime, i.key());
             }
         }
 

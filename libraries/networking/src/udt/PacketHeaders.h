@@ -10,6 +10,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+// WEBRTC TODO: Rename / split up into files with better names.
+
 #ifndef hifi_PacketHeaders_h
 #define hifi_PacketHeaders_h
 
@@ -137,6 +139,7 @@ public:
         BulkAvatarTraitsAck,
         StopInjector,
         AvatarZonePresence,
+        WebRTCSignaling,
         NUM_PACKET_TYPE
     };
 
@@ -188,7 +191,7 @@ public:
             << PacketTypeEnum::Value::ReplicatedMicrophoneAudioWithEcho << PacketTypeEnum::Value::ReplicatedInjectAudio
             << PacketTypeEnum::Value::ReplicatedSilentAudioFrame << PacketTypeEnum::Value::ReplicatedAvatarIdentity
             << PacketTypeEnum::Value::ReplicatedKillAvatar << PacketTypeEnum::Value::ReplicatedBulkAvatarData
-            << PacketTypeEnum::Value::AvatarZonePresence;
+            << PacketTypeEnum::Value::AvatarZonePresence << PacketTypeEnum::Value::WebRTCSignaling;
         return NON_SOURCED_PACKETS;
     }
 
@@ -365,7 +368,13 @@ enum class DomainConnectRequestVersion : PacketVersion {
     HasTimestamp,
     HasReason,
     HasSystemInfo,
-    HasCompressedSystemInfo
+    HasCompressedSystemInfo,
+    SocketTypes
+};
+
+enum class DomainListRequestVersion : PacketVersion {
+    PreSocketTypes = 22,
+    SocketTypes
 };
 
 enum class DomainConnectionDeniedVersion : PacketVersion {
@@ -376,7 +385,8 @@ enum class DomainConnectionDeniedVersion : PacketVersion {
 
 enum class DomainServerAddedNodeVersion : PacketVersion {
     PrePermissionsGrid = 17,
-    PermissionsGrid
+    PermissionsGrid,
+    SocketTypes
 };
 
 enum class DomainListVersion : PacketVersion {
@@ -386,7 +396,8 @@ enum class DomainListVersion : PacketVersion {
     GetMachineFingerprintFromUUIDSupport,
     AuthenticationOptional,
     HasTimestamp,
-    HasConnectReason
+    HasConnectReason,
+    SocketTypes
 };
 
 enum class AudioVersion : PacketVersion {

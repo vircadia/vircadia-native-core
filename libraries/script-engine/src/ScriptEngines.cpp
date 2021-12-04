@@ -71,7 +71,7 @@ ScriptEngines::ScriptEngines(ScriptManager::Context context, const QUrl& default
     : _context(context), _defaultScriptsOverride(defaultScriptsOverride)
 {
     scriptGatekeeper.initialize();
-    
+
     _scriptsModelFilter.setSourceModel(&_scriptsModel);
     _scriptsModelFilter.sort(0, Qt::AscendingOrder);
     _scriptsModelFilter.setDynamicSortFilter(true);
@@ -200,7 +200,7 @@ void ScriptEngines::shutdownScripting() {
  * @typedef {object} ScriptDiscoveryService.PublicScript
  * @property {string} name - The script's file name.
  * @property {string} type - <code>"script"</code> or <code>"folder"</code>.
- *     <p class="important">Deprecated: This property is deprecated and will be removed. It currently always has the value, 
+ *     <p class="important">Deprecated: This property is deprecated and will be removed. It currently always has the value,
  *     <code>"script"</code>.</p>
  * @property {ScriptDiscoveryService.PublicScript[]} [children] - Only present if <code>type == "folder"</code>.
  *     <p class="important">Deprecated: This property is deprecated and will be removed. It currently is never present.
@@ -268,7 +268,7 @@ QVariantList ScriptEngines::getLocal() {
 /*@jsdoc
  * Information on a running script.
  * @typedef {object} ScriptDiscoveryService.RunningScript
- * @property {boolean} local - <code>true</code> if the script is a local file (i.e., the scheme is "file"), <code>false</code> 
+ * @property {boolean} local - <code>true</code> if the script is a local file (i.e., the scheme is "file"), <code>false</code>
  *     if it isn't (e.g., the scheme is "http").
  * @property {string} name - The script's file name.
  * @property {string} path - The script's path and file name &mdash; excluding the scheme if a local file.
@@ -450,7 +450,7 @@ bool ScriptEngines::stopScript(const QString& rawScriptURL, bool restart) {
 
         QReadLocker lock(&_scriptManagersHashLock);
         if (_scriptManagersHash.contains(scriptURL)) {
-            ScriptManagerPointer scriptManager = _scriptManagersHash[scriptURL];
+            ScriptManagerPointer scriptManager = _scriptManagersHash.value(scriptURL);
             if (restart) {
                 bool isUserLoaded = scriptManager->isUserLoaded();
                 ScriptManager::Type type = scriptManager->getType();
@@ -562,7 +562,7 @@ void ScriptEngines::onScriptEngineLoaded(const QString& rawScriptURL) {
         QWriteLocker lock(&_scriptManagersHashLock);
         QUrl url = QUrl(rawScriptURL);
         QUrl normalized = normalizeScriptURL(url);
-        _scriptManagersHash.insertMulti(normalized, scriptEngine);
+        _scriptManagersHash.insert(normalized, scriptEngine);
     }
 
     // Update settings with new script

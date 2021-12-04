@@ -17,11 +17,11 @@
 
 constexpr float DEFAULT_SCALE { 1.0f };
 
-FST::FST(QString fstPath, QVariantHash data) : _fstPath(std::move(fstPath)) {
+FST::FST(QString fstPath, QMultiHash<QString, QVariant> data) : _fstPath(std::move(fstPath)) {
 
     auto setValueFromFSTData = [&data] (const QString& propertyID, auto &targetProperty) mutable {
         if (data.contains(propertyID)) {
-            targetProperty = data[propertyID].toString();
+            targetProperty = data.value(propertyID).toString();
             data.remove(propertyID);
         }
     };
@@ -87,56 +87,56 @@ FST* FST::createFSTFromModel(const QString& fstPath, const QString& modelFilePat
     // then we can add the default mixamo to blendshape mappings.
     if (likelyMixamoFile) {
         QVariantHash blendshapes;
-        blendshapes.insertMulti("BrowsD_L", QVariantList() << "BrowsDown_Left" << 1.0);
-        blendshapes.insertMulti("BrowsD_R", QVariantList() << "BrowsDown_Right" << 1.0);
-        blendshapes.insertMulti("BrowsU_C", QVariantList() << "BrowsUp_Left" << 1.0);
-        blendshapes.insertMulti("BrowsU_C", QVariantList() << "BrowsUp_Right" << 1.0);
-        blendshapes.insertMulti("BrowsU_L", QVariantList() << "BrowsUp_Left" << 1.0);
-        blendshapes.insertMulti("BrowsU_R", QVariantList() << "BrowsUp_Right" << 1.0);
-        blendshapes.insertMulti("ChinLowerRaise", QVariantList() << "Jaw_Up" << 1.0);
-        blendshapes.insertMulti("ChinUpperRaise", QVariantList() << "UpperLipUp_Left" << 0.5);
-        blendshapes.insertMulti("ChinUpperRaise", QVariantList() << "UpperLipUp_Right" << 0.5);
-        blendshapes.insertMulti("EyeBlink_L", QVariantList() << "Blink_Left" << 1.0);
-        blendshapes.insertMulti("EyeBlink_R", QVariantList() << "Blink_Right" << 1.0);
-        blendshapes.insertMulti("EyeOpen_L", QVariantList() << "EyesWide_Left" << 1.0);
-        blendshapes.insertMulti("EyeOpen_R", QVariantList() << "EyesWide_Right" << 1.0);
-        blendshapes.insertMulti("EyeSquint_L", QVariantList() << "Squint_Left" << 1.0);
-        blendshapes.insertMulti("EyeSquint_R", QVariantList() << "Squint_Right" << 1.0);
-        blendshapes.insertMulti("JawFwd", QVariantList() << "JawForeward" << 1.0);
-        blendshapes.insertMulti("JawLeft", QVariantList() << "JawRotateY_Left" << 0.5);
-        blendshapes.insertMulti("JawOpen", QVariantList() << "MouthOpen" << 0.7);
-        blendshapes.insertMulti("JawRight", QVariantList() << "Jaw_Right" << 1.0);
-        blendshapes.insertMulti("LipsFunnel", QVariantList() << "JawForeward" << 0.39);
-        blendshapes.insertMulti("LipsFunnel", QVariantList() << "Jaw_Down" << 0.36);
-        blendshapes.insertMulti("LipsFunnel", QVariantList() << "MouthNarrow_Left" << 1.0);
-        blendshapes.insertMulti("LipsFunnel", QVariantList() << "MouthNarrow_Right" << 1.0);
-        blendshapes.insertMulti("LipsFunnel", QVariantList() << "MouthWhistle_NarrowAdjust_Left" << 0.5);
-        blendshapes.insertMulti("LipsFunnel", QVariantList() << "MouthWhistle_NarrowAdjust_Right" << 0.5);
-        blendshapes.insertMulti("LipsFunnel", QVariantList() << "TongueUp" << 1.0);
-        blendshapes.insertMulti("LipsLowerClose", QVariantList() << "LowerLipIn" << 1.0);
-        blendshapes.insertMulti("LipsLowerDown", QVariantList() << "LowerLipDown_Left" << 0.7);
-        blendshapes.insertMulti("LipsLowerDown", QVariantList() << "LowerLipDown_Right" << 0.7);
-        blendshapes.insertMulti("LipsLowerOpen", QVariantList() << "LowerLipOut" << 1.0);
-        blendshapes.insertMulti("LipsPucker", QVariantList() << "MouthNarrow_Left" << 1.0);
-        blendshapes.insertMulti("LipsPucker", QVariantList() << "MouthNarrow_Right" << 1.0);
-        blendshapes.insertMulti("LipsUpperClose", QVariantList() << "UpperLipIn" << 1.0);
-        blendshapes.insertMulti("LipsUpperOpen", QVariantList() << "UpperLipOut" << 1.0);
-        blendshapes.insertMulti("LipsUpperUp", QVariantList() << "UpperLipUp_Left" << 0.7);
-        blendshapes.insertMulti("LipsUpperUp", QVariantList() << "UpperLipUp_Right" << 0.7);
-        blendshapes.insertMulti("MouthDimple_L", QVariantList() << "Smile_Left" << 0.25);
-        blendshapes.insertMulti("MouthDimple_R", QVariantList() << "Smile_Right" << 0.25);
-        blendshapes.insertMulti("MouthFrown_L", QVariantList() << "Frown_Left" << 1.0);
-        blendshapes.insertMulti("MouthFrown_R", QVariantList() << "Frown_Right" << 1.0);
-        blendshapes.insertMulti("MouthLeft", QVariantList() << "Midmouth_Left" << 1.0);
-        blendshapes.insertMulti("MouthRight", QVariantList() << "Midmouth_Right" << 1.0);
-        blendshapes.insertMulti("MouthSmile_L", QVariantList() << "Smile_Left" << 1.0);
-        blendshapes.insertMulti("MouthSmile_R", QVariantList() << "Smile_Right" << 1.0);
-        blendshapes.insertMulti("Puff", QVariantList() << "CheekPuff_Left" << 1.0);
-        blendshapes.insertMulti("Puff", QVariantList() << "CheekPuff_Right" << 1.0);
-        blendshapes.insertMulti("Sneer", QVariantList() << "NoseScrunch_Left" << 0.75);
-        blendshapes.insertMulti("Sneer", QVariantList() << "NoseScrunch_Right" << 0.75);
-        blendshapes.insertMulti("Sneer", QVariantList() << "Squint_Left" << 0.5);
-        blendshapes.insertMulti("Sneer", QVariantList() << "Squint_Right" << 0.5);
+        blendshapes.insert("BrowsD_L", QVariantList() << "BrowsDown_Left" << 1.0);
+        blendshapes.insert("BrowsD_R", QVariantList() << "BrowsDown_Right" << 1.0);
+        blendshapes.insert("BrowsU_C", QVariantList() << "BrowsUp_Left" << 1.0);
+        blendshapes.insert("BrowsU_C", QVariantList() << "BrowsUp_Right" << 1.0);
+        blendshapes.insert("BrowsU_L", QVariantList() << "BrowsUp_Left" << 1.0);
+        blendshapes.insert("BrowsU_R", QVariantList() << "BrowsUp_Right" << 1.0);
+        blendshapes.insert("ChinLowerRaise", QVariantList() << "Jaw_Up" << 1.0);
+        blendshapes.insert("ChinUpperRaise", QVariantList() << "UpperLipUp_Left" << 0.5);
+        blendshapes.insert("ChinUpperRaise", QVariantList() << "UpperLipUp_Right" << 0.5);
+        blendshapes.insert("EyeBlink_L", QVariantList() << "Blink_Left" << 1.0);
+        blendshapes.insert("EyeBlink_R", QVariantList() << "Blink_Right" << 1.0);
+        blendshapes.insert("EyeOpen_L", QVariantList() << "EyesWide_Left" << 1.0);
+        blendshapes.insert("EyeOpen_R", QVariantList() << "EyesWide_Right" << 1.0);
+        blendshapes.insert("EyeSquint_L", QVariantList() << "Squint_Left" << 1.0);
+        blendshapes.insert("EyeSquint_R", QVariantList() << "Squint_Right" << 1.0);
+        blendshapes.insert("JawFwd", QVariantList() << "JawForeward" << 1.0);
+        blendshapes.insert("JawLeft", QVariantList() << "JawRotateY_Left" << 0.5);
+        blendshapes.insert("JawOpen", QVariantList() << "MouthOpen" << 0.7);
+        blendshapes.insert("JawRight", QVariantList() << "Jaw_Right" << 1.0);
+        blendshapes.insert("LipsFunnel", QVariantList() << "JawForeward" << 0.39);
+        blendshapes.insert("LipsFunnel", QVariantList() << "Jaw_Down" << 0.36);
+        blendshapes.insert("LipsFunnel", QVariantList() << "MouthNarrow_Left" << 1.0);
+        blendshapes.insert("LipsFunnel", QVariantList() << "MouthNarrow_Right" << 1.0);
+        blendshapes.insert("LipsFunnel", QVariantList() << "MouthWhistle_NarrowAdjust_Left" << 0.5);
+        blendshapes.insert("LipsFunnel", QVariantList() << "MouthWhistle_NarrowAdjust_Right" << 0.5);
+        blendshapes.insert("LipsFunnel", QVariantList() << "TongueUp" << 1.0);
+        blendshapes.insert("LipsLowerClose", QVariantList() << "LowerLipIn" << 1.0);
+        blendshapes.insert("LipsLowerDown", QVariantList() << "LowerLipDown_Left" << 0.7);
+        blendshapes.insert("LipsLowerDown", QVariantList() << "LowerLipDown_Right" << 0.7);
+        blendshapes.insert("LipsLowerOpen", QVariantList() << "LowerLipOut" << 1.0);
+        blendshapes.insert("LipsPucker", QVariantList() << "MouthNarrow_Left" << 1.0);
+        blendshapes.insert("LipsPucker", QVariantList() << "MouthNarrow_Right" << 1.0);
+        blendshapes.insert("LipsUpperClose", QVariantList() << "UpperLipIn" << 1.0);
+        blendshapes.insert("LipsUpperOpen", QVariantList() << "UpperLipOut" << 1.0);
+        blendshapes.insert("LipsUpperUp", QVariantList() << "UpperLipUp_Left" << 0.7);
+        blendshapes.insert("LipsUpperUp", QVariantList() << "UpperLipUp_Right" << 0.7);
+        blendshapes.insert("MouthDimple_L", QVariantList() << "Smile_Left" << 0.25);
+        blendshapes.insert("MouthDimple_R", QVariantList() << "Smile_Right" << 0.25);
+        blendshapes.insert("MouthFrown_L", QVariantList() << "Frown_Left" << 1.0);
+        blendshapes.insert("MouthFrown_R", QVariantList() << "Frown_Right" << 1.0);
+        blendshapes.insert("MouthLeft", QVariantList() << "Midmouth_Left" << 1.0);
+        blendshapes.insert("MouthRight", QVariantList() << "Midmouth_Right" << 1.0);
+        blendshapes.insert("MouthSmile_L", QVariantList() << "Smile_Left" << 1.0);
+        blendshapes.insert("MouthSmile_R", QVariantList() << "Smile_Right" << 1.0);
+        blendshapes.insert("Puff", QVariantList() << "CheekPuff_Left" << 1.0);
+        blendshapes.insert("Puff", QVariantList() << "CheekPuff_Right" << 1.0);
+        blendshapes.insert("Sneer", QVariantList() << "NoseScrunch_Left" << 0.75);
+        blendshapes.insert("Sneer", QVariantList() << "NoseScrunch_Right" << 0.75);
+        blendshapes.insert("Sneer", QVariantList() << "Squint_Left" << 0.5);
+        blendshapes.insert("Sneer", QVariantList() << "Squint_Right" << 0.5);
         mapping.insert(BLENDSHAPE_FIELD, blendshapes);
     }
     return new FST(fstPath, mapping);
@@ -158,14 +158,14 @@ void FST::setModelPath(const QString& modelPath) {
     emit modelPathChanged(modelPath);
 }
 
-QVariantHash FST::getMapping() const {
-    QVariantHash mapping;
+QMultiHash<QString, QVariant> FST::getMapping() const {
+    QMultiHash<QString, QVariant> mapping;
     mapping.unite(_other);
     mapping.insert(NAME_FIELD, _name);
     mapping.insert(FILENAME_FIELD, _modelPath);
     mapping.insert(MARKETPLACE_ID_FIELD, _marketplaceID);
     for (const auto& scriptPath : _scriptPaths) {
-        mapping.insertMulti(SCRIPT_FIELD, scriptPath);
+        mapping.insert(SCRIPT_FIELD, scriptPath);
     }
     return mapping;
 }

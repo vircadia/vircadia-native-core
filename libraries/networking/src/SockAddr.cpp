@@ -28,21 +28,22 @@
 int sockAddrMetaTypeId = qRegisterMetaType<SockAddr>();
 
 SockAddr::SockAddr() :
+    _socketType(SocketType::Unknown),
     _address(),
     _port(0)
 {
-
 }
 
-SockAddr::SockAddr(const QHostAddress& address, quint16 port) :
+SockAddr::SockAddr(SocketType socketType, const QHostAddress& address, quint16 port) :
+    _socketType(socketType),
     _address(address),
     _port(port)
 {
-
 }
 
 SockAddr::SockAddr(const SockAddr& otherSockAddr) :
     QObject(),
+    _socketType(otherSockAddr._socketType),
     _address(otherSockAddr._address),
     _port(otherSockAddr._port)
 {
@@ -51,12 +52,14 @@ SockAddr::SockAddr(const SockAddr& otherSockAddr) :
 
 SockAddr& SockAddr::operator=(const SockAddr& rhsSockAddr) {
     setObjectName(rhsSockAddr.objectName());
+    _socketType = rhsSockAddr._socketType;
     _address = rhsSockAddr._address;
     _port = rhsSockAddr._port;
     return *this;
 }
 
-SockAddr::SockAddr(const QString& hostname, quint16 hostOrderPort, bool shouldBlockForLookup) :
+SockAddr::SockAddr(SocketType socketType, const QString& hostname, quint16 hostOrderPort, bool shouldBlockForLookup) :
+    _socketType(socketType),
     _address(hostname),
     _port(hostOrderPort)
 {
@@ -74,19 +77,10 @@ SockAddr::SockAddr(const QString& hostname, quint16 hostOrderPort, bool shouldBl
     }
 }
 
-SockAddr::SockAddr(const sockaddr* sockaddr) {
-    _address = QHostAddress(sockaddr);
-
-    if (sockaddr->sa_family == AF_INET) {
-        _port = ntohs(reinterpret_cast<const sockaddr_in*>(sockaddr)->sin_port);
-    } else {
-        _port = ntohs(reinterpret_cast<const sockaddr_in6*>(sockaddr)->sin6_port);
-    }
-}
-
 void SockAddr::swap(SockAddr& otherSockAddr) {
     using std::swap;
-    
+
+    swap(_socketType, otherSockAddr._socketType);
     swap(_address, otherSockAddr._address);
     swap(_port, otherSockAddr._port);
     
@@ -97,7 +91,7 @@ void SockAddr::swap(SockAddr& otherSockAddr) {
 }
 
 bool SockAddr::operator==(const SockAddr& rhsSockAddr) const {
-    return _address == rhsSockAddr._address && _port == rhsSockAddr._port;
+    return _socketType == rhsSockAddr._socketType && _address == rhsSockAddr._address && _port == rhsSockAddr._port;
 }
 
 void SockAddr::handleLookupResult(const QHostInfo& hostInfo) {
@@ -119,6 +113,10 @@ void SockAddr::handleLookupResult(const QHostInfo& hostInfo) {
 }
 
 QString SockAddr::toString() const {
+    return socketTypeToString(_socketType) + " " + _address.toString() + ":" + QString::number(_port);
+}
+
+QString SockAddr::toShortString() const {
     return _address.toString() + ":" + QString::number(_port);
 }
 
@@ -135,16 +133,21 @@ bool SockAddr::hasPrivateAddress() const {
 }
 
 QDebug operator<<(QDebug debug, const SockAddr& sockAddr) {
-    debug.nospace() << sockAddr._address.toString().toLocal8Bit().constData() << ":" << sockAddr._port;
+    debug.nospace() 
+        << (sockAddr._socketType != SocketType::Unknown 
+            ? (socketTypeToString(sockAddr._socketType) + " ").toLocal8Bit().constData() : "")
+        << sockAddr._address.toString().toLocal8Bit().constData() << ":" << sockAddr._port;
     return debug.space();
 }
 
 QDataStream& operator<<(QDataStream& dataStream, const SockAddr& sockAddr) {
+    // Don't include socket type because ICE packets must not have it.
     dataStream << sockAddr._address << sockAddr._port;
     return dataStream;
 }
 
 QDataStream& operator>>(QDataStream& dataStream, SockAddr& sockAddr) {
+    // Don't include socket type because ICE packets must not have it.
     dataStream >> sockAddr._address >> sockAddr._port;
     return dataStream;
 }

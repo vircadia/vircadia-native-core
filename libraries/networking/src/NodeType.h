@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 05/29/15.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -14,6 +15,10 @@
 
 #pragma once
 
+/// @file
+/// @brief NodeType
+
+/// @brief An 8-bit value identifying the type of a node - domain server, audio mixer, etc.
 typedef quint8 NodeType_t;
 
 namespace NodeType {
@@ -37,8 +42,8 @@ namespace NodeType {
     NodeType_t upstreamType(NodeType_t primaryType);
     NodeType_t downstreamType(NodeType_t primaryType);
 
-
     NodeType_t fromString(QString type);
+    NodeType_t fromChar(QChar type);
 }
 
 typedef QSet<NodeType_t> NodeSet;

@@ -59,7 +59,7 @@ public:
         auto preset = _preset.get();
         if (preset != _preset.getDefault() && _presets.contains(preset)) {
             // Load the persisted configuration
-            C::load(_presets[preset].toMap());
+            C::load(_presets.value(preset).toMap());
         }
     }
 
@@ -79,8 +79,8 @@ public:
     }
 
 protected:
-    QVariantMap _default;
-    QVariantMap _presets;
+    QMultiMap<QString, QVariant> _default;
+    QMultiMap<QString, QVariant> _presets;
     Setting::Handle<QString> _preset;
 };
 
