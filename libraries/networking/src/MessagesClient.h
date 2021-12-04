@@ -64,7 +64,7 @@ public:
      *     from an assignment client script it is received only by that same assignment client script.</p>
      * @example <caption>Send and receive a message.</caption>
      * // Receiving script.
-     * var channelName = "com.highfidelity.example.messages-example";
+     * var channelName = "com.vircadia.example.messages-example";
      *
      * function onMessageReceived(channel, message, sender, localOnly) {
      *     print("Message received:");
@@ -84,7 +84,7 @@ public:
      *
      *
      * // Sending script.
-     * var channelName = "com.highfidelity.example.messages-example";
+     * var channelName = "com.vircadia.example.messages-example";
      * var message = "Hello";
      * Messages.sendMessage(channelName, message);
      */
@@ -112,7 +112,7 @@ public:
      *     from an assignment client script it is received only by that same assignment client script.</p>
      * @example <caption>Send and receive data.</caption>
      * // Receiving script.
-     * var channelName = "com.highfidelity.example.messages-example";
+     * var channelName = "com.vircadia.example.messages-example";
      *
      * function onDataReceived(channel, data, sender, localOnly) {
      *     var int8data = new Int8Array(data);
@@ -140,7 +140,7 @@ public:
      *
      *
      * // Sending script.
-     * var channelName = "com.highfidelity.example.messages-example";
+     * var channelName = "com.vircadia.example.messages-example";
      * var int8data = new Int8Array([1, 1, 2, 3, 5, 8, 13]);
      * Messages.sendData(channelName, int8data.buffer);
      */
