@@ -56,6 +56,7 @@
 #include "DomainServerNodeData.h"
 #include "EntitiesBackupHandler.h"
 #include "NodeConnectionData.h"
+#include "DomainServerAcmeClient.h"
 
 #include <Gzip.h>
 
@@ -195,7 +196,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _gatekeeper(this),
     _httpManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTP_PORT,
-        QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this)
+        QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
+    _acmeClient(std::make_unique<DomainServerAcmeClient>())
 {
     if (_parentPID != -1) {
         watchParentProcess(_parentPID);
@@ -910,7 +912,7 @@ void DomainServer::setUpWebRTCSignalingServer() {
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
     // Route inbound WebRTC signaling messages received from user clients.
-    connect(_webrtcSignalingServer.get(), &WebRTCSignalingServer::messageReceived, 
+    connect(_webrtcSignalingServer.get(), &WebRTCSignalingServer::messageReceived,
         this, &DomainServer::routeWebRTCSignalingMessage);
 
     // Route domain server signaling messages.
@@ -922,9 +924,9 @@ void DomainServer::setUpWebRTCSignalingServer() {
     // Forward signaling messages received from assignment clients to user client.
     PacketReceiver& packetReceiver = limitedNodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::WebRTCSignaling,
-        PacketReceiver::makeUnsourcedListenerReference<DomainServer>(this, 
+        PacketReceiver::makeUnsourcedListenerReference<DomainServer>(this,
             &DomainServer::forwardAssignmentClientSignalingMessageToUserClient));
-    connect(this, &DomainServer::webrtcSignalingMessageForUserClient, 
+    connect(this, &DomainServer::webrtcSignalingMessageForUserClient,
         _webrtcSignalingServer.get(), &WebRTCSignalingServer::sendMessage);
 }
 
@@ -2710,7 +2712,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
     // didn't process the request, let our DomainServerSettingsManager, DomainServerAcmeClient, or HTTPManager handle
     return _settingsManager.handleAuthenticatedHTTPRequest(connection, url) ||
-        _acmeClient.handleAuthenticatedHTTPRequest(connection, url);
+        _acmeClient->handleAuthenticatedHTTPRequest(connection, url);
 }
 
 static const QString HIFI_SESSION_COOKIE_KEY = "DS_WEB_SESSION_UUID";

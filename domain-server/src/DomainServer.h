@@ -34,7 +34,6 @@
 #include "DomainGatekeeper.h"
 #include "DomainMetadata.h"
 #include "DomainServerSettingsManager.h"
-#include "DomainServerAcmeClient.h"
 #include "DomainServerWebSessionData.h"
 #include "WalletTransaction.h"
 #include "DomainContentBackupManager.h"
@@ -42,6 +41,7 @@
 #include "PendingAssignedNodeData.h"
 #include "DomainServerExporter.h"
 
+#include <memory>
 #include <QLoggingCategory>
 
 Q_DECLARE_LOGGING_CATEGORY(domain_server)
@@ -60,6 +60,8 @@ enum ReplicationServerDirection {
     Upstream,
     Downstream
 };
+
+class DomainServerAcmeClient;
 
 class DomainServer : public QCoreApplication, public HTTPSRequestHandler {
     Q_OBJECT
@@ -290,7 +292,7 @@ private:
     QString _automaticNetworkingSetting;
 
     DomainServerSettingsManager _settingsManager;
-    DomainServerAcmeClient _acmeClient;
+    std::unique_ptr<DomainServerAcmeClient> _acmeClient;
 
     SockAddr _iceServerSocket;
     std::unique_ptr<NLPacket> _iceServerHeartbeatPacket;
