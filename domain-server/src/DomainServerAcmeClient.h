@@ -16,9 +16,15 @@
 #include <QtCore/QTimer>
 #include <QLoggingCategory>
 
-#include <HTTPConnection.h>
-
 Q_DECLARE_LOGGING_CATEGORY(acme_client)
+
+class HTTPConnection;
+
+class AcmeChallengeHandler {
+public:
+    virtual void addChallenge(const std::string& domain, const std::string& location, const std::string& content) = 0;
+    virtual ~AcmeChallengeHandler(){};
+};
 
 class DomainServerAcmeClient : public QObject {
     Q_OBJECT
@@ -35,7 +41,9 @@ private slots:
 
 private:
 
-    QTimer _expiryTimer;
+    QTimer expiryTimer;
+    std::unique_ptr<AcmeChallengeHandler> challengeHandler;
+    std::vector<std::string> selfCheckUrls;
 };
 
 

@@ -30,13 +30,14 @@
 #include <string>
 #include <functional>
 #include <utility>
-#include <chrono>
 
 namespace acme_lw
 {
 
 using namespace std::literals;
+using acme_lw_internal::Response;
 
+using acme_lw_internal::Response;
 // Smart pointers for OpenSSL types
 template <typename T, void(*F)(T*)>
 struct freeFunctionDeleteType {
@@ -720,9 +721,9 @@ void processAuthorizations(Callback callback, ChallengeCallback challengeCallbac
                 }
 
                 std::string token = httpChallenge->at("token");
-                std::string url = "http://"s + domain + "/.well-known/acme-challenge/" + token;
+                std::string location = "/.well-known/acme-challenge/"s + token;
                 std::string keyAuthorization = token + "." + client.impl_->jwkThumbprint();
-                challengeCallback(domain, url, keyAuthorization);
+                challengeCallback(domain, location, keyAuthorization);
                 challengeUrls.push(httpChallenge->at("url"));
                 processAuthorizations(
                     std::move(next),
@@ -797,21 +798,49 @@ void orderCertificate(Callback callback, ChallengeCallback challengeCallback, Ac
 }
 
 template <typename Callback>
-void waitForValid(Callback callback, AcmeClient client, std::string url, std::chrono::milliseconds timeout) {
+void waitForGet(Callback callback, std::string url, std::chrono::milliseconds timeout, std::chrono::milliseconds interval) {
+
+    struct retryCallback {
+        void operator()(Response response) {
+            callback(std::move(response));
+        }
+        void operator()(AcmeException error) {
+            if(timeout <= 0ms) {
+                callback(AcmeException("Get request timeout: " + std::move(url) + '\n' + error.what()));
+            } else {
+                QTimer::singleShot(interval.count(), [callback = std::move(callback), url = std::move(url), timeout = timeout, interval = interval]() mutable {
+                    waitForGet(std::move(callback), std::move(url), timeout - interval, interval);
+                });
+            }
+        }
+
+        std::string url;
+        Callback callback;
+        std::chrono::milliseconds timeout;
+        std::chrono::milliseconds interval;
+    } retryCallback{url, std::move(callback), timeout, interval}; // url is copied, can't move, since doGet also needs it
+    // TODO: doGet(and others) need to accept url by value and move it into the callback, preventing the need to capture it,
+    // NOTE: it seems like it's only necessary in error case
+    acme_lw_internal::doGet(std::move(retryCallback), url);
+}
+
+template <typename Callback>
+void waitForValid(Callback callback, AcmeClient client, std::string url, std::chrono::milliseconds timeout, std::chrono::milliseconds interval = 1s) {
     if(timeout <= 0ms) {
         callback(std::move(client), AcmeException("Status check timeout: " + url));
         return;
     }
 
     auto nextUrl = url; // explicit copy, since can't rely on order of evaluation of function parameters
+    // TODO: sendRequest need to move the url into the callback, preventing the need to capture it
     sendRequest(
-        forwardAcmeError([url = nextUrl, timeout](auto next, auto client, auto response) mutable {
+        forwardAcmeError([url = nextUrl, timeout, interval](auto next, auto client, auto response) mutable {
              auto json = nlohmann::json::parse(response.response_);
              if(json.at("status") == "valid") {
                 next(std::move(client));
              } else {
-                QTimer::singleShot(1000, [next = std::move(next), client = std::move(client), url = std::move(url), timeout]() mutable {
-                    waitForValid(std::move(next), std::move(client), std::move(url), timeout - 1s);
+                QTimer::singleShot(interval.count(), [next = std::move(next), client = std::move(client), url = std::move(url), timeout, interval]() mutable {
+                    waitForValid(std::move(next), std::move(client), std::move(url), timeout - interval, interval);
                 });
              }
         }, std::move(callback)),

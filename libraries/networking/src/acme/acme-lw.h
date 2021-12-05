@@ -6,6 +6,7 @@
 #include <memory>
 #include <vector>
 #include <unordered_map>
+#include <chrono>
 
 namespace acme_lw
 {
@@ -96,7 +97,10 @@ void orderCertificate(Callback, ChallengeCallback, AcmeClient,
     std::vector<std::string> domains);
 
 template <typename Callback>
-void retrieveCertificate(Callback callback, AcmeClient, std::vector<std::string> domains, std::vector<std::string> challenges, std::string url, std::string finalizeUrl);
+void retrieveCertificate(Callback, AcmeClient, std::vector<std::string> domains, std::vector<std::string> challenges, std::string url, std::string finalizeUrl);
+
+template <typename Callback>
+void waitForGet(Callback, std::string url, std::chrono::milliseconds timeout, std::chrono::milliseconds interval);
 
 }
 
