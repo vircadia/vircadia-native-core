@@ -290,10 +290,10 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         bool isWebRTCWSSEnabled = _settingsManager.valueForKeyPath(WEBRTC_WSS_ENABLE).toBool();
         qCDebug(domain_server) << "WebRTC WSS enabled:" << isWebRTCWSSEnabled;
         if(isWebRTCWSSEnabled) {
-            _webrtcSignalingServer.reset(new WebRTCSignalingServer(this,
-                DomainServerAcmeClient::getCertificatePaths(_settingsManager)));
+            _webrtcSignalingServer = std::make_unique<WebRTCSignalingServer>(this,
+                DomainServerAcmeClient::getCertificatePaths(_settingsManager));
         } else {
-            _webrtcSignalingServer.reset(new WebRTCSignalingServer(this));
+            _webrtcSignalingServer = std::make_unique<WebRTCSignalingServer>(this);
         }
     }
 #endif
