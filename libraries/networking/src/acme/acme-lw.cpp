@@ -20,9 +20,9 @@ AcmeClient::AcmeClient(
 {
 }
 
-::time_t Certificate::getExpiry() const
+std::chrono::system_clock::time_point Certificate::getExpiry() const
 {
-    return extractExpiryData<::time_t>(*this, [](const ASN1_TIME * t)
+    return extractExpiryData<std::chrono::system_clock::time_point>(*this, [](const ASN1_TIME * t)
         {
 #ifdef OPENSSL_TO_TM
             // Prior to openssl 1.1.1 (or so?) ASN1_TIME_to_tm didn't exist so there was no
@@ -34,7 +34,7 @@ AcmeClient::AcmeClient(
                 throw AcmeException("Failure in ASN1_TIME_to_tm");
             }
 
-            return timegm(&out);
+            return std::system_clock::from_time_t(timegm(&out));
 #else
             // See this link for issues in converting from ASN1_TIME to epoch time.
             // https://stackoverflow.com/questions/10975542/asn1-time-to-time-t-conversion
@@ -45,10 +45,13 @@ AcmeClient::AcmeClient(
                 throw AcmeException("Failure in ASN1_TIME_diff");
             }
 
-            // Hackery here, since the call to time(0) will not necessarily match
+            // Hackery here, since the call to system_clock::now() will not necessarily match
             // the equivilent call openssl just made in the 'diff' call above.
             // Nonetheless, it'll be close at worst.
-            return ::time(0) + seconds + days * 3600 * 24;
+            return std::chrono::system_clock::now()
+                + std::chrono::seconds(seconds)
+                + std::chrono::hours(24) * days;
+
 #endif
         });
 }

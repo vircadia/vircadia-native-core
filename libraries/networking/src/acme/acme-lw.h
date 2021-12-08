@@ -27,7 +27,7 @@ struct Certificate
         it will be close enough for the purpose of determining
         whether the certificate needs to be renewed.
     */
-    ::time_t getExpiry() const;
+    std::chrono::system_clock::time_point getExpiry() const;
 
     /**
         Returns the 'Not After' result that openssl would display if
@@ -76,7 +76,7 @@ public:
 };
 
 //TODO: document/specify callback parameters
-// maybe provide additional interface with std::function callback to restore interface/implementation division
+// maybe also define callback class interface to restore interface/implementation division
 /**
     The signingKey is the Acme account private key used to sign
     requests to the acme CA, in pem format.
