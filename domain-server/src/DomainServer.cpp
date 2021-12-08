@@ -197,7 +197,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _gatekeeper(this),
     _httpManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTP_PORT,
         QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
-    _acmeClient(std::make_unique<DomainServerAcmeClient>())
+    _acmeClient(nullptr)
 {
     if (_parentPID != -1) {
         watchParentProcess(_parentPID);
@@ -269,6 +269,10 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     if (_oauthEnable) {
         _oauthEnable = optionallyReadX509KeyAndCertificate();
+    }
+
+    if(_settingsManager.valueOrDefaultValueForKeyPath("acme.enable_client").toBool()) {
+        _acmeClient = std::make_unique<DomainServerAcmeClient>(_settingsManager);
     }
 
     _settingsManager.apiRefreshGroupInformation();

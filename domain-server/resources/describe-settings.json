@@ -129,6 +129,79 @@
       ]
     },
     {
+      "name": "acme",
+      "label": "SSL ACME Client",
+      "settings": [
+        {
+            "name": "enable_client",
+            "label": "Enable ACME client",
+            "help": "Enables ACME client that will manage the SSL certificates.",
+            "default": false,
+            "type": "checkbox",
+            "advanced": true
+        },
+        {
+            "name": "directory_endpoint",
+            "label": "ACME Directory Endpoint",
+            "help": "URL of the certificate issuer ACME directory endpoint.",
+            "default": "https://acme-v02.api.letsencrypt.org/directory",
+            "advanced": true
+        },
+        {
+            "name": "account_key_path",
+            "label": "Account Key",
+            "help": "Path to private key used to communicate with certificate issuer.",
+            "default": "server_key.pem",
+            "advanced": true
+        },
+        {
+            "name": "certificate_directory",
+            "label": "Certificate Directory",
+            "help": "Certificate files will be stored in this directory.",
+            "default": "",
+            "placeholder": "Current Directory",
+            "advanced": true
+        },
+        {
+            "name": "certificate_filename",
+            "label": "Certificate Filename",
+            "help": "Certificate will be stored with this filename.",
+            "default": "vircadia-cert.crt",
+            "advanced": true
+        },
+        {
+            "name": "certificate_key_filename",
+            "label": "Certificate Key Filename",
+            "help": "Certificate private key will be stored with this filename.",
+            "default": "vircadia-cert.key",
+            "advanced": true
+        },
+        {
+            "name": "certificate_authority_filename",
+            "label": "Certificate Authority Filename",
+            "help": "Certificate Authority will be stored with this filename.",
+            "default": "vircadia-cert-ca.key",
+            "advanced": true
+        },
+        {
+          "name": "certificate_domains",
+          "label": "Domains Names",
+          "type": "table",
+          "can_add_new_rows": true,
+          "help": "The domains names or IP addresses to generate the certificate for.",
+          "numbered": false,
+          "advanced": true,
+          "columns": [
+            {
+              "name": "domain",
+              "label": "Domain name or IP address",
+              "can_set": true
+            }
+          ]
+        }
+      ]
+    },
+    {
       "label": "Monitoring",
       "name": "monitoring",
       "restart": false,

@@ -19,6 +19,7 @@
 Q_DECLARE_LOGGING_CATEGORY(acme_client)
 
 class HTTPConnection;
+class DomainServerSettingsManager;
 
 class AcmeChallengeHandler {
 public:
@@ -29,22 +30,19 @@ public:
 class DomainServerAcmeClient : public QObject {
     Q_OBJECT
 public:
-    DomainServerAcmeClient();
+    DomainServerAcmeClient(DomainServerSettingsManager&);
     bool handleAuthenticatedHTTPRequest(HTTPConnection* connection, const QUrl& url);
 
-signals:
-    void certificatesUpdated();
-    void serverKeyUpdated();
-
-private slots:
-    void certificateExpiryTimerHandler();
-
 private:
+    void init();
+    void generateCertificate(std::array<QString,2> certPaths);
+    void checkExpiry(std::array<QString,2> certPaths);
+    void scheduleRenewalIn(std::chrono::system_clock::duration);
 
-    QTimer expiryTimer;
+    QTimer renewalTimer;
     std::unique_ptr<AcmeChallengeHandler> challengeHandler;
     std::vector<std::string> selfCheckUrls;
+    DomainServerSettingsManager& settings;
 };
-
 
 #endif /* end of include guard */
