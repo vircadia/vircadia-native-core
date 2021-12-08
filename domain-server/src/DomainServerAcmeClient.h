@@ -20,6 +20,7 @@ Q_DECLARE_LOGGING_CATEGORY(acme_client)
 
 class HTTPConnection;
 class DomainServerSettingsManager;
+struct CertificatePaths;
 
 class AcmeChallengeHandler {
 public:
@@ -30,6 +31,8 @@ public:
 class DomainServerAcmeClient : public QObject {
     Q_OBJECT
 public:
+    static CertificatePaths getCertificatePaths(DomainServerSettingsManager&);
+
     DomainServerAcmeClient(DomainServerSettingsManager&);
     bool handleAuthenticatedHTTPRequest(HTTPConnection* connection, const QUrl& url);
 

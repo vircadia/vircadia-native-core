@@ -13,7 +13,9 @@
 
 #include <HTTPManager.h>
 #include <HTTPConnection.h>
+#include <PathUtils.h>
 #include <acme/acme-lw.hpp>
+#include <SSLCommon.h>
 
 #include <QDir>
 
@@ -110,8 +112,8 @@ class ChallengeSelfCheck :
     void start() {
         for(auto&& url : urls) {
             acme_lw::waitForGet(shared_callback{this->shared_from_this()},
-                // std::move(url), 1s, 250ms);
-                std::move(url), 120s, 1s);
+                std::move(url), 1s, 250ms);
+                // TODO: 120s timeout 1s interval when using AcmeHttpChallengeManual
         }
     }
 
@@ -155,14 +157,6 @@ bool createAccountKey(QFile& file) {
     return false;
 }
 
-std::array<QString, 2> getCertFiles(DomainServerSettingsManager& settings) {
-    QDir certDir = settings.valueOrDefaultValueForKeyPath("acme.certificate_directory").toString();
-    auto certFilename = settings.valueOrDefaultValueForKeyPath("acme.certificate_filename").toString();
-    auto certKeyFilename = settings.valueOrDefaultValueForKeyPath("acme.certificate_key_filename").toString();
-
-    return { certDir.filePath(certFilename), certDir.filePath(certKeyFilename) };
-}
-
 std::string readAll(const QString& path)
 {
     QFile file(path);
@@ -191,6 +185,25 @@ bool writeCertificate(acme_lw::Certificate cert, const std::array<QString, 2>& f
         writeAll(cert.privkey, files.back());
 }
 
+CertificatePaths DomainServerAcmeClient::getCertificatePaths(DomainServerSettingsManager& settings) {
+    auto certDirStr = settings.valueOrDefaultValueForKeyPath("acme.certificate_directory").toString();
+    QDir certDir(certDirStr != ""
+        ? QDir(certDirStr)
+        : PathUtils::getAppLocalDataPath()
+    );
+
+    CertificatePaths paths {
+        settings.valueOrDefaultValueForKeyPath("acme.certificate_filename").toString(),
+        settings.valueOrDefaultValueForKeyPath("acme.certificate_key_filename").toString(),
+        settings.valueOrDefaultValueForKeyPath("acme.certificate_authority_filename").toString()
+    };
+
+    paths.cert = certDir.filePath(paths.cert);
+    paths.key = certDir.filePath(paths.key);
+    paths.trustedAuthorities = certDir.filePath(paths.trustedAuthorities);
+    return paths;
+}
+
 DomainServerAcmeClient::DomainServerAcmeClient(DomainServerSettingsManager& settings) :
     renewalTimer(),
     challengeHandler(nullptr),
@@ -204,19 +217,20 @@ DomainServerAcmeClient::DomainServerAcmeClient(DomainServerSettingsManager& sett
 
 void DomainServerAcmeClient::init() {
 
-    auto certFiles = getCertFiles(settings);
-    auto notExisitng = std::stable_partition(certFiles.begin(), certFiles.end(),
+    auto paths = DomainServerAcmeClient::getCertificatePaths(settings);
+    std::array<QString,2> certPaths { paths.cert, paths.key };
+    auto notExisitng = std::stable_partition(certPaths.begin(), certPaths.end(),
         [](auto x){ return QFile::exists(x); });
-    if(notExisitng == certFiles.end()) {
+    if(notExisitng == certPaths.end()) {
         // all files exist, order unchanged
-        checkExpiry(std::move(certFiles));
-    } else if(notExisitng == certFiles.begin()) {
+        checkExpiry(std::move(certPaths));
+    } else if(notExisitng == certPaths.begin()) {
         // none of the files exist, order unchanged
-        generateCertificate(std::move(certFiles));
+        generateCertificate(std::move(certPaths));
     } else {
         // one file exist while the other doesn't, ordered existing first
         qCCritical(acme_client) << "SSL certificate missing file:\n" << *notExisitng;
-        qCCritical(acme_client) << "Either provide it, or remove the other file to generate a new certificate:\n" << *certFiles.begin();
+        qCCritical(acme_client) << "Either provide it, or remove the other file to generate a new certificate:\n" << *certPaths.begin();
         return;
     }
 }
@@ -319,7 +333,11 @@ OrderCallback<Callback> orderCallback(
 // TODO: on failure retry N times then reschedule for next day
 void DomainServerAcmeClient::generateCertificate(std::array<QString,2> certPaths) {
 
-    QFile accountKeyFile(settings.valueOrDefaultValueForKeyPath("acme.account_key_path").toString());
+    QString accountKeyPath = settings.valueOrDefaultValueForKeyPath("acme.account_key_path").toString();
+    if(accountKeyPath == "") {
+        accountKeyPath = QDir(PathUtils::getAppLocalDataPath()).filePath("acme_account_key.pem");
+    }
+    QFile accountKeyFile(accountKeyPath);
     if(!accountKeyFile.exists()) {
         if(!createAccountKey(accountKeyFile)) {
             qCCritical(acme_client) << "Failed to create account key file " << accountKeyFile.fileName();
@@ -390,5 +408,6 @@ void DomainServerAcmeClient::scheduleRenewalIn(system_clock::duration duration) 
 }
 
 bool DomainServerAcmeClient::handleAuthenticatedHTTPRequest(HTTPConnection *connection, const QUrl &url) {
+    // TODO: report current status, upload private key and certificate files
     return false;
 }

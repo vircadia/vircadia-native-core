@@ -19,18 +19,20 @@
 
 #include "../SockAddr.h"
 
+struct CertificatePaths;
+
 /// @addtogroup Networking
 /// @{
 
 /// @brief Provides a WebRTC signaling server that Interface clients can use to initiate WebRTC connections to the domain server
 /// and its assignment clients.
-/// 
+///
 /// @details The signaling server is expected to be hosted in the domain server. It provides a WebSocket for Interface clients
 /// to use in the WebRTC signaling handshake process to establish WebRTC data channel connections to each of the domain server
 /// and the assignment clients (i.e., separate WebRTC data channels for each but only a single signaling WebSocket). The
 /// assignment client signaling messages are expected to be relayed - by the domain server - via Vircadia protocol messages on
 /// the UDP connections between the domain server and assignment clients.
-/// 
+///
 /// Additionally, for debugging purposes, instead of containing a WebRTC payload a signaling message may be an echo request.
 /// This is bounced back to the client from the WebRTCSignalingServer if the domain server was the target, otherwise it is
 /// expected to be bounced back upon receipt by the relevant assignment client.
@@ -59,10 +61,14 @@ class WebRTCSignalingServer : public QObject {
 
 public:
 
-    /// @brief Constructs a new WebRTCSignalingServer object.
+    /// @brief Constructs a new WebRTCSignalingServer object with SSL support.
     /// @param parent Qt parent object.
-    /// @param isWSSEnabled Whether the WebSocket used for WebRTC signaling should be secure (WSS protocol).
-    WebRTCSignalingServer(QObject* parent, bool isWSSEnabled);
+    /// @param certPaths Paths to SSL certificate files used by the WebRTC WebSocket for secure signaling (WSS protocol).
+    WebRTCSignalingServer(QObject* parent, const CertificatePaths& certPaths);
+
+    /// @brief Constructs a new WebRTCSignalingServer object without SSL support.
+    /// @param parent Qt parent object.
+    WebRTCSignalingServer(QObject* parent);
 
     /// @brief Binds the WebRTC signaling server's WebSocket to an address and port.
     /// @param address The address to use for the WebSocket.
@@ -93,6 +99,7 @@ private slots:
 
 private:
 
+    void init();
     void checkWebSocketServerIsListening();
 
     QWebSocketServer* _webSocketServer;

@@ -151,7 +151,8 @@
             "name": "account_key_path",
             "label": "Account Key",
             "help": "Path to private key used to communicate with certificate issuer.",
-            "default": "server_key.pem",
+            "default": "",
+            "placeholder": "<Application Data Path>/acme_account_key.pem",
             "advanced": true
         },
         {
@@ -159,28 +160,29 @@
             "label": "Certificate Directory",
             "help": "Certificate files will be stored in this directory.",
             "default": "",
-            "placeholder": "Current Directory",
+            "placeholder": "Application Data Path",
             "advanced": true
         },
         {
             "name": "certificate_filename",
             "label": "Certificate Filename",
-            "help": "Certificate will be stored with this filename.",
+            "help": "Certificate will be stored with this filename in Certificate Directory.",
             "default": "vircadia-cert.crt",
             "advanced": true
         },
         {
             "name": "certificate_key_filename",
             "label": "Certificate Key Filename",
-            "help": "Certificate private key will be stored with this filename.",
+            "help": "Certificate private key will be stored with this filename in Certificate Directory.",
             "default": "vircadia-cert.key",
             "advanced": true
         },
         {
             "name": "certificate_authority_filename",
             "label": "Certificate Authority Filename",
-            "help": "Certificate Authority will be stored with this filename.",
-            "default": "vircadia-cert-ca.key",
+            "help": "Trusted certificate authority list will be stored with this filename in Certificate Directory. If unspecified system default CAs will be used.",
+            "default": "",
+            "placeholder": "System Default",
             "advanced": true
         },
         {
