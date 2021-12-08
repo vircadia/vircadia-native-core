@@ -3712,33 +3712,22 @@ function addZoneToZonesSelection(propertyId, id) {
         hiddenField.value = "[]";
     }
     let selectedZones = JSON.parse(hiddenField.value);
-    if (!selectedZones.includes(id)) {
-        selectedZones.push(id);
-    }
-    hiddenField.value = JSON.stringify(selectedZones);
-    displaySelectedZones(propertyId, true);
-    let propertyName = propertyId.replace("property-", "");
-    updateProperty(propertyName, selectedZones, false);
-    document.getElementById("zones-select-selector-list-panel-" + propertyId).style.display = "none";
-}
-
-function addAllZonesToZonesSelection (propertyId) {
-    let hiddenField = document.getElementById(propertyId);
-    if (JSON.stringify(hiddenField.value) === '"undefined"') {
-        hiddenField.value = "[]";
-    }
-    let selectedZones = JSON.parse(hiddenField.value);
-    let i;
-    for (i = 0; i < zonesList.length; i++) {
-        if (!selectedZones.includes(zonesList[i].id)) {
-            selectedZones.push(zonesList[i].id);
+    if (id === "ALL") {
+        for (let i = 0; i < zonesList.length; i++) {
+            if (!selectedZones.includes(zonesList[i].id)) {
+                selectedZones.push(zonesList[i].id);
+            }
+        }        
+    } else {
+        if (!selectedZones.includes(id)) {
+            selectedZones.push(id);
         }
     }
     hiddenField.value = JSON.stringify(selectedZones);
     displaySelectedZones(propertyId, true);
     let propertyName = propertyId.replace("property-", "");
     updateProperty(propertyName, selectedZones, false);
-    document.getElementById("zones-select-selector-list-panel-" + propertyId).style.display = "none";    
+    document.getElementById("zones-select-selector-list-panel-" + propertyId).style.display = "none";
 }
 
 function removeZoneFromZonesSelection(propertyId, zoneId) {
@@ -3834,7 +3823,7 @@ function setZonesSelectionData(element, isEditable) {
     zoneSelector += "<div class = 'zoneSelectorListPanel' id='zones-select-selector-list-panel-" + element.id + "'>";
     zoneSelector += "<div class='zoneSelectListHeader'>Select the Zone to add:";
     zoneSelector += "<input type='button' id='zones-select-add-all-" + element.id + "' class='blue forceAlignRight' value = 'Add All Zones'";
-    zoneSelector += "onClick='addAllZonesToZonesSelection(" + '"' + element.id + '"' + ");'>";
+    zoneSelector += "onClick='addZoneToZonesSelection(" + '"' + element.id + '", "ALL"' + ");'>";
     zoneSelector += "</div>";
     zoneSelector += "<div class='zoneSelectList' id = 'zones-select-selector-list-" + element.id + "'>";
     let i, name;
