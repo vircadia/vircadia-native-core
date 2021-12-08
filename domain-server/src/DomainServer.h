@@ -28,6 +28,7 @@
 #include <HTTPSConnection.h>
 #include <LimitedNodeList.h>
 #include <shared/WebRTC.h>
+#include <webrtc/WebRTCSignalingServer.h>
 
 #include "AssetsBackupHandler.h"
 #include "DomainGatekeeper.h"
@@ -61,7 +62,6 @@ enum ReplicationServerDirection {
 };
 
 class DomainServerAcmeClient;
-class WebRTCSignalingServer;
 
 class DomainServer : public QCoreApplication, public HTTPSRequestHandler {
     Q_OBJECT
