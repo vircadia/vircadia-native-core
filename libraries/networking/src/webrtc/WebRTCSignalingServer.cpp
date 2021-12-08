@@ -33,10 +33,10 @@ WebRTCSignalingServer::WebRTCSignalingServer(QObject* parent, const CertificateP
 
     qCDebug(networking_webrtc) << "WebSocket WSS key file:" << certPaths.key;
     qCDebug(networking_webrtc) << "WebSocket WSS cert file:" << certPaths.cert;
-    if(not useSystemDefaultCA) {
-        qCDebug(networking_webrtc) << "WebSocket WSS CA cert file:" << certPaths.trustedAuthorities;
-    } else {
+    if(useSystemDefaultCA) {
         qCDebug(networking_webrtc) << "WebSocket WSS using system default CA";
+    } else {
+        qCDebug(networking_webrtc) << "WebSocket WSS CA cert file:" << certPaths.trustedAuthorities;
     }
 
     QSslConfiguration sslConfiguration(useSystemDefaultCA
