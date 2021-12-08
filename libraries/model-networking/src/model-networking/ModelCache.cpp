@@ -140,9 +140,9 @@ void GeometryReader::run() {
         }
 
         HFMModel::Pointer hfmModel;
-        QVariantHash serializerMapping = _mapping.second;
-        serializerMapping["combineParts"] = _combineParts;
-        serializerMapping["deduplicateIndices"] = true;
+        QMultiHash<QString, QVariant> serializerMapping = _mapping.second;
+        serializerMapping.replace("combineParts",_combineParts);
+        serializerMapping.replace("deduplicateIndices", true);
 
         if (_url.path().toLower().endsWith(".gz")) {
             QByteArray uncompressedData;
@@ -247,7 +247,7 @@ void GeometryResource::downloadFinished(const QByteArray& data) {
             if (scripts.size() > 0) {
                 _mapping.remove(SCRIPT_FIELD);
                 for (auto &scriptPath : scripts) {
-                    _mapping.insertMulti(SCRIPT_FIELD, scriptPath);
+                    _mapping.insert(SCRIPT_FIELD, scriptPath);
                 }
             }
 
