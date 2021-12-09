@@ -154,7 +154,7 @@ jobs:
           sudo apt install -y ${{ matrix.apt-dependencies }} || exit 1
         else # macOS
           echo "Downloading MacOSX10.12 SDK.."
-          curl --progress-bar -L -o macOS_SDK10.12.4.tar.xz "https://cloudflare-ipfs.com/ipfs/QmdNLMCUCw8hBTqinkc7ke88WgRb7M2mWQbccQPDsyaub8?filename=macOS_SDK10.12.4.tar.xz" || exit 1
+          curl --progress-bar -L -o macOS_SDK10.12.4.tar.xz "https://data.moto9000.moe/vircadia_packages/macOS_SDK10.12.4.tar.xz" || exit 1
           echo "  done\n"
           echo "Extracting MacOSX10.12 SDK.."
           tar -xf macOS_SDK10.12.4.tar.xz || exit 1

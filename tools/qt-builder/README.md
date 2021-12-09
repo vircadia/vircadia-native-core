@@ -57,6 +57,7 @@ Install in C:\Jom and add directory to PATH.
 
 ### Linux
 1.  qt5 requirements
+
 On Ubuntu based systems you can just have apt install the dependencies for the qt5-default package:
 Edit /etc/apt/sources.list (edit as root) and uncomment all source repositories by replacing all `# deb-src` with `deb-src`.
 ```bash
@@ -85,13 +86,20 @@ Make sure that python 2.7.x is the system standard by checking if `python --vers
 Qt also provides a dependency list for some major Linux distributions here: https://wiki.qt.io/Building_Qt_5_from_Git#Linux.2FX11
 
 ### Mac
+1. macOS Catalina or macOS Mojave
+Newer and older macOS versions won't be able to run the Xcode version we need.
 1.  git >= 1.6
 Check if needed `git --version`
 Install from https://git-scm.com/download/mac
 Verify again
 1.  install pkg-config, dbug-glib, and fontconfig
 brew install fontconfig dbus-glib pkg-config
-
+1. install Xcode 10.x 
+https://xcodereleases.com
+We use Xcode 10.x as it comes with macOSXSDK10.14, which is the newest version usable with Interface which is built with macOSXSDK10.12 for work around severe OpenGL issues in newer SDKs.
+1. macOS may install an incompatible Xcode command line tools version. If you run into weird issues, you may need to delete your current command line tools and replace it with an older version. This happens on macOS Catalina.
+ `sudo rm -rf /Library/Developer/CommandLineTools`
+ Download Command Line Tools for Xcode 11.5 from https://developer.apple.com/download/more/ and install said Command Line Tools.
 
 ## Build Process
 
@@ -278,37 +286,73 @@ tar -Jcvf qt5-install-5.15.2-ubuntu-18.04-amd64.tar.xz qt5-install
 
 
 ### Mac
-
 #### Preparing source files
+```bash
 git clone --recursive git://code.qt.io/qt/qt5.git -b 5.15.2 --single-branch
+```
 
-*  If you are compiling with MacOSX11.1.SDK or greater, edit qt5/qtwebengine/src/3rdparty/chromium/build/mac/find_sdk.py line 91 and replace "MacOSX(10" with "MacOSX(11".
+Plain Qt 5.15.2 cannot actually be built on it's only supported configuration. To fix this, we will use QtWebEngine from Qt 5.15.7.
+```bash
+cd qt5/qtwebengine
+git pull git://code.qt.io/qt/qtwebengine.git 5.15.7
+```
+This doesn't seem to update the submodule, so we do that here.
+By standard this gets the newest version of qtwebengine-chromium. At time of writing this is `8c0a9b4459f5200a24ab9e687a3fb32e975382e5`.
+```bash
+git submodule update
+```
+
 
 #### Configuring
-`mkdir qt5-install`
-`mkdir qt5-build`
-`cd ../qt5-build`
+Note: If you run into any issues with Qt on macOS, take a look at what our friends at macports are doing. 
+- https://github.com/macports/macports-ports/tree/master/aqua/qt5/files
+- https://trac.macports.org/query?status=accepted&status=assigned&status=closed&status=new&status=reopened&port=~qt5&desc=1&order=id
 
-`../configure -force-debug-info -opensource -confirm-license -qt-zlib -qt-libjpeg -qt-libpng -qt-freetype -qt-pcre -qt-harfbuzz -nomake examples -nomake tests -skip qttranslations -skip qtserialport -skip qt3d -skip qtlocation -skip qtwayland -skip qtsensors -skip qtgamepad -skip qtcharts -skip qtx11extras -skip qtmacextras -skip qtvirtualkeyboard -skip qtpurchasing -skip qtdatavis3d -no-warnings-are-errors  -no-pch -prefix ../qt5-install`
+```bash
+cd ../.. 
+mkdir qt5-install
+mkdir qt5-build
+cd qt5-build
+```
+
+```bash
+../qt5/configure -force-debug-info -release -opensource -confirm-license -qt-zlib -qt-libjpeg -qt-libpng -qt-freetype -qt-pcre -qt-harfbuzz -recheck-all -nomake tests  -nomake examples -skip qttranslations -skip qtserialport -skip qt3d -skip qtlocation -skip qtwayland -skip qtsensors -skip qtgamepad -skip qtcharts -skip qtx11extras -skip qtmacextras -skip qtvirtualkeyboard -skip qtpurchasing -skip qtdatavis3d -skip qtlottie -skip qtquick3d -skip qtpim -skip qtdocgallery -no-warnings-are-errors  -no-pch -no-egl -no-icu -prefix ../qt5-install
+```
 
 #### Make
-`make`
-`make install`
+Important: Building Qt using multiple threads needs a lot of system memory in later stages of the process. You should have around 1.5GiB available per thread you intend to use.
+```bash
+NINJAFLAGS='-j4'  make -j4
+```
+
+The Qt documentation states that using more than one thread on the install step can cause problems on macOS.
+```bash
+make -j1 install 
+```
 
 #### Fixing
-1.  The *.prl* files have an absolute path that needs to be removed (see http://www.linuxfromscratch.org/blfs/view/stable-systemd/x/qtwebengine.html)
-`cd` to the `qt5-install directory`
+1.  Building with newer QtWebEngine will fail by standard. To fix this we need to change the relevant cmake files in `qt5-install`. (See https://www.qt.io/blog/building-qt-webengine-against-other-qt-versions and https://github.com/macports/macports-ports/pull/12595/files )
+- `cd` to the `qt5-install` directory.
+- Enter `bash` since zsh cannot run the following command.
+- `find . -name \Qt5WebEngine*Config.cmake -exec sed -i '' -e 's/5\.15\.7/5\.15\.2/g' {} \;`
+- `exit` bash to got back to zsh.
+- `cd ..`
+
+2.  The *.prl* files have an absolute path that needs to be removed (see http://www.linuxfromscratch.org/blfs/view/stable-systemd/x/qtwebengine.html)
+`cd` to the `qt5-install` directory
 `find . -name \*.prl -exec sed -i -e '/^QMAKE_PRL_BUILD_DIR/d' {} \;`
 `cd ..`
-1.   Note: you may have additional files in qt5-install/lib and qt5-install/lib/pkg/pkgconfig that have your local build absolute path included.  Optionally you can fix these as well, but it will not effect the build if left alone.
+3.   Note: you may have additional files in qt5-install/lib and qt5-install/lib/pkg/pkgconfig that have your local build absolute path included.  Optionally you can fix these as well, but it will not effect the build if left alone.
 
 Add a *qt.conf* file.
 1. Copy the file *qt5-build\qtbase\bin\qt.conf* to *qt5-install\bin*
 1. Edit the *qt.conf* file: replace all absolute URLs with relative URLs (beginning with .. or .)
 
 #### Uploading
-`tar -zcvf qt5-install-5.15.2-macos.tar.gz qt5-install`
-Upload qt5-install-5.15.2-macos.tar.gz to our Amazon S3 vircadia-public bucket, under the dependencies/vckpg directory
+```bash
+tar -Jcvf qt5-install-5.15.2-qtwebengine-5.15.7-macOSXSDK10.14-macos.tar.xz qt5-install
+```
+Upload qt5-install-5.15.2-qtwebengine-5.15.7-macOSXSDK10.14-macos.tar.xz to our Amazon S3 vircadia-public bucket, under the dependencies/vckpg directory
 
 #### Creating symbols (optional)
 Run `python3 prepare-mac-symbols-for-backtrace.py qt5-install` to scan the qt5-build directory for any dylibs and execute dsymutil to create dSYM bundles.  After running this command the backtrace directory will be created.  Zip this directory up, but make sure that all dylibs and dSYM fiels are in the root of the zip file, not under a sub-directory.  This file can then be uploaded to backtrace or other crash log handling tool.
