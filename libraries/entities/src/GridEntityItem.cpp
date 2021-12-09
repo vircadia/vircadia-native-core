@@ -14,7 +14,7 @@ const uint32_t GridEntityItem::DEFAULT_MAJOR_GRID_EVERY = 5;
 const float GridEntityItem::DEFAULT_MINOR_GRID_EVERY = 1.0f;
 
 EntityItemPointer GridEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    Pointer entity(new GridEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
+    Pointer entity(new GridEntityItem(entityID), [](GridEntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }

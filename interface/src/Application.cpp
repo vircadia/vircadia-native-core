@@ -1033,9 +1033,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _logger(new FileLogger(this)),
 #endif
     _previousSessionCrashed(setupEssentials(argc, argv, runningMarkerExisted)),
-    _entitySimulation(new PhysicalEntitySimulation()),
-    _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
-    _entityClipboard(new EntityTree()),
+    _entitySimulation(std::make_shared<PhysicalEntitySimulation>()),
+    _physicsEngine(std::make_shared<PhysicsEngine>(Vectors::ZERO)),
+    _entityClipboard(std::make_shared<EntityTree>()),
     _previousScriptLocation("LastScriptLocation", DESKTOP_LOCATION),
     _fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
     _hmdTabletScale("hmdTabletScale", DEFAULT_HMD_TABLET_SCALE_PERCENT),
@@ -4155,7 +4155,7 @@ std::map<QString, QString> Application::prepareServerlessDomainContents(QUrl dom
     nodeList->setPermissions(permissions);
 
     // FIXME: Lock the main tree and import directly into it.
-    EntityTreePointer tmpTree(new EntityTree());
+    EntityTreePointer tmpTree(std::make_shared<EntityTree>());
     tmpTree->setIsServerlessMode(true);
     tmpTree->createRootElement();
     auto myAvatar = getMyAvatar();

@@ -119,7 +119,7 @@ public:
     NodePermissionsPointer& operator[](const NodePermissionsKey& key) {
         NodePermissionsKey dataKey(key.first.toLower(), key.second);
         if (0 == _data.count(dataKey)) {
-            _data[dataKey] = NodePermissionsPointer(new NodePermissions(key));
+            _data[dataKey] = std::make_shared<NodePermissions>(key);
         }
         return _data[dataKey];
     }

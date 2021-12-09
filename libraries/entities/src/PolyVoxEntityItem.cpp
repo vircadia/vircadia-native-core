@@ -47,7 +47,7 @@ const QString PolyVoxEntityItem::DEFAULT_Y_TEXTURE_URL = QString("");
 const QString PolyVoxEntityItem::DEFAULT_Z_TEXTURE_URL = QString("");
 
 EntityItemPointer PolyVoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity(new PolyVoxEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
+    std::shared_ptr<PolyVoxEntityItem> entity(new PolyVoxEntityItem(entityID), [](PolyVoxEntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }

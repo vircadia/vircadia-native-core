@@ -30,7 +30,7 @@ public:
         static std::once_flag once;
         std::call_once(once, [&] {
 
-            CodecPluginPointer hiFiCodec(new HiFiCodec());
+            CodecPluginPointer hiFiCodec(std::make_shared<HiFiCodec>());
             if (hiFiCodec->isSupported()) {
                 _codecPlugins.push_back(hiFiCodec);
             }

@@ -13,7 +13,7 @@
 
 
 EntityDynamicPointer assignmentDynamicFactory(EntityDynamicType type, const QUuid& id, EntityItemPointer ownerEntity) {
-    return EntityDynamicPointer(new AssignmentDynamic(type, id, ownerEntity));
+    return std::make_shared<AssignmentDynamic>(type, id, ownerEntity);
 }
 
 EntityDynamicPointer AssignmentDynamicFactory::factory(EntityDynamicType type,

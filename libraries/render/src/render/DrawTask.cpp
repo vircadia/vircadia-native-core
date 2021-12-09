@@ -268,7 +268,7 @@ gpu::PipelinePointer DrawQuadVolume::getPipeline() {
 
     if (!pipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawColor);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
         state->setDepthTest(gpu::State::DepthTest(true, false));
         pipeline = gpu::Pipeline::create(program, state);
     }

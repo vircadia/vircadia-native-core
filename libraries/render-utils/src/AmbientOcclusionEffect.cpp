@@ -521,7 +521,7 @@ void AmbientOcclusionEffect::updateFramebufferSizes() {
 const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
     if (!_occlusionPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::ssao_makeOcclusion);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
 
         state->setColorWriteMask(true, true, true, true);
 
@@ -534,7 +534,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
 const gpu::PipelinePointer& AmbientOcclusionEffect::getBilateralBlurPipeline() {
     if (!_bilateralBlurPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::ssao_bilateralBlur);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
 
         state->setColorWriteMask(true, true, true, false);
         
@@ -554,7 +554,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getMipCreationPipeline() {
 const gpu::PipelinePointer& AmbientOcclusionEffect::getGatherPipeline() {
     if (!_gatherPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::ssao_gather);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
 
         state->setColorWriteMask(true, true, true, true);
 
@@ -567,7 +567,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getGatherPipeline() {
 const gpu::PipelinePointer& AmbientOcclusionEffect::getBuildNormalsPipeline() {
     if (!_buildNormalsPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::ssao_buildNormals);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
 
         state->setColorWriteMask(true, true, true, true);
 
@@ -847,7 +847,7 @@ void DebugAmbientOcclusion::configure(const Config& config) {
 const gpu::PipelinePointer& DebugAmbientOcclusion::getDebugPipeline() {
     if (!_debugPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::ssao_debugOcclusion);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
 
         state->setColorWriteMask(true, true, true, false);
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
