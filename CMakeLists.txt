@@ -350,18 +350,22 @@ GroupSources("unpublishedScripts")
 unset(JS_SRC)
 
 # Include Vircadia Web app files if cloned into a subdirectory.
-file(GLOB_RECURSE WEB_APP_SRC vircadia-web/*.*)
-list(FILTER WEB_APP_SRC EXCLUDE REGEX "vircadia-web/(dist|node_modules|public)/*" )
-add_custom_target(vircadia-web SOURCES ${WEB_APP_SRC})
-GroupSources("vircadia-web")
-unset(WEB_APP_SRC)
+if (IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/vircadia-web")
+    file(GLOB_RECURSE WEB_APP_SRC vircadia-web/*.*)
+    list(FILTER WEB_APP_SRC EXCLUDE REGEX "vircadia-web/(dist|node_modules|public)/*" )
+    add_custom_target(vircadia-web SOURCES ${WEB_APP_SRC})
+    GroupSources("vircadia-web")
+    unset(WEB_APP_SRC)
+endif()
 
 # Include Vircadia Web SDK files if cloned into a subdirectory.
-file(GLOB_RECURSE WEB_SDK_SRC vircadia-web-sdk/*.*)
-list(FILTER WEB_SDK_SRC EXCLUDE REGEX "vircadia-web-sdk/(dist|node_modules|public)/*" )
-add_custom_target(vircadia-web-sdk SOURCES ${WEB_SDK_SRC})
-GroupSources("vircadia-web-sdk")
-unset(WEB_SDK_SRC)
+if (IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/vircadia-web-sdk")
+    file(GLOB_RECURSE WEB_SDK_SRC vircadia-web-sdk/*.*)
+    list(FILTER WEB_SDK_SRC EXCLUDE REGEX "vircadia-web-sdk/(dist|node_modules|public)/*" )
+    add_custom_target(vircadia-web-sdk SOURCES ${WEB_SDK_SRC})
+    GroupSources("vircadia-web-sdk")
+    unset(WEB_SDK_SRC)
+endif()
 
 set_packaging_parameters()
 
