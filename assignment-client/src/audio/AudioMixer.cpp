@@ -76,11 +76,10 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     };
     pluginManager->setPluginFilter(codecPluginFilter);
 
-    auto codecPlugins = pluginManager->getCodecPlugins();
-    for_each(codecPlugins.cbegin(), codecPlugins.cend(),
-        [&](const CodecPluginPointer& codec) {
-            _availableCodecs[codec->getName()] = codec;
-        });
+    const auto& codecPlugins = pluginManager->getCodecPlugins();
+    for(const auto& codec : codecPlugins) {
+        _availableCodecs[codec->getName()] = codec;
+    }
 
     auto nodeList = DependencyManager::get<NodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();

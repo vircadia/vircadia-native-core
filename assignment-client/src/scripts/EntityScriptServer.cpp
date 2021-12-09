@@ -399,10 +399,10 @@ void EntityScriptServer::nodeKilled(SharedNodePointer killedNode) {
 void EntityScriptServer::negotiateAudioFormat() {
     auto nodeList = DependencyManager::get<NodeList>();
     auto negotiateFormatPacket = NLPacket::create(PacketType::NegotiateAudioFormat);
-    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    const auto& codecPlugins = PluginManager::getInstance()->getCodecPlugins();
     quint8 numberOfCodecs = (quint8)codecPlugins.size();
     negotiateFormatPacket->writePrimitive(numberOfCodecs);
-    for (auto& plugin : codecPlugins) {
+    for (const auto& plugin : codecPlugins) {
         auto codecName = plugin->getName();
         negotiateFormatPacket->writeString(codecName);
     }
@@ -433,8 +433,8 @@ void EntityScriptServer::selectAudioFormat(const QString& selectedCodecName) {
         _codec = nullptr;
     }
 
-    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
-    for (auto& plugin : codecPlugins) {
+    const auto& codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    for (const auto& plugin : codecPlugins) {
         if (_selectedCodecName == plugin->getName()) {
             _codec = plugin;
             _encoder = plugin->createEncoder(AudioConstants::SAMPLE_RATE, AudioConstants::MONO);
