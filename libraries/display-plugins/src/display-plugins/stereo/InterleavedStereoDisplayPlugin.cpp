@@ -19,7 +19,7 @@ void InterleavedStereoDisplayPlugin::customizeContext() {
     StereoDisplayPlugin::customizeContext();
     if (!_interleavedPresentPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::display_plugins::program::InterleavedSrgbToLinear);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
         state->setDepthTest(gpu::State::DepthTest(false));
         _interleavedPresentPipeline = gpu::Pipeline::create(program, state);
     }

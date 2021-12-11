@@ -581,11 +581,11 @@ NetworkMaterialResourcePointer MaterialCache::getMaterial(const QUrl& url) {
 }
 
 QSharedPointer<Resource> MaterialCache::createResource(const QUrl& url) {
-    return QSharedPointer<Resource>(new NetworkMaterialResource(url), &Resource::deleter);
+    return QSharedPointer<NetworkMaterialResource>(new NetworkMaterialResource(url), &Resource::deleter);
 }
 
 QSharedPointer<Resource> MaterialCache::createResourceCopy(const QSharedPointer<Resource>& resource) {
-    return QSharedPointer<Resource>(new NetworkMaterialResource(*resource.staticCast<NetworkMaterialResource>()), &Resource::deleter);
+    return QSharedPointer<NetworkMaterialResource>(new NetworkMaterialResource(*resource.staticCast<NetworkMaterialResource>()), &Resource::deleter);
 }
 
 NetworkMaterial::NetworkMaterial(const NetworkMaterial& m) :

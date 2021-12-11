@@ -85,7 +85,7 @@ void SetupZones::run(const RenderContextPointer& context, const Input& input) {
 const gpu::PipelinePointer& DebugZoneLighting::getKeyLightPipeline() {
     if (!_keyLightPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::zone_drawKeyLight);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
 
         PrepareStencil::testMask(*state);
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
@@ -97,7 +97,7 @@ const gpu::PipelinePointer& DebugZoneLighting::getKeyLightPipeline() {
 const gpu::PipelinePointer& DebugZoneLighting::getAmbientPipeline() {
     if (!_ambientPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::zone_drawAmbient);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
 
         PrepareStencil::testMask(*state);
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
@@ -108,7 +108,7 @@ const gpu::PipelinePointer& DebugZoneLighting::getAmbientPipeline() {
 const gpu::PipelinePointer& DebugZoneLighting::getBackgroundPipeline() {
     if (!_backgroundPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::zone_drawSkybox);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
 
         PrepareStencil::testMask(*state);
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);

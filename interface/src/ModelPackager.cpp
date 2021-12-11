@@ -89,12 +89,12 @@ bool ModelPackager::loadModel() {
         qCDebug(interfaceapp) << "Reading FST file";
         _mapping = FSTReader::readMapping(fst.readAll());
         fst.close();
-        
+
         _fbxInfo = QFileInfo(_modelFile.path() + "/" + _mapping.value(FILENAME_FIELD).toString());
     } else {
         _fbxInfo = QFileInfo(_modelFile.filePath());
     }
-    
+
     // open the fbx file
     QFile fbx(_fbxInfo.filePath());
     if (!_fbxInfo.exists() || !_fbxInfo.isFile() || !fbx.open(QIODevice::ReadOnly)) {
@@ -132,7 +132,7 @@ bool ModelPackager::editProperties() {
     QVariantHash joints = _mapping.value(JOINT_FIELD).toHash();
     if (!joints.contains("jointRoot")) {
         qWarning() << "root joint not configured for skeleton.";
-        
+
         QString message = "Your did not configure a root joint for your skeleton model.\n\nPackaging will be canceled.";
         QMessageBox msgBox;
         msgBox.setWindowTitle("Model Packager");
@@ -140,10 +140,10 @@ bool ModelPackager::editProperties() {
         msgBox.setStandardButtons(QMessageBox::Ok);
         msgBox.setIcon(QMessageBox::Warning);
         msgBox.exec();
-        
+
         return false;
     }
-    
+
     return true;
 }
 
@@ -151,7 +151,7 @@ bool ModelPackager::zipModel() {
     QTemporaryDir dir;
     dir.setAutoRemove(true);
     QDir tempDir(dir.path());
-    
+
     QByteArray nameField = _mapping.value(NAME_FIELD).toByteArray();
     tempDir.mkpath(nameField + "/textures");
     tempDir.mkpath(nameField + "/scripts");
@@ -179,11 +179,11 @@ bool ModelPackager::zipModel() {
         auto list = wdir.entryList(QDir::NoDotAndDotDot | QDir::AllEntries);
         for (auto script : list) {
             auto sc = tempDir.relativeFilePath(scriptDir.path()) + "/" + QUrl(script).fileName();
-            _mapping.insertMulti(SCRIPT_FIELD, sc);
+            _mapping.insert(SCRIPT_FIELD, sc);
         }
         copyDirectoryContent(wdir, scriptDir);
-    } 
-    
+    }
+
     // Copy LODs
     QVariantHash lodField = _mapping.value(LOD_FIELD).toHash();
     if (!lodField.empty()) {
@@ -196,16 +196,16 @@ bool ModelPackager::zipModel() {
             }
         }
     }
-    
+
     // Copy FBX
     QFile fbx(_fbxInfo.filePath());
     QByteArray filenameField = _mapping.value(FILENAME_FIELD).toByteArray();
     QString newPath = fbxDir.path() + "/" + QFileInfo(filenameField).fileName();
     fbx.copy(newPath);
-    
+
     // Correct FST
-    _mapping[FILENAME_FIELD] = tempDir.relativeFilePath(newPath);
-    _mapping[TEXDIR_FIELD] = tempDir.relativeFilePath(texDir.path());
+    _mapping.replace(FILENAME_FIELD, tempDir.relativeFilePath(newPath));
+    _mapping.replace(TEXDIR_FIELD, tempDir.relativeFilePath(texDir.path()));
 
     for (auto multi : _mapping.values(SCRIPT_FIELD)) {
         multi.fromValue(tempDir.relativeFilePath(scriptDir.path()) + multi.toString());
@@ -219,15 +219,15 @@ bool ModelPackager::zipModel() {
         qCDebug(interfaceapp) << "Couldn't write FST file" << fst.fileName();
         return false;
     }
-    
-    
+
+
     QString saveDirPath = QFileDialog::getExistingDirectory(nullptr, "Save Model",
                                                         "", QFileDialog::ShowDirsOnly);
     if (saveDirPath.isEmpty()) {
         qCDebug(interfaceapp) << "Invalid directory" << saveDirPath;
         return false;
     }
-    
+
     QDir saveDir(saveDirPath);
     copyDirectoryContent(tempDir, saveDir);
     return true;
@@ -243,11 +243,11 @@ void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename
                              hfmModel.blendshapeChannelNames.contains("Blink_Left") &&
                              hfmModel.blendshapeChannelNames.contains("Blink_Right") &&
                              hfmModel.blendshapeChannelNames.contains("Squint_Right"));
-    
+
     if (!mapping.contains(NAME_FIELD)) {
         mapping.insert(NAME_FIELD, QFileInfo(filename).baseName());
     }
-    
+
     if (!mapping.contains(FILENAME_FIELD)) {
         QDir root(_modelFile.path());
         mapping.insert(FILENAME_FIELD, root.relativeFilePath(filename));
@@ -274,7 +274,7 @@ void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename
     if (!joints.contains("jointNeck")) {
         joints.insert("jointNeck", hfmModel.jointIndices.contains("jointNeck") ? "jointNeck" : "Neck");
     }
-    
+
     if (!joints.contains("jointRoot")) {
         joints.insert("jointRoot", "Hips");
     }
@@ -287,68 +287,68 @@ void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename
     if (!joints.contains("jointRightHand")) {
         joints.insert("jointRightHand", "RightHand");
     }
-    
+
     if (!joints.contains("jointHead")) {
         const char* topName = likelyMixamoFile ? "HeadTop_End" : "HeadEnd";
         joints.insert("jointHead", hfmModel.jointIndices.contains(topName) ? topName : "Head");
     }
 
     mapping.insert(JOINT_FIELD, joints);
-    
+
     // If there are no blendshape mappings, and we detect that this is likely a mixamo file,
     // then we can add the default mixamo to blendshape mappings.
     if (!mapping.contains(BLENDSHAPE_FIELD) && likelyMixamoFile) {
         QVariantHash blendshapes;
-        blendshapes.insertMulti("BrowsD_L", QVariantList() << "BrowsDown_Left" << 1.0);
-        blendshapes.insertMulti("BrowsD_R", QVariantList() << "BrowsDown_Right" << 1.0);
-        blendshapes.insertMulti("BrowsU_C", QVariantList() << "BrowsUp_Left" << 1.0);
-        blendshapes.insertMulti("BrowsU_C", QVariantList() << "BrowsUp_Right" << 1.0);
-        blendshapes.insertMulti("BrowsU_L", QVariantList() << "BrowsUp_Left" << 1.0);
-        blendshapes.insertMulti("BrowsU_R", QVariantList() << "BrowsUp_Right" << 1.0);
-        blendshapes.insertMulti("ChinLowerRaise", QVariantList() << "Jaw_Up" << 1.0);
-        blendshapes.insertMulti("ChinUpperRaise", QVariantList() << "UpperLipUp_Left" << 0.5);
-        blendshapes.insertMulti("ChinUpperRaise", QVariantList() << "UpperLipUp_Right" << 0.5);
-        blendshapes.insertMulti("EyeBlink_L", QVariantList() << "Blink_Left" << 1.0);
-        blendshapes.insertMulti("EyeBlink_R", QVariantList() << "Blink_Right" << 1.0);
-        blendshapes.insertMulti("EyeOpen_L", QVariantList() << "EyesWide_Left" << 1.0);
-        blendshapes.insertMulti("EyeOpen_R", QVariantList() << "EyesWide_Right" << 1.0);
-        blendshapes.insertMulti("EyeSquint_L", QVariantList() << "Squint_Left" << 1.0);
-        blendshapes.insertMulti("EyeSquint_R", QVariantList() << "Squint_Right" << 1.0);
-        blendshapes.insertMulti("JawFwd", QVariantList() << "JawForeward" << 1.0);
-        blendshapes.insertMulti("JawLeft", QVariantList() << "JawRotateY_Left" << 0.5);
-        blendshapes.insertMulti("JawOpen", QVariantList() << "MouthOpen" << 0.7);
-        blendshapes.insertMulti("JawRight", QVariantList() << "Jaw_Right" << 1.0);
-        blendshapes.insertMulti("LipsFunnel", QVariantList() << "JawForeward" << 0.39);
-        blendshapes.insertMulti("LipsFunnel", QVariantList() << "Jaw_Down" << 0.36);
-        blendshapes.insertMulti("LipsFunnel", QVariantList() << "MouthNarrow_Left" << 1.0);
-        blendshapes.insertMulti("LipsFunnel", QVariantList() << "MouthNarrow_Right" << 1.0);
-        blendshapes.insertMulti("LipsFunnel", QVariantList() << "MouthWhistle_NarrowAdjust_Left" << 0.5);
-        blendshapes.insertMulti("LipsFunnel", QVariantList() << "MouthWhistle_NarrowAdjust_Right" << 0.5);
-        blendshapes.insertMulti("LipsFunnel", QVariantList() << "TongueUp" << 1.0);
-        blendshapes.insertMulti("LipsLowerClose", QVariantList() << "LowerLipIn" << 1.0);
-        blendshapes.insertMulti("LipsLowerDown", QVariantList() << "LowerLipDown_Left" << 0.7);
-        blendshapes.insertMulti("LipsLowerDown", QVariantList() << "LowerLipDown_Right" << 0.7);
-        blendshapes.insertMulti("LipsLowerOpen", QVariantList() << "LowerLipOut" << 1.0);
-        blendshapes.insertMulti("LipsPucker", QVariantList() << "MouthNarrow_Left" << 1.0);
-        blendshapes.insertMulti("LipsPucker", QVariantList() << "MouthNarrow_Right" << 1.0);
-        blendshapes.insertMulti("LipsUpperClose", QVariantList() << "UpperLipIn" << 1.0);
-        blendshapes.insertMulti("LipsUpperOpen", QVariantList() << "UpperLipOut" << 1.0);
-        blendshapes.insertMulti("LipsUpperUp", QVariantList() << "UpperLipUp_Left" << 0.7);
-        blendshapes.insertMulti("LipsUpperUp", QVariantList() << "UpperLipUp_Right" << 0.7);
-        blendshapes.insertMulti("MouthDimple_L", QVariantList() << "Smile_Left" << 0.25);
-        blendshapes.insertMulti("MouthDimple_R", QVariantList() << "Smile_Right" << 0.25);
-        blendshapes.insertMulti("MouthFrown_L", QVariantList() << "Frown_Left" << 1.0);
-        blendshapes.insertMulti("MouthFrown_R", QVariantList() << "Frown_Right" << 1.0);
-        blendshapes.insertMulti("MouthLeft", QVariantList() << "Midmouth_Left" << 1.0);
-        blendshapes.insertMulti("MouthRight", QVariantList() << "Midmouth_Right" << 1.0);
-        blendshapes.insertMulti("MouthSmile_L", QVariantList() << "Smile_Left" << 1.0);
-        blendshapes.insertMulti("MouthSmile_R", QVariantList() << "Smile_Right" << 1.0);
-        blendshapes.insertMulti("Puff", QVariantList() << "CheekPuff_Left" << 1.0);
-        blendshapes.insertMulti("Puff", QVariantList() << "CheekPuff_Right" << 1.0);
-        blendshapes.insertMulti("Sneer", QVariantList() << "NoseScrunch_Left" << 0.75);
-        blendshapes.insertMulti("Sneer", QVariantList() << "NoseScrunch_Right" << 0.75);
-        blendshapes.insertMulti("Sneer", QVariantList() << "Squint_Left" << 0.5);
-        blendshapes.insertMulti("Sneer", QVariantList() << "Squint_Right" << 0.5);
+        blendshapes.insert("BrowsD_L", QVariantList() << "BrowsDown_Left" << 1.0);
+        blendshapes.insert("BrowsD_R", QVariantList() << "BrowsDown_Right" << 1.0);
+        blendshapes.insert("BrowsU_C", QVariantList() << "BrowsUp_Left" << 1.0);
+        blendshapes.insert("BrowsU_C", QVariantList() << "BrowsUp_Right" << 1.0);
+        blendshapes.insert("BrowsU_L", QVariantList() << "BrowsUp_Left" << 1.0);
+        blendshapes.insert("BrowsU_R", QVariantList() << "BrowsUp_Right" << 1.0);
+        blendshapes.insert("ChinLowerRaise", QVariantList() << "Jaw_Up" << 1.0);
+        blendshapes.insert("ChinUpperRaise", QVariantList() << "UpperLipUp_Left" << 0.5);
+        blendshapes.insert("ChinUpperRaise", QVariantList() << "UpperLipUp_Right" << 0.5);
+        blendshapes.insert("EyeBlink_L", QVariantList() << "Blink_Left" << 1.0);
+        blendshapes.insert("EyeBlink_R", QVariantList() << "Blink_Right" << 1.0);
+        blendshapes.insert("EyeOpen_L", QVariantList() << "EyesWide_Left" << 1.0);
+        blendshapes.insert("EyeOpen_R", QVariantList() << "EyesWide_Right" << 1.0);
+        blendshapes.insert("EyeSquint_L", QVariantList() << "Squint_Left" << 1.0);
+        blendshapes.insert("EyeSquint_R", QVariantList() << "Squint_Right" << 1.0);
+        blendshapes.insert("JawFwd", QVariantList() << "JawForeward" << 1.0);
+        blendshapes.insert("JawLeft", QVariantList() << "JawRotateY_Left" << 0.5);
+        blendshapes.insert("JawOpen", QVariantList() << "MouthOpen" << 0.7);
+        blendshapes.insert("JawRight", QVariantList() << "Jaw_Right" << 1.0);
+        blendshapes.insert("LipsFunnel", QVariantList() << "JawForeward" << 0.39);
+        blendshapes.insert("LipsFunnel", QVariantList() << "Jaw_Down" << 0.36);
+        blendshapes.insert("LipsFunnel", QVariantList() << "MouthNarrow_Left" << 1.0);
+        blendshapes.insert("LipsFunnel", QVariantList() << "MouthNarrow_Right" << 1.0);
+        blendshapes.insert("LipsFunnel", QVariantList() << "MouthWhistle_NarrowAdjust_Left" << 0.5);
+        blendshapes.insert("LipsFunnel", QVariantList() << "MouthWhistle_NarrowAdjust_Right" << 0.5);
+        blendshapes.insert("LipsFunnel", QVariantList() << "TongueUp" << 1.0);
+        blendshapes.insert("LipsLowerClose", QVariantList() << "LowerLipIn" << 1.0);
+        blendshapes.insert("LipsLowerDown", QVariantList() << "LowerLipDown_Left" << 0.7);
+        blendshapes.insert("LipsLowerDown", QVariantList() << "LowerLipDown_Right" << 0.7);
+        blendshapes.insert("LipsLowerOpen", QVariantList() << "LowerLipOut" << 1.0);
+        blendshapes.insert("LipsPucker", QVariantList() << "MouthNarrow_Left" << 1.0);
+        blendshapes.insert("LipsPucker", QVariantList() << "MouthNarrow_Right" << 1.0);
+        blendshapes.insert("LipsUpperClose", QVariantList() << "UpperLipIn" << 1.0);
+        blendshapes.insert("LipsUpperOpen", QVariantList() << "UpperLipOut" << 1.0);
+        blendshapes.insert("LipsUpperUp", QVariantList() << "UpperLipUp_Left" << 0.7);
+        blendshapes.insert("LipsUpperUp", QVariantList() << "UpperLipUp_Right" << 0.7);
+        blendshapes.insert("MouthDimple_L", QVariantList() << "Smile_Left" << 0.25);
+        blendshapes.insert("MouthDimple_R", QVariantList() << "Smile_Right" << 0.25);
+        blendshapes.insert("MouthFrown_L", QVariantList() << "Frown_Left" << 1.0);
+        blendshapes.insert("MouthFrown_R", QVariantList() << "Frown_Right" << 1.0);
+        blendshapes.insert("MouthLeft", QVariantList() << "Midmouth_Left" << 1.0);
+        blendshapes.insert("MouthRight", QVariantList() << "Midmouth_Right" << 1.0);
+        blendshapes.insert("MouthSmile_L", QVariantList() << "Smile_Left" << 1.0);
+        blendshapes.insert("MouthSmile_R", QVariantList() << "Smile_Right" << 1.0);
+        blendshapes.insert("Puff", QVariantList() << "CheekPuff_Left" << 1.0);
+        blendshapes.insert("Puff", QVariantList() << "CheekPuff_Right" << 1.0);
+        blendshapes.insert("Sneer", QVariantList() << "NoseScrunch_Left" << 0.75);
+        blendshapes.insert("Sneer", QVariantList() << "NoseScrunch_Right" << 0.75);
+        blendshapes.insert("Sneer", QVariantList() << "Squint_Left" << 0.5);
+        blendshapes.insert("Sneer", QVariantList() << "Squint_Right" << 0.5);
         mapping.insert(BLENDSHAPE_FIELD, blendshapes);
     }
 }
@@ -362,7 +362,7 @@ void ModelPackager::listTextures() {
         }
         if (!mat.normalTexture.filename.isEmpty() && mat.normalTexture.content.isEmpty() &&
             !_textures.contains(mat.normalTexture.filename)) {
-                
+
             _textures << mat.normalTexture.filename;
         }
         if (!mat.specularTexture.filename.isEmpty() && mat.specularTexture.content.isEmpty() &&
@@ -387,7 +387,7 @@ bool ModelPackager::copyTextures(const QString& oldDir, const QDir& newDir) {
             QString dirPath = newDir.relativeFilePath(QFileInfo(newPath).path());
             newDir.mkpath(dirPath);
         }
-        
+
         QFile texFile(oldPath);
         if (texFile.exists() && texFile.open(QIODevice::ReadOnly)) {
             // Check if texture needs to be recoded
@@ -402,7 +402,7 @@ bool ModelPackager::copyTextures(const QString& oldDir, const QDir& newDir) {
                 image = image.scaled(MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE, Qt::KeepAspectRatio);
                 mustRecode = true;
             }
-            
+
             // Copy texture
             if (mustRecode) {
                 QFile newTexFile(newPath);
@@ -415,14 +415,14 @@ bool ModelPackager::copyTextures(const QString& oldDir, const QDir& newDir) {
             errors += QString("\n%1").arg(oldPath);
         }
     }
-    
+
     if (!errors.isEmpty()) {
         OffscreenUi::asyncWarning(nullptr, "ModelPackager::copyTextures()",
                              "Missing textures:" + errors);
         qCDebug(interfaceapp) << "ModelPackager::copyTextures():" << errors;
         return false;
     }
-    
+
     return true;
 }
 

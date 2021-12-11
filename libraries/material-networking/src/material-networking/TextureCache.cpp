@@ -366,11 +366,11 @@ gpu::TexturePointer TextureCache::getImageTexture(const QString& path, image::Te
 }
 
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url) {
-    return QSharedPointer<Resource>(new NetworkTexture(url), &Resource::deleter);
+    return QSharedPointer<NetworkTexture>(new NetworkTexture(url), &Resource::deleter);
 }
 
 QSharedPointer<Resource> TextureCache::createResourceCopy(const QSharedPointer<Resource>& resource) {
-    return QSharedPointer<Resource>(new NetworkTexture(*resource.staticCast<NetworkTexture>()), &Resource::deleter);
+    return QSharedPointer<NetworkTexture>(new NetworkTexture(*resource.staticCast<NetworkTexture>()), &Resource::deleter);
 }
 
 int networkTexturePointerMetaTypeId = qRegisterMetaType<QWeakPointer<NetworkTexture>>();
@@ -1390,7 +1390,7 @@ NetworkTexturePointer TextureCache::getTextureByUUID(const QString& uuid) {
     if (!quuid.isNull()) {
         // We mark this as a resource texture because it's just a reference to another texture.  The source
         // texture will be marked properly
-        NetworkTexturePointer toReturn = NetworkTexturePointer(new NetworkTexture(uuid, true));
+        NetworkTexturePointer toReturn = NetworkTexturePointer::create(uuid, true);
         toReturn->setImageOperator(Texture::getTextureForUUIDOperator(uuid));
         return toReturn;
     }

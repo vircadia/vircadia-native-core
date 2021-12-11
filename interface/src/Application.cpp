@@ -992,9 +992,9 @@ Application::Application(
     _logger(new FileLogger(this)),
 #endif
     _previousSessionCrashed(setupEssentials(argc, argv, parser, runningMarkerExisted)),
-    _entitySimulation(new PhysicalEntitySimulation()),
-    _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
-    _entityClipboard(new EntityTree()),
+    _entitySimulation(std::make_shared<PhysicalEntitySimulation>()),
+    _physicsEngine(std::make_shared<PhysicsEngine>(Vectors::ZERO)),
+    _entityClipboard(std::make_shared<EntityTree>()),
     _previousScriptLocation("LastScriptLocation", DESKTOP_LOCATION),
     _fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
     _hmdTabletScale("hmdTabletScale", DEFAULT_HMD_TABLET_SCALE_PERCENT),
@@ -2662,21 +2662,21 @@ QString Application::getUserAgent() {
     auto formatPluginName = [](QString name) -> QString { return name.trimmed().replace(" ", "-");  };
 
     // For each plugin, add to userAgent
-    auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
-    for (auto& dp : displayPlugins) {
+    const auto& displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
+    for (const auto& dp : displayPlugins) {
         if (dp->isActive() && dp->isHmd()) {
             userAgent += " " + formatPluginName(dp->getName());
         }
     }
-    auto inputPlugins= PluginManager::getInstance()->getInputPlugins();
-    for (auto& ip : inputPlugins) {
+    const auto& inputPlugins = PluginManager::getInstance()->getInputPlugins();
+    for (const auto& ip : inputPlugins) {
         if (ip->isActive()) {
             userAgent += " " + formatPluginName(ip->getName());
         }
     }
     // for codecs, we include all of them, even if not active
-    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
-    for (auto& cp : codecPlugins) {
+    const auto& codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    for (const auto& cp : codecPlugins) {
         userAgent += " " + formatPluginName(cp->getName());
     }
 
@@ -2743,7 +2743,7 @@ void Application::onAboutToQuit() {
         _firstRun.set(false);
     }
 
-    foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
+    for(const auto& inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
         if (inputPlugin->isActive()) {
             inputPlugin->deactivate();
         }
@@ -3125,14 +3125,14 @@ void Application::initializeGL() {
 }
 
 void Application::initializeDisplayPlugins() {
-    auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
+    const auto& displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
     Setting::Handle<QString> activeDisplayPluginSetting{ ACTIVE_DISPLAY_PLUGIN_SETTING_NAME, displayPlugins.at(0)->getName() };
     auto lastActiveDisplayPluginName = activeDisplayPluginSetting.get();
 
     auto defaultDisplayPlugin = displayPlugins.at(0);
     // Once time initialization code
     DisplayPluginPointer targetDisplayPlugin;
-    foreach(auto displayPlugin, displayPlugins) {
+    for(const auto& displayPlugin : displayPlugins) {
         displayPlugin->setContext(_graphicsEngine.getGPUContext());
         if (displayPlugin->getName() == lastActiveDisplayPluginName) {
             targetDisplayPlugin = displayPlugin;
@@ -3382,7 +3382,7 @@ void Application::initializeUi() {
 
     // This will set up the input plugins UI
     _activeInputPlugins.clear();
-    foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
+    for(const auto& inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
         if (KeyboardMouseDevice::NAME == inputPlugin->getName()) {
             _keyboardMouseDevice = std::dynamic_pointer_cast<KeyboardMouseDevice>(inputPlugin);
         }
@@ -3432,7 +3432,7 @@ void Application::initializeUi() {
 #if !defined(DISABLE_QML)
     // Now that the menu is instantiated, ensure the display plugin menu is properly updated
     {
-        auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
+        DisplayPluginList displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
         // first sort the plugins into groupings: standard, advanced, developer
         std::stable_sort(displayPlugins.begin(), displayPlugins.end(),
             [](const DisplayPluginPointer& a, const DisplayPluginPointer& b) -> bool { return a->getGrouping() < b->getGrouping(); });
@@ -4116,7 +4116,7 @@ std::map<QString, QString> Application::prepareServerlessDomainContents(QUrl dom
     nodeList->setPermissions(permissions);
 
     // FIXME: Lock the main tree and import directly into it.
-    EntityTreePointer tmpTree(new EntityTree());
+    EntityTreePointer tmpTree(std::make_shared<EntityTree>());
     tmpTree->setIsServerlessMode(true);
     tmpTree->createRootElement();
     auto myAvatar = getMyAvatar();
@@ -4451,7 +4451,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_7:
                 if (isControlOrCommand || isOption) {
                     unsigned int index = static_cast<unsigned int>(event->key() - Qt::Key_1);
-                    auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
+                    const auto& displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
                     if (index < displayPlugins.size()) {
                         auto targetPlugin = displayPlugins.at(index);
                         QString targetName = targetPlugin->getName();
@@ -4506,7 +4506,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_7:
                 if (isControlOrCommand || isOption) {
                     unsigned int index = static_cast<unsigned int>(event->key() - Qt::Key_1);
-                    auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
+                    const auto& displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
                     if (index < displayPlugins.size()) {
                         auto targetPlugin = displayPlugins.at(index);
                         QString targetName = targetPlugin->getName();
@@ -4679,8 +4679,8 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 }
 
 void Application::focusOutEvent(QFocusEvent* event) {
-    auto inputPlugins = PluginManager::getInstance()->getInputPlugins();
-    foreach(auto inputPlugin, inputPlugins) {
+    const auto& inputPlugins = PluginManager::getInstance()->getInputPlugins();
+    for(const auto& inputPlugin : inputPlugins) {
         if (inputPlugin->isActive()) {
             inputPlugin->pluginFocusOutEvent();
         }
@@ -5367,8 +5367,8 @@ void Application::idle() {
         PerformanceTimer perfTimer("pluginIdle");
         PerformanceWarning warn(showWarnings, "Application::idle()... pluginIdle()");
         getActiveDisplayPlugin()->idle();
-        auto inputPlugins = PluginManager::getInstance()->getInputPlugins();
-        foreach(auto inputPlugin, inputPlugins) {
+        const auto& inputPlugins = PluginManager::getInstance()->getInputPlugins();
+        for(const auto& inputPlugin : inputPlugins) {
             if (inputPlugin->isActive()) {
                 inputPlugin->idle();
             }
@@ -5511,8 +5511,8 @@ void Application::loadSettings(const QCommandLineParser& parser) {
 
     bool isFirstPerson = false;
     if (parser.isSet("no-launcher")) {
-        auto displayPlugins = pluginManager->getDisplayPlugins();
-        for (auto& plugin : displayPlugins) {
+        const auto& displayPlugins = pluginManager->getDisplayPlugins();
+        for (const auto& plugin : displayPlugins) {
             if (!plugin->isHmd()) {
                 if (auto action = menu->getActionForOption(plugin->getName())) {
                     action->setChecked(true);
@@ -5526,8 +5526,8 @@ void Application::loadSettings(const QCommandLineParser& parser) {
         if (_firstRun.get()) {
             // If this is our first run, and no preferred devices were set, default to
             // an HMD device if available.
-            auto displayPlugins = pluginManager->getDisplayPlugins();
-            for (auto& plugin : displayPlugins) {
+            const auto& displayPlugins = pluginManager->getDisplayPlugins();
+            for (const auto& plugin : displayPlugins) {
                 if (plugin->isHmd()) {
                     if (auto action = menu->getActionForOption(plugin->getName())) {
                         action->setChecked(true);
@@ -5564,8 +5564,8 @@ void Application::loadSettings(const QCommandLineParser& parser) {
     _myCamera.setMode((isFirstPerson) ? CAMERA_MODE_FIRST_PERSON_LOOK_AT : CAMERA_MODE_LOOK_AT);
     cameraMenuChanged();
 
-    auto inputs = pluginManager->getInputPlugins();
-    for (auto plugin : inputs) {
+    const auto& inputs = pluginManager->getInputPlugins();
+    for (const auto& plugin : inputs) {
         if (!plugin->isActive()) {
             plugin->activate();
         }
@@ -6387,7 +6387,7 @@ void Application::update(float deltaTime) {
         };
 
         InputPluginPointer keyboardMousePlugin;
-        for (auto inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
+        for(const auto& inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
             if (inputPlugin->getName() == KeyboardMouseDevice::NAME) {
                 keyboardMousePlugin = inputPlugin;
             } else if (inputPlugin->isActive()) {
@@ -8979,14 +8979,14 @@ void Application::updateDisplayMode() {
     }
 
     // Once time initialization code that depends on the UI being available
-    auto displayPlugins = getDisplayPlugins();
+    const auto& displayPlugins = getDisplayPlugins();
 
     // Default to the first item on the list, in case none of the menu items match
 
     DisplayPluginPointer newDisplayPlugin = displayPlugins.at(0);
     auto menu = getPrimaryMenu();
     if (menu) {
-        foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
+        for (const auto& displayPlugin : PluginManager::getInstance()->getDisplayPlugins()) {
             QString name = displayPlugin->getName();
             QAction* action = menu->getActionForOption(name);
             // Menu might have been removed if the display plugin lost
@@ -9039,7 +9039,7 @@ void Application::setDisplayPlugin(DisplayPluginPointer newDisplayPlugin) {
         bool active = newDisplayPlugin->activate();
 
         if (!active) {
-            auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
+            const DisplayPluginList& displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
 
             // If the new plugin fails to activate, fallback to last display
             qWarning() << "Failed to activate display: " << newDisplayPlugin->getName();
@@ -9380,7 +9380,7 @@ void Application::unresponsiveApplication() {
 
 void Application::setActiveDisplayPlugin(const QString& pluginName) {
     DisplayPluginPointer newDisplayPlugin;
-    for (DisplayPluginPointer displayPlugin : PluginManager::getInstance()->getDisplayPlugins()) {
+    for (const DisplayPluginPointer& displayPlugin : PluginManager::getInstance()->getDisplayPlugins()) {
         QString name = displayPlugin->getName();
         if (pluginName == name) {
             newDisplayPlugin = displayPlugin;

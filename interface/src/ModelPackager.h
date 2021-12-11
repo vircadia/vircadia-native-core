@@ -15,7 +15,7 @@
 #include <memory>
 
 #include <QFileInfo>
-#include <QVariantHash>
+#include <QMultiHash>
 
 #include "ui/ModelsBrowser.h"
 
@@ -44,7 +44,7 @@ private:
     QString _texDir;
     QString _scriptDir;
 
-    QVariantHash _mapping;
+    QMultiHash<QString, QVariant> _mapping;
     std::shared_ptr<hfm::Model> _hfmModel;
     QStringList _textures;
     QStringList _scripts;

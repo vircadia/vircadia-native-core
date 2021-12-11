@@ -82,7 +82,7 @@ TabletButtonProxy* TabletButtonListModel::addButton(const QVariant& properties) 
         newProperties[BUTTON_SORT_ORDER_KEY] = DEFAULT_BUTTON_SORT_ORDER;
     }
     int index = computeNewButtonIndex(newProperties);
-    auto button = QSharedPointer<TabletButtonProxy>(new TabletButtonProxy(newProperties));
+    auto button = QSharedPointer<TabletButtonProxy>::create(newProperties);
     beginResetModel();
     int numButtons = (int)_buttons.size();
     if (index < numButtons) {

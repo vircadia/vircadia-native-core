@@ -347,7 +347,7 @@ Size Context::getTextureResourcePopulatedGPUMemSize() {
 
 PipelinePointer Context::createMipGenerationPipeline(const ShaderPointer& ps) {
     auto vs = gpu::Shader::createVertex(shader::gpu::vertex::DrawViewportQuadTransformTexcoord);
-	static gpu::StatePointer state(new gpu::State());
+	static gpu::StatePointer state(std::make_shared<gpu::State>());
 
 	gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
