@@ -741,6 +741,7 @@ template <typename Callback, typename ChallengeCallback>
 void orderCertificate(Callback callback, ChallengeCallback challengeCallback, AcmeClient client, std::vector<std::string> domains) {
     if (domains.empty()) {
         callback(std::move(client), AcmeException("There must be at least one domain name in a certificate"));
+        return;
     }
 
     // Create the order
