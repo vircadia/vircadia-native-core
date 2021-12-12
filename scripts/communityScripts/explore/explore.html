@@ -326,7 +326,7 @@
                     if (placesData[i].domain.active && placesData[i].visibility == "open" && new Date(placesData[i].last_activity_update) > activeThresholdTime) {
                         joinedData.push({
                             "index": joinedData.length,
-                            "location": placesData[i].address,
+                            "location": placesData[i].name,
                             "name": placesData[i].name,
                             "owner": placesData[i].managers[0],
                             "userCount": placesData[i].current_attendance,
