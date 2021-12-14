@@ -29,7 +29,7 @@ QStringList InputConfiguration::inputPlugins() {
     }
 
     QStringList inputPlugins;
-    for (auto plugin : PluginManager::getInstance()->getInputPlugins()) {
+    for (const auto& plugin : PluginManager::getInstance()->getInputPlugins()) {
         QString pluginName = plugin->getName();
         if (pluginName == QString("OpenVR")) {
             QString headsetName = plugin->getDeviceName();
@@ -51,7 +51,7 @@ QStringList InputConfiguration::activeInputPlugins() {
     }
 
     QStringList activePlugins;
-    for (auto plugin : PluginManager::getInstance()->getInputPlugins()) {
+    for (const auto& plugin : PluginManager::getInstance()->getInputPlugins()) {
         if (plugin->configurable()) {
             QString pluginName = plugin->getName();
             if (pluginName == QString("OpenVR")) {
@@ -75,7 +75,7 @@ QString InputConfiguration::configurationLayout(QString pluginName) {
     }
 
     QString sourcePath;
-    for (auto plugin : PluginManager::getInstance()->getInputPlugins()) {
+    for (const auto& plugin : PluginManager::getInstance()->getInputPlugins()) {
         if (plugin->getName() == pluginName || plugin->getDeviceName() == pluginName) {
             return plugin->configurationLayout();
         }
@@ -91,7 +91,7 @@ void InputConfiguration::setConfigurationSettings(QJsonObject configurationSetti
         return;
     }
 
-    for (auto plugin : PluginManager::getInstance()->getInputPlugins()) {
+    for (const auto& plugin : PluginManager::getInstance()->getInputPlugins()) {
         if (plugin->getName() == pluginName) {
             plugin->setConfigurationSettings(configurationSettings);
         }
@@ -107,7 +107,7 @@ QJsonObject InputConfiguration::configurationSettings(QString pluginName) {
         return result;
     }
 
-    for (auto plugin : PluginManager::getInstance()->getInputPlugins()) {
+    for (const auto& plugin : PluginManager::getInstance()->getInputPlugins()) {
         if (plugin->getName() == pluginName) {
             return plugin->configurationSettings();
         }
@@ -121,7 +121,7 @@ void InputConfiguration::calibratePlugin(QString pluginName) {
         return;
     }
 
-    for (auto plugin : PluginManager::getInstance()->getInputPlugins()) {
+    for (const auto& plugin : PluginManager::getInstance()->getInputPlugins()) {
         if (plugin->getName() == pluginName) {
             plugin->calibrate();
         }
@@ -137,7 +137,7 @@ bool InputConfiguration::uncalibratePlugin(QString pluginName) {
         return result;
     }
 
-    for (auto plugin : PluginManager::getInstance()->getInputPlugins()) {
+    for (const auto& plugin : PluginManager::getInstance()->getInputPlugins()) {
         if (plugin->getName() == pluginName) {
             return plugin->uncalibrate();
         }

@@ -94,7 +94,7 @@ std::unique_ptr<OctreeQueryNode> EntityServer::createOctreeQueryNode() {
 }
 
 OctreePointer EntityServer::createTree() {
-    EntityTreePointer tree = EntityTreePointer(new EntityTree(true));
+    EntityTreePointer tree = std::make_shared<EntityTree>(true);
     tree->createRootElement();
     tree->addNewlyCreatedHook(this);
     if (!_entitySimulation) {

@@ -301,7 +301,7 @@ void diffuseProfileGPU(gpu::TexturePointer& profileMap, RenderArgs* args) {
     {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::subsurfaceScattering_makeProfile);
 
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
 
         makePipeline = gpu::Pipeline::create(program, state);
     }
@@ -330,7 +330,7 @@ void diffuseScatterGPU(const gpu::TexturePointer& profileMap, gpu::TexturePointe
 
     gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::subsurfaceScattering_makeLUT);
 
-    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+    gpu::StatePointer state = std::make_shared<gpu::State>();
 
     gpu::PipelinePointer makePipeline = gpu::Pipeline::create(program, state);
     
@@ -359,7 +359,7 @@ void computeSpecularBeckmannGPU(gpu::TexturePointer& beckmannMap, RenderArgs* ar
     {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::subsurfaceScattering_makeSpecularBeckmann);
 
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
 
         makePipeline = gpu::Pipeline::create(program, state);
     }
@@ -432,7 +432,7 @@ void DebugSubsurfaceScattering::configure(const Config& config) {
 gpu::PipelinePointer DebugSubsurfaceScattering::getScatteringPipeline() {
     if (!_scatteringPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::subsurfaceScattering_drawScattering);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
 
         _scatteringPipeline = gpu::Pipeline::create(program, state);
     }
@@ -445,7 +445,7 @@ gpu::PipelinePointer _showLUTPipeline;
 gpu::PipelinePointer DebugSubsurfaceScattering::getShowLUTPipeline() {
     if (!_showLUTPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawUnitQuatTextureOpaque);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
         _showLUTPipeline = gpu::Pipeline::create(program, state);
     }
 

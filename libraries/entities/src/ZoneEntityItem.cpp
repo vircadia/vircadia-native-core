@@ -33,7 +33,7 @@ const bool ZoneEntityItem::DEFAULT_GHOSTING_ALLOWED = true;
 const QString ZoneEntityItem::DEFAULT_FILTER_URL = "";
 
 EntityItemPointer ZoneEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity(new ZoneEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
+    std::shared_ptr<ZoneEntityItem> entity(new ZoneEntityItem(entityID), [](ZoneEntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }

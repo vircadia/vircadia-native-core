@@ -15,7 +15,7 @@
 #include "PluginManager.h"
 
 bool PluginUtils::isHMDAvailable(const QString& pluginName) {
-    for (auto& displayPlugin : PluginManager::getInstance()->getDisplayPlugins()) {
+    for (const auto& displayPlugin : PluginManager::getInstance()->getDisplayPlugins()) {
         // Temporarily only enable this for Vive
         if (displayPlugin->isHmd() && (pluginName.isEmpty() || displayPlugin->getName() == pluginName)) {
             return true;
@@ -25,7 +25,7 @@ bool PluginUtils::isHMDAvailable(const QString& pluginName) {
 }
 
 bool PluginUtils::isHeadControllerAvailable(const QString& pluginName) {
-    for (auto& inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
+    for (const auto& inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
         if (inputPlugin->isHeadController() && (pluginName.isEmpty() || inputPlugin->getName() == pluginName)) {
             return true;
         }
@@ -34,7 +34,7 @@ bool PluginUtils::isHeadControllerAvailable(const QString& pluginName) {
 };
 
 bool PluginUtils::isHandControllerAvailable(const QString& pluginName) {
-    for (auto& inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
+    for (const auto& inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
         if (inputPlugin->isHandController() && (pluginName.isEmpty() || inputPlugin->getName() == pluginName)) {
             return true;
         }
@@ -43,7 +43,7 @@ bool PluginUtils::isHandControllerAvailable(const QString& pluginName) {
 };
 
 bool PluginUtils::isSubdeviceContainingNameAvailable(QString name) {
-    for (auto& inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
+    for (const auto& inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
         if (inputPlugin->isActive()) {
             auto subdeviceNames = inputPlugin->getSubdeviceNames();
             for (auto& subdeviceName : subdeviceNames) {

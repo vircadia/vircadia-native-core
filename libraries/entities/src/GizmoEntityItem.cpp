@@ -13,7 +13,7 @@
 #include <qmath.h>
 
 EntityItemPointer GizmoEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    Pointer entity(new GizmoEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
+    Pointer entity(new GizmoEntityItem(entityID), [](GizmoEntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }

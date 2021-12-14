@@ -836,7 +836,7 @@ bool DomainServerSettingsManager::ensurePermissionsForGroupRanks() {
             if (_groupPermissions.contains(nameKey)) {
                 perms = _groupPermissions[nameKey];
             } else {
-                perms = NodePermissionsPointer(new NodePermissions(nameKey));
+                perms = std::make_shared<NodePermissions>(nameKey);
                 _groupPermissions[nameKey] = perms;
                 changed = true;
             }
@@ -863,7 +863,7 @@ bool DomainServerSettingsManager::ensurePermissionsForGroupRanks() {
             if (_groupForbiddens.contains(nameKey)) {
                 perms = _groupForbiddens[nameKey];
             } else {
-                perms = NodePermissionsPointer(new NodePermissions(nameKey));
+                perms = std::make_shared<NodePermissions>(nameKey);
                 _groupForbiddens[nameKey] = perms;
                 changed = true;
             }

@@ -147,7 +147,7 @@ void VelocityBufferPass::run(const render::RenderContextPointer& renderContext, 
 const gpu::PipelinePointer& VelocityBufferPass::getCameraMotionPipeline(const render::RenderContextPointer& renderContext) {
     if (!_cameraMotionPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::velocityBuffer_cameraMotion);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
 
         // Stencil test the curvature pass for objects pixels only, not the background
        // PrepareStencil::testShape(*state);
