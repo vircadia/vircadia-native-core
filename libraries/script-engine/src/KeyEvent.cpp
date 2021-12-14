@@ -187,7 +187,7 @@ ScriptValue KeyEvent::toScriptValue(ScriptEngine* engine, const KeyEvent& event)
     return obj;
 }
 
-void KeyEvent::fromScriptValue(const ScriptValue& object, KeyEvent& event) {
+bool KeyEvent::fromScriptValue(const ScriptValue& object, KeyEvent& event) {
     
     event.isValid = false; // assume the worst
     event.isMeta = object.property("isMeta").toVariant().toBool();
@@ -281,6 +281,7 @@ void KeyEvent::fromScriptValue(const ScriptValue& object, KeyEvent& event) {
             }
             event.isValid = true;
         }
+        return true;
     }
     
     ScriptValue isShifted = object.property("isShifted");

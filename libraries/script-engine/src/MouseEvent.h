@@ -28,7 +28,7 @@ public:
     MouseEvent(const QMouseEvent& event);
     
     static ScriptValue toScriptValue(ScriptEngine* engine, const MouseEvent& event);
-    static void fromScriptValue(const ScriptValue& object, MouseEvent& event);
+    static bool fromScriptValue(const ScriptValue& object, MouseEvent& event);
 
     ScriptValue toScriptValue(ScriptEngine* engine) const { return MouseEvent::toScriptValue(engine, *this); }
     

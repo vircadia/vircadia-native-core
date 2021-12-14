@@ -101,10 +101,11 @@ ScriptValue interactiveWindowPointerToScriptValue(ScriptEngine* engine, const In
     return engine->newQObject(in, ScriptEngine::ScriptOwnership);
 }
 
-void interactiveWindowPointerFromScriptValue(const ScriptValue& object, InteractiveWindowPointer& out) {
+bool interactiveWindowPointerFromScriptValue(const ScriptValue& object, InteractiveWindowPointer& out) {
     if (const auto interactiveWindow = qobject_cast<InteractiveWindowPointer>(object.toQObject())) {
         out = interactiveWindow;
     }
+    return true;
 }
 
 void InteractiveWindow::forwardKeyPressEvent(int key, int modifiers) {

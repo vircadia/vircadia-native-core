@@ -52,7 +52,7 @@ public:
                  Button button = NoButtons, uint32_t buttons = NoButtons, Qt::KeyboardModifiers keyboardModifiers = Qt::NoModifier);
 
     static ScriptValue toScriptValue(ScriptEngine* engine, const PointerEvent& event);
-    static void fromScriptValue(const ScriptValue& object, PointerEvent& event);
+    static bool fromScriptValue(const ScriptValue& object, PointerEvent& event);
 
     ScriptValue toScriptValue(ScriptEngine* engine) const { return PointerEvent::toScriptValue(engine, *this); }
 

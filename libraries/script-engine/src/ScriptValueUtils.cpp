@@ -99,7 +99,7 @@ ScriptValue vec2ToScriptValue(ScriptEngine* engine, const glm::vec2& vec2) {
     return value;
 }
 
-void vec2FromScriptValue(const ScriptValue& object, glm::vec2& vec2) {
+bool vec2FromScriptValue(const ScriptValue& object, glm::vec2& vec2) {
     if (object.isNumber()) {
         vec2 = glm::vec2(object.toVariant().toFloat());
     } else if (object.isArray()) {
@@ -122,6 +122,7 @@ void vec2FromScriptValue(const ScriptValue& object, glm::vec2& vec2) {
         vec2.x = x.toVariant().toFloat();
         vec2.y = y.toVariant().toFloat();
     }
+    return true;
 }
 
 ScriptValue vec3ToScriptValue(ScriptEngine* engine, const glm::vec3& vec3) {
@@ -174,7 +175,7 @@ ScriptValue vec3ColorToScriptValue(ScriptEngine* engine, const glm::vec3& vec3) 
     return value;
 }
 
-void vec3FromScriptValue(const ScriptValue& object, glm::vec3& vec3) {
+bool vec3FromScriptValue(const ScriptValue& object, glm::vec3& vec3) {
     if (object.isNumber()) {
         vec3 = glm::vec3(object.toVariant().toFloat());
     } else if (object.isString()) {
@@ -220,6 +221,7 @@ void vec3FromScriptValue(const ScriptValue& object, glm::vec3& vec3) {
         vec3.y = y.toVariant().toFloat();
         vec3.z = z.toVariant().toFloat();
     }
+    return true;
 }
 
 ScriptValue u8vec3ToScriptValue(ScriptEngine* engine, const glm::u8vec3& vec3) {
@@ -272,7 +274,7 @@ ScriptValue u8vec3ColorToScriptValue(ScriptEngine* engine, const glm::u8vec3& ve
     return value;
 }
 
-void u8vec3FromScriptValue(const ScriptValue& object, glm::u8vec3& vec3) {
+bool u8vec3FromScriptValue(const ScriptValue& object, glm::u8vec3& vec3) {
     if (object.isNumber()) {
         vec3 = glm::vec3(object.toVariant().toUInt());
     } else if (object.isString()) {
@@ -318,6 +320,7 @@ void u8vec3FromScriptValue(const ScriptValue& object, glm::u8vec3& vec3) {
         vec3.y = y.toVariant().toUInt();
         vec3.z = z.toVariant().toUInt();
     }
+    return true;
 }
 
 ScriptValue vec4toScriptValue(ScriptEngine* engine, const glm::vec4& vec4) {
@@ -329,11 +332,12 @@ ScriptValue vec4toScriptValue(ScriptEngine* engine, const glm::vec4& vec4) {
     return obj;
 }
 
-void vec4FromScriptValue(const ScriptValue& object, glm::vec4& vec4) {
+bool vec4FromScriptValue(const ScriptValue& object, glm::vec4& vec4) {
     vec4.x = object.property("x").toVariant().toFloat();
     vec4.y = object.property("y").toVariant().toFloat();
     vec4.z = object.property("z").toVariant().toFloat();
     vec4.w = object.property("w").toVariant().toFloat();
+    return true;
 }
 
 ScriptValue mat4toScriptValue(ScriptEngine* engine, const glm::mat4& mat4) {
@@ -357,7 +361,7 @@ ScriptValue mat4toScriptValue(ScriptEngine* engine, const glm::mat4& mat4) {
     return obj;
 }
 
-void mat4FromScriptValue(const ScriptValue& object, glm::mat4& mat4) {
+bool mat4FromScriptValue(const ScriptValue& object, glm::mat4& mat4) {
     mat4[0][0] = object.property("r0c0").toVariant().toFloat();
     mat4[0][1] = object.property("r1c0").toVariant().toFloat();
     mat4[0][2] = object.property("r2c0").toVariant().toFloat();
@@ -374,6 +378,7 @@ void mat4FromScriptValue(const ScriptValue& object, glm::mat4& mat4) {
     mat4[3][1] = object.property("r1c3").toVariant().toFloat();
     mat4[3][2] = object.property("r2c3").toVariant().toFloat();
     mat4[3][3] = object.property("r3c3").toVariant().toFloat();
+    return true;
 }
 
 ScriptValue qVectorVec3ColorToScriptValue(ScriptEngine* engine, const QVector<glm::vec3>& vector) {
@@ -404,7 +409,7 @@ QVector<glm::vec3> qVectorVec3FromScriptValue(const ScriptValue& array) {
     return newVector;
 }
 
-void qVectorVec3FromScriptValue(const ScriptValue& array, QVector<glm::vec3>& vector) {
+bool qVectorVec3FromScriptValue(const ScriptValue& array, QVector<glm::vec3>& vector) {
     int length = array.property("length").toInteger();
 
     for (int i = 0; i < length; i++) {
@@ -412,6 +417,7 @@ void qVectorVec3FromScriptValue(const ScriptValue& array, QVector<glm::vec3>& ve
         vec3FromScriptValue(array.property(i), newVec3);
         vector << newVec3;
     }
+    return true;
 }
 
 ScriptValue quatToScriptValue(ScriptEngine* engine, const glm::quat& quat) {
@@ -427,7 +433,7 @@ ScriptValue quatToScriptValue(ScriptEngine* engine, const glm::quat& quat) {
     return obj;
 }
 
-void quatFromScriptValue(const ScriptValue& object, glm::quat& quat) {
+bool quatFromScriptValue(const ScriptValue& object, glm::quat& quat) {
     quat.x = object.property("x").toVariant().toFloat();
     quat.y = object.property("y").toVariant().toFloat();
     quat.z = object.property("z").toVariant().toFloat();
@@ -440,6 +446,7 @@ void quatFromScriptValue(const ScriptValue& object, glm::quat& quat) {
     } else {
         quat = glm::quat();
     }
+    return true;
 }
 
 ScriptValue qVectorQuatToScriptValue(ScriptEngine* engine, const QVector<glm::quat>& vector) {
@@ -482,12 +489,13 @@ ScriptValue qVectorQUuidToScriptValue(ScriptEngine* engine, const QVector<QUuid>
     return array;
 }
 
-void qVectorQUuidFromScriptValue(const ScriptValue& array, QVector<QUuid>& vector) {
+bool qVectorQUuidFromScriptValue(const ScriptValue& array, QVector<QUuid>& vector) {
     int length = array.property("length").toInteger();
 
     for (int i = 0; i < length; i++) {
         vector << array.property(i).toVariant().toUuid();
     }
+    return true;
 }
 
 QVector<QUuid> qVectorQUuidFromScriptValue(const ScriptValue& array) {
@@ -523,20 +531,22 @@ ScriptValue qVectorIntToScriptValue(ScriptEngine* engine, const QVector<uint32_t
     return array;
 }
 
-void qVectorFloatFromScriptValue(const ScriptValue& array, QVector<float>& vector) {
+bool qVectorFloatFromScriptValue(const ScriptValue& array, QVector<float>& vector) {
     int length = array.property("length").toInteger();
 
     for (int i = 0; i < length; i++) {
         vector << array.property(i).toVariant().toFloat();
     }
+    return true;
 }
 
-void qVectorIntFromScriptValue(const ScriptValue& array, QVector<uint32_t>& vector) {
+bool qVectorIntFromScriptValue(const ScriptValue& array, QVector<uint32_t>& vector) {
     int length = array.property("length").toInteger();
 
     for (int i = 0; i < length; i++) {
         vector << array.property(i).toVariant().toInt();
     }
+    return true;
 }
 
 QVector<glm::quat> qVectorQuatFromScriptValue(const ScriptValue& array) {
@@ -551,7 +561,7 @@ QVector<glm::quat> qVectorQuatFromScriptValue(const ScriptValue& array) {
     return newVector;
 }
 
-void qVectorQuatFromScriptValue(const ScriptValue& array, QVector<glm::quat>& vector) {
+bool qVectorQuatFromScriptValue(const ScriptValue& array, QVector<glm::quat>& vector) {
     int length = array.property("length").toInteger();
 
     for (int i = 0; i < length; i++) {
@@ -559,6 +569,7 @@ void qVectorQuatFromScriptValue(const ScriptValue& array, QVector<glm::quat>& ve
         quatFromScriptValue(array.property(i), newQuat);
         vector << newQuat;
     }
+    return true;
 }
 
 QVector<bool> qVectorBoolFromScriptValue(const ScriptValue& array) {
@@ -571,12 +582,13 @@ QVector<bool> qVectorBoolFromScriptValue(const ScriptValue& array) {
     return newVector;
 }
 
-void qVectorBoolFromScriptValue(const ScriptValue& array, QVector<bool>& vector) {
+bool qVectorBoolFromScriptValue(const ScriptValue& array, QVector<bool>& vector) {
     int length = array.property("length").toInteger();
 
     for (int i = 0; i < length; i++) {
         vector << array.property(i).toBool();
     }
+    return true;
 }
 
 ScriptValue qRectToScriptValue(ScriptEngine* engine, const QRect& rect) {
@@ -588,11 +600,12 @@ ScriptValue qRectToScriptValue(ScriptEngine* engine, const QRect& rect) {
     return obj;
 }
 
-void qRectFromScriptValue(const ScriptValue& object, QRect& rect) {
+bool qRectFromScriptValue(const ScriptValue& object, QRect& rect) {
     rect.setX(object.property("x").toVariant().toInt());
     rect.setY(object.property("y").toVariant().toInt());
     rect.setWidth(object.property("width").toVariant().toInt());
     rect.setHeight(object.property("height").toVariant().toInt());
+    return true;
 }
 
 ScriptValue qRectFToScriptValue(ScriptEngine* engine, const QRectF& rect) {
@@ -604,11 +617,12 @@ ScriptValue qRectFToScriptValue(ScriptEngine* engine, const QRectF& rect) {
     return obj;
 }
 
-void qRectFFromScriptValue(const ScriptValue& object, QRectF& rect) {
+bool qRectFFromScriptValue(const ScriptValue& object, QRectF& rect) {
     rect.setX(object.property("x").toVariant().toFloat());
     rect.setY(object.property("y").toVariant().toFloat());
     rect.setWidth(object.property("width").toVariant().toFloat());
     rect.setHeight(object.property("height").toVariant().toFloat());
+    return true;
 }
 
 ScriptValue qColorToScriptValue(ScriptEngine* engine, const QColor& color) {
@@ -639,7 +653,7 @@ ScriptValue aaCubeToScriptValue(ScriptEngine* engine, const AACube& aaCube) {
     return obj;
 }
 
-void aaCubeFromScriptValue(const ScriptValue& object, AACube& aaCube) {
+bool aaCubeFromScriptValue(const ScriptValue& object, AACube& aaCube) {
     glm::vec3 corner;
     corner.x = object.property("x").toVariant().toFloat();
     corner.y = object.property("y").toVariant().toFloat();
@@ -647,9 +661,10 @@ void aaCubeFromScriptValue(const ScriptValue& object, AACube& aaCube) {
     float scale = object.property("scale").toVariant().toFloat();
 
     aaCube.setBox(corner, scale);
+    return true;
 }
 
-void qColorFromScriptValue(const ScriptValue& object, QColor& color) {
+bool qColorFromScriptValue(const ScriptValue& object, QColor& color) {
     if (object.isNumber()) {
         color.setRgb(object.toUInt32());
 
@@ -661,14 +676,16 @@ void qColorFromScriptValue(const ScriptValue& object, QColor& color) {
         color.setRgb(object.property("red").toInt32(), object.property("green").toInt32(), object.property("blue").toInt32(),
                      alphaValue.isNumber() ? alphaValue.toInt32() : 255);
     }
+    return true;
 }
 
 ScriptValue qURLToScriptValue(ScriptEngine* engine, const QUrl& url) {
     return engine->newValue(url.toString());
 }
 
-void qURLFromScriptValue(const ScriptValue& object, QUrl& url) {
+bool qURLFromScriptValue(const ScriptValue& object, QUrl& url) {
     url = object.toString();
+    return true;
 }
 
 ScriptValue pickRayToScriptValue(ScriptEngine* engine, const PickRay& pickRay) {
@@ -680,7 +697,7 @@ ScriptValue pickRayToScriptValue(ScriptEngine* engine, const PickRay& pickRay) {
     return obj;
 }
 
-void pickRayFromScriptValue(const ScriptValue& object, PickRay& pickRay) {
+bool pickRayFromScriptValue(const ScriptValue& object, PickRay& pickRay) {
     ScriptValue originValue = object.property("origin");
     if (originValue.isValid()) {
         auto x = originValue.property("x");
@@ -703,6 +720,7 @@ void pickRayFromScriptValue(const ScriptValue& object, PickRay& pickRay) {
             pickRay.direction.z = z.toVariant().toFloat();
         }
     }
+    return true;
 }
 
 /*@jsdoc
@@ -726,8 +744,9 @@ ScriptValue collisionToScriptValue(ScriptEngine* engine, const Collision& collis
     return obj;
 }
 
-void collisionFromScriptValue(const ScriptValue& object, Collision& collision) {
+bool collisionFromScriptValue(const ScriptValue& object, Collision& collision) {
     // TODO: implement this when we know what it means to accept collision events from JS
+    return false;
 }
 
 ScriptValue quuidToScriptValue(ScriptEngine* engine, const QUuid& uuid) {
@@ -738,14 +757,15 @@ ScriptValue quuidToScriptValue(ScriptEngine* engine, const QUuid& uuid) {
     return obj;
 }
 
-void quuidFromScriptValue(const ScriptValue& object, QUuid& uuid) {
+bool quuidFromScriptValue(const ScriptValue& object, QUuid& uuid) {
     if (object.isNull()) {
         uuid = QUuid();
-        return;
+        return true;
     }
     QString uuidAsString = object.toVariant().toString();
     QUuid fromString(uuidAsString);
     uuid = fromString;
+    return true;
 }
 
 /*@jsdoc
@@ -761,9 +781,10 @@ ScriptValue qSizeFToScriptValue(ScriptEngine* engine, const QSizeF& qSizeF) {
     return obj;
 }
 
-void qSizeFFromScriptValue(const ScriptValue& object, QSizeF& qSizeF) {
+bool qSizeFFromScriptValue(const ScriptValue& object, QSizeF& qSizeF) {
     qSizeF.setWidth(object.property("width").toVariant().toFloat());
     qSizeF.setHeight(object.property("height").toVariant().toFloat());
+    return true;
 }
 
 /*@jsdoc
@@ -802,16 +823,18 @@ ScriptValue animationDetailsToScriptValue(ScriptEngine* engine, const AnimationD
     return obj;
 }
 
-void animationDetailsFromScriptValue(const ScriptValue& object, AnimationDetails& details) {
+bool animationDetailsFromScriptValue(const ScriptValue& object, AnimationDetails& details) {
     // nothing for now...
+    return false;
 }
 
 ScriptValue meshToScriptValue(ScriptEngine* engine, MeshProxy* const& in) {
     return engine->newQObject(in, ScriptEngine::QtOwnership);
 }
 
-void meshFromScriptValue(const ScriptValue& value, MeshProxy*& out) {
+bool meshFromScriptValue(const ScriptValue& value, MeshProxy*& out) {
     out = qobject_cast<MeshProxy*>(value.toQObject());
+    return true;
 }
 
 ScriptValue meshesToScriptValue(ScriptEngine* engine, const MeshProxyList& in) {
@@ -822,7 +845,7 @@ ScriptValue meshesToScriptValue(ScriptEngine* engine, const MeshProxyList& in) {
     return result;
 }
 
-void meshesFromScriptValue(const ScriptValue& value, MeshProxyList& out) {
+bool meshesFromScriptValue(const ScriptValue& value, MeshProxyList& out) {
     ScriptValueIteratorPointer itr(value.newIterator());
 
     qDebug() << "in meshesFromScriptValue, value.length =" << value.property("length").toInt32();
@@ -836,6 +859,7 @@ void meshesFromScriptValue(const ScriptValue& value, MeshProxyList& out) {
             qDebug() << "null meshProxy";
         }
     }
+    return true;
 }
 
 /*@jsdoc
@@ -849,8 +873,8 @@ ScriptValue meshFaceToScriptValue(ScriptEngine* engine, const MeshFace& meshFace
     return obj;
 }
 
-void meshFaceFromScriptValue(const ScriptValue& object, MeshFace& meshFaceResult) {
-    qVectorIntFromScriptValue(object.property("vertices"), meshFaceResult.vertexIndices);
+bool meshFaceFromScriptValue(const ScriptValue& object, MeshFace& meshFaceResult) {
+    return qVectorIntFromScriptValue(object.property("vertices"), meshFaceResult.vertexIndices);
 }
 
 ScriptValue qVectorMeshFaceToScriptValue(ScriptEngine* engine, const QVector<MeshFace>& vector) {
@@ -861,7 +885,7 @@ ScriptValue qVectorMeshFaceToScriptValue(ScriptEngine* engine, const QVector<Mes
     return array;
 }
 
-void qVectorMeshFaceFromScriptValue(const ScriptValue& array, QVector<MeshFace>& result) {
+bool qVectorMeshFaceFromScriptValue(const ScriptValue& array, QVector<MeshFace>& result) {
     int length = array.property("length").toInteger();
     result.clear();
 
@@ -870,18 +894,21 @@ void qVectorMeshFaceFromScriptValue(const ScriptValue& array, QVector<MeshFace>&
         meshFaceFromScriptValue(array.property(i), meshFace);
         result << meshFace;
     }
+    return true;
 }
 
 ScriptValue stencilMaskModeToScriptValue(ScriptEngine* engine, const StencilMaskMode& stencilMode) {
     return engine->newValue((int)stencilMode);
 }
 
-void stencilMaskModeFromScriptValue(const ScriptValue& object, StencilMaskMode& stencilMode) {
+bool stencilMaskModeFromScriptValue(const ScriptValue& object, StencilMaskMode& stencilMode) {
     stencilMode = StencilMaskMode(object.toVariant().toInt());
+    return true;
 }
 
-void promiseFromScriptValue(const ScriptValue& object, std::shared_ptr<MiniPromise>& promise) {
+bool promiseFromScriptValue(const ScriptValue& object, std::shared_ptr<MiniPromise>& promise) {
     Q_ASSERT(false);
+    return false;
 }
 ScriptValue promiseToScriptValue(ScriptEngine* engine, const std::shared_ptr<MiniPromise>& promise) {
     return engine->newQObject(promise.get());
@@ -891,8 +918,8 @@ ScriptValue EntityItemIDtoScriptValue(ScriptEngine* engine, const EntityItemID& 
     return quuidToScriptValue(engine, id);
 }
 
-void EntityItemIDfromScriptValue(const ScriptValue &object, EntityItemID& id) {
-    quuidFromScriptValue(object, id);
+bool EntityItemIDfromScriptValue(const ScriptValue& object, EntityItemID& id) {
+    return quuidFromScriptValue(object, id);
 }
 
 QVector<EntityItemID> qVectorEntityItemIDFromScriptValue(const ScriptValue& array) {

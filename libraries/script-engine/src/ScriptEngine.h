@@ -49,7 +49,7 @@ class ScriptEngine {
 public:
     typedef ScriptValue (*FunctionSignature)(ScriptContext*, ScriptEngine*);
     typedef ScriptValue (*MarshalFunction)(ScriptEngine*, const void*);
-    typedef void (*DemarshalFunction)(const ScriptValue&, void*);
+    typedef bool (*DemarshalFunction)(const ScriptValue&, void*);
 
     enum ValueOwnership {
         QtOwnership = 0,
@@ -136,8 +136,8 @@ public:
 
 public: // not for public use, but I don't like how Qt strings this along with private friend functions
     virtual ScriptValue create(int type, const void* ptr) = 0;
-    virtual bool convert(const ScriptValue& value, int type, void* ptr) = 0;
-    virtual void registerCustomType(int type, MarshalFunction mf, DemarshalFunction df, const ScriptValue& prototype) = 0;
+    virtual QVariant convert(const ScriptValue& value, int type) = 0;
+    virtual void registerCustomType(int type, MarshalFunction mf, DemarshalFunction df) = 0;
 
 protected:
     ~ScriptEngine() {}  // prevent explicit deletion of base class

@@ -30,7 +30,7 @@ public:
     operator QKeySequence() const;
     
     static ScriptValue toScriptValue(ScriptEngine* engine, const KeyEvent& event);
-    static void fromScriptValue(const ScriptValue& object, KeyEvent& event);
+    static bool fromScriptValue(const ScriptValue& object, KeyEvent& event);
     
     int key;
     QString text;

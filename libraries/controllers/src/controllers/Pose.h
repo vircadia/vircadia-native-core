@@ -45,7 +45,7 @@ namespace controller {
         Pose postTransform(const glm::mat4& mat) const;
 
         static ScriptValue toScriptValue(ScriptEngine* engine, const Pose& event);
-        static void fromScriptValue(const ScriptValue& object, Pose& event);
+        static bool fromScriptValue(const ScriptValue& object, Pose& event);
     };
 }
 

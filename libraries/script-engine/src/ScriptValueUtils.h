@@ -52,7 +52,7 @@ void registerMetaTypes(ScriptEngine* engine);
  * @property {number} r3c3 - Row 3, column 3 value.
  */
 ScriptValue mat4toScriptValue(ScriptEngine* engine, const glm::mat4& mat4);
-void mat4FromScriptValue(const ScriptValue& object, glm::mat4& mat4);
+bool mat4FromScriptValue(const ScriptValue& object, glm::mat4& mat4);
 
 /*@jsdoc
 * A 2-dimensional vector.
@@ -69,7 +69,7 @@ void mat4FromScriptValue(const ScriptValue& object, glm::mat4& mat4);
 * color.v = 0.8;                                                                 // { x: 0.7, y: 0.8 }
 */
 ScriptValue vec2ToScriptValue(ScriptEngine* engine, const glm::vec2& vec2);
-void vec2FromScriptValue(const ScriptValue& object, glm::vec2& vec2);
+bool vec2FromScriptValue(const ScriptValue& object, glm::vec2& vec2);
 
 /*@jsdoc
 * A 3-dimensional vector. See also the {@link Vec3(0)|Vec3} object.
@@ -93,7 +93,7 @@ void vec2FromScriptValue(const ScriptValue& object, glm::vec2& vec2);
 */
 ScriptValue vec3ToScriptValue(ScriptEngine* engine, const glm::vec3& vec3);
 ScriptValue vec3ColorToScriptValue(ScriptEngine* engine, const glm::vec3& vec3);
-void vec3FromScriptValue(const ScriptValue& object, glm::vec3& vec3);
+bool vec3FromScriptValue(const ScriptValue& object, glm::vec3& vec3);
 
 /*@jsdoc
  * A color vector. See also the {@link Vec3(0)|Vec3} object.
@@ -135,7 +135,7 @@ void vec3FromScriptValue(const ScriptValue& object, glm::vec3& vec3);
  */
 ScriptValue u8vec3ToScriptValue(ScriptEngine* engine, const glm::u8vec3& vec3);
 ScriptValue u8vec3ColorToScriptValue(ScriptEngine* engine, const glm::u8vec3& vec3);
-void u8vec3FromScriptValue(const ScriptValue& object, glm::u8vec3& vec3);
+bool u8vec3FromScriptValue(const ScriptValue& object, glm::u8vec3& vec3);
 
 /*@jsdoc
  * A 4-dimensional vector.
@@ -147,11 +147,11 @@ void u8vec3FromScriptValue(const ScriptValue& object, glm::u8vec3& vec3);
  * @property {number} w - W-coordinate of the vector.
  */
 ScriptValue vec4toScriptValue(ScriptEngine* engine, const glm::vec4& vec4);
-void vec4FromScriptValue(const ScriptValue& object, glm::vec4& vec4);
+bool vec4FromScriptValue(const ScriptValue& object, glm::vec4& vec4);
 
 // Quaternions
 ScriptValue quatToScriptValue(ScriptEngine* engine, const glm::quat& quat);
-void quatFromScriptValue(const ScriptValue& object, glm::quat& quat);
+bool quatFromScriptValue(const ScriptValue& object, glm::quat& quat);
 
 /*@jsdoc
  * Defines a rectangular portion of an image or screen, or similar.
@@ -163,63 +163,63 @@ void quatFromScriptValue(const ScriptValue& object, glm::quat& quat);
  */
 class QRect;
 ScriptValue qRectToScriptValue(ScriptEngine* engine, const QRect& rect);
-void qRectFromScriptValue(const ScriptValue& object, QRect& rect);
+bool qRectFromScriptValue(const ScriptValue& object, QRect& rect);
 
 class QRectF;
 ScriptValue qRectFToScriptValue(ScriptEngine* engine, const QRectF& rect);
-void qRectFFromScriptValue(const ScriptValue& object, QRectF& rect);
+bool qRectFFromScriptValue(const ScriptValue& object, QRectF& rect);
 
 // QColor
 class QColor;
 ScriptValue qColorToScriptValue(ScriptEngine* engine, const QColor& color);
-void qColorFromScriptValue(const ScriptValue& object, QColor& color);
+bool qColorFromScriptValue(const ScriptValue& object, QColor& color);
 
 class QUrl;
 ScriptValue qURLToScriptValue(ScriptEngine* engine, const QUrl& url);
-void qURLFromScriptValue(const ScriptValue& object, QUrl& url);
+bool qURLFromScriptValue(const ScriptValue& object, QUrl& url);
 
 // vector<vec3>
 Q_DECLARE_METATYPE(QVector<glm::vec3>)
 ScriptValue qVectorVec3ToScriptValue(ScriptEngine* engine, const QVector<glm::vec3>& vector);
 ScriptValue qVectorVec3ColorToScriptValue(ScriptEngine* engine, const QVector<glm::vec3>& vector);
-void qVectorVec3FromScriptValue(const ScriptValue& array, QVector<glm::vec3>& vector);
+bool qVectorVec3FromScriptValue(const ScriptValue& array, QVector<glm::vec3>& vector);
 QVector<glm::vec3> qVectorVec3FromScriptValue(const ScriptValue& array);
 
 // vector<quat>
 Q_DECLARE_METATYPE(QVector<glm::quat>)
 ScriptValue qVectorQuatToScriptValue(ScriptEngine* engine, const QVector<glm::quat>& vector);
-void qVectorQuatFromScriptValue(const ScriptValue& array, QVector<glm::quat>& vector);
+bool qVectorQuatFromScriptValue(const ScriptValue& array, QVector<glm::quat>& vector);
 QVector<glm::quat> qVectorQuatFromScriptValue(const ScriptValue& array);
 
 // vector<bool>
 ScriptValue qVectorBoolToScriptValue(ScriptEngine* engine, const QVector<bool>& vector);
-void qVectorBoolFromScriptValue(const ScriptValue& array, QVector<bool>& vector);
+bool qVectorBoolFromScriptValue(const ScriptValue& array, QVector<bool>& vector);
 QVector<bool> qVectorBoolFromScriptValue(const ScriptValue& array);
 
 // vector<float>
 ScriptValue qVectorFloatToScriptValue(ScriptEngine* engine, const QVector<float>& vector);
-void qVectorFloatFromScriptValue(const ScriptValue& array, QVector<float>& vector);
+bool qVectorFloatFromScriptValue(const ScriptValue& array, QVector<float>& vector);
 QVector<float> qVectorFloatFromScriptValue(const ScriptValue& array);
 
 // vector<uint32_t>
 ScriptValue qVectorIntToScriptValue(ScriptEngine* engine, const QVector<uint32_t>& vector);
-void qVectorIntFromScriptValue(const ScriptValue& array, QVector<uint32_t>& vector);
+bool qVectorIntFromScriptValue(const ScriptValue& array, QVector<uint32_t>& vector);
 
 ScriptValue qVectorQUuidToScriptValue(ScriptEngine* engine, const QVector<QUuid>& vector);
-void qVectorQUuidFromScriptValue(const ScriptValue& array, QVector<QUuid>& vector);
+bool qVectorQUuidFromScriptValue(const ScriptValue& array, QVector<QUuid>& vector);
 QVector<QUuid> qVectorQUuidFromScriptValue(const ScriptValue& array);
 
 class AACube;
 ScriptValue aaCubeToScriptValue(ScriptEngine* engine, const AACube& aaCube);
-void aaCubeFromScriptValue(const ScriptValue& object, AACube& aaCube);
+bool aaCubeFromScriptValue(const ScriptValue& object, AACube& aaCube);
 
 class PickRay;
 ScriptValue pickRayToScriptValue(ScriptEngine* engine, const PickRay& pickRay);
-void pickRayFromScriptValue(const ScriptValue& object, PickRay& pickRay);
+bool pickRayFromScriptValue(const ScriptValue& object, PickRay& pickRay);
 
 class Collision;
 ScriptValue collisionToScriptValue(ScriptEngine* engine, const Collision& collision);
-void collisionFromScriptValue(const ScriptValue& object, Collision& collision);
+bool collisionFromScriptValue(const ScriptValue& object, Collision& collision);
 
 /*@jsdoc
  * UUIDs (Universally Unique IDentifiers) are used to uniquely identify entities, avatars, and the like. They are represented 
@@ -229,42 +229,42 @@ void collisionFromScriptValue(const ScriptValue& object, Collision& collision);
  */
 //Q_DECLARE_METATYPE(QUuid) // don't need to do this for QUuid since it's already a meta type
 ScriptValue quuidToScriptValue(ScriptEngine* engine, const QUuid& uuid);
-void quuidFromScriptValue(const ScriptValue& object, QUuid& uuid);
+bool quuidFromScriptValue(const ScriptValue& object, QUuid& uuid);
 
 //Q_DECLARE_METATYPE(QSizeF) // Don't need to to this becase it's arleady a meta type
 class QSizeF;
 ScriptValue qSizeFToScriptValue(ScriptEngine* engine, const QSizeF& qSizeF);
-void qSizeFFromScriptValue(const ScriptValue& object, QSizeF& qSizeF);
+bool qSizeFFromScriptValue(const ScriptValue& object, QSizeF& qSizeF);
 
 class AnimationDetails;
 ScriptValue animationDetailsToScriptValue(ScriptEngine* engine, const AnimationDetails& event);
-void animationDetailsFromScriptValue(const ScriptValue& object, AnimationDetails& event);
+bool animationDetailsFromScriptValue(const ScriptValue& object, AnimationDetails& event);
 
 class MeshProxy;
 ScriptValue meshToScriptValue(ScriptEngine* engine, MeshProxy* const& in);
-void meshFromScriptValue(const ScriptValue& value, MeshProxy*& out);
+bool meshFromScriptValue(const ScriptValue& value, MeshProxy*& out);
 
 class MeshProxyList;
 ScriptValue meshesToScriptValue(ScriptEngine* engine, const MeshProxyList& in);
-void meshesFromScriptValue(const ScriptValue& value, MeshProxyList& out);
+bool meshesFromScriptValue(const ScriptValue& value, MeshProxyList& out);
 
 class MeshFace;
 ScriptValue meshFaceToScriptValue(ScriptEngine* engine, const MeshFace& meshFace);
-void meshFaceFromScriptValue(const ScriptValue& object, MeshFace& meshFaceResult);
+bool meshFaceFromScriptValue(const ScriptValue& object, MeshFace& meshFaceResult);
 ScriptValue qVectorMeshFaceToScriptValue(ScriptEngine* engine, const QVector<MeshFace>& vector);
-void qVectorMeshFaceFromScriptValue(const ScriptValue& array, QVector<MeshFace>& result);
+bool qVectorMeshFaceFromScriptValue(const ScriptValue& array, QVector<MeshFace>& result);
 
 enum class StencilMaskMode;
 ScriptValue stencilMaskModeToScriptValue(ScriptEngine* engine, const StencilMaskMode& stencilMode);
-void stencilMaskModeFromScriptValue(const ScriptValue& object, StencilMaskMode& stencilMode);
+bool stencilMaskModeFromScriptValue(const ScriptValue& object, StencilMaskMode& stencilMode);
 
 class MiniPromise;
-void promiseFromScriptValue(const ScriptValue& object, std::shared_ptr<MiniPromise>& promise);
+bool promiseFromScriptValue(const ScriptValue& object, std::shared_ptr<MiniPromise>& promise);
 ScriptValue promiseToScriptValue(ScriptEngine* engine, const std::shared_ptr<MiniPromise>& promise);
 
 class EntityItemID;
 ScriptValue EntityItemIDtoScriptValue(ScriptEngine* engine, const EntityItemID& properties);
-void EntityItemIDfromScriptValue(const ScriptValue& object, EntityItemID& properties);
+bool EntityItemIDfromScriptValue(const ScriptValue& object, EntityItemID& properties);
 QVector<EntityItemID> qVectorEntityItemIDFromScriptValue(const ScriptValue& array);
 
 #endif  // #define hifi_ScriptValueUtils_h

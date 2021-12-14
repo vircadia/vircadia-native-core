@@ -37,8 +37,9 @@ ScriptValue inputControllerToScriptValue(ScriptEngine* engine, controller::Input
     return engine->newQObject(in, ScriptEngine::QtOwnership);
 }
 
-void inputControllerFromScriptValue(const ScriptValue& object, controller::InputController*& out) {
+bool inputControllerFromScriptValue(const ScriptValue& object, controller::InputController*& out) {
     out = qobject_cast<controller::InputController*>(object.toQObject());
+    return true;
 }
 
 STATIC_SCRIPT_INITIALIZER(+[](ScriptManager* manager) {

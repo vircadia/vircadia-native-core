@@ -430,9 +430,10 @@ ScriptValue worldDetailQualityToScriptValue(ScriptEngine* engine, const WorldDet
     return engine->newValue(worldDetailQuality);
 }
 
-void worldDetailQualityFromScriptValue(const ScriptValue& object, WorldDetailQuality& worldDetailQuality) {
+bool worldDetailQualityFromScriptValue(const ScriptValue& object, WorldDetailQuality& worldDetailQuality) {
     worldDetailQuality = 
         static_cast<WorldDetailQuality>(std::min(std::max(object.toInt32(), (int)WORLD_DETAIL_LOW), (int)WORLD_DETAIL_HIGH));
+    return true;
 }
 
 void LODManager::setLODQualityLevel(float quality) {

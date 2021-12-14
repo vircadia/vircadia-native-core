@@ -40,8 +40,9 @@ ScriptValue wrapperToScriptValue(ScriptEngine* engine, T* const &in) {
 }
 
 template <typename T>
-void wrapperFromScriptValue(const ScriptValue& value, T* &out) {
+bool wrapperFromScriptValue(const ScriptValue& value, T* &out) {
     out = qobject_cast<T*>(value.toQObject());
+    return !!out;
 }
 
 #endif

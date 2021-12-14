@@ -3118,10 +3118,10 @@ private:
 };
 
 ScriptValue audioListenModeToScriptValue(ScriptEngine* engine, const AudioListenerMode& audioListenerMode);
-void audioListenModeFromScriptValue(const ScriptValue& object, AudioListenerMode& audioListenerMode);
+bool audioListenModeFromScriptValue(const ScriptValue& object, AudioListenerMode& audioListenerMode);
 
 ScriptValue driveKeysToScriptValue(ScriptEngine* engine, const MyAvatar::DriveKeys& driveKeys);
-void driveKeysFromScriptValue(const ScriptValue& object, MyAvatar::DriveKeys& driveKeys);
+bool driveKeysFromScriptValue(const ScriptValue& object, MyAvatar::DriveKeys& driveKeys);
 
 bool isWearableEntity(const EntityItemPointer& entity);
 

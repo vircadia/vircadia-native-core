@@ -208,22 +208,25 @@ ScriptValue qWSCloseCodeToScriptValue(ScriptEngine* engine, const QWebSocketProt
     return engine->newValue(closeCode);
 }
 
-void qWSCloseCodeFromScriptValue(const ScriptValue &object, QWebSocketProtocol::CloseCode &closeCode) {
+bool qWSCloseCodeFromScriptValue(const ScriptValue &object, QWebSocketProtocol::CloseCode &closeCode) {
     closeCode = (QWebSocketProtocol::CloseCode)object.toUInt16();
+    return true;
 }
 
 ScriptValue webSocketToScriptValue(ScriptEngine* engine, WebSocketClass* const &in) {
     return engine->newQObject(in, ScriptEngine::ScriptOwnership);
 }
 
-void webSocketFromScriptValue(const ScriptValue &object, WebSocketClass* &out) {
+bool webSocketFromScriptValue(const ScriptValue &object, WebSocketClass* &out) {
     out = qobject_cast<WebSocketClass*>(object.toQObject());
+    return true;
 }
 
 ScriptValue wscReadyStateToScriptValue(ScriptEngine* engine, const WebSocketClass::ReadyState& readyState) {
     return engine->newValue(readyState);
 }
 
-void wscReadyStateFromScriptValue(const ScriptValue& object, WebSocketClass::ReadyState& readyState) {
+bool wscReadyStateFromScriptValue(const ScriptValue& object, WebSocketClass::ReadyState& readyState) {
     readyState = (WebSocketClass::ReadyState)object.toUInt16();
+    return true;
 }

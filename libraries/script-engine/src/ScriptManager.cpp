@@ -538,8 +538,9 @@ static ScriptValue scriptableResourceToScriptValue(ScriptEngine* engine,
     return object;
 }
 
-static void scriptableResourceFromScriptValue(const ScriptValue& value, ScriptableResourceRawPtr& resource) {
+static bool scriptableResourceFromScriptValue(const ScriptValue& value, ScriptableResourceRawPtr& resource) {
     resource = static_cast<ScriptableResourceRawPtr>(value.toQObject());
+    return true;
 }
 
 /*@jsdoc
@@ -578,8 +579,9 @@ ScriptValue externalResourceBucketToScriptValue(ScriptEngine* engine, ExternalRe
     return engine->newValue((int)in);
 }
 
-void externalResourceBucketFromScriptValue(const ScriptValue& object, ExternalResource::Bucket& out) {
+bool externalResourceBucketFromScriptValue(const ScriptValue& object, ExternalResource::Bucket& out) {
     out = static_cast<ExternalResource::Bucket>(object.toInt32());
+    return true;
 }
 
 void ScriptManager::resetModuleCache(bool deleteScriptCache) {
@@ -720,6 +722,11 @@ void ScriptManager::init() {
     scriptEngine->globalObject().setProperty("Kute", scriptEngine->newFunction([](ScriptContext* context, ScriptEngine* engine) -> ScriptValue {
       return context->engine()->newValue(context->argument(0).toString().toLower() == "kalila" ? true : false);
     }));
+}
+
+// registers a global object by name
+void ScriptManager::registerValue(const QString& valueName, ScriptValue value) {
+    _engine->globalObject().setProperty(valueName, value);
 }
 
 // Unregister the handlers for this eventName and entityID.

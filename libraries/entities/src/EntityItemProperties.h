@@ -141,7 +141,7 @@ public:
     void copyFromJSONString(ScriptEngine& scriptEngine, const QString& jsonString);
 
     static ScriptValue entityPropertyFlagsToScriptValue(ScriptEngine* engine, const EntityPropertyFlags& flags);
-    static void entityPropertyFlagsFromScriptValue(const ScriptValue& object, EntityPropertyFlags& flags);
+    static bool entityPropertyFlagsFromScriptValue(const ScriptValue& object, EntityPropertyFlags& flags);
 
     static bool getPropertyInfo(const QString& propertyName, EntityPropertyInfo& propertyInfo);
 
@@ -543,16 +543,16 @@ private:
 Q_DECLARE_METATYPE(EntityItemProperties);
 ScriptValue EntityItemPropertiesToScriptValue(ScriptEngine* engine, const EntityItemProperties& properties);
 ScriptValue EntityItemNonDefaultPropertiesToScriptValue(ScriptEngine* engine, const EntityItemProperties& properties);
-void EntityItemPropertiesFromScriptValueIgnoreReadOnly(const ScriptValue& object, EntityItemProperties& properties);
-void EntityItemPropertiesFromScriptValueHonorReadOnly(const ScriptValue& object, EntityItemProperties& properties);
+bool EntityItemPropertiesFromScriptValueIgnoreReadOnly(const ScriptValue& object, EntityItemProperties& properties);
+bool EntityItemPropertiesFromScriptValueHonorReadOnly(const ScriptValue& object, EntityItemProperties& properties);
 
 Q_DECLARE_METATYPE(EntityPropertyFlags);
 ScriptValue EntityPropertyFlagsToScriptValue(ScriptEngine* engine, const EntityPropertyFlags& flags);
-void EntityPropertyFlagsFromScriptValue(const ScriptValue& object, EntityPropertyFlags& flags);
+bool EntityPropertyFlagsFromScriptValue(const ScriptValue& object, EntityPropertyFlags& flags);
 
 Q_DECLARE_METATYPE(EntityPropertyInfo);
 ScriptValue EntityPropertyInfoToScriptValue(ScriptEngine* engine, const EntityPropertyInfo& propertyInfo);
-void EntityPropertyInfoFromScriptValue(const ScriptValue& object, EntityPropertyInfo& propertyInfo);
+bool EntityPropertyInfoFromScriptValue(const ScriptValue& object, EntityPropertyInfo& propertyInfo);
 
 // define these inline here so the macros work
 inline void EntityItemProperties::setPosition(const glm::vec3& value)

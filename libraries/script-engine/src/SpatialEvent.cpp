@@ -44,6 +44,7 @@ ScriptValue SpatialEvent::toScriptValue(ScriptEngine* engine, const SpatialEvent
     return obj;
 }
 
-void SpatialEvent::fromScriptValue(const ScriptValue& object,SpatialEvent& event) {
+bool SpatialEvent::fromScriptValue(const ScriptValue& object, SpatialEvent& event) {
     // nothing for now...
+    return false;
 }

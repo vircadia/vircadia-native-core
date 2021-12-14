@@ -172,6 +172,6 @@ private:
 
 Q_DECLARE_METATYPE(SharedSoundPointer)
 ScriptValue soundSharedPointerToScriptValue(ScriptEngine* engine, const SharedSoundPointer& in);
-void soundSharedPointerFromScriptValue(const ScriptValue& object, SharedSoundPointer& out);
+bool soundSharedPointerFromScriptValue(const ScriptValue& object, SharedSoundPointer& out);
 
 #endif // hifi_Sound_h

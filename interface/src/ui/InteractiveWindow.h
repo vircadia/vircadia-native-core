@@ -411,7 +411,7 @@ private:
 typedef InteractiveWindow* InteractiveWindowPointer;
 
 ScriptValue interactiveWindowPointerToScriptValue(ScriptEngine* engine, const InteractiveWindowPointer& in);
-void interactiveWindowPointerFromScriptValue(const ScriptValue& object, InteractiveWindowPointer& out);
+bool interactiveWindowPointerFromScriptValue(const ScriptValue& object, InteractiveWindowPointer& out);
 
 void registerInteractiveWindowMetaType(ScriptEngine* engine);
 

@@ -279,6 +279,15 @@ public:
      */
     Q_INVOKABLE bool isAgentScript() const { return _context == AGENT_SCRIPT; }
 
+    /*@jsdoc
+     * registers a global object by name.
+     * @function Script.registerValue
+     * @param {string} valueName
+     * @param {value} value
+     */
+    /// registers a global object by name
+    Q_INVOKABLE void registerValue(const QString& valueName, ScriptValue value);
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // NOTE - these are intended to be public interfaces available to scripts
 

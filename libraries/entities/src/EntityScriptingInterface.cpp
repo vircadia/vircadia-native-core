@@ -1690,7 +1690,7 @@ ScriptValue RayToEntityIntersectionResultToScriptValue(ScriptEngine* engine, con
     return obj;
 }
 
-void RayToEntityIntersectionResultFromScriptValue(const ScriptValue& object, RayToEntityIntersectionResult& value) {
+bool RayToEntityIntersectionResultFromScriptValue(const ScriptValue& object, RayToEntityIntersectionResult& value) {
     value.intersects = object.property("intersects").toVariant().toBool();
     value.accurate = object.property("accurate").toVariant().toBool();
     ScriptValue entityIDValue = object.property("entityID");
@@ -1707,6 +1707,7 @@ void RayToEntityIntersectionResultFromScriptValue(const ScriptValue& object, Ray
         vec3FromScriptValue(surfaceNormal, value.surfaceNormal);
     }
     value.extraInfo = object.property("extraInfo").toVariant().toMap();
+    return true;
 }
 
 bool EntityScriptingInterface::polyVoxWorker(QUuid entityID, std::function<bool(PolyVoxEntityItem&)> actor) {

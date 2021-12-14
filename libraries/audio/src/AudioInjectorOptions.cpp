@@ -66,10 +66,10 @@ ScriptValue injectorOptionsToScriptValue(ScriptEngine* engine, const AudioInject
  * @property {boolean} ignorePenumbra=false - <p class="important">Deprecated: This property is deprecated and will be
  *     removed.</p>
  */
-void injectorOptionsFromScriptValue(const ScriptValue& object, AudioInjectorOptions& injectorOptions) {
+bool injectorOptionsFromScriptValue(const ScriptValue& object, AudioInjectorOptions& injectorOptions) {
     if (!object.isObject()) {
         qWarning() << "Audio injector options is not an object.";
-        return;
+        return false;
     }
 
     if (injectorOptions.positionSet == false) {
@@ -126,4 +126,5 @@ void injectorOptionsFromScriptValue(const ScriptValue& object, AudioInjectorOpti
             qCWarning(audio) << "Unknown audio injector option:" << it->name();
         }
     }
+    return true;
 }

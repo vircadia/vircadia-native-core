@@ -37,6 +37,6 @@ public:
 Q_DECLARE_METATYPE(AudioInjectorOptions);
 
 ScriptValue injectorOptionsToScriptValue(ScriptEngine* engine, const AudioInjectorOptions& injectorOptions);
-void injectorOptionsFromScriptValue(const ScriptValue& object, AudioInjectorOptions& injectorOptions);
+bool injectorOptionsFromScriptValue(const ScriptValue& object, AudioInjectorOptions& injectorOptions);
 
 #endif // hifi_AudioInjectorOptions_h

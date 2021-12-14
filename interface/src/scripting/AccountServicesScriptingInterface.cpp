@@ -131,7 +131,7 @@ ScriptValue DownloadInfoResultToScriptValue(ScriptEngine* engine, const Download
     return object;
 }
 
-void DownloadInfoResultFromScriptValue(const ScriptValue& object, DownloadInfoResult& result) {
+bool DownloadInfoResultFromScriptValue(const ScriptValue& object, DownloadInfoResult& result) {
     QList<QVariant> downloading = object.property("downloading").toVariant().toList();
     result.downloading.clear();
     for (int i = 0; i < downloading.count(); i += 1) {
@@ -139,6 +139,7 @@ void DownloadInfoResultFromScriptValue(const ScriptValue& object, DownloadInfoRe
     }
 
     result.pending = object.property("pending").toVariant().toFloat();
+    return true;
 }
 
 DownloadInfoResult AccountServicesScriptingInterface::getDownloadInfo() {

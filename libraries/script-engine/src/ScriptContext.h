@@ -67,6 +67,15 @@ protected:
     ~ScriptContext() {}  // prevent explicit deletion of base class
 };
 
+class ScriptContextGuard {
+public:
+    ScriptContextGuard(ScriptContext* context);
+    ~ScriptContextGuard();
+
+private:
+    ScriptContext* _oldContext;
+};
+
 #endif // hifi_ScriptContext_h
 
 /// @}

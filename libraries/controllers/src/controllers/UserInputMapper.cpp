@@ -393,13 +393,13 @@ int poseMetaTypeId = qRegisterMetaType<controller::Pose>("Pose");
 int handMetaTypeId = qRegisterMetaType<controller::Hand>();
 
 ScriptValue inputToScriptValue(ScriptEngine* engine, const Input& input);
-void inputFromScriptValue(const ScriptValue& object, Input& input);
+bool inputFromScriptValue(const ScriptValue& object, Input& input);
 ScriptValue actionToScriptValue(ScriptEngine* engine, const Action& action);
-void actionFromScriptValue(const ScriptValue& object, Action& action);
+bool actionFromScriptValue(const ScriptValue& object, Action& action);
 ScriptValue inputPairToScriptValue(ScriptEngine* engine, const Input::NamedPair& inputPair);
-void inputPairFromScriptValue(const ScriptValue& object, Input::NamedPair& inputPair);
+bool inputPairFromScriptValue(const ScriptValue& object, Input::NamedPair& inputPair);
 ScriptValue handToScriptValue(ScriptEngine* engine, const controller::Hand& hand);
-void handFromScriptValue(const ScriptValue& object, controller::Hand& hand);
+bool handFromScriptValue(const ScriptValue& object, controller::Hand& hand);
 
 ScriptValue inputToScriptValue(ScriptEngine* engine, const Input& input) {
     ScriptValue obj = engine->newObject();
@@ -410,8 +410,9 @@ ScriptValue inputToScriptValue(ScriptEngine* engine, const Input& input) {
     return obj;
 }
 
-void inputFromScriptValue(const ScriptValue& object, Input& input) {
+bool inputFromScriptValue(const ScriptValue& object, Input& input) {
     input.id = object.property("id").toInt32();
+    return true;
 }
 
 ScriptValue actionToScriptValue(ScriptEngine* engine, const Action& action) {
@@ -422,8 +423,9 @@ ScriptValue actionToScriptValue(ScriptEngine* engine, const Action& action) {
     return obj;
 }
 
-void actionFromScriptValue(const ScriptValue& object, Action& action) {
+bool actionFromScriptValue(const ScriptValue& object, Action& action) {
     action = Action(object.property("action").toVariant().toInt());
+    return true;
 }
 
 ScriptValue inputPairToScriptValue(ScriptEngine* engine, const Input::NamedPair& inputPair) {
@@ -433,17 +435,19 @@ ScriptValue inputPairToScriptValue(ScriptEngine* engine, const Input::NamedPair&
     return obj;
 }
 
-void inputPairFromScriptValue(const ScriptValue& object, Input::NamedPair& inputPair) {
+bool inputPairFromScriptValue(const ScriptValue& object, Input::NamedPair& inputPair) {
     inputFromScriptValue(object.property("input"), inputPair.first);
     inputPair.second = QString(object.property("inputName").toVariant().toString());
+    return true;
 }
 
 ScriptValue handToScriptValue(ScriptEngine* engine, const controller::Hand& hand) {
     return engine->newValue((int)hand);
 }
 
-void handFromScriptValue(const ScriptValue& object, controller::Hand& hand) {
+bool handFromScriptValue(const ScriptValue& object, controller::Hand& hand) {
     hand = Hand(object.toVariant().toInt());
+    return true;
 }
 
 void UserInputMapper::registerControllerTypes(ScriptEngine* engine) {

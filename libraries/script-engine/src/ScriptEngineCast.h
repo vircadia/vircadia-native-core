@@ -42,13 +42,16 @@ inline ScriptValue scriptValueFromValue<QVariant>(ScriptEngine* engine, const QV
 
 template <typename T>
 inline T scriptvalue_cast(const ScriptValue& value) {
-    T t;
     const int id = qMetaTypeId<T>();
 
     auto engine = value.engine();
-    if (engine && engine->convert(value, id, &t)) {
-        return t;
-    } else if (value.isVariant()) {
+    if (engine) {
+        QVariant varValue = engine->convert(value, id);
+        if (varValue.isValid()) {
+            return varValue.value<T>();
+        }
+    }
+    if (value.isVariant()) {
         return qvariant_cast<T>(value.toVariant());
     }
 
@@ -63,13 +66,12 @@ inline QVariant scriptvalue_cast<QVariant>(const ScriptValue& value) {
 template <typename T>
 int scriptRegisterMetaType(ScriptEngine* eng,
                            ScriptValue (*toScriptValue)(ScriptEngine*, const T& t),
-                           void (*fromScriptValue)(const ScriptValue&, T& t),
-                           const ScriptValue& prototype = ScriptValue(),
+                           bool (*fromScriptValue)(const ScriptValue&, T& t),
                            T* = 0)
 {
     const int id = qRegisterMetaType<T>();  // make sure it's registered
     eng->registerCustomType(id, reinterpret_cast<ScriptEngine::MarshalFunction>(toScriptValue),
-                            reinterpret_cast<ScriptEngine::DemarshalFunction>(fromScriptValue), prototype);
+                            reinterpret_cast<ScriptEngine::DemarshalFunction>(fromScriptValue));
     return id;
 }
 
@@ -87,19 +89,19 @@ ScriptValue scriptValueFromSequence(ScriptEngine* eng, const Container& cont) {
 }
 
 template <class Container>
-void scriptValueToSequence(const ScriptValue& value, Container& cont) {
+bool scriptValueToSequence(const ScriptValue& value, Container& cont) {
     quint32 len = value.property(QLatin1String("length")).toUInt32();
     for (quint32 i = 0; i < len; ++i) {
         ScriptValue item = value.property(i);
         cont.push_back(scriptvalue_cast<typename Container::value_type>(item));
     }
+    return true;
 }
 
 template <typename T>
 int scriptRegisterSequenceMetaType(ScriptEngine* engine,
-                                   const ScriptValue& prototype = ScriptValue(),
                                    T* = 0) {
-    return scriptRegisterMetaType<T>(engine, scriptValueFromSequence, scriptValueToSequence, prototype);
+    return scriptRegisterMetaType<T>(engine, scriptValueFromSequence, scriptValueToSequence);
 }
 
 #endif // hifi_ScriptEngineCast_h

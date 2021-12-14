@@ -3170,7 +3170,7 @@ ScriptValue RayToAvatarIntersectionResultToScriptValue(ScriptEngine* engine, con
     return obj;
 }
 
-void RayToAvatarIntersectionResultFromScriptValue(const ScriptValue& object, RayToAvatarIntersectionResult& value) {
+bool RayToAvatarIntersectionResultFromScriptValue(const ScriptValue& object, RayToAvatarIntersectionResult& value) {
     value.intersects = object.property("intersects").toVariant().toBool();
     ScriptValue avatarIDValue = object.property("avatarID");
     quuidFromScriptValue(avatarIDValue, value.avatarID);
@@ -3187,6 +3187,7 @@ void RayToAvatarIntersectionResultFromScriptValue(const ScriptValue& object, Ray
     }
     value.jointIndex = object.property("jointIndex").toInt32();
     value.extraInfo = object.property("extraInfo").toVariant().toMap();
+    return true;
 }
 
 // these coefficients can be changed via JS for experimental tuning
@@ -3218,7 +3219,7 @@ ScriptValue AvatarEntityMapToScriptValue(ScriptEngine* engine, const AvatarEntit
     return obj;
 }
 
-void AvatarEntityMapFromScriptValue(const ScriptValue& object, AvatarEntityMap& value) {
+bool AvatarEntityMapFromScriptValue(const ScriptValue& object, AvatarEntityMap& value) {
     ScriptValueIteratorPointer itr(object.newIterator());
     while (itr->hasNext()) {
         itr->next();
@@ -3231,6 +3232,7 @@ void AvatarEntityMapFromScriptValue(const ScriptValue& object, AvatarEntityMap& 
 
         value[EntityID] = binaryEntityProperties;
     }
+    return true;
 }
 
 const float AvatarData::DEFAULT_BUBBLE_SCALE = 2.4f; // magic number determined empirically

@@ -253,13 +253,13 @@ Q_DECLARE_METATYPE(QWebSocketProtocol::CloseCode);
 Q_DECLARE_METATYPE(WebSocketClass::ReadyState);
 
 ScriptValue qWSCloseCodeToScriptValue(ScriptEngine* engine, const QWebSocketProtocol::CloseCode& closeCode);
-void qWSCloseCodeFromScriptValue(const ScriptValue& object, QWebSocketProtocol::CloseCode& closeCode);
+bool qWSCloseCodeFromScriptValue(const ScriptValue& object, QWebSocketProtocol::CloseCode& closeCode);
 
 ScriptValue webSocketToScriptValue(ScriptEngine* engine, WebSocketClass* const &in);
-void webSocketFromScriptValue(const ScriptValue &object, WebSocketClass* &out);
+bool webSocketFromScriptValue(const ScriptValue& object, WebSocketClass*& out);
 
 ScriptValue wscReadyStateToScriptValue(ScriptEngine* engine, const WebSocketClass::ReadyState& readyState);
-void wscReadyStateFromScriptValue(const ScriptValue& object, WebSocketClass::ReadyState& readyState);
+bool wscReadyStateFromScriptValue(const ScriptValue& object, WebSocketClass::ReadyState& readyState);
 
 #endif // hifi_WebSocketClass_h
 

@@ -428,10 +428,11 @@ ScriptValue soundSharedPointerToScriptValue(ScriptEngine* engine, const SharedSo
     return engine->newQObject(new SoundScriptingInterface(in), ScriptEngine::ScriptOwnership);
 }
 
-void soundSharedPointerFromScriptValue(const ScriptValue& object, SharedSoundPointer& out) {
+bool soundSharedPointerFromScriptValue(const ScriptValue& object, SharedSoundPointer& out) {
     if (auto soundInterface = qobject_cast<SoundScriptingInterface*>(object.toQObject())) {
         out = soundInterface->getSound();
     }
+    return true;
 }
 
 SoundScriptingInterface::SoundScriptingInterface(const SharedSoundPointer& sound) : _sound(sound) {

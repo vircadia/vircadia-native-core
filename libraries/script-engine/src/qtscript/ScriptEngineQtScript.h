@@ -19,7 +19,9 @@
 #include <memory>
 
 #include <QtCore/QByteArray>
+#include <QtCore/QHash>
 #include <QtCore/QMetaEnum>
+#include <QtCore/QMutex>
 #include <QtCore/QObject>
 #include <QtCore/QPointer>
 #include <QtCore/QString>
@@ -148,10 +150,11 @@ public: // public non-interface methods for other QtScript-specific classes to u
 
 public: // not for public use, but I don't like how Qt strings this along with private friend functions
     virtual ScriptValue create(int type, const void* ptr) override;
-    virtual bool convert(const ScriptValue& value, int type, void* ptr) override;
+    virtual QVariant convert(const ScriptValue& value, int type) override;
     virtual void registerCustomType(int type, ScriptEngine::MarshalFunction marshalFunc,
-                                    ScriptEngine::DemarshalFunction demarshalFunc,
-                                    const ScriptValue& prototype) override;
+                                    ScriptEngine::DemarshalFunction demarshalFunc) override;
+    bool castValueToVariant(const QScriptValue& val, QVariant& dest, int destType);
+    QScriptValue castVariantToValue(const QVariant& val);
 
 protected:
     // like `newFunction`, but allows mapping inline C++ lambdas with captures as callable QScriptValues
@@ -162,9 +165,21 @@ protected:
                                    const QScriptValue& data = QScriptValue(),
                                    const QScriptEngine::ValueOwnership& ownership = QScriptEngine::AutoOwnership);
 
+    void registerSystemTypes();
+
 protected:
+    struct CustomMarshal {
+        ScriptEngine::MarshalFunction marshalFunc;
+        ScriptEngine::DemarshalFunction demarshalFunc;
+    };
+    using CustomMarshalMap = QHash<int, CustomMarshal>;
+    using CustomPrototypeMap = QHash<int, QScriptValue>;
+
     QPointer<ScriptManager> _scriptManager;
 
+    mutable QMutex _customTypeProtect;
+    CustomMarshalMap _customTypes;
+    CustomPrototypeMap _customPrototypes;
     int _nextCustomType = 0;
     ScriptValue _nullValue;
     ScriptValue _undefinedValue;

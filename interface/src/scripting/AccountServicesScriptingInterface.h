@@ -32,7 +32,7 @@ public:
 Q_DECLARE_METATYPE(DownloadInfoResult)
 
 ScriptValue DownloadInfoResultToScriptValue(ScriptEngine* engine, const DownloadInfoResult& result);
-void DownloadInfoResultFromScriptValue(const ScriptValue& object, DownloadInfoResult& result);
+bool DownloadInfoResultFromScriptValue(const ScriptValue& object, DownloadInfoResult& result);
 
 class AccountServicesScriptingInterface : public QObject {
     Q_OBJECT

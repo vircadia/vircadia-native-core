@@ -92,7 +92,7 @@ public:
 };
 Q_DECLARE_METATYPE(RayToEntityIntersectionResult)
 ScriptValue RayToEntityIntersectionResultToScriptValue(ScriptEngine* engine, const RayToEntityIntersectionResult& results);
-void RayToEntityIntersectionResultFromScriptValue(const ScriptValue& object, RayToEntityIntersectionResult& results);
+bool RayToEntityIntersectionResultFromScriptValue(const ScriptValue& object, RayToEntityIntersectionResult& results);
 
 class ParabolaToEntityIntersectionResult {
 public:

@@ -451,8 +451,9 @@ ScriptValue pickTypesToScriptValue(ScriptEngine* engine, const PickQuery::PickTy
     return engine->newValue(pickType);
 }
 
-void pickTypesFromScriptValue(const ScriptValue& object, PickQuery::PickType& pickType) {
+bool pickTypesFromScriptValue(const ScriptValue& object, PickQuery::PickType& pickType) {
     pickType = static_cast<PickQuery::PickType>(object.toUInt16());
+    return true;
 }
 
 void PickScriptingInterface::registerMetaTypes(ScriptEngine* engine) {

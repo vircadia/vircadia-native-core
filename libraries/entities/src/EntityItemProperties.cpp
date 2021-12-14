@@ -2584,20 +2584,22 @@ ScriptValue EntityItemNonDefaultPropertiesToScriptValue(ScriptEngine* engine, co
     return properties.copyToScriptValue(engine, true);
 }
 
-void EntityItemPropertiesFromScriptValueIgnoreReadOnly(const ScriptValue &object, EntityItemProperties& properties) {
+bool EntityItemPropertiesFromScriptValueIgnoreReadOnly(const ScriptValue &object, EntityItemProperties& properties) {
     properties.copyFromScriptValue(object, false);
+    return true;
 }
 
-void EntityItemPropertiesFromScriptValueHonorReadOnly(const ScriptValue &object, EntityItemProperties& properties) {
+bool EntityItemPropertiesFromScriptValueHonorReadOnly(const ScriptValue &object, EntityItemProperties& properties) {
     properties.copyFromScriptValue(object, true);
+    return true;
 }
 
 ScriptValue EntityPropertyFlagsToScriptValue(ScriptEngine* engine, const EntityPropertyFlags& flags) {
     return EntityItemProperties::entityPropertyFlagsToScriptValue(engine, flags);
 }
 
-void EntityPropertyFlagsFromScriptValue(const ScriptValue& object, EntityPropertyFlags& flags) {
-    EntityItemProperties::entityPropertyFlagsFromScriptValue(object, flags);
+bool EntityPropertyFlagsFromScriptValue(const ScriptValue& object, EntityPropertyFlags& flags) {
+    return EntityItemProperties::entityPropertyFlagsFromScriptValue(object, flags);
 }
 
 
@@ -2606,7 +2608,7 @@ ScriptValue EntityItemProperties::entityPropertyFlagsToScriptValue(ScriptEngine*
     return result;
 }
 
-void EntityItemProperties::entityPropertyFlagsFromScriptValue(const ScriptValue& object, EntityPropertyFlags& flags) {
+bool EntityItemProperties::entityPropertyFlagsFromScriptValue(const ScriptValue& object, EntityPropertyFlags& flags) {
     if (object.isString()) {
         EntityPropertyInfo propertyInfo;
         if (getPropertyInfo(object.toString(), propertyInfo)) {
@@ -2623,6 +2625,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const ScriptValue&
             }
         }
     }
+    return true;
 }
 
 static QHash<QString, EntityPropertyInfo> _propertyInfos;
@@ -3023,10 +3026,11 @@ ScriptValue EntityPropertyInfoToScriptValue(ScriptEngine* engine, const EntityPr
     return obj;
 }
 
-void EntityPropertyInfoFromScriptValue(const ScriptValue& object, EntityPropertyInfo& propertyInfo) {
+bool EntityPropertyInfoFromScriptValue(const ScriptValue& object, EntityPropertyInfo& propertyInfo) {
     propertyInfo.propertyEnum = (EntityPropertyList)object.property("propertyEnum").toVariant().toUInt();
     propertyInfo.minimum = object.property("minimum").toVariant();
     propertyInfo.maximum = object.property("maximum").toVariant();
+    return true;
 }
 
 // TODO: Implement support for edit packets that can span an MTU sized buffer. We need to implement a mechanism for the

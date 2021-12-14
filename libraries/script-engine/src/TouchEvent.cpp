@@ -245,6 +245,7 @@ ScriptValue TouchEvent::toScriptValue(ScriptEngine* engine, const TouchEvent& ev
     return obj;
 }
 
-void TouchEvent::fromScriptValue(const ScriptValue& object, TouchEvent& event) {
+bool TouchEvent::fromScriptValue(const ScriptValue& object, TouchEvent& event) {
     // nothing for now...
+    return false;
 }

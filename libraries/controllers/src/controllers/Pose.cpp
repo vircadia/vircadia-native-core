@@ -50,7 +50,7 @@ namespace controller {
         return obj;
     }
 
-    void Pose::fromScriptValue(const ScriptValue& object, Pose& pose) {
+    bool Pose::fromScriptValue(const ScriptValue& object, Pose& pose) {
         auto translation = object.property("translation");
         auto rotation = object.property("rotation");
         auto velocity = object.property("velocity");
@@ -67,6 +67,7 @@ namespace controller {
         } else {
             pose.valid = false;
         }
+        return true;
     }
 
     Pose Pose::transform(const glm::mat4& mat) const {

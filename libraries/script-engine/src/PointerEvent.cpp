@@ -212,7 +212,7 @@ ScriptValue PointerEvent::toScriptValue(ScriptEngine* engine, const PointerEvent
     return obj;
 }
 
-void PointerEvent::fromScriptValue(const ScriptValue& object, PointerEvent& event) {
+bool PointerEvent::fromScriptValue(const ScriptValue& object, PointerEvent& event) {
     if (object.isObject()) {
         ScriptValue type = object.property("type");
         QString typeStr = type.isString() ? type.toString() : "Move";
@@ -263,6 +263,7 @@ void PointerEvent::fromScriptValue(const ScriptValue& object, PointerEvent& even
 
         event._keyboardModifiers = (Qt::KeyboardModifiers)(object.property("keyboardModifiers").toUInt32());
     }
+    return true;
 }
 
 static const char* typeToStringMap[PointerEvent::NumEventTypes] = { "Press", "DoublePress", "Release", "Move" };

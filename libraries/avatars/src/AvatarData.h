@@ -1971,7 +1971,7 @@ public:
 };
 Q_DECLARE_METATYPE(RayToAvatarIntersectionResult)
 ScriptValue RayToAvatarIntersectionResultToScriptValue(ScriptEngine* engine, const RayToAvatarIntersectionResult& results);
-void RayToAvatarIntersectionResultFromScriptValue(const ScriptValue& object, RayToAvatarIntersectionResult& results);
+bool RayToAvatarIntersectionResultFromScriptValue(const ScriptValue& object, RayToAvatarIntersectionResult& results);
 
 // No JSDoc because it's not provided as a type to the script engine.
 class ParabolaToAvatarIntersectionResult {
@@ -1989,7 +1989,7 @@ public:
 Q_DECLARE_METATYPE(AvatarEntityMap)
 
 ScriptValue AvatarEntityMapToScriptValue(ScriptEngine* engine, const AvatarEntityMap& value);
-void AvatarEntityMapFromScriptValue(const ScriptValue& object, AvatarEntityMap& value);
+bool AvatarEntityMapFromScriptValue(const ScriptValue& object, AvatarEntityMap& value);
 
 // faux joint indexes (-1 means invalid)
 const int NO_JOINT_INDEX = 65535; // -1

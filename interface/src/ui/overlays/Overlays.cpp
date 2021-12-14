@@ -1126,7 +1126,7 @@ ScriptValue RayToOverlayIntersectionResultToScriptValue(ScriptEngine* engine, co
     return obj;
 }
 
-void RayToOverlayIntersectionResultFromScriptValue(const ScriptValue& object, RayToOverlayIntersectionResult& value) {
+bool RayToOverlayIntersectionResultFromScriptValue(const ScriptValue& object, RayToOverlayIntersectionResult& value) {
     value.intersects = object.property("intersects").toVariant().toBool();
     ScriptValue overlayIDValue = object.property("overlayID");
     quuidFromScriptValue(overlayIDValue, value.overlayID);
@@ -1142,6 +1142,7 @@ void RayToOverlayIntersectionResultFromScriptValue(const ScriptValue& object, Ra
         vec3FromScriptValue(surfaceNormal, value.surfaceNormal);
     }
     value.extraInfo = object.property("extraInfo").toVariant().toMap();
+    return true;
 }
 
 bool Overlays::isLoaded(const QUuid& id) {

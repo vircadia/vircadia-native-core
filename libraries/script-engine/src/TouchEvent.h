@@ -32,7 +32,7 @@ public:
     TouchEvent(const QTouchEvent& event, const TouchEvent& other);
     
     static ScriptValue toScriptValue(ScriptEngine* engine, const TouchEvent& event);
-    static void fromScriptValue(const ScriptValue& object, TouchEvent& event);
+    static bool fromScriptValue(const ScriptValue& object, TouchEvent& event);
     
     float x;
     float y;

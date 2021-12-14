@@ -102,6 +102,7 @@ ScriptValue MouseEvent::toScriptValue(ScriptEngine* engine, const MouseEvent& ev
     return obj;
 }
 
-void MouseEvent::fromScriptValue(const ScriptValue& object, MouseEvent& event) {
+bool MouseEvent::fromScriptValue(const ScriptValue& object, MouseEvent& event) {
     // nothing for now...
+    return false;
 }

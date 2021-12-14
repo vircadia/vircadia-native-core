@@ -97,6 +97,7 @@ ScriptValue WheelEvent::toScriptValue(ScriptEngine* engine, const WheelEvent& ev
     return obj;
 }
 
-void WheelEvent::fromScriptValue(const ScriptValue& object, WheelEvent& event) {
+bool WheelEvent::fromScriptValue(const ScriptValue& object, WheelEvent& event) {
     // nothing for now...
+    return false;
 }

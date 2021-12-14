@@ -325,14 +325,14 @@ namespace scriptable {
                 }
                 return engine->newQObject(object, ScriptEngine::QtOwnership, ScriptEngine::AutoCreateDynamicProperties);
             },
-            [](const ScriptValue& value, QPointer<T>& out) {
+            [](const ScriptValue& value, QPointer<T>& out) -> bool {
                 auto obj = value.toQObject();
 #ifdef SCRIPTABLE_MESH_DEBUG
                 qCInfo(graphics_scripting) << "qpointer_qobject_cast" << obj << value.toString();
 #endif
                 if (auto tmp = qobject_cast<T*>(obj)) {
                     out = QPointer<T>(tmp);
-                    return;
+                    return true;
                 }
 #if 0
                 if (auto tmp = static_cast<T*>(obj)) {
@@ -340,10 +340,11 @@ namespace scriptable {
                     qCInfo(graphics_scripting) << "qpointer_qobject_cast -- via static_cast" << obj << tmp << value.toString();
 #endif
                     out = QPointer<T>(tmp);
-                    return;
+                    return true;
                 }
 #endif
                 out = nullptr;
+                return false;
             }
         );
     }
@@ -352,8 +353,9 @@ namespace scriptable {
         return scriptValueFromSequence(engine, vector);
     }
 
-    void qVectorScriptableMaterialLayerFromScriptValue(const ScriptValue& array, QVector<scriptable::ScriptableMaterialLayer>& result) {
+    bool qVectorScriptableMaterialLayerFromScriptValue(const ScriptValue& array, QVector<scriptable::ScriptableMaterialLayer>& result) {
         scriptValueToSequence(array, result);
+        return true;
     }
 
     /*@jsdoc
@@ -625,8 +627,9 @@ namespace scriptable {
         return obj;
     }
 
-    void scriptableMaterialFromScriptValue(const ScriptValue &object, scriptable::ScriptableMaterial& material) {
+    bool scriptableMaterialFromScriptValue(const ScriptValue& object, scriptable::ScriptableMaterial& material) {
         // No need to convert from ScriptValue to ScriptableMaterial
+        return false;
     }
 
     ScriptValue scriptableMaterialLayerToScriptValue(ScriptEngine* engine, const scriptable::ScriptableMaterialLayer &materialLayer) {
@@ -636,8 +639,9 @@ namespace scriptable {
         return obj;
     }
 
-    void scriptableMaterialLayerFromScriptValue(const ScriptValue &object, scriptable::ScriptableMaterialLayer& materialLayer) {
+    bool scriptableMaterialLayerFromScriptValue(const ScriptValue& object, scriptable::ScriptableMaterialLayer& materialLayer) {
         // No need to convert from ScriptValue to ScriptableMaterialLayer
+        return false;
     }
 
     ScriptValue multiMaterialMapToScriptValue(ScriptEngine* engine, const scriptable::MultiMaterialMap& map) {
@@ -648,8 +652,9 @@ namespace scriptable {
         return obj;
     }
 
-    void multiMaterialMapFromScriptValue(const ScriptValue& map, scriptable::MultiMaterialMap& result) {
+    bool multiMaterialMapFromScriptValue(const ScriptValue& map, scriptable::MultiMaterialMap& result) {
         // No need to convert from ScriptValue to MultiMaterialMap
+        return false;
     }
 
     template <typename T> int registerDebugEnum(ScriptEngine* engine, const DebugEnums<T>& debugEnums) {
@@ -659,8 +664,9 @@ namespace scriptable {
             [](ScriptEngine* engine, const T& topology) -> ScriptValue {
                 return engine->newValue(instance.value(topology));
             },
-            [](const ScriptValue& value, T& topology) {
+            [](const ScriptValue& value, T& topology) -> bool {
                 topology = instance.key(value.toString());
+                return true;
             }
         );
     }

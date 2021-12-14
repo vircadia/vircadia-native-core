@@ -35,9 +35,10 @@ ScriptValue midiEventToScriptValue(ScriptEngine* engine, const MIDIEvent& event)
     return obj;
 }
 
-void midiEventFromScriptValue(const ScriptValue &object, MIDIEvent& event) {
+bool midiEventFromScriptValue(const ScriptValue &object, MIDIEvent& event) {
     event.deltaTime = object.property(MIDI_DELTA_TIME_PROP_NAME).toVariant().toDouble();
     event.type = object.property(MIDI_EVENT_TYPE_PROP_NAME).toVariant().toUInt();
     event.data1 = object.property(MIDI_DATA_1_PROP_NAME).toVariant().toUInt();
     event.data2 = object.property(MIDI_DATA_2_PROP_NAME).toVariant().toUInt();
+    return true;
 }

@@ -5705,16 +5705,18 @@ ScriptValue audioListenModeToScriptValue(ScriptEngine* engine, const AudioListen
     return engine->newValue(audioListenerMode);
 }
 
-void audioListenModeFromScriptValue(const ScriptValue& object, AudioListenerMode& audioListenerMode) {
+bool audioListenModeFromScriptValue(const ScriptValue& object, AudioListenerMode& audioListenerMode) {
     audioListenerMode = static_cast<AudioListenerMode>(object.toUInt16());
+    return true;
 }
 
 ScriptValue driveKeysToScriptValue(ScriptEngine* engine, const MyAvatar::DriveKeys& driveKeys) {
     return engine->newValue(driveKeys);
 }
 
-void driveKeysFromScriptValue(const ScriptValue& object, MyAvatar::DriveKeys& driveKeys) {
+bool driveKeysFromScriptValue(const ScriptValue& object, MyAvatar::DriveKeys& driveKeys) {
     driveKeys = static_cast<MyAvatar::DriveKeys>(object.toUInt16());
+    return true;
 }
 
 

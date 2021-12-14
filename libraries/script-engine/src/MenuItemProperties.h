@@ -55,7 +55,7 @@ private:
 };
 Q_DECLARE_METATYPE(MenuItemProperties)
 ScriptValue menuItemPropertiesToScriptValue(ScriptEngine* engine, const MenuItemProperties& props);
-void menuItemPropertiesFromScriptValue(const ScriptValue& object, MenuItemProperties& props);
+bool menuItemPropertiesFromScriptValue(const ScriptValue& object, MenuItemProperties& props);
 void registerMenuItemProperties(ScriptEngine* engine);
 
 

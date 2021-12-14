@@ -54,7 +54,7 @@ public:
 };
 Q_DECLARE_METATYPE(RayToOverlayIntersectionResult);
 ScriptValue RayToOverlayIntersectionResultToScriptValue(ScriptEngine* engine, const RayToOverlayIntersectionResult& value);
-void RayToOverlayIntersectionResultFromScriptValue(const ScriptValue& object, RayToOverlayIntersectionResult& value);
+bool RayToOverlayIntersectionResultFromScriptValue(const ScriptValue& object, RayToOverlayIntersectionResult& value);
 
 class ParabolaToOverlayIntersectionResult {
 public:

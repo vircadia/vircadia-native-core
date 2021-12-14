@@ -29,7 +29,7 @@ public:
     SpatialEvent(const SpatialEvent& other);
     
     static ScriptValue toScriptValue(ScriptEngine* engine, const SpatialEvent& event);
-    static void fromScriptValue(const ScriptValue& object, SpatialEvent& event);
+    static bool fromScriptValue(const ScriptValue& object, SpatialEvent& event);
     
     glm::vec3 locTranslation;
     glm::quat locRotation;

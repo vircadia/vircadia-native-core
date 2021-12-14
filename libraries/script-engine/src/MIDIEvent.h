@@ -33,7 +33,7 @@ Q_DECLARE_METATYPE(MIDIEvent)
 void registerMIDIMetaTypes(ScriptEngine* engine);
 
 ScriptValue midiEventToScriptValue(ScriptEngine* engine, const MIDIEvent& event);
-void midiEventFromScriptValue(const ScriptValue &object, MIDIEvent& event);
+bool midiEventFromScriptValue(const ScriptValue &object, MIDIEvent& event);
 
 #endif // hifi_MIDIEvent_h
 

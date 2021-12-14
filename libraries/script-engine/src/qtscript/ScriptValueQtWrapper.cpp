@@ -28,19 +28,27 @@ ScriptValueQtWrapper* ScriptValueQtWrapper::unwrap(const ScriptValue& val) {
 QScriptValue ScriptValueQtWrapper::fullUnwrap(const ScriptValue& value) const {
     ScriptValueQtWrapper* unwrapped = unwrap(value);
     if (unwrapped) {
-        return unwrapped->toQtValue();
+        if (unwrapped->engine().get() != _engine) {
+            return static_cast<QScriptEngine*>(_engine)->toScriptValue(unwrapped->toVariant());
+        } else {
+            return unwrapped->toQtValue();
+        }
     }
     QVariant varValue = value.toVariant();
-    return static_cast<QScriptEngine*>(_engine)->newVariant(varValue);
+    return _engine->castVariantToValue(varValue);
 }
 
 QScriptValue ScriptValueQtWrapper::fullUnwrap(ScriptEngineQtScript* engine, const ScriptValue& value) {
     ScriptValueQtWrapper* unwrapped = unwrap(value);
     if (unwrapped) {
-        return unwrapped->toQtValue();
+        if (unwrapped->engine().get() != engine) {
+            return static_cast<QScriptEngine*>(engine)->toScriptValue(unwrapped->toVariant());
+        } else {
+            return unwrapped->toQtValue();
+        }
     }
     QVariant varValue = value.toVariant();
-    return static_cast<QScriptEngine*>(engine)->newVariant(varValue);
+    return engine->castVariantToValue(varValue);
 }
 
 ScriptValue ScriptValueQtWrapper::call(const ScriptValue& thisObject, const ScriptValueList& args) {
@@ -157,11 +165,23 @@ quint32 ScriptValueQtWrapper::toUInt32() const {
 }
 
 QVariant ScriptValueQtWrapper::toVariant() const {
-    return _value.toVariant();
+    QVariant dest;
+    if (_engine->castValueToVariant(_value, dest, QMetaType::UnknownType)) {
+        return dest;
+    } else {
+        Q_ASSERT(false);
+        return QVariant();
+    }
 }
 
 QObject* ScriptValueQtWrapper::toQObject() const {
-    return _value.toQObject();
+    QVariant dest;
+    if (_engine->castValueToVariant(_value, dest, QMetaType::QObjectStar)) {
+        return dest.value<QObject*>();
+    } else {
+        Q_ASSERT(false);
+        return nullptr;
+    }
 }
 
 bool ScriptValueQtWrapper::equals(const ScriptValue& other) const {

@@ -29,7 +29,7 @@ public:
     WheelEvent(const QWheelEvent& event);
     
     static ScriptValue toScriptValue(ScriptEngine* engine, const WheelEvent& event);
-    static void fromScriptValue(const ScriptValue& object, WheelEvent& event);
+    static bool fromScriptValue(const ScriptValue& object, WheelEvent& event);
     
     int x;
     int y;

@@ -18,10 +18,11 @@ ScriptValue avatarDataToScriptValue(ScriptEngine* engine, ScriptAvatarData* cons
     return engine->newQObject(in, ScriptEngine::ScriptOwnership);
 }
 
-void avatarDataFromScriptValue(const ScriptValue& object, ScriptAvatarData*& out) {
+bool avatarDataFromScriptValue(const ScriptValue& object, ScriptAvatarData*& out) {
     // This is not implemented because there are no slots/properties that take an AvatarSharedPointer from a script
     assert(false);
     out = nullptr;
+    return false;
 }
 
 STATIC_SCRIPT_INITIALIZER(+[](ScriptManager* manager) {

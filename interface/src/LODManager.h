@@ -383,6 +383,6 @@ private:
 };
 
 ScriptValue worldDetailQualityToScriptValue(ScriptEngine* engine, const WorldDetailQuality& worldDetailQuality);
-void worldDetailQualityFromScriptValue(const ScriptValue& object, WorldDetailQuality& worldDetailQuality);
+bool worldDetailQualityFromScriptValue(const ScriptValue& object, WorldDetailQuality& worldDetailQuality);
 
 #endif // hifi_LODManager_h
