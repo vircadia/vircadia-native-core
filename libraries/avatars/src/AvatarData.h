@@ -1887,10 +1887,11 @@ protected:
     virtual void clearAvatarGrabData(const QUuid& grabID);
 
 private:
-    Q_DISABLE_COPY(AvatarData)
-
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);
     static QUrl _defaultFullAvatarModelUrl;
+    // privatize the copy constructor and assignment operator so they cannot be called
+    AvatarData(const AvatarData&);
+    AvatarData& operator= (const AvatarData&);
 };
 Q_DECLARE_METATYPE(AvatarData*)
 

@@ -90,9 +90,10 @@ private slots:
     void run();
     
 private:
-    Q_DISABLE_COPY_MOVE(SendQueue)
     SendQueue(Socket* socket, SockAddr dest, SequenceNumber currentSequenceNumber,
               MessageNumber currentMessageNumber, bool hasReceivedHandshakeACK);
+    SendQueue(SendQueue& other) = delete;
+    SendQueue(SendQueue&& other) = delete;
     
     void sendHandshake();
     

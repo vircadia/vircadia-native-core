@@ -84,8 +84,9 @@ private:
     friend class PacketQueue;
     friend class SendQueue;
     friend class Socket;
-
-    Q_DISABLE_COPY(PacketList)
+    
+    PacketList(const PacketList& other) = delete;
+    PacketList& operator=(const PacketList& other) = delete;
     
     // Takes the first packet of the list and returns it.
     template<typename T> std::unique_ptr<T> takeFront();

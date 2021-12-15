@@ -163,7 +163,8 @@ private slots:
     void postAccountSettingsError(QNetworkReply::NetworkError error);
 
 private:
-    Q_DISABLE_COPY(AccountManager);
+    AccountManager(AccountManager const& other) = delete;
+    void operator=(AccountManager const& other) = delete;
 
     void persistAccountToFile();
 

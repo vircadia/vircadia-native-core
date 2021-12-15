@@ -23,7 +23,9 @@ public:
     AvatarAudioStream(bool isStereo, int numStaticJitterFrames = -1);
 
 private:
-    Q_DISABLE_COPY(AvatarAudioStream)
+    // disallow copying of AvatarAudioStream objects
+    AvatarAudioStream(const AvatarAudioStream&);
+    AvatarAudioStream& operator= (const AvatarAudioStream&);
 
     int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) override;
 };

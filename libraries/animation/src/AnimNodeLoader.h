@@ -45,7 +45,10 @@ protected:
     QSharedPointer<Resource> _resource;
 
 private:
-    Q_DISABLE_COPY(AnimNodeLoader)
+
+    // no copies
+    AnimNodeLoader(const AnimNodeLoader&) = delete;
+    AnimNodeLoader& operator=(const AnimNodeLoader&) = delete;
 };
 
 #endif // hifi_AnimNodeLoader

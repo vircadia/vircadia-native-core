@@ -28,7 +28,9 @@ public:
     virtual const QUuid& getStreamIdentifier() const override { return _streamIdentifier; }
 
 private:
-    Q_DISABLE_COPY(InjectedAudioStream)
+    // disallow copying of InjectedAudioStream objects
+    InjectedAudioStream(const InjectedAudioStream&);
+    InjectedAudioStream& operator= (const InjectedAudioStream&);
 
     AudioStreamStats getAudioStreamStats() const override;
     int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) override;

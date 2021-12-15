@@ -72,7 +72,8 @@ private:
     bool wouldExceedLimits();
 
     AudioInjectorManager() { createThread(); }
-    Q_DISABLE_COPY(AudioInjectorManager)
+    AudioInjectorManager(const AudioInjectorManager&) = delete;
+    AudioInjectorManager& operator=(const AudioInjectorManager&) = delete;
 
     void createThread();
 

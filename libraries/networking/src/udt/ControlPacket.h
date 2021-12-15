@@ -48,12 +48,13 @@ public:
     void setType(Type type);
     
 private:
-    Q_DISABLE_COPY(ControlPacket)
     ControlPacket(Type type, qint64 size = -1);
     ControlPacket(std::unique_ptr<char[]> data, qint64 size, const SockAddr& senderSockAddr);
     ControlPacket(ControlPacket&& other);
+    ControlPacket(const ControlPacket& other) = delete;
     
     ControlPacket& operator=(ControlPacket&& other);
+    ControlPacket& operator=(const ControlPacket& other) = delete;
     
     // Header read/write
     void readType();

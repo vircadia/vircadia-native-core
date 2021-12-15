@@ -120,7 +120,9 @@ protected:
         std::vector<Transition> _transitions;
 
     private:
-        Q_DISABLE_COPY(RandomSwitchState)
+        // no copies
+        RandomSwitchState(const RandomSwitchState&) = delete;
+        RandomSwitchState& operator=(const RandomSwitchState&) = delete;
     };
 
 public:
@@ -179,7 +181,9 @@ protected:
     QString _lastPlayedState;
 
 private:
-    Q_DISABLE_COPY(AnimRandomSwitch)
+    // no copies
+    AnimRandomSwitch(const AnimRandomSwitch&) = delete;
+    AnimRandomSwitch& operator=(const AnimRandomSwitch&) = delete;
 };
 
 #endif // hifi_AnimRandomSwitch_h
