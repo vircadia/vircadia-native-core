@@ -551,7 +551,7 @@ void setupPreferences() {
             auto getter = [nodeListWeak] {
                 auto nodeList = nodeListWeak.lock();
                 if (nodeList) {
-                    return static_cast<int>(nodeList->getSocketLocalPort(SocketType::UDP));
+                    return static_cast<int>(nodeList->getSocketLocalPort());
                 } else {
                     return -1;
                 }
@@ -559,7 +559,7 @@ void setupPreferences() {
             auto setter = [nodeListWeak](int preset) {
                 auto nodeList = nodeListWeak.lock();
                 if (nodeList) {
-                    nodeList->setSocketLocalPort(SocketType::UDP, static_cast<quint16>(preset));
+                    nodeList->setSocketLocalPort(static_cast<quint16>(preset));
                 }
             };
             auto preference = new IntSpinnerPreference(NETWORKING, "Listening Port", getter, setter);

@@ -36,6 +36,7 @@ private:
 
     virtual std::unique_ptr<udt::Packet> createPacket() override;
 
+
     PacketVersion _packetVersion;
     NLPacket::LocalID _sourceID;
 };

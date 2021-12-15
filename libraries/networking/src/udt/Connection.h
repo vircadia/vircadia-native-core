@@ -43,7 +43,9 @@ public:
     std::list<std::unique_ptr<Packet>> _packets;
 
 private:
+    bool _hasLastPacket { false };
     Packet::MessagePartNumber _nextPartNumber = 0;
+    unsigned int _numPackets { 0 };
 };
 
 class Connection : public QObject {
@@ -110,6 +112,9 @@ private:
     bool _hasReceivedHandshakeACK { false }; // flag for receipt of handshake ACK from client
     bool _didRequestHandshake { false }; // flag for request of handshake from server
    
+    p_high_resolution_clock::time_point _connectionStart = p_high_resolution_clock::now(); // holds the time_point for creation of this connection
+    p_high_resolution_clock::time_point _lastReceiveTime; // holds the last time we received anything from sender
+
     SequenceNumber _initialSequenceNumber; // Randomized on Connection creation, identifies connection during re-connect requests
     SequenceNumber _initialReceiveSequenceNumber; // Randomized by peer Connection on creation, identifies connection during re-connect requests
 

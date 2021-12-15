@@ -147,7 +147,7 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
 
     auto& packetReceiver = getPacketReceiver();
     packetReceiver.registerListener(PacketType::DomainList,
-        PacketReceiver::makeUnsourcedListenerReference<NodeList>(this, &NodeList::processDomainList));
+        PacketReceiver::makeUnsourcedListenerReference<NodeList>(this, &NodeList::processDomainServerList));
     packetReceiver.registerListener(PacketType::Ping,
         PacketReceiver::makeSourcedListenerReference<NodeList>(this, &NodeList::processPingPacket));
     packetReceiver.registerListener(PacketType::PingReply,
@@ -357,7 +357,7 @@ void NodeList::sendDomainServerCheckIn() {
 
     if (publicSockAddr.isNull()) {
         // we don't know our public socket and we need to send it to the domain server
-        qCDebug(networking_ice) << "Waiting for initial public socket from STUN. Will not send domain-server check in.";
+        qCDebug(networking_ice) << "Waiting for inital public socket from STUN. Will not send domain-server check in.";
     } else if (domainHandlerIp.isNull() && _domainHandler.requiresICE()) {
         qCDebug(networking_ice) << "Waiting for ICE discovered domain-server socket. Will not send domain-server check in.";
         handleICEConnectionToDomainServer();
@@ -401,8 +401,6 @@ void NodeList::sendDomainServerCheckIn() {
             return;
         }
 
-        // WEBRTC TODO: Move code into packet library. And update reference in DomainConnectRequest.js.
-
         auto domainPacket = NLPacket::create(domainPacketType);
 
         QDataStream packetStream(domainPacket.get());
@@ -411,6 +409,7 @@ void NodeList::sendDomainServerCheckIn() {
         if (domainPacketType == PacketType::DomainConnectRequest) {
 
 #if (PR_BUILD || DEV_BUILD)
+            // #######
             if (_shouldSendNewerVersion) {
                 domainPacket->setVersion(versionForPacketType(domainPacketType) + 1);
             }
@@ -454,6 +453,7 @@ void NodeList::sendDomainServerCheckIn() {
             packetStream << hardwareAddress;
 
             // now add the machine fingerprint
+            auto accountManager = DependencyManager::get<AccountManager>();
             packetStream << FingerprintUtils::getMachineFingerprint();
 
             platform::json all = platform::getAll();
@@ -470,12 +470,10 @@ void NodeList::sendDomainServerCheckIn() {
             QByteArray compressedSystemInfo = qCompress(systemInfo);
 
             if (compressedSystemInfo.size() > MAX_SYSTEM_INFO_SIZE) {
-                // FIXME
                 // Highly unlikely, as not even unreasonable machines will
                 // overflow the max size, but prevent MTU overflow anyway.
                 // We could do something sophisticated like clearing specific
                 // values if they're too big, but we'll save that for later.
-                // Alternative solution would be to write system info at the end of the packet, only if there is space.
                 compressedSystemInfo.clear();
             }
 
@@ -496,8 +494,7 @@ void NodeList::sendDomainServerCheckIn() {
 
         // pack our data to send to the domain-server including
         // the hostname information (so the domain-server can see which place name we came in on)
-        packetStream << _ownerType.load() << publicSockAddr.getType() << publicSockAddr << localSockAddr.getType() 
-            << localSockAddr << _nodeTypesOfInterest.toList();
+        packetStream << _ownerType.load() << publicSockAddr << localSockAddr << _nodeTypesOfInterest.toList();
         packetStream << DependencyManager::get<AddressManager>()->getPlaceName();
 
         if (!domainIsConnected) {
@@ -714,9 +711,7 @@ void NodeList::processDomainServerConnectionTokenPacket(QSharedPointer<ReceivedM
     sendDomainServerCheckIn();
 }
 
-void NodeList::processDomainList(QSharedPointer<ReceivedMessage> message) {
-
-    // WEBRTC TODO: Move code into packet library.  And update reference in DomainServerList.js.
+void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) {
 
     // parse header information
     QDataStream packetStream(message->getMessage());
@@ -882,19 +877,14 @@ void NodeList::processDomainServerRemovedNode(QSharedPointer<ReceivedMessage> me
 void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
     NewNodeInfo info;
 
-    SocketType publicSocketType, localSocketType;
     packetStream >> info.type
                  >> info.uuid
-                 >> publicSocketType
                  >> info.publicSocket
-                 >> localSocketType
                  >> info.localSocket
                  >> info.permissions
                  >> info.isReplicated
                  >> info.sessionLocalID
                  >> info.connectionSecretUUID;
-    info.publicSocket.setType(publicSocketType);
-    info.localSocket.setType(localSocketType);
 
     // if the public socket address is 0 then it's reachable at the same IP
     // as the domain server

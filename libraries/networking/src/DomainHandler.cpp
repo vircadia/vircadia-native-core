@@ -37,7 +37,7 @@
 
 DomainHandler::DomainHandler(QObject* parent) :
     QObject(parent),
-    _sockAddr(SockAddr(SocketType::UDP, QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
+    _sockAddr(SockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _icePeer(this),
     _settingsTimer(this),
     _apiRefreshTimer(this)
@@ -282,7 +282,7 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
 
         SockAddr* replaceableSockAddr = &_iceServerSockAddr;
         replaceableSockAddr->~SockAddr();
-        replaceableSockAddr = new (replaceableSockAddr) SockAddr(SocketType::UDP, iceServerHostname, ICE_SERVER_DEFAULT_PORT);
+        replaceableSockAddr = new (replaceableSockAddr) SockAddr(iceServerHostname, ICE_SERVER_DEFAULT_PORT);
         _iceServerSockAddr.setObjectName("IceServer");
 
         auto nodeList = DependencyManager::get<NodeList>();
@@ -367,7 +367,7 @@ void DomainHandler::setIsConnected(bool isConnected) {
             emit connectedToDomain(_domainURL);
 
             // FIXME: Reinstate the requestDomainSettings() call here in version 2021.2.0 instead of having it in 
-            // NodeList::processDomainList().
+            // NodeList::processDomainServerList().
             /*
             if (_domainURL.scheme() == URL_SCHEME_VIRCADIA && !_domainURL.host().isEmpty()) {
                 // we've connected to new domain - time to ask it for global settings

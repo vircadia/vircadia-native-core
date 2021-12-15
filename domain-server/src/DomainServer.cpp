@@ -194,8 +194,7 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _gatekeeper(this),
-    _httpManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTP_PORT,
-        QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this)
+    _httpManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this)
 {
     if (_parentPID != -1) {
         watchParentProcess(_parentPID);
@@ -271,31 +270,11 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     _settingsManager.apiRefreshGroupInformation();
 
-#if defined(WEBRTC_DATA_CHANNELS)
-    const QString WEBRTC_ENABLE = "webrtc.enable_webrtc";
-    bool isWebRTCEnabled = _settingsManager.valueForKeyPath(WEBRTC_ENABLE).toBool();
-    qCDebug(domain_server) << "WebRTC enabled:" << isWebRTCEnabled;
-    // The domain server's WebRTC signaling server is used by the domain server and the assignment clients, so disabling it
-    // disables WebRTC for the server as a whole.
-    if (isWebRTCEnabled) {
-        const QString WEBRTC_WSS_ENABLE = "webrtc.enable_webrtc_websocket_ssl";
-        bool isWebRTCEnabled = _settingsManager.valueForKeyPath(WEBRTC_WSS_ENABLE).toBool();
-        qCDebug(domain_server) << "WebRTC WSS enabled:" << isWebRTCEnabled;
-        _webrtcSignalingServer.reset(new WebRTCSignalingServer(this, isWebRTCEnabled));
-    }
-#endif
-
     setupNodeListAndAssignments();
 
     updateReplicatedNodes();
     updateDownstreamNodes();
     updateUpstreamNodes();
-
-#if defined(WEBRTC_DATA_CHANNELS)
-    if (isWebRTCEnabled) {
-        setUpWebRTCSignalingServer();
-    }
-#endif
 
     if (_type != NonMetaverse) {
         // if we have a metaverse domain, we'll use an access token for API calls
@@ -783,8 +762,7 @@ void DomainServer::setupNodeListAndAssignments() {
     auto nodeList = DependencyManager::set<LimitedNodeList>(domainServerPort, domainServerDTLSPort);
 
     // no matter the local port, save it to shared mem so that local assignment clients can ask what it is
-    nodeList->putLocalPortIntoSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this,
-        nodeList->getSocketLocalPort(SocketType::UDP));
+    nodeList->putLocalPortIntoSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this, nodeList->getSocketLocalPort());
 
     // store our local http ports in shared memory
     quint16 localHttpPort = DOMAIN_SERVER_HTTP_PORT;
@@ -894,73 +872,6 @@ void DomainServer::setupNodeListAndAssignments() {
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();
 }
-
-
-#if defined(WEBRTC_DATA_CHANNELS)
-
-// Sets up the WebRTC signaling server that's hosted by the domain server.
-void DomainServer::setUpWebRTCSignalingServer() {
-    // Bind the WebRTC signaling server's WebSocket to its port.
-    bool isBound = _webrtcSignalingServer->bind(QHostAddress::AnyIPv4, DEFAULT_DOMAIN_SERVER_WS_PORT);
-    if (!isBound) {
-        qWarning() << "WebRTC signaling server not bound to port. WebRTC connections are not supported.";
-        return;
-    }
-
-    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-
-    // Route inbound WebRTC signaling messages received from user clients.
-    connect(_webrtcSignalingServer.get(), &WebRTCSignalingServer::messageReceived, 
-        this, &DomainServer::routeWebRTCSignalingMessage);
-
-    // Route domain server signaling messages.
-    auto webrtcSocket = limitedNodeList->getWebRTCSocket();
-    connect(this, &DomainServer::webrtcSignalingMessageForDomainServer, webrtcSocket, &WebRTCSocket::onSignalingMessage);
-    connect(webrtcSocket, &WebRTCSocket::sendSignalingMessage,
-        _webrtcSignalingServer.get(), &WebRTCSignalingServer::sendMessage);
-
-    // Forward signaling messages received from assignment clients to user client.
-    PacketReceiver& packetReceiver = limitedNodeList->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::WebRTCSignaling,
-        PacketReceiver::makeUnsourcedListenerReference<DomainServer>(this, 
-            &DomainServer::forwardAssignmentClientSignalingMessageToUserClient));
-    connect(this, &DomainServer::webrtcSignalingMessageForUserClient, 
-        _webrtcSignalingServer.get(), &WebRTCSignalingServer::sendMessage);
-}
-
-// Routes an inbound WebRTC signaling message received from a client app to the appropriate recipient.
-void DomainServer::routeWebRTCSignalingMessage(const QJsonObject& json) {
-    if (json.value("to").toString() == NodeType::DomainServer) {
-        emit webrtcSignalingMessageForDomainServer(json);
-    } else {
-        sendWebRTCSignalingMessageToAssignmentClient(json);
-    }
-}
-
-// Sends a WebRTC signaling message to the target AC contained in the message.
-void DomainServer::sendWebRTCSignalingMessageToAssignmentClient(const QJsonObject& json) {
-    NodeType_t destinationNodeType = NodeType::fromChar(json.value("to").toString().at(0));
-    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-    auto destinationNode = limitedNodeList->soloNodeOfType(destinationNodeType);
-    if (!destinationNode) {
-        qWarning() << NodeType::getNodeTypeName(destinationNodeType) << "not found for WebRTC signaling message.";
-        return;
-    }
-    // Use an NLPacketList because the signaling message is not necessarily small.
-    auto packetList = NLPacketList::create(PacketType::WebRTCSignaling, QByteArray(), true, true);
-    packetList->writeString(QJsonDocument(json).toJson(QJsonDocument::Compact));
-    limitedNodeList->sendPacketList(std::move(packetList), *destinationNode);
-}
-
-// Forwards a WebRTC signaling message received from an assignment client to the relevant user client.
-void DomainServer::forwardAssignmentClientSignalingMessageToUserClient(QSharedPointer<ReceivedMessage> message) {
-    auto messageString = message->readString();
-    auto json = QJsonDocument::fromJson(messageString.toUtf8()).object();
-    emit webrtcSignalingMessageForUserClient(json);
-}
-
-#endif
-
 
 bool DomainServer::resetAccountManagerAccessToken() {
     if (!_oauthProviderURL.isEmpty()) {
@@ -3160,7 +3071,6 @@ ReplicationServerInfo serverInformationFromSettings(QVariantMap serverMap, Repli
 
         // read the address and port and construct a SockAddr from them
         serverInfo.sockAddr = {
-            SocketType::UDP,
             serverMap[REPLICATION_SERVER_ADDRESS].toString(),
             (quint16) serverMap[REPLICATION_SERVER_PORT].toString().toInt()
         };
@@ -3741,7 +3651,7 @@ void DomainServer::randomizeICEServerAddress(bool shouldTriggerHostLookup) {
         indexToTry = distribution(generator);
     }
 
-    _iceServerSocket = SockAddr { SocketType::UDP, candidateICEAddresses[indexToTry], ICE_SERVER_DEFAULT_PORT };
+    _iceServerSocket = SockAddr { candidateICEAddresses[indexToTry], ICE_SERVER_DEFAULT_PORT };
     qCInfo(domain_server_ice) << "Set candidate ice-server socket to" << _iceServerSocket;
 
     // clear our number of hearbeat denials, this should be re-set on ice-server change

@@ -51,17 +51,17 @@ using namespace std::chrono_literals;
 static const std::chrono::milliseconds CONNECTION_RATE_INTERVAL_MS = 1s;
 
 LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
-    _nodeSocket(this, true),
+    _nodeSocket(this),
     _packetReceiver(new PacketReceiver(this))
 {
     qRegisterMetaType<ConnectionStep>("ConnectionStep");
     auto port = (socketListenPort != INVALID_PORT) ? socketListenPort : LIMITED_NODELIST_LOCAL_PORT.get();
-    _nodeSocket.bind(SocketType::UDP, QHostAddress::AnyIPv4, port);
-    quint16 assignedPort = _nodeSocket.localPort(SocketType::UDP);
+    _nodeSocket.bind(QHostAddress::AnyIPv4, port);
+    quint16 assignedPort = _nodeSocket.localPort();
     if (socketListenPort != INVALID_PORT && socketListenPort != 0 && socketListenPort != assignedPort) {
-        qCCritical(networking) << "PAGE: NodeList is unable to assign requested UDP port of" << socketListenPort;
+        qCCritical(networking) << "PAGE: NodeList is unable to assign requested port of" << socketListenPort;
     }
-    qCDebug(networking) << "NodeList UDP socket is listening on" << assignedPort;
+    qCDebug(networking) << "NodeList socket is listening on" << assignedPort;
 
     if (dtlsListenPort != INVALID_PORT) {
         // only create the DTLS socket during constructor if a custom port is passed
@@ -73,8 +73,6 @@ LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
         }
         qCDebug(networking) << "NodeList DTLS socket is listening on" << _dtlsSocket->localPort();
     }
-
-    _nodeSocket.bind(SocketType::WebRTC, QHostAddress::AnyIPv4);
 
     // check for local socket updates every so often
     const int LOCAL_SOCKET_UPDATE_INTERVAL_MSECS = 5 * 1000;
@@ -207,20 +205,15 @@ void LimitedNodeList::setPermissions(const NodePermissions& newPermissions) {
     }
 }
 
-void LimitedNodeList::setSocketLocalPort(SocketType socketType, quint16 socketLocalPort) {
+void LimitedNodeList::setSocketLocalPort(quint16 socketLocalPort) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "setSocketLocalPort", Qt::QueuedConnection,
                                   Q_ARG(quint16, socketLocalPort));
         return;
     }
-    if (_nodeSocket.localPort(socketType) != socketLocalPort) {
-        _nodeSocket.rebind(socketType, socketLocalPort);
-        if (socketType == SocketType::UDP) {
-            LIMITED_NODELIST_LOCAL_PORT.set(socketLocalPort);
-        } else {
-            // WEBRTC TODO: Add WebRTC equivalent?
-            qCWarning(networking_webrtc) << "LIMITED_NODELIST_LOCAL_PORT not set for WebRTC socket";
-        }
+    if (_nodeSocket.localPort() != socketLocalPort) {
+        _nodeSocket.rebind(socketLocalPort);
+        LIMITED_NODELIST_LOCAL_PORT.set(socketLocalPort);
     }
 }
 
@@ -240,12 +233,6 @@ QUdpSocket& LimitedNodeList::getDTLSSocket() {
 
     return *_dtlsSocket;
 }
-
-#if defined(WEBRTC_DATA_CHANNELS)
-const WebRTCSocket* LimitedNodeList::getWebRTCSocket() {
-    return _nodeSocket.getWebRTCSocket();
-}
-#endif
 
 bool LimitedNodeList::isPacketVerifiedWithSource(const udt::Packet& packet, Node* sourceNode) {
     // We track bandwidth when doing packet verification to avoid needing to do a node lookup
@@ -505,8 +492,8 @@ qint64 LimitedNodeList::sendUnreliableUnorderedPacketList(NLPacketList& packetLi
         }
         return bytesSent;
     } else {
-        qCDebug(networking) << "LimitedNodeList::sendUnreliableUnorderedPacketList called without active socket for node" 
-            << destinationNode << " - not sending.";
+        qCDebug(networking) << "LimitedNodeList::sendPacketList called without active socket for node" << destinationNode
+            << " - not sending.";
         return ERROR_SENDING_PACKET_BYTES;
     }
 }
@@ -1119,7 +1106,7 @@ void LimitedNodeList::processSTUNResponse(std::unique_ptr<udt::BasePacket> packe
                     _publicSockAddr.getAddress().toString().toLocal8Bit().constData(),
                     _publicSockAddr.getPort());
 
-            _publicSockAddr = SockAddr(SocketType::UDP, newPublicAddress, newPublicPort);
+            _publicSockAddr = SockAddr(newPublicAddress, newPublicPort);
 
             if (!_hasCompletedInitialSTUN) {
                 // if we're here we have definitely completed our initial STUN sequence
@@ -1200,7 +1187,7 @@ void LimitedNodeList::stopInitialSTUNUpdate(bool success) {
         qCDebug(networking) << "LimitedNodeList public socket will be set with local port and null QHostAddress.";
 
         // reset the public address and port to a null address
-        _publicSockAddr = SockAddr(SocketType::UDP, QHostAddress(), _nodeSocket.localPort(SocketType::UDP));
+        _publicSockAddr = SockAddr(QHostAddress(), _nodeSocket.localPort());
 
         // we have changed the publicSockAddr, so emit our signal
         emit publicSockAddrChanged(_publicSockAddr);
@@ -1227,7 +1214,7 @@ void LimitedNodeList::stopInitialSTUNUpdate(bool success) {
 void LimitedNodeList::updateLocalSocket() {
     // when update is called, if the local socket is empty then start with the guessed local socket
     if (_localSockAddr.isNull()) {
-        setLocalSocket(SockAddr { SocketType::UDP, getGuessedLocalAddress(), _nodeSocket.localPort(SocketType::UDP) });
+        setLocalSocket(SockAddr { getGuessedLocalAddress(), _nodeSocket.localPort() });
     }
 
     // attempt to use Google's DNS to confirm that local IP
@@ -1251,7 +1238,7 @@ void LimitedNodeList::connectedForLocalSocketTest() {
         auto localHostAddress = localIPTestSocket->localAddress();
 
         if (localHostAddress.protocol() == QAbstractSocket::IPv4Protocol) {
-            setLocalSocket(SockAddr { SocketType::UDP, localHostAddress, _nodeSocket.localPort(SocketType::UDP) });
+            setLocalSocket(SockAddr { localHostAddress, _nodeSocket.localPort() });
             _hasTCPCheckedLocalSocket = true;
         }
 
@@ -1267,7 +1254,7 @@ void LimitedNodeList::errorTestingLocalSocket() {
         // error connecting to the test socket - if we've never set our local socket using this test socket
         // then use our possibly updated guessed local address as fallback
         if (!_hasTCPCheckedLocalSocket) {
-            setLocalSocket(SockAddr { SocketType::UDP, getGuessedLocalAddress(), _nodeSocket.localPort(SocketType::UDP) });
+            setLocalSocket(SockAddr { getGuessedLocalAddress(), _nodeSocket.localPort() });
             qCCritical(networking) << "PAGE: Can't connect to Google DNS service via TCP, falling back to guessed local address"
                 << getLocalSockAddr();
         }
@@ -1287,8 +1274,8 @@ void LimitedNodeList::setLocalSocket(const SockAddr& sockAddr) {
             _localSockAddr = sockAddr;
             if (_hasTCPCheckedLocalSocket) {  // Force a port change for NAT:
                 reset("local socket change");
-                _nodeSocket.rebind(SocketType::UDP, 0);
-                _localSockAddr.setPort(_nodeSocket.localPort(SocketType::UDP));
+                _nodeSocket.rebind(0);
+                _localSockAddr.setPort(_nodeSocket.localPort());
                 qCInfo(networking) << "Local port changed to" << _localSockAddr.getPort();
             }
         }

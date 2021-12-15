@@ -117,7 +117,7 @@ void NetworkPeer::setActiveSocket(SockAddr* discoveredSocket) {
     // we have an active socket, stop our ping timer
     stopPingTimer();
 
-    // we're now considered connected to this peer - reset the number of connection attempts
+    // we're now considered connected to this peer - reset the number of connection attemps
     resetConnectionAttempts();
     
     if (_activeSocket) {

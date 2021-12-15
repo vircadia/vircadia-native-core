@@ -41,15 +41,7 @@ const unsigned short DEFAULT_DOMAIN_SERVER_PORT =
         ? QProcessEnvironment::systemEnvironment()
             .value("HIFI_DOMAIN_SERVER_PORT")
             .toUShort()
-        : 40102;  // UDP
-
-const unsigned short DEFAULT_DOMAIN_SERVER_WS_PORT =
-    QProcessEnvironment::systemEnvironment()
-    .contains("VIRCADIA_DOMAIN_SERVER_WS_PORT")
-        ? QProcessEnvironment::systemEnvironment()
-            .value("VIRCADIA_DOMAIN_SERVER_WS_PORT")
-            .toUShort()
-        : 40102;  // TCP
+        : 40102;
 
 const unsigned short DEFAULT_DOMAIN_SERVER_DTLS_PORT =
     QProcessEnvironment::systemEnvironment()
@@ -243,7 +235,7 @@ public:
     };
 
 public slots:
-    void setURLAndID(QUrl domainURL, QUuid domainID);
+    void setURLAndID(QUrl domainURL, QUuid id);
     void setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id);
 
     void processSettingsPacketList(QSharedPointer<ReceivedMessage> packetList);
@@ -253,7 +245,7 @@ public slots:
     void processDomainServerConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message);
 
     // sets domain handler in error state.
-    void setRedirectErrorState(QUrl errorUrl, QString reasonMessage = "", int reasonCode = -1, const QString& extraInfo = "");
+    void setRedirectErrorState(QUrl errorUrl, QString reasonMessage = "", int reason = -1, const QString& extraInfo = "");
 
     bool isInErrorState() { return _isInErrorState; }
 
@@ -279,7 +271,7 @@ signals:
     void settingsReceived(const QJsonObject& domainSettingsObject);
     void settingsReceiveFail();
 
-    void domainConnectionRefused(QString reasonMessage, int reasonCode, const QString& extraInfo);
+    void domainConnectionRefused(QString reasonMessage, int reason, const QString& extraInfo);
     void redirectToErrorDomainURL(QUrl errorDomainURL);
     void redirectErrorStateChanged(bool isInErrorState);
 

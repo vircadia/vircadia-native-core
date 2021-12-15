@@ -64,11 +64,7 @@ void OtherAvatar::removeOrb() {
 void OtherAvatar::updateOrbPosition() {
     if (!_otherAvatarOrbMeshPlaceholderID.isNull()) {
         EntityItemProperties properties;
-        glm::vec3 headPosition;
-        if (!_skeletonModel->getHeadPosition(headPosition)) {
-            headPosition = getWorldPosition();
-        }
-        properties.setPosition(headPosition);
+        properties.setPosition(getHead()->getPosition());
         DependencyManager::get<EntityScriptingInterface>()->editEntity(_otherAvatarOrbMeshPlaceholderID, properties);
     }
 }

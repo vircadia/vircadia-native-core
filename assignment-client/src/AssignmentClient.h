@@ -17,8 +17,6 @@
 #include <QtCore/QPointer>
 #include <QtCore/QSharedPointer>
 
-#include <shared/WebRTC.h>
-
 #include "ThreadedAssignment.h"
 
 class QSharedMemory;
@@ -32,26 +30,19 @@ public:
                      bool disableDomainPortAutoDiscovery);
     ~AssignmentClient();
 
-public slots:
-    void aboutToQuit();
-
 private slots:
     void sendAssignmentRequest();
     void assignmentCompleted();
     void handleAuthenticationRequest();
     void sendStatusPacketToACM();
     void stopAssignmentClient();
+
+public slots:
+    void aboutToQuit();
+
+private slots:
     void handleCreateAssignmentPacket(QSharedPointer<ReceivedMessage> message);
     void handleStopNodePacket(QSharedPointer<ReceivedMessage> message);
-#if defined(WEBRTC_DATA_CHANNELS)
-    void handleWebRTCSignalingPacket(QSharedPointer<ReceivedMessage> message);
-    void sendSignalingMessageToUserClient(const QJsonObject& json);
-#endif
-
-signals:
-#if defined(WEBRTC_DATA_CHANNELS)
-    void webrtcSignalingMessageFromUserClient(const QJsonObject& json);
-#endif
 
 private:
     void setUpStatusToMonitor();
