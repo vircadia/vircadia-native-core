@@ -69,7 +69,7 @@ private:
 
 protected:
 
-    mutable QRecursiveMutex _renderArgsMutex;
+    mutable QMutex _renderArgsMutex{ QMutex::Recursive };
     AppRenderArgs _appRenderArgs;
 
     RateCounter<500> _renderLoopCounter;

@@ -746,7 +746,7 @@ signals:
 private:
     void cleanupOverlaysToDelete();
 
-    mutable QRecursiveMutex _mutex;
+    mutable QMutex _mutex { QMutex::Recursive };
     QMap<QUuid, Overlay::Pointer> _overlays;
     QList<Overlay::Pointer> _overlaysToDelete;
 
