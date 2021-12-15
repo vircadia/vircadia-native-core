@@ -47,7 +47,7 @@ ICEClientApp::ICEClientApp(int argc, char* argv[]) :
     parser.addOption(cacheSTUNOption);
 
     if (!parser.parse(QCoreApplication::arguments())) {
-        qCritical() << parser.errorText() << Qt::endl;
+        qCritical() << parser.errorText() << endl;
         parser.showHelp();
         Q_UNREACHABLE();
     }

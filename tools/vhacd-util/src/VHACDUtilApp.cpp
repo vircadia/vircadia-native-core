@@ -188,7 +188,7 @@ VHACDUtilApp::VHACDUtilApp(int argc, char* argv[]) :
 
 
     if (!parser.parse(QCoreApplication::arguments())) {
-        qCritical() << parser.errorText() << Qt::endl;
+        qCritical() << parser.errorText() << endl;
         parser.showHelp();
         Q_UNREACHABLE();
     }
