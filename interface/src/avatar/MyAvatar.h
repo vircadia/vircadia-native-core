@@ -174,6 +174,7 @@ class MyAvatar : public Avatar {
      *     registration point of the 3D model.
      *
      * @property {Vec3} qmlPosition - A synonym for <code>position</code> for use by QML.
+     *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
      *
      * @property {Vec3} feetPosition - The position of the avatar's feet.
      * @property {boolean} shouldRenderLocally=true - If <code>true</code> then your avatar is rendered for you in Interface,

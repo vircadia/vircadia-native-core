@@ -124,7 +124,7 @@ int PluginManager::instantiate() {
 
             for (auto plugin : candidates) {
                 qCDebug(plugins) << "Attempting plugin" << qPrintable(plugin);
-                QSharedPointer<QPluginLoader> loader(new QPluginLoader(pluginPath + plugin));
+                auto loader = QSharedPointer<QPluginLoader>::create(pluginPath + plugin);
                 const QJsonObject pluginMetaData = loader->metaData();
 #if defined(HIFI_PLUGINMANAGER_DEBUG)
                 QJsonDocument metaDataDoc(pluginMetaData);
@@ -173,7 +173,7 @@ const CodecPluginList& PluginManager::getCodecPlugins() {
         for (auto loader : getLoadedPlugins()) {
             CodecProvider* codecProvider = qobject_cast<CodecProvider*>(loader->instance());
             if (codecProvider) {
-                for (auto codecPlugin : codecProvider->getCodecPlugins()) {
+                for (const auto& codecPlugin : codecProvider->getCodecPlugins()) {
                     if (codecPlugin->isSupported()) {
                         codecPlugins.push_back(codecPlugin);
                     }
@@ -247,7 +247,7 @@ DisplayPluginList PluginManager::getAllDisplayPlugins() {
         for (auto loader : getLoadedPlugins()) {
             DisplayProvider* displayProvider = qobject_cast<DisplayProvider*>(loader->instance());
             if (displayProvider) {
-                for (auto displayPlugin : displayProvider->getDisplayPlugins()) {
+                for (const auto& displayPlugin : displayProvider->getDisplayPlugins()) {
                     _displayPlugins.push_back(displayPlugin);
                 }
             }
@@ -292,7 +292,7 @@ const InputPluginList& PluginManager::getInputPlugins() {
         for (auto loader : getLoadedPlugins()) {
             InputProvider* inputProvider = qobject_cast<InputProvider*>(loader->instance());
             if (inputProvider) {
-                for (auto inputPlugin : inputProvider->getInputPlugins()) {
+                for (const auto& inputPlugin : inputProvider->getInputPlugins()) {
                     if (inputPlugin->isSupported()) {
                         _inputPlugins.push_back(inputPlugin);
                     }
@@ -333,9 +333,9 @@ DisplayPluginList PluginManager::getPreferredDisplayPlugins() {
     static std::once_flag once;
     std::call_once(once, [&] {
         // Grab the built in plugins
-        auto plugins = getDisplayPlugins();
+        const auto& plugins = getDisplayPlugins();
 
-        for (auto pluginName : preferredDisplayPlugins) {
+        for (const auto& pluginName : preferredDisplayPlugins) {
             auto it = std::find_if(plugins.begin(), plugins.end(), [&](DisplayPluginPointer plugin) {
                 return plugin->getName() == pluginName;
             });
@@ -362,13 +362,13 @@ void PluginManager::saveSettings() {
 }
 
 void PluginManager::shutdown() {
-    for (auto inputPlugin : getInputPlugins()) {
+    for (const auto& inputPlugin : getInputPlugins()) {
         if (inputPlugin->isActive()) {
             inputPlugin->deactivate();
         }
     }
 
-    for (auto displayPlugins : getDisplayPlugins()) {
+    for (const auto& displayPlugins : getDisplayPlugins()) {
         if (displayPlugins->isActive()) {
             displayPlugins->deactivate();
         }

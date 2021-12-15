@@ -90,7 +90,7 @@ class RouteBuilderProxy : public QObject {
          * an in-line function definition.
          *
          * @example <caption>Make the right trigger move your avatar up.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          *
          * mapping.from(Controller.Standard.RT).to(Controller.Actions.TranslateY);
@@ -105,7 +105,7 @@ class RouteBuilderProxy : public QObject {
          *     print("Trigger value: " + value);
          * }
          *
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          *
          * mapping.from(Controller.Standard.RT).to(onRightTrigger);
@@ -124,7 +124,7 @@ class RouteBuilderProxy : public QObject {
          *     otherwise it is disabled.
          * @returns {RouteObject} The <code>RouteObject</code> with debug output enabled or disabled.
          * @example <caption>Write debug information to the program log for a right trigger mapping.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          *
          * mapping.from(Controller.Standard.RT).debug().to(function (value) {
@@ -175,7 +175,7 @@ class RouteBuilderProxy : public QObject {
          * calls.</p>
          * @returns {RouteObject} The <code>RouteObject</code> with the condition added.
          * @example <caption>Process the right trigger differently in HMD and desktop modes.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          *
          * // Processed only if in HMD mode.
@@ -203,7 +203,7 @@ class RouteBuilderProxy : public QObject {
          * @param {number} max - The maximum value to pass through.
          * @returns {RouteObject} The route object with the clamp filter added.
          * @example <caption>Clamp right trigger values to between 0.3 and 0.7.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          * mapping.from(Controller.Standard.RT).clamp(0.3, 0.7).to(function (value) {
          *     print("Value: " + value);
@@ -225,7 +225,7 @@ class RouteBuilderProxy : public QObject {
          * @param {number} max - When the input value rises above this value the output value changes to <code>1</code>.
          * @returns {RouteObject} The <code>RouteObject</code> with the filter applied.
          * @example <caption>Round the right joystick forward/back values to 0 or 1 with hysteresis.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          * mapping.from(Controller.Standard.RY).peek().to(function (value) {
          *     print("Raw value: " + value);  // 0.0 - 1.0.
@@ -247,7 +247,7 @@ class RouteBuilderProxy : public QObject {
          * @param {number} interval - The interval between sending values, in seconds.
          * @returns {RouteObject} The <code>RouteObject</code> with the filter applied.
          * @example <caption>Send right trigger values every half second.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          * mapping.from(Controller.Standard.RT).pulse(0.5).to(function (value) {
          *     print("Value: " + value);
@@ -266,7 +266,7 @@ class RouteBuilderProxy : public QObject {
          * @param {number} multiplier - The scale to multiply the value by.
          * @returns {RouteObject} The <code>RouteObject</code> with the filter applied.
          * @example <caption>Scale the value of the right joystick forward/back values by 10.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          * mapping.from(Controller.Standard.LY).to(function (value) {
          *     print("L value: " + value);  // -1.0 to 1.0 values.
@@ -288,7 +288,7 @@ class RouteBuilderProxy : public QObject {
          * @function RouteObject#invert
          * @returns {RouteObject} The <code>RouteObject</code> with the filter applied.
          * @example <caption>Invert the value of the right joystick forward/back values.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          * mapping.from(Controller.Standard.LY).to(function (value) {
          *     print("L value: " + value);  // -1.0 to 1.0 values, forward to back.
@@ -313,7 +313,7 @@ class RouteBuilderProxy : public QObject {
          *    negative of this value is used.
          * @returns {RouteObject} The <code>RouteObject</code> with the filter applied.
          * @example <caption>Apply a dead-zone to the right joystick forward/back values.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          * mapping.from(Controller.Standard.RY).deadZone(0.2).to(function (value) {
          *     print("Value: " + value);  // 0.0 - 1.0 values once outside the dead-zone.
@@ -334,7 +334,7 @@ class RouteBuilderProxy : public QObject {
          * @returns {RouteObject} The <code>RouteObject</code> with the filter applied.
          * @example <caption>Round the right joystick forward/back values to <code>-1</code>, <code>0</code>, or 
          *     <code>1</code>.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          * mapping.from(Controller.Standard.RY).constrainToInteger().to(function (value) {
          *     print("Value: " + value);  // -1, 0, or 1
@@ -353,7 +353,7 @@ class RouteBuilderProxy : public QObject {
          * @function RouteObject#constrainToPositiveInteger
          * @returns {RouteObject} The <code>RouteObject</code> with the filter applied.
          * @example <caption>Round the right joystick forward/back values to <code>0</code> or <code>1</code>.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          * mapping.from(Controller.Standard.RY).constrainToPositiveInteger().to(function (value) {
          *     print("Value: " + value);  // 0, or 1
@@ -436,7 +436,7 @@ class RouteBuilderProxy : public QObject {
          * @function RouteObject#logicalNot
          * @returns {RouteObject} The <code>RouteObject</code> with the filter applied.
          * @example <caption>Logical NOT of LSTouch value.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          * 
          * mapping.from(Controller.Standard.RSTouch).peek().to(function (value) {

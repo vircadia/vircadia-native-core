@@ -71,7 +71,7 @@ class UserInputMapper;
  * @property {Controller.MappingJSONRoute[]} channels - An array of routes.
  * @example <caption>A simple mapping JSON that makes the right trigger move your avatar up after a dead zone.</caption>
  * {
- *     "name": "com.highfidelity.controllers.example.jsonMapping",
+ *     "name": "com.vircadia.controllers.example.jsonMapping",
  *     "channels": [
  *         { 
  *             "from": "Standard.RT", 
@@ -176,7 +176,7 @@ public:
      * @returns {RouteObject} A route ready for mapping to an action or function using {@link RouteObject} methods. The data
      *     value passed to the route is the combined value of <code>source2 - source1</code>. 
      * @example <caption>Make the Oculus Touch triggers move your avatar up and down.</caption>
-     * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+     * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
      * var mapping = Controller.newMapping(MAPPING_NAME);
      * mapping
      *     .makeAxis(Controller.Hardware.OculusTouch.LT, Controller.Hardware.OculusTouch.RT)

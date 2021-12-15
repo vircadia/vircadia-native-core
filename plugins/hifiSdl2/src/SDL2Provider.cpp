@@ -29,7 +29,7 @@ public:
     virtual InputPluginList getInputPlugins() override {
         static std::once_flag once;
         std::call_once(once, [&] {
-            InputPluginPointer plugin(new SDL2Manager());
+            InputPluginPointer plugin(std::make_shared<SDL2Manager>());
             if (plugin->isSupported()) {
                 _inputPlugins.push_back(plugin);
             }

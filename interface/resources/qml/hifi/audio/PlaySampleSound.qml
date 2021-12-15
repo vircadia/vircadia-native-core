@@ -25,10 +25,8 @@ RowLayout {
         sample = null;
     }
     function playSound() {
-        // FIXME: MyAvatar is not properly exposed to QML; MyAvatar.qmlPosition is a stopgap
-        // FIXME: AudioScriptingInterface.playSystemSound should not require position
         if (sample === null && !isPlaying) {
-            sample = AudioScriptingInterface.playSystemSound(sound, MyAvatar.qmlPosition);
+            sample = AudioScriptingInterface.playSystemSound(sound);
             isPlaying = true;
             sample.finished.connect(reset);
         }

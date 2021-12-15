@@ -108,7 +108,7 @@ ScriptValue ModelScriptingInterface::appendMeshes(MeshProxyList in) {
         indexStartOffset += numVertices;
     }
 
-    graphics::MeshPointer result(new graphics::Mesh());
+    graphics::MeshPointer result(std::make_shared<graphics::Mesh>());
 
     gpu::Element vertexElement = gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ);
     gpu::Buffer* combinedVertexBuffer = new gpu::Buffer(combinedVertexSize, combinedVertexData.get());
@@ -205,7 +205,7 @@ ScriptValue ModelScriptingInterface::getVertex(MeshProxy* meshProxy, int vertexI
 ScriptValue ModelScriptingInterface::newMesh(const QVector<glm::vec3>& vertices,
                                               const QVector<glm::vec3>& normals,
                                               const QVector<MeshFace>& faces) {
-    graphics::MeshPointer mesh(new graphics::Mesh());
+    graphics::MeshPointer mesh(std::make_shared<graphics::Mesh>());
 
     // vertices
     auto vertexBuffer = std::make_shared<gpu::Buffer>(vertices.size() * sizeof(glm::vec3), (gpu::Byte*)vertices.data());

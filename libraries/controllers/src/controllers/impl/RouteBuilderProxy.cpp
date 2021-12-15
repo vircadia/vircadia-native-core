@@ -71,7 +71,7 @@ QObject* RouteBuilderProxy::when(const ScriptValue& expression) {
     // Note that "!" is supported when parsing a JSON file, in UserInputMapper::parseConditional().
     auto newConditional = _parent.conditionalFor(expression);
     if (_route->conditional) {
-        _route->conditional = ConditionalPointer(new AndConditional(_route->conditional, newConditional));
+        _route->conditional = std::make_shared<AndConditional>(_route->conditional, newConditional);
     } else {
         _route->conditional = newConditional;
     }
@@ -81,7 +81,7 @@ QObject* RouteBuilderProxy::when(const ScriptValue& expression) {
 QObject* RouteBuilderProxy::whenQml(const QJSValue& expression) {
     auto newConditional = _parent.conditionalFor(expression);
     if (_route->conditional) {
-        _route->conditional = ConditionalPointer(new AndConditional(_route->conditional, newConditional));
+        _route->conditional = std::make_shared<AndConditional>(_route->conditional, newConditional);
     } else {
         _route->conditional = newConditional;
     }

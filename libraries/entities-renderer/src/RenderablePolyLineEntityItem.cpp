@@ -79,7 +79,7 @@ void PolyLineEntityRenderer::buildPipelines() {
             program = gpu::Shader::createProgram(shader::entities_renderer::program::paintStroke_forward);
         }
 
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
 
         state->setCullMode(gpu::State::CullMode::CULL_NONE);
         state->setDepthTest(true, !transparent, gpu::LESS_EQUAL);

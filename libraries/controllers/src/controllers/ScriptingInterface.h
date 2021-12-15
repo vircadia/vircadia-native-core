@@ -275,7 +275,7 @@ namespace controller {
          *     by {@link Uuid(0).generate|Uuid.generate} is used.
          * @returns {MappingObject} A controller mapping object.
          * @example <caption>Create a simple mapping that makes the right trigger move your avatar up.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          *
          * mapping.from(Controller.Standard.RT).to(Controller.Actions.TranslateY);
@@ -310,7 +310,7 @@ namespace controller {
          * @returns {MappingObject} A controller mapping object.
          * @example <caption>Create a simple mapping that makes the right trigger move your avatar up.</caption>
          * var mappingJSON = {
-         *     "name": "com.highfidelity.controllers.example.jsonMapping",
+         *     "name": "com.vircadia.controllers.example.jsonMapping",
          *     "channels": [
          *         { "from": "Standard.RT", "to": "Actions.TranslateY" }
          *     ]
@@ -462,7 +462,7 @@ namespace controller {
          * {@link Controller.Hardware|Controller.Hardware.Keyboard} outputs.
          * @function Controller.captureMouseEvents
          * @example <caption>Disable Controller.Hardware.Keyboard mouse events for a short period.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          * mapping.from(Controller.Hardware.Keyboard.MouseX).to(function (x) {
          *     print("Mouse x = " + x);

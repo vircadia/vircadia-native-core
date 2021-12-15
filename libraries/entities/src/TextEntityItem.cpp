@@ -32,7 +32,7 @@ const float TextEntityItem::DEFAULT_MARGIN = 0.0f;
 const float TextEntityItem::DEFAULT_TEXT_EFFECT_THICKNESS = 0.2f;
 
 EntityItemPointer TextEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity(new TextEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
+    std::shared_ptr<TextEntityItem> entity(new TextEntityItem(entityID), [](TextEntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }

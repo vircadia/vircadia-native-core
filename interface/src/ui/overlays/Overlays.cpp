@@ -786,11 +786,11 @@ QUuid Overlays::addOverlay(const QString& type, const QVariant& properties) {
 
         Overlay::Pointer overlay;
         if (type == ImageOverlay::TYPE) {
-            overlay = Overlay::Pointer(new ImageOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
+            overlay = std::shared_ptr<ImageOverlay>(new ImageOverlay(), [](ImageOverlay* ptr) { ptr->deleteLater(); });
         } else if (type == TextOverlay::TYPE) {
-            overlay = Overlay::Pointer(new TextOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
+            overlay = std::shared_ptr<TextOverlay>(new TextOverlay(), [](TextOverlay* ptr) { ptr->deleteLater(); });
         } else if (type == RectangleOverlay::TYPE) {
-            overlay = Overlay::Pointer(new RectangleOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
+            overlay = std::shared_ptr<RectangleOverlay>(new RectangleOverlay(), [](RectangleOverlay* ptr) { ptr->deleteLater(); });
         }
         if (overlay) {
             overlay->setProperties(properties.toMap());
