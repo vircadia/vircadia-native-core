@@ -73,7 +73,7 @@ public:  // construction
     inline QObject* toQtValue() const { return _object; }
 
 public:  // QScriptClass implementation
-    virtual QString name() const override { return _name; }
+    virtual QString name() const override;
 
     virtual QScriptValue property(const QScriptValue& object, const QScriptString& name, uint id) override;
     virtual QScriptValue::PropertyFlags propertyFlags(const QScriptValue& object, const QScriptString& name, uint id) override;
@@ -92,7 +92,6 @@ private:  // storage
     InstanceMap _signalInstances;
     const bool _ownsObject;
     QPointer<QObject> _object;
-    QString _name;
 
     Q_DISABLE_COPY(ScriptObjectQtProxy)
 };
@@ -138,19 +137,21 @@ private:  // storage
 
 class ScriptMethodQtProxy final : public QScriptClass {
 public:  // construction
-    inline ScriptMethodQtProxy(ScriptEngineQtScript* engine, QObject* object, QScriptValue lifetime, QString name, const QList<QMetaMethod>& metas) :
-        QScriptClass(engine), _engine(engine), _object(object), _objectLifetime(lifetime), _name(name), _metas(metas) {}
+    inline ScriptMethodQtProxy(ScriptEngineQtScript* engine, QObject* object, QScriptValue lifetime, const QList<QMetaMethod>& metas) :
+        QScriptClass(engine), _engine(engine), _object(object), _objectLifetime(lifetime), _metas(metas) {}
 
 public:  // QScriptClass implementation
-    virtual QString name() const override { return _name; }
+    virtual QString name() const override { return fullName(); }
     virtual bool supportsExtension(Extension extension) const override;
     virtual QVariant extension(Extension extension, const QVariant& argument = QVariant()) override;
+
+private:
+    QString fullName() const;
 
 private:  // storage
     ScriptEngineQtScript* _engine;
     QPointer<QObject> _object;
     QScriptValue _objectLifetime;
-    const QString _name;
     const QList<QMetaMethod> _metas;
 
     Q_DISABLE_COPY(ScriptMethodQtProxy)
@@ -175,13 +176,14 @@ private:  // storage
     using ConnectionList = QList<Connection>;
 
 public:  // construction
-    inline ScriptSignalQtProxy(ScriptEngineQtScript* engine, QObject* object, QScriptValue lifetime, QString name, const QMetaMethod& meta) :
-        _engine(engine), _object(object), _objectLifetime(lifetime), _name(name), _meta(meta), _metaCallId(discoverMetaCallIdx()) {}
+    inline ScriptSignalQtProxy(ScriptEngineQtScript* engine, QObject* object, QScriptValue lifetime, const QMetaMethod& meta) :
+        _engine(engine), _object(object), _objectLifetime(lifetime), _meta(meta), _metaCallId(discoverMetaCallIdx()) {}
 
 private:  // implementation
     virtual int qt_metacall(QMetaObject::Call call, int id, void** arguments);
     int discoverMetaCallIdx();
     ConnectionList::iterator findConnection(QScriptValue thisObject, QScriptValue callback);
+    QString fullName() const;
 
 public:  // API
     virtual void connect(QScriptValue arg0, QScriptValue arg1 = QScriptValue()) override;
@@ -191,7 +193,6 @@ private:  // storage
     ScriptEngineQtScript* _engine;
     QPointer<QObject> _object;
     QScriptValue _objectLifetime;
-    QString _name;
     const QMetaMethod _meta;
     const int _metaCallId;
     ConnectionList _connections;

@@ -24,6 +24,7 @@
 #include <QtCore/QMutex>
 #include <QtCore/QObject>
 #include <QtCore/QPointer>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QString>
 
 #include <QtScript/QScriptEngine>
@@ -34,13 +35,12 @@
 #include "ArrayBufferClass.h"
 
 class ScriptContextQtWrapper;
-class ScriptContextQtAgent;
 class ScriptEngineQtScript;
 class ScriptManager;
-using ScriptEngineQtScriptPointer = std::shared_ptr<ScriptEngineQtScript>;
+class ScriptObjectQtProxy;
 using ScriptContextQtPointer = std::shared_ptr<ScriptContextQtWrapper>;
 
-Q_DECLARE_METATYPE(ScriptEngineQtScriptPointer);
+Q_DECLARE_METATYPE(ScriptEngine::FunctionSignature)
 
 /// [QtScript] Implements ScriptEngine for QtScript and translates calls for QScriptEngine
 class ScriptEngineQtScript final : public QScriptEngine,
@@ -50,7 +50,6 @@ class ScriptEngineQtScript final : public QScriptEngine,
 
 public:  // construction
     ScriptEngineQtScript(ScriptManager* scriptManager = nullptr);
-    ~ScriptEngineQtScript();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // NOTE - these are NOT intended to be public interfaces available to scripts, the are only Q_INVOKABLE so we can
@@ -150,11 +149,16 @@ public: // public non-interface methods for other QtScript-specific classes to u
 
 public: // not for public use, but I don't like how Qt strings this along with private friend functions
     virtual ScriptValue create(int type, const void* ptr) override;
-    virtual QVariant convert(const ScriptValue& value, int type) override;
+    virtual QVariant convert(const ScriptValue& value, int typeId) override;
     virtual void registerCustomType(int type, ScriptEngine::MarshalFunction marshalFunc,
                                     ScriptEngine::DemarshalFunction demarshalFunc) override;
-    bool castValueToVariant(const QScriptValue& val, QVariant& dest, int destType);
+    bool castValueToVariant(const QScriptValue& val, QVariant& dest, int destTypeId);
     QScriptValue castVariantToValue(const QVariant& val);
+    static QString valueType(const QScriptValue& val);
+
+    using ObjectWrapperMap = QMap<QObject*, QWeakPointer<ScriptObjectQtProxy>>;
+    mutable QMutex _qobjectWrapperMapProtect;
+    ObjectWrapperMap _qobjectWrapperMap;
 
 protected:
     // like `newFunction`, but allows mapping inline C++ lambdas with captures as callable QScriptValues
@@ -180,14 +184,11 @@ protected:
     mutable QMutex _customTypeProtect;
     CustomMarshalMap _customTypes;
     CustomPrototypeMap _customPrototypes;
-    int _nextCustomType = 0;
     ScriptValue _nullValue;
     ScriptValue _undefinedValue;
     mutable ScriptContextQtPointer _currContext;
 
     ArrayBufferClass* _arrayBufferClass;
-
-    ScriptContextQtAgent* _contextAgent{ nullptr };
 };
 
 // Lambda helps create callable QScriptValues out of std::functions:

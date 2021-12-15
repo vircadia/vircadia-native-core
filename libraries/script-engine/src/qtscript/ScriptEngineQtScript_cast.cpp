@@ -16,64 +16,16 @@
 #include <QtCore/QJsonValue>
 #include <QtScript/QScriptEngine>
 
+#include "../ScriptEngineCast.h"
 #include "../ScriptValueIterator.h"
 
 #include "ScriptObjectQtProxy.h"
 #include "ScriptValueQtWrapper.h"
 
-template <int i>
-class CustomTypeInstance {
-public:
-    static ScriptEngine::MarshalFunction marshalFunc;
-    static ScriptEngine::DemarshalFunction demarshalFunc;
-
-    static QScriptValue internalMarshalFunc(QScriptEngine* engine, const void* src) {
-        ScriptEngineQtScript* unwrappedEngine = static_cast<ScriptEngineQtScript*>(engine);
-        ScriptValue dest = marshalFunc(unwrappedEngine, src);
-        return ScriptValueQtWrapper::fullUnwrap(unwrappedEngine, dest);
-    }
-
-    static void internalDemarshalFunc(const QScriptValue& src, void* dest) {
-        ScriptEngineQtScript* unwrappedEngine = static_cast<ScriptEngineQtScript*>(src.engine());
-        ScriptValue wrappedSrc(new ScriptValueQtWrapper(unwrappedEngine, src));
-        demarshalFunc(wrappedSrc, dest);
-    }
-};
-template <int i>
-ScriptEngine::MarshalFunction CustomTypeInstance<i>::marshalFunc;
-template <int i>
-ScriptEngine::DemarshalFunction CustomTypeInstance<i>::demarshalFunc;
-
-// I would *LOVE* it if there was a different way to do this, jeez!
-// Qt requires two functions that have no parameters that give any context,
-// one of the must return a QScriptValue (so we can't void* them into generics and stick them in the templates).
-// This *has* to be done via templates but the whole point of this is to avoid leaking types into the rest of
-// the system that would require anyone other than us to have a dependency on QtScript
-#define CUSTOM_TYPE_ENTRY(idx) \
-        case idx: \
-            CustomTypeInstance<idx>::marshalFunc = marshalFunc; \
-            CustomTypeInstance<idx>::demarshalFunc = demarshalFunc; \
-            internalMarshalFunc = CustomTypeInstance<idx>::internalMarshalFunc; \
-            internalDemarshalFunc = CustomTypeInstance<idx>::internalDemarshalFunc; \
-            break;
-#define CUSTOM_TYPE_ENTRY_10(idx) \
-        CUSTOM_TYPE_ENTRY((idx * 10)); \
-        CUSTOM_TYPE_ENTRY((idx * 10) + 1); \
-        CUSTOM_TYPE_ENTRY((idx * 10) + 2); \
-        CUSTOM_TYPE_ENTRY((idx * 10) + 3); \
-        CUSTOM_TYPE_ENTRY((idx * 10) + 4); \
-        CUSTOM_TYPE_ENTRY((idx * 10) + 5); \
-        CUSTOM_TYPE_ENTRY((idx * 10) + 6); \
-        CUSTOM_TYPE_ENTRY((idx * 10) + 7); \
-        CUSTOM_TYPE_ENTRY((idx * 10) + 8); \
-        CUSTOM_TYPE_ENTRY((idx * 10) + 9);
-
 void ScriptEngineQtScript::setDefaultPrototype(int metaTypeId, const ScriptValue& prototype) {
     ScriptValueQtWrapper* unwrappedPrototype = ScriptValueQtWrapper::unwrap(prototype);
     if (unwrappedPrototype) {
         const QScriptValue& scriptPrototype = unwrappedPrototype->toQtValue();
-        QScriptEngine::setDefaultPrototype(metaTypeId, scriptPrototype);
- 
         QMutexLocker guard(&_customTypeProtect);
         _customPrototypes.insert(metaTypeId, scriptPrototype);
     }
@@ -83,59 +35,12 @@ void ScriptEngineQtScript::registerCustomType(int type,
                                               ScriptEngine::MarshalFunction marshalFunc,
                                               ScriptEngine::DemarshalFunction demarshalFunc)
 {
-    QScriptEngine::MarshalFunction internalMarshalFunc;
-    QScriptEngine::DemarshalFunction internalDemarshalFunc;
+    QMutexLocker guard(&_customTypeProtect);
 
-    {
-        QMutexLocker guard(&_customTypeProtect);
-
-        // storing it in a map for our own benefit
-        CustomMarshal& customType = _customTypes.insert(type, CustomMarshal()).value();
-        customType.demarshalFunc = demarshalFunc;
-        customType.marshalFunc = marshalFunc;
-
-        // creating a conversion for QtScript's benefit
-        if (_nextCustomType >= 300) {  // have we ran out of translators?
-            Q_ASSERT(false);
-            return;
-        }
-
-        switch (_nextCustomType++) {
-            CUSTOM_TYPE_ENTRY_10(0);
-            CUSTOM_TYPE_ENTRY_10(1);
-            CUSTOM_TYPE_ENTRY_10(2);
-            CUSTOM_TYPE_ENTRY_10(3);
-            CUSTOM_TYPE_ENTRY_10(4);
-            CUSTOM_TYPE_ENTRY_10(5);
-            CUSTOM_TYPE_ENTRY_10(6);
-            CUSTOM_TYPE_ENTRY_10(7);
-            CUSTOM_TYPE_ENTRY_10(8);
-            CUSTOM_TYPE_ENTRY_10(9);
-            CUSTOM_TYPE_ENTRY_10(10);
-            CUSTOM_TYPE_ENTRY_10(11);
-            CUSTOM_TYPE_ENTRY_10(12);
-            CUSTOM_TYPE_ENTRY_10(13);
-            CUSTOM_TYPE_ENTRY_10(14);
-            CUSTOM_TYPE_ENTRY_10(15);
-            CUSTOM_TYPE_ENTRY_10(16);
-            CUSTOM_TYPE_ENTRY_10(17);
-            CUSTOM_TYPE_ENTRY_10(18);
-            CUSTOM_TYPE_ENTRY_10(19);
-            CUSTOM_TYPE_ENTRY_10(20);
-            CUSTOM_TYPE_ENTRY_10(21);
-            CUSTOM_TYPE_ENTRY_10(22);
-            CUSTOM_TYPE_ENTRY_10(23);
-            CUSTOM_TYPE_ENTRY_10(24);
-            CUSTOM_TYPE_ENTRY_10(25);
-            CUSTOM_TYPE_ENTRY_10(26);
-            CUSTOM_TYPE_ENTRY_10(27);
-            CUSTOM_TYPE_ENTRY_10(28);
-            CUSTOM_TYPE_ENTRY_10(29);
-            CUSTOM_TYPE_ENTRY_10(30);
-        }
-    }
-
-    qScriptRegisterMetaType_helper(this, type, internalMarshalFunc, internalDemarshalFunc, QScriptValue());
+    // storing it in a map for our own benefit
+    CustomMarshal& customType = _customTypes.insert(type, CustomMarshal()).value();
+    customType.demarshalFunc = demarshalFunc;
+    customType.marshalFunc = marshalFunc;
 }
 
 Q_DECLARE_METATYPE(ScriptValue);
@@ -149,8 +54,7 @@ static void ScriptValueFromQScriptValue(const QScriptValue& src, ScriptValue& de
     dest = ScriptValue(new ScriptValueQtWrapper(engine, src));
 }
 
-static ScriptValue StringListToScriptValue(ScriptEngine* engine, const void* pSrc) {
-    const QStringList& src = *reinterpret_cast<const QStringList*>(pSrc);
+static ScriptValue StringListToScriptValue(ScriptEngine* engine, const QStringList& src) {
     int len = src.length();
     ScriptValue dest = engine->newArray(len);
     for (int idx = 0; idx < len; ++idx) {
@@ -159,9 +63,8 @@ static ScriptValue StringListToScriptValue(ScriptEngine* engine, const void* pSr
     return dest;
 }
 
-static bool StringListFromScriptValue(const ScriptValue& src, void* pDest) {
+static bool StringListFromScriptValue(const ScriptValue& src, QStringList& dest) {
     if(!src.isArray()) return false;
-    QStringList& dest = *reinterpret_cast<QStringList*>(pDest);
     int len = src.property("length").toInteger();
     dest.clear();
     for (int idx = 0; idx < len; ++idx) {
@@ -170,8 +73,7 @@ static bool StringListFromScriptValue(const ScriptValue& src, void* pDest) {
     return true;
 }
 
-static ScriptValue VariantListToScriptValue(ScriptEngine* engine, const void* pSrc) {
-    const QVariantList& src = *reinterpret_cast<const QVariantList*>(pSrc);
+static ScriptValue VariantListToScriptValue(ScriptEngine* engine, const QVariantList& src) {
     int len = src.length();
     ScriptValue dest = engine->newArray(len);
     for (int idx = 0; idx < len; ++idx) {
@@ -180,9 +82,8 @@ static ScriptValue VariantListToScriptValue(ScriptEngine* engine, const void* pS
     return dest;
 }
 
-static bool VariantListFromScriptValue(const ScriptValue& src, void* pDest) {
+static bool VariantListFromScriptValue(const ScriptValue& src, QVariantList& dest) {
     if(!src.isArray()) return false;
-    QVariantList& dest = *reinterpret_cast<QVariantList*>(pDest);
     int len = src.property("length").toInteger();
     dest.clear();
     for (int idx = 0; idx < len; ++idx) {
@@ -191,8 +92,7 @@ static bool VariantListFromScriptValue(const ScriptValue& src, void* pDest) {
     return true;
 }
 
-static ScriptValue VariantMapToScriptValue(ScriptEngine* engine, const void* pSrc) {
-    const QVariantMap& src = *reinterpret_cast<const QVariantMap*>(pSrc);
+static ScriptValue VariantMapToScriptValue(ScriptEngine* engine, const QVariantMap& src) {
     ScriptValue dest = engine->newObject();
     for (QVariantMap::const_iterator iter = src.cbegin(); iter != src.cend(); ++iter) {
         dest.setProperty(iter.key(), engine->newVariant(iter.value()));
@@ -200,8 +100,7 @@ static ScriptValue VariantMapToScriptValue(ScriptEngine* engine, const void* pSr
     return dest;
 }
 
-static bool VariantMapFromScriptValue(const ScriptValue& src, void* pDest) {
-    QVariantMap& dest = *reinterpret_cast<QVariantMap*>(pDest);
+static bool VariantMapFromScriptValue(const ScriptValue& src, QVariantMap& dest) {
     dest.clear();
     ScriptValueIteratorPointer iter = src.newIterator();
     while (iter->hasNext()) {
@@ -211,8 +110,7 @@ static bool VariantMapFromScriptValue(const ScriptValue& src, void* pDest) {
     return true;
 }
 
-static ScriptValue VariantHashToScriptValue(ScriptEngine* engine, const void* pSrc) {
-    const QVariantHash& src = *reinterpret_cast<const QVariantHash*>(pSrc);
+static ScriptValue VariantHashToScriptValue(ScriptEngine* engine, const QVariantHash& src) {
     ScriptValue dest = engine->newObject();
     for (QVariantHash::const_iterator iter = src.cbegin(); iter != src.cend(); ++iter) {
         dest.setProperty(iter.key(), engine->newVariant(iter.value()));
@@ -220,8 +118,7 @@ static ScriptValue VariantHashToScriptValue(ScriptEngine* engine, const void* pS
     return dest;
 }
 
-static bool VariantHashFromScriptValue(const ScriptValue& src, void* pDest) {
-    QVariantHash& dest = *reinterpret_cast<QVariantHash*>(pDest);
+static bool VariantHashFromScriptValue(const ScriptValue& src, QVariantHash& dest) {
     dest.clear();
     ScriptValueIteratorPointer iter = src.newIterator();
     while (iter->hasNext()) {
@@ -231,19 +128,16 @@ static bool VariantHashFromScriptValue(const ScriptValue& src, void* pDest) {
     return true;
 }
 
-static ScriptValue JsonValueToScriptValue(ScriptEngine* engine, const void* pSrc) {
-    const QJsonValue& src = *reinterpret_cast<const QJsonValue*>(pSrc);
+static ScriptValue JsonValueToScriptValue(ScriptEngine* engine, const QJsonValue& src) {
     return engine->newVariant(src.toVariant());
 }
 
-static bool JsonValueFromScriptValue(const ScriptValue& src, void* pDest) {
-    QJsonValue& dest = *reinterpret_cast<QJsonValue*>(pDest);
+static bool JsonValueFromScriptValue(const ScriptValue& src, QJsonValue& dest) {
     dest = QJsonValue::fromVariant(src.toVariant());
     return true;
 }
 
-static ScriptValue JsonObjectToScriptValue(ScriptEngine* engine, const void* pSrc) {
-    const QJsonObject& src = *reinterpret_cast<const QJsonObject*>(pSrc);
+static ScriptValue JsonObjectToScriptValue(ScriptEngine* engine, const QJsonObject& src) {
     QVariantMap map = src.toVariantMap();
     ScriptValue dest = engine->newObject();
     for (QVariantMap::const_iterator iter = map.cbegin(); iter != map.cend(); ++iter) {
@@ -252,8 +146,7 @@ static ScriptValue JsonObjectToScriptValue(ScriptEngine* engine, const void* pSr
     return dest;
 }
 
-static bool JsonObjectFromScriptValue(const ScriptValue& src, void* pDest) {
-    QJsonObject& dest = *reinterpret_cast<QJsonObject*>(pDest);
+static bool JsonObjectFromScriptValue(const ScriptValue& src, QJsonObject& dest) {
     QVariantMap map;
     ScriptValueIteratorPointer iter = src.newIterator();
     while (iter->hasNext()) {
@@ -264,8 +157,7 @@ static bool JsonObjectFromScriptValue(const ScriptValue& src, void* pDest) {
     return true;
 }
 
-static ScriptValue JsonArrayToScriptValue(ScriptEngine* engine, const void* pSrc) {
-    const QJsonArray& src = *reinterpret_cast<const QJsonArray*>(pSrc);
+static ScriptValue JsonArrayToScriptValue(ScriptEngine* engine, const QJsonArray& src) {
     QVariantList list = src.toVariantList();
     int len = list.length();
     ScriptValue dest = engine->newArray(len);
@@ -275,9 +167,8 @@ static ScriptValue JsonArrayToScriptValue(ScriptEngine* engine, const void* pSrc
     return dest;
 }
 
-static bool JsonArrayFromScriptValue(const ScriptValue& src, void* pDest) {
+static bool JsonArrayFromScriptValue(const ScriptValue& src, QJsonArray& dest) {
     if(!src.isArray()) return false;
-    QJsonArray& dest = *reinterpret_cast<QJsonArray*>(pDest);
     QVariantList list;
     int len = src.property("length").toInteger();
     for (int idx = 0; idx < len; ++idx) {
@@ -292,63 +183,33 @@ static bool JsonArrayFromScriptValue(const ScriptValue& src, void* pDest) {
 void ScriptEngineQtScript::registerSystemTypes() {
     qScriptRegisterMetaType(this, ScriptValueToQScriptValue, ScriptValueFromQScriptValue);
 
-    QMutexLocker guard(&_customTypeProtect);
-
-    {
-        CustomMarshal& customType = _customTypes.insert(QMetaType::QStringList, CustomMarshal()).value();
-        customType.demarshalFunc = StringListFromScriptValue;
-        customType.marshalFunc = StringListToScriptValue;
-    }
-    {
-        CustomMarshal& customType = _customTypes.insert(QMetaType::QVariantList, CustomMarshal()).value();
-        customType.demarshalFunc = VariantListFromScriptValue;
-        customType.marshalFunc = VariantListToScriptValue;
-    }
-    {
-        CustomMarshal& customType = _customTypes.insert(QMetaType::QVariantMap, CustomMarshal()).value();
-        customType.demarshalFunc = VariantMapFromScriptValue;
-        customType.marshalFunc = VariantMapToScriptValue;
-    }
-    {
-        CustomMarshal& customType = _customTypes.insert(QMetaType::QVariantHash, CustomMarshal()).value();
-        customType.demarshalFunc = VariantHashFromScriptValue;
-        customType.marshalFunc = VariantHashToScriptValue;
-    }
-    {
-        CustomMarshal& customType = _customTypes.insert(QMetaType::QJsonValue, CustomMarshal()).value();
-        customType.demarshalFunc = JsonValueFromScriptValue;
-        customType.marshalFunc = JsonValueToScriptValue;
-    }
-    {
-        CustomMarshal& customType = _customTypes.insert(QMetaType::QJsonObject, CustomMarshal()).value();
-        customType.demarshalFunc = JsonObjectFromScriptValue;
-        customType.marshalFunc = JsonObjectToScriptValue;
-    }
-    {
-        CustomMarshal& customType = _customTypes.insert(QMetaType::QJsonArray, CustomMarshal()).value();
-        customType.demarshalFunc = JsonArrayFromScriptValue;
-        customType.marshalFunc = JsonArrayToScriptValue;
-    }
+    scriptRegisterMetaType(this, StringListToScriptValue, StringListFromScriptValue);
+    scriptRegisterMetaType(this, VariantListToScriptValue, VariantListFromScriptValue);
+    scriptRegisterMetaType(this, VariantMapToScriptValue, VariantMapFromScriptValue);
+    scriptRegisterMetaType(this, VariantHashToScriptValue, VariantHashFromScriptValue);
+    scriptRegisterMetaType(this, JsonValueToScriptValue, JsonValueFromScriptValue);
+    scriptRegisterMetaType(this, JsonObjectToScriptValue, JsonObjectFromScriptValue);
+    scriptRegisterMetaType(this, JsonArrayToScriptValue, JsonArrayFromScriptValue);
 }
 
-bool ScriptEngineQtScript::castValueToVariant(const QScriptValue& val, QVariant& dest, int destType) {
+bool ScriptEngineQtScript::castValueToVariant(const QScriptValue& val, QVariant& dest, int destTypeId) {
 
     // if we're not particularly interested in a specific type, try to detect if we're dealing with a registered type
-    if (destType == QMetaType::UnknownType) {
+    if (destTypeId == QMetaType::UnknownType) {
         QObject* obj = ScriptObjectQtProxy::unwrap(val);
         if (obj) {
             for (const QMetaObject* metaObject = obj->metaObject(); metaObject; metaObject = metaObject->superClass()) {
                 QByteArray typeName = QByteArray(metaObject->className()) + "*";
                 int typeId = QMetaType::type(typeName.constData());
                 if (typeId != QMetaType::UnknownType) {
-                    destType = typeId;
+                    destTypeId = typeId;
                     break;
                 }
             }
         }
     }
 
-    if (destType == qMetaTypeId<ScriptValue>()) {
+    if (destTypeId == qMetaTypeId<ScriptValue>()) {
         dest = QVariant::fromValue(ScriptValue(new ScriptValueQtWrapper(this, val)));
         return true;
     }
@@ -357,20 +218,19 @@ bool ScriptEngineQtScript::castValueToVariant(const QScriptValue& val, QVariant&
     ScriptEngine::DemarshalFunction demarshalFunc = nullptr;
     {
         QMutexLocker guard(&_customTypeProtect);
-        CustomMarshalMap::const_iterator lookup = _customTypes.find(destType);
+        CustomMarshalMap::const_iterator lookup = _customTypes.find(destTypeId);
         if (lookup != _customTypes.cend()) {
             demarshalFunc = lookup.value().demarshalFunc;
         }
     }
     if (demarshalFunc) {
-        void* destStorage = QMetaType::create(destType);
+        dest = QVariant(destTypeId, static_cast<void*>(NULL));
         ScriptValue wrappedVal(new ScriptValueQtWrapper(this, val));
-        bool success = demarshalFunc(wrappedVal, destStorage);
-        dest = success ? QVariant(destType, destStorage) : QVariant();
-        QMetaType::destroy(destType, destStorage);
+        bool success = demarshalFunc(wrappedVal, const_cast<void*>(dest.constData()));
+        if(!success) dest = QVariant();
         return success;
     } else {
-        switch (destType) {
+        switch (destTypeId) {
             case QMetaType::UnknownType:
                 if (val.isUndefined()) {
                     dest = QVariant();
@@ -443,8 +303,19 @@ bool ScriptEngineQtScript::castValueToVariant(const QScriptValue& val, QVariant&
                 break;
             default:
                 // check to see if this is a pointer to a QObject-derived object
-                if (QMetaType::typeFlags(destType) & QMetaType::PointerToQObject) {
-                    dest = QVariant::fromValue(ScriptObjectQtProxy::unwrap(val));
+                if (QMetaType::typeFlags(destTypeId) & (QMetaType::PointerToQObject | QMetaType::TrackingPointerToQObject)) {
+                    /* Do we really want to permit regular passing of nullptr to native functions?
+                    if (!val.isValid() || val.isUndefined() || val.isNull()) {
+                        dest = QVariant::fromValue(nullptr);
+                        break;
+                    }*/
+                    QObject* obj = ScriptObjectQtProxy::unwrap(val);
+                    if (!obj) return false;
+                    const QMetaObject* destMeta = QMetaType::metaObjectForType(destTypeId);
+                    Q_ASSERT(destMeta);
+                    obj = destMeta->cast(obj);
+                    if (!obj) return false;
+                    dest = QVariant::fromValue(obj);
                     break;
                 }
                 // check to see if we have a registered prototype
@@ -461,7 +332,40 @@ bool ScriptEngineQtScript::castValueToVariant(const QScriptValue& val, QVariant&
         }
     }
 
-    return destType == QMetaType::UnknownType || dest.userType() == destType || dest.convert(destType);
+    return destTypeId == QMetaType::UnknownType || dest.userType() == destTypeId || dest.convert(destTypeId);
+}
+
+QString ScriptEngineQtScript::valueType(const QScriptValue& val) {
+    if (val.isUndefined()) {
+        return "undefined";
+    }
+    if (val.isNull()) {
+        return "null";
+    }
+    if (val.isBool()) {
+        return "boolean";
+    }
+    if (val.isString()) {
+        return "string";
+    }
+    if (val.isNumber()) {
+        return "number";
+    }
+    {
+        QObject* obj = ScriptObjectQtProxy::unwrap(val);
+        if (obj) {
+            QString objectName = obj->objectName();
+            if (!objectName.isEmpty()) return objectName;
+            return obj->metaObject()->className();
+        }
+    }
+    {
+        QVariant var = ScriptVariantQtProxy::unwrap(val);
+        if (var.isValid()) {
+            return var.typeName();
+        }
+    }
+    return val.toVariant().typeName();
 }
 
 QScriptValue ScriptEngineQtScript::castVariantToValue(const QVariant& val) {
@@ -513,16 +417,21 @@ QScriptValue ScriptEngineQtScript::castVariantToValue(const QVariant& val) {
             return QScriptValue(this, val.toString());
         case QMetaType::QVariant:
             return castVariantToValue(val.value<QVariant>());
-        case QMetaType::QObjectStar:
-            return ScriptObjectQtProxy::newQObject(this, val.value<QObject*>(), ScriptEngine::QtOwnership);
+        case QMetaType::QObjectStar: {
+            QObject* obj = val.value<QObject*>();
+            if (obj == nullptr) return QScriptValue(this, QScriptValue::NullValue);
+            return ScriptObjectQtProxy::newQObject(this, obj);
+        }
         case QMetaType::QDateTime:
             return static_cast<QScriptEngine*>(this)->newDate(val.value<QDateTime>());
         case QMetaType::QDate:
             return static_cast<QScriptEngine*>(this)->newDate(val.value<QDate>().startOfDay());
         default:
             // check to see if this is a pointer to a QObject-derived object
-            if (QMetaType::typeFlags(valTypeId) & QMetaType::PointerToQObject) {
-                return ScriptObjectQtProxy::newQObject(this, val.value<QObject*>(), ScriptEngine::QtOwnership);
+            if (QMetaType::typeFlags(valTypeId) & (QMetaType::PointerToQObject | QMetaType::TrackingPointerToQObject)) {
+                QObject* obj = val.value<QObject*>();
+                if (obj == nullptr) return QScriptValue(this, QScriptValue::NullValue);
+                return ScriptObjectQtProxy::newQObject(this, obj);
             }
             // have we set a prototype'd variant?
             {

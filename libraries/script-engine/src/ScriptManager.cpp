@@ -79,9 +79,6 @@ static const ScriptValue::PropertyFlags READONLY_HIDDEN_PROP_FLAGS{ READONLY_PRO
 
 static const bool HIFI_AUTOREFRESH_FILE_SCRIPTS { true };
 
-Q_DECLARE_METATYPE(ScriptEngine::FunctionSignature)
-int functionSignatureMetaID = qRegisterMetaType<ScriptEngine::FunctionSignature>();
-
 int scriptManagerPointerMetaID = qRegisterMetaType<ScriptManagerPointer>();
 
 Q_DECLARE_METATYPE(ExternalResource::Bucket);
@@ -1054,7 +1051,7 @@ void ScriptManager::timerFired() {
     }
 }
 
-QObject* ScriptManager::setupTimerWithInterval(const ScriptValue& function, int intervalMS, bool isSingleShot) {
+QTimer* ScriptManager::setupTimerWithInterval(const ScriptValue& function, int intervalMS, bool isSingleShot) {
     // create the timer, add it to the map, and start it
     QTimer* newTimer = new QTimer(this);
     newTimer->setSingleShot(isSingleShot);
@@ -1078,7 +1075,7 @@ QObject* ScriptManager::setupTimerWithInterval(const ScriptValue& function, int 
     return newTimer;
 }
 
-QObject* ScriptManager::setInterval(const ScriptValue& function, int intervalMS) {
+QTimer* ScriptManager::setInterval(const ScriptValue& function, int intervalMS) {
     if (isStopped()) {
         scriptWarningMessage("Script.setInterval() while shutting down is ignored... parent script:" + getFilename());
         return NULL; // bail early
@@ -1087,7 +1084,7 @@ QObject* ScriptManager::setInterval(const ScriptValue& function, int intervalMS)
     return setupTimerWithInterval(function, intervalMS, false);
 }
 
-QObject* ScriptManager::setTimeout(const ScriptValue& function, int timeoutMS) {
+QTimer* ScriptManager::setTimeout(const ScriptValue& function, int timeoutMS) {
     if (isStopped()) {
         scriptWarningMessage("Script.setTimeout() while shutting down is ignored... parent script:" + getFilename());
         return NULL; // bail early

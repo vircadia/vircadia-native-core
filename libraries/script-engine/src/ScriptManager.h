@@ -30,6 +30,7 @@
 #include <QtCore/QSet>
 #include <QtCore/QSharedPointer>
 #include <QtCore/QString>
+#include <QtCore/QTimer>
 #include <QtCore/QUrl>
 #include <QtCore/QVariant>
 
@@ -62,6 +63,8 @@ using ScriptManagerPointer = std::shared_ptr<ScriptManager>;
 using ScriptValueList = QList<ScriptValue>;
 
 Q_DECLARE_METATYPE(ScriptManagerPointer)
+
+const int QTREGISTER_QTimerStar = qRegisterMetaType<QTimer*>();
 
 class CallbackData {
 public:
@@ -433,7 +436,7 @@ public:
      *     print("Interval timer fired");
      * }, 1000);
     */
-    Q_INVOKABLE QObject* setInterval(const ScriptValue& function, int intervalMS);
+    Q_INVOKABLE QTimer* setInterval(const ScriptValue& function, int intervalMS);
 
     /*@jsdoc
      * Calls a function once, after a delay.
@@ -446,7 +449,7 @@ public:
      *     print("Timeout timer fired");
      * }, 1000);
      */
-    Q_INVOKABLE QObject* setTimeout(const ScriptValue& function, int timeoutMS);
+    Q_INVOKABLE QTimer* setTimeout(const ScriptValue& function, int timeoutMS);
 
     /*@jsdoc
      * Stops an interval timer set by {@link Script.setInterval|setInterval}.
@@ -464,7 +467,7 @@ public:
      *     Script.clearInterval(timer);
      * }, 10000);
      */
-    Q_INVOKABLE void clearInterval(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
+    Q_INVOKABLE void clearInterval(QTimer* timer) { stopTimer(timer); }
 
     /*@jsdoc
      * Stops a timeout timer set by {@link Script.setTimeout|setTimeout}.
@@ -479,7 +482,7 @@ public:
      * // Uncomment the following line to stop the timer from firing.
      * //Script.clearTimeout(timer);
      */
-    Q_INVOKABLE void clearTimeout(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
+    Q_INVOKABLE void clearTimeout(QTimer* timer) { stopTimer(timer); }
 
     /*@jsdoc
      * Prints a message to the program log and emits {@link Script.printedMessage}.
@@ -905,7 +908,7 @@ protected:
     void setEntityScriptDetails(const EntityItemID& entityID, const EntityScriptDetails& details);
     void setParentURL(const QString& parentURL) { _parentURL = parentURL; }
 
-    QObject* setupTimerWithInterval(const ScriptValue& function, int intervalMS, bool isSingleShot);
+    QTimer* setupTimerWithInterval(const ScriptValue& function, int intervalMS, bool isSingleShot);
     void stopTimer(QTimer* timer);
 
     QHash<EntityItemID, RegisteredEventHandlers> _registeredHandlers;

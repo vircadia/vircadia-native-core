@@ -52,14 +52,8 @@
 #include "ScriptObjectQtProxy.h"
 #include "ScriptProgramQtWrapper.h"
 #include "ScriptValueQtWrapper.h"
-#include "ScriptContextQtAgent.h"
 
 static const int MAX_DEBUG_VALUE_LENGTH { 80 };
-
-Q_DECLARE_METATYPE(QScriptEngine::FunctionSignature)
-int qfunctionSignatureMetaID = qRegisterMetaType<QScriptEngine::FunctionSignature>();
-
-int scriptEnginePointerMetaID = qRegisterMetaType<ScriptEngineQtScriptPointer>();
 
 bool ScriptEngineQtScript::IS_THREADSAFE_INVOCATION(const QThread* thread, const QString& method) {
     const QThread* currentThread = QThread::currentThread();
@@ -336,13 +330,6 @@ ScriptEngineQtScript::ScriptEngineQtScript(ScriptManager* scriptManager) :
     _undefinedValue = ScriptValue(new ScriptValueQtWrapper(this, std::move(undefined)));
 
     QScriptEngine::setProcessEventsInterval(MSECS_PER_SECOND);
-
-    _contextAgent = new ScriptContextQtAgent(this, agent());
-    setAgent(_contextAgent);
-}
-
-ScriptEngineQtScript::~ScriptEngineQtScript() {
-    delete _contextAgent;
 }
 
 void ScriptEngineQtScript::registerEnum(const QString& enumName, QMetaEnum newEnum) {
@@ -912,20 +899,20 @@ ScriptValue ScriptEngineQtScript::create(int type, const void* ptr) {
     return ScriptValue(new ScriptValueQtWrapper(this, std::move(scriptValue)));
 }
 
-QVariant ScriptEngineQtScript::convert(const ScriptValue& value, int type) {
+QVariant ScriptEngineQtScript::convert(const ScriptValue& value, int typeId) {
     ScriptValueQtWrapper* unwrapped = ScriptValueQtWrapper::unwrap(value);
     if (unwrapped == nullptr) {
         return QVariant();
     }
 
     QVariant var;
-    if (!castValueToVariant(unwrapped->toQtValue(), var, type)) {
+    if (!castValueToVariant(unwrapped->toQtValue(), var, typeId)) {
         return QVariant();
     }
 
     int destType = var.userType();
-    if (destType != type) {
-        var.convert(type); // if conversion fails then var is set to QVariant()
+    if (destType != typeId) {
+        var.convert(typeId);  // if conversion fails then var is set to QVariant()
     }
 
     return var;

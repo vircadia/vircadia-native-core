@@ -23,10 +23,7 @@ static const QString CLASS_NAME = "ArrayBuffer";
 
 // FIXME: Q_DECLARE_METATYPE is global and really belongs in a shared header file, not per .cpp like this
 // (see DataViewClass.cpp, etc. which would also have to be updated to resolve)
-Q_DECLARE_METATYPE(QScriptClass*)
 Q_DECLARE_METATYPE(QByteArray*)
-int qScriptClassPointerMetaTypeId = qRegisterMetaType<QScriptClass*>();
-int qByteArrayPointerMetaTypeId = qRegisterMetaType<QByteArray*>();
 
 ArrayBufferClass::ArrayBufferClass(ScriptEngineQtScript* scriptEngine) :
 QObject(scriptEngine),

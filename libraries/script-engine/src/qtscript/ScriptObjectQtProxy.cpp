@@ -53,6 +53,18 @@ private:  // storage
 QScriptValue ScriptObjectQtProxy::newQObject(ScriptEngineQtScript* engine, QObject* object,
                                              ScriptEngine::ValueOwnership ownership,
                                              const ScriptEngine::QObjectWrapOptions& options) {
+    QScriptEngine* qengine = static_cast<QScriptEngine*>(engine);
+
+    // do we already have a valid wrapper for this QObject?
+    {
+        QMutexLocker guard(&engine->_qobjectWrapperMapProtect);
+        ScriptEngineQtScript::ObjectWrapperMap::const_iterator lookup = engine->_qobjectWrapperMap.find(object);
+        if (lookup != engine->_qobjectWrapperMap.end()) {
+            QSharedPointer<ScriptObjectQtProxy> proxy = lookup.value().lock();
+            if (proxy) return static_cast<QScriptEngine*>(engine)->newObject(proxy.get(), qengine->newVariant(QVariant::fromValue(proxy)));;
+        }
+    }
+    
     bool ownsObject;
     switch (ownership) {
         case ScriptEngine::QtOwnership:
@@ -65,8 +77,33 @@ QScriptValue ScriptObjectQtProxy::newQObject(ScriptEngineQtScript* engine, QObje
             ownsObject = !object->parent();
             break;
     }
-    QScriptEngine* qengine = static_cast<QScriptEngine*>(engine);
+
+    // create the wrapper
     auto proxy = QSharedPointer<ScriptObjectQtProxy>::create(engine, object, ownsObject, options);
+
+    {
+        QMutexLocker guard(&engine->_qobjectWrapperMapProtect);
+
+        // check again to see if someone else created the wrapper while we were busy
+        ScriptEngineQtScript::ObjectWrapperMap::const_iterator lookup = engine->_qobjectWrapperMap.find(object);
+        if (lookup != engine->_qobjectWrapperMap.end()) {
+            QSharedPointer<ScriptObjectQtProxy> proxy = lookup.value().lock();
+            if (proxy) return static_cast<QScriptEngine*>(engine)->newObject(proxy.get(), qengine->newVariant(QVariant::fromValue(proxy)));;
+        }
+
+        // register the wrapper with the engine and make sure it cleans itself up
+        engine->_qobjectWrapperMap.insert(object, proxy);
+        QPointer<ScriptEngineQtScript> enginePtr = engine;
+        object->connect(object, &QObject::destroyed, engine, [enginePtr, object]() {
+            if (!enginePtr) return;
+            QMutexLocker guard(&enginePtr->_qobjectWrapperMapProtect);
+            ScriptEngineQtScript::ObjectWrapperMap::iterator lookup = enginePtr->_qobjectWrapperMap.find(object);
+            if (lookup != enginePtr->_qobjectWrapperMap.end()) {
+                enginePtr->_qobjectWrapperMap.erase(lookup);
+            }
+        });
+    }
+
     return static_cast<QScriptEngine*>(engine)->newObject(proxy.get(), qengine->newVariant(QVariant::fromValue(proxy)));
 }
 
@@ -96,7 +133,6 @@ void ScriptObjectQtProxy::investigate() {
     if (!qobject) return;
 
     const QMetaObject* metaObject = qobject->metaObject();
-    _name = QString::fromLatin1(metaObject->className());
 
     // discover properties
     int startIdx = _wrapOptions & ScriptEngine::ExcludeSuperClassProperties ? metaObject->propertyOffset() : 0;
@@ -185,6 +221,15 @@ void ScriptObjectQtProxy::investigate() {
     }
 }
 
+QString ScriptObjectQtProxy::name() const {
+    Q_ASSERT(_object);
+    if (!_object) return "";
+    return _object ? _object->objectName() : "";
+    QString objectName = _object->objectName();
+    if (!objectName.isEmpty()) return objectName;
+    return _object->metaObject()->className();
+}
+
 QScriptClass::QueryFlags ScriptObjectQtProxy::queryProperty(const QScriptValue& object, const QScriptString& name, QueryFlags flags, uint* id) {
     // check for properties
     for (PropertyDefMap::const_iterator trans = _props.cbegin(); trans != _props.cend(); ++trans) {
@@ -268,7 +313,7 @@ QScriptValue ScriptObjectQtProxy::property(const QScriptValue& object, const QSc
             MethodDefMap::const_iterator lookup = _methods.find(methodId);
             if (lookup == _methods.cend()) return QScriptValue();
             return static_cast<QScriptEngine*>(_engine)->newObject(
-                new ScriptMethodQtProxy(_engine, qobject, object, name, lookup.value().methods));
+                new ScriptMethodQtProxy(_engine, qobject, object, lookup.value().methods));
         }
         case SIGNAL_TYPE: {
             int signalId = id & ~TYPE_MASK;
@@ -278,7 +323,7 @@ QScriptValue ScriptObjectQtProxy::property(const QScriptValue& object, const QSc
             InstanceMap::const_iterator instLookup = _signalInstances.find(signalId);
             if (instLookup == _signalInstances.cend() || instLookup.value().isNull()) {
                 instLookup = _signalInstances.insert(signalId,
-                    new ScriptSignalQtProxy(_engine, qobject, object, name, defLookup.value().signal));
+                    new ScriptSignalQtProxy(_engine, qobject, object, defLookup.value().signal));
                 Q_ASSERT(instLookup != _signalInstances.cend());
             }
             ScriptSignalQtProxy* proxy = instLookup.value();
@@ -315,10 +360,11 @@ void ScriptObjectQtProxy::setProperty(QScriptValue& object, const QScriptString&
     ScriptContextGuard guard(&ourContext);
 
     int propTypeId = prop.userType();
+    Q_ASSERT(propTypeId != QMetaType::UnknownType);
     QVariant varValue;
     if(!_engine->castValueToVariant(value, varValue, propTypeId)) {
         QByteArray propTypeName = QMetaType(propTypeId).name();
-        QByteArray valTypeName = value.toVariant().typeName();
+        QByteArray valTypeName = _engine->valueType(value).toLatin1();
         QScriptContext* currentContext = static_cast<QScriptEngine*>(_engine)->currentContext();
         currentContext->throwError(QScriptContext::TypeError, QString("Cannot convert %1 to %2").arg(valTypeName, propTypeName));
         return;
@@ -352,6 +398,18 @@ QVariant ScriptVariantQtProxy::unwrap(const QScriptValue& val) {
     return proxy ? proxy->toQtValue() : QVariant();
 }
 
+QString ScriptMethodQtProxy::fullName() const {
+    Q_ASSERT(_object);
+    if (!_object) return "";
+    Q_ASSERT(!_metas.isEmpty());
+    const QMetaMethod& firstMethod = _metas.front();
+    QString objectName = _object->objectName();
+    if (!objectName.isEmpty()) {
+        return QString("%1.%2").arg(objectName, firstMethod.name());
+    }
+    return QString("%1::%2").arg(_object->metaObject()->className(), firstMethod.name());
+}
+
 bool ScriptMethodQtProxy::supportsExtension(Extension extension) const {
     switch (extension) {
         case Callable:
@@ -377,6 +435,9 @@ QVariant ScriptMethodQtProxy::extension(Extension extension, const QVariant& arg
     
     const int scriptValueTypeId = qMetaTypeId<ScriptValue>();
 
+    int parameterConversionFailureId = 0;
+    int parameterConversionFailureCount = 0;
+
     for (auto iter = _metas.cbegin(); iter != _metas.end(); ++iter) {
         const QMetaMethod& meta = *iter;
         int methodNumArgs = meta.parameterCount();
@@ -387,10 +448,10 @@ QVariant ScriptMethodQtProxy::extension(Extension extension, const QVariant& arg
         QList<ScriptValue> qScriptArgList;
         QList<QVariant> qVarArgList;
         QGenericArgument qGenArgs[10];
-        int arg;
-        bool conversionFailed = false;
-        for (arg = 0; arg < numArgs && !conversionFailed; ++arg) {
+        int conversionFailures = 0;
+        for (int arg = 0; arg < numArgs; ++arg) {
             int methodArgTypeId = meta.parameterType(arg);
+            Q_ASSERT(methodArgTypeId != QMetaType::UnknownType);
             QScriptValue argVal = context->argument(arg);
             if (methodArgTypeId == scriptValueTypeId) {
                 qScriptArgList.append(ScriptValue(new ScriptValueQtWrapper(_engine, argVal)));
@@ -401,24 +462,23 @@ QVariant ScriptMethodQtProxy::extension(Extension extension, const QVariant& arg
             } else {
                 QVariant varArgVal;
                 if (!_engine->castValueToVariant(argVal, varArgVal, methodArgTypeId)) {
-                    conversionFailed = true;
-                    break;
-                    /*QByteArray methodTypeName = QMetaType(methodArgTypeId).name();
-                    QByteArray argTypeName = argVal.toVariant().typeName();
-                    context->throwError(QScriptContext::TypeError,
-                                        QString("Cannot convert %1 to %2").arg(argTypeName, methodTypeName));
-                    return QVariant();*/
-                }
-                qVarArgList.append(varArgVal);
-                const QVariant& converted = qVarArgList.back();
+                    conversionFailures++;
+                } else {
+                    qVarArgList.append(varArgVal);
+                    const QVariant& converted = qVarArgList.back();
 
-                // a lot of type conversion assistance thanks to https://stackoverflow.com/questions/28457819/qt-invoke-method-with-qvariant
-                // A const_cast is needed because calling data() would detach the QVariant.
-                qGenArgs[arg] =
-                    QGenericArgument(QMetaType::typeName(converted.userType()), const_cast<void*>(converted.constData()));
+                    // a lot of type conversion assistance thanks to https://stackoverflow.com/questions/28457819/qt-invoke-method-with-qvariant
+                    // A const_cast is needed because calling data() would detach the QVariant.
+                    qGenArgs[arg] =
+                        QGenericArgument(QMetaType::typeName(converted.userType()), const_cast<void*>(converted.constData()));
+                }
             }
         }
-        if (conversionFailed) {
+        if (conversionFailures) {
+            if (conversionFailures < parameterConversionFailureCount || !parameterConversionFailureCount) {
+                parameterConversionFailureCount = conversionFailures;
+                parameterConversionFailureId = meta.methodIndex();
+            }
             continue;
         }
 
@@ -426,11 +486,18 @@ QVariant ScriptMethodQtProxy::extension(Extension extension, const QVariant& arg
         ScriptContextGuard guard(&ourContext);
 
         int returnTypeId = meta.returnType();
-        if (returnTypeId == QMetaType::Void) {
+
+        // The Qt MOC engine will automatically call qRegisterMetaType on invokable parameters and properties, but there's
+        // nothing in there for return values so these need to be explicitly runtime-registered!
+        Q_ASSERT(returnTypeId != QMetaType::UnknownType);
+        if (returnTypeId == QMetaType::UnknownType) {
+            context->throwError(QString("Cannot call native function %1, its return value has not been registered with Qt").arg(fullName()));
+            return QVariant();
+        } else if (returnTypeId == QMetaType::Void) {
             bool success = meta.invoke(qobject, Qt::DirectConnection, qGenArgs[0], qGenArgs[1], qGenArgs[2], qGenArgs[3],
                                         qGenArgs[4], qGenArgs[5], qGenArgs[6], qGenArgs[7], qGenArgs[8], qGenArgs[9]);
             if (!success) {
-                context->throwError("Native call failed");
+                context->throwError(QString("Unexpected: Native call of %1 failed").arg(fullName()));
             }
             return QVariant();
         } else if (returnTypeId == scriptValueTypeId) {
@@ -439,7 +506,7 @@ QVariant ScriptMethodQtProxy::extension(Extension extension, const QVariant& arg
                                         qGenArgs[1], qGenArgs[2], qGenArgs[3], qGenArgs[4], qGenArgs[5], qGenArgs[6],
                                         qGenArgs[7], qGenArgs[8], qGenArgs[9]);
             if (!success) {
-                context->throwError("Native call failed");
+                context->throwError(QString("Unexpected: Native call of %1 failed").arg(fullName()));
                 return QVariant();
             }
             QScriptValue qResult = ScriptValueQtWrapper::fullUnwrap(_engine, result);
@@ -454,15 +521,53 @@ QVariant ScriptMethodQtProxy::extension(Extension extension, const QVariant& arg
                 meta.invoke(qobject, Qt::DirectConnection, sRetVal, qGenArgs[0], qGenArgs[1], qGenArgs[2], qGenArgs[3],
                             qGenArgs[4], qGenArgs[5], qGenArgs[6], qGenArgs[7], qGenArgs[8], qGenArgs[9]);
             if (!success) {
-                context->throwError("Native call failed");
+                context->throwError(QString("Unexpected: Native call of %1 failed").arg(fullName()));
                 return QVariant();
             }
             QScriptValue qResult = _engine->castVariantToValue(qRetVal);
             return QVariant::fromValue(qResult);
         }
     }
-    context->throwError("Native call failed: could not locate an overload with the requested arguments");
+
+    // we failed to convert the call to C++, try to create a somewhat sane error message
+    if (parameterConversionFailureCount == 0) {
+        context->throwError(QString("Native call of %1 failed: unexpected parameter count").arg(fullName()));
+        return QVariant();
+    }
+
+    const QMetaMethod& meta = _object->metaObject()->method(parameterConversionFailureId);
+    int methodNumArgs = meta.parameterCount();
+    Q_ASSERT(methodNumArgs == numArgs);
+
+    for (int arg = 0; arg < numArgs; ++arg) {
+        int methodArgTypeId = meta.parameterType(arg);
+        Q_ASSERT(methodArgTypeId != QMetaType::UnknownType);
+        QScriptValue argVal = context->argument(arg);
+        if (methodArgTypeId != scriptValueTypeId && methodArgTypeId != QMetaType::QVariant) {
+            QVariant varArgVal;
+            if (!_engine->castValueToVariant(argVal, varArgVal, methodArgTypeId)) {
+                QByteArray methodTypeName = QMetaType(methodArgTypeId).name();
+                QByteArray argTypeName = _engine->valueType(argVal).toLatin1();
+                context->throwError(QScriptContext::TypeError, QString("Native call of %1 failed: Cannot convert parameter %2 from %3 to %4")
+                                                                   .arg(fullName()).arg(arg+1).arg(argTypeName, methodTypeName));
+                return QVariant();
+            }
+        }
+    }
+
+    Q_ASSERT(false); // really shouldn't have gotten here -- it didn't work before and it's working now?
     return QVariant();
+    context->throwError(QString("Native call of %1 failed: could not locate an overload with the requested arguments").arg(fullName()));
+}
+
+QString ScriptSignalQtProxy::fullName() const {
+    Q_ASSERT(_object);
+    if (!_object) return "";
+    QString objectName = _object->objectName();
+    if (!objectName.isEmpty()) {
+        return QString("%1.%2").arg(objectName, _meta.name());
+    }
+    return QString("%1::%2").arg(_object->metaObject()->className(), _meta.name());
 }
 
 // Adapted from https://doc.qt.io/archives/qq/qq16-dynamicqobject.html, for connecting to a signal without a compile-time definition for it
@@ -476,6 +581,7 @@ int ScriptSignalQtProxy::qt_metacall(QMetaObject::Call call, int id, void** argu
     int numArgs = _meta.parameterCount();
     for (int arg = 0; arg < numArgs; ++arg) {
         int methodArgTypeId = _meta.parameterType(arg);
+        Q_ASSERT(methodArgTypeId != QMetaType::UnknownType);
         QVariant argValue(methodArgTypeId, arguments[arg+1]);
         args.append(_engine->castVariantToValue(argValue));
     }

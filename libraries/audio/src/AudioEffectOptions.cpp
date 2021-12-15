@@ -150,5 +150,5 @@ AudioEffectOptions& AudioEffectOptions::operator=(const AudioEffectOptions &othe
 }
 
 ScriptValue AudioEffectOptions::constructor(ScriptContext* context, ScriptEngine* engine) {
-    return engine->newQObject(new AudioEffectOptions(context->argument(0)));
+    return engine->newQObject(new AudioEffectOptions(context->argument(0)), ScriptEngine::ScriptOwnership);
 }
