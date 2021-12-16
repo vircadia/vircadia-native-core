@@ -1,10 +1,11 @@
 # General
-This document describes the process to build Qt 5.15.2.
+This document describes the process to build Qt 5.15.2. (and 5.14.2 on macOS)
 
 Reference: https://doc.qt.io/qt-5/build-sources.html
 
 Note that there are patches.
 * *win-qtwebengine.diff* fixes building with Visual Studio 2019 16.8.0.  See https://bugreports.qt.io/browse/QTBUG-88625.
+* *qtscript-crash-fix.patch* fixes QScriptEngine on *Qt versions lower than* 5.15. to prevent crashes in QScriptEnginePrivate::reportAdditionalMemoryCost, during garbage collection. See https://bugreports.qt.io/browse/QTBUG-76176
 
 
 ## Requirements
@@ -91,7 +92,7 @@ Install from https://git-scm.com/download/mac
 Verify again
 1.  install pkg-config, dbug-glib, and fontconfig
 brew install fontconfig dbus-glib pkg-config
-
+1. for Qt 5.14.2 we are using Xcode 10.3 with its 10.14.6 SDK.
 
 ## Build Process
 
@@ -280,9 +281,23 @@ tar -Jcvf qt5-install-5.15.2-ubuntu-18.04-amd64.tar.xz qt5-install
 ### Mac
 
 #### Preparing source files
+##### Qt 5.15.2
 git clone --recursive git://code.qt.io/qt/qt5.git -b 5.15.2 --single-branch
 
 *  If you are compiling with MacOSX11.1.SDK or greater, edit qt5/qtwebengine/src/3rdparty/chromium/build/mac/find_sdk.py line 91 and replace "MacOSX(10" with "MacOSX(11".
+
+##### Qt 5.14.2
+```bash
+git clone --recursive git://code.qt.io/qt/qt5.git -b 5.14.2 --single-branch
+```
+
+*  Copy the **patches** folder to qt5 
+*   Apply the patches to Qt 
+```bash
+cd qt5
+git apply --ignore-space-change --ignore-whitespace patches/qtscript-crash-fix.patch
+cd .. 
+```
 
 #### Configuring
 `mkdir qt5-install`
@@ -307,8 +322,8 @@ Add a *qt.conf* file.
 1. Edit the *qt.conf* file: replace all absolute URLs with relative URLs (beginning with .. or .)
 
 #### Uploading
-`tar -zcvf qt5-install-5.15.2-macos.tar.gz qt5-install`
-Upload qt5-install-5.15.2-macos.tar.gz to our Amazon S3 vircadia-public bucket, under the dependencies/vckpg directory
+`tar -zcvf qt5-install-5.1x.2-macos.tar.gz qt5-install`
+Upload qt5-install-5.1x.2-macos.tar.gz to our Amazon S3 vircadia-public bucket, under the dependencies/vckpg directory
 
 #### Creating symbols (optional)
 Run `python3 prepare-mac-symbols-for-backtrace.py qt5-install` to scan the qt5-build directory for any dylibs and execute dsymutil to create dSYM bundles.  After running this command the backtrace directory will be created.  Zip this directory up, but make sure that all dylibs and dSYM fiels are in the root of the zip file, not under a sub-directory.  This file can then be uploaded to backtrace or other crash log handling tool.
