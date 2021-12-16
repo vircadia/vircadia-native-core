@@ -297,6 +297,7 @@ Plain Qt 5.15.2 cannot actually be built on most supported configurations. To fi
 cd qt5/qtwebengine
 git pull git://code.qt.io/qt/qtwebengine.git 5.15.7
 git submodule update
+cd ../..
 ```
 
 ##### Qt 5.14.2
@@ -320,7 +321,6 @@ Note: If you run into any issues with Qt on macOS, take a look at what our frien
 - https://trac.macports.org/query?status=accepted&status=assigned&status=closed&status=new&status=reopened&port=~qt5&desc=1&order=id
 
 ```bash
-cd ../..
 mkdir qt5-install
 mkdir qt5-build
 cd qt5-build
