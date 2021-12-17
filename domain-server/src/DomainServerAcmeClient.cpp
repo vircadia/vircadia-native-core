@@ -185,6 +185,10 @@ bool writeCertificate(acme_lw::Certificate cert, const std::array<QString, 2>& f
         writeAll(cert.privkey, files.back());
 }
 
+QString DomainServerAcmeClient::getAccountKeyPath(DomainServerSettingsManager& settings) {
+    return settings.valueOrDefaultValueForKeyPath("acme.account_key_path").toString();
+}
+
 CertificatePaths DomainServerAcmeClient::getCertificatePaths(DomainServerSettingsManager& settings) {
     auto certDirStr = settings.valueOrDefaultValueForKeyPath("acme.certificate_directory").toString();
     QDir certDir(certDirStr != ""
@@ -211,11 +215,38 @@ DomainServerAcmeClient::DomainServerAcmeClient(DomainServerSettingsManager& sett
     settings(settings)
 {
     renewalTimer.setSingleShot(true);
-    connect(&renewalTimer, &QTimer::timeout, this, [this](){ init(); } );
+    connect(&renewalTimer, &QTimer::timeout, this, [this](){ init(); });
     init();
 }
 
+void setError(nlohmann::json& json, std::string type)
+{
+    json["status"] = "error";
+    json["error"] = {
+        {"type", type}
+    };
+}
+
+void setError(nlohmann::json& json, std::string type, nlohmann::json data)
+{
+    setError(json, type);
+    json["error"]["data"] = data;
+}
+
 void DomainServerAcmeClient::init() {
+
+    status.clear();
+    status = nlohmann::json({
+        {"directory", {
+            {"status", "unknown"},
+        }},
+        {"account", {
+            {"status", "unknown"},
+        }},
+        {"certificate", {
+            {"status", "unknown"},
+        }}
+    });
 
     auto paths = DomainServerAcmeClient::getCertificatePaths(settings);
     std::array<QString,2> certPaths { paths.cert, paths.key };
@@ -228,6 +259,10 @@ void DomainServerAcmeClient::init() {
         // none of the files exist, order unchanged
         generateCertificate(std::move(certPaths));
     } else {
+        setError(status["certificate"], "missing", {
+            {"missing", notExisitng->toStdString()},
+            {"present", certPaths.begin()->toStdString()}
+        });
         // one file exist while the other doesn't, ordered existing first
         qCCritical(acme_client) << "SSL certificate missing file:\n" << *notExisitng;
         qCCritical(acme_client) << "Either provide it, or remove the other file to generate a new certificate:\n" << *certPaths.begin();
@@ -239,16 +274,19 @@ system_clock::duration remainingTime(system_clock::time_point expiryTime) {
     return (expiryTime - system_clock::now()) * 2 / 3;
 }
 
+std::chrono::seconds secondsSinceEpoch(system_clock::time_point time) {
+    return std::chrono::duration_cast<std::chrono::seconds>(time.time_since_epoch());
+}
+
 QDateTime dateTimeFrom(system_clock::time_point time) {
     QDateTime scheduleTime;
-    auto secondsSinceEpoch = std::chrono::duration_cast<std::chrono::seconds>
-        (time.time_since_epoch());
-    scheduleTime.setSecsSinceEpoch(secondsSinceEpoch.count());
+    scheduleTime.setSecsSinceEpoch(secondsSinceEpoch(time).count());
     return scheduleTime;
 }
 
 template<typename Callback>
 struct CertificateCallback{
+    nlohmann::json& status;
     std::unique_ptr<AcmeChallengeHandler>& challengeHandler;
     std::array<QString,2> certPaths;
     Callback next;
@@ -261,12 +299,19 @@ struct CertificateCallback{
         if(writeCertificate(cert, certPaths)) {
             next(std::move(cert));
         } else {
-            qCCritical(acme_client) << "Failed to write certificate files.\n"
+            const char* message = "Failed to write certificate files.";
+            setError(status["certificate"], "write", {
+                {"message", message}
+            });
+            qCCritical(acme_client) << message << '\n'
                 << certPaths.front() << '\n'
                 << certPaths.back() << '\n';
         }
     }
     void operator()(acme_lw::AcmeClient client, acme_lw::AcmeException error) const {
+        setError(status["certificate"], "acme", {
+            {"message", error.what()}
+        });
         challengeHandler = nullptr;
         qCCritical(acme_client) << error.what() << '\n';
     }
@@ -274,11 +319,13 @@ struct CertificateCallback{
 
 template<typename Callback>
 CertificateCallback<Callback> certificateCallback(
+    nlohmann::json& status,
     std::unique_ptr<AcmeChallengeHandler>& challengeHandler,
     std::array<QString,2> certPaths,
     Callback next
 ) {
     return {
+        status,
         challengeHandler,
         std::move(certPaths),
         std::move(next)
@@ -287,6 +334,7 @@ CertificateCallback<Callback> certificateCallback(
 
 template <typename Callback>
 struct OrderCallback{
+    nlohmann::json& status;
     std::unique_ptr<AcmeChallengeHandler>& challengeHandler;
     std::vector<std::string>& selfCheckUrls;
     std::array<QString,2> certPaths;
@@ -299,8 +347,9 @@ struct OrderCallback{
             << "Number of domains:" << domains.size() << '\n'
             << "Number of challenges:" << challenges.size() << '\n'
         ;
-        challengeSelfCheck([client = std::move(client), orderUrl, finalUrl, challenges, domains, &challengeHandler = challengeHandler, certPaths = std::move(certPaths), next = std::move(next)]() mutable {
-            retrieveCertificate(certificateCallback(challengeHandler,std::move(certPaths), std::move(next)),
+        challengeSelfCheck([client = std::move(client), orderUrl, finalUrl, challenges, domains,
+                &status = status, &challengeHandler = challengeHandler, certPaths = std::move(certPaths), next = std::move(next)]() mutable {
+            retrieveCertificate(certificateCallback(status, challengeHandler,std::move(certPaths), std::move(next)),
                 std::move(client), std::move(domains), std::move(challenges),
                 std::move(orderUrl), std::move(finalUrl)
             );
@@ -308,21 +357,29 @@ struct OrderCallback{
         selfCheckUrls.clear();
     }
     void operator()(acme_lw::AcmeClient client, acme_lw::AcmeException error) const {
+        setError(status["certificate"], "acme", {
+            {"message", error.what()}
+        });
         qCCritical(acme_client) << error.what() << '\n';
     }
     void operator()(acme_lw::AcmeException error) const {
+        setError(status["directory"], "acme", {
+            {"message", error.what()}
+        });
         qCCritical(acme_client) << error.what() << '\n';
     }
 };
 
 template<typename Callback>
 OrderCallback<Callback> orderCallback(
+    nlohmann::json& status,
     std::unique_ptr<AcmeChallengeHandler>& challengeHandler,
     std::vector<std::string>& selfCheckUrls,
     std::array<QString,2> certPaths,
     Callback next
 ) {
     return {
+        status,
         challengeHandler,
         selfCheckUrls,
         std::move(certPaths),
@@ -333,13 +390,14 @@ OrderCallback<Callback> orderCallback(
 // TODO: on failure retry N times then reschedule for next day
 void DomainServerAcmeClient::generateCertificate(std::array<QString,2> certPaths) {
 
-    QString accountKeyPath = settings.valueOrDefaultValueForKeyPath("acme.account_key_path").toString();
+    QString accountKeyPath = getAccountKeyPath(settings);
     if(accountKeyPath == "") {
         accountKeyPath = QDir(PathUtils::getAppLocalDataPath()).filePath("acme_account_key.pem");
     }
     QFile accountKeyFile(accountKeyPath);
     if(!accountKeyFile.exists()) {
         if(!createAccountKey(accountKeyFile)) {
+            setError(status["account"], "key-write");
             qCCritical(acme_client) << "Failed to create account key file " << accountKeyFile.fileName();
             return;
         }
@@ -351,9 +409,11 @@ void DomainServerAcmeClient::generateCertificate(std::array<QString,2> certPaths
         accountKey = accountKeyFile.readAll().toStdString();
         accountKeyFile.close();
     } else {
+        setError(status["account"], "key-read");
         qCCritical(acme_client) << "Failed to read account key file " << accountKeyFile.fileName();
         return;
     }
+
 
     std::vector<std::string> domains;
     auto domainList = settings.valueOrDefaultValueForKeyPath("acme.certificate_domains").toList();
@@ -363,8 +423,14 @@ void DomainServerAcmeClient::generateCertificate(std::array<QString,2> certPaths
 
     auto directoryUrl = settings.valueOrDefaultValueForKeyPath("acme.directory_endpoint").toString().toStdString();
 
+    status["directory"]["status"] = "pending";
     acme_lw::init(acme_lw::forwardAcmeError([this, domains = std::move(domains)](auto next, auto client){
+        status["directory"]["status"] = "ok";
+        status["account"]["status"] = "pending";
+        // TODO: instead of forwarding createAccount errors, need to get them here and set setError(status["account"], "acme", error.what())
         acme_lw::createAccount(acme_lw::forwardAcmeError([this, domains = std::move(domains)](auto next, auto client){
+            status["account"]["status"] = "ok";
+            status["certificate"]["status"] = "pending";
             // TODO: add configuration settings for AcmeHttpChallengeFiles or AcmeHttpChallengeManual
             challengeHandler = std::make_unique<AcmeHttpChallengeServer>();
             acme_lw::orderCertificate(std::move(next), [this](auto domain, auto location, auto keyAuth){
@@ -377,8 +443,8 @@ void DomainServerAcmeClient::generateCertificate(std::array<QString,2> certPaths
                 selfCheckUrls.push_back("http://"s + domain + location);
             }, std::move(client), std::move(domains));
         }, std::move(next)), std::move(client));
-    }, orderCallback(challengeHandler, selfCheckUrls, std::move(certPaths), [this](auto cert){
-        scheduleRenewalIn(remainingTime(cert.getExpiry()));
+    }, orderCallback(status, challengeHandler, selfCheckUrls, std::move(certPaths), [this](auto cert){
+        handleRenewal(cert.getExpiry(), {});
     })), accountKey, directoryUrl);
 
 }
@@ -386,14 +452,37 @@ void DomainServerAcmeClient::generateCertificate(std::array<QString,2> certPaths
 void DomainServerAcmeClient::checkExpiry(std::array<QString,2> certPaths) {
     auto cert = readCertificate(certPaths);
     if(cert.fullchain.empty() || cert.privkey.empty()) {
+        const char* message = "Failed to read certificate files.";
+        setError(status["certificate"], "invalid", {
+            {"message", message}
+        });
         // TODO: report a proper error, IO error, bad certificate etc
-        qCCritical(acme_client) << "Failed to read certificate files.\n"
+        qCCritical(acme_client) << message << '\n'
             << certPaths.front() << '\n'
             << certPaths.back() << '\n';
         return;
     }
 
-    auto remaining = remainingTime(cert.getExpiry());
+    system_clock::time_point expiry;
+    try {
+    expiry = cert.getExpiry();
+    } catch (const acme_lw::AcmeException& error) {
+        const char* message =  "Failed to read certificate expiry date.";
+        setError(status["certificate"], "invalid", {
+            {"message", message}
+        });
+        qCCritical(acme_client) << message << '\n';
+        return;
+    }
+
+    handleRenewal(expiry, certPaths);
+}
+
+void DomainServerAcmeClient::handleRenewal(system_clock::time_point expiry, std::array<QString, 2> certPaths) {
+    status["certificate"]["status"] = "ok";
+    status["certificate"]["expiry"] = secondsSinceEpoch(expiry).count();
+
+    auto remaining = remainingTime(expiry);
     if(remaining > 0s) {
         scheduleRenewalIn(remaining);
     } else {
@@ -404,10 +493,75 @@ void DomainServerAcmeClient::checkExpiry(std::array<QString,2> certPaths) {
 void DomainServerAcmeClient::scheduleRenewalIn(system_clock::duration duration) {
     renewalTimer.stop();
     renewalTimer.start(std::chrono::duration_cast<std::chrono::milliseconds>(duration).count());
-    qCDebug(acme_client) << "Renewal scheduled for:" << dateTimeFrom(system_clock::now() + duration);
+    auto sceduleTime = system_clock::now() + duration;
+    status["certificate"]["renewal"] = secondsSinceEpoch(sceduleTime).count();
+    qCDebug(acme_client) << "Renewal scheduled for:" << dateTimeFrom(sceduleTime);
 }
 
 bool DomainServerAcmeClient::handleAuthenticatedHTTPRequest(HTTPConnection *connection, const QUrl &url) {
-    // TODO: report current status, upload private key and certificate files
+    const QString URL_PREFIX = "/acme";
+    const QString STATUS_URL = URL_PREFIX + "/status";
+    const QString UPDATE_URL = URL_PREFIX + "/update";
+
+    const QString ACCOUNT_KEY_URL = URL_PREFIX + "/account-key";
+    const QString CERT_URL = URL_PREFIX + "/cert";
+    const QString CERT_KEY_URL = URL_PREFIX + "/cert-key";
+    const QString CERT_AUTHORITIES_URL = URL_PREFIX + "/cert-authorities";
+
+    auto certPaths = getCertificatePaths(settings);
+    const std::array<std::pair<QString, QString>, 4> fileMap {{
+        {ACCOUNT_KEY_URL, getAccountKeyPath(settings)},
+        {CERT_URL, certPaths.cert},
+        {CERT_KEY_URL, certPaths.key},
+        {CERT_AUTHORITIES_URL, certPaths.trustedAuthorities}
+    }};
+
+    if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
+        if(url.path() == STATUS_URL) {
+            connection->respond(
+                HTTPConnection::StatusCode200,
+                QByteArray::fromStdString(status.dump()),
+                "application/json");
+            return true;
+        }
+    } else if (connection->requestOperation() == QNetworkAccessManager::PostOperation) {
+        if(url.path() == UPDATE_URL) {
+            if(status["directory"] != "pending" &&
+                status["account"] != "pending" &&
+                status["certificate"] != "pending") {
+                connection->respond(HTTPConnection::StatusCode200);
+                init();
+            } else {
+                connection->respond(HTTPConnection::StatusCode409);
+            }
+            return true;
+        }
+    } else {
+        auto file = std::find_if(fileMap.begin(), fileMap.end(), [&url](auto&& file)
+            { return file.first == url.path(); });
+        if(file != fileMap.end()) {
+            auto filePath = file->second;
+            if (connection->requestOperation() == QNetworkAccessManager::PutOperation) {
+                if(QFile::exists(filePath)) {
+                    connection->respond(HTTPConnection::StatusCode409);
+                } else {
+                    if(writeAll(connection->requestContent().toStdString(), filePath)) {
+                        connection->respond(HTTPConnection::StatusCode200);
+                    } else {
+                        connection->respond(HTTPConnection::StatusCode500);
+                    }
+                }
+                return true;
+            } else if (connection->requestOperation() == QNetworkAccessManager::DeleteOperation) {
+                if(QFile(filePath).remove()) {
+                    connection->respond(HTTPConnection::StatusCode200);
+                } else {
+                    connection->respond(HTTPConnection::StatusCode500);
+                }
+                return true;
+            }
+        }
+    }
+
     return false;
 }
