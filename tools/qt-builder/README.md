@@ -94,13 +94,13 @@ Qt also provides a dependency list for some major Linux distributions here: http
  Verify again
 1.  install pkg-config, dbug-glib, and fontconfig
  `brew install fontconfig dbus-glib pkg-config`
-1. for Qt 5.14.2 install Xcode 11.7 with its 10.15.6 SDK.
+1. for Qt 5.14.2 install Xcode 10.3 with its 10.14.6 SDK.
  https://xcodereleases.com
  Qt 5.15.2 can be built with the same version, but also up to Xcode 12.5.1.
 1. macOS may install an incompatible Xcode command line tools version. If you run into weird issues, you may need to delete your current command line tools and replace it with an older version.
  This happens on macOS Catalina.
  `sudo rm -rf /Library/Developer/CommandLineTools`
- Download Command Line Tools for Xcode 11.7 from https://developer.apple.com/download/more/ and install said Command Line Tools.
+ Download Command Line Tools for Xcode 11.3.1 from https://developer.apple.com/download/more/ and install said Command Line Tools.
  The versions don't have to match. Keep in mind that macOS will prompt you to install "system updates" which include the broken version of Xcode Command Line Tools.
 
 ## Build Process
