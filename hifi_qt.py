@@ -136,7 +136,7 @@ endif()
         if 'Windows' == system:
             self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.15.2-windows.tar.gz'
         elif 'Darwin' == system:
-            self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-macos.tar.gz%3FversionId=bLAgnoJ8IMKpqv8NFDcAu8hsyQy3Rwwz'
+            self.qtUrl = 'https://data.moto9000.moe/vircadia_packages/qt5-install-5.14.2-macOSXSDK10.14-macos.tar.xz'
         elif 'Linux' == system:
             import distro
             cpu_architecture = platform.machine()
