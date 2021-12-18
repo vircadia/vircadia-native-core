@@ -31,7 +31,7 @@ function brokenURLReportRequestUrlValidityCheck(no) {
 function brokenURLReportGetResponseStatus() {
     if (brokenURLReportHttpRequest.status === 0 || brokenURLReportHttpRequest.status > 299) {
         if (brokenURLReportHttpRequest.status === 0) {
-            brokenURLReportUrlList[brokenURLReportProcessedUrlNo].validity = "0 - URL not well-formed";
+            brokenURLReportUrlList[brokenURLReportProcessedUrlNo].validity = "0 - Server not found";
         } else {
             brokenURLReportUrlList[brokenURLReportProcessedUrlNo].validity = brokenURLReportHttpRequest.status + " - " + brokenURLReportHttpRequest.statusText;
         }
