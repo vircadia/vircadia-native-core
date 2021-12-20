@@ -1360,7 +1360,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     mesh.vertices.push_back(glm::vec3(vertices[n], vertices[n + 1], vertices[n + 2]));
                 }
 
-                for (int n = 0; n + 2 < normals.size(); n = n + normalStride) {
+                for (int n = 0; n + normalStride - 1 < normals.size(); n = n + normalStride) {
                     mesh.normals.push_back(glm::vec3(normals[n], normals[n + 1], normals[n + 2]));
                 }
 
