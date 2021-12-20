@@ -1356,7 +1356,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
                 part.triangleIndices.append(validatedIndices);
 
-                for (int n = 0; n + 2 < vertices.size(); n = n + verticesStride) {
+                for (int n = 0; n + verticesStride - 1 < vertices.size(); n = n + verticesStride) {
                     mesh.vertices.push_back(glm::vec3(vertices[n], vertices[n + 1], vertices[n + 2]));
                 }
 
