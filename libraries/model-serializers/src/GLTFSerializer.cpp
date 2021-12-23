@@ -495,9 +495,13 @@ bool GLTFSerializer::addMaterial(const QJsonObject& object) {
         getIndexFromObject(jsMetallicRoughness, "baseColorTexture",
                            material.pbrMetallicRoughness.baseColorTexture,
                            material.pbrMetallicRoughness.defined);
-        getDoubleVal(jsMetallicRoughness, "metallicFactor",
+        // Undefined metallicFactor used with pbrMetallicRoughness means metallicFactor == 1.0
+        if (!getDoubleVal(jsMetallicRoughness, "metallicFactor",
                      material.pbrMetallicRoughness.metallicFactor,
-                     material.pbrMetallicRoughness.defined);
+                     material.pbrMetallicRoughness.defined)) {
+            material.pbrMetallicRoughness.metallicFactor = 1.0;
+            material.pbrMetallicRoughness.defined["metallicFactor"] = true;
+        }
         getDoubleVal(jsMetallicRoughness, "roughnessFactor",
                      material.pbrMetallicRoughness.roughnessFactor,
                      material.pbrMetallicRoughness.defined);
@@ -1856,6 +1860,7 @@ void GLTFSerializer::setHFMMaterial(HFMMaterial& hfmMat, const GLTFMaterial& mat
 
         if (material.pbrMetallicRoughness.defined["metallicFactor"]) {
             hfmMat.metallic = material.pbrMetallicRoughness.metallicFactor;
+            hfmMat._material->setMetallic(hfmMat.metallic);
         }
         if (material.pbrMetallicRoughness.defined["baseColorTexture"]) {
             hfmMat.opacityTexture = getHFMTexture(_file.textures[material.pbrMetallicRoughness.baseColorTexture]);
