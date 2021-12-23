@@ -819,7 +819,7 @@ void GLTFSerializer::generateTargetData(int index, float weight, QVector<glm::ve
     GLTFAccessor& accessor = _file.accessors[index];
     QVector<float> storedValues;
     addArrayFromAccessor(accessor, storedValues);
-    for (int n = 0; n < storedValues.size(); n = n + 3) {
+    for (int n = 0; n + 2 < storedValues.size(); n = n + 3) {
         returnVector.push_back(glm::vec3(weight * storedValues[n], weight * storedValues[n + 1], weight * storedValues[n + 2]));
     }
 }
@@ -1246,7 +1246,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     QVector<uint16_t> newJoints;
                     QVector<float> newWeights;
 
-                    for (int n = 0; n < indices.size(); n = n + 3) {
+                    for (int n = 0; n + 2 < indices.size(); n = n + 3) {
                         int v1_index = (indices[n + 0] * 3);
                         int v2_index = (indices[n + 1] * 3);
                         int v3_index = (indices[n + 2] * 3);
@@ -1356,17 +1356,17 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
                 part.triangleIndices.append(validatedIndices);
 
-                for (int n = 0; n < vertices.size(); n = n + verticesStride) {
+                for (int n = 0; n + verticesStride - 1 < vertices.size(); n = n + verticesStride) {
                     mesh.vertices.push_back(glm::vec3(vertices[n], vertices[n + 1], vertices[n + 2]));
                 }
 
-                for (int n = 0; n < normals.size(); n = n + normalStride) {
+                for (int n = 0; n + normalStride - 1 < normals.size(); n = n + normalStride) {
                     mesh.normals.push_back(glm::vec3(normals[n], normals[n + 1], normals[n + 2]));
                 }
 
                 // TODO: add correct tangent generation
                 if (tangents.size() == partVerticesCount * tangentStride) {
-                    for (int n = 0; n < tangents.size(); n += tangentStride) {
+                    for (int n = 0; n + tangentStride - 1 < tangents.size(); n += tangentStride) {
                         float tanW = tangentStride == 4 ? tangents[n + 3] : 1;
                         mesh.tangents.push_back(glm::vec3(tanW * tangents[n], tangents[n + 1], tanW * tangents[n + 2]));
                     }
@@ -1379,7 +1379,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                 }
 
                 if (texcoords.size() == partVerticesCount * texCoordStride) {
-                    for (int n = 0; n < texcoords.size(); n = n + 2) {
+                    for (int n = 0; n + 1 < texcoords.size(); n = n + 2) {
                         mesh.texCoords.push_back(glm::vec2(texcoords[n], texcoords[n + 1]));
                     }
                 } else {
@@ -1391,7 +1391,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                 }
 
                 if (texcoords2.size() == partVerticesCount * texCoord2Stride) {
-                    for (int n = 0; n < texcoords2.size(); n = n + 2) {
+                    for (int n = 0; n + 1 < texcoords2.size(); n = n + 2) {
                         mesh.texCoords1.push_back(glm::vec2(texcoords2[n], texcoords2[n + 1]));
                     }
                 } else {
@@ -1403,7 +1403,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                 }
 
                 if (colors.size() == partVerticesCount * colorStride) {
-                    for (int n = 0; n < colors.size(); n += colorStride) {
+                    for (int n = 0; n + 2 < colors.size(); n += colorStride) {
                         mesh.colors.push_back(ColorUtils::tosRGBVec3(glm::vec3(colors[n], colors[n + 1], colors[n + 2])));
                     }
                 } else {
@@ -1447,7 +1447,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                 }
 
                 if (weights.size() == partVerticesCount * weightStride) {
-                    for (int n = 0; n < weights.size(); n += weightStride) {
+                    for (int n = 0; n + weightStride - 1 < weights.size(); n += weightStride) {
                         clusterWeights.push_back(weights[n]);
                         if (weightStride > 1) {
                             clusterWeights.push_back(weights[n + 1]);
@@ -2046,7 +2046,7 @@ bool GLTFSerializer::addArrayFromAccessor(GLTFAccessor& accessor, QVector<T>& ou
 void GLTFSerializer::retriangulate(const QVector<int>& inIndices, const QVector<glm::vec3>& in_vertices,
                                const QVector<glm::vec3>& in_normals, QVector<int>& outIndices,
                                QVector<glm::vec3>& out_vertices, QVector<glm::vec3>& out_normals) {
-    for (int i = 0; i < inIndices.size(); i = i + 3) {
+    for (int i = 0; i + 2 < inIndices.size(); i = i + 3) {
 
         int idx1 = inIndices[i];
         int idx2 = inIndices[i+1];
