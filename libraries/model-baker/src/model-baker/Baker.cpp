@@ -32,15 +32,16 @@ namespace baker {
 
         void run(const BakeContextPointer& context, const Input& input, Output& output) {
             const auto& hfmModelIn = input;
-            output.edit0() = hfmModelIn->meshes.toStdVector();
+            output.edit0() = std::vector<hfm::Mesh>(hfmModelIn->meshes.begin(), hfmModelIn->meshes.end());
             output.edit1() = hfmModelIn->originalURL;
             output.edit2() = hfmModelIn->meshIndicesToModelNames;
             auto& blendshapesPerMesh = output.edit3();
             blendshapesPerMesh.reserve(hfmModelIn->meshes.size());
             for (int i = 0; i < hfmModelIn->meshes.size(); i++) {
-                blendshapesPerMesh.push_back(hfmModelIn->meshes[i].blendshapes.toStdVector());
+                auto &blendshapes = hfmModelIn->meshes[i].blendshapes;
+                blendshapesPerMesh.push_back(std::vector<hfm::Blendshape>(blendshapes.begin(), blendshapes.end()));
             }
-            output.edit4() = hfmModelIn->joints.toStdVector();
+            output.edit4() = std::vector<hfm::Joint>(hfmModelIn->joints.begin(), hfmModelIn->joints.end());
         }
     };
 
@@ -66,8 +67,8 @@ namespace baker {
                     const auto& normals = safeGet(normalsPerBlendshape, j);
                     const auto& tangents = safeGet(tangentsPerBlendshape, j);
                     auto& blendshape = blendshapesOut[j];
-                    blendshape.normals = QVector<glm::vec3>::fromStdVector(normals);
-                    blendshape.tangents = QVector<glm::vec3>::fromStdVector(tangents);
+                    blendshape.normals = QVector<glm::vec3>(normals.begin(), normals.end());
+                    blendshape.tangents = QVector<glm::vec3>(tangents.begin(), tangents.end());
                 }
             }
         }
@@ -91,9 +92,13 @@ namespace baker {
             for (int i = 0; i < numMeshes; i++) {
                 auto& meshOut = meshesOut[i];
                 meshOut._mesh = safeGet(graphicsMeshesIn, i);
-                meshOut.normals = QVector<glm::vec3>::fromStdVector(safeGet(normalsPerMeshIn, i));
-                meshOut.tangents = QVector<glm::vec3>::fromStdVector(safeGet(tangentsPerMeshIn, i));
-                meshOut.blendshapes = QVector<hfm::Blendshape>::fromStdVector(safeGet(blendshapesPerMeshIn, i));
+                auto stdNormals = safeGet(normalsPerMeshIn, i);
+                auto stdTangents = safeGet(tangentsPerMeshIn, i);
+                auto stdBlendshapes = safeGet(blendshapesPerMeshIn, i);
+
+                meshOut.normals = QVector<glm::vec3>(stdNormals.begin(), stdNormals.end());
+                meshOut.tangents = QVector<glm::vec3>(stdTangents.begin(), stdTangents.end());
+                meshOut.blendshapes = QVector<hfm::Blendshape>(stdBlendshapes.begin(), stdBlendshapes.end());
             }
             output = meshesOut;
         }
@@ -107,8 +112,10 @@ namespace baker {
 
         void run(const BakeContextPointer& context, const Input& input, Output& output) {
             auto hfmModelOut = input.get0();
-            hfmModelOut->meshes = QVector<hfm::Mesh>::fromStdVector(input.get1());
-            hfmModelOut->joints = QVector<hfm::Joint>::fromStdVector(input.get2());
+            auto stdMeshes = input.get1();
+            auto stdJoints = input.get2();
+            hfmModelOut->meshes = QVector<hfm::Mesh>(stdMeshes.begin(), stdMeshes.end());
+            hfmModelOut->joints = QVector<hfm::Joint>(stdJoints.begin(), stdJoints.end());
             hfmModelOut->jointRotationOffsets = input.get3();
             hfmModelOut->jointIndices = input.get4();
             hfmModelOut->flowData = input.get5();
@@ -204,7 +211,7 @@ namespace baker {
     hfm::Model::Pointer Baker::getHFMModel() const {
         return _engine->getOutput().get<BakerEngineBuilder::Output>().get0();
     }
-    
+
     MaterialMapping Baker::getMaterialMapping() const {
         return _engine->getOutput().get<BakerEngineBuilder::Output>().get1();
     }

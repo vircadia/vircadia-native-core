@@ -811,7 +811,7 @@ void GLTFSerializer::getSkinInverseBindMatrices(std::vector<std::vector<float>>&
         GLTFAccessor& indicesAccessor = _file.accessors[skin.inverseBindMatrices];
         QVector<float> matrices;
         addArrayFromAccessor(indicesAccessor, matrices);
-        inverseBindMatrixValues.push_back(matrices.toStdVector());
+        inverseBindMatrixValues.push_back(std::vector<float>(matrices.begin(), matrices.end()));
     }
 }
 
