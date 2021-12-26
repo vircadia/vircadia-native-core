@@ -53,7 +53,6 @@ public:
         if(challenge != challenges.end()) {
             connection->respond(HTTPConnection::StatusCode200, challenge->content, "application/octet-stream");
         } else {
-            using namespace std::string_literals;
             auto chstr = ""s;
             for(auto&& ch : challenges) {
                 chstr += ch.url.toString().toStdString();
@@ -248,6 +247,11 @@ void DomainServerAcmeClient::init() {
         }}
     });
 
+    bool enabled = settings.valueOrDefaultValueForKeyPath("acme.enable_client").toBool();
+    if(!enabled) {
+        return;
+    }
+
     auto paths = DomainServerAcmeClient::getCertificatePaths(settings);
     std::array<QString,2> certPaths { paths.cert, paths.key };
     auto notExisitng = std::stable_partition(certPaths.begin(), certPaths.end(),
@@ -314,6 +318,7 @@ struct CertificateCallback{
         });
         challengeHandler = nullptr;
         qCCritical(acme_client) << error.what() << '\n';
+        qCDebug(acme_client) << status.dump(1).c_str() << '\n';
     }
 };
 
@@ -361,12 +366,14 @@ struct OrderCallback{
             {"message", error.what()}
         });
         qCCritical(acme_client) << error.what() << '\n';
+        qCDebug(acme_client) << status.dump(1).c_str() << '\n';
     }
     void operator()(acme_lw::AcmeException error) const {
         setError(status["directory"], "acme", {
             {"message", error.what()}
         });
         qCCritical(acme_client) << error.what() << '\n';
+        qCDebug(acme_client) << status.dump(1).c_str() << '\n';
     }
 };
 
@@ -422,6 +429,8 @@ void DomainServerAcmeClient::generateCertificate(std::array<QString,2> certPaths
     }
 
     auto directoryUrl = settings.valueOrDefaultValueForKeyPath("acme.directory_endpoint").toString().toStdString();
+    auto eabKid = settings.valueOrDefaultValueForKeyPath("acme.eab_kid").toString().toStdString();
+    auto eabHmac = settings.valueOrDefaultValueForKeyPath("acme.eab_mac").toString().toStdString();
 
     status["directory"]["status"] = "pending";
     acme_lw::init(acme_lw::forwardAcmeError([this, domains = std::move(domains)](auto next, auto client){
@@ -431,21 +440,23 @@ void DomainServerAcmeClient::generateCertificate(std::array<QString,2> certPaths
         acme_lw::createAccount(acme_lw::forwardAcmeError([this, domains = std::move(domains)](auto next, auto client){
             status["account"]["status"] = "ok";
             status["certificate"]["status"] = "pending";
-            // TODO: add configuration settings for AcmeHttpChallengeFiles or AcmeHttpChallengeManual
-            challengeHandler = std::make_unique<AcmeHttpChallengeServer>();
             acme_lw::orderCertificate(std::move(next), [this](auto domain, auto location, auto keyAuth){
                 qCDebug(acme_client) << "Got challenge:\n"
                     << "Domain:" << domain.c_str() << '\n'
                     << "Location:" << location.c_str() << '\n'
                     << "Key Authorization:" << keyAuth.c_str() << '\n'
                 ;
+                if(!challengeHandler) {
+                    // TODO: add configuration settings for AcmeHttpChallengeFiles or AcmeHttpChallengeManual
+                    challengeHandler = std::make_unique<AcmeHttpChallengeServer>();
+                }
                 challengeHandler->addChallenge(domain, location, keyAuth);
                 selfCheckUrls.push_back("http://"s + domain + location);
             }, std::move(client), std::move(domains));
         }, std::move(next)), std::move(client));
     }, orderCallback(status, challengeHandler, selfCheckUrls, std::move(certPaths), [this](auto cert){
         handleRenewal(cert.getExpiry(), {});
-    })), accountKey, directoryUrl);
+    })), accountKey, directoryUrl, eabKid, eabHmac);
 
 }
 
@@ -472,6 +483,7 @@ void DomainServerAcmeClient::checkExpiry(std::array<QString,2> certPaths) {
             {"message", message}
         });
         qCCritical(acme_client) << message << '\n';
+        qCDebug(acme_client) << status.dump(1).c_str() << '\n';
         return;
     }
 

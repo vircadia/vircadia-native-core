@@ -156,6 +156,16 @@
             "advanced": true
         },
         {
+            "name": "eab_kid",
+            "label": "External Account Binding KID",
+            "advanced": true
+        },
+        {
+            "name": "eab_mac",
+            "label": "External Account Binding MAC",
+            "advanced": true
+        },
+        {
             "name": "certificate_directory",
             "label": "Certificate Directory",
             "help": "Certificate files will be stored in this directory.",

@@ -1,8 +1,7 @@
 
-function enableChildren(element, enabled = true) {
-    for (const child of element.children) {
-        child.disabled = !enabled;
-    }
+function showLoadingScreen(shown) {
+    //TODO: proper loading UI
+    document.body.hidden = shown;
 }
 
-export { enableChildren };
+export { showLoadingScreen };

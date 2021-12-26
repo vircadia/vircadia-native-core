@@ -7,6 +7,32 @@
     <body>
         <a id="back-link" href="/"> Back to settings panel </a>
 
+        <h4>Certificate Paths</h4>
+
+        <div id="paths-container">
+            <label>Certificate Directory</label>
+            <input id="cert-dir" type="text" placeholder="Application Data Path" />
+            <br />
+            <label>Certificate</label>
+            <input id="cert-name" type="text"/>
+            <input id="cert-upload" type="file" />
+            <br />
+            <label>Key</label>
+            <input id="cert-key-name" type="text" />
+            <input id="cert-key-upload" type="file" />
+            <br />
+            <label>Expiry date<label>
+            <label>Renewal date<label>
+            <br />
+            <label>CA list</label>
+            <input id="cert-ca-name" type="text" placeholder="System Default" />
+            <input id="cert-ca-upload" type="file" />
+            <br />
+            <input id="cert-reset" type="button" value="Reset Certificate" />
+        </div>
+
+        <h4>Automatic Management</h4>
+
         <div id="enable-container">
             <label>Enable</label>
             <input id="enable" type="checkbox"/>
@@ -20,19 +46,37 @@
                 <option value="https://acme.zerossl.com/v2/DV90">ZeroSSL</option>
                 <option value="custom">Custom URL</option>
             </select>
+            <a href="" id="terms-of-service">Terms of Service</a>
             <input id="directory-url" type="text"/>
+            <br />
+            <label>Account Key</label>
+            <input id="account-key-path" type="text" placeholder="<Application Data Path>/acme_account_key.pem" />
+            <input id="account-key-upload" type="file" />
+            <br />
+            <input id="account-key-reset" type="button" value="Reset Account Key" />
         </div>
 
-        <div id="eab-container">
-            <h4>External Account Settings</h4>
+        <div id="auth-container">
             <label>Authentication method</label>
-            <select id="eab-select">
-                <option class="zero-ssl-auth-option" value="zero-ssl-email">ZeroSLL Email </option>
-                <option class="zero-ssl-auth-option" value="zero-ssl-account-id">ZeroSSL Account ID</option>
-                <option value="id-mac">ID and MAC key</option>
+            <select id="auth-select">
+                <option value="account-key-only">Account Key</option>
+                <option class="eab-option zero-ssl-auth-option zero-ssl-auth-option-default" value="zero-ssl-email">ZeroSLL Email</option>
+                <option class="eab-option zero-ssl-auth-option" value="zero-ssl-api-key">ZeroSSL API Key</option>
+                <option class="eab-option" value="id-mac">ID and MAC key</option>
             </select>
-            <input id="eab-input1" type="text" />
-            <input id="eab-input2" type="text" />
+            <input id="zero-ssl-auth-input" placeholder="ZeroSSL Email" type="text" />
+            <input id="eab-kid-input" placeholder="KID" type="text" />
+            <input id="eab-mac-input" placeholder="MAC" type="text" />
+        </div>
+
+        <div id="other-settings-container">
+            <label>Challenge completion method</label>
+            <select id="challange-select">
+                <option value="http-server">HTTP Server</option>
+                <option value="files">Files</option>
+                <option value="manual">Manual</option>
+            </select><br />
+            <label></label>
         </div>
 
         <div id="domains-container">
@@ -43,46 +87,6 @@
                 <input type="button" value="Remove" />
             </div>
             <input id="add-domain-button" type="button" value="Add Domain" />
-        </div>
-
-        <div id="paths-container">
-            <h4>Files</h4>
-            <label>Account Key</label>
-            <input id="account-key-path" type="text" placeholder="<Application Data Path>/acme_account_key.pem" />
-            <input id="account-key-upload" type="file" />
-            <br />
-            <label>Certificate Directory</label>
-            <input id="cert-dir" type="text" placeholder="Application Data Path" />
-            <br />
-            <label>Certificate</label>
-            <input id="cert-name" type="text"/>
-            <input id="cert-upload" type="file" />
-            <br />
-            <label>Key</label>
-            <input id="cert-key-name" type="text" />
-            <input id="cert-key-upload" type="file" />
-            <br />
-            <label>Expiry date:<label>
-            <label>Renewal date:<label>
-            <br />
-            <label>CA list file name:</label>
-            <input id="cert-ca-name" type="text" placeholder="System Default" />
-            <input id="cert-ca-upload" type="file" />
-            <br />
-            <input id="account-key-reset" type="button" value="Reset Account Key" />
-            <input id="cert-reset" type="button" value="Reset Certificate" />
-        </div>
-
-
-        <div id="other-settings-container">
-            <h4>Other</h4>
-            <label>Challenge completion method</label>
-            <select id="challange-select">
-                <option value="http-server">HTTP Server</option>
-                <option value="files">Files</option>
-                <option value="manual">Manual</option>
-            </select><br />
-            <label></label>
         </div>
 
         <hr />
