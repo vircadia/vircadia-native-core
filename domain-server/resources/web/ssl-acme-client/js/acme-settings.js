@@ -4,6 +4,19 @@ import {
     getZeroSSLEebFromApiKey, getZeroSSLEebFromEmail
 } from "./api.js"
 
+const certDirInput = document.getElementById("cert-dir");
+const certNameInput = document.getElementById("cert-name");
+const certKeyNameInput = document.getElementById("cert-key-name");
+const certCANameInput = document.getElementById("cert-ca-name");
+const certUpload = document.getElementById("cert-upload");
+const certKeyUpload = document.getElementById("cert-key-upload");
+const certCAUpload = document.getElementById("cert-ca-upload");
+const certResetButton = document.getElementById("cert-reset");
+
+const accountKeyPathInput = document.getElementById("account-key-path");
+const accountKeyUpload = document.getElementById("account-key-upload");
+const accountKeyResetButton = document.getElementById("account-key-reset");
+
 const directorySelect = document.getElementById("directory-url-select");
 const directoryInput = document.getElementById("directory-url");
 const termsOfServiceLink = document.getElementById("terms-of-service");
@@ -16,6 +29,10 @@ const eabKidInput = document.getElementById("eab-kid-input");
 const eabMacInput = document.getElementById("eab-mac-input");
 
 const challengeSelect = document.getElementById("challenge-select");
+
+const domainInputs = document.getElementById("domain-inputs");
+const domainInput = domainInputs.children[0];
+const addDomainButton = document.getElementById("add-domain-button");
 
 function update() {
     directoryInput.hidden = directorySelect.value !== "custom";
@@ -145,13 +162,60 @@ zeroSSlAuthInput.addEventListener("input", () => {
     zeroSSlAuthInputTimeout = setTimeout(getEabFromZeroSSL, 500);
 });
 
+function getDomainValues(domainInput) {
+
+    return {
+        domain: domainInput.getElementsByClassName("domain-name-input")[0].value,
+        directory: domainInput.getElementsByClassName("domain-dir-input")[0].value
+    }
+}
+
+function setDomainValues(domainInput, values) {
+    domainInput.getElementsByClassName("domain-name-input")[0].value = values.domain || "",
+    domainInput.getElementsByClassName("domain-dir-input")[0].value = values.directory || "";
+}
+
+function getDomains() {
+    const domains = [];
+    for (const domainInput of domainInputs.children) {
+        domains.push(getDomainValues(domainInput));
+    }
+    return domains;
+}
+
+function setDomains(domains) {
+    for (let i = 1, len = domainInputs.children.length; i < len;  ++i) {
+        domainInputs.removeChild(domainInputs.children[i]);
+    }
+
+    setDomainValues(domainInput, domains[0] || {})
+
+    for (let i = 1, len = domains.length; i < len;  ++i) {
+        addDomainInput(domains[i]);
+    }
+}
+
+function addDomainInput(domainValues) {
+    const newDomainInput = domainInput.cloneNode(true);
+    const removeButton = newDomainInput.getElementsByClassName("remove-domain-button")[0];
+    removeButton.addEventListener("click", () => {
+        domainInputs.removeChild(newDomainInput);
+    });
+
+    setDomainValues(newDomainInput, domainValues || {});
+
+    domainInputs.appendChild(newDomainInput);
+};
+
+addDomainButton.addEventListener("click", addDomainInput);
+
 function updateSettings() {
     getSettings().then((settings) => {
         setDirectoryUrl(settings.values.acme.directory_endpoint);
         eabKidInput.value = settings.values.acme.eab_kid;
         eabMacInput.value = settings.values.acme.eab_mac;
         challengeSelect.value = settings.values.acme.challenge_handler_type;
-        console.log(settings);
+        setDomains(settings.values.acme.certificate_domains);
         updateStatus();
     });
 }
@@ -162,7 +226,8 @@ saveButton.addEventListener("click", () => {
         directory_endpoint: getDirectoryUrl(),
         eab_kid: eabKidInput.value,
         eab_mac: eabMacInput.value,
-        challenge_handler_type: challengeSelect.value
+        challenge_handler_type: challengeSelect.value,
+        certificate_domains: getDomains()
     } }).then(() => {
         updateSettings();
     }).finally(() => {
