@@ -26,6 +26,8 @@ struct CertificatePaths;
 class AcmeChallengeHandler {
 public:
     virtual void addChallenge(const std::string& domain, const std::string& location, const std::string& content) = 0;
+    virtual std::chrono::milliseconds selfCheckDuration() = 0;
+    virtual std::chrono::milliseconds selfCheckInterval() = 0;
     virtual ~AcmeChallengeHandler(){};
 };
 

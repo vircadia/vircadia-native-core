@@ -196,6 +196,13 @@
             "advanced": true
         },
         {
+            "name": "challenge_handler_type",
+            "label": "Type of HTTP challenge handler.",
+            "help": "This settings determines how the client will attempt to complete the server's HTTP challenges. Possible Values are: server - client will attempt to host the challenges on port 80, files - client will attempt to save challenges as files in the directories associated with specified domains, manual - client will wait for a few minutes for the challenges to be completed.",
+            "default": "server",
+            "advanced": true
+        },
+        {
           "name": "certificate_domains",
           "label": "Domains Names",
           "type": "table",
@@ -207,6 +214,12 @@
             {
               "name": "domain",
               "label": "Domain name or IP address",
+              "can_set": true
+            },
+            {
+              "name": "directory",
+              "label": "Domain root directory",
+              "placeholder": "Current directory",
               "can_set": true
             }
           ]

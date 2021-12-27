@@ -15,6 +15,8 @@ const zeroSSlAuthInput = document.getElementById("zero-ssl-auth-input");
 const eabKidInput = document.getElementById("eab-kid-input");
 const eabMacInput = document.getElementById("eab-mac-input");
 
+const challengeSelect = document.getElementById("challenge-select");
+
 function update() {
     directoryInput.hidden = directorySelect.value !== "custom";
     const authType = authSelect.value;
@@ -43,6 +45,10 @@ function update() {
             eabKidInput.disabled = false;
             eabMacInput.disabled = false;
             break;
+    }
+
+    for (const dirInput of document.getElementsByClassName("domain-dir-input")) {
+        dirInput.hidden = challengeSelect.value !== "files";
     }
 }
 
@@ -85,6 +91,10 @@ function updateDirectoryMeta() {
 
 directorySelect.addEventListener("change", () => {
     updateDirectoryMeta();
+});
+
+challengeSelect.addEventListener("change", () => {
+    update();
 });
 
 function getEabFromZeroSSL() {
@@ -140,6 +150,8 @@ function updateSettings() {
         setDirectoryUrl(settings.values.acme.directory_endpoint);
         eabKidInput.value = settings.values.acme.eab_kid;
         eabMacInput.value = settings.values.acme.eab_mac;
+        challengeSelect.value = settings.values.acme.challenge_handler_type;
+        console.log(settings);
         updateStatus();
     });
 }
@@ -149,8 +161,8 @@ saveButton.addEventListener("click", () => {
     postSettings({acme: {
         directory_endpoint: getDirectoryUrl(),
         eab_kid: eabKidInput.value,
-        eab_mac: eabMacInput.value
-        // TODO: ZeroSSL Authentication method and source (email or api key)
+        eab_mac: eabMacInput.value,
+        challenge_handler_type: challengeSelect.value
     } }).then(() => {
         updateSettings();
     }).finally(() => {

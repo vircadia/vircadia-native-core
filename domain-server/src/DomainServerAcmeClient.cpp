@@ -21,6 +21,7 @@
 
 #include <memory>
 #include <array>
+#include <set>
 
 #include "DomainServerSettingsManager.h"
 
@@ -29,6 +30,23 @@ Q_LOGGING_CATEGORY(acme_client, "vircadia.acme_client")
 
 using namespace std::literals;
 using std::chrono::system_clock;
+
+std::string readAll(const QString& path)
+{
+    QFile file(path);
+    if(file.open(QFile::ReadOnly)) {
+        return file.readAll().toStdString();
+    }
+    return std::string();
+}
+
+bool writeAll(const std::string& data, const QString& path)
+{
+    QFile file(path);
+    return file.open(QFile::WriteOnly) &&
+        file.write(QByteArray::fromStdString(data)) == qint64(data.size());
+}
+
 
 class AcmeHttpChallengeServer : public AcmeChallengeHandler, public HTTPRequestHandler {
     struct Challenge {
@@ -47,6 +65,9 @@ public:
             QByteArray::fromStdString(content)
         });
     }
+
+    std::chrono::milliseconds selfCheckDuration() override { return 1s; }
+    std::chrono::milliseconds selfCheckInterval() override { return 250ms; }
 
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false) override {
         auto challenge = std::find_if(challenges.begin(), challenges.end(), [&url](auto x) { return x.url == url; });
@@ -71,21 +92,43 @@ private:
 class AcmeHttpChallengeFiles : public AcmeChallengeHandler {
 
 public:
-    AcmeHttpChallengeFiles(const QString& rootPath) : challenges() {}
+    AcmeHttpChallengeFiles(std::map<std::string, std::string> dirs) :
+        dirs(std::move(dirs))
+    {}
 
     ~AcmeHttpChallengeFiles() override {
-        // TODO: delete directories/files
+        std::set<QString> challengeDirs;
+
+        for(auto&& challengePath : challengePaths) {
+            challengeDirs.insert(QFileInfo(challengePath).path());
+            if(!QFile(challengePath).remove()) {
+                qCWarning(acme_client) << "Failed to remove challenge file:" << challengePath;
+            }
+        }
+
+        for(auto&& challengeDir : challengeDirs) {
+            if(!QDir(challengeDir).rmdir(".")) {
+                qCWarning(acme_client) << "Failed to remove challenge directory:" << challengeDir;
+            }
+        }
     }
 
+    std::chrono::milliseconds selfCheckDuration() override { return 2s; }
+    std::chrono::milliseconds selfCheckInterval() override { return 250ms; }
+
     void addChallenge(const std::string& domain, const std::string& location, const std::string& content) override {
-        challenges.push_back({
-            QString::fromStdString(location),
-        });
-        // TODO: create directory/file, write content
+        QString challengePath = (dirs[domain] + location).c_str();
+        QDir challengeDir = QFileInfo(challengePath).path();
+        if(challengeDir.mkpath(".") && writeAll(content, challengePath)) {
+            challengePaths.push_back(challengePath);
+        } else {
+            qCCritical(acme_client) << "Failed to write challenge file:" << challengePath;
+        }
     }
 
 private:
-    std::vector<QString> challenges;
+    std::map<std::string, std::string> dirs;
+    std::vector<QString> challengePaths;
 };
 
 class AcmeHttpChallengeManual : public AcmeChallengeHandler {
@@ -95,6 +138,28 @@ public:
             << "Domain:" << domain.c_str() << '\n'
             << "Location:" << location.c_str() << '\n'
             << "Content:" << content.c_str() << '\n';
+    }
+
+    std::chrono::milliseconds selfCheckDuration() override { return 120s; }
+    std::chrono::milliseconds selfCheckInterval() override { return 1s; }
+
+};
+
+struct ChallengeHandlerParams {
+    std::string typeId;
+    std::map<std::string, std::string> domainDirs;
+};
+
+std::unique_ptr<AcmeChallengeHandler> makeChallengeHandler(ChallengeHandlerParams params) {
+
+    if(params.typeId == "server") {
+        return std::make_unique<AcmeHttpChallengeServer>();
+    } else if(params.typeId == "files") {
+        return std::make_unique<AcmeHttpChallengeFiles>(params.domainDirs);
+    } else if(params.typeId == "manual") {
+        return std::make_unique<AcmeHttpChallengeManual>();
+    } else {
+        throw std::logic_error("Invalid ACME HTTP challenge handler type id: " + params.typeId);
     }
 };
 
@@ -108,11 +173,10 @@ class ChallengeSelfCheck :
         urls(std::move(urls))
     {}
 
-    void start() {
+    void start(std::chrono::milliseconds duration, std::chrono::milliseconds interval) {
         for(auto&& url : urls) {
             acme_lw::waitForGet(shared_callback{this->shared_from_this()},
-                std::move(url), 1s, 250ms);
-                // TODO: 120s timeout 1s interval when using AcmeHttpChallengeManual
+                std::move(url), duration, interval);
         }
     }
 
@@ -156,27 +220,11 @@ bool createAccountKey(QFile& file) {
     return false;
 }
 
-std::string readAll(const QString& path)
-{
-    QFile file(path);
-    if(file.open(QFile::ReadOnly)) {
-        return file.readAll().toStdString();
-    }
-    return std::string();
-}
-
 acme_lw::Certificate readCertificate(const std::array<QString, 2>& files) {
     return {
         readAll(files.front()),
         readAll(files.back()),
     };
-}
-
-bool writeAll(const std::string& data, const QString& path)
-{
-    QFile file(path);
-    return file.open(QFile::WriteOnly) &&
-        file.write(QByteArray::fromStdString(data)) == qint64(data.size());
 }
 
 bool writeCertificate(acme_lw::Certificate cert, const std::array<QString, 2>& files) {
@@ -358,7 +406,7 @@ struct OrderCallback{
                 std::move(client), std::move(domains), std::move(challenges),
                 std::move(orderUrl), std::move(finalUrl)
             );
-        }, std::move(selfCheckUrls))->start();
+        }, std::move(selfCheckUrls))->start(challengeHandler->selfCheckDuration(), challengeHandler->selfCheckInterval());
         selfCheckUrls.clear();
     }
     void operator()(acme_lw::AcmeClient client, acme_lw::AcmeException error) const {
@@ -423,32 +471,41 @@ void DomainServerAcmeClient::generateCertificate(std::array<QString,2> certPaths
 
 
     std::vector<std::string> domains;
+
+    std::map<std::string, std::string> domainDirs;
     auto domainList = settings.valueOrDefaultValueForKeyPath("acme.certificate_domains").toList();
     for(auto&& var : domainList) {
-        domains.push_back(QUrl::toAce(var.toString()).toStdString());
+        auto map = var.toMap();
+        domains.push_back(QUrl::toAce(map["domain"].toString()).toStdString());
+        auto domainDir = map["directory"].toString().toStdString();
+        domainDirs[domains.back()] = domainDir != "" ? domainDir : ".";
     }
+
+    ChallengeHandlerParams challengeHandlerParams {
+        settings.valueOrDefaultValueForKeyPath("acme.challenge_handler_type").toString().toStdString(),
+        std::move(domainDirs)
+    };
 
     auto directoryUrl = settings.valueOrDefaultValueForKeyPath("acme.directory_endpoint").toString().toStdString();
     auto eabKid = settings.valueOrDefaultValueForKeyPath("acme.eab_kid").toString().toStdString();
     auto eabHmac = settings.valueOrDefaultValueForKeyPath("acme.eab_mac").toString().toStdString();
 
     status["directory"]["status"] = "pending";
-    acme_lw::init(acme_lw::forwardAcmeError([this, domains = std::move(domains)](auto next, auto client){
+    acme_lw::init(acme_lw::forwardAcmeError([this, domains = std::move(domains), challengeHandlerParams = std::move(challengeHandlerParams)](auto next, auto client){
         status["directory"]["status"] = "ok";
         status["account"]["status"] = "pending";
         // TODO: instead of forwarding createAccount errors, need to get them here and set setError(status["account"], "acme", error.what())
-        acme_lw::createAccount(acme_lw::forwardAcmeError([this, domains = std::move(domains)](auto next, auto client){
+        acme_lw::createAccount(acme_lw::forwardAcmeError([this, domains = std::move(domains), challengeHandlerParams = std::move(challengeHandlerParams)](auto next, auto client){
             status["account"]["status"] = "ok";
             status["certificate"]["status"] = "pending";
-            acme_lw::orderCertificate(std::move(next), [this](auto domain, auto location, auto keyAuth){
+            acme_lw::orderCertificate(std::move(next), [this, challengeHandlerParams = std::move(challengeHandlerParams)](auto domain, auto location, auto keyAuth){
                 qCDebug(acme_client) << "Got challenge:\n"
                     << "Domain:" << domain.c_str() << '\n'
                     << "Location:" << location.c_str() << '\n'
                     << "Key Authorization:" << keyAuth.c_str() << '\n'
                 ;
                 if(!challengeHandler) {
-                    // TODO: add configuration settings for AcmeHttpChallengeFiles or AcmeHttpChallengeManual
-                    challengeHandler = std::make_unique<AcmeHttpChallengeServer>();
+                    challengeHandler = makeChallengeHandler(challengeHandlerParams);
                 }
                 challengeHandler->addChallenge(domain, location, keyAuth);
                 selfCheckUrls.push_back("http://"s + domain + location);

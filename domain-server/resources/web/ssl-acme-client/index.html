@@ -71,8 +71,8 @@
 
         <div id="other-settings-container">
             <label>Challenge completion method</label>
-            <select id="challange-select">
-                <option value="http-server">HTTP Server</option>
+            <select id="challenge-select">
+                <option value="server">HTTP Server</option>
                 <option value="files">Files</option>
                 <option value="manual">Manual</option>
             </select><br />
@@ -82,9 +82,11 @@
         <div id="domains-container">
             <h4>Domains</h4>
             <div id="domain-inputs">
-                <input type="text" placeholder="Domain Name" />
-                <input type="text" placeholder="Domain Directory" />
-                <input type="button" value="Remove" />
+                <div class="domain-input-container">
+                    <input type="text" placeholder="Domain Name" />
+                    <input type="text" class="domain-dir-input" placeholder="Domain Directory" />
+                    <input type="button" value="Remove" />
+                </div>
             </div>
             <input id="add-domain-button" type="button" value="Add Domain" />
         </div>
