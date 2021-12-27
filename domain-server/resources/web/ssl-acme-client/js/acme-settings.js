@@ -4,6 +4,9 @@ import {
     getZeroSSLEebFromApiKey, getZeroSSLEebFromEmail
 } from "./api.js"
 
+const enableCheckbox = document.getElementById("enable");
+const enableContent = document.getElementById("enable-content");
+
 const certDirInput = document.getElementById("cert-dir");
 const certNameInput = document.getElementById("cert-name");
 const certKeyNameInput = document.getElementById("cert-key-name");
@@ -23,6 +26,7 @@ const termsOfServiceLink = document.getElementById("terms-of-service");
 const authSelect = document.getElementById("auth-select");
 const controlsContainer = document.getElementById("control-button-container");
 const saveButton = document.getElementById("save-button");
+const restartButton = document.getElementById("restart-button");
 
 const zeroSSlAuthInput = document.getElementById("zero-ssl-auth-input");
 const eabKidInput = document.getElementById("eab-kid-input");
@@ -67,6 +71,9 @@ function update() {
     for (const dirInput of document.getElementsByClassName("domain-dir-input")) {
         dirInput.hidden = challengeSelect.value !== "files";
     }
+
+    enableContent.hidden = !enableCheckbox.checked;
+    restartButton.hidden = !enableCheckbox.checked;
 }
 
 function getDirectoryUrl() {
@@ -106,13 +113,13 @@ function updateDirectoryMeta() {
     });
 }
 
+
 directorySelect.addEventListener("change", () => {
     updateDirectoryMeta();
 });
 
-challengeSelect.addEventListener("change", () => {
-    update();
-});
+challengeSelect.addEventListener("change", update);
+enableCheckbox.addEventListener("change", update);
 
 function getEabFromZeroSSL() {
     const authType = authSelect.value;
@@ -211,11 +218,18 @@ addDomainButton.addEventListener("click", addDomainInput);
 
 function updateSettings() {
     getSettings().then((settings) => {
-        setDirectoryUrl(settings.values.acme.directory_endpoint);
-        eabKidInput.value = settings.values.acme.eab_kid;
-        eabMacInput.value = settings.values.acme.eab_mac;
-        challengeSelect.value = settings.values.acme.challenge_handler_type;
-        setDomains(settings.values.acme.certificate_domains);
+        const acme = settings.values.acme;
+        setDirectoryUrl(acme.directory_endpoint);
+        eabKidInput.value = acme.eab_kid;
+        eabMacInput.value = acme.eab_mac;
+        challengeSelect.value = acme.challenge_handler_type;
+        setDomains(acme.certificate_domains);
+        enableCheckbox.checked = acme.enable_client;
+        certDirInput.value = acme.certificate_directory;
+        certNameInput.value = acme.certificate_filename;
+        certKeyNameInput.value = acme.certificate_key_filename;
+        certCANameInput.value = acme.certificate_authority_filename;
+        accountKeyPathInput.value = acme.account_key_path;
         updateStatus();
     });
 }
@@ -227,7 +241,13 @@ saveButton.addEventListener("click", () => {
         eab_kid: eabKidInput.value,
         eab_mac: eabMacInput.value,
         challenge_handler_type: challengeSelect.value,
-        certificate_domains: getDomains()
+        certificate_domains: getDomains(),
+        enable_client: enableCheckbox.checked,
+        certificate_directory: certDirInput.value,
+        certificate_filename: certNameInput.value,
+        certificate_key_filename: certKeyNameInput.value,
+        certificate_authority_filename: certCANameInput.value,
+        account_key_path: accountKeyPathInput.value
     } }).then(() => {
         updateSettings();
     }).finally(() => {
