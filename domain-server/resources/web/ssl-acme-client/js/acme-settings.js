@@ -235,8 +235,12 @@ function updateSettings() {
 }
 
 function uploadFiles() {
-    const arrayFromUpload = upload => Array.from(upload.files)
-        .map(file => { return {file, endpoint: upload.id.replace("-upload","")}; });
+    const arrayFromUpload = upload => {
+        const array = Array.from(upload.files).map(file =>
+            { return {file, endpoint: upload.id.replace("-upload","")}; })
+        upload.value = upload.defaultValue;
+        return array;
+    };
 
     const files = arrayFromUpload(certUpload)
         .concat(arrayFromUpload(certKeyUpload))
