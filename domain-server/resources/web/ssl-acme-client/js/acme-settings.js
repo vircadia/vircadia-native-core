@@ -1,6 +1,6 @@
 import {showLoadingScreen} from "./utils.js"
 import {
-    getSettings, postSettings, getAcmeMeta,
+    getSettings, postSettings, getAcmeMeta, putFile, deleteFile,
     getZeroSSLEebFromApiKey, getZeroSSLEebFromEmail
 } from "./api.js"
 
@@ -13,7 +13,7 @@ const certKeyNameInput = document.getElementById("cert-key-name");
 const certCANameInput = document.getElementById("cert-ca-name");
 const certUpload = document.getElementById("cert-upload");
 const certKeyUpload = document.getElementById("cert-key-upload");
-const certCAUpload = document.getElementById("cert-ca-upload");
+const certCAUpload = document.getElementById("cert-authorities-upload");
 const certResetButton = document.getElementById("cert-reset");
 
 const accountKeyPathInput = document.getElementById("account-key-path");
@@ -234,6 +234,34 @@ function updateSettings() {
     });
 }
 
+function uploadFiles() {
+    const arrayFromUpload = upload => Array.from(upload.files)
+        .map(file => { return {file, endpoint: upload.id.replace("-upload","")}; });
+
+    const files = arrayFromUpload(certUpload)
+        .concat(arrayFromUpload(certKeyUpload))
+        .concat(arrayFromUpload(certCAUpload))
+        .concat(arrayFromUpload(accountKeyUpload))
+    ;
+
+    let queue = Promise.resolve();
+    for (const file of files) {
+        console.log("queueing file", file);
+        queue = queue.then(() => deleteFile(file.endpoint))
+            .then(() => putFile(file.endpoint, file.file));
+    }
+
+    return queue;
+}
+
+certResetButton.addEventListener("click", () => {
+    return deleteFile("cert").then(() => deleteFile("cert-key"));
+});
+
+accountKeyResetButton.addEventListener("click", () => {
+    return deleteFile("account-key");
+});
+
 saveButton.addEventListener("click", () => {
     showLoadingScreen(true);
     postSettings({acme: {
@@ -249,6 +277,8 @@ saveButton.addEventListener("click", () => {
         certificate_authority_filename: certCANameInput.value,
         account_key_path: accountKeyPathInput.value
     } }).then(() => {
+        return uploadFiles();
+    }).then(() => {
         updateSettings();
     }).finally(() => {
         showLoadingScreen(false);

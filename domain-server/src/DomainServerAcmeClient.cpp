@@ -3,7 +3,7 @@
 //  domain-server/src
 //
 //  Created by Nshan G. on 2021-11-15.
-//  Copyright 2020 Vircadia contributors.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -589,7 +589,7 @@ bool DomainServerAcmeClient::handleAuthenticatedHTTPRequest(HTTPConnection *conn
         if(url.path() == STATUS_URL) {
             connection->respond(
                 HTTPConnection::StatusCode200,
-                QByteArray::fromStdString(status.dump()),
+                QByteArray::fromStdString(status.dump(1)),
                 "application/json");
             return true;
         }

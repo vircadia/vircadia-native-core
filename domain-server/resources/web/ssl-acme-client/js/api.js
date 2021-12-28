@@ -14,6 +14,29 @@ function postSettings(settings) {
     });
 }
 
+function putFile(endpoint, file) {
+    return fetch("/acme/" + endpoint, {
+        method: "PUT",
+        body: file
+    });
+}
+
+function deleteFile(endpoint) {
+    return fetch("/acme/" + endpoint, {
+        method: "DELETE",
+    });
+}
+
+function restartClient() {
+    return fetch("/acme/update", {
+        method: "POST",
+    });
+}
+
+function getStatus() {
+    return fetch("/acme/satus");
+}
+
 function getAcmeMeta(directory) {
     return fetch(directory).then(response => response.text())
         .then(text => {
@@ -42,4 +65,5 @@ function getZeroSSLEebFromApiKey(apiKey) {
 }
 
 export { getSettings, postSettings, getAcmeMeta,
+    putFile, deleteFile, restartClient, getStatus,
     getZeroSSLEebFromApiKey, getZeroSSLEebFromEmail }
