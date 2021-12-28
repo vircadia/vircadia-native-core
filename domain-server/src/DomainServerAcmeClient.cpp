@@ -349,7 +349,7 @@ struct CertificateCallback{
             << "Expires on:" << dateTimeFrom(cert.getExpiry()) << '\n'
         ;
         if(writeCertificate(cert, certPaths)) {
-            next(std::move(cert));
+            next(std::move(cert), true);
         } else {
             const char* message = "Failed to write certificate files.";
             setError(status["certificate"], "write", {
@@ -358,6 +358,7 @@ struct CertificateCallback{
             qCCritical(acme_client) << message << '\n'
                 << certPaths.front() << '\n'
                 << certPaths.back() << '\n';
+            next(acme_lw::Certificate(), false);
         }
     }
     void operator()(acme_lw::AcmeClient client, acme_lw::AcmeException error) const {
@@ -367,6 +368,7 @@ struct CertificateCallback{
         challengeHandler = nullptr;
         qCCritical(acme_client) << error.what() << '\n';
         qCDebug(acme_client) << status.dump(1).c_str() << '\n';
+        next(acme_lw::Certificate(), false);
     }
 };
 
@@ -415,6 +417,8 @@ struct OrderCallback{
         });
         qCCritical(acme_client) << error.what() << '\n';
         qCDebug(acme_client) << status.dump(1).c_str() << '\n';
+        selfCheckUrls.clear();
+        next(acme_lw::Certificate(), false);
     }
     void operator()(acme_lw::AcmeException error) const {
         setError(status["directory"], "acme", {
@@ -422,6 +426,8 @@ struct OrderCallback{
         });
         qCCritical(acme_client) << error.what() << '\n';
         qCDebug(acme_client) << status.dump(1).c_str() << '\n';
+        selfCheckUrls.clear();
+        next(acme_lw::Certificate(), false);
     }
 };
 
@@ -442,7 +448,6 @@ OrderCallback<Callback> orderCallback(
     };
 }
 
-// TODO: on failure retry N times then reschedule for next day
 void DomainServerAcmeClient::generateCertificate(std::array<QString,2> certPaths) {
 
     QString accountKeyPath = getAccountKeyPath(settings);
@@ -490,6 +495,8 @@ void DomainServerAcmeClient::generateCertificate(std::array<QString,2> certPaths
     auto eabKid = settings.valueOrDefaultValueForKeyPath("acme.eab_kid").toString().toStdString();
     auto eabHmac = settings.valueOrDefaultValueForKeyPath("acme.eab_mac").toString().toStdString();
 
+    selfCheckUrls.clear(); // just in case
+
     status["directory"]["status"] = "pending";
     acme_lw::init(acme_lw::forwardAcmeError([this, domains = std::move(domains), challengeHandlerParams = std::move(challengeHandlerParams)](auto next, auto client){
         status["directory"]["status"] = "ok";
@@ -511,8 +518,12 @@ void DomainServerAcmeClient::generateCertificate(std::array<QString,2> certPaths
                 selfCheckUrls.push_back("http://"s + domain + location);
             }, std::move(client), std::move(domains));
         }, std::move(next)), std::move(client));
-    }, orderCallback(status, challengeHandler, selfCheckUrls, std::move(certPaths), [this](auto cert){
-        handleRenewal(cert.getExpiry(), {});
+    }, orderCallback(status, challengeHandler, selfCheckUrls, std::move(certPaths), [this](auto cert, bool success){
+        if(success) {
+            handleRenewal(cert.getExpiry(), {});
+        } else {
+            scheduleRenewalIn(24h);
+        }
     })), accountKey, directoryUrl, eabKid, eabHmac);
 
 }
