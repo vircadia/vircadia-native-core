@@ -438,15 +438,6 @@ struct OrderCallback{
         selfCheckUrls.clear();
         next(acme_lw::Certificate(), std::move(certPaths), false);
     }
-    void operator()(acme_lw::AcmeException error) const {
-        setError(status["directory"], "acme", {
-            {"message", error.what()}
-        });
-        qCCritical(acme_client) << error.what() << '\n';
-        qCDebug(acme_client) << status.dump(1).c_str() << '\n';
-        selfCheckUrls.clear();
-        next(acme_lw::Certificate(), std::move(certPaths), false);
-    }
 };
 
 template<typename Callback>
@@ -462,6 +453,79 @@ OrderCallback<Callback> orderCallback(
         challengeHandler,
         selfCheckUrls,
         std::move(certPaths),
+        std::move(next)
+    };
+}
+
+template <typename Callback>
+struct AccountCallback{
+    nlohmann::json& status;
+    std::unique_ptr<AcmeChallengeHandler>& challengeHandler;
+    std::vector<std::string>& selfCheckUrls;
+    CertificatePaths certPaths;
+    std::vector<std::string> domains;
+    ChallengeHandlerParams challengeHandlerParams;
+    Callback next;
+
+    void operator()(acme_lw::AcmeClient client) const {
+        status["account"]["status"] = "ok";
+        status["certificate"]["status"] = "pending";
+        acme_lw::orderCertificate(orderCallback(status, challengeHandler, selfCheckUrls, std::move(certPaths), std::move(next)), [
+                &challengeHandler = challengeHandler,
+                &selfCheckUrls = selfCheckUrls,
+                challengeHandlerParams = std::move(challengeHandlerParams)
+        ](auto domain, auto location, auto keyAuth){
+                qCDebug(acme_client) << "Got challenge:\n"
+                    << "Domain:" << domain.c_str() << '\n'
+                    << "Location:" << location.c_str() << '\n'
+                    << "Key Authorization:" << keyAuth.c_str() << '\n'
+                ;
+                if(!challengeHandler) {
+                    challengeHandler = makeChallengeHandler(challengeHandlerParams);
+                }
+                challengeHandler->addChallenge(domain, location, keyAuth);
+                selfCheckUrls.push_back("http://"s + domain + location);
+        }, std::move(client), std::move(domains));
+    }
+
+    void operator()(acme_lw::AcmeClient client, acme_lw::AcmeException error) const {
+        setError(status["account"], "acme", {
+            {"message", error.what()}
+        });
+        qCCritical(acme_client) << error.what() << '\n';
+        qCDebug(acme_client) << status.dump(1).c_str() << '\n';
+        selfCheckUrls.clear();
+        next(acme_lw::Certificate(), std::move(certPaths), false);
+    }
+
+    void operator()(acme_lw::AcmeException error) const {
+        setError(status["directory"], "acme", {
+            {"message", error.what()}
+        });
+        qCCritical(acme_client) << error.what() << '\n';
+        qCDebug(acme_client) << status.dump(1).c_str() << '\n';
+        selfCheckUrls.clear();
+        next(acme_lw::Certificate(), std::move(certPaths), false);
+    }
+};
+
+template<typename Callback>
+AccountCallback<Callback> accountCallback(
+    nlohmann::json& status,
+    std::unique_ptr<AcmeChallengeHandler>& challengeHandler,
+    std::vector<std::string>& selfCheckUrls,
+    CertificatePaths certPaths,
+    std::vector<std::string> domains,
+    ChallengeHandlerParams challengeHandlerParams,
+    Callback next
+) {
+    return {
+        status,
+        challengeHandler,
+        selfCheckUrls,
+        std::move(certPaths),
+        std::move(domains),
+        std::move(challengeHandlerParams),
         std::move(next)
     };
 }
@@ -519,31 +583,17 @@ void DomainServerAcmeClient::generateCertificate(const CertificatePaths& certPat
     acme_lw::init(acme_lw::forwardAcmeError([this, domains = std::move(domains), challengeHandlerParams = std::move(challengeHandlerParams)](auto next, auto client){
         status["directory"]["status"] = "ok";
         status["account"]["status"] = "pending";
-        // TODO: instead of forwarding createAccount errors, need to get them here and set setError(status["account"], "acme", error.what())
-        acme_lw::createAccount(acme_lw::forwardAcmeError([this, domains = std::move(domains), challengeHandlerParams = std::move(challengeHandlerParams)](auto next, auto client){
-            status["account"]["status"] = "ok";
-            status["certificate"]["status"] = "pending";
-            acme_lw::orderCertificate(std::move(next), [this, challengeHandlerParams = std::move(challengeHandlerParams)](auto domain, auto location, auto keyAuth){
-                qCDebug(acme_client) << "Got challenge:\n"
-                    << "Domain:" << domain.c_str() << '\n'
-                    << "Location:" << location.c_str() << '\n'
-                    << "Key Authorization:" << keyAuth.c_str() << '\n'
-                ;
-                if(!challengeHandler) {
-                    challengeHandler = makeChallengeHandler(challengeHandlerParams);
-                }
-                challengeHandler->addChallenge(domain, location, keyAuth);
-                selfCheckUrls.push_back("http://"s + domain + location);
-            }, std::move(client), std::move(domains));
-        }, std::move(next)), std::move(client));
-    }, orderCallback(status, challengeHandler, selfCheckUrls, certPaths, [this](auto cert, auto certPaths, bool success){
-        if(success) {
-            emit certificateUpdated(certPaths);
-            handleRenewal(cert.getExpiry(), certPaths);
-        } else {
-            scheduleRenewalIn(24h);
+        acme_lw::createAccount(std::move(next), std::move(client));
+    }, accountCallback(status, challengeHandler, selfCheckUrls, certPaths, std::move(domains), std::move(challengeHandlerParams),
+        [this](auto cert, auto certPaths, bool success){
+            if(success) {
+                emit certificateUpdated(certPaths);
+                handleRenewal(cert.getExpiry(), certPaths);
+            } else {
+                scheduleRenewalIn(24h);
+            }
         }
-    })), accountKey, directoryUrl, eabKid, eabHmac);
+    )), accountKey, directoryUrl, eabKid, eabHmac);
 
 }
 
@@ -620,7 +670,7 @@ bool DomainServerAcmeClient::handleAuthenticatedHTTPRequest(HTTPConnection *conn
         if(url.path() == STATUS_URL) {
             connection->respond(
                 HTTPConnection::StatusCode200,
-                QByteArray::fromStdString(status.dump(1)),
+                QByteArray::fromStdString(status.dump()),
                 "application/json");
             return true;
         }
