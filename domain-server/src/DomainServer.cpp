@@ -936,6 +936,9 @@ void DomainServer::setUpWebRTCSignalingServer() {
             &DomainServer::forwardAssignmentClientSignalingMessageToUserClient));
     connect(this, &DomainServer::webrtcSignalingMessageForUserClient,
         _webrtcSignalingServer.get(), &WebRTCSignalingServer::sendMessage);
+
+    connect(_acmeClient.get(), &DomainServerAcmeClient::certificateUpdated,
+        _webrtcSignalingServer.get(), &WebRTCSignalingServer::onSSLCertificateUpdate);
 }
 
 // Routes an inbound WebRTC signaling message received from a client app to the appropriate recipient.

@@ -40,11 +40,14 @@ public:
     DomainServerAcmeClient(DomainServerSettingsManager&);
     bool handleAuthenticatedHTTPRequest(HTTPConnection* connection, const QUrl& url);
 
+signals:
+    void certificateUpdated(CertificatePaths);
+
 private:
     void init();
-    void generateCertificate(std::array<QString,2> certPaths);
-    void checkExpiry(std::array<QString,2> certPaths);
-    void handleRenewal(std::chrono::system_clock::time_point, std::array<QString,2> certPaths);
+    void generateCertificate(const CertificatePaths& certPaths);
+    void checkExpiry(const CertificatePaths& certPaths);
+    void handleRenewal(std::chrono::system_clock::time_point, const CertificatePaths& certPaths);
     void scheduleRenewalIn(std::chrono::system_clock::duration);
 
     QTimer renewalTimer;
@@ -52,6 +55,9 @@ private:
     std::vector<std::string> selfCheckUrls;
     DomainServerSettingsManager& settings;
     nlohmann::json status;
+
+    QTimer updateCheckTimer;
+    std::chrono::system_clock::time_point expiry;
 };
 
 #endif /* end of include guard */

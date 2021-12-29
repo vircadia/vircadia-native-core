@@ -220,16 +220,16 @@ bool createAccountKey(QFile& file) {
     return false;
 }
 
-acme_lw::Certificate readCertificate(const std::array<QString, 2>& files) {
+acme_lw::Certificate readCertificate(const CertificatePaths& files) {
     return {
-        readAll(files.front()),
-        readAll(files.back()),
+        readAll(files.cert),
+        readAll(files.key),
     };
 }
 
-bool writeCertificate(acme_lw::Certificate cert, const std::array<QString, 2>& files) {
-    return writeAll(cert.fullchain, files.front()) &&
-        writeAll(cert.privkey, files.back());
+bool writeCertificate(acme_lw::Certificate cert, const CertificatePaths& files) {
+    return writeAll(cert.fullchain, files.cert) &&
+        writeAll(cert.privkey, files.key);
 }
 
 QString DomainServerAcmeClient::getAccountKeyPath(DomainServerSettingsManager& settings) {
@@ -263,6 +263,25 @@ DomainServerAcmeClient::DomainServerAcmeClient(DomainServerSettingsManager& sett
 {
     renewalTimer.setSingleShot(true);
     connect(&renewalTimer, &QTimer::timeout, this, [this](){ init(); });
+
+    connect(&updateCheckTimer, &QTimer::timeout, this, [this](){
+        auto paths = getCertificatePaths(this->settings);
+        if(QFile::exists(paths.cert) && QFile::exists(paths.key)) {
+            auto cert = readCertificate(paths);
+            if(!cert.fullchain.empty() && !cert.privkey.empty()) {
+                auto newExpiry = cert.getExpiryOrError();
+                if(newExpiry.success) {
+                    if(this->expiry < newExpiry.value) {
+                        emit certificateUpdated(paths);
+                        this->expiry = newExpiry.value;
+                    }
+                }
+            }
+        }
+    });
+
+    updateCheckTimer.start(std::chrono::duration_cast<std::chrono::milliseconds>(24h).count());
+
     init();
 }
 
@@ -300,24 +319,24 @@ void DomainServerAcmeClient::init() {
         return;
     }
 
-    auto paths = DomainServerAcmeClient::getCertificatePaths(settings);
-    std::array<QString,2> certPaths { paths.cert, paths.key };
-    auto notExisitng = std::stable_partition(certPaths.begin(), certPaths.end(),
+    auto certPaths = DomainServerAcmeClient::getCertificatePaths(settings);
+    std::array<QString,2> pathsByExistence { certPaths.cert, certPaths.key };
+    auto notExisitng = std::stable_partition(pathsByExistence.begin(), pathsByExistence.end(),
         [](auto x){ return QFile::exists(x); });
-    if(notExisitng == certPaths.end()) {
+    if(notExisitng == pathsByExistence.end()) {
         // all files exist, order unchanged
-        checkExpiry(std::move(certPaths));
-    } else if(notExisitng == certPaths.begin()) {
+        checkExpiry(certPaths);
+    } else if(notExisitng == pathsByExistence.begin()) {
         // none of the files exist, order unchanged
-        generateCertificate(std::move(certPaths));
+        generateCertificate(certPaths);
     } else {
         setError(status["certificate"], "missing", {
             {"missing", notExisitng->toStdString()},
-            {"present", certPaths.begin()->toStdString()}
+            {"present", pathsByExistence.begin()->toStdString()}
         });
         // one file exist while the other doesn't, ordered existing first
         qCCritical(acme_client) << "SSL certificate missing file:\n" << *notExisitng;
-        qCCritical(acme_client) << "Either provide it, or remove the other file to generate a new certificate:\n" << *certPaths.begin();
+        qCCritical(acme_client) << "Either provide it, or remove the other file to generate a new certificate:\n" << *pathsByExistence.begin();
         return;
     }
 }
@@ -340,7 +359,7 @@ template<typename Callback>
 struct CertificateCallback{
     nlohmann::json& status;
     std::unique_ptr<AcmeChallengeHandler>& challengeHandler;
-    std::array<QString,2> certPaths;
+    CertificatePaths certPaths;
     Callback next;
 
     void operator()(acme_lw::AcmeClient client, acme_lw::Certificate cert) const {
@@ -348,18 +367,17 @@ struct CertificateCallback{
         qCDebug(acme_client) << "Certificate retrieved\n"
             << "Expires on:" << dateTimeFrom(cert.getExpiry()) << '\n'
         ;
-        if(writeCertificate(cert, certPaths)) {
-            next(std::move(cert), true);
-        } else {
+        bool success = writeCertificate(cert, certPaths);
+        if(!success) {
             const char* message = "Failed to write certificate files.";
             setError(status["certificate"], "write", {
                 {"message", message}
             });
             qCCritical(acme_client) << message << '\n'
-                << certPaths.front() << '\n'
-                << certPaths.back() << '\n';
-            next(acme_lw::Certificate(), false);
+                << certPaths.cert << '\n'
+                << certPaths.key << '\n';
         }
+        next(std::move(cert), std::move(certPaths), success);
     }
     void operator()(acme_lw::AcmeClient client, acme_lw::AcmeException error) const {
         setError(status["certificate"], "acme", {
@@ -368,7 +386,7 @@ struct CertificateCallback{
         challengeHandler = nullptr;
         qCCritical(acme_client) << error.what() << '\n';
         qCDebug(acme_client) << status.dump(1).c_str() << '\n';
-        next(acme_lw::Certificate(), false);
+        next(acme_lw::Certificate(), std::move(certPaths), false);
     }
 };
 
@@ -376,7 +394,7 @@ template<typename Callback>
 CertificateCallback<Callback> certificateCallback(
     nlohmann::json& status,
     std::unique_ptr<AcmeChallengeHandler>& challengeHandler,
-    std::array<QString,2> certPaths,
+    CertificatePaths certPaths,
     Callback next
 ) {
     return {
@@ -392,7 +410,7 @@ struct OrderCallback{
     nlohmann::json& status;
     std::unique_ptr<AcmeChallengeHandler>& challengeHandler;
     std::vector<std::string>& selfCheckUrls;
-    std::array<QString,2> certPaths;
+    CertificatePaths certPaths;
     Callback next;
 
     void operator()(acme_lw::AcmeClient client, std::vector<std::string> challenges, std::vector<std::string> domains, std::string finalUrl, std::string orderUrl) const {
@@ -404,7 +422,7 @@ struct OrderCallback{
         ;
         challengeSelfCheck([client = std::move(client), orderUrl, finalUrl, challenges, domains,
                 &status = status, &challengeHandler = challengeHandler, certPaths = std::move(certPaths), next = std::move(next)]() mutable {
-            retrieveCertificate(certificateCallback(status, challengeHandler,std::move(certPaths), std::move(next)),
+            retrieveCertificate(certificateCallback(status, challengeHandler, std::move(certPaths), std::move(next)),
                 std::move(client), std::move(domains), std::move(challenges),
                 std::move(orderUrl), std::move(finalUrl)
             );
@@ -418,7 +436,7 @@ struct OrderCallback{
         qCCritical(acme_client) << error.what() << '\n';
         qCDebug(acme_client) << status.dump(1).c_str() << '\n';
         selfCheckUrls.clear();
-        next(acme_lw::Certificate(), false);
+        next(acme_lw::Certificate(), std::move(certPaths), false);
     }
     void operator()(acme_lw::AcmeException error) const {
         setError(status["directory"], "acme", {
@@ -427,7 +445,7 @@ struct OrderCallback{
         qCCritical(acme_client) << error.what() << '\n';
         qCDebug(acme_client) << status.dump(1).c_str() << '\n';
         selfCheckUrls.clear();
-        next(acme_lw::Certificate(), false);
+        next(acme_lw::Certificate(), std::move(certPaths), false);
     }
 };
 
@@ -436,7 +454,7 @@ OrderCallback<Callback> orderCallback(
     nlohmann::json& status,
     std::unique_ptr<AcmeChallengeHandler>& challengeHandler,
     std::vector<std::string>& selfCheckUrls,
-    std::array<QString,2> certPaths,
+    CertificatePaths certPaths,
     Callback next
 ) {
     return {
@@ -448,7 +466,7 @@ OrderCallback<Callback> orderCallback(
     };
 }
 
-void DomainServerAcmeClient::generateCertificate(std::array<QString,2> certPaths) {
+void DomainServerAcmeClient::generateCertificate(const CertificatePaths& certPaths) {
 
     QString accountKeyPath = getAccountKeyPath(settings);
     if(accountKeyPath == "") {
@@ -518,9 +536,10 @@ void DomainServerAcmeClient::generateCertificate(std::array<QString,2> certPaths
                 selfCheckUrls.push_back("http://"s + domain + location);
             }, std::move(client), std::move(domains));
         }, std::move(next)), std::move(client));
-    }, orderCallback(status, challengeHandler, selfCheckUrls, std::move(certPaths), [this](auto cert, bool success){
+    }, orderCallback(status, challengeHandler, selfCheckUrls, certPaths, [this](auto cert, auto certPaths, bool success){
         if(success) {
-            handleRenewal(cert.getExpiry(), {});
+            emit certificateUpdated(certPaths);
+            handleRenewal(cert.getExpiry(), certPaths);
         } else {
             scheduleRenewalIn(24h);
         }
@@ -528,7 +547,7 @@ void DomainServerAcmeClient::generateCertificate(std::array<QString,2> certPaths
 
 }
 
-void DomainServerAcmeClient::checkExpiry(std::array<QString,2> certPaths) {
+void DomainServerAcmeClient::checkExpiry(const CertificatePaths& certPaths) {
     auto cert = readCertificate(certPaths);
     if(cert.fullchain.empty() || cert.privkey.empty()) {
         const char* message = "Failed to read certificate files.";
@@ -537,15 +556,15 @@ void DomainServerAcmeClient::checkExpiry(std::array<QString,2> certPaths) {
         });
         // TODO: report a proper error, IO error, bad certificate etc
         qCCritical(acme_client) << message << '\n'
-            << certPaths.front() << '\n'
-            << certPaths.back() << '\n';
+            << certPaths.cert << '\n'
+            << certPaths.key << '\n';
         return;
     }
 
-    system_clock::time_point expiry;
-    try {
-    expiry = cert.getExpiry();
-    } catch (const acme_lw::AcmeException& error) {
+    auto expiry = cert.getExpiryOrError();
+    if(expiry.success) {
+        handleRenewal(expiry.value, certPaths);
+    } else {
         const char* message =  "Failed to read certificate expiry date.";
         setError(status["certificate"], "invalid", {
             {"message", message}
@@ -555,18 +574,19 @@ void DomainServerAcmeClient::checkExpiry(std::array<QString,2> certPaths) {
         return;
     }
 
-    handleRenewal(expiry, certPaths);
 }
 
-void DomainServerAcmeClient::handleRenewal(system_clock::time_point expiry, std::array<QString, 2> certPaths) {
+void DomainServerAcmeClient::handleRenewal(system_clock::time_point expiry, const CertificatePaths& certPaths) {
     status["certificate"]["status"] = "ok";
     status["certificate"]["expiry"] = secondsSinceEpoch(expiry).count();
+
+    this->expiry = expiry;
 
     auto remaining = remainingTime(expiry);
     if(remaining > 0s) {
         scheduleRenewalIn(remaining);
     } else {
-        generateCertificate(std::move(certPaths));
+        generateCertificate(certPaths);
     }
 }
 

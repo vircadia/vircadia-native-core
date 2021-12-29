@@ -18,8 +18,7 @@
 #include <QWebSocketServer>
 
 #include "../SockAddr.h"
-
-struct CertificatePaths;
+#include "../SSLCommon.h"
 
 /// @addtogroup Networking
 /// @{
@@ -82,6 +81,9 @@ public slots:
     /// @param message The message to send to the Interface client. Includes details of the sender and the destination in
     /// addition to the WebRTC signaling channel payload.
     void sendMessage(const QJsonObject& message);
+
+    /// @brief reinitialize the server socket SSL certificate
+    void onSSLCertificateUpdate(const CertificatePaths&);
 
 signals:
 

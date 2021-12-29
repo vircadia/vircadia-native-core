@@ -18,17 +18,11 @@
 
 #include "../NetworkLogging.h"
 #include "../NodeType.h"
-#include "../SSLCommon.h"
 
 
 const int WEBRTC_SOCKET_CHECK_INTERVAL_IN_MS = 30000;
 
-WebRTCSignalingServer::WebRTCSignalingServer(QObject* parent, const CertificatePaths& certPaths) :
-    QObject(parent)
-{
-    _webSocketServer = (new QWebSocketServer(QStringLiteral("WebRTC Signaling Server"), QWebSocketServer::SecureMode,
-        this));
-
+std::pair<bool, QSslConfiguration> getSSLConfiguration(const CertificatePaths& certPaths) {
     bool useSystemDefaultCA = certPaths.trustedAuthorities != "";
 
     qCDebug(networking_webrtc) << "WebSocket WSS key file:" << certPaths.key;
@@ -64,7 +58,21 @@ WebRTCSignalingServer::WebRTCSignalingServer(QObject* parent, const CertificateP
         sslConfiguration.addCaCertificate(sslCaCertificate);
         sslConfiguration.setLocalCertificate(sslCertificate);
         sslConfiguration.setPrivateKey(sslKey);
-        _webSocketServer->setSslConfiguration(sslConfiguration);
+        return {true, sslConfiguration};
+    } else {
+        return {false, sslConfiguration};
+    }
+}
+
+WebRTCSignalingServer::WebRTCSignalingServer(QObject* parent, const CertificatePaths& certPaths) :
+    QObject(parent)
+{
+    _webSocketServer = (new QWebSocketServer(QStringLiteral("WebRTC Signaling Server"), QWebSocketServer::SecureMode,
+        this));
+
+    auto sslConfig = getSSLConfiguration(certPaths);
+    if (std::get<bool>(sslConfig)) {
+        _webSocketServer->setSslConfiguration(std::get<QSslConfiguration>(sslConfig));
         qCDebug(networking_webrtc) << "WebSocket SSL mode enabled:"
             << (_webSocketServer->secureMode() == QWebSocketServer::SecureMode);
     } else {
@@ -138,6 +146,18 @@ void WebRTCSignalingServer::sendMessage(const QJsonObject& message) {
         _webSockets.value(destinationAddress)->sendTextMessage(QString(QJsonDocument(message).toJson()));
     } else {
         qCWarning(networking_webrtc) << "Failed to find WebSocket for outgoing WebRTC signaling message.";
+    }
+}
+
+void WebRTCSignalingServer::onSSLCertificateUpdate(const CertificatePaths& certPaths) {
+    if(_webSocketServer->secureMode() == QWebSocketServer::SecureMode) {
+        auto sslConfig = getSSLConfiguration(certPaths);
+        if (std::get<bool>(sslConfig)) {
+            _webSocketServer->setSslConfiguration(std::get<QSslConfiguration>(sslConfig));
+            qCDebug(networking_webrtc) << "WebSocket SSL certificate updated";
+        } else {
+            qCWarning(networking_webrtc) << "Error updating WebSocket SSL certificate";
+        }
     }
 }
 
