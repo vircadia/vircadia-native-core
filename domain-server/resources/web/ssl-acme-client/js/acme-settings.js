@@ -1,6 +1,7 @@
 import {showLoadingScreen} from "./utils.js"
 import {
-    getSettings, postSettings, getAcmeMeta, putFile, deleteFile,
+    getSettings, postSettings, getAcmeMeta,
+    putFile, deleteFile, getStatus, restartClient,
     getZeroSSLEebFromApiKey, getZeroSSLEebFromEmail
 } from "./api.js"
 
@@ -38,6 +39,15 @@ const domainInputs = document.getElementById("domain-inputs");
 const domainInput = domainInputs.children[0];
 const addDomainButton = document.getElementById("add-domain-button");
 
+const statusViewEnable = document.getElementById("status-view-enable");
+const statusView = document.getElementById("status-view");
+
+function updateStatusView() {
+    getStatus().then(json => {
+        statusView.value = JSON.stringify(json, null, 1);
+    });
+}
+
 function update() {
     directoryInput.hidden = directorySelect.value !== "custom";
     const authType = authSelect.value;
@@ -74,6 +84,8 @@ function update() {
 
     enableContent.hidden = !enableCheckbox.checked;
     restartButton.hidden = !enableCheckbox.checked;
+
+    statusView.hidden = !statusViewEnable.checked;
 }
 
 function getDirectoryUrl() {
@@ -120,6 +132,7 @@ directorySelect.addEventListener("change", () => {
 
 challengeSelect.addEventListener("change", update);
 enableCheckbox.addEventListener("change", update);
+statusViewEnable.addEventListener("change", update);
 
 function getEabFromZeroSSL() {
     const authType = authSelect.value;
@@ -259,11 +272,22 @@ function uploadFiles() {
 }
 
 certResetButton.addEventListener("click", () => {
-    return deleteFile("cert").then(() => deleteFile("cert-key"));
+    showLoadingScreen(true);
+    deleteFile("cert").then(() => deleteFile("cert-key"))
+        .finally(() => showLoadingScreen(false));
 });
 
 accountKeyResetButton.addEventListener("click", () => {
-    return deleteFile("account-key");
+    showLoadingScreen(true);
+    deleteFile("account-key").finally(() => showLoadingScreen(false));
+});
+
+restartButton.addEventListener("click", () => {
+    showLoadingScreen(true);
+    restartClient().finally(() => {
+        updateStatusView();
+        showLoadingScreen(false);
+    });
 });
 
 saveButton.addEventListener("click", () => {
@@ -285,6 +309,7 @@ saveButton.addEventListener("click", () => {
     }).then(() => {
         updateSettings();
     }).finally(() => {
+        updateStatusView();
         showLoadingScreen(false);
     });
 });
@@ -304,5 +329,7 @@ function setDirectoryUrl(url) {
         }
     }
 }
+
+setInterval(updateStatusView, 2000);
 
 updateSettings();

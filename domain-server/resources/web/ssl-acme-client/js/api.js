@@ -34,7 +34,7 @@ function restartClient() {
 }
 
 function getStatus() {
-    return fetch("/acme/satus");
+    return fetch("/acme/status").then(response => response.json());
 }
 
 function getAcmeMeta(directory) {
