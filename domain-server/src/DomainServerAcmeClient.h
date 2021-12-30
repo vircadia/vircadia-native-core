@@ -52,7 +52,6 @@ private:
 
     QTimer renewalTimer;
     std::unique_ptr<AcmeChallengeHandler> challengeHandler;
-    std::vector<std::string> selfCheckUrls;
     DomainServerSettingsManager& settings;
     nlohmann::json status;
 
