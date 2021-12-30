@@ -413,17 +413,17 @@ struct OrderCallback{
     CertificatePaths certPaths;
     Callback next;
 
-    void operator()(acme_lw::AcmeClient client, std::vector<std::string> challenges, std::vector<std::string> domains, std::string finalUrl, std::string orderUrl) const {
+    void operator()(acme_lw::AcmeClient client, std::vector<std::string> challenges, std::vector<acme_lw::identifier> identifiers, std::string finalUrl, std::string orderUrl) const {
         qCDebug(acme_client) << "Ordered certificate\n"
             << "Order URL:" << orderUrl.c_str() << '\n'
             << "Finalize URL:" << finalUrl.c_str() << '\n'
-            << "Number of domains:" << domains.size() << '\n'
+            << "Number of identifiers:" << identifiers.size() << '\n'
             << "Number of challenges:" << challenges.size() << '\n'
         ;
-        challengeSelfCheck([client = std::move(client), orderUrl, finalUrl, challenges, domains,
+        challengeSelfCheck([client = std::move(client), orderUrl, finalUrl, challenges, identifiers,
                 &status = status, &challengeHandler = challengeHandler, certPaths = std::move(certPaths), next = std::move(next)]() mutable {
             retrieveCertificate(certificateCallback(status, challengeHandler, std::move(certPaths), std::move(next)),
-                std::move(client), std::move(domains), std::move(challenges),
+                std::move(client), std::move(identifiers), std::move(challenges),
                 std::move(orderUrl), std::move(finalUrl)
             );
         }, std::move(selfCheckUrls))->start(challengeHandler->selfCheckDuration(), challengeHandler->selfCheckInterval());
@@ -463,7 +463,7 @@ struct AccountCallback{
     std::unique_ptr<AcmeChallengeHandler>& challengeHandler;
     std::vector<std::string>& selfCheckUrls;
     CertificatePaths certPaths;
-    std::vector<std::string> domains;
+    std::vector<acme_lw::identifier> identifiers;
     ChallengeHandlerParams challengeHandlerParams;
     Callback next;
 
@@ -476,7 +476,7 @@ struct AccountCallback{
                 challengeHandlerParams = std::move(challengeHandlerParams)
         ](auto domain, auto location, auto keyAuth){
                 qCDebug(acme_client) << "Got challenge:\n"
-                    << "Domain:" << domain.c_str() << '\n'
+                    << "Identifier:" << domain.c_str() << '\n'
                     << "Location:" << location.c_str() << '\n'
                     << "Key Authorization:" << keyAuth.c_str() << '\n'
                 ;
@@ -485,7 +485,7 @@ struct AccountCallback{
                 }
                 challengeHandler->addChallenge(domain, location, keyAuth);
                 selfCheckUrls.push_back("http://"s + domain + location);
-        }, std::move(client), std::move(domains));
+        }, std::move(client), std::move(identifiers));
     }
 
     void operator()(acme_lw::AcmeClient client, acme_lw::AcmeException error) const {
@@ -515,7 +515,7 @@ AccountCallback<Callback> accountCallback(
     std::unique_ptr<AcmeChallengeHandler>& challengeHandler,
     std::vector<std::string>& selfCheckUrls,
     CertificatePaths certPaths,
-    std::vector<std::string> domains,
+    std::vector<acme_lw::identifier> identifiers,
     ChallengeHandlerParams challengeHandlerParams,
     Callback next
 ) {
@@ -524,7 +524,7 @@ AccountCallback<Callback> accountCallback(
         challengeHandler,
         selfCheckUrls,
         std::move(certPaths),
-        std::move(domains),
+        std::move(identifiers),
         std::move(challengeHandlerParams),
         std::move(next)
     };
@@ -557,15 +557,26 @@ void DomainServerAcmeClient::generateCertificate(const CertificatePaths& certPat
     }
 
 
-    std::vector<std::string> domains;
+    std::vector<acme_lw::identifier> identifiers;
 
     std::map<std::string, std::string> domainDirs;
     auto domainList = settings.valueOrDefaultValueForKeyPath("acme.certificate_domains").toList();
     for(auto&& var : domainList) {
         auto map = var.toMap();
-        domains.push_back(QUrl::toAce(map["domain"].toString()).toStdString());
+        auto domain = map["domain"].toString();
+        if(QHostAddress(domain).isNull()) {
+            identifiers.push_back({
+                QUrl::toAce(domain).toStdString(),
+                acme_lw::identifier::type::domain
+            });
+        } else {
+            identifiers.push_back({
+                domain.toStdString(),
+                acme_lw::identifier::type::ip
+            });
+        }
         auto domainDir = map["directory"].toString().toStdString();
-        domainDirs[domains.back()] = domainDir != "" ? domainDir : ".";
+        domainDirs[identifiers.back().name] = domainDir != "" ? domainDir : ".";
     }
 
     ChallengeHandlerParams challengeHandlerParams {
@@ -580,11 +591,11 @@ void DomainServerAcmeClient::generateCertificate(const CertificatePaths& certPat
     selfCheckUrls.clear(); // just in case
 
     status["directory"]["status"] = "pending";
-    acme_lw::init(acme_lw::forwardAcmeError([this, domains = std::move(domains), challengeHandlerParams = std::move(challengeHandlerParams)](auto next, auto client){
+    acme_lw::init(acme_lw::forwardAcmeError([this, identifiers = std::move(identifiers), challengeHandlerParams = std::move(challengeHandlerParams)](auto next, auto client){
         status["directory"]["status"] = "ok";
         status["account"]["status"] = "pending";
         acme_lw::createAccount(std::move(next), std::move(client));
-    }, accountCallback(status, challengeHandler, selfCheckUrls, certPaths, std::move(domains), std::move(challengeHandlerParams),
+    }, accountCallback(status, challengeHandler, selfCheckUrls, certPaths, std::move(identifiers), std::move(challengeHandlerParams),
         [this](auto cert, auto certPaths, bool success){
             if(success) {
                 emit certificateUpdated(certPaths);
