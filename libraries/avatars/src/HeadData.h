@@ -128,7 +128,12 @@ protected:
     AvatarData* _owningAvatar;
 
 private:
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+    HeadData(const HeadData&);
+    HeadData& operator= (const HeadData&);
+#else
     Q_DISABLE_COPY(HeadData)
+#endif
 
     void setHeadOrientation(const glm::quat& orientation);
 };

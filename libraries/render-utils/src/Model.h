@@ -444,7 +444,11 @@ protected:
     QVector<float> _blendedBlendshapeCoefficients;
     int _blendNumber { 0 };
 
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+    mutable QMutex _mutex{ QMutex::Recursive };
+#else
     mutable QRecursiveMutex _mutex;
+#endif
 
     bool _overrideModelTransform { false };
     bool _triangleSetsValid { false };

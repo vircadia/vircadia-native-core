@@ -1062,7 +1062,11 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
 
     static const QString AVATAR_WHITELIST_OPTION = "avatar_whitelist";
     _slaveSharedData.skeletonURLWhitelist = avatarMixerGroupObject[AVATAR_WHITELIST_OPTION]
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+        .toString().split(',', QString::KeepEmptyParts);
+#else
         .toString().split(',', Qt::KeepEmptyParts);
+#endif
 
     static const QString REPLACEMENT_AVATAR_OPTION = "replacement_avatar";
     _slaveSharedData.skeletonReplacementURL = avatarMixerGroupObject[REPLACEMENT_AVATAR_OPTION]

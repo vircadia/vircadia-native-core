@@ -43,25 +43,35 @@ public:
     static int totalHeaderSize();
     // The maximum payload size this packet can use to fit in MTU
     static int maxPayloadSize();
-    
+
     Type getType() const { return _type; }
     void setType(Type type);
-    
+
 private:
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+    ControlPacket(Type type, qint64 size = -1);
+    ControlPacket(std::unique_ptr<char[]> data, qint64 size, const SockAddr& senderSockAddr);
+    ControlPacket(ControlPacket&& other);
+    ControlPacket(const ControlPacket& other) = delete;
+
+    ControlPacket& operator=(ControlPacket&& other);
+    ControlPacket& operator=(const ControlPacket& other) = delete;
+#else
     Q_DISABLE_COPY(ControlPacket)
     ControlPacket(Type type, qint64 size = -1);
     ControlPacket(std::unique_ptr<char[]> data, qint64 size, const SockAddr& senderSockAddr);
     ControlPacket(ControlPacket&& other);
-    
+
     ControlPacket& operator=(ControlPacket&& other);
-    
+#endif
+
     // Header read/write
     void readType();
     void writeType();
-    
+
     Type _type;
 };
-    
+
 } // namespace udt
 
 

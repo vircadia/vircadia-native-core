@@ -738,7 +738,11 @@ Mapping::Pointer UserInputMapper::newMapping(const QString& mappingName) {
 //        if (request->getResult() == ResourceRequest::Success) {
 //            result = parseMapping(QString(request->getData()));
 //        } else {
+// #if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+//            qCWarning(controllers) << "Failed to load mapping url <" << jsonUrl << ">" << endl;
+// #else
 //            qCWarning(controllers) << "Failed to load mapping url <" << jsonUrl << ">" << Qt::endl;
+// #endif
 //        }
 //        request->deleteLater();
 //    }
@@ -1177,13 +1181,22 @@ Mapping::Pointer UserInputMapper::parseMapping(const QString& json) {
     if (doc.isNull()) {
         qCDebug(controllers) << "Invalid JSON...\n";
         qCDebug(controllers) << error.errorString();
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+        qCDebug(controllers) << "JSON was:\n" << json << endl;
+#else
         qCDebug(controllers) << "JSON was:\n" << json << Qt::endl;
+#endif
         return Mapping::Pointer();
     }
 
     if (!doc.isObject()) {
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+        qWarning() << "Mapping json Document is not an object" << endl;
+        qCDebug(controllers) << "JSON was:\n" << json << endl;
+#else
         qWarning() << "Mapping json Document is not an object" << Qt::endl;
         qCDebug(controllers) << "JSON was:\n" << json << Qt::endl;
+#endif
         return Mapping::Pointer();
     }
     return parseMapping(doc.object());

@@ -72,7 +72,12 @@ private:
     bool wouldExceedLimits();
 
     AudioInjectorManager() { createThread(); }
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+    AudioInjectorManager(const AudioInjectorManager&) = delete;
+    AudioInjectorManager& operator=(const AudioInjectorManager&) = delete;
+#else
     Q_DISABLE_COPY(AudioInjectorManager)
+#endif
 
     void createThread();
 

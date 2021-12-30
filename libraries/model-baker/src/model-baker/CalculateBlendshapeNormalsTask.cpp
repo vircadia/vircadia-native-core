@@ -31,7 +31,11 @@ void CalculateBlendshapeNormalsTask::run(const baker::BakeContextPointer& contex
             const auto& normalsIn = blendshape.normals;
             // Check if normals are already defined. Otherwise, calculate them from existing blendshape vertices.
             if (!normalsIn.empty()) {
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+                normalsPerBlendshapeOut.push_back(normalsIn.toStdVector());
+#else
                 normalsPerBlendshapeOut.push_back(std::vector<glm::vec3>(normalsIn.begin(), normalsIn.end()));
+#endif
             } else {
                 // Create lookup to get index in blendshape from vertex index in mesh
                 std::vector<int> reverseIndices;

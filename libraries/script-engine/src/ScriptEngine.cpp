@@ -187,7 +187,11 @@ void inputControllerFromScriptValue(const QScriptValue &object, controller::Inpu
 //
 // Extract the url portion of a url that has been encoded with encodeEntityIdIntoEntityUrl(...)
 QString extractUrlFromEntityUrl(const QString& url) {
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+    auto parts = url.split(' ', QString::SkipEmptyParts);
+#else
     auto parts = url.split(' ', Qt::SkipEmptyParts);
+#endif
     if (parts.length() > 0) {
         return parts[0];
     } else {
@@ -2386,29 +2390,37 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         bool passList = false;  // assume unsafe
         QString whitelistPrefix = "[WHITELIST ENTITY SCRIPTS]";
         QList<QString> safeURLPrefixes = { "file:///", "atp:", "cache:" };
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+        safeURLPrefixes += qEnvironmentVariable("EXTRA_WHITELIST").trimmed().split(QRegExp("\\s*,\\s*"), QString::SkipEmptyParts);
+#else
         safeURLPrefixes += qEnvironmentVariable("EXTRA_WHITELIST").trimmed().split(QRegExp("\\s*,\\s*"), Qt::SkipEmptyParts);
+#endif
 
         // Entity Script Whitelist toggle check.
         Setting::Handle<bool> whitelistEnabled {"private/whitelistEnabled", false };
-                
+
         if (!whitelistEnabled.get()) {
             passList = true;
         }
-        
+
         // Pull SAFEURLS from the Interface.JSON settings.
         QVariant raw = Setting::Handle<QVariant>("private/settingsSafeURLS").get();
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+        QStringList settingsSafeURLS = raw.toString().trimmed().split(QRegExp("\\s*[,\r\n]+\\s*"), QString::SkipEmptyParts);
+#else
         QStringList settingsSafeURLS = raw.toString().trimmed().split(QRegExp("\\s*[,\r\n]+\\s*"), Qt::SkipEmptyParts);
+#endif
         safeURLPrefixes += settingsSafeURLS;
         // END Pull SAFEURLS from the Interface.JSON settings.
-        
+
         // Get current domain whitelist bypass, in case an entire domain is whitelisted.
         QString currentDomain = DependencyManager::get<AddressManager>()->getDomainURL().host();
-        
+
         QString domainSafeIP = nodeList->getDomainHandler().getHostname();
         QString domainSafeURL = URL_SCHEME_VIRCADIA + "://" + currentDomain;
         for (const auto& str : safeURLPrefixes) {
             if (domainSafeURL.startsWith(str) || domainSafeIP.startsWith(str)) {
-                qCDebug(scriptengine) << whitelistPrefix << "Whitelist Bypassed, entire domain is whitelisted. Current Domain Host: " 
+                qCDebug(scriptengine) << whitelistPrefix << "Whitelist Bypassed, entire domain is whitelisted. Current Domain Host: "
                     << nodeList->getDomainHandler().getHostname()
                     << "Current Domain: " << currentDomain;
                 passList = true;

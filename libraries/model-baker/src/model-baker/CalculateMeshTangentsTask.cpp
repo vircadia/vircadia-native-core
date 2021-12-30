@@ -29,7 +29,11 @@ void CalculateMeshTangentsTask::run(const baker::BakeContextPointer& context, co
         // Check if we already have tangents and therefore do not need to do any calculation
         // Otherwise confirm if we have the normals and texcoords needed
         if (!tangentsIn.empty()) {
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+            tangentsOut = tangentsIn.toStdVector();
+#else
             tangentsOut = std::vector<glm::vec3>(tangentsIn.begin(), tangentsIn.end());
+#endif
         } else if (!normals.empty() && mesh.vertices.size() == mesh.texCoords.size()) {
             tangentsOut.resize(normals.size());
             baker::calculateTangents(mesh,
