@@ -50,6 +50,7 @@ function updateStatusView() {
 
 function update() {
     directoryInput.hidden = directorySelect.value !== "custom";
+    termsOfServiceLink.hidden = directorySelect.value === "zerossl-rest-api";
     const authType = authSelect.value;
     let authPlaceholder = "ZeroSSL API Key";
     switch(authType) {
@@ -64,8 +65,8 @@ function update() {
         case "zero-ssl-api-key":
             zeroSSlAuthInput.placeholder = authPlaceholder;
             zeroSSlAuthInput.hidden = false;
-            eabKidInput.hidden = false;
-            eabMacInput.hidden = false;
+            eabKidInput.hidden = directorySelect.value === "zerossl-rest-api";
+            eabMacInput.hidden = directorySelect.value === "zerossl-rest-api";
             eabKidInput.disabled = true;
             eabMacInput.disabled = true;
             break;
@@ -101,22 +102,30 @@ function updateStatus() {
 function updateDirectoryMeta() {
     showLoadingScreen(true);
     getAcmeMeta(getDirectoryUrl()).then(meta => {
-        const zeroSSLSelected = directorySelect.selectedOptions[0].text === "ZeroSSL";
+        const zeroSSLSelected = directorySelect.selectedOptions[0].text === "ZeroSSL ACME v2";
+        const zeroSSLREST = directorySelect.value === "zerossl-rest-api";
         for (const authOption of authSelect.options) {
             const classes = Array.from(authOption.classList);
-            if (classes.includes("eab-option")) {
-                authOption.disabled = !meta || !meta.externalAccountRequired;
-            }
-            if (classes.includes("zero-ssl-auth-option")) {
-                if (zeroSSLSelected) {
-                    if (classes.includes("zero-ssl-auth-option-default")) {
-                        authOption.selected = true;
-                    }
-                } else {
-                    authOption.disabled = true;
+            if (zeroSSLREST)
+            {
+                authOption.disabled = authOption.value !== "zero-ssl-api-key";
+                authOption.selected = authOption.value === "zero-ssl-api-key";
+            } else {
+                if (classes.includes("eab-option")) {
+                    authOption.disabled = !meta || !meta.externalAccountRequired;
                 }
+
+                if (classes.includes("zero-ssl-auth-option")) {
+                    if (zeroSSLSelected) {
+                        if (classes.includes("zero-ssl-auth-option-default")) {
+                            authOption.selected = true;
+                        }
+                    } else {
+                        authOption.disabled = true;
+                    }
+                }
+                if(authOption.disabled && authOption.selected) authOption.selected = false;
             }
-            if(authOption.disabled && authOption.selected) authOption.selected = false;
         }
         termsOfServiceLink.href = meta && meta.termsOfService || "404.html";
         update();
@@ -243,6 +252,10 @@ function updateSettings() {
         certKeyNameInput.value = acme.certificate_key_filename;
         certCANameInput.value = acme.certificate_authority_filename;
         accountKeyPathInput.value = acme.account_key_path;
+        if (acme.zerossl_rest_api) {
+            directorySelect.value = "zerossl-rest-api";
+            zeroSSlAuthInput.value = acme.zerossl_api_key;
+        }
         updateStatus();
     });
 }
@@ -303,7 +316,9 @@ saveButton.addEventListener("click", () => {
         certificate_filename: certNameInput.value,
         certificate_key_filename: certKeyNameInput.value,
         certificate_authority_filename: certCANameInput.value,
-        account_key_path: accountKeyPathInput.value
+        account_key_path: accountKeyPathInput.value,
+        zerossl_rest_api: directorySelect.value === "zerossl-rest-api",
+        zerossl_api_key: zeroSSlAuthInput.value
     } }).then(() => {
         return uploadFiles();
     }).then(() => {

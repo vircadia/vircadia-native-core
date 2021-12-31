@@ -148,11 +148,25 @@
             "advanced": true
         },
         {
+            "name": "zerossl_rest_api",
+            "label": "ZeroSSL REST API",
+            "help": "Use ZeroSSL Rest API Instead of ACME protocol.",
+            "default": false,
+            "type": "checkbox",
+            "advanced": true
+        },
+        {
             "name": "account_key_path",
             "label": "Account Key",
             "help": "Path to private key used to communicate with certificate issuer.",
             "default": "",
             "placeholder": "<Application Data Path>/acme_account_key.pem",
+            "advanced": true
+        },
+        {
+            "name": "zerossl_api_key",
+            "label": "ZeroSSL API Key",
+            "help": "API key to use for ZeroSSL REST API requests",
             "advanced": true
         },
         {

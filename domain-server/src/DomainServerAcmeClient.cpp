@@ -15,6 +15,7 @@
 #include <HTTPConnection.h>
 #include <PathUtils.h>
 #include <acme/acme-lw.hpp>
+#include <acme/ZeroSSL.hpp>
 #include <SSLCommon.h>
 
 #include <QDir>
@@ -360,7 +361,8 @@ struct CertificateCallback{
     CertificatePaths certPaths;
     Callback next;
 
-    void operator()(acme_lw::AcmeClient client, acme_lw::Certificate cert) const {
+    template <typename Client>
+    void operator()(Client client, acme_lw::Certificate cert) const {
         challengeHandler = nullptr;
         qCDebug(acme_client) << "Certificate retrieved\n"
             << "Expires on:" << dateTimeFrom(cert.getExpiry()) << '\n'
@@ -377,7 +379,8 @@ struct CertificateCallback{
         }
         next(std::move(cert), std::move(certPaths), success);
     }
-    void operator()(acme_lw::AcmeClient client, acme_lw::AcmeException error) const {
+
+    void operator()(acme_lw::AcmeException error) const {
         setError(status["certificate"], "acme", {
             {"message", error.what()}
         });
@@ -385,6 +388,11 @@ struct CertificateCallback{
         qCCritical(acme_client) << error.what() << '\n';
         qCDebug(acme_client) << status.dump(1).c_str() << '\n';
         next(acme_lw::Certificate(), std::move(certPaths), false);
+    }
+
+    template <typename Client>
+    void operator()(Client client, acme_lw::AcmeException error) const {
+        this->operator()(std::move(error));
     }
 };
 
@@ -411,10 +419,9 @@ struct OrderCallback{
     CertificatePaths certPaths;
     Callback next;
 
-    void operator()(acme_lw::AcmeClient client, acme_lw::OrderInfo info) const {
+    template <typename Client, typename OrderInfo>
+    void operator()(Client client, OrderInfo info) const {
         qCDebug(acme_client) << "Ordered certificate\n"
-            << "Order URL:" << info.url.c_str() << '\n'
-            << "Finalize URL:" << info.finalizeUrl.c_str() << '\n'
             << "Number of identifiers:" << info.identifiers.size() << '\n'
             << "Number of challenges:" << info.challenges.size() << '\n'
         ;
@@ -446,13 +453,18 @@ struct OrderCallback{
         })->start(std::move(challenges), challengeHandler->selfCheckDuration(), challengeHandler->selfCheckInterval());
     }
 
-    void operator()(acme_lw::AcmeClient client, acme_lw::AcmeException error) const {
+    void operator()(acme_lw::AcmeException error) const {
         setError(status["certificate"], "acme", {
             {"message", error.what()}
         });
         qCCritical(acme_client) << error.what() << '\n';
         qCDebug(acme_client) << status.dump(1).c_str() << '\n';
         next(acme_lw::Certificate(), std::move(certPaths), false);
+    }
+
+    template <typename Client>
+    void operator()(Client, acme_lw::AcmeException error) const {
+        this->operator()(std::move(error));
     }
 };
 
@@ -482,7 +494,8 @@ struct AccountCallback{
     std::vector<acme_lw::identifier> identifiers;
     Callback next;
 
-    void operator()(acme_lw::AcmeClient client) const {
+    template <typename Client>
+    void operator()(Client client) const {
         status["account"]["status"] = "ok";
         status["certificate"]["status"] = "pending";
         acme_lw::orderCertificate(
@@ -491,7 +504,8 @@ struct AccountCallback{
         );
     }
 
-    void operator()(acme_lw::AcmeClient client, acme_lw::AcmeException error) const {
+    template <typename Client>
+    void operator()(Client client, acme_lw::AcmeException error) const {
         setError(status["account"], "acme", {
             {"message", error.what()}
         });
@@ -588,7 +602,8 @@ void DomainServerAcmeClient::generateCertificate(const CertificatePaths& certPat
     auto eabHmac = settings.valueOrDefaultValueForKeyPath("acme.eab_mac").toString().toStdString();
 
     status["directory"]["status"] = "pending";
-    acme_lw::init(acme_lw::forwardAcmeError([this, identifiers = std::move(identifiers), challengeHandlerParams = std::move(challengeHandlerParams)](auto next, auto client){
+
+    auto initCallback = acme_lw::forwardAcmeError([this, identifiers = std::move(identifiers), challengeHandlerParams = std::move(challengeHandlerParams)](auto next, auto client){
         status["directory"]["status"] = "ok";
         status["account"]["status"] = "pending";
         acme_lw::createAccount(std::move(next), std::move(client));
@@ -601,7 +616,14 @@ void DomainServerAcmeClient::generateCertificate(const CertificatePaths& certPat
                 scheduleRenewalIn(24h);
             }
         }
-    )), accountKey, directoryUrl, eabKid, eabHmac);
+    ));
+
+    if(settings.valueOrDefaultValueForKeyPath("acme.zerossl_rest_api").toBool()) {
+        auto zeroSslApiKey = settings.valueOrDefaultValueForKeyPath("acme.zerossl_api_key").toString().toStdString();
+        acme_lw::init(std::move(initCallback), std::move(zeroSslApiKey), acme_lw::ZeroSSLRestAPI{});
+    } else {
+        acme_lw::init(std::move(initCallback), std::move(accountKey), std::move(directoryUrl), std::move(eabKid), std::move(eabHmac));
+    }
 
 }
 
