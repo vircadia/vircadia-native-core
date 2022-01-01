@@ -16,6 +16,7 @@
 #include <QtCore/QTimer>
 #include <QLoggingCategory>
 #include <nlohmann/json.hpp>
+#include <SSLCommon.h>
 
 Q_DECLARE_LOGGING_CATEGORY(acme_client)
 
@@ -41,7 +42,7 @@ public:
     bool handleAuthenticatedHTTPRequest(HTTPConnection* connection, const QUrl& url);
 
 signals:
-    void certificateUpdated(CertificatePaths);
+    void certificateUpdated(const CertificatePaths&);
 
 private:
     void init();
