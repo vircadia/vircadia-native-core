@@ -111,6 +111,7 @@ function updateDirectoryMeta() {
                 authOption.disabled = authOption.value !== "zero-ssl-api-key";
                 authOption.selected = authOption.value === "zero-ssl-api-key";
             } else {
+                authOption.disabled = false;
                 if (classes.includes("eab-option")) {
                     authOption.disabled = !meta || !meta.externalAccountRequired;
                 }
