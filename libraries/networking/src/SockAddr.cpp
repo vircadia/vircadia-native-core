@@ -113,7 +113,7 @@ void SockAddr::handleLookupResult(const QHostInfo& hostInfo) {
 }
 
 QString SockAddr::toString() const {
-    return socketTypeToString(_socketType) + " " + _address.toString() + ":" + QString::number(_port);
+    return SocketTypeToString::socketTypeToString(_socketType) + " " + _address.toString() + ":" + QString::number(_port);
 }
 
 QString SockAddr::toShortString() const {
@@ -133,9 +133,9 @@ bool SockAddr::hasPrivateAddress() const {
 }
 
 QDebug operator<<(QDebug debug, const SockAddr& sockAddr) {
-    debug.nospace() 
-        << (sockAddr._socketType != SocketType::Unknown 
-            ? (socketTypeToString(sockAddr._socketType) + " ").toLocal8Bit().constData() : "")
+    debug.nospace()
+        << (sockAddr._socketType != SocketType::Unknown
+            ? (SocketTypeToString::socketTypeToString(sockAddr._socketType) + " ").toLocal8Bit().constData() : "")
         << sockAddr._address.toString().toLocal8Bit().constData() << ":" << sockAddr._port;
     return debug.space();
 }
