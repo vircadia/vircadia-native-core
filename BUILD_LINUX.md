@@ -51,7 +51,6 @@ Verify OpenSSL was installed by running `openssl version`.
 - OpenGL:
 ```bash
 sudo apt-get install libgl1-mesa-dev -y
-sudo ln -s /usr/lib/x86_64-linux-gnu/libGL.so.346.35 /usr/lib/x86_64-linux-gnu/libGL.so.1.2.0
 ```
 Verify OpenGL:
   - First install mesa-utils with the command `sudo apt install mesa-utils -y`.
@@ -138,7 +137,7 @@ Prepare makefiles:
 cmake ..
 ```
 
-If cmake fails with a vcpkg error, then delete `/tmp/vircadia/vcpkg`.  
+If cmake fails with a vcpkg error, then delete `~/vircadia-files/vcpkg/`.  
 
 Start compilation of the server and grab a cup of coffee:
 ```bash
@@ -187,4 +186,4 @@ Go to localhost in the running Interface to visit your newly launched world.
 If your goal is to set up a development environment, it is desirable to set the directory that vcpkg builds into with the `HIFI_VCPKG_BASE` environment variable.
 For example, you might set `HIFI_VCPKG_BASE` to `/home/$USER/vcpkg`.
 
-By default, vcpkg will build in the system `/tmp` directory.
+By default, vcpkg will build in the `~/vircadia-files/vcpkg/` directory.
