@@ -16,7 +16,7 @@ sudo add-apt-repository universe
 sudo apt-get update
 ```
 
-#### Install build tools:
+### Install build tools:
 -  First update the repositories:  
 ```bash
 sudo apt-get update -y
@@ -41,7 +41,7 @@ sudo apt-get install cmake -y
 ```
 Verify CMake was installed by running `cmake --version`.
 
-#### Install build dependencies:
+### Install build dependencies:
 -  OpenSSL:
 ```bash
 sudo apt-get install libssl-dev
@@ -57,7 +57,7 @@ Verify OpenGL:
   - Then run `glxinfo | grep "OpenGL version"`.
 
 
-#### Extra dependencies to compile an Interface on a server
+### Extra dependencies to compile an Interface on a server
 
 
 - Install the following:
@@ -94,7 +94,8 @@ git checkout master
 
 If you need a different branch, you can get a list of all tags with:
 ```bash
-git fetch -a
+git fetch --tags
+git tag
 ```
 
 ### Using a custom Qt build
@@ -120,8 +121,7 @@ machine, but these builds will not work on machines lacking same CPU instruction
 
 For packaging, it is recommended to set it to a different value, for example `-msse3`. This will help ensure that the build will run on all reasonably modern CPUs.
 
-Setting `VIRCADIA_CPU_ARCHITECTURE` to an empty string will use the default compiler settings and yield
-maximum compatibility.
+Setting `VIRCADIA_CPU_ARCHITECTURE` to an empty string will use the default compiler settings and yield maximum compatibility.
 
 ### Compiling
 
@@ -139,22 +139,26 @@ cmake ..
 
 If cmake fails with a vcpkg error, then delete `~/vircadia-files/vcpkg/`.  
 
-Start compilation of the server and grab a cup of coffee:
+#### Server
+
+To compile the Domain server:
 ```bash
 make domain-server assignment-client
 ```
 
-To compile the Interface:
+*Note: For a server, it is not necessary to compile the Interface.*
+
+#### Interface
+
+To compile the Interface client:
 ```bash
 make interface
 ```
 
 The commands above will compile with a single thread. If you have enough memory, you can decrease your build time using the `-j` flag. Since most x64 CPUs support two threads per core, this works out to CPU_COUNT*2. As an example, if you have a 2 core machine, you could use:
-```
+```bash
 make -j4 interface
 ```
-
-*Note: In a server, it is not necessary to compile the Interface.*
 
 ### Running the software
 
@@ -174,14 +178,14 @@ Running assignment client:
 
 #### Interface
 
-Running interface:
+Running the Interface:
 ```bash
 ./interface/interface
 ```
 
-Go to localhost in the running Interface to visit your newly launched world.
+Go to "localhost" in the running Interface to visit your newly launched Domain server.
 
-#### Notes
+### Notes
 
 If your goal is to set up a development environment, it is desirable to set the directory that vcpkg builds into with the `HIFI_VCPKG_BASE` environment variable.
 For example, you might set `HIFI_VCPKG_BASE` to `/home/$USER/vcpkg`.
