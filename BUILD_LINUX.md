@@ -1,20 +1,12 @@
 # Build Linux
 
-*Last Updated on December 1, 2021*
+*Last Updated on January 6, 2021*
 
 Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only Linux specific instructions are found in this file.
 
 You can use the [Vircadia Builder](https://github.com/vircadia/vircadia-builder) to build on Linux more easily. Alternatively, you can follow the manual steps below.
 
-## Ubuntu 16.04/18.04
-
-### Ubuntu 16.04 only
-
-Add the following line to `.bash_profile`:
-
-```bash
-export QT_QPA_FONTDIR=/usr/share/fonts/truetype/dejavu/
-```
+## Ubuntu 18.04
 
 ### Ubuntu 18.04 Server only
 Add the universe repository:  
@@ -48,12 +40,6 @@ Verify g++ was installed by running `g++ --version`.
 sudo apt-get install cmake -y
 ```
 Verify CMake was installed by running `cmake --version`.
-
-- **Ubuntu 16.04** CMake  
-```bash
-wget https://cmake.org/files/v3.14/cmake-3.14.2-Linux-x86_64.sh
-sudo sh cmake-3.14.2-Linux-x86_64.sh --prefix=/usr/local --exclude-subdir
-```
 
 #### Install build dependencies:
 -  OpenSSL:
