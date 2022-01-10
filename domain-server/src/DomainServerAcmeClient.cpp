@@ -425,8 +425,13 @@ struct OrderCallback{
             << "Number of challenges:" << info.challenges.size() << '\n'
         ;
 
+        std::chrono::milliseconds selfCheckDuration = 1s;
+        std::chrono::milliseconds selfCheckInterval = 250ms;
+
         if(info.challenges.size() != 0) {
             challengeHandler = makeChallengeHandler(std::move(challengeHandlerParams));
+            selfCheckDuration = challengeHandler->selfCheckDuration();
+            selfCheckInterval = challengeHandler->selfCheckInterval();
         }
 
         for(auto&& challenge : info.challenges) {
@@ -449,7 +454,7 @@ struct OrderCallback{
                 certificateCallback(status, challengeHandler, std::move(certPaths), std::move(next)),
                 std::move(client), std::move(info)
             );
-        })->start(std::move(challenges), challengeHandler->selfCheckDuration(), challengeHandler->selfCheckInterval());
+        })->start(std::move(challenges), selfCheckDuration, selfCheckInterval);
     }
 
     void operator()(acme_lw::AcmeException error) const {
