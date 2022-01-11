@@ -53,7 +53,7 @@ function update() {
     termsOfServiceLink.hidden = directorySelect.value === "zerossl-rest-api";
     const authType = authSelect.value;
     let authPlaceholder = "ZeroSSL API Key";
-    switch(authType) {
+    switch (authType) {
         case "account-key-only":
             zeroSSlAuthInput.hidden = true;
             eabKidInput.hidden = true;
@@ -62,6 +62,7 @@ function update() {
 
         case "zero-ssl-email":
             authPlaceholder = "ZeroSSL Email";
+            // fall-through
         case "zero-ssl-api-key":
             zeroSSlAuthInput.placeholder = authPlaceholder;
             zeroSSlAuthInput.hidden = false;
@@ -106,8 +107,7 @@ function updateDirectoryMeta() {
         const zeroSSLREST = directorySelect.value === "zerossl-rest-api";
         for (const authOption of authSelect.options) {
             const classes = Array.from(authOption.classList);
-            if (zeroSSLREST)
-            {
+            if (zeroSSLREST) {
                 authOption.disabled = authOption.value !== "zero-ssl-api-key";
                 authOption.selected = authOption.value === "zero-ssl-api-key";
             } else {
@@ -125,7 +125,9 @@ function updateDirectoryMeta() {
                         authOption.disabled = true;
                     }
                 }
-                if(authOption.disabled && authOption.selected) authOption.selected = false;
+                if (authOption.disabled && authOption.selected) {
+                    authOption.selected = false;
+                }
             }
         }
         termsOfServiceLink.href = meta && meta.termsOfService || "404.html";
@@ -180,15 +182,17 @@ authSelect.addEventListener("change", () => {
 
 let directoryInputTimeout = undefined;
 directoryInput.addEventListener("input", () => {
-    if(undefined !== directoryInputTimeout)
+    if (directoryInputTimeout !== undefined) {
         clearTimeout(directoryInputTimeout);
+    }
     directoryInputTimeout = setTimeout(updateDirectoryMeta, 500);
 });
 
 let zeroSSlAuthInputTimeout = undefined;
 zeroSSlAuthInput.addEventListener("input", () => {
-    if(undefined !== zeroSSlAuthInputTimeout)
+    if (zeroSSlAuthInputTimeout !== undefined) {
         clearTimeout(zeroSSlAuthInputTimeout);
+    }
     zeroSSlAuthInputTimeout = setTimeout(getEabFromZeroSSL, 500);
 });
 
@@ -214,13 +218,13 @@ function getDomains() {
 }
 
 function setDomains(domains) {
-    for (let i = 1, len = domainInputs.children.length; i < len;  ++i) {
+    for (let i = 1, len = domainInputs.children.length; i < len;  i++) {
         domainInputs.removeChild(domainInputs.children[i]);
     }
 
     setDomainValues(domainInput, domains[0] || {})
 
-    for (let i = 1, len = domains.length; i < len;  ++i) {
+    for (let i = 1, len = domains.length; i < len;  i++) {
         addDomainInput(domains[i]);
     }
 }
@@ -337,7 +341,7 @@ function setDirectoryUrl(url) {
     } else {
         const option = Array.from(directorySelect.options)
             .find(o => o.value === url);
-        if(undefined !== option) {
+        if (option !== undefined) {
             directorySelect.value = option.value;
         } else {
             directorySelect.value = "custom";

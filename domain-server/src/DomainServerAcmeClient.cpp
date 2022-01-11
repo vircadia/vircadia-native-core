@@ -31,17 +31,15 @@ Q_LOGGING_CATEGORY(acme_client, "vircadia.acme_client")
 using namespace std::literals;
 using std::chrono::system_clock;
 
-std::string readAll(const QString& path)
-{
+std::string readAll(const QString& path) {
     QFile file(path);
-    if(file.open(QFile::ReadOnly)) {
+    if (file.open(QFile::ReadOnly)) {
         return file.readAll().toStdString();
     }
     return std::string();
 }
 
-bool writeAll(const std::string& data, const QString& path)
-{
+bool writeAll(const std::string& data, const QString& path) {
     QFile file(path);
     return file.open(QFile::WriteOnly) &&
         file.write(QByteArray::fromStdString(data)) == qint64(data.size());
@@ -71,11 +69,11 @@ public:
 
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false) override {
         auto challenge = std::find_if(challenges.begin(), challenges.end(), [&url](auto x) { return x.url == url; });
-        if(challenge != challenges.end()) {
+        if (challenge != challenges.end()) {
             connection->respond(HTTPConnection::StatusCode200, challenge->content, "application/octet-stream");
         } else {
             auto chstr = ""s;
-            for(auto&& ch : challenges) {
+            for (auto&& ch : challenges) {
                 chstr += ch.url.toString().toStdString();
                 chstr += '\n';
             }
@@ -99,15 +97,15 @@ public:
     ~AcmeHttpChallengeFiles() override {
         std::set<QString> challengeDirs;
 
-        for(auto&& challengePath : challengePaths) {
+        for (auto&& challengePath : challengePaths) {
             challengeDirs.insert(QFileInfo(challengePath).path());
-            if(!QFile(challengePath).remove()) {
+            if (!QFile(challengePath).remove()) {
                 qCWarning(acme_client) << "Failed to remove challenge file:" << challengePath;
             }
         }
 
-        for(auto&& challengeDir : challengeDirs) {
-            if(!QDir(challengeDir).rmdir(".")) {
+        for (auto&& challengeDir : challengeDirs) {
+            if (!QDir(challengeDir).rmdir(".")) {
                 qCWarning(acme_client) << "Failed to remove challenge directory:" << challengeDir;
             }
         }
@@ -119,7 +117,7 @@ public:
     void addChallenge(const std::string& domain, const std::string& location, const std::string& content) override {
         QString challengePath = (dirs[domain] + location).c_str();
         QDir challengeDir = QFileInfo(challengePath).path();
-        if(challengeDir.mkpath(".") && writeAll(content, challengePath)) {
+        if (challengeDir.mkpath(".") && writeAll(content, challengePath)) {
             challengePaths.push_back(challengePath);
         } else {
             qCCritical(acme_client) << "Failed to write challenge file:" << challengePath;
@@ -152,11 +150,11 @@ struct ChallengeHandlerParams {
 
 std::unique_ptr<AcmeChallengeHandler> makeChallengeHandler(ChallengeHandlerParams params) {
 
-    if(params.typeId == "server") {
+    if (params.typeId == "server") {
         return std::make_unique<AcmeHttpChallengeServer>();
-    } else if(params.typeId == "files") {
+    } else if (params.typeId == "files") {
         return std::make_unique<AcmeHttpChallengeFiles>(params.domainDirs);
-    } else if(params.typeId == "manual") {
+    } else if (params.typeId == "manual") {
         return std::make_unique<AcmeHttpChallengeManual>();
     } else {
         throw std::logic_error("Invalid ACME HTTP challenge handler type id: " + params.typeId);
@@ -167,13 +165,13 @@ template <typename Callback>
 class ChallengeSelfCheck :
     public std::enable_shared_from_this< ChallengeSelfCheck<Callback> >
 {
-    public:
+public:
     ChallengeSelfCheck(Callback callback) :
         callback(std::move(callback))
     {}
 
     void start(const std::vector<acme_lw::Challenge>& challenges, std::chrono::milliseconds duration, std::chrono::milliseconds interval) {
-        for(auto&& challenge : challenges) {
+        for (auto&& challenge : challenges) {
             acme_lw::waitForGet(shared_callback{this->shared_from_this()},
                 "http://"s + challenge.identifier + challenge.location, duration, interval);
         }
@@ -191,7 +189,7 @@ class ChallengeSelfCheck :
         qCWarning(acme_client) << "Challenge self-check failed: " << error.what() << '\n';
     }
 
-    private:
+private:
     struct shared_callback {
         std::shared_ptr<ChallengeSelfCheck> ptr;
         template <typename... Args>
@@ -264,12 +262,12 @@ DomainServerAcmeClient::DomainServerAcmeClient(DomainServerSettingsManager& sett
 
     connect(&updateCheckTimer, &QTimer::timeout, this, [this](){
         auto paths = getCertificatePaths(this->settings);
-        if(QFile::exists(paths.cert) && QFile::exists(paths.key)) {
+        if (QFile::exists(paths.cert) && QFile::exists(paths.key)) {
             auto cert = readCertificate(paths);
-            if(!cert.fullchain.empty() && !cert.privkey.empty()) {
+            if (!cert.fullchain.empty() && !cert.privkey.empty()) {
                 auto newExpiry = cert.getExpiryOrError();
-                if(newExpiry.success) {
-                    if(this->expiry < newExpiry.value) {
+                if (newExpiry.success) {
+                    if (this->expiry < newExpiry.value) {
                         emit certificateUpdated(paths);
                         this->expiry = newExpiry.value;
                     }
@@ -313,7 +311,7 @@ void DomainServerAcmeClient::init() {
     });
 
     bool enabled = settings.valueOrDefaultValueForKeyPath("acme.enable_client").toBool();
-    if(!enabled) {
+    if (!enabled) {
         return;
     }
 
@@ -321,10 +319,10 @@ void DomainServerAcmeClient::init() {
     std::array<QString,2> pathsByExistence { certPaths.cert, certPaths.key };
     auto notExisitng = std::stable_partition(pathsByExistence.begin(), pathsByExistence.end(),
         [](auto x){ return QFile::exists(x); });
-    if(notExisitng == pathsByExistence.end()) {
+    if (notExisitng == pathsByExistence.end()) {
         // all files exist, order unchanged
         checkExpiry(certPaths);
-    } else if(notExisitng == pathsByExistence.begin()) {
+    } else if (notExisitng == pathsByExistence.begin()) {
         // none of the files exist, order unchanged
         generateCertificate(certPaths);
     } else {
@@ -367,7 +365,7 @@ struct CertificateCallback{
             << "Expires on:" << dateTimeFrom(cert.getExpiry()) << '\n'
         ;
         bool success = writeCertificate(cert, certPaths);
-        if(!success) {
+        if (!success) {
             const char* message = "Failed to write certificate files.";
             setError(status["certificate"], "write", {
                 {"message", message}
@@ -428,13 +426,13 @@ struct OrderCallback{
         std::chrono::milliseconds selfCheckDuration = 1s;
         std::chrono::milliseconds selfCheckInterval = 250ms;
 
-        if(info.challenges.size() != 0) {
+        if (info.challenges.size() != 0) {
             challengeHandler = makeChallengeHandler(std::move(challengeHandlerParams));
             selfCheckDuration = challengeHandler->selfCheckDuration();
             selfCheckInterval = challengeHandler->selfCheckInterval();
         }
 
-        for(auto&& challenge : info.challenges) {
+        for (auto&& challenge : info.challenges) {
             status["challenges"].push_back({
                 {"identifier", challenge.identifier},
                 {"location", challenge.location},
@@ -443,7 +441,7 @@ struct OrderCallback{
             challengeHandler->addChallenge(challenge.identifier, challenge.location, challenge.keyAuthorization);
         }
 
-        if(info.challenges.size() != 0) {
+        if (info.challenges.size() != 0) {
             qCDebug(acme_client) << "Got challenges:\n" << status["challenges"].dump(1).c_str();
         }
 
@@ -550,12 +548,12 @@ AccountCallback<Callback> accountCallback(
 void DomainServerAcmeClient::generateCertificate(const CertificatePaths& certPaths) {
 
     QString accountKeyPath = getAccountKeyPath(settings);
-    if(accountKeyPath == "") {
+    if (accountKeyPath == "") {
         accountKeyPath = QDir(PathUtils::getAppLocalDataPath()).filePath("acme_account_key.pem");
     }
     QFile accountKeyFile(accountKeyPath);
-    if(!accountKeyFile.exists()) {
-        if(!createAccountKey(accountKeyFile)) {
+    if (!accountKeyFile.exists()) {
+        if (!createAccountKey(accountKeyFile)) {
             setError(status["account"], "key-write");
             qCCritical(acme_client) << "Failed to create account key file " << accountKeyFile.fileName();
             return;
@@ -563,7 +561,7 @@ void DomainServerAcmeClient::generateCertificate(const CertificatePaths& certPat
     }
 
     std::string accountKey = "";
-    if(accountKeyFile.open(QFile::ReadOnly))
+    if (accountKeyFile.open(QFile::ReadOnly))
     {
         accountKey = accountKeyFile.readAll().toStdString();
         accountKeyFile.close();
@@ -578,10 +576,10 @@ void DomainServerAcmeClient::generateCertificate(const CertificatePaths& certPat
 
     std::map<std::string, std::string> domainDirs;
     auto domainList = settings.valueOrDefaultValueForKeyPath("acme.certificate_domains").toList();
-    for(auto&& var : domainList) {
+    for (auto&& var : domainList) {
         auto map = var.toMap();
         auto domain = map["domain"].toString();
-        if(QHostAddress(domain).isNull()) {
+        if (QHostAddress(domain).isNull()) {
             identifiers.push_back({
                 QUrl::toAce(domain).toStdString(),
                 acme_lw::identifier::type::domain
@@ -613,7 +611,7 @@ void DomainServerAcmeClient::generateCertificate(const CertificatePaths& certPat
         acme_lw::createAccount(std::move(next), std::move(client));
     }, accountCallback(status, challengeHandler, std::move(challengeHandlerParams), certPaths, std::move(identifiers),
         [this](auto cert, auto certPaths, bool success){
-            if(success) {
+            if (success) {
                 emit certificateUpdated(certPaths);
                 handleRenewal(cert.getExpiry(), certPaths);
             } else {
@@ -622,7 +620,7 @@ void DomainServerAcmeClient::generateCertificate(const CertificatePaths& certPat
         }
     ));
 
-    if(settings.valueOrDefaultValueForKeyPath("acme.zerossl_rest_api").toBool()) {
+    if (settings.valueOrDefaultValueForKeyPath("acme.zerossl_rest_api").toBool()) {
         auto zeroSslApiKey = settings.valueOrDefaultValueForKeyPath("acme.zerossl_api_key").toString().toStdString();
         acme_lw::init(std::move(initCallback), std::move(zeroSslApiKey), acme_lw::ZeroSSLRestAPI{});
     } else {
@@ -633,7 +631,7 @@ void DomainServerAcmeClient::generateCertificate(const CertificatePaths& certPat
 
 void DomainServerAcmeClient::checkExpiry(const CertificatePaths& certPaths) {
     auto cert = readCertificate(certPaths);
-    if(cert.fullchain.empty() || cert.privkey.empty()) {
+    if (cert.fullchain.empty() || cert.privkey.empty()) {
         const char* message = "Failed to read certificate files.";
         setError(status["certificate"], "invalid", {
             {"message", message}
@@ -646,7 +644,7 @@ void DomainServerAcmeClient::checkExpiry(const CertificatePaths& certPaths) {
     }
 
     auto expiry = cert.getExpiryOrError();
-    if(expiry.success) {
+    if (expiry.success) {
         handleRenewal(expiry.value, certPaths);
     } else {
         const char* message =  "Failed to read certificate expiry date.";
@@ -667,7 +665,7 @@ void DomainServerAcmeClient::handleRenewal(system_clock::time_point expiry, cons
     this->expiry = expiry;
 
     auto remaining = remainingTime(expiry);
-    if(remaining > 0s) {
+    if (remaining > 0s) {
         scheduleRenewalIn(remaining);
     } else {
         generateCertificate(certPaths);
@@ -701,7 +699,7 @@ bool DomainServerAcmeClient::handleAuthenticatedHTTPRequest(HTTPConnection *conn
     }};
 
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
-        if(url.path() == STATUS_URL) {
+        if (url.path() == STATUS_URL) {
             connection->respond(
                 HTTPConnection::StatusCode200,
                 QByteArray::fromStdString(status.dump()),
@@ -709,8 +707,8 @@ bool DomainServerAcmeClient::handleAuthenticatedHTTPRequest(HTTPConnection *conn
             return true;
         }
     } else if (connection->requestOperation() == QNetworkAccessManager::PostOperation) {
-        if(url.path() == UPDATE_URL) {
-            if(status["directory"] != "pending" &&
+        if (url.path() == UPDATE_URL) {
+            if (status["directory"] != "pending" &&
                 status["account"] != "pending" &&
                 status["certificate"] != "pending") {
                 connection->respond(HTTPConnection::StatusCode200);
@@ -723,13 +721,13 @@ bool DomainServerAcmeClient::handleAuthenticatedHTTPRequest(HTTPConnection *conn
     } else {
         auto file = std::find_if(fileMap.begin(), fileMap.end(), [&url](auto&& file)
             { return file.first == url.path(); });
-        if(file != fileMap.end()) {
+        if (file != fileMap.end()) {
             auto filePath = file->second;
             if (connection->requestOperation() == QNetworkAccessManager::PutOperation) {
-                if(QFile::exists(filePath)) {
+                if (QFile::exists(filePath)) {
                     connection->respond(HTTPConnection::StatusCode409);
                 } else {
-                    if(writeAll(connection->requestContent().toStdString(), filePath)) {
+                    if (writeAll(connection->requestContent().toStdString(), filePath)) {
                         connection->respond(HTTPConnection::StatusCode200);
                     } else {
                         connection->respond(HTTPConnection::StatusCode500);
@@ -737,7 +735,7 @@ bool DomainServerAcmeClient::handleAuthenticatedHTTPRequest(HTTPConnection *conn
                 }
                 return true;
             } else if (connection->requestOperation() == QNetworkAccessManager::DeleteOperation) {
-                if(QFile(filePath).remove()) {
+                if (QFile(filePath).remove()) {
                     connection->respond(HTTPConnection::StatusCode200);
                 } else {
                     connection->respond(HTTPConnection::StatusCode500);

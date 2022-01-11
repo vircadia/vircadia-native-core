@@ -286,7 +286,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         const QString WEBRTC_WSS_ENABLE = "webrtc.enable_webrtc_websocket_ssl";
         bool isWebRTCWSSEnabled = _settingsManager.valueForKeyPath(WEBRTC_WSS_ENABLE).toBool();
         qCDebug(domain_server) << "WebRTC WSS enabled:" << isWebRTCWSSEnabled;
-        if(isWebRTCWSSEnabled) {
+        if (isWebRTCWSSEnabled) {
             _webrtcSignalingServer.reset(new WebRTCSignalingServer(this,
                 DomainServerAcmeClient::getCertificatePaths(_settingsManager)));
         } else {
