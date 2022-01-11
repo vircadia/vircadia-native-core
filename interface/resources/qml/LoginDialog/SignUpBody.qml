@@ -465,6 +465,8 @@ Item {
                 UserActivityLogger.logAction("encourageLoginDialog", data);
             }
 
+            Window.alert("You may need to confirm your email before you can log in.");
+
             loginDialog.login(usernameField.text, passwordField.text);
             bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": false, "linkSteam": false });
         }
