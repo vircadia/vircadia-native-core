@@ -20,8 +20,8 @@
 #include <NetworkingConstants.h>
 #include <SharedUtil.h>
 
-QVariantHash FSTReader::parseMapping(QIODevice* device) {
-    QVariantHash properties;
+hifi::VariantMultiHash FSTReader::parseMapping(QIODevice* device) {
+    hifi::VariantMultiHash properties;
 
     QByteArray line;
     while (!(line = device->readLine()).isEmpty()) {
@@ -76,7 +76,7 @@ static void splitBlendshapes(hifi::VariantMultiHash& bs, const QString& key, con
 }
 
 // convert legacy blendshapes to arkit blendshapes
-static void fixUpLegacyBlendshapes(QVariantHash & properties) {
+static void fixUpLegacyBlendshapes(hifi::VariantMultiHash & properties) {
     hifi::VariantMultiHash bs = properties.value("bs").toHash();
 
     // These blendshapes have no ARKit equivalent, so we remove them.
@@ -95,10 +95,10 @@ static void fixUpLegacyBlendshapes(QVariantHash & properties) {
     properties.insert("bs", bs);
 }
 
-QVariantHash FSTReader::readMapping(const QByteArray& data) {
+hifi::VariantMultiHash FSTReader::readMapping(const QByteArray& data) {
     QBuffer buffer(const_cast<QByteArray*>(&data));
     buffer.open(QIODevice::ReadOnly);
-    QVariantHash mapping = FSTReader::parseMapping(&buffer);
+    hifi::VariantMultiHash mapping = FSTReader::parseMapping(&buffer);
     fixUpLegacyBlendshapes(mapping);
     return mapping;
 }
@@ -182,17 +182,17 @@ FSTReader::ModelType FSTReader::getTypeFromName(const QString& name) {
     return _namesToTypes[name];
 }
 
-FSTReader::ModelType FSTReader::predictModelType(const QVariantHash& mapping) {
+FSTReader::ModelType FSTReader::predictModelType(const hifi::VariantMultiHash& mapping) {
 
     QVariantHash joints;
 
-    if (mapping.contains("joint") && mapping["joint"].type() == QVariant::Hash) {
-        joints = mapping["joint"].toHash();
+    if (mapping.contains("joint") && mapping.value("joint").type() == QVariant::Hash) {
+        joints = mapping.value("joint").toHash();
     }
 
     // if the mapping includes the type hint... then we trust the mapping
     if (mapping.contains(TYPE_FIELD)) {
-        return FSTReader::getTypeFromName(mapping[TYPE_FIELD].toString());
+        return FSTReader::getTypeFromName(mapping.value(TYPE_FIELD).toString());
     }
 
     // check for blendshapes
