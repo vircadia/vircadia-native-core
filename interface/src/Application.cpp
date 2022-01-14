@@ -381,12 +381,7 @@ const std::vector<std::pair<QString, Application::AcceptURLMethod>> Application:
 class DeadlockWatchdogThread : public QThread {
 public:
     static const unsigned long HEARTBEAT_UPDATE_INTERVAL_SECS = 1;
-    // TODO: go back to 2 min across the board, after figuring out the issues with mac
-#if defined(Q_OS_MAC)
-    static const unsigned long MAX_HEARTBEAT_AGE_USECS = 600 * USECS_PER_SECOND; // 10 mins with no checkin probably a deadlock, right now, on MAC
-#else
     static const unsigned long MAX_HEARTBEAT_AGE_USECS = 120 * USECS_PER_SECOND; // 2 mins with no checkin probably a deadlock
-#endif
     static const int WARNING_ELAPSED_HEARTBEAT = 500 * USECS_PER_MSEC; // warn if elapsed heartbeat average is large
     static const int HEARTBEAT_SAMPLES = 100000; // ~5 seconds worth of samples
 

@@ -2029,6 +2029,10 @@ div.zoneSelectListFooter {
     text-align: right;
 }
 
+.forceAlignRight {
+    float: right;
+}
+
 #menuBackgroundOverlay{
     background-color:transparent;
     position:fixed;
