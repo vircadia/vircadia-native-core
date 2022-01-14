@@ -23,19 +23,19 @@
 const int WEBRTC_SOCKET_CHECK_INTERVAL_IN_MS = 30000;
 
 std::pair<bool, QSslConfiguration> getSSLConfiguration(const CertificatePaths& certPaths) {
-    bool useSystemDefaultCA = certPaths.trustedAuthorities != "";
+    bool useSystemDefaultCA = certPaths.trustedAuthorities == "";
 
     qCDebug(networking_webrtc) << "WebSocket WSS key file:" << certPaths.key;
     qCDebug(networking_webrtc) << "WebSocket WSS cert file:" << certPaths.cert;
-    if(useSystemDefaultCA) {
+    if (useSystemDefaultCA) {
         qCDebug(networking_webrtc) << "WebSocket WSS using system default CA";
     } else {
         qCDebug(networking_webrtc) << "WebSocket WSS CA cert file:" << certPaths.trustedAuthorities;
     }
 
     QSslConfiguration sslConfiguration(useSystemDefaultCA
-        ? QSslConfiguration()
-        : QSslConfiguration::defaultConfiguration());
+        ? QSslConfiguration::defaultConfiguration()
+        : QSslConfiguration());
 
     QFile sslCaFile(certPaths.trustedAuthorities);
     sslCaFile.open(QIODevice::ReadOnly);
@@ -150,7 +150,7 @@ void WebRTCSignalingServer::sendMessage(const QJsonObject& message) {
 }
 
 void WebRTCSignalingServer::onSSLCertificateUpdate(const CertificatePaths& certPaths) {
-    if(_webSocketServer->secureMode() == QWebSocketServer::SecureMode) {
+    if (_webSocketServer->secureMode() == QWebSocketServer::SecureMode) {
         auto sslConfig = getSSLConfiguration(certPaths);
         if (std::get<bool>(sslConfig)) {
             _webSocketServer->setSslConfiguration(std::get<QSslConfiguration>(sslConfig));

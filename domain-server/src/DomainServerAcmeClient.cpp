@@ -248,7 +248,9 @@ CertificatePaths DomainServerAcmeClient::getCertificatePaths(DomainServerSetting
 
     paths.cert = certDir.filePath(paths.cert);
     paths.key = certDir.filePath(paths.key);
-    paths.trustedAuthorities = certDir.filePath(paths.trustedAuthorities);
+    paths.trustedAuthorities = paths.trustedAuthorities != ""
+        ? certDir.filePath(paths.trustedAuthorities)
+        : "";
     return paths;
 }
 
