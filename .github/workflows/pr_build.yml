@@ -158,8 +158,11 @@ jobs:
           sudo apt install -y ${{ matrix.apt-dependencies }} || exit 1
         else # macOS
           echo "Downloading MacOSX10.12 SDK.."
-          curl --progress-bar -L -o macOS_SDK10.12.4.tar.xz "https://cloudflare-ipfs.com/ipfs/QmdNLMCUCw8hBTqinkc7ke88WgRb7M2mWQbccQPDsyaub8?filename=macOS_SDK10.12.4.tar.xz" || exit 1
+          curl --progress-bar -L -o macOS_SDK10.12.4.tar.xz "https://cloudflare-ipfs.com/ipfs/QmTDLEYdo616YgZKSYC2mySSw8EKQWTz7CH8UyMupMBpzK?filename=macOS_SDK10.12.4.tar.xz" || exit 1
           echo "  done\n"
+          echo "Checking MacOSX10.12 SDK.."
+          echo "c00e03cb64bed8d0d75d7a01c93de094b6ffaa3bc3318e7b29a9bdc354f0e29e363c454b7db89db8a3b78e9702668d1c661f1af279807de8db11accecb0ca498  macOS_SDK10.12.4.tar.xz" >> macOS_SDK10.12.4.tar.xz.checksum
+          shasum -a 512 -w -c macOS_SDK10.12.4.tar.xz.checksum
           echo "Extracting MacOSX10.12 SDK.."
           tar -xf macOS_SDK10.12.4.tar.xz || exit 1
           echo "  done\n"
@@ -168,6 +171,11 @@ jobs:
           sudo cp -rp MacOSX10.12.sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/ || exit 0
           echo "  done"
         fi
+
+    - name: Override NSIS
+      shell: pwsh
+      if: startsWith(matrix.os, 'windows')
+      run: choco install nsis --version=3.06.1
 
     - name: Create Build Environment
       shell: bash

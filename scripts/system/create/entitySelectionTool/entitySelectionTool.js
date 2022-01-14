@@ -343,6 +343,19 @@ SelectionManager = (function() {
         }
         
         var duplicateInterrupted = false;
+        for (var j = 0; j < entitiesToDuplicate.length; j++) {
+            var lockedEntities = Entities.getEntityProperties(entitiesToDuplicate[j], 'locked');
+            if (lockedEntities.locked) {
+                duplicateInterrupted = true;
+                break;
+            }
+        }
+        if (duplicateInterrupted) {
+            audioFeedback.rejection();
+            Window.notifyEditError("At least one of the selected entities or one of their children are locked.");
+            return [];
+        }
+
         // duplicate entities from above and store their original to new entity mappings and children needing re-parenting
         for (var i = 0; i < entitiesToDuplicate.length; i++) {
             var originalEntityID = entitiesToDuplicate[i];
@@ -389,8 +402,6 @@ SelectionManager = (function() {
                     duplicatedChildrenWithOldParents[newEntityID] = properties.parentID;
                 }
                 originalEntityToNewEntityID[originalEntityID] = newEntityID;
-            } else {
-                duplicateInterrupted = true;
             }
         }
         
@@ -409,11 +420,7 @@ SelectionManager = (function() {
             }
         });
         
-        if (duplicateInterrupted) {
-            audioFeedback.rejection();
-        } else {
-            audioFeedback.confirmation();
-        }
+        audioFeedback.confirmation();
         return duplicatedEntityIDs;
     };
 

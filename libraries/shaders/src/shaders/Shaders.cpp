@@ -96,7 +96,7 @@ static Binary loadSpirvResource(const std::string& path) {
         if (file.open(QFile::ReadOnly)) {
             QByteArray bytes = file.readAll();
             result.resize(bytes.size());
-            memcpy(bytes.data(), result.data(), bytes.size());
+            memcpy(result.data(), bytes.data(), bytes.size());
         }
     }
     return result;

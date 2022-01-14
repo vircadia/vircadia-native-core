@@ -39,12 +39,19 @@ std::string readAll(const QString& path) {
     return std::string();
 }
 
-bool writeAll(const std::string& data, const QString& path) {
+bool mkpath(const QString& path) {
+    return QDir(QFileInfo(path).path()).mkpath(".");
+}
+
+bool writeAll(const std::string& data, const QString& path)
+{
+    if (!mkpath(path)) {
+        return false;
+    }
     QFile file(path);
     return file.open(QFile::WriteOnly) &&
         file.write(QByteArray::fromStdString(data)) == qint64(data.size());
 }
-
 
 class AcmeHttpChallengeServer : public AcmeChallengeHandler, public HTTPRequestHandler {
     struct Challenge {
@@ -116,8 +123,7 @@ public:
 
     void addChallenge(const std::string& domain, const std::string& location, const std::string& content) override {
         QString challengePath = (dirs[domain] + location).c_str();
-        QDir challengeDir = QFileInfo(challengePath).path();
-        if (challengeDir.mkpath(".") && writeAll(content, challengePath)) {
+        if (mkpath(challengePath) && writeAll(content, challengePath)) {
             challengePaths.push_back(challengePath);
         } else {
             qCCritical(acme_client) << "Failed to write challenge file:" << challengePath;
@@ -554,8 +560,8 @@ void DomainServerAcmeClient::generateCertificate(const CertificatePaths& certPat
         accountKeyPath = QDir(PathUtils::getAppLocalDataPath()).filePath("acme_account_key.pem");
     }
     QFile accountKeyFile(accountKeyPath);
-    if (!accountKeyFile.exists()) {
-        if (!createAccountKey(accountKeyFile)) {
+    if(!accountKeyFile.exists()) {
+        if(!mkpath(accountKeyPath) || !createAccountKey(accountKeyFile)) {
             setError(status["account"], "key-write");
             qCCritical(acme_client) << "Failed to create account key file " << accountKeyFile.fileName();
             return;
