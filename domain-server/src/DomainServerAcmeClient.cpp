@@ -173,8 +173,15 @@ acme_lw::Certificate readCertificate(const std::array<QString, 2>& files) {
     };
 }
 
+bool mkpath(const QString& path) {
+    return QDir(QFileInfo(path).path()).mkpath(".");
+}
+
 bool writeAll(const std::string& data, const QString& path)
 {
+    if (!mkpath(path)) {
+        return false;
+    }
     QFile file(path);
     return file.open(QFile::WriteOnly) &&
         file.write(QByteArray::fromStdString(data)) == qint64(data.size());
@@ -339,7 +346,7 @@ void DomainServerAcmeClient::generateCertificate(std::array<QString,2> certPaths
     }
     QFile accountKeyFile(accountKeyPath);
     if(!accountKeyFile.exists()) {
-        if(!createAccountKey(accountKeyFile)) {
+        if(!mkpath(accountKeyPath) || !createAccountKey(accountKeyFile)) {
             qCCritical(acme_client) << "Failed to create account key file " << accountKeyFile.fileName();
             return;
         }
