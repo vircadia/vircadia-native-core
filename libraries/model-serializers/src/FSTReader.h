@@ -48,13 +48,13 @@ public:
     };
 
     /// Reads an FST mapping from the supplied data.
-    static QVariantHash readMapping(const QByteArray& data);
+    static hifi::VariantMultiHash readMapping(const QByteArray& data);
 
     /// Writes an FST mapping to a byte array.
     static QByteArray writeMapping(const hifi::VariantMultiHash& mapping);
 
     /// Predicts the type of model by examining the mapping
-    static ModelType predictModelType(const QVariantHash& mapping);
+    static ModelType predictModelType(const hifi::VariantMultiHash& mapping);
 
     static QVector<QString> getScripts(const QUrl& fstUrl, const hifi::VariantMultiHash& mapping = QVariantHash());
 
@@ -64,7 +64,7 @@ public:
 
 private:
     static void writeVariant(QBuffer& buffer, QVariantHash::const_iterator& it);
-    static QVariantHash parseMapping(QIODevice* device);
+    static hifi::VariantMultiHash parseMapping(QIODevice* device);
 
     static QHash<FSTReader::ModelType, QString> _typesToNames;
     static QHash<QString, FSTReader::ModelType> _namesToTypes;
