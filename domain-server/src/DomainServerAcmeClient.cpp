@@ -43,8 +43,7 @@ bool mkpath(const QString& path) {
     return QDir(QFileInfo(path).path()).mkpath(".");
 }
 
-bool writeAll(const std::string& data, const QString& path)
-{
+bool writeAll(const std::string& data, const QString& path) {
     if (!mkpath(path)) {
         return false;
     }
@@ -560,8 +559,8 @@ void DomainServerAcmeClient::generateCertificate(const CertificatePaths& certPat
         accountKeyPath = QDir(PathUtils::getAppLocalDataPath()).filePath("acme_account_key.pem");
     }
     QFile accountKeyFile(accountKeyPath);
-    if(!accountKeyFile.exists()) {
-        if(!mkpath(accountKeyPath) || !createAccountKey(accountKeyFile)) {
+    if (!accountKeyFile.exists()) {
+        if (!mkpath(accountKeyPath) || !createAccountKey(accountKeyFile)) {
             setError(status["account"], "key-write");
             qCCritical(acme_client) << "Failed to create account key file " << accountKeyFile.fileName();
             return;
