@@ -593,7 +593,7 @@ void AccountManager::requestAccessTokenWithAuthCode(const QString& authCode, con
     postData.append("client_id=" + clientId.toUtf8() + "&");
     postData.append("client_secret=" + clientSecret.toUtf8() + "&");
     postData.append("code=" + authCode.toUtf8() + "&");
-    postData.append(QByteArray("redirect_uri=") + QUrl::toPercentEncoding(redirectUri));
+    postData.append("redirect_uri=" + QUrl::toPercentEncoding(redirectUri));
 
     request.setUrl(grantURL);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
@@ -613,7 +613,7 @@ void AccountManager::requestAccessTokenWithSteam(QByteArray authSessionTicket) {
 
     QByteArray postData;
     postData.append("grant_type=password&");
-    postData.append(QByteArray("steam_auth_ticket=") + QUrl::toPercentEncoding(authSessionTicket) + "&");
+    postData.append("steam_auth_ticket=" + QUrl::toPercentEncoding(authSessionTicket) + "&");
     postData.append("scope=" + ACCOUNT_MANAGER_REQUESTED_SCOPE.toUtf8());
 
     request.setUrl(grantURL);
@@ -637,7 +637,7 @@ void AccountManager::requestAccessTokenWithOculus(const QString& nonce, const QS
     postData.append("grant_type=password&");
     postData.append("oculus_nonce=" + nonce.toUtf8() + "&");
     postData.append("oculus_id=" + oculusID.toUtf8() + "&");
-    postData.append("scope=" +  ACCOUNT_MANAGER_REQUESTED_SCOPE.toUtf8());
+    postData.append("scope=" + ACCOUNT_MANAGER_REQUESTED_SCOPE.toUtf8());
 
     request.setUrl(grantURL);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
@@ -666,7 +666,7 @@ void AccountManager::refreshAccessToken() {
 
         QByteArray postData;
         postData.append("grant_type=refresh_token&");
-        postData.append(QByteArray("refresh_token=") + QUrl::toPercentEncoding(_accountInfo.getAccessToken().refreshToken) + "&");
+        postData.append("refresh_token=" + QUrl::toPercentEncoding(_accountInfo.getAccessToken().refreshToken) + "&");
         postData.append("scope=" + ACCOUNT_MANAGER_REQUESTED_SCOPE.toUtf8());
 
         request.setUrl(grantURL);

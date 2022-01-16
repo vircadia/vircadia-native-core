@@ -90,9 +90,9 @@ void DomainAccountManager::requestAccessToken(const QString& username, const QSt
     // - Ignores "state" parameter.
     QByteArray formData;
     formData.append("grant_type=password&");
-    formData.append(QByteArray("username=") + QUrl::toPercentEncoding(username) + "&");
-    formData.append(QByteArray("password=") + QUrl::toPercentEncoding(password) + "&");
-    formData.append(QString("client_id=%1").arg(_currentAuth.clientID).toUtf8());
+    formData.append("username=" + QUrl::toPercentEncoding(username) + "&");
+    formData.append("password=" + QUrl::toPercentEncoding(password) + "&");
+    formData.append("client_id=" + _currentAuth.clientID.toUtf8());
 
     request.setUrl(_currentAuth.authURL);
 
