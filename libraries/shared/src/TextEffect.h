@@ -11,7 +11,7 @@
 
 #include "QString"
 
-/**jsdoc
+/*@jsdoc
  * <p>A {@link Entities.EntityProperties-Text|Text} entity may use one of the following effects:</p>
  * <table>
  *   <thead>
@@ -20,7 +20,7 @@
  *   <tbody>
  *     <tr><td><code>"none"</code></td><td>No effect.</td></tr>
  *     <tr><td><code>"outline"</code></td><td>An outline effect.</td></tr>
- *     <tr><td><code>"outlineFill"</code></td><td>An outline effect, with fill.</td></tr>
+ *     <tr><td><code>"outline fill"</code></td><td>An outline effect, with fill.</td></tr>
  *     <tr><td><code>"shadow"</code></td><td>A shadow effect.</td></tr>
  *   </tbody>
  * </table>

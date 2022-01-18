@@ -14,7 +14,7 @@
 
 #include "RenderForward.h"
 
-/**jsdoc
+/*@jsdoc
  * The <code>Render</code> API enables you to configure the graphics engine.
  *
  * @namespace Render
@@ -43,7 +43,7 @@ public:
 
     static RenderScriptingInterface* getInstance();
 
-    /**jsdoc
+    /*@jsdoc
      * <p>The rendering method is specified by the following values:</p>
      * <table>
      *   <thead>
@@ -73,7 +73,7 @@ public:
     void loadSettings();
 
 public slots:
-    /**jsdoc
+    /*@jsdoc
      * Gets the configuration for a rendering job by name.
      * <p><strong>Warning:</strong> For internal, debugging purposes. Subject to change.</p>
      * @function Render.getConfig
@@ -83,7 +83,7 @@ public slots:
     QObject* getConfig(const QString& name) { return qApp->getRenderEngine()->getConfiguration()->getConfig(name); }
 
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the render method being used.
      * @function Render.getRenderMethod
      * @returns {Render.RenderMethod} The render method being used.
@@ -93,14 +93,14 @@ public slots:
      */
     RenderMethod getRenderMethod() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the render method to use.
      * @function Render.setRenderMethod
      * @param {Render.RenderMethod} renderMethod - The render method to use.
      */
     void setRenderMethod(RenderMethod renderMethod);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the names of the possible render methods, per {@link Render.RenderMethod}.
      * @function Render.getRenderMethodNames
      * @returns {string[]} The names of the possible render methods.
@@ -114,56 +114,56 @@ public slots:
     QStringList getRenderMethodNames() const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether or not shadows are enabled.
      * @function Render.getShadowsEnabled
      * @returns {boolean} <code>true</code> if shadows are enabled, <code>false</code> if they're disabled.
      */
     bool getShadowsEnabled() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether or not shadows are enabled.
      * @function Render.setShadowsEnabled
      * @param {boolean} enabled - <code>true</code> to enable shadows, <code>false</code> to disable.
      */
     void setShadowsEnabled(bool enabled);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether or not ambient occlusion is enabled.
      * @function Render.getAmbientOcclusionEnabled
      * @returns {boolean} <code>true</code> if ambient occlusion is enabled, <code>false</code> if it's disabled.
      */
     bool getAmbientOcclusionEnabled() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether or not ambient occlusion is enabled.
      * @function Render.setAmbientOcclusionEnabled
      * @param {boolean} enabled - <code>true</code> to enable ambient occlusion, <code>false</code> to disable.
      */
     void setAmbientOcclusionEnabled(bool enabled);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether or not anti-aliasing is enabled.
      * @function Render.getAntialiasingEnabled
      * @returns {boolean} <code>true</code> if anti-aliasing is enabled, <code>false</code> if it's disabled.
      */
     bool getAntialiasingEnabled() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether or not anti-aliasing is enabled.
      * @function Render.setAntialiasingEnabled
      * @param {boolean} enabled - <code>true</code> to enable anti-aliasing, <code>false</code> to disable.
      */
     void setAntialiasingEnabled(bool enabled);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the view port resolution scale.
      * @function Render.getViewportResolutionScale
      * @returns {number} The view port resolution scale, <code>&gt; 0.0</code>.
      */
     float getViewportResolutionScale() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the view port resolution scale.
      * @function Render.setViewportResolutionScale
      * @param {number} resolutionScale - The view port resolution scale to set, <code>&gt; 0.0</code>.
@@ -172,7 +172,7 @@ public slots:
 
 signals:
     
-    /**jsdoc
+    /*@jsdoc
      * Triggered when one of the <code>Render</code> API's properties changes.
      * @function Render.settingsChanged
      * @returns {Signal}

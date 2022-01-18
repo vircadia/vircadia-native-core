@@ -167,6 +167,13 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : BaseLog
     }
     _extraDebuggingBox->show();
     connect(_extraDebuggingBox, &QCheckBox::stateChanged, this, &LogDialog::handleExtraDebuggingCheckbox);
+    
+    _showSourceDebuggingBox = new QCheckBox("Show script sources", this);
+    if (_logger->showSourceDebugging()) {
+        _showSourceDebuggingBox->setCheckState(Qt::Checked);
+    }
+    _showSourceDebuggingBox->show();
+    connect(_showSourceDebuggingBox, &QCheckBox::stateChanged, this, &LogDialog::handleShowSourceDebuggingCheckbox);
 
     _allLogsButton = new QPushButton("All Messages", this);
     // set object name for css styling
@@ -196,8 +203,13 @@ void LogDialog::resizeEvent(QResizeEvent* event) {
         THIRD_ROW,
         COMBOBOX_WIDTH,
         ELEMENT_HEIGHT);
-
-     _keepOnTopBox->setGeometry(width() - ELEMENT_MARGIN - COMBOBOX_WIDTH - ELEMENT_MARGIN - ALL_LOGS_BUTTON_WIDTH - ELEMENT_MARGIN - COMBOBOX_WIDTH - ELEMENT_MARGIN,
+    _keepOnTopBox->setGeometry(width() - ELEMENT_MARGIN - COMBOBOX_WIDTH - ELEMENT_MARGIN - ALL_LOGS_BUTTON_WIDTH - ELEMENT_MARGIN - COMBOBOX_WIDTH - ELEMENT_MARGIN,
+        THIRD_ROW,
+        COMBOBOX_WIDTH,
+        ELEMENT_HEIGHT);
+    _showSourceDebuggingBox->setGeometry(width() - ELEMENT_MARGIN - COMBOBOX_WIDTH - ELEMENT_MARGIN - ALL_LOGS_BUTTON_WIDTH
+                                                 - ELEMENT_MARGIN - COMBOBOX_WIDTH - ELEMENT_MARGIN - ELEMENT_MARGIN
+                                                 - COMBOBOX_WIDTH - ELEMENT_MARGIN,
         THIRD_ROW,
         COMBOBOX_WIDTH,
         ELEMENT_HEIGHT);
@@ -217,6 +229,8 @@ void LogDialog::handleRevealButton() {
 }
 
 void LogDialog::handleAllLogsButton() {
+    _logger->setShowSourceDebugging(false);
+    _showSourceDebuggingBox->setCheckState(Qt::Unchecked);
     _logger->setExtraDebugging(false);
     _extraDebuggingBox->setCheckState(Qt::Unchecked);
     _logger->setDebugPrint(true);
@@ -236,6 +250,10 @@ void LogDialog::handleAllLogsButton() {
     clearSearch();
     _filterDropdown->setCurrentIndex(0);
     printLogFile();
+}
+
+void LogDialog::handleShowSourceDebuggingCheckbox(int state) {
+    _logger->setShowSourceDebugging(state != 0);
 }
 
 void LogDialog::handleExtraDebuggingCheckbox(int state) {

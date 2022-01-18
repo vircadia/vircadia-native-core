@@ -6,8 +6,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var SCRIPT_URL = "http://hifi-production.s3.amazonaws.com/tutorials/entity_scripts/soundMaker.js";
-var MODEL_URL = "http://hifi-production.s3.amazonaws.com/tutorials/soundMaker/Front-Desk-Bell.fbx";
+var SCRIPT_URL = "https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/entity_scripts/soundMaker.js";
+var MODEL_URL = "https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/soundMaker/Front-Desk-Bell.fbx";
 
 var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
     x: 0,

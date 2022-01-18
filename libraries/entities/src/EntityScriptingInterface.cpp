@@ -57,9 +57,11 @@ EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership
     connect(nodeList.data(), &NodeList::canRezTmpCertifiedChanged, this, &EntityScriptingInterface::canRezTmpCertifiedChanged);
     connect(nodeList.data(), &NodeList::canWriteAssetsChanged, this, &EntityScriptingInterface::canWriteAssetsChanged);
     connect(nodeList.data(), &NodeList::canGetAndSetPrivateUserDataChanged, this, &EntityScriptingInterface::canGetAndSetPrivateUserDataChanged);
+    connect(nodeList.data(), &NodeList::canRezAvatarEntitiesChanged, this, &EntityScriptingInterface::canRezAvatarEntitiesChanged);
 
     auto& packetReceiver = nodeList->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::EntityScriptCallMethod, this, "handleEntityScriptCallMethodPacket");
+    packetReceiver.registerListener(PacketType::EntityScriptCallMethod,
+        PacketReceiver::makeSourcedListenerReference<EntityScriptingInterface>(this, &EntityScriptingInterface::handleEntityScriptCallMethodPacket));
 }
 
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
@@ -111,6 +113,11 @@ bool EntityScriptingInterface::canReplaceContent() {
 bool EntityScriptingInterface::canGetAndSetPrivateUserData() {
     auto nodeList = DependencyManager::get<NodeList>();
     return nodeList->getThisNodeCanGetAndSetPrivateUserData();
+}
+
+bool EntityScriptingInterface::canRezAvatarEntities() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanRezAvatarEntities();
 }
 
 void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
@@ -480,6 +487,15 @@ QUuid EntityScriptingInterface::addEntityInternal(const EntityItemProperties& pr
 
     _activityTracking.addedEntityCount++;
 
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    if (entityHostType == entity::HostType::AVATAR && !nodeList->getThisNodeCanRezAvatarEntities()) {
+        qCDebug(entities) << "Ignoring addEntity() because don't have canRezAvatarEntities permission on domain";
+        // Only need to intercept methods that may add an avatar entity because avatar entities are removed from the tree when
+        // the user doesn't have canRezAvatarEntities permission.
+        return QUuid();
+    }
+
     EntityItemProperties propertiesWithSimID = properties;
     propertiesWithSimID.setEntityHostType(entityHostType);
     if (entityHostType == entity::HostType::AVATAR) {
@@ -492,7 +508,6 @@ QUuid EntityScriptingInterface::addEntityInternal(const EntityItemProperties& pr
     }
 
     // the created time will be set in EntityTree::addEntity by recordCreationTime()
-    auto nodeList = DependencyManager::get<NodeList>();
     auto sessionID = nodeList->getSessionUUID();
     propertiesWithSimID.setLastEditedBy(sessionID);
 
@@ -1001,7 +1016,7 @@ void EntityScriptingInterface::deleteEntity(const QUuid& id) {
 
     for (auto entity : entitiesToDeleteImmediately) {
         if (entity->isMyAvatarEntity()) {
-            getEntityPacketSender()->getMyAvatar()->clearAvatarEntity(entity->getID(), false);
+            getEntityPacketSender()->getMyAvatar()->clearAvatarEntityInternal(entity->getID());
         }
     }
 }
@@ -1045,18 +1060,26 @@ QSizeF EntityScriptingInterface::textSize(const QUuid& id, const QString& text) 
     return EntityTree::textSize(id, text);
 }
 
-void EntityScriptingInterface::setEntitiesScriptEngine(QSharedPointer<EntitiesScriptEngineProvider> engine) {
+void EntityScriptingInterface::setPersistentEntitiesScriptEngine(QSharedPointer<EntitiesScriptEngineProvider> engine) {
     std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
-    _entitiesScriptEngine = engine;
+    _persistentEntitiesScriptEngine = engine;
+}
+
+void EntityScriptingInterface::setNonPersistentEntitiesScriptEngine(QSharedPointer<EntitiesScriptEngineProvider> engine) {
+    std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
+    _nonPersistentEntitiesScriptEngine = engine;
 }
 
 void EntityScriptingInterface::callEntityMethod(const QUuid& id, const QString& method, const QStringList& params) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
-
-    std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
-    if (_entitiesScriptEngine) {
-        EntityItemID entityID{ id };
-        _entitiesScriptEngine->callEntityScriptMethod(entityID, method, params);
+    
+    auto entity = getEntityTree()->findEntityByEntityItemID(id);
+    if (entity) {
+        std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
+        auto& scriptEngine = (entity->isLocalEntity() || entity->isMyAvatarEntity()) ? _persistentEntitiesScriptEngine : _nonPersistentEntitiesScriptEngine;
+        if (scriptEngine) {
+            scriptEngine->callEntityScriptMethod(id, method, params);
+        }
     }
 }
 
@@ -1098,9 +1121,13 @@ void EntityScriptingInterface::handleEntityScriptCallMethodPacket(QSharedPointer
             params << paramString;
         }
 
-        std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
-        if (_entitiesScriptEngine) {
-            _entitiesScriptEngine->callEntityScriptMethod(entityID, method, params, senderNode->getUUID());
+        auto entity = getEntityTree()->findEntityByEntityItemID(entityID);
+        if (entity) {
+            std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
+            auto& scriptEngine = (entity->isLocalEntity() || entity->isMyAvatarEntity()) ? _persistentEntitiesScriptEngine : _nonPersistentEntitiesScriptEngine;
+            if (scriptEngine) {
+                scriptEngine->callEntityScriptMethod(entityID, method, params, senderNode->getUUID());
+            }
         }
     }
 }
@@ -1331,7 +1358,7 @@ bool EntityPropertyMetadataRequest::script(EntityItemID entityID, QScriptValue h
         if (entitiesScriptEngine) {
             request->setFuture(entitiesScriptEngine->getLocalEntityScriptDetails(entityID));
         }
-    });
+    }, entityID);
     if (!request->isStarted()) {
         request->deleteLater();
         callScopedHandlerObject(handler, _engine->makeError("Entities Scripting Provider unavailable", "InternalError"), QScriptValue());

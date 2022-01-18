@@ -11,7 +11,7 @@
 /*global MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, Audio, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt */
 
 function createDoll() {
-    var modelURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/doll/bboy2.fbx";
+    var modelURL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/doll/bboy2.fbx";
 
     var scriptURL = Script.resolvePath("doll.js");
 

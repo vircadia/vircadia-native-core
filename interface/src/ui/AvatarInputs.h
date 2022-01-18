@@ -23,7 +23,7 @@ class AvatarInputs : public QObject {
     Q_OBJECT
     HIFI_QML_DECL
 
-    /**jsdoc 
+    /*@jsdoc 
      * The <code>AvatarInputs</code> API provides facilities to manage user inputs.
      *
      * @namespace AvatarInputs
@@ -61,7 +61,7 @@ class AvatarInputs : public QObject {
 public:
     static AvatarInputs* getInstance();
 
-    /**jsdoc
+    /*@jsdoc
      * Converts non-linear audio loudness to a linear audio level.
      * @function AvatarInputs.loudnessToAudioLevel
      * @param {number} loudness - The non-linear audio loudness.
@@ -78,7 +78,7 @@ public:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether or not the microphone mute button and audio level meter is shown.
      * @function AvatarInputs.setShowAudioTools
      * @param {boolean} showAudioTools - <code>true</code> to show the microphone mute button and audio level meter, 
@@ -86,7 +86,7 @@ public slots:
      */
     void setShowAudioTools(bool showAudioTools);
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether or not the privacy shield button is shown.
      * @function AvatarInputs.setShowBubbleTools
      * @param {boolean} showBubbleTools - <code>true</code> to show the privacy shield button, <code>false</code> to hide it.
@@ -95,28 +95,28 @@ public slots:
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when webcam face tracking is enabled or disabled.
      * @deprecated This signal is deprecated and has been removed.
      * @function AvatarInputs.cameraEnabledChanged
      * @returns {Signal}
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when webcam face tracking is muted (temporarily disabled) or unmuted.
      * @deprecated This signal is deprecated and has been removed.
      * @function AvatarInputs.cameraMutedChanged
      * @returns {Signal}
      */
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the display mode changes between desktop and HMD.
      * @function AvatarInputs.isHMDChanged
      * @returns {Signal}
      */
     void isHMDChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the visibility of the microphone mute button and audio level meter changes.
      * @function AvatarInputs.showAudioToolsChanged
      * @param {boolean} show - <code>true</code> if the microphone mute button and audio level meter are shown, 
@@ -125,7 +125,7 @@ signals:
      */
     void showAudioToolsChanged(bool show);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the visibility of the privacy shield button changes.
      * @function AvatarInputs.showBubbleToolsChanged
      * @param {boolean} show - <code>true</code> if the privacy shield UI button is shown, <code>false</code> if 
@@ -134,7 +134,7 @@ signals:
      */
     void showBubbleToolsChanged(bool show);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when another user enters the privacy shield.
      * @function AvatarInputs.avatarEnteredIgnoreRadius
      * @param {QUuid} avatarID - The session ID of the user that entered the privacy shield.
@@ -146,7 +146,7 @@ signals:
      */
     void avatarEnteredIgnoreRadius(QUuid avatarID);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when another user leaves the privacy shield.
      * <p><strong>Note:</strong> Currently doesn't work.</p>
      * @function AvatarInputs.avatarLeftIgnoreRadius
@@ -156,7 +156,7 @@ signals:
      */
     void avatarLeftIgnoreRadius(QUuid avatarID);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the privacy shield is enabled or disabled.
      * @function AvatarInputs.ignoreRadiusEnabledChanged
      * @param {boolean} enabled - <code>true</code> if the privacy shield is enabled, <code>false</code> if it is disabled.
@@ -164,7 +164,7 @@ signals:
      */
     void ignoreRadiusEnabledChanged(bool enabled);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when another user enters the privacy shield.
      * @function AvatarInputs.enteredIgnoreRadiusChanged
      * @returns {Signal}
@@ -173,13 +173,13 @@ signals:
 
 protected:
 
-    /**jsdoc
+    /*@jsdoc
      * Resets sensors, audio, avatar animations, and the avatar rig.
      * @function AvatarInputs.resetSensors
      */
     Q_INVOKABLE void resetSensors();
 
-    /**jsdoc
+    /*@jsdoc
      * Toggles the muting (temporary disablement) of webcam face tracking on/off.
      * <p class="important">Deprecated: This function is deprecated and has been removed.</p>
      * @function AvatarInputs.toggleCameraMute

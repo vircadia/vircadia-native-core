@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 9/26/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -42,6 +43,7 @@
 
 Q_DECLARE_LOGGING_CATEGORY(domain_server)
 Q_DECLARE_LOGGING_CATEGORY(domain_server_ice)
+Q_DECLARE_LOGGING_CATEGORY(domain_server_auth)
 
 typedef QSharedPointer<Assignment> SharedAssignmentPointer;
 typedef QMultiHash<QUuid, WalletTransaction*> TransactionHash;
@@ -111,8 +113,8 @@ private slots:
     void setupPendingAssignmentCredits();
     void sendPendingTransactionsToServer();
 
-    void performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr);
-    void sendHeartbeatToMetaverse() { sendHeartbeatToMetaverse(QString()); }
+    void performIPAddressPortUpdate(const SockAddr& newPublicSockAddr);
+    void sendHeartbeatToMetaverse() { sendHeartbeatToMetaverse(QString(), int()); }
     void sendHeartbeatToIceServer();
     void nodePingMonitor();
 
@@ -175,7 +177,7 @@ private:
     void setupAutomaticNetworking();
     void setupICEHeartbeatForFullNetworking();
     void setupHeartbeatToMetaverse();
-    void sendHeartbeatToMetaverse(const QString& networkAddress);
+    void sendHeartbeatToMetaverse(const QString& networkAddress, const int port);
 
     void randomizeICEServerAddress(bool shouldTriggerHostLookup);
 
@@ -184,7 +186,7 @@ private:
     void handleKillNode(SharedNodePointer nodeToKill);
     void broadcastNodeDisconnect(const SharedNodePointer& disconnnectedNode);
 
-    void sendDomainListToNode(const SharedNodePointer& node, quint64 requestPacketReceiveTime, const HifiSockAddr& senderSockAddr, bool newConnection);
+    void sendDomainListToNode(const SharedNodePointer& node, quint64 requestPacketReceiveTime, const SockAddr& senderSockAddr, bool newConnection);
 
     bool isInInterestSet(const SharedNodePointer& nodeA, const SharedNodePointer& nodeB);
 
@@ -210,7 +212,7 @@ private:
     QNetworkReply* profileRequestGivenTokenReply(QNetworkReply* tokenReply);
     Headers setupCookieHeadersFromProfileReply(QNetworkReply* profileReply);
 
-    QJsonObject jsonForSocket(const HifiSockAddr& socket);
+    QJsonObject jsonForSocket(const SockAddr& socket);
     QJsonObject jsonObjectForNode(const SharedNodePointer& node);
 
     bool shouldReplicateNode(const Node& node);
@@ -231,6 +233,8 @@ private:
                                     std::initializer_list<QString> requiredData = { },
                                     std::initializer_list<QString> optionalData = { },
                                     bool requireAccessToken = true);
+
+    QString operationToString(const QNetworkAccessManager::Operation &op);
 
     SubnetList _acSubnetWhitelist;
 
@@ -266,7 +270,7 @@ private:
 
     DomainServerSettingsManager _settingsManager;
 
-    HifiSockAddr _iceServerSocket;
+    SockAddr _iceServerSocket;
     std::unique_ptr<NLPacket> _iceServerHeartbeatPacket;
 
     // These will be parented to this, they are not dangling

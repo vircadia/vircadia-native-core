@@ -9,7 +9,7 @@
 
     var version = 13;
 
-    var baseURL = "https://hifi-production.s3.amazonaws.com/DomainContent/CellScience/";
+    var baseURL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/CellScience/";
     var button;
     var _this;
 

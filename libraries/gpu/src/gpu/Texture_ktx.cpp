@@ -13,6 +13,7 @@
 #include "Texture.h"
 
 #include <QtCore/QByteArray>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <ktx/KTX.h>
 
@@ -30,15 +31,16 @@ struct GPUKTXPayload {
     using Version = uint8;
 
     static const std::string KEY;
-    static const Version CURRENT_VERSION { 1 };
+    static const Version CURRENT_VERSION { 2 };
     static const size_t PADDING { 2 };
-    static const size_t SIZE { sizeof(Version) + sizeof(Sampler::Desc) + sizeof(uint32) + sizeof(TextureUsageType) + PADDING };
-    static_assert(GPUKTXPayload::SIZE == 36, "Packing size may differ between platforms");
+    static const size_t SIZE { sizeof(Version) + sizeof(Sampler::Desc) + sizeof(uint32) + sizeof(TextureUsageType) + sizeof(glm::ivec2) + PADDING };
+    static_assert(GPUKTXPayload::SIZE == 44, "Packing size may differ between platforms");
     static_assert(GPUKTXPayload::SIZE % 4 == 0, "GPUKTXPayload is not 4 bytes aligned");
 
     Sampler::Desc _samplerDesc;
     Texture::Usage _usage;
     TextureUsageType _usageType;
+    glm::ivec2 _originalSize { 0, 0 };
 
     Byte* serialize(Byte* data) const {
         *(Version*)data = CURRENT_VERSION;
@@ -56,25 +58,21 @@ struct GPUKTXPayload {
         memcpy(data, &_usageType, sizeof(TextureUsageType));
         data += sizeof(TextureUsageType);
 
+        memcpy(data, glm::value_ptr(_originalSize), sizeof(glm::ivec2));
+        data += sizeof(glm::ivec2);
+
         return data + PADDING;
     }
 
     bool unserialize(const Byte* data, size_t size) {
-        if (size != SIZE) {
+        Version version = *(const Version*)data;
+        data += sizeof(Version);
+
+        if (version > CURRENT_VERSION) {
+            // If we try to load a version that we don't know how to parse,
+            // it will render incorrectly
             return false;
         }
-
-        Version version = *(const Version*)data;
-        if (version != CURRENT_VERSION) {
-            glm::vec4 borderColor(1.0f);
-            if (memcmp(&borderColor, data, sizeof(glm::vec4)) == 0) {
-                memcpy(this, data, sizeof(GPUKTXPayload));
-                return true;
-            } else {
-                return false;
-            }
-        }
-        data += sizeof(Version);
 
         memcpy(&_samplerDesc, data, sizeof(Sampler::Desc));
         data += sizeof(Sampler::Desc);
@@ -87,6 +85,13 @@ struct GPUKTXPayload {
         data += sizeof(uint32);
 
         memcpy(&_usageType, data, sizeof(TextureUsageType));
+        data += sizeof(TextureUsageType);
+
+        if (version >= 2) {
+            memcpy(&_originalSize, data, sizeof(glm::ivec2));
+            data += sizeof(glm::ivec2);
+        }
+
         return true;
     }
 
@@ -382,7 +387,7 @@ void Texture::setKtxBacking(const cache::FilePointer& cacheEntry) {
 }
 
 
-ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
+ktx::KTXUniquePointer Texture::serialize(const Texture& texture, const glm::ivec2& originalSize) {
     ktx::Header header;
 
     // From texture format to ktx format description
@@ -459,6 +464,7 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     gpuKeyval._samplerDesc = texture.getSampler().getDesc();
     gpuKeyval._usage = texture.getUsage();
     gpuKeyval._usageType = texture.getUsageType();
+    gpuKeyval._originalSize = originalSize;
 
     Byte keyvalPayload[GPUKTXPayload::SIZE];
     gpuKeyval.serialize(keyvalPayload);
@@ -514,19 +520,19 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     return ktxBuffer;
 }
 
-TexturePointer Texture::build(const ktx::KTXDescriptor& descriptor) {
+std::pair<TexturePointer, glm::ivec2> Texture::build(const ktx::KTXDescriptor& descriptor) {
     Format mipFormat = Format::COLOR_BGRA_32;
     Format texelFormat = Format::COLOR_SRGBA_32;
     const auto& header = descriptor.header;
 
     if (!Texture::evalTextureFormat(header, mipFormat, texelFormat)) {
-        return nullptr;
+        return { nullptr, { 0, 0 } };
     }
 
     // Find Texture Type based on dimensions
     Type type = TEX_1D;
     if (header.pixelWidth == 0) {
-        return nullptr;
+        return { nullptr, { 0, 0 } };
     } else if (header.pixelHeight == 0) {
         type = TEX_1D;
     } else if (header.pixelDepth == 0) {
@@ -569,39 +575,39 @@ TexturePointer Texture::build(const ktx::KTXDescriptor& descriptor) {
         texture->overrideIrradiance(std::make_shared<SphericalHarmonics>(irradianceKtxKeyValue._irradianceSH));
     }
 
-    return texture;
+    return { texture, gpuktxKeyValue._originalSize };
 }
 
-TexturePointer Texture::unserialize(const cache::FilePointer& cacheEntry, const std::string& source) {
+std::pair<TexturePointer, glm::ivec2> Texture::unserialize(const cache::FilePointer& cacheEntry, const std::string& source) {
     std::unique_ptr<ktx::KTX> ktxPointer = ktx::KTX::create(std::make_shared<storage::FileStorage>(cacheEntry->getFilepath().c_str()));
     if (!ktxPointer) {
-        return nullptr;
+        return { nullptr, { 0, 0 } };
     }
 
-    auto texture = build(ktxPointer->toDescriptor());
-    if (texture) {
-        texture->setKtxBacking(cacheEntry);
-        if (texture->source().empty()) {
-            texture->setSource(source);
+    auto textureAndSize = build(ktxPointer->toDescriptor());
+    if (textureAndSize.first) {
+        textureAndSize.first->setKtxBacking(cacheEntry);
+        if (textureAndSize.first->source().empty()) {
+            textureAndSize.first->setSource(source);
         }
     }
 
-    return texture;
+    return { textureAndSize.first, textureAndSize.second };
 }
 
-TexturePointer Texture::unserialize(const std::string& ktxfile) {
+std::pair<TexturePointer, glm::ivec2> Texture::unserialize(const std::string& ktxfile) {
     std::unique_ptr<ktx::KTX> ktxPointer = ktx::KTX::create(std::make_shared<storage::FileStorage>(ktxfile.c_str()));
     if (!ktxPointer) {
-        return nullptr;
+        return { nullptr, { 0, 0 } };
     }
 
-    auto texture = build(ktxPointer->toDescriptor());
-    if (texture) {
-        texture->setKtxBacking(ktxfile);
-        texture->setSource(ktxfile);
+    auto textureAndSize = build(ktxPointer->toDescriptor());
+    if (textureAndSize.first) {
+        textureAndSize.first->setKtxBacking(ktxfile);
+        textureAndSize.first->setSource(ktxfile);
     }
 
-    return texture;
+    return { textureAndSize.first, textureAndSize.second };
 }
 
 bool Texture::evalKTXFormat(const Element& mipFormat, const Element& texelFormat, ktx::Header& header) {

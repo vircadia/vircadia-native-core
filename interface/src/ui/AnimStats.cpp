@@ -67,13 +67,13 @@ void AnimStats::updateStats(bool force) {
 
     // print if we are recentering or not.
     _recenterText = "Recenter: ";
-    if (myAvatar->isFollowActive(MyAvatar::FollowHelper::Rotation)) {
+    if (myAvatar->isFollowActive(CharacterController::FollowType::Rotation)) {
         _recenterText += "Rotation ";
     }
-    if (myAvatar->isFollowActive(MyAvatar::FollowHelper::Horizontal)) {
+    if (myAvatar->isFollowActive(CharacterController::FollowType::Horizontal)) {
         _recenterText += "Horizontal ";
     }
-    if (myAvatar->isFollowActive(MyAvatar::FollowHelper::Vertical)) {
+    if (myAvatar->isFollowActive(CharacterController::FollowType::Vertical)) {
         _recenterText += "Vertical ";
     }
     emit recenterTextChanged();

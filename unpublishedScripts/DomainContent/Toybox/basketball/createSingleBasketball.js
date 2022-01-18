@@ -10,8 +10,8 @@
 //
 
 
-var basketballURL ="http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball2.fbx";
-var collisionSoundURL ="http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball.wav";
+var basketballURL ="https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/basketball/basketball2.fbx";
+var collisionSoundURL ="https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/basketball/basketball.wav";
 
 
 var basketball = null;

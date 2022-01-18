@@ -194,7 +194,7 @@ void DrawItemSelection::run(const RenderContextPointer& renderContext, const Ite
             render::ItemBounds itemBounds;
             for (const auto& itemID : itemIDs) {
                 auto& item = scene->getItem(itemID);
-                auto itemBound = item.getBound();
+                auto itemBound = item.getBound(args);
                 if (!itemBound.isInvalid()) {
                     itemBounds.emplace_back(itemID, itemBound);
                 }

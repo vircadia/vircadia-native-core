@@ -40,6 +40,8 @@ $(document).ready(function(){
 
       // call our method to setup the place names table
       setupPlacesTable();
+      // hide the places table for now because we do not want that interacted with from the domain-server
+      $('#' + Settings.PLACES_TABLE_ID).hide();
 
       setupDomainNetworkingSettings();
       // setupDomainLabelSetting();
@@ -363,7 +365,7 @@ $(document).ready(function(){
       confirmButtonText: "Create",
       closeOnConfirm: false,
       html: true
-    }, function(inputValue){
+    }, function (inputValue) {
       if (inputValue === false) {
         swal.close();
 
@@ -373,7 +375,7 @@ $(document).ready(function(){
         }
       } else {
         // we're going to change the alert to a new one with a spinner while we create this domain
-        showSpinnerAlert('Creating domain ID');
+        // showSpinnerAlert('Creating domain ID');
         createNewDomainID(inputValue, justConnected);
       }
     });
@@ -385,7 +387,12 @@ $(document).ready(function(){
       "label": label
     }
 
-    $.post("/api/domains", domainJSON, function(data){
+    $.post("/api/domains", domainJSON, function(data) {
+      if (data.status === "failure") {
+        failedToCreateDomainID(data, justConnected);
+        return;
+      }
+
       // we successfully created a domain ID, set it on that field
       var domainID = data.domain.domainId;
       console.log("Setting domain id to ", data, domainID);
@@ -406,40 +413,50 @@ $(document).ready(function(){
         text: successText,
         html: true,
         confirmButtonText: 'Save'
-      }, function(){
+      }, function () {
         saveSettings();
       });
-    }, 'json').fail(function(){
+    }, 'json').fail(function (data) {
+      failedToCreateDomainID(data, justConnected);
+    });
+  }
+  
+  function failedToCreateDomainID(data, justConnected) {
+    var errorText = "There was a problem creating your new domain ID. Do you want to try again or";
 
-      var errorText = "There was a problem creating your new domain ID. Do you want to try again or";
+    if (data && data.status === "failure") {
+      errorText = "Error: " + data.error + "</br>Do you want to try again or";
+      console.log("Error: " + data.error);
+    } else {
+      console.log("Error: Failed to post to metaverse.");
+    }
 
-      if (justConnected) {
-        errorText += " just save your new access token?</br></br>You can always create a new domain ID later.";
+    if (justConnected) {
+      errorText += " just save your new access token?</br></br>You can always create a new domain ID later.";
+    } else {
+      errorText += " cancel?"
+    }
+
+    // we failed to create the new domain ID, show a sweet-alert that lets them try again or cancel
+    swal({
+      title: '',
+      type: 'error',
+      text: errorText,
+      html: true,
+      confirmButtonText: 'Try again',
+      showCancelButton: true,
+      closeOnConfirm: false
+    }, function (isConfirm) {
+      if (isConfirm) {
+        // they want to try creating a domain ID again
+        showDomainCreationAlert(justConnected);
       } else {
-        errorText += " cancel?"
-      }
-
-      // we failed to create the new domain ID, show a sweet-alert that lets them try again or cancel
-      swal({
-        title: '',
-        type: 'error',
-        text: errorText,
-        html: true,
-        confirmButtonText: 'Try again',
-        showCancelButton: true,
-        closeOnConfirm: false
-      }, function(isConfirm){
-        if (isConfirm) {
-          // they want to try creating a domain ID again
-          showDomainCreationAlert(justConnected);
-        } else {
-          // they want to cancel
-          if (justConnected) {
-            // since they just connected we need to save the access token here
-            saveSettings();
-          }
+        // they want to cancel
+        if (justConnected) {
+          // since they just connected we need to save the access token here
+          saveSettings();
         }
-      });
+      }
     });
   }
 
@@ -711,8 +728,8 @@ $(document).ready(function(){
       name: 'places',
       label: 'Places',
       html_id: Settings.PLACES_TABLE_ID,
-      help: "The following places currently point to this domain.</br>To point places to this domain, "
-        + " go to the <a href='" + METAVERSE_URL + "/user/places'>My Places</a> "
+      help: "To point places to this domain, "
+        + " go to the <a href='" + METAVERSE_URL + "/user/places'>Places</a> "
         + "page in your Metaverse account.",
       read_only: true,
       can_add_new_rows: false,
@@ -745,9 +762,10 @@ $(document).ready(function(){
     var errorEl = createDomainLoadingError("There was an error retrieving your places.");
     $("#" + Settings.PLACES_TABLE_ID).after(errorEl);
 
-    var temporaryPlaceButton = dynamicButton(Settings.GET_TEMPORARY_NAME_BTN_ID, 'Get a temporary place name');
-    temporaryPlaceButton.hide();
-    $('#' + Settings.PLACES_TABLE_ID).after(temporaryPlaceButton);
+    // DISABLE TEMP PLACE NAME BUTTON...
+    // var temporaryPlaceButton = dynamicButton(Settings.GET_TEMPORARY_NAME_BTN_ID, 'Get a temporary place name');
+    // temporaryPlaceButton.hide();
+    // $('#' + Settings.PLACES_TABLE_ID).after(temporaryPlaceButton);
     if (accessTokenIsSet()) {
       appendAddButtonToPlacesTable();
     }

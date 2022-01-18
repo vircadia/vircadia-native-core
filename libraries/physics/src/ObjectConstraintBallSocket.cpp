@@ -181,7 +181,7 @@ bool ObjectConstraintBallSocket::updateArguments(QVariantMap arguments) {
     return true;
 }
 
-/**jsdoc
+/*@jsdoc
  * The <code>"ball-socket"</code> {@link Entities.ActionType|ActionType} connects two entities with a ball and socket joint. 
  * It has arguments in addition to the common {@link Entities.ActionArguments|ActionArguments}:
  *

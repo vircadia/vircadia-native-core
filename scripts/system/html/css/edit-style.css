@@ -65,6 +65,14 @@
          url(../fonts/hifi-glyphs.ttf);
 }
 
+@font-face {
+    font-family: Vircadia-Glyphs;
+    src: url(../../../../resources/fonts/vircadia_glyphs.ttf),
+         url(../../../../fonts/vircadia_glyphs.ttf),
+         url(../../../../interface/resources/fonts/vircadia_glyphs.ttf),
+         url(../fonts/vircadia_glyphs.ttf);
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -101,7 +109,6 @@ table {
 thead {
     font-family: Raleway-Regular;
     font-size: 12px;
-    text-transform: uppercase;
     background-color: #1c1c1c;
     padding: 1px 0;
     border-bottom: 1px solid #575757;
@@ -173,6 +180,15 @@ tr.selected {
 }
 
 tr.selected + tr.selected {
+    border-top: 1px solid #2e2e2e;
+}
+
+tr.last-selected {
+    color: #000000;
+    background-color: #0064ef;
+}
+
+tr.last-selected + tr.last-selected {
     border-top: 1px solid #2e2e2e;
 }
 
@@ -388,7 +404,7 @@ input[type=button], button.hifi-edit-button {
     text-transform: uppercase;
     vertical-align: top;
     height: 28px;
-    min-width: 120px;
+    min-width: 70px;
     padding: 0 18px;
     margin-right: 6px;
     border-radius: 5px;
@@ -407,6 +423,21 @@ input[type=button].glyph, button.hifi-edit-button.glyph {
     padding: 0;
 }
 
+input[type=button].normal, button.hifi-edit-button.normal {
+    font-family: FiraSans-SemiBold;
+    font-size: 15px;
+    text-transform: none;
+    padding: 0;
+}
+
+input[type=button].vglyph, button.hifi-edit-button.vglyph {
+    font-family: Vircadia-Glyphs;
+    font-size: 20px;
+    text-transform: none;
+    min-width: 32px;
+    padding: 0;
+}
+
 input[type=button].red, button.hifi-edit-button.red {
     color: #fff;
     background-color: #94132e;
@@ -417,10 +448,36 @@ input[type=button].blue, button.hifi-edit-button.blue {
     background-color: #1080b8;
     background: linear-gradient(#00b4ef 20%, #1080b8 100%);
 }
+input[type=button].orange, button.hifi-edit-button.orange {
+    color: #fff;
+    background-color: #8f5100;
+    background: linear-gradient(#d97b00 20%, #8f5100 100%);
+}
+input[type=button].green, button.hifi-edit-button.green {
+    color: #fff;
+    background-color: #078a00;
+    background: linear-gradient(#00cc07 20%, #078a00 100%);
+}
 input[type=button].white, button.hifi-edit-button.white {
     color: #121212;
     background-color: #afafaf;
     background: linear-gradient(#fff 20%, #afafaf 100%);
+}
+input[type=button].secondary, button.hifi-edit-button.secondary {
+    font-family: Raleway-Bold;
+    font-size: 10px;
+    text-transform: uppercase;
+    vertical-align: top;
+    height: 18px;
+    min-width: 60px;
+    padding: 0 14px;
+    margin-right: 6px;
+    border-radius: 4px;
+    border: none;
+    color: #fff;
+    background-color: #000;
+    background: linear-gradient(#343434 20%, #000 100%);
+    cursor: pointer;
 }
 
 input[type=button]:enabled:hover, button.hifi-edit-button:enabled:hover {
@@ -433,6 +490,14 @@ input[type=button].red:enabled:hover, button.hifi-edit-button.red:enabled:hover 
 }
 input[type=button].blue:enabled:hover, button.hifi-edit-button.blue:enabled:hover {
     background: linear-gradient(#00b4ef, #00b4ef);
+    border: none;
+}
+input[type=button].orange:enabled:hover, button.hifi-edit-button.orange:enabled:hover {
+    background: linear-gradient(#d97b00, #d97b00);
+    border: none;
+}
+input[type=button].green:enabled:hover, button.hifi-edit-button.green:enabled:hover {
+    background: linear-gradient(#00cc07, #00cc07);
     border: none;
 }
 input[type=button].white:enabled:hover, button.hifi-edit-button.white:enabled:hover {
@@ -448,6 +513,12 @@ input[type=button].red:active, button.hifi-edit-button.red:active {
 }
 input[type=button].blue:active, button.hifi-edit-button.blue:active {
     background: linear-gradient(#1080b8, #1080b8);
+}
+input[type=button].orange:active, button.hifi-edit-button.orange:active {
+    background: linear-gradient(#8f5100, #8f5100);
+}
+input[type=button].green:active, button.hifi-edit-button.green:active {
+    background: linear-gradient(#078a00, #078a00);
 }
 input[type=button].white:active, button.hifi-edit-button.white:active {
     background: linear-gradient(#afafaf, #afafaf);
@@ -1153,7 +1224,7 @@ div.refresh input[type="button"] {
 }
 
 .fieldset .checkbox-sub-props .property:first-child {
-    margin-top: 0;
+    margin-top: 0px;
 }
 
 .column {
@@ -1196,20 +1267,19 @@ textarea:enabled[scrolling="true"]::-webkit-resizer {
     background: #2e2e2e url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACKSURBVChTjdAxDsMgDAXQT4UYuQIzCwsSKxsSJ4YDoByDY7AwUOG2aZMQqX+xhd9gzIwxA3/k8a7LCCFgraX+Fk4UY4RSCoyxNfwgzjlyzhhjXOEvSimhtUbvB3hGUkp472m2wxUKIaD3TnOCd6jWim3bvlBrfdjJOUeolEJoZj/4PMH83bl/BXgCWSs2Z09IjgoAAAAASUVORK5CYII=) no-repeat bottom right;
 }
 
-
 div#grid-section, body#entity-list-body {
-    padding-bottom: 0;
-    margin: 16px;
+    padding-bottom: 0px;
+    margin: 0px 8px 8px 8px;
 }
 
 #entity-list-header {
-    margin-bottom: 36px;
+    margin-bottom: 6px;
 }
 
 #entity-list-header div {
     display: inline-block;
     width: 65px;
-    margin-right: 6px;
+    margin-right: 4px;
 }
 
 #entity-list-header div input:first-child {
@@ -1239,7 +1309,7 @@ div#grid-section, body#entity-list-body {
 
 #filter-area {
     padding-right: 168px;
-    padding-bottom: 24px;
+    padding-bottom: 8px;
 }
 
 #filter-type-multiselect-box select {
@@ -1292,34 +1362,94 @@ div#grid-section, body#entity-list-body {
 #filter-type-options input[type=button]:enabled:hover {
     background: linear-gradient(#afafaf 20%, #575757 100%);
 }
-
 #filter-search-and-icon {
     position: relative;
     left: 118px;
     width: calc(100% - 126px);
 }
-
 #filter-in-view {
     position: absolute;
-    top: 0;
+    top: 0px;
     right: 126px;
 }
-
 #filter-radius-and-unit {
     position: relative;
     float: right;
     margin-right: -168px;
-    top: -45px;
+    top: -28px;
 }
-#filter-radius-and-unit label {
-    margin-left: 2px;
+#entity-list-menubar {
+    margin: 0px -8px 6px -8px;
+    padding: 0px 9px 0px 9px;
+    border: none;
+    background-color: #000;
+    background: linear-gradient(#343434 30%, #000 100%);
 }
-#filter-radius-and-unit span {
+input[type=button].entity-list-menutitle {
+    font-family: FiraSans-SemiBold;
+    font-size: 15px;
+    text-transform: none;
+    vertical-align: top;
+    height: 28px;
+    min-width: 30px;
+    padding: 0px 8px;
+    margin-right: 6px;
+    border-radius: 5px;
+    border: none;
+    color: #fff;
+    background-color: #000;
+    background: linear-gradient(#343434 30%, #000 100%);
+    cursor: pointer;
+}
+input[type=button].entity-list-menutitle:enabled:hover {
+    background: linear-gradient(#000, #000);
+    border: none;
+}
+input[type=button].entity-list-menutitle:active {
+    background: linear-gradient(#343434, #343434);
+}
+input[type=button].entity-list-menutitle:disabled {
+    color: #252525;
+    background: linear-gradient(#575757 30%, #252525 100%);
+}
+input[type=button].entity-list-menutitle[pressed=pressed] {
+    color: #00b4ef;
+}
+input[type=button].entity-list-menutitle:focus {
+  outline: none;
+  color: #000000;
+  background: linear-gradient(#c0c0c0, #c0c0c0);
+  border-radius: 5px 5px 0px 0px;
+}
+.icon-input-radius input {
     position: relative;
-    top: 25px;
+    padding-left: 36px;
+}
+.icon-input-radius span {
+    position: absolute;
+    left: 4px;
+    top: -4px;
+    font-family: Vircadia-Glyphs;
+    font-size: 23px;
+    color: #afafaf;
+}
+.icon-input-radius input:focus + span + label {
+    color: #ffffff;
+}
+.icon-input-radius label {
+    position: absolute;
+    margin-left: 3px;
+    bottom: 6px;
     right: 9px;
-    z-index: 2;
     font-style: italic;
+}
+#filter-radius:focus {
+    outline: none;
+    box-sizing: border-box;
+    height: 26px;
+    margin-top: 1px;
+    margin-bottom: 1px;
+    box-shadow: 0 0 0 1px #00b4ef;
 }
 #filter-radius-and-unit input {
     width: 120px;
@@ -1336,12 +1466,12 @@ div#grid-section, body#entity-list-body {
 
 #footer-text {
     float: right;
-    padding-top: 12px;
+    padding-top: 6px;
     padding-right: 22px;
 }
 
 input[type=button]#export {
-    height: 38px;
+    height: 26px;
     width: 180px;
 }
 
@@ -1393,7 +1523,7 @@ input[type=button]#export {
     overflow-x: hidden;
     overflow-y: auto;
     box-sizing: border-box;
-    padding-top: 28px; /* Space for header and footer outside of scroll region. */
+    padding-top: 37px; /* Space for header and footer outside of scroll region. */
     margin-top: 28px;
     border-left: 2px solid #575757;
     border-right: 2px solid #575757;
@@ -1408,8 +1538,13 @@ input[type=button]#export {
     font-size: 15px;
 }
 
+#entity-table-scroll .vglyph {
+    font-family: Vircadia-Glyphs;
+    font-size: 15px;
+}
+
 #entity-table {
-    margin-top: -28px;
+    margin-top: -20px;
     margin-bottom: -18px;
     table-layout: fixed;
     border: none;
@@ -1420,7 +1555,7 @@ input[type=button]#export {
     background: none;
 }
 
-#entity-table .glyph {
+#entity-table .glyph .vglyph {
     margin: 0 -2px 0 -2px;
     vertical-align: middle;
 }
@@ -1453,11 +1588,11 @@ input[type=button]#export {
     outline: none;
 }
 
-#entity-table th .glyph {
+#entity-table th .glyph .vglyph {
     position: relative;
     left: 4px;
 }
-#entity-table th .glyph + .sort-order {
+#entity-table th .glyph .vglyph + .sort-order {
     position: relative;
     left: 4px;
 }
@@ -1484,9 +1619,9 @@ input[type=button]#export {
 #entity-table td {
     box-sizing: border-box;
 }
-#entity-table td.glyph {
+#entity-table td .glyph .vglyph {
     text-align: center;
-    padding: 0;
+    padding: 0px;
 }
 
 #properties-base {
@@ -1820,3 +1955,130 @@ div.multiZoneSelToolbar {
     padding: 0px;
 }
 
+div.zoneSelectorListPanel {
+    position: absolute;
+    display: none;
+    width: 100%;
+    height: 100%;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    border-width: 0px;
+    background-color: #666666;
+    color: #dddddd;
+    padding: 0% 2% 0% 2%;
+    z-index: 2;
+    cursor: pointer;
+}
+
+div.zoneSelectListHeader {
+    position: static;
+    width: 96%;
+    height: 6%;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;    
+    padding-top: 4px;
+    cursor: pointer;
+    border-width: 0px;    
+}
+
+div.zoneSelectList {
+    position: static;
+    width: 96%;
+    height: 86%;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;    
+    border-width: 0px;
+    background-color: #c0c0c0;
+    overflow-y: auto;
+    padding: 0px;
+    cursor: pointer;
+}
+
+div.zoneSelectListFooter {
+    position: static;
+    width: 96%;
+    height: auto;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;    
+    padding: 2px;
+    cursor: pointer;
+    border-width: 0px;
+    text-align: right;
+}
+
+#menuBackgroundOverlay{
+    background-color:transparent;
+    position:fixed;
+    width: 100%;
+    height: 100%;
+    top:0;
+    left:0;
+    right:0;
+    bottom:0;
+    display:none;
+}
+
+div.entity-list-menu {
+    position: fixed;
+    display: none;
+    width: 370px;
+    height: 30px;
+    top: 27px;
+    left: 8px;
+    right: 0;
+    bottom: 0;
+    border-style: solid;
+    border-color: #505050;
+    border-width: 1px;
+    background-color: #c0c0c0;
+    z-index: 2;
+    cursor: pointer;
+}
+
+div.menu-separator{
+    width: 100%;
+    height: 2px;
+    background-color: #505050;
+    }
+
+button.menu-button {
+    font-family: FiraSans-SemiBold;
+    font-size: 15px;
+    width: 100%;
+    height: auto;
+    border-radius: 0;
+    padding: 6px;
+    text-align: left;
+    background-color: #c0c0c0;
+    border: none;
+}
+
+button.menu-button:hover {
+    background-color: #919191;
+    border: none;
+}
+
+button.menu-button:active {
+    background-color: #919191;
+    border: none;    
+}
+
+div.menu-item {
+    width: 100%;
+}
+
+div.menu-item-caption {
+    float: left;
+}
+
+div.menu-item-shortcut {
+    float: right;
+}

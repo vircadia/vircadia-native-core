@@ -17,8 +17,8 @@ orientation.x = 0;
 orientation = Quat.fromVec3Degrees(orientation);
 var center = Vec3.sum(MyAvatar.getHeadPosition(), Vec3.multiply(2, Quat.getForward(orientation)));
 
-var CLUB_MODEL = "http://hifi-production.s3.amazonaws.com/tutorials/golfClub/putter_VR.fbx";
-var CLUB_COLLISION_HULL = "http://hifi-production.s3.amazonaws.com/tutorials/golfClub/club_collision_hull.obj";
+var CLUB_MODEL = "https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/golfClub/putter_VR.fbx";
+var CLUB_COLLISION_HULL = "https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/golfClub/club_collision_hull.obj";
 
 var CLUB_DIMENSIONS = {
     "x": 0.043093059211969376,
@@ -34,7 +34,7 @@ var CLUB_ROTATION = {
 };
 
 
-var SCRIPT_URL = "http://hifi-production.s3.amazonaws.com/tutorials/entity_scripts/golfClub.js";
+var SCRIPT_URL = "https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/entity_scripts/golfClub.js";
 var golfClubProperties = {
     position: center,
     lifetime: 3600,

@@ -41,8 +41,8 @@
         createBasketballs: function() {
             var NUMBER_OF_BALLS = 4;
             var DIAMETER = 0.30;
-            var basketballURL ="http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball2.fbx";
-            var basketballCollisionSoundURL ="http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball.wav";
+            var basketballURL ="https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/basketball/basketball2.fbx";
+            var basketballCollisionSoundURL ="https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/basketball/basketball.wav";
 
             var position = {
                 x: 542.86,

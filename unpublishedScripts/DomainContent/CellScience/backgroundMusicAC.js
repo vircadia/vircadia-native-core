@@ -1,6 +1,6 @@
 var soundMap = [{
         name: 'Cells',
-        url: "http://hifi-production.s3.amazonaws.com/DomainContent/CellScience/Audio/Cells.wav",
+        url: "https://cdn-1.vircadia.com/us-e-1/DomainContent/CellScience/Audio/Cells.wav",
         audioOptions: {
             position: {
                 x: 15850,
@@ -12,7 +12,7 @@ var soundMap = [{
         }
     }, {
         name: 'Cell Layout',
-        url: "http://hifi-production.s3.amazonaws.com/DomainContent/CellScience/Audio/CellLayout.wav",
+        url: "https://cdn-1.vircadia.com/us-e-1/DomainContent/CellScience/Audio/CellLayout.wav",
         audioOptions: {
             position: {
                 x: 15950,
@@ -24,7 +24,7 @@ var soundMap = [{
         }
     }, {
         name: 'Ribsome',
-        url: "http://hifi-production.s3.amazonaws.com/DomainContent/CellScience/Audio/Ribosome.wav",
+        url: "https://cdn-1.vircadia.com/us-e-1/DomainContent/CellScience/Audio/Ribosome.wav",
         audioOptions: {
             position: {
                 x: 15650,
@@ -36,7 +36,7 @@ var soundMap = [{
         }
     }, {
         name: 'Hexokinase',
-        url: "http://hifi-production.s3.amazonaws.com/DomainContent/CellScience/Audio/Hexokinase.wav",
+        url: "https://cdn-1.vircadia.com/us-e-1/DomainContent/CellScience/Audio/Hexokinase.wav",
         audioOptions: {
             position: {
                 x: 15750,

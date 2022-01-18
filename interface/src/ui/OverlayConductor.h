@@ -22,7 +22,7 @@ public:
     void centerUI();
 
 private:
-    bool headOutsideOverlay() const;
+    bool headNotCenteredInOverlay() const;
     bool updateAvatarIsAtRest();
 
 #if !defined(DISABLE_QML)

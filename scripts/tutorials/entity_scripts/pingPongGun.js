@@ -12,7 +12,7 @@
 (function() {
     var _this = this;
 
-    var SHOOTING_SOUND_URL = 'http://hifi-production.s3.amazonaws.com/tutorials/pingPongGun/pong_sound.wav';
+    var SHOOTING_SOUND_URL = 'https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/pingPongGun/pong_sound.wav';
 
     function PingPongGun() {
         return;

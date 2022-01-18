@@ -20,7 +20,7 @@
         hasBecomeActive: false,
         preload: function(entityID) {
             this.entityID = entityID;
-            var SOUND_URL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/ping_pong_gun/Clay_Pigeon_02.L.wav";
+            var SOUND_URL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/ping_pong_gun/Clay_Pigeon_02.L.wav";
             this.hitSound = SoundCache.getSound(SOUND_URL);
         },
         collisionWithEntity: function(me, otherEntity) {

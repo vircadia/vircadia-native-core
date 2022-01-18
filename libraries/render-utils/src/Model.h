@@ -38,6 +38,7 @@
 #include "TextureCache.h"
 #include "Rig.h"
 #include "PrimitiveMode.h"
+#include "BillboardMode.h"
 
 // Use dual quaternion skinning!
 // Must match define in Skinning.slh
@@ -116,14 +117,17 @@ public:
     void setHifiRenderLayer(render::hifi::Layer layer, const render::ScenePointer& scene = nullptr);
 
     bool isCauterized() const { return _cauterized; }
-    void setCauterized(bool value, const render::ScenePointer& scene);
+    void setCauterized(bool value, const render::ScenePointer& scene = nullptr);
 
-    void setPrimitiveMode(PrimitiveMode primitiveMode);
+    void setPrimitiveMode(PrimitiveMode primitiveMode, const render::ScenePointer& scene = nullptr);
     PrimitiveMode getPrimitiveMode() const { return _primitiveMode; }
 
-    void setCullWithParent(bool value);
+    void setBillboardMode(BillboardMode billboardMode, const render::ScenePointer& scene = nullptr);
+    BillboardMode getBillboardMode() const { return _billboardMode; }
 
-    void setRenderWithZones(const QVector<QUuid>& renderWithZones);
+    void setCullWithParent(bool value, const render::ScenePointer& scene = nullptr);
+
+    void setRenderWithZones(const QVector<QUuid>& renderWithZones, const render::ScenePointer& scene = nullptr);
     const QVector<QUuid>& getRenderWithZones() const { return _renderWithZones; }
 
     // Access the current RenderItemKey Global Flags used by the model and applied to the render items  representing the parts of the model.
@@ -167,6 +171,7 @@ public:
 
     void setSnapModelToRegistrationPoint(bool snapModelToRegistrationPoint, const glm::vec3& registrationPoint);
     bool getSnapModelToRegistrationPoint() { return _snapModelToRegistrationPoint; }
+    bool getSnappedToRegistrationPoint() { return _snappedToRegistrationPoint; }
 
     virtual void simulate(float deltaTime, bool fullUpdate = true);
     virtual void updateClusterMatrices();
@@ -183,10 +188,7 @@ public:
     const HFMModel& getHFMModel() const { assert(isLoaded()); return _renderGeometry->getHFMModel(); }
     const MaterialMapping& getMaterialMapping() const { assert(isLoaded()); return _renderGeometry->getMaterialMapping(); }
 
-    bool isActive() const { return isLoaded(); }
-
     bool didVisualGeometryRequestFail() const { return _visualGeometryRequestFailed; }
-    bool didCollisionGeometryRequestFail() const { return _collisionGeometryRequestFailed; }
 
     glm::mat4 getWorldToHFMMatrix() const;
 
@@ -197,15 +199,16 @@ public:
     void setJointRotation(int index, bool valid, const glm::quat& rotation, float priority);
     void setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority);
 
-    bool findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-                                             BoxFace& face, glm::vec3& surfaceNormal,
+    bool findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& viewFrustumPos,
+                                             float& distance, BoxFace& face, glm::vec3& surfaceNormal,
                                              QVariantMap& extraInfo, bool pickAgainstTriangles = false, bool allowBackface = false);
     bool findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
-                                                  float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal,
+                                                  const glm::vec3& viewFrustumPos, float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal,
                                                   QVariantMap& extraInfo, bool pickAgainstTriangles = false, bool allowBackface = false);
 
     void setOffset(const glm::vec3& offset);
     const glm::vec3& getOffset() const { return _offset; }
+    glm::vec3 getOriginalOffset() const;
 
     void setScaleToFit(bool scaleToFit, float largestDimension = 0.0f, bool forceRescale = false);
     void setScaleToFit(bool scaleToFit, const glm::vec3& dimensions, bool forceRescale = false);
@@ -338,7 +341,6 @@ public:
 
     const MeshState& getMeshState(int index) { return _meshStates.at(index); }
 
-    uint32_t getGeometryCounter() const { return _deleteGeometryCounter; }
     const QMap<render::ItemID, render::PayloadPointer>& getRenderItems() const { return _modelMeshRenderItemsMap; }
     BlendShapeOperator getModelBlendshapeOperator() const { return _modelBlendshapeOperator; }
 
@@ -352,6 +354,7 @@ public:
     virtual bool replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer model, int meshIndex, int partIndex) override;
 
     void scaleToFit();
+    void snapToRegistrationPoint();
     bool getUseDualQuaternionSkinning() const { return _useDualQuaternionSkinning; }
     void setUseDualQuaternionSkinning(bool value);
 
@@ -413,14 +416,14 @@ protected:
 
     bool _snapModelToRegistrationPoint; /// is the model's offset automatically adjusted to a registration point in model space
     bool _snappedToRegistrationPoint; /// are we currently snapped to a registration point
-    glm::vec3 _registrationPoint = glm::vec3(0.5f); /// the point in model space our center is snapped to
+    glm::vec3 _registrationPoint { glm::vec3(0.5f) }; /// the point in model space our center is snapped to
+    bool _forceOffset { false };
 
     std::vector<MeshState> _meshStates;
 
     virtual void initJointStates();
 
     void setScaleInternal(const glm::vec3& scale);
-    void snapToRegistrationPoint();
 
     virtual void updateRig(float deltaTime, glm::mat4 parentTransform);
 
@@ -451,6 +454,7 @@ protected:
     virtual void createRenderItemSet();
 
     PrimitiveMode _primitiveMode { PrimitiveMode::SOLID };
+    BillboardMode _billboardMode { BillboardMode::NONE };
     bool _useDualQuaternionSkinning { false };
 
     // debug rendering support
@@ -474,10 +478,7 @@ protected:
     friend class ModelMeshPartPayload;
     Rig _rig;
 
-    uint32_t _deleteGeometryCounter { 0 };
-
     bool _visualGeometryRequestFailed { false };
-    bool _collisionGeometryRequestFailed { false };
 
     bool _renderItemsNeedUpdate { false };
 

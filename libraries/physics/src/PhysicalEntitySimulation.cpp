@@ -425,12 +425,12 @@ void PhysicalEntitySimulation::buildPhysicsTransaction(PhysicsEngine::Transactio
             continue;
         }
 
-        bool needsNewShape = object->needsNewShape();
+        bool needsNewShape = object->needsNewShape() && object->_entity->isReadyToComputeShape();
         if (needsNewShape) {
             ShapeType shapeType = object->getShapeType();
             if (shapeType == SHAPE_TYPE_STATIC_MESH) {
                 ShapeRequest shapeRequest(object->_entity);
-                ShapeRequests::iterator  requestItr = _shapeRequests.find(shapeRequest);
+                ShapeRequests::iterator requestItr = _shapeRequests.find(shapeRequest);
                 if (requestItr == _shapeRequests.end()) {
                     ShapeInfo shapeInfo;
                     object->_entity->computeShapeInfo(shapeInfo);

@@ -29,236 +29,110 @@ ShapeEntityRenderer::ShapeEntityRenderer(const EntityItemPointer& entity) : Pare
 }
 
 bool ShapeEntityRenderer::needsRenderUpdate() const {
-    if (resultWithReadLock<bool>([&] {
-        auto mat = _materials.find("0");
-        if (mat != _materials.end() && mat->second.top().material && mat->second.top().material->isProcedural() &&
-            mat->second.top().material->isReady()) {
-            auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(mat->second.top().material);
-            if (procedural->isFading()) {
-                return true;
-            }
-        }
-
-        if (mat != _materials.end() && mat->second.shouldUpdate()) {
-            return true;
-        }
-
-        return false;
-    })) {
-        return true;
-    }
-
-    return Parent::needsRenderUpdate();
-}
-
-bool ShapeEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
-    if (_dimensions != entity->getScaledDimensions()) {
-        return true;
-    }
-
-    if (_proceduralData != entity->getUserData()) {
-        return true;
-    }
-
-    return false;
+    return needsRenderUpdateFromMaterials() || Parent::needsRenderUpdate();
 }
 
 void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
-    withWriteLock([&] {
-        _shape = entity->getShape();
-        _pulseProperties = entity->getPulseProperties();
-    });
-
     void* key = (void*)this;
     AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity] {
         withWriteLock([&] {
-            _position = entity->getWorldPosition();
-            _dimensions = entity->getUnscaledDimensions(); // get unscaled to avoid scaling twice
-            _orientation = entity->getWorldOrientation();
+            _shape = entity->getShape();
             _renderTransform = getModelTransform(); // contains parent scale, if this entity scales with its parent
             if (_shape == entity::Sphere) {
                 _renderTransform.postScale(SPHERE_ENTITY_SCALE);
             }
 
-            _renderTransform.postScale(_dimensions);
+            _renderTransform.postScale(entity->getUnscaledDimensions());
         });
     });
 }
 
 void ShapeEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
-    withReadLock([&] {
-        auto mat = _materials.find("0");
-        if (mat != _materials.end() && mat->second.top().material && mat->second.top().material->isProcedural() && mat->second.top().material->isReady()) {
-            auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(mat->second.top().material);
-            if (procedural->isFading()) {
-                procedural->setIsFading(Interpolate::calculateFadeRatio(procedural->getFadeStartTime()) < 1.0f);
-            }
-        }
-    });
+    _pulseProperties = entity->getPulseProperties();
 
-    withWriteLock([&] {
-        bool materialChanged = false;
-        glm::vec3 color = toGlm(entity->getColor());
-        if (_color != color) {
-            _color = color;
-            _material->setAlbedo(color);
-            materialChanged = true;
-        }
+    bool materialChanged = false;
+    glm::vec3 color = toGlm(entity->getColor());
+    if (_color != color) {
+        _color = color;
+        _material->setAlbedo(color);
+        materialChanged = true;
+    }
 
-        float alpha = entity->getAlpha();
-        if (_alpha != alpha) {
-            _alpha = alpha;
-            _material->setOpacity(alpha);
-            materialChanged = true;
-        }
+    float alpha = entity->getAlpha();
+    if (_alpha != alpha) {
+        _alpha = alpha;
+        _material->setOpacity(alpha);
+        materialChanged = true;
+    }
 
-        auto userData = entity->getUserData();
-        if (_proceduralData != userData) {
-            _proceduralData = userData;
-            _material->setProceduralData(_proceduralData);
-            materialChanged = true;
-        }
+    auto userData = entity->getUserData();
+    if (_proceduralData != userData) {
+        _proceduralData = userData;
+        _material->setProceduralData(_proceduralData);
+        materialChanged = true;
+    }
 
-        auto materials = _materials.find("0");
-        if (materials != _materials.end()) {
-            if (materialChanged) {
-                materials->second.setNeedsUpdate(true);
-            }
-
-            if (materials->second.shouldUpdate()) {
-                RenderPipelines::updateMultiMaterial(materials->second);
-                emit requestRenderUpdate();
-            }
-        }
-    });
+    updateMaterials(materialChanged);
 }
 
 bool ShapeEntityRenderer::isTransparent() const {
-    if (_pulseProperties.getAlphaMode() != PulseMode::NONE) {
-        return true;
-    }
-
-    auto mat = _materials.find("0");
-    if (mat != _materials.end() && mat->second.top().material) {
-        if (mat->second.top().material->isProcedural() && mat->second.top().material->isReady()) {
-            auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(mat->second.top().material);
-            if (procedural->isFading()) {
-                return true;
-            }
-        }
-
-        if (mat->second.getMaterialKey().isTranslucent()) {
-            return true;
-        }
-    }
-
-    return Parent::isTransparent();
+    return _pulseProperties.getAlphaMode() != PulseMode::NONE || Parent::isTransparent() || materialsTransparent();
 }
 
-ShapeEntityRenderer::Pipeline ShapeEntityRenderer::getPipelineType(const graphics::MultiMaterial& materials) const {
-    if (materials.top().material && materials.top().material->isProcedural() && materials.top().material->isReady()) {
-        return Pipeline::PROCEDURAL;
-    }
-
-    graphics::MaterialKey drawMaterialKey = materials.getMaterialKey();
-    if (drawMaterialKey.isEmissive() || drawMaterialKey.isUnlit() || drawMaterialKey.isMetallic() || drawMaterialKey.isScattering()) {
-        return Pipeline::MATERIAL;
-    }
-
-    // If the material is using any map, we need to use a material ShapeKey
-    for (int i = 0; i < graphics::Material::MapChannel::NUM_MAP_CHANNELS; i++) {
-        if (drawMaterialKey.isMapChannel(graphics::Material::MapChannel(i))) {
-            return Pipeline::MATERIAL;
-        }
-    }
-    return Pipeline::SIMPLE;
+Item::Bound ShapeEntityRenderer::getBound(RenderArgs* args) {
+    return Parent::getMaterialBound(args);
 }
 
 ShapeKey ShapeEntityRenderer::getShapeKey() {
     ShapeKey::Builder builder;
-    auto mat = _materials.find("0");
-    if (mat != _materials.end() && mat->second.shouldUpdate()) {
-        RenderPipelines::updateMultiMaterial(mat->second);
-    }
-
-    if (isTransparent()) {
-        builder.withTranslucent();
-    }
-
-    if (_primitiveMode == PrimitiveMode::LINES) {
-        builder.withWireframe();
-    }
-
-    auto pipelineType = getPipelineType(mat->second);
-    if (pipelineType == Pipeline::MATERIAL) {
-        builder.withMaterial();
-
-        graphics::MaterialKey drawMaterialKey = mat->second.getMaterialKey();
-        if (drawMaterialKey.isNormalMap()) {
-            builder.withTangents();
-        }
-        if (drawMaterialKey.isLightMap()) {
-            builder.withLightMap();
-        }
-        if (drawMaterialKey.isUnlit()) {
-            builder.withUnlit();
-        }
-        builder.withCullFaceMode(mat->second.getCullFaceMode());
-    } else if (pipelineType == Pipeline::PROCEDURAL) {
-        builder.withOwnPipeline();
-    }
-
+    updateShapeKeyBuilderFromMaterials(builder);
     return builder.build();
-}
-
-Item::Bound ShapeEntityRenderer::getBound() {
-    auto mat = _materials.find("0");
-    if (mat != _materials.end() && mat->second.top().material && mat->second.top().material->isProcedural() &&
-        mat->second.top().material->isReady()) {
-        auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(mat->second.top().material);
-        if (procedural->hasVertexShader() && procedural->hasBoundOperator()) {
-           return procedural->getBound();
-        }
-    }
-    return Parent::getBound();
 }
 
 void ShapeEntityRenderer::doRender(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableShapeEntityItem::render");
     Q_ASSERT(args->_batch);
 
-    gpu::Batch& batch = *args->_batch;
-
     graphics::MultiMaterial materials;
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-    GeometryCache::Shape geometryShape;
-    PrimitiveMode primitiveMode;
-    RenderLayer renderLayer;
-    glm::vec4 outColor;
-    Pipeline pipelineType;
-    withReadLock([&] {
-        geometryShape = geometryCache->getShapeForEntityShape(_shape);
-        primitiveMode = _primitiveMode;
-        renderLayer = _renderLayer;
-        batch.setModelTransform(_renderTransform); // use a transform with scale, rotation, registration point and translation
+    {
+        std::lock_guard<std::mutex> lock(_materialsLock);
         materials = _materials["0"];
-        pipelineType = getPipelineType(materials);
-        auto& schema = materials.getSchemaBuffer().get<graphics::MultiMaterial::Schema>();
-        outColor = glm::vec4(ColorUtils::tosRGBVec3(schema._albedo), schema._opacity);
-        outColor = EntityRenderer::calculatePulseColor(outColor, _pulseProperties, _created);
-    });
+    }
+
+    auto& schema = materials.getSchemaBuffer().get<graphics::MultiMaterial::Schema>();
+    glm::vec4 outColor = glm::vec4(ColorUtils::tosRGBVec3(schema._albedo), schema._opacity);
+    outColor = EntityRenderer::calculatePulseColor(outColor, _pulseProperties, _created);
 
     if (outColor.a == 0.0f) {
         return;
     }
 
+    gpu::Batch& batch = *args->_batch;
+
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    GeometryCache::Shape geometryShape = geometryCache->getShapeForEntityShape(_shape);
+    Transform transform;
+    withReadLock([&] {
+        transform = _renderTransform;
+    });
+
+    bool wireframe = render::ShapeKey(args->_globalShapeKey).isWireframe() || _primitiveMode == PrimitiveMode::LINES;
+
+    transform.setRotation(BillboardModeHelpers::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
+        args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition(),
+        _shape < entity::Shape::Cube || _shape > entity::Shape::Icosahedron));
+    batch.setModelTransform(transform);
+
+    Pipeline pipelineType = getPipelineType(materials);
     if (pipelineType == Pipeline::PROCEDURAL) {
         auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(materials.top().material);
         outColor = procedural->getColor(outColor);
         outColor.a *= procedural->isFading() ? Interpolate::calculateFadeRatio(procedural->getFadeStartTime()) : 1.0f;
-        procedural->prepare(batch, _position, _dimensions, _orientation, _created, ProceduralProgramKey(outColor.a < 1.0f));
+        withReadLock([&] {
+            procedural->prepare(batch, transform.getTranslation(), transform.getScale(), transform.getRotation(), _created, ProceduralProgramKey(outColor.a < 1.0f));
+        });
 
-        if (render::ShapeKey(args->_globalShapeKey).isWireframe() || primitiveMode == PrimitiveMode::LINES) {
+        if (wireframe) {
             geometryCache->renderWireShape(batch, geometryShape, outColor);
         } else {
             geometryCache->renderShape(batch, geometryShape, outColor);
@@ -266,12 +140,21 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
     } else if (pipelineType == Pipeline::SIMPLE) {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
         outColor.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
-        render::ShapePipelinePointer pipeline = geometryCache->getShapePipelinePointer(outColor.a < 1.0f, false,
-            renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD, materials.top().material->getCullFaceMode());
-        if (render::ShapeKey(args->_globalShapeKey).isWireframe() || primitiveMode == PrimitiveMode::LINES) {
-            geometryCache->renderWireShapeInstance(args, batch, geometryShape, outColor, pipeline);
+        bool forward = _renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD;
+        if (outColor.a >= 1.0f) {
+            render::ShapePipelinePointer pipeline = geometryCache->getShapePipelinePointer(false, wireframe || materials.top().material->isUnlit(),
+                forward, materials.top().material->getCullFaceMode());
+            if (wireframe) {
+                geometryCache->renderWireShapeInstance(args, batch, geometryShape, outColor, pipeline);
+            } else {
+                geometryCache->renderSolidShapeInstance(args, batch, geometryShape, outColor, pipeline);
+            }
         } else {
-            geometryCache->renderSolidShapeInstance(args, batch, geometryShape, outColor, pipeline);
+            if (wireframe) {
+                geometryCache->renderWireShape(batch, geometryShape, outColor);
+            } else {
+                geometryCache->renderShape(batch, geometryShape, outColor);
+            }
         }
     } else {
         if (RenderPipelines::bindMaterials(materials, batch, args->_renderMode, args->_enableTexturing)) {

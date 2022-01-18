@@ -1,4 +1,10 @@
-set(TARGET_NAME interface)
+if (APPLE)
+  # Make the OSX DMG app be Vircadia.app.
+  set(TARGET_NAME Vircadia)
+else()
+  set(TARGET_NAME interface)
+endif()
+
 project(${TARGET_NAME})
 
 file(GLOB_RECURSE QML_SRC resources/qml/*.qml resources/qml/*.js)
@@ -13,40 +19,41 @@ endfunction()
 
 set(CUSTOM_INTERFACE_QRC_PATHS "")
 
-find_npm()
+find_package(
+  Qt5 COMPONENTS
+  Gui Widgets Multimedia Network Qml Quick Script Svg
+  ${PLATFORM_QT_COMPONENTS}
+  WebChannel WebSockets
+)
 
-if (BUILD_TOOLS AND NPM_EXECUTABLE)
-  add_custom_qrc_path(CUSTOM_INTERFACE_QRC_PATHS "${CMAKE_SOURCE_DIR}/tools/jsdoc/out/hifiJSDoc.json" "auto-complete/hifiJSDoc.json")
+
+if (BUILD_TOOLS AND JSDOC_ENABLED)
+  message(STATUS "JSDoc enabled, depending on jsdoc")
+  add_custom_qrc_path(CUSTOM_INTERFACE_QRC_PATHS "${CMAKE_BINARY_DIR}/tools/jsdoc/out/hifiJSDoc.json" "auto-complete/hifiJSDoc.json")
 endif ()
 
 set(RESOURCES_QRC ${CMAKE_CURRENT_BINARY_DIR}/resources.qrc)
-set(RESOURCES_RCC ${CMAKE_CURRENT_SOURCE_DIR}/compiledResources/resources.rcc)
+set(RESOURCES_RCC ${CMAKE_CURRENT_BINARY_DIR}/resources.rcc)
 generate_qrc(OUTPUT ${RESOURCES_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources CUSTOM_PATHS ${CUSTOM_INTERFACE_QRC_PATHS} GLOBS *)
 
 if (ANDROID)
   # on Android, don't compress the rcc binary
-  add_custom_command(
-    OUTPUT ${RESOURCES_RCC}
-    DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
-    COMMAND "${QT_DIR}/bin/rcc"
-    ARGS ${RESOURCES_QRC} -no-compress -binary -o ${RESOURCES_RCC}
-  )
+  qt5_add_binary_resources(resources "${RESOURCES_QRC}" DESTINATION "${RESOURCES_RCC}" OPTIONS -no-compress)
 else ()
-  add_custom_command(
-    OUTPUT ${RESOURCES_RCC}
-    DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
-    COMMAND "${QT_DIR}/bin/rcc"
-    ARGS ${RESOURCES_QRC} -binary -o ${RESOURCES_RCC}
-  )
+  qt5_add_binary_resources(resources "${RESOURCES_QRC}" DESTINATION "${RESOURCES_RCC}")
+endif()
+
+if (BUILD_TOOLS AND JSDOC_ENABLED)
+  add_dependencies(resources jsdoc)
 endif()
 
 list(APPEND GENERATE_QRC_DEPENDS ${RESOURCES_RCC})
-add_custom_target(resources ALL DEPENDS ${GENERATE_QRC_DEPENDS})
 
 # set a default root dir for each of our optional externals if it was not passed
 set(OPTIONAL_EXTERNALS "LeapMotion")
 
 setup_memory_debugger()
+setup_thread_debugger()
 
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
@@ -88,13 +95,6 @@ else ()
   get_filename_component(SPEECHRECOGNIZER_CPP "src/SpeechRecognizer.cpp" ABSOLUTE)
   list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_CPP})
 endif ()
-
-find_package(
-  Qt5 COMPONENTS
-  Gui Widgets Multimedia Network Qml Quick Script Svg
-  ${PLATFORM_QT_COMPONENTS}
-  WebChannel WebSockets
-)
 
 # grab the ui files in resources/ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
@@ -184,16 +184,13 @@ else ()
   add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
 endif ()
 
-
-if (BUILD_TOOLS AND NPM_EXECUTABLE)
-  # require JSDoc to be build before interface is deployed
-  add_dependencies(resources jsdoc)
+if (NOT ANDROID)
+  add_dependencies(${TARGET_NAME} resources)
 endif()
 
-if (WIN32 OR APPLE)
-    add_dependencies(${TARGET_NAME} resources screenshare)
+if (SCREENSHARE)
+  add_dependencies(${TARGET_NAME} screenshare)
 endif()
-
 
 if (WIN32)
   # These are external plugins, but we need to do the 'add dependency' here so that their
@@ -218,7 +215,7 @@ endif()
 # link required hifi libraries
 link_hifi_libraries(
   shared workload task octree ktx gpu gl procedural graphics graphics-scripting render
-  pointers recording hfm fbx networking material-networking
+  pointers recording hfm model-serializers networking material-networking
   model-networking model-baker entities avatars
   audio audio-client animation script-engine physics
   render-utils entities-renderer avatars-renderer ui qml auto-updater midi
@@ -238,6 +235,8 @@ target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/libraries
 target_openssl()
 
 target_bullet()
+
+set(OpenGL_GL_PREFERENCE "LEGACY")
 target_opengl()
 add_crashpad()
 target_breakpad()
@@ -297,7 +296,7 @@ target_link_libraries(
   ${PLATFORM_QT_LIBRARIES}
 )
 
-if (UNIX AND NOT ANDROID)
+if (UNIX AND NOT ANDROID AND NOT VIRCADIA_THREAD_DEBUGGING)
     if (CMAKE_SYSTEM_NAME MATCHES "Linux")
         # Linux
         target_link_libraries(${TARGET_NAME} pthread atomic)
@@ -331,14 +330,6 @@ if (APPLE)
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${CMAKE_SOURCE_DIR}/scripts"
       "${RESOURCES_DEV_DIR}/scripts"
-    # copy screenshare app to the resource folder
-    COMMAND "${CMAKE_COMMAND}" -E copy_directory
-      "${CMAKE_CURRENT_BINARY_DIR}/../screenshare/hifi-screenshare-darwin-x64/hifi-screenshare.app"
-      "${RESOURCES_DEV_DIR}/hifi-screenshare.app"
-    # copy JSDoc files beside the executable
-    COMMAND "${CMAKE_COMMAND}" -E copy_directory
-      "${CMAKE_SOURCE_DIR}/tools/jsdoc/out"
-      "${RESOURCES_DEV_DIR}/jsdoc"
     # copy the resources files beside the executable
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
       "${RESOURCES_RCC}"
@@ -361,6 +352,22 @@ if (APPLE)
       "${RESOURCES_DEV_DIR}/serverless/redirect.json"
     )
 
+  if (SCREENSHARE)
+    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+      # copy screenshare app to the resource folder
+      COMMAND "${CMAKE_COMMAND}" -E copy_directory
+        "${CMAKE_CURRENT_BINARY_DIR}/../screenshare/hifi-screenshare-darwin-x64/hifi-screenshare.app"
+        "${RESOURCES_DEV_DIR}/hifi-screenshare.app"
+      )
+  endif()
+
+  if (JSDOC_ENABLED)
+    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+      # copy JSDoc files beside the executable
+      COMMAND "${CMAKE_COMMAND}" -E copy_directory
+      "${JSDOC_OUTPUT_PATH}"
+      "${RESOURCES_DEV_DIR}/jsdoc")
+  endif()
   # call the fixup_interface macro to add required bundling commands for installation
   fixup_interface()
 
@@ -370,9 +377,6 @@ else()
 
   # copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-      "${RESOURCES_RCC}"
-      "${INTERFACE_EXEC_DIR}"
     # FIXME, the edit script code loads HTML from the scripts folder
     # which in turn relies on CSS that refers to the fonts.  In theory
     # we should be able to modify the CSS to reference the QRC path to
@@ -390,11 +394,15 @@ else()
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
       "${PROJECT_SOURCE_DIR}/resources/serverless/redirect.json"
       "${RESOURCES_DEV_DIR}/serverless/redirect.json"
+  )
+
+  if (JSDOC_ENABLED)
+    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
     # copy JSDoc files beside the executable
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
-      "${CMAKE_SOURCE_DIR}/tools/jsdoc/out"
-      "${INTERFACE_EXEC_DIR}/jsdoc"
-  )
+      "${JSDOC_OUTPUT_PATH}"
+      "${INTERFACE_EXEC_DIR}/jsdoc")
+  endif()
 
   # link target to external libraries
   if (WIN32)
@@ -418,18 +426,20 @@ else()
   endif()
 endif()
 
-if (DEV_BUILD AND (APPLE OR UNIX))
-  # create a qt.conf file to override hard-coded search paths in Qt libs
-  set(QT_LIB_PATH "${QT_CMAKE_PREFIX_PATH}/../..")
-  if (APPLE)
-    set(QT_CONF_FILE "${RESOURCES_DEV_DIR}/../Resources/qt.conf")
-  else ()
-    set(QT_CONF_FILE "${INTERFACE_EXEC_DIR}/qt.conf")
-  endif ()
-  file(GENERATE
-    OUTPUT "${QT_CONF_FILE}"
-    CONTENT "[Paths]\nPrefix=${QT_LIB_PATH}\n"
-  )
+if ("$ENV{VIRCADIA_USE_SYSTEM_QT}" STREQUAL "")
+  if (DEV_BUILD AND (APPLE OR UNIX))
+    # create a qt.conf file to override hard-coded search paths in Qt libs
+    set(QT_LIB_PATH "${QT_CMAKE_PREFIX_PATH}/../..")
+    if (APPLE)
+      set(QT_CONF_FILE "${RESOURCES_DEV_DIR}/../Resources/qt.conf")
+    else ()
+      set(QT_CONF_FILE "${INTERFACE_EXEC_DIR}/qt.conf")
+    endif ()
+    file(GENERATE
+      OUTPUT "${QT_CONF_FILE}"
+      CONTENT "[Paths]\nPrefix=${QT_LIB_PATH}\n"
+    )
+  endif()
 endif()
 
 if (SCRIPTS_INSTALL_DIR)

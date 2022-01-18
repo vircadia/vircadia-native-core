@@ -244,7 +244,7 @@ Item {
             color: hifi.colors.darkGray;
             MouseArea {
                 anchors.fill: parent
-                enabled: selected && pal.activeTab == "nearbyTab" && thisNameCard.userName !== "" && isPresent;
+                enabled: selected && pal.activeTab == "nearbyTab" && isPresent;
                 hoverEnabled: enabled
                 onClicked: {
                     goToUserInDomain(thisNameCard.uuid);

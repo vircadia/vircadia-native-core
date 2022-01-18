@@ -123,10 +123,14 @@ AvatarHashMap::AvatarHashMap() {
     auto nodeList = DependencyManager::get<NodeList>();
 
     auto& packetReceiver = nodeList->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::BulkAvatarData, this, "processAvatarDataPacket");
-    packetReceiver.registerListener(PacketType::KillAvatar, this, "processKillAvatar");
-    packetReceiver.registerListener(PacketType::AvatarIdentity, this, "processAvatarIdentityPacket");
-    packetReceiver.registerListener(PacketType::BulkAvatarTraits, this, "processBulkAvatarTraits");
+    packetReceiver.registerListener(PacketType::BulkAvatarData,
+        PacketReceiver::makeSourcedListenerReference<AvatarHashMap>(this, &AvatarHashMap::processAvatarDataPacket));
+    packetReceiver.registerListener(PacketType::KillAvatar,
+        PacketReceiver::makeSourcedListenerReference<AvatarHashMap>(this, &AvatarHashMap::processKillAvatar));
+    packetReceiver.registerListener(PacketType::AvatarIdentity,
+        PacketReceiver::makeSourcedListenerReference<AvatarHashMap>(this, &AvatarHashMap::processAvatarIdentityPacket));
+    packetReceiver.registerListener(PacketType::BulkAvatarTraits,
+        PacketReceiver::makeSourcedListenerReference<AvatarHashMap>(this, &AvatarHashMap::processBulkAvatarTraits));
 
     connect(nodeList.data(), &NodeList::uuidChanged, this, &AvatarHashMap::sessionUUIDChanged);
 

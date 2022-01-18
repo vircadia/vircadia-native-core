@@ -50,12 +50,17 @@ $(document).ready(function(){
       prepareAccessTokenPrompt(function(accessToken) {
         Metaverse.accessToken = accessToken;
         saveAccessToken();
+        promptToCreateDomainID();
       });
     });
-
-    $('body').on('click', '#save-permissions', function() {
-      savePermissions();
-    });
+  
+  $('body').on('click', '#save-permissions', function() {
+    savePermissions();
+  });
+  
+  $('body').on('click', '#save-threading-settings', function() {
+    saveThreadingSettings();
+  });
 
     function triggerSaveUsernamePassword(event) {
         if (event.keyCode === 13) {
@@ -151,7 +156,7 @@ function setupWizardSteps() {
     $('#admin-description').html('Add more Metaverse usernames');
   } else {
     $('.cloud-only').remove();
-    $('#save-permissions').text("Finish");
+    $('#save-threading-settings').text("Finish");
 
     steps = $('.wizard-step');
     $(steps).each(function(i) {
@@ -165,6 +170,49 @@ function setupWizardSteps() {
 
   var currentStep = steps[currentStepNumber];
   $(currentStep).show();
+}
+
+function promptToCreateDomainID() {
+  setTimeout(function () {
+    createDomainIDPrompt(function (label) {
+      var domainJSON = {
+        "label": label
+      };
+
+      $.post("/api/domains", domainJSON, function (data) {
+        if (data.status === "failure") {
+          swal.showInputError("Error: " + data.error);
+          return;
+        }
+        
+        swal.close();
+
+        // we successfully created a domain ID, set it on that field
+        var domainID = data.domain.domainId;
+        console.log("Setting domain ID to ", data, domainID);
+
+        var formJSON = {
+          "metaverse": {
+            "automatic_networking": "full",
+            "id": domainID
+          },
+          "descriptors": {
+              "world_name": label
+          }
+        };
+
+        // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
+        postSettings(formJSON, goToNextStep);
+      }, 'json').fail(function (data) {
+        if (data && data.status === "failure") {
+          swal.showInputError("Error: " + data.error);
+        } else {
+          swal.showInputError("Error: Failed to post to metaverse.");
+        }
+        console.log("Failed to create domain ID...");
+      });
+    });
+  }, 500); // Apparently swal needs time before opening another prompt.
 }
 
 function updatePlaceNameLink(address) {
@@ -260,10 +308,6 @@ function goToNextStep() {
   var currentStep = $('body').find('.wizard-step:visible');
   var nextStep = currentStep.next('.wizard-step');
 
-  var formJSON = {
-    "wizard": {}
-  }
-
   if (nextStep.length > 0) {
     currentStep.hide();
     nextStep.show();
@@ -341,7 +385,7 @@ function saveAccessToken() {
   $(this).blur();
 
   // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
-  postSettings(formJSON, goToNextStep);
+  postSettings(formJSON);
 }
 
 function getSettingDescriptionForKey(groupKey, settingKey) {
@@ -421,6 +465,7 @@ function savePermissions() {
       "standard_permissions": [
         {
           "id_can_connect": anonymousCanConnect,
+          "id_can_rez_avatar_entities": anonymousCanConnect,
           "id_can_rez": anonymousCanRez,
           "id_can_rez_certified": anonymousCanRez,
           "id_can_rez_tmp": anonymousCanRez,
@@ -429,6 +474,7 @@ function savePermissions() {
         },
         {
           "id_can_connect": friendsCanConnect,
+          "id_can_rez_avatar_entities": friendsCanConnect,
           "id_can_rez": friendsCanRez,
           "id_can_rez_certified": friendsCanRez,
           "id_can_rez_tmp": friendsCanRez,
@@ -437,6 +483,7 @@ function savePermissions() {
         },
         {
           "id_can_connect": loggedInCanConnect,
+          "id_can_rez_avatar_entities": loggedInCanConnect,
           "id_can_rez": loggedInCanRez,
           "id_can_rez_certified": loggedInCanRez,
           "id_can_rez_tmp": loggedInCanRez,
@@ -446,6 +493,7 @@ function savePermissions() {
         {
           "id_can_adjust_locks": localhostPermissions,
           "id_can_connect": localhostPermissions,
+          "id_can_rez_avatar_entities": localhostPermissions,
           "id_can_connect_past_max_capacity": localhostPermissions,
           "id_can_kick": localhostPermissions,
           "id_can_replace_content": localhostPermissions,
@@ -521,7 +569,29 @@ function saveUsernamePassword() {
   $(this).blur();
 
   // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
-  postSettings(formJSON, function() {
-    location.reload();
-  });
+  postSettings(formJSON, goToNextStep);
+}
+
+function saveThreadingSettings() {
+    var enable_automatic_threading = $("#enable-automatic-threading").prop("checked");
+    
+    currentStepNumber += 1;
+  
+    var formJSON = {
+      "audio_threading": {
+        "auto_threads": enable_automatic_threading
+      },
+      "avatar_mixer": {
+        "auto_threads": enable_automatic_threading
+      },
+      "wizard": {
+        "steps_completed": currentStepNumber.toString()
+      }
+    }
+  
+    // remove focus from the button
+    $(this).blur();
+  
+    // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
+    postSettings(formJSON, goToNextStep);
 }

@@ -16,7 +16,7 @@ namespace scriptable {
 
     using ScriptableMeshes = QVector<scriptable::ScriptableMeshPointer>;
 
-    /**jsdoc
+    /*@jsdoc
      * A handle to in-memory model data such as may be used in displaying avatars, 3D entities, or 3D overlays in the rendered 
      * scene. Changes made to the model are visible only to yourself; they are not persisted.
      * <p>Note: The model may be used for more than one instance of an item displayed in the scene. Modifying the model updates 
@@ -72,7 +72,7 @@ namespace scriptable {
 
     public slots:
 
-        /**jsdoc
+        /*@jsdoc
          * Makes a copy of the model.
          * @function GraphicsModel.cloneModel
          * @param {object} [options] - <em>Not used.</em>
@@ -80,7 +80,7 @@ namespace scriptable {
          */
         scriptable::ScriptableModelPointer cloneModel(const QVariantMap& options = QVariantMap());
         
-        /**jsdoc
+        /*@jsdoc
          * Gets a string description of the model.
          * @function GraphicsModel.toString
          * @returns {string} A string description of the model.

@@ -17,7 +17,8 @@
 #include <openssl/x509.h>
 #include <random>
 
-#include <QDataStream>
+#include <QtCore/QDataStream>
+#include <QtCore/QMetaMethod>
 
 #include <AccountManager.h>
 #include <Assignment.h>
@@ -352,10 +353,11 @@ void DomainGatekeeper::updateNodePermissions() {
             userPerms.permissions |= NodePermissions::Permission::canWriteToAssetServer;
             userPerms.permissions |= NodePermissions::Permission::canReplaceDomainContent;
             userPerms.permissions |= NodePermissions::Permission::canGetAndSetPrivateUserData;
+            userPerms.permissions |= NodePermissions::Permission::canRezAvatarEntities;
         } else {
             // at this point we don't have a sending socket for packets from this node - assume it is the active socket
             // or the public socket if we haven't activated a socket for the node yet
-            HifiSockAddr connectingAddr = node->getActiveSocket() ? *node->getActiveSocket() : node->getPublicSocket();
+            SockAddr connectingAddr = node->getActiveSocket() ? *node->getActiveSocket() : node->getPublicSocket();
 
             QString hardwareAddress;
             QUuid machineFingerprint;
@@ -447,6 +449,7 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
     userPerms.permissions |= NodePermissions::Permission::canWriteToAssetServer;
     userPerms.permissions |= NodePermissions::Permission::canReplaceDomainContent;
     userPerms.permissions |= NodePermissions::Permission::canGetAndSetPrivateUserData;
+    userPerms.permissions |= NodePermissions::Permission::canRezAvatarEntities;
     newNode->setPermissions(userPerms);
     return newNode;
 }
@@ -648,7 +651,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
 }
 
 SharedNodePointer DomainGatekeeper::addVerifiedNodeFromConnectRequest(const NodeConnectionData& nodeConnection) {
-    HifiSockAddr discoveredSocket = nodeConnection.senderSockAddr;
+    SockAddr discoveredSocket = nodeConnection.senderSockAddr;
     SharedNetworkPeer connectedPeer = _icePeers.value(nodeConnection.connectUUID);
 
     if (connectedPeer && connectedPeer->getActiveSocket()) {
@@ -687,7 +690,7 @@ void DomainGatekeeper::cleanupICEPeerForNode(const QUuid& nodeID) {
 
 bool DomainGatekeeper::verifyUserSignature(const QString& username,
                                            const QByteArray& usernameSignature,
-                                           const HifiSockAddr& senderSockAddr) {
+                                           const SockAddr& senderSockAddr) {
     // it's possible this user can be allowed to connect, but we need to check their username signature
     auto lowerUsername = username.toLower();
     KeyFlagPair publicKeyPair = _userPublicKeys.value(lowerUsername);
@@ -770,7 +773,7 @@ bool DomainGatekeeper::needToVerifyDomainUserIdentity(const QString& username, c
 }
 
 bool DomainGatekeeper::verifyDomainUserIdentity(const QString& username, const QString& accessToken,
-                                                const QString& refreshToken, const HifiSockAddr& senderSockAddr) {
+                                                const QString& refreshToken, const SockAddr& senderSockAddr) {
     if (_verifiedDomainUserIdentities.contains(username)
             && _verifiedDomainUserIdentities.value(username) == QPair<QString, QString>(accessToken, refreshToken)) {
         return true;
@@ -868,7 +871,7 @@ void DomainGatekeeper::publicKeyJSONErrorCallback(QNetworkReply* requestReply) {
     _inFlightPublicKeyRequests.remove(username);
 }
 
-void DomainGatekeeper::sendProtocolMismatchConnectionDenial(const HifiSockAddr& senderSockAddr) {
+void DomainGatekeeper::sendProtocolMismatchConnectionDenial(const SockAddr& senderSockAddr) {
     QString protocolVersionError = "Protocol version mismatch - Domain version: " + QCoreApplication::applicationVersion();
 
     qDebug() << "Protocol Version mismatch - denying connection.";
@@ -877,7 +880,7 @@ void DomainGatekeeper::sendProtocolMismatchConnectionDenial(const HifiSockAddr& 
                                DomainHandler::ConnectionRefusedReason::ProtocolMismatch);
 }
 
-void DomainGatekeeper::sendConnectionDeniedPacket(const QString& reason, const HifiSockAddr& senderSockAddr,
+void DomainGatekeeper::sendConnectionDeniedPacket(const QString& reason, const SockAddr& senderSockAddr,
                                                   DomainHandler::ConnectionRefusedReason reasonCode,
                                                   QString extraInfo) {
     // this is an agent and we've decided we won't let them connect - send them a packet to deny connection
@@ -907,7 +910,7 @@ void DomainGatekeeper::sendConnectionDeniedPacket(const QString& reason, const H
     DependencyManager::get<LimitedNodeList>()->sendPacket(std::move(connectionDeniedPacket), senderSockAddr);
 }
 
-void DomainGatekeeper::sendConnectionTokenPacket(const QString& username, const HifiSockAddr& senderSockAddr) {
+void DomainGatekeeper::sendConnectionTokenPacket(const QString& username, const SockAddr& senderSockAddr) {
     // get the existing connection token or create a new one
     QUuid& connectionToken = _connectionTokenHash[username.toLower()];
 
@@ -1237,7 +1240,7 @@ void DomainGatekeeper::requestDomainUser(const QString& username, const QString&
 
     // Get data pertaining to "me", the user who generated the access token.
     const QString WORDPRESS_USER_ROUTE = "wp/v2/users/me";
-    const QString WORDPRESS_USER_QUERY = "_fields=username,roles";
+    const QString WORDPRESS_USER_QUERY = "_fields=username,email,roles";
     QUrl domainUserURL = apiBase + WORDPRESS_USER_ROUTE + (apiBase.contains("?") ? "&" : "?") + WORDPRESS_USER_QUERY;
 
     QNetworkRequest request;
@@ -1269,8 +1272,13 @@ void DomainGatekeeper::requestDomainUserFinished() {
     if (200 <= httpStatus && httpStatus < 300) {
 
         QString username = rootObject.value("username").toString().toLower();
-        if (_inFlightDomainUserIdentityRequests.contains(username)) {
+        QString email = rootObject.value("email").toString().toLower();
+
+        if (_inFlightDomainUserIdentityRequests.contains(username) || _inFlightDomainUserIdentityRequests.contains(email)) {
             // Success! Verified user.
+            if (!_inFlightDomainUserIdentityRequests.contains(username)) {
+                username = email;
+            }
             _verifiedDomainUserIdentities.insert(username, _inFlightDomainUserIdentityRequests.value(username));
             _inFlightDomainUserIdentityRequests.remove(username);
 

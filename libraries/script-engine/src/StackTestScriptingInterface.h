@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #pragma once
 
 #ifndef hifi_StackTestScriptingInterface_h
@@ -29,3 +32,5 @@ public:
 };
 
 #endif // hifi_StackTestScriptingInterface_h
+
+/// @}

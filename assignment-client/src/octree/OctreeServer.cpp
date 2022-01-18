@@ -34,6 +34,7 @@
 #include <QtCore/QDir>
 
 #include <OctreeDataUtils.h>
+#include <ThreadHelpers.h>
 
 Q_LOGGING_CATEGORY(octree_server, "hifi.octree-server")
 
@@ -1122,8 +1123,10 @@ void OctreeServer::run() {
 
 void OctreeServer::domainSettingsRequestComplete() {
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::OctreeDataNack, this, "handleOctreeDataNackPacket");
-    packetReceiver.registerListener(getMyQueryMessageType(), this, "handleOctreeQueryPacket");
+    packetReceiver.registerListener(PacketType::OctreeDataNack,
+        PacketReceiver::makeSourcedListenerReference<OctreeServer>(this, &OctreeServer::handleOctreeDataNackPacket));
+    packetReceiver.registerListener(getMyQueryMessageType(),
+        PacketReceiver::makeSourcedListenerReference<OctreeServer>(this, &OctreeServer::handleOctreeQueryPacket));
 
     qDebug(octree_server) << "Received domain settings";
 
@@ -1190,7 +1193,10 @@ void OctreeServer::domainSettingsRequestComplete() {
                                                  _persistAsFileType);
         _persistManager->moveToThread(&_persistThread);
         connect(&_persistThread, &QThread::finished, _persistManager, &QObject::deleteLater);
-        connect(&_persistThread, &QThread::started, _persistManager, &OctreePersistThread::start);
+        connect(&_persistThread, &QThread::started, _persistManager, [this] {
+            setThreadName("OctreePersistThread");
+            _persistManager->start();
+        });
         connect(_persistManager, &OctreePersistThread::loadCompleted, this, [this]() {
             beginRunning();
         });

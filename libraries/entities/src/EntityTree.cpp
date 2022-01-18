@@ -68,7 +68,7 @@ EntityTree::~EntityTree() {
 }
 
 void EntityTree::setEntityScriptSourceWhitelist(const QString& entityScriptSourceWhitelist) { 
-    _entityScriptSourceWhitelist = entityScriptSourceWhitelist.split(',', QString::SkipEmptyParts);
+    _entityScriptSourceWhitelist = entityScriptSourceWhitelist.split(',', Qt::SkipEmptyParts);
 }
 
 
@@ -798,6 +798,7 @@ public:
     glm::vec3 origin;
     glm::vec3 direction;
     glm::vec3 invDirection;
+    glm::vec3 viewFrustumPos;
     const QVector<EntityItemID>& entityIdsToInclude;
     const QVector<EntityItemID>& entityIdsToDiscard;
     PickFilter searchFilter;
@@ -815,7 +816,7 @@ bool evalRayIntersectionOp(const OctreeElementPointer& element, void* extraData)
     RayArgs* args = static_cast<RayArgs*>(extraData);
     bool keepSearching = true;
     EntityTreeElementPointer entityTreeElementPointer = std::static_pointer_cast<EntityTreeElement>(element);
-    EntityItemID entityID = entityTreeElementPointer->evalRayIntersection(args->origin, args->direction,
+    EntityItemID entityID = entityTreeElementPointer->evalRayIntersection(args->origin, args->direction, args->viewFrustumPos,
         args->element, args->distance, args->face, args->surfaceNormal, args->entityIdsToInclude,
         args->entityIdsToDiscard, args->searchFilter, args->extraInfo);
     if (!entityID.isNull()) {
@@ -837,7 +838,8 @@ float evalRayIntersectionSortingOp(const OctreeElementPointer& element, void* ex
         float boundDistance = FLT_MAX;
         BoxFace face;
         glm::vec3 surfaceNormal;
-        if (entityTreeElementPointer->getAACube().findRayIntersection(args->origin, args->direction, args->invDirection, boundDistance, face, surfaceNormal)) {
+        if (entityTreeElementPointer->getAACube().findRayIntersection(args->origin, args->direction, args->invDirection,
+            boundDistance, face, surfaceNormal)) {
             // Don't add this cell if it's already farther than our best distance so far
             if (boundDistance < args->distance) {
                 distance = boundDistance;
@@ -857,7 +859,7 @@ EntityItemID EntityTree::evalRayIntersection(const glm::vec3& origin, const glm:
     vec3 dirReciprocal = glm::vec3(direction.x == 0.0f ? 0.0f : 1.0f / direction.x,
                                    direction.y == 0.0f ? 0.0f : 1.0f / direction.y,
                                    direction.z == 0.0f ? 0.0f : 1.0f / direction.z);
-    RayArgs args = { origin, direction, dirReciprocal, entityIdsToInclude, entityIdsToDiscard,
+    RayArgs args = { origin, direction, dirReciprocal, BillboardModeHelpers::getPrimaryViewFrustumPosition(), entityIdsToInclude, entityIdsToDiscard,
             searchFilter, element, distance, face, surfaceNormal, extraInfo, EntityItemID() };
     distance = FLT_MAX;
 
@@ -879,6 +881,7 @@ public:
     glm::vec3 origin;
     glm::vec3 velocity;
     glm::vec3 acceleration;
+    glm::vec3 viewFrustumPos;
     const QVector<EntityItemID>& entityIdsToInclude;
     const QVector<EntityItemID>& entityIdsToDiscard;
     PickFilter searchFilter;
@@ -896,7 +899,7 @@ bool evalParabolaIntersectionOp(const OctreeElementPointer& element, void* extra
     ParabolaArgs* args = static_cast<ParabolaArgs*>(extraData);
     bool keepSearching = true;
     EntityTreeElementPointer entityTreeElementPointer = std::static_pointer_cast<EntityTreeElement>(element);
-    EntityItemID entityID = entityTreeElementPointer->evalParabolaIntersection(args->origin, args->velocity, args->acceleration,
+    EntityItemID entityID = entityTreeElementPointer->evalParabolaIntersection(args->origin, args->velocity, args->acceleration, args->viewFrustumPos,
         args->element, args->parabolicDistance, args->face, args->surfaceNormal, args->entityIdsToInclude,
         args->entityIdsToDiscard, args->searchFilter, args->extraInfo);
     if (!entityID.isNull()) {
@@ -918,7 +921,8 @@ float evalParabolaIntersectionSortingOp(const OctreeElementPointer& element, voi
         float boundDistance = FLT_MAX;
         BoxFace face;
         glm::vec3 surfaceNormal;
-        if (entityTreeElementPointer->getAACube().findParabolaIntersection(args->origin, args->velocity, args->acceleration, boundDistance, face, surfaceNormal)) {
+        if (entityTreeElementPointer->getAACube().findParabolaIntersection(args->origin, args->velocity, args->acceleration,
+            boundDistance, face, surfaceNormal)) {
             // Don't add this cell if it's already farther than our best distance so far
             if (boundDistance < args->parabolicDistance) {
                 distance = boundDistance;
@@ -934,8 +938,8 @@ EntityItemID EntityTree::evalParabolaIntersection(const PickParabola& parabola,
                                     OctreeElementPointer& element, glm::vec3& intersection, float& distance, float& parabolicDistance,
                                     BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
                                     Octree::lockType lockType, bool* accurateResult) {
-    ParabolaArgs args = { parabola.origin, parabola.velocity, parabola.acceleration, entityIdsToInclude, entityIdsToDiscard,
-        searchFilter, element, parabolicDistance, face, surfaceNormal, extraInfo, EntityItemID() };
+    ParabolaArgs args = { parabola.origin, parabola.velocity, parabola.acceleration, BillboardModeHelpers::getPrimaryViewFrustumPosition(),
+        entityIdsToInclude, entityIdsToDiscard, searchFilter, element, parabolicDistance, face, surfaceNormal, extraInfo, EntityItemID() };
     parabolicDistance = FLT_MAX;
     distance = FLT_MAX;
 
@@ -2747,6 +2751,47 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
     return map.values().toVector();
 }
 
+QJsonValue replaceEntityIDsInJSONHelper(const QJsonValue& jsonValue, std::function<EntityItemID(EntityItemID)> getMapped) {
+    if (jsonValue.isString()) {
+        QString stringValue = jsonValue.toString();
+        QUuid oldID = stringValue;
+        if (!oldID.isNull()) {
+            return QJsonValue(getMapped(oldID).toString());
+        }
+        return stringValue;
+    } else if (jsonValue.isArray()) {
+        QJsonArray jsonArray = jsonValue.toArray();
+        for (int i = 0; i < jsonArray.count(); i++) {
+            jsonArray[i] = replaceEntityIDsInJSONHelper(jsonArray[i], getMapped);
+        }
+        return jsonArray;
+    } else if (jsonValue.isObject()) {
+        QJsonObject jsonObject = jsonValue.toObject();
+        auto keys = jsonObject.keys();
+        for (auto& key : keys) {
+            auto value = jsonObject.value(key);
+            jsonObject[key] = replaceEntityIDsInJSONHelper(value, getMapped);
+        }
+        return jsonObject;
+    } else {
+        return jsonValue;
+    }
+}
+
+QString replaceEntityIDsInJSON(const QString& json, std::function<EntityItemID(EntityItemID)> getMapped) {
+    QJsonDocument document = QJsonDocument::fromJson(json.toUtf8());
+    if (!document.isNull() && document.isObject()) {
+        QJsonObject jsonObject = document.object();
+        auto keys = jsonObject.keys();
+        for (auto& key : keys) {
+            auto value = jsonObject.value(key);
+            jsonObject[key] = replaceEntityIDsInJSONHelper(value, getMapped);
+        }
+        document = QJsonDocument(jsonObject);
+    }
+    return document.toJson();
+}
+
 bool EntityTree::sendEntitiesOperation(const OctreeElementPointer& element, void* extraData) {
     SendEntitiesOperationArgs* args = static_cast<SendEntitiesOperationArgs*>(extraData);
     EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
@@ -2814,6 +2859,61 @@ bool EntityTree::sendEntitiesOperation(const OctreeElementPointer& element, void
 
         QByteArray actionData = properties.getActionData();
         properties.setActionData(remapActionDataIDs(actionData, *args->map));
+
+        {
+            QString materialURL = properties.getMaterialURL();
+            QString uuidString = materialURL;
+            QString materialName = "";
+
+            if (materialURL.contains("?")) {
+                QStringList split = materialURL.split("?");
+                uuidString = split[0];
+                if (split.length() > 1) {
+                    materialName = split[1];
+                }
+            } else if (materialURL.contains("#")) {
+                QStringList split = materialURL.split("#");
+                uuidString = split[0];
+                if (split.length() > 1) {
+                    materialName = split[1];
+                }
+            }
+
+            QUuid oldID = uuidString;
+            if (!oldID.isNull()) {
+                uuidString = getMapped(oldID).toString();
+            }
+            QUuid oldMaterialName = materialName;
+            if (!oldMaterialName.isNull()) {
+                materialName = getMapped(oldMaterialName).toString();
+            }
+
+            if (!materialName.isEmpty()) {
+                properties.setMaterialURL(uuidString + "?" + materialName);
+            } else {
+                properties.setMaterialURL(uuidString);
+            }
+        }
+
+        QString imageURL = properties.getImageURL();
+        if (imageURL.startsWith("{")) {
+            QUuid oldID = imageURL;
+            if (!oldID.isNull()) {
+                properties.setImageURL(getMapped(oldID).toString());
+            }
+        }
+
+        QString materialData = properties.getMaterialData();
+        if (!materialData.isEmpty()) {
+            materialData = replaceEntityIDsInJSON(materialData, getMapped);
+            properties.setMaterialData(materialData);
+        }
+
+        QString userData = properties.getUserData();
+        if (!userData.isEmpty()) {
+            userData = replaceEntityIDsInJSON(userData, getMapped);
+            properties.setUserData(userData);
+        }
 
         // set creation time to "now" for imported entities
         properties.setCreated(usecTimestampNow());
@@ -3134,6 +3234,13 @@ bool EntityTree::readFromMap(QVariantMap& map, const bool isImport) {
             if (entityMap.contains("created")) {
                 quint64 created = QDateTime::fromString(entityMap["created"].toString().trimmed(), Qt::ISODate).toMSecsSinceEpoch() * 1000;
                 properties.setCreated(created);
+            }
+        }
+
+        // Before, billboarded entities ignored rotation.  Now, they use it to determine which axis is facing you.
+        if (contentVersion < (int)EntityVersion::AllBillboardMode) {
+            if (properties.getBillboardMode() != BillboardMode::NONE) {
+                properties.setRotation(glm::quat());
             }
         }
 

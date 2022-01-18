@@ -18,7 +18,7 @@
 class FancyCamera : public Camera {
     Q_OBJECT
 
-    /**jsdoc
+    /*@jsdoc
      * The <code>Camera</code> API provides access to the "camera" that defines your view in desktop and HMD display modes.
      * The Vircadia camera has axes <code>x</code> = right, <code>y</code> = up, <code>-z</code> = forward.
      *
@@ -36,6 +36,10 @@ class FancyCamera : public Camera {
      * @property {ViewFrustum} frustum - The camera frustum.
      * @property {Uuid} cameraEntity - The ID of the entity that is used for the camera position and orientation when the 
      *     camera is in entity mode.
+     * @property {boolean} captureMouse - The mouse capture state.  When <code>true</code>, the mouse is invisible and cannot leave the bounds of
+     * Interface, as long as Interface is the active window and no menu item is selected.  When <code>false</code>, the mouse
+     * behaves normally.
+     * @property {number} sensitivity - The current camera sensitivity.  Must be positive.
      */
     Q_PROPERTY(QUuid cameraEntity READ getCameraEntity WRITE setCameraEntity)
 
@@ -47,7 +51,7 @@ public:
 
 
 public slots:
-    /**jsdoc
+    /*@jsdoc
      * Gets the ID of the entity that the camera is set to follow (i.e., use the position and orientation from) when it's in 
      * entity mode. You can also get the entity ID using the {@link Camera|Camera.cameraEntity} property.
      * @function Camera.getCameraEntity
@@ -56,7 +60,7 @@ public slots:
      */
     QUuid getCameraEntity() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the entity that the camera should follow (i.e., use the position and orientation from) when it's in entity mode. 
      * You can also set the entity using the {@link Camera|Camera.cameraEntity} property.
      * @function Camera.setCameraEntity

@@ -19,7 +19,7 @@
         //set our id so other methods can get it. 
         _this.entityID = entityID;
         //load the mooing sound
-        _this.mooSound = SoundCache.getSound("http://hifi-production.s3.amazonaws.com/tutorials/cow/moo.wav")
+        _this.mooSound = SoundCache.getSound("https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/cow/moo.wav")
         _this.mooSoundOptions = {
             volume: 0.7,
             loop: false

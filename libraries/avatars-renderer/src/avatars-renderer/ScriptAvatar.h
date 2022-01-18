@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 4/10/17.
 //  Copyright 2017 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -16,7 +17,7 @@
 
 #include "Avatar.h"
 
-/**jsdoc
+/*@jsdoc
  * Information about an avatar.
  *
  * <p>Create using {@link MyAvatar.getTargetAvatar} or {@link AvatarList.getAvatar}.</p>
@@ -84,31 +85,31 @@ public:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the default rotation of a joint in the avatar relative to its parent.
      * <p>For information on the joint hierarchy used, see
-     * <a href="https://docs.vircadia.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
+     * <a href="https://docs.vircadia.com/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
      * @function ScriptAvatar.getDefaultJointRotation
      * @param {number} index - The joint index.
-     * @returns {Quat} The default rotation of the joint if avatar data are available and the joint index is valid, otherwise 
+     * @returns {Quat} The default rotation of the joint if avatar data are available and the joint index is valid, otherwise
      *     {@link Quat(0)|Quat.IDENTITY}.
      */
     glm::quat getDefaultJointRotation(int index) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the default translation of a joint in the avatar relative to its parent, in model coordinates.
      * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
      * <p>For information on the joint hierarchy used, see
-     * <a href="https://docs.vircadia.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
+     * <a href="https://docs.vircadia.com/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
      * @function ScriptAvatar.getDefaultJointTranslation
      * @param {number} index - The joint index.
-     * @returns {Vec3} The default translation of the joint (in model coordinates) if avatar data are available and the joint 
+     * @returns {Vec3} The default translation of the joint (in model coordinates) if avatar data are available and the joint
      *     index is valid, otherwise {@link Vec3(0)|Vec3.ZERO}.
      */
     glm::vec3 getDefaultJointTranslation(int index) const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the offset applied to the avatar for rendering.
      * @function ScriptAvatar.getSkeletonOffset
      * @returns {Vec3} The skeleton offset if avatar data are available, otherwise {@link Vec3(0)|Vec3.ZERO}.
@@ -116,16 +117,16 @@ public slots:
     glm::vec3 getSkeletonOffset() const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the position of a joint in the avatar.
      * @function ScriptAvatar.getJointPosition
      * @param {number} index - The index of the joint.
-     * @returns {Vec3} The position of the joint in world coordinates, or {@link Vec3(0)|Vec3.ZERO} if avatar data aren't 
+     * @returns {Vec3} The position of the joint in world coordinates, or {@link Vec3(0)|Vec3.ZERO} if avatar data aren't
      *     available.
      */
     glm::vec3 getJointPosition(int index) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the position of a joint in the current avatar.
      * @function ScriptAvatar.getJointPosition
      * @param {string} name - The name of the joint.
@@ -134,7 +135,7 @@ public slots:
      */
     glm::vec3 getJointPosition(const QString& name) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the position of the current avatar's neck in world coordinates.
      * @function ScriptAvatar.getNeckPosition
      * @returns {Vec3} The position of the neck in world coordinates, or {@link Vec3(0)|Vec3.ZERO} if avatar data aren't
@@ -143,7 +144,7 @@ public slots:
     glm::vec3 getNeckPosition() const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the current acceleration of the avatar.
      * @function ScriptAvatar.getAcceleration
      * @returns {Vec3} The current acceleration of the avatar, or {@link Vec3(0)|Vec3.ZERO} if avatar data aren't available..
@@ -151,25 +152,25 @@ public slots:
     glm::vec3 getAcceleration() const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the ID of the entity or avatar that the avatar is parented to.
      * @function ScriptAvatar.getParentID
-     * @returns {Uuid} The ID of the entity or avatar that the avatar is parented to. {@link Uuid(0)|Uuid.NULL} if not parented 
+     * @returns {Uuid} The ID of the entity or avatar that the avatar is parented to. {@link Uuid(0)|Uuid.NULL} if not parented
      *     or avatar data aren't available.
      */
     QUuid getParentID() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the joint of the entity or avatar that the avatar is parented to.
      * @function ScriptAvatar.getParentJointIndex
      * @returns {number} The joint of the entity or avatar that the avatar is parented to. <code>65535</code> or
-     *     <code>-1</code> if parented to the entity or avatar's position and orientation rather than a joint, or avatar data 
+     *     <code>-1</code> if parented to the entity or avatar's position and orientation rather than a joint, or avatar data
      *     aren't available.
      */
     quint16 getParentJointIndex() const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * Gets information on all the joints in the avatar's skeleton.
      * @function ScriptAvatar.getSkeleton
      * @returns {SkeletonJoint[]} Information about each joint in the avatar's skeleton.
@@ -177,7 +178,7 @@ public slots:
     QVariantList getSkeleton() const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * @function ScriptAvatar.getSimulationRate
      * @param {AvatarSimulationRate} [rateName=""] - Rate name.
      * @returns {number} Simulation rate in Hz, or <code>0.0</code> if avatar data aren't available.
@@ -186,23 +187,23 @@ public slots:
     float getSimulationRate(const QString& rateName = QString("")) const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the position of the left palm in world coordinates.
      * @function ScriptAvatar.getLeftPalmPosition
-     * @returns {Vec3} The position of the left palm in world coordinates, or {@link Vec3(0)|Vec3.ZERO} if avatar data aren't 
+     * @returns {Vec3} The position of the left palm in world coordinates, or {@link Vec3(0)|Vec3.ZERO} if avatar data aren't
      *     available.
      */
     glm::vec3 getLeftPalmPosition() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the rotation of the left palm in world coordinates.
      * @function ScriptAvatar.getLeftPalmRotation
-     * @returns {Quat} The rotation of the left palm in world coordinates, or {@link Quat(0)|Quat.IDENTITY} if the avatar data 
+     * @returns {Quat} The rotation of the left palm in world coordinates, or {@link Quat(0)|Quat.IDENTITY} if the avatar data
      *     aren't available.
      */
     glm::quat getLeftPalmRotation() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the position of the right palm in world coordinates.
      * @function ScriptAvatar.getLeftPalmPosition
      * @returns {Vec3} The position of the right palm in world coordinates, or {@link Vec3(0)|Vec3.ZERO} if avatar data aren't
@@ -210,7 +211,7 @@ public slots:
      */
     glm::vec3 getRightPalmPosition() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the rotation of the right palm in world coordinates.
      * @function ScriptAvatar.getLeftPalmRotation
      * @returns {Quat} The rotation of the right palm in world coordinates, or {@link Quat(0)|Quat.IDENTITY} if the avatar data

@@ -16,7 +16,7 @@
 #include "HashKey.h"
 #include "NumericalConstants.h" // for MILLIMETERS_PER_METER
 
-/**jsdoc
+/*@jsdoc
  * <p>Defines the shape used for collisions or zones.</p>
  * <table>
  *   <thead>
@@ -114,12 +114,6 @@ void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString 
         case SHAPE_TYPE_BOX:
         case SHAPE_TYPE_HULL:
         case SHAPE_TYPE_MULTISPHERE:
-            break;
-        case SHAPE_TYPE_SPHERE: {
-                float radius = glm::length(halfExtents) / SQUARE_ROOT_OF_3;
-                radius = glm::max(radius, MIN_HALF_EXTENT);
-                _halfExtents = glm::vec3(radius);
-            }
             break;
         case SHAPE_TYPE_CIRCLE: {
             _halfExtents = glm::vec3(_halfExtents.x, MIN_HALF_EXTENT, _halfExtents.z);
@@ -228,6 +222,7 @@ float ShapeInfo::computeVolume() const {
             volume = 8.0f * _halfExtents.x * _halfExtents.y * _halfExtents.z;
             break;
         }
+        case SHAPE_TYPE_ELLIPSOID:
         case SHAPE_TYPE_SPHERE: {
             volume = 4.0f * PI * _halfExtents.x * _halfExtents.y * _halfExtents.z / 3.0f;
             break;

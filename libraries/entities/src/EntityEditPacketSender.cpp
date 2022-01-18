@@ -26,7 +26,8 @@
 
 EntityEditPacketSender::EntityEditPacketSender() {
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerDirectListener(PacketType::EntityEditNack, this, "processEntityEditNackPacket");
+    packetReceiver.registerDirectListener(PacketType::EntityEditNack,
+        PacketReceiver::makeSourcedListenerReference<EntityEditPacketSender>(this, &EntityEditPacketSender::processEntityEditNackPacket));
 }
 
 void EntityEditPacketSender::processEntityEditNackPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {

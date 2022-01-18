@@ -1,61 +1,80 @@
-# Vircadia 
+<p align="center"><a href="https://vircadia.com/"><img src="interface/resources/images/vircadia-banner.svg" alt="Vircadia - Codename Athena" width="350"/></a></p>
+<h3 align="center"><a href="https://vircadia.com/">Website</a> | <a href="https://discordapp.com/invite/Pvx2vke">Discord</a> | <a href="https://vircadia.com/download-vircadia/">Download</a></h3>
+<p align="center"><a href="CONTRIBUTING.md"><img alt="GitHub contributors" src="https://img.shields.io/github/contributors/vircadia/vircadia"></a> <a href="https://github.com/vircadia/vircadia/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/vircadia/vircadia"></a> <a href="https://github.com/vircadia/vircadia/network"><img alt="GitHub forks" src="https://img.shields.io/github/forks/vircadia/vircadia"></a> <a href="https://www.apache.org/licenses/LICENSE-2.0"><img alt="Apache 2.0" src="https://img.shields.io/badge/license-Apache--2.0-%230A7BBB?style=flat"></a> <a href="https://discordapp.com/invite/Pvx2vke"><img alt="Discord" src="https://img.shields.io/discord/564926326025224212?style=flat"></a></p>
+<h3 align="center">Build Status</h3>
+<p align="center"><a href="https://github.com/vircadia/vircadia/actions/workflows/master_build.yml"><img alt="Master CI Build" src="https://github.com/vircadia/vircadia/actions/workflows/master_build.yml/badge.svg"></a></p>
 
 ### What is this?
 
-Vircadia is a 3D social software project seeking to incrementally bring about a truly free and open metaverse, in desktop and XR.
+Vircadia™ is a 3D social software project seeking to incrementally bring about a truly free and open metaverse.
 
-### [Download](https://vircadia.com/download-vircadia/)
+* Desktop and VR use
+* Hundreds of users simultaneously
+* Full-body avatars
+* FBX, glTF, and OBJ support
+* JavaScript scripting engine
+* 16km³ world space in a server
+* Fully self-hosted
+* Apache 2.0
 
 ### Releases
 
-[View Releases here](https://github.com/kasenvr/project-athena/releases/)
-
-### How to build the Interface
-
-[For Windows](https://github.com/kasenvr/project-athena/blob/master/BUILD_WIN.md)
-
-[For Mac](https://github.com/kasenvr/project-athena/blob/master/BUILD_OSX.md)
-
-[For Linux](https://github.com/kasenvr/project-athena/blob/master/BUILD_LINUX.md)
-
-[For Linux - Vircadia Builder](https://github.com/kasenvr/vircadia-builder)
+[View Releases here](https://github.com/vircadia/vircadia/releases/)
 
 ### How to deploy a Server
 
-[For Windows and Linux](https://vircadia.com/deploy-a-server/)
+- [For Windows and Linux](https://vircadia.com/deploy-a-server/)
 
-### How to build a Server
+### Building
 
-[For Linux - Vircadia Builder](https://github.com/kasenvr/vircadia-builder)
+#### How to build the Interface
 
-### How to generate an Installer
+- [For Windows](https://github.com/vircadia/vircadia/blob/master/BUILD_WIN.md)
+- [For Mac](https://github.com/vircadia/vircadia/blob/master/BUILD_OSX.md)
+- [For Linux](https://github.com/vircadia/vircadia/blob/master/BUILD_LINUX.md)
+- [For Linux - Vircadia Builder](https://github.com/vircadia/vircadia-builder)
 
-[For Windows](https://github.com/kasenvr/project-athena/blob/master/INSTALL.md)
+#### How to build a Server
 
-[For Linux - AppImage - Vircadia Builder](https://github.com/kasenvr/vircadia-builder/blob/master/README.md#building-appimages)
+- [For Windows](https://github.com/vircadia/vircadia/blob/master/BUILD_WIN.md)
+- [For Linux](https://github.com/vircadia/vircadia/blob/master/BUILD_LINUX.md)
+- [For Linux - Vircadia Builder](https://github.com/vircadia/vircadia-builder)
 
-### Boot to Metaverse: The Goal
+#### How to generate an Installer
+
+- [For Windows - Interface & Server](https://github.com/vircadia/vircadia/blob/master/INSTALLER.md)
+- [For Mac - Interface](https://github.com/vircadia/vircadia/blob/master/INSTALLER.md#os-x)
+- [For Linux - Server .deb - Vircadia Builder](INSTALLER.md#ubuntu-1804--deb)
+- [For Linux - Server .rpm - Vircadia Builder](INSTALLER.md#amazon-linux-2--rpm)
+- [For Linux - Interface AppImage - Vircadia Builder](https://github.com/vircadia/vircadia-builder/blob/master/README.md#building-appimages)
+
+### Boot to Metaverse: [The Goal](https://vircadia.com/vision/)
 
 Having a place to experience adventure, a place to relax with calm breath, that's a world to live in. An engine to support infinite combinations and possibilities of worlds without censorship and interruption, that's a metaverse. Finding a way to make infinite realities our reality is the dream.
 
 ### Boot to Metaverse: The Technicals
 
-Many developers have had personal combinations of High Fidelity from C++ modifications to different default scripts, all of which are lost to time as their fullest potential is never truly shared and propagated through the system.
+Vircadia consists of many projects and codebases with its unifying structure's goal being a decentralized metaverse.
 
-The goal of this project is to achieve the metaverse dream through shared contribution and building. Setting goals that are achievable yet meaningful is key to making proper forward progress on the technical front whilst maintaining morale.
+- The Interface (Codename Athena) - You are here!
+- The Server (Codename Athena) - You are also here!
+- [The Web Interface (Codename Aether)](https://github.com/vircadia/vircadia-web/)
+- [The Web SDK (Codename Ananke)](https://github.com/vircadia/vircadia-web-sdk/)
+- [The Metaverse Server (Codename Iamus)](https://github.com/vircadia/Iamus/)
+- [The Metaverse Server Dashboard (Codename Iamus)](https://github.com/vircadia/project-iamus-dashboard/)
+- [The Launcher (Codename Pantheon)](https://github.com/vircadia/pantheon-launcher/) - Currently Windows only.
 
-### Why High Fidelity's Virtual Reality Platform?
-
-Because of all the options, it is the only starting point that is open-source, cross-platform, fully VR integrated + fully desktop integrated with an aim for quality visuals and performance. It also provides a foundation to build from including components like entity management, full body IK, etc.
-
-WebXR offers the open-source and decentralized aspect but does not have any of the full featured starting points such as avatars, IK, etc. which means that a lot of ground work will have to be laid to make something functional. Far more work will need to be done to create a truly seamless and extensive experience as well.
-
-Platforms like NeosVR or VRChat are not viable from go due to their fundamental closed-source and centralized nature. A metaverse to live in cannot have the keys handed over to any singular entity, if any at all.
-
-We need to do the best we can with what we've got and our best bet as open source developers is to not redesign the wheel if we can help it!
+#### Child Projects
+- [Vircadia Builder for Linux](https://github.com/vircadia/vircadia-builder/)
+- [User Documentation](https://github.com/vircadia/vircadia-docs-sphinx/)
+- [Developer Documentation](https://github.com/vircadia/vircadia-dev-docs/)
 
 ### Contribution
 
-A special thanks to the contributors of Vircadia.
+There are many contributors to Vircadia. Code writers, reviewers, testers, documentation writers, modelers, and general supporters of the project are all integral to its development and success towards its goals. Find out how you can [contribute](CONTRIBUTING.md)!
 
-[Contribution](CONTRIBUTING.md)
+### [Supporters](https://github.com/sponsors/digisomni/)
+
+| [Karol Suprynowicz - 74hc595](https://github.com/ksuprynowicz) | 
+| --- |
+| <p align="center">[![ksuprynowicz](https://avatars.githubusercontent.com/u/11568651?s=64&v=4)](https://github.com/ksuprynowicz)</p>

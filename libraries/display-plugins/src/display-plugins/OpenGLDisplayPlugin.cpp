@@ -50,6 +50,7 @@
 #include "CompositorHelper.h"
 #include "Logging.h"
 #include "RefreshRateController.h"
+#include <ThreadHelpers.h>
 
 using namespace shader::gpu::program;
 
@@ -285,6 +286,7 @@ bool OpenGLDisplayPlugin::activate() {
         widget->context()->doneCurrent();
 
         presentThread->setContext(widget->context());
+        connect(presentThread.data(), &QThread::started, [] { setThreadName("OpenGL Present Thread"); });
         // Start execution
         presentThread->start();
     }

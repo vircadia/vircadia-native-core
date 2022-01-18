@@ -10,7 +10,7 @@ var numKinesin = 2;
 var percentOnMainMT = 100;
 
 
-baseLocation = "https://hifi-production.s3.amazonaws.com/DomainContent/CellScience/"
+baseLocation = "https://cdn-1.vircadia.com/us-e-1/DomainContent/CellScience/"
 
 var WORLD_OFFSET = {
     x: 0,

@@ -59,8 +59,7 @@ EntityServer::EntityServer(ReceivedMessage& message) :
         PacketType::ChallengeOwnership,
         PacketType::ChallengeOwnershipRequest,
         PacketType::ChallengeOwnershipReply },
-        this,
-        "handleEntityPacket");
+        PacketReceiver::makeSourcedListenerReference<EntityServer>(this, &EntityServer::handleEntityPacket));
 
     connect(&_dynamicDomainVerificationTimer, &QTimer::timeout, this, &EntityServer::startDynamicDomainVerification);
     _dynamicDomainVerificationTimer.setSingleShot(true);

@@ -5,6 +5,7 @@ module.exports = {
         "ecmaVersion": 5
     },
     "globals": {
+        "About": false,
         "Account": false,
         "Agent": false,
         "AnimationCache": false,

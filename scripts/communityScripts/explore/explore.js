@@ -2,9 +2,7 @@
 //
 //  Created by Darlingnotin in 2019.
 //  Copyright 2019 Darlingnotin
-//
-//  App maintained in: https://github.com/kasenvr/Decentralized_GoTo_Experimental
-//  App copied to: https://github.com/kasenvr/project-athena
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the ISC license.
 //  See the accompanying file LICENSE or https://opensource.org/licenses/ISC

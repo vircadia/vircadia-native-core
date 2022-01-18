@@ -8,7 +8,7 @@
 //
 
 // An animation of the avatar clapping its hands while standing
-var ANIM_URL = "http://hifi-production.s3.amazonaws.com/tutorials/avatarAnimation/clap.fbx";
+var ANIM_URL = "https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/avatarAnimation/clap.fbx";
 
 // overrideRoleAnimation only replaces a single animation at a time.  the rest of the motion is driven normally
 // @animationRole - name of animation

@@ -11,10 +11,15 @@
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 
+#include "RenderPipelines.h"
+
 using namespace render;
 using namespace render::entities;
 
-GizmoEntityRenderer::GizmoEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {}
+GizmoEntityRenderer::GizmoEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {
+    _material->setCullFaceMode(graphics::MaterialKey::CullFaceMode::CULL_NONE);
+    addMaterial(graphics::MaterialLayer(_material, 0), "0");
+}
 
 GizmoEntityRenderer::~GizmoEntityRenderer() {
     auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -31,12 +36,8 @@ GizmoEntityRenderer::~GizmoEntityRenderer() {
     }
 }
 
-bool GizmoEntityRenderer::isTransparent() const {
-    bool ringTransparent = _gizmoType == GizmoType::RING && (_ringProperties.getInnerStartAlpha() < 1.0f ||
-        _ringProperties.getInnerEndAlpha() < 1.0f || _ringProperties.getOuterStartAlpha() < 1.0f ||
-        _ringProperties.getOuterEndAlpha() < 1.0f);
-
-    return Parent::isTransparent() || ringTransparent;
+bool GizmoEntityRenderer::needsRenderUpdate() const {
+    return needsRenderUpdateFromMaterials() || Parent::needsRenderUpdate();
 }
 
 void GizmoEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
@@ -52,14 +53,11 @@ void GizmoEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 void GizmoEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     bool dirty = false;
     RingGizmoPropertyGroup ringProperties = entity->getRingProperties();
-    withWriteLock([&] {
-        _gizmoType = entity->getGizmoType();
-        if (_ringProperties != ringProperties) {
-            _ringProperties = ringProperties;
-            dirty = true;
-
-        }
-    });
+    _gizmoType = entity->getGizmoType();
+    if (_ringProperties != ringProperties) {
+        _ringProperties = ringProperties;
+        dirty = true;
+    }
 
     if (dirty || _prevPrimitiveMode != _primitiveMode || !_ringGeometryID || !_majorTicksGeometryID || !_minorTicksGeometryID) {
         _prevPrimitiveMode = _primitiveMode;
@@ -196,10 +194,20 @@ void GizmoEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
             }
         }
     }
+
+    updateMaterials();
 }
 
-Item::Bound GizmoEntityRenderer::getBound() {
-    auto bound = Parent::getBound();
+bool GizmoEntityRenderer::isTransparent() const {
+    bool ringTransparent = _gizmoType == GizmoType::RING && (_ringProperties.getInnerStartAlpha() < 1.0f ||
+        _ringProperties.getInnerEndAlpha() < 1.0f || _ringProperties.getOuterStartAlpha() < 1.0f ||
+        _ringProperties.getOuterEndAlpha() < 1.0f);
+
+    return ringTransparent || Parent::isTransparent() || materialsTransparent();
+}
+
+Item::Bound GizmoEntityRenderer::getBound(RenderArgs* args) {
+    auto bound = Parent::getMaterialBound(args);
     if (_ringProperties.getHasTickMarks()) {
         glm::vec3 scale = bound.getScale();
         for (int i = 0; i < 3; i += 2) {
@@ -223,13 +231,8 @@ Item::Bound GizmoEntityRenderer::getBound() {
 }
 
 ShapeKey GizmoEntityRenderer::getShapeKey() {
-    auto builder = render::ShapeKey::Builder().withoutCullFace();
-    if (isTransparent()) {
-        builder.withTranslucent();
-    }
-    if (_primitiveMode == PrimitiveMode::LINES) {
-        builder.withUnlit().withDepthBias();
-    }
+    auto builder = render::ShapeKey::Builder().withDepthBias();
+    updateShapeKeyBuilderFromMaterials(builder);
     return builder.build();
 }
 
@@ -242,21 +245,38 @@ void GizmoEntityRenderer::doRender(RenderArgs* args) {
 
     if (_gizmoType == GizmoType::RING) {
         Transform transform;
-        bool hasTickMarks;
-        glm::vec4 tickProperties;
-        bool forward;
+        bool hasTickMarks = _ringProperties.getHasTickMarks();
+        glm::vec4 tickProperties = glm::vec4(_ringProperties.getMajorTickMarksAngle(), _ringProperties.getMajorTickMarksLength(),
+                                             _ringProperties.getMinorTickMarksAngle(), _ringProperties.getMinorTickMarksLength());
+
+        bool transparent;
         withReadLock([&] {
             transform = _renderTransform;
-            hasTickMarks = _ringProperties.getHasTickMarks();
-            tickProperties = glm::vec4(_ringProperties.getMajorTickMarksAngle(), _ringProperties.getMajorTickMarksLength(),
-                                       _ringProperties.getMinorTickMarksAngle(), _ringProperties.getMinorTickMarksLength());
-            forward = _renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD;
+            transparent = isTransparent();
         });
 
-        bool wireframe = render::ShapeKey(args->_globalShapeKey).isWireframe() || _primitiveMode == PrimitiveMode::LINES;
-        geometryCache->bindSimpleProgram(batch, false, isTransparent(), wireframe, true, true, forward, graphics::MaterialKey::CULL_NONE);
+        graphics::MultiMaterial materials;
+        {
+            std::lock_guard<std::mutex> lock(_materialsLock);
+            materials = _materials["0"];
+        }
 
+        bool wireframe = render::ShapeKey(args->_globalShapeKey).isWireframe() || _primitiveMode == PrimitiveMode::LINES;
+
+        transform.setRotation(BillboardModeHelpers::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode,
+            args->_renderMode == RenderArgs::RenderMode::SHADOW_RENDER_MODE ? BillboardModeHelpers::getPrimaryViewFrustumPosition() : args->getViewFrustum().getPosition(), true));
         batch.setModelTransform(transform);
+
+        Pipeline pipelineType = getPipelineType(materials);
+        if (pipelineType == Pipeline::PROCEDURAL) {
+            auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(materials.top().material);
+            transparent |= procedural->isFading();
+            procedural->prepare(batch, transform.getTranslation(), transform.getScale(), transform.getRotation(), _created, ProceduralProgramKey(transparent));
+        } else if (pipelineType == Pipeline::MATERIAL) {
+            if (RenderPipelines::bindMaterials(materials, batch, args->_renderMode, args->_enableTexturing)) {
+                args->_details._materialSwitches++;
+            }
+        }
 
         // Background circle
         geometryCache->renderVertices(batch, wireframe ? gpu::LINE_STRIP : _solidPrimitive, _ringGeometryID);

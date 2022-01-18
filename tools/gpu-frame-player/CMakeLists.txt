@@ -2,6 +2,7 @@
 set(TARGET_NAME gpu-frame-player)
 
 setup_memory_debugger()
+setup_thread_debugger()
 
 if (APPLE)
     set(CMAKE_MACOSX_BUNDLE TRUE)
@@ -21,6 +22,8 @@ link_hifi_libraries(
 )
 
 target_compile_definitions(${TARGET_NAME} PRIVATE USE_GL)
+
+set(OpenGL_GL_PREFERENCE "LEGACY")
 target_opengl()
 #target_vulkan()
 

@@ -44,8 +44,8 @@
 
         createTargets: function() {
 
-            var MODEL_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/ping_pong_gun/target.fbx';
-            var COLLISION_HULL_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/ping_pong_gun/target_collision_hull.obj';
+            var MODEL_URL = 'https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/ping_pong_gun/target.fbx';
+            var COLLISION_HULL_URL = 'https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/ping_pong_gun/target_collision_hull.obj';
 
             var MINIMUM_MOVE_LENGTH = 0.05;
             var RESET_DISTANCE = 0.5;

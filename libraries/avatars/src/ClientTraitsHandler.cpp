@@ -28,7 +28,8 @@ ClientTraitsHandler::ClientTraitsHandler(AvatarData* owningAvatar) :
         }
     });
 
-    nodeList->getPacketReceiver().registerListener(PacketType::SetAvatarTraits, this, "processTraitOverride");
+    nodeList->getPacketReceiver().registerListener(PacketType::SetAvatarTraits,
+        PacketReceiver::makeSourcedListenerReference<ClientTraitsHandler>(this, &ClientTraitsHandler::processTraitOverride));
 }
 
 void ClientTraitsHandler::markTraitUpdated(AvatarTraits::TraitType updatedTrait) {

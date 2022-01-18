@@ -14,6 +14,8 @@
 
 #include "RenderableEntityItem.h"
 
+#include <procedural/Procedural.h>
+
 class TextEntityItem;
 class TextRenderer3D;
 
@@ -33,7 +35,7 @@ public:
 protected:
     bool isTransparent() const override;
     bool isTextTransparent() const;
-    Item::Bound getBound() override;
+    Item::Bound getBound(RenderArgs* args) override;
     ShapeKey getShapeKey() override;
     ItemKey getKey() override;
     virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) const override;
@@ -42,7 +44,7 @@ protected:
     void onRemoveFromSceneTyped(const TypedEntityPointer& entity) override;
 
 private:
-    virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
+    virtual bool needsRenderUpdate() const override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
     virtual void doRender(RenderArgs* args) override;
@@ -55,19 +57,21 @@ private:
     float _lineHeight;
     glm::vec3 _textColor;
     float _textAlpha;
-    glm::vec3 _backgroundColor;
-    float _backgroundAlpha;
     bool _unlit;
+
+    std::shared_ptr<graphics::ProceduralMaterial> _material { std::make_shared<graphics::ProceduralMaterial>() };
+    glm::vec3 _backgroundColor { NAN };
+    float _backgroundAlpha { NAN };
 
     float _leftMargin;
     float _rightMargin;
     float _topMargin;
     float _bottomMargin;
 
-    BillboardMode _billboardMode;
     glm::vec3 _dimensions;
 
     QString _font { "" };
+    TextAlignment _alignment { TextAlignment::LEFT };
     TextEffect _effect { TextEffect::NO_EFFECT };
     glm::vec3 _effectColor { 0 };
     float _effectThickness { 0.0f };
@@ -91,7 +95,7 @@ public:
     typedef Payload::DataPointer Pointer;
 
     ItemKey getKey() const;
-    Item::Bound getBound() const;
+    Item::Bound getBound(RenderArgs* args) const;
     ShapeKey getShapeKey() const;
     void render(RenderArgs* args);
     bool passesZoneOcclusionTest(const std::unordered_set<QUuid>& containingZones) const;
@@ -107,7 +111,7 @@ protected:
 
 namespace render {
     template <> const ItemKey payloadGetKey(const entities::TextPayload::Pointer& payload);
-    template <> const Item::Bound payloadGetBound(const entities::TextPayload::Pointer& payload);
+    template <> const Item::Bound payloadGetBound(const entities::TextPayload::Pointer& payload, RenderArgs* args);
     template <> const ShapeKey shapeGetShapeKey(const entities::TextPayload::Pointer& payload);
     template <> void payloadRender(const entities::TextPayload::Pointer& payload, RenderArgs* args);
     template <> bool payloadPassesZoneOcclusionTest(const entities::TextPayload::Pointer& payload, const std::unordered_set<QUuid>& containingZones);

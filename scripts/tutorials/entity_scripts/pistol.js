@@ -30,8 +30,8 @@
         this.forceMultiplier = 1;
         this.laserLength = 100;
 
-        this.fireSound = SoundCache.getSound("http://hifi-production.s3.amazonaws.com/tutorials/pistol/GUN-SHOT2.raw");
-        this.ricochetSound = SoundCache.getSound("http://hifi-production.s3.amazonaws.com/tutorials/pistol/Ricochet.L.wav");
+        this.fireSound = SoundCache.getSound("https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/pistol/GUN-SHOT2.raw");
+        this.ricochetSound = SoundCache.getSound("https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/pistol/Ricochet.L.wav");
         this.playRichochetSoundChance = 0.1;
         this.fireVolume = 0.2;
         this.bulletForce = 10;
@@ -220,7 +220,7 @@
                 "alphaStart": 0,
                 "alphaFinish": 0,
                 "additiveBlending": true,
-                "textures": "http://hifi-production.s3.amazonaws.com/tutorials/pistol/star.png"
+                "textures": "https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/pistol/star.png"
             });
 
             Script.setTimeout(function() {
@@ -270,7 +270,7 @@
                 "alphaStart": 0,
                 "alphaFinish": 0,
                 "additiveBlending": 0,
-                "textures": "http://hifi-production.s3.amazonaws.com/tutorials/pistol/smoke.png"
+                "textures": "https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/pistol/smoke.png"
             });
             Script.setTimeout(function() {
                 Entities.editEntity(smoke, {
@@ -333,7 +333,7 @@
                 "alphaStart": 0,
                 "alphaFinish": 0,
                 "additiveBlending": true,
-                "textures": "http://hifi-production.s3.amazonaws.com/tutorials/pistol/star.png"
+                "textures": "https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/pistol/star.png"
             });
             Script.setTimeout(function() {
                 Entities.editEntity(flash, {

@@ -13,8 +13,8 @@
 
     Script.include("../libraries/utils.js");
 
-    var SHOOTING_SOUND_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/ping_pong_gun/pong_sound.wav';
-    var PING_PONG_BALL_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/ping_pong_gun/ping_pong_ball.fbx';
+    var SHOOTING_SOUND_URL = 'https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/ping_pong_gun/pong_sound.wav';
+    var PING_PONG_BALL_URL = 'https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/ping_pong_gun/ping_pong_ball.fbx';
 
     function PingPongGun() {
         return;

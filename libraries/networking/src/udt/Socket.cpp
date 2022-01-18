@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2015-07-20.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -123,7 +124,7 @@ void Socket::setSystemBufferSizes() {
     }
 }
 
-qint64 Socket::writeBasePacket(const udt::BasePacket& packet, const HifiSockAddr &sockAddr) {
+qint64 Socket::writeBasePacket(const udt::BasePacket& packet, const SockAddr &sockAddr) {
     // Since this is a base packet we have no way to know if this is reliable or not - we just fire it off
 
     // this should not be called with an instance of Packet
@@ -133,7 +134,7 @@ qint64 Socket::writeBasePacket(const udt::BasePacket& packet, const HifiSockAddr
     return writeDatagram(packet.getData(), packet.getDataSize(), sockAddr);
 }
 
-qint64 Socket::writePacket(const Packet& packet, const HifiSockAddr& sockAddr) {
+qint64 Socket::writePacket(const Packet& packet, const SockAddr& sockAddr) {
     Q_ASSERT_X(!packet.isReliable(), "Socket::writePacket", "Cannot send a reliable packet unreliably");
 
     SequenceNumber sequenceNumber;
@@ -154,7 +155,7 @@ qint64 Socket::writePacket(const Packet& packet, const HifiSockAddr& sockAddr) {
     return writeDatagram(packet.getData(), packet.getDataSize(), sockAddr);
 }
 
-qint64 Socket::writePacket(std::unique_ptr<Packet> packet, const HifiSockAddr& sockAddr) {
+qint64 Socket::writePacket(std::unique_ptr<Packet> packet, const SockAddr& sockAddr) {
 
     if (packet->isReliable()) {
         // hand this packet off to writeReliablePacket
@@ -163,7 +164,7 @@ qint64 Socket::writePacket(std::unique_ptr<Packet> packet, const HifiSockAddr& s
         if (QThread::currentThread() != thread()) {
             QMetaObject::invokeMethod(this, "writeReliablePacket", Qt::QueuedConnection,
                                       Q_ARG(Packet*, packet.release()),
-                                      Q_ARG(HifiSockAddr, sockAddr));
+                                      Q_ARG(SockAddr, sockAddr));
         } else {
             writeReliablePacket(packet.release(), sockAddr);
         }
@@ -174,7 +175,7 @@ qint64 Socket::writePacket(std::unique_ptr<Packet> packet, const HifiSockAddr& s
     return writePacket(*packet, sockAddr);
 }
 
-qint64 Socket::writePacketList(std::unique_ptr<PacketList> packetList, const HifiSockAddr& sockAddr) {
+qint64 Socket::writePacketList(std::unique_ptr<PacketList> packetList, const SockAddr& sockAddr) {
 
     if (packetList->getNumPackets() == 0) {
         qCWarning(networking) << "Trying to send packet list with 0 packets, bailing.";
@@ -189,7 +190,7 @@ qint64 Socket::writePacketList(std::unique_ptr<PacketList> packetList, const Hif
             auto ptr = packetList.release();
             QMetaObject::invokeMethod(this, "writeReliablePacketList", Qt::AutoConnection,
                                       Q_ARG(PacketList*, ptr),
-                                      Q_ARG(HifiSockAddr, sockAddr));
+                                      Q_ARG(SockAddr, sockAddr));
         } else {
             writeReliablePacketList(packetList.release(), sockAddr);
         }
@@ -205,7 +206,7 @@ qint64 Socket::writePacketList(std::unique_ptr<PacketList> packetList, const Hif
     return totalBytesSent;
 }
 
-void Socket::writeReliablePacket(Packet* packet, const HifiSockAddr& sockAddr) {
+void Socket::writeReliablePacket(Packet* packet, const SockAddr& sockAddr) {
     auto connection = findOrCreateConnection(sockAddr);
     if (connection) {
         connection->sendReliablePacket(std::unique_ptr<Packet>(packet));
@@ -218,7 +219,7 @@ void Socket::writeReliablePacket(Packet* packet, const HifiSockAddr& sockAddr) {
 
 }
 
-void Socket::writeReliablePacketList(PacketList* packetList, const HifiSockAddr& sockAddr) {
+void Socket::writeReliablePacketList(PacketList* packetList, const SockAddr& sockAddr) {
     auto connection = findOrCreateConnection(sockAddr);
     if (connection) {
         connection->sendReliablePacketList(std::unique_ptr<PacketList>(packetList));
@@ -230,11 +231,11 @@ void Socket::writeReliablePacketList(PacketList* packetList, const HifiSockAddr&
 #endif
 }
 
-qint64 Socket::writeDatagram(const char* data, qint64 size, const HifiSockAddr& sockAddr) {
+qint64 Socket::writeDatagram(const char* data, qint64 size, const SockAddr& sockAddr) {
     return writeDatagram(QByteArray::fromRawData(data, size), sockAddr);
 }
 
-qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& sockAddr) {
+qint64 Socket::writeDatagram(const QByteArray& datagram, const SockAddr& sockAddr) {
 
     // don't attempt to write the datagram if we're unbound.  Just drop it.
     // _udpSocket.writeDatagram will return an error anyway, but there are
@@ -270,7 +271,7 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
     return bytesWritten;
 }
 
-Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr, bool filterCreate) {
+Connection* Socket::findOrCreateConnection(const SockAddr& sockAddr, bool filterCreate) {
     Lock connectionsLock(_connectionsHashMutex);
     auto it = _connectionsHash.find(sockAddr);
 
@@ -319,7 +320,7 @@ void Socket::clearConnections() {
     }
 }
 
-void Socket::cleanupConnection(HifiSockAddr sockAddr) {
+void Socket::cleanupConnection(SockAddr sockAddr) {
     Lock connectionsLock(_connectionsHashMutex);
     auto numErased = _connectionsHash.erase(sockAddr);
 
@@ -390,8 +391,8 @@ void Socket::readPendingDatagrams() {
         // grab a time point we can mark as the receive time of this packet
         auto receiveTime = p_high_resolution_clock::now();
 
-        // setup a HifiSockAddr to read into
-        HifiSockAddr senderSockAddr;
+        // setup a SockAddr to read into
+        SockAddr senderSockAddr;
 
         // setup a buffer to read the packet into
         auto buffer = std::unique_ptr<char[]>(new char[packetSizeWithHeader]);
@@ -413,7 +414,7 @@ void Socket::readPendingDatagrams() {
         auto it = _unfilteredHandlers.find(senderSockAddr);
 
         if (it != _unfilteredHandlers.end()) {
-            // we have a registered unfiltered handler for this HifiSockAddr - call that and return
+            // we have a registered unfiltered handler for this SockAddr - call that and return
             if (it->second) {
                 auto basePacket = BasePacket::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
                 basePacket->setReceiveTime(receiveTime);
@@ -482,7 +483,7 @@ void Socket::readPendingDatagrams() {
     }
 }
 
-void Socket::connectToSendSignal(const HifiSockAddr& destinationAddr, QObject* receiver, const char* slot) {
+void Socket::connectToSendSignal(const SockAddr& destinationAddr, QObject* receiver, const char* slot) {
     Lock connectionsLock(_connectionsHashMutex);
     auto it = _connectionsHash.find(destinationAddr);
     if (it != _connectionsHash.end()) {
@@ -507,7 +508,7 @@ void Socket::setConnectionMaxBandwidth(int maxBandwidth) {
     }
 }
 
-ConnectionStats::Stats Socket::sampleStatsForConnection(const HifiSockAddr& destination) {
+ConnectionStats::Stats Socket::sampleStatsForConnection(const SockAddr& destination) {
     auto it = _connectionsHash.find(destination);
     if (it != _connectionsHash.end()) {
         return it->second->sampleStats();
@@ -528,8 +529,8 @@ Socket::StatsVector Socket::sampleStatsForAllConnections() {
 }
 
 
-std::vector<HifiSockAddr> Socket::getConnectionSockAddrs() {
-    std::vector<HifiSockAddr> addr;
+std::vector<SockAddr> Socket::getConnectionSockAddrs() {
+    std::vector<SockAddr> addr;
     Lock connectionsLock(_connectionsHashMutex);
 
     addr.reserve(_connectionsHash.size());
@@ -569,7 +570,7 @@ void Socket::handleStateChanged(QAbstractSocket::SocketState socketState) {
     }
 }
 
-void Socket::handleRemoteAddressChange(HifiSockAddr previousAddress, HifiSockAddr currentAddress) {
+void Socket::handleRemoteAddressChange(SockAddr previousAddress, SockAddr currentAddress) {
     {
         Lock connectionsLock(_connectionsHashMutex);
 
@@ -597,7 +598,7 @@ void Socket::handleRemoteAddressChange(HifiSockAddr previousAddress, HifiSockAdd
 
 #if (PR_BUILD || DEV_BUILD)
 
-void Socket::sendFakedHandshakeRequest(const HifiSockAddr& sockAddr) {
+void Socket::sendFakedHandshakeRequest(const SockAddr& sockAddr) {
     auto connection = findOrCreateConnection(sockAddr);
     if (connection) {
         connection->sendHandshakeRequest();

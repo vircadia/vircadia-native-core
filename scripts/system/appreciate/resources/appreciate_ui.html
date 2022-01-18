@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<!--
+    Appreciate
+    Created by Zach Fox on 2019-01-30
+    Copyright 2019 High Fidelity, Inc.
+
+    Distributed under the Apache License, Version 2.0.
+    See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+-->
+
+<html>
+    <head>
+        <title>Appreciate</title>
+        <meta charset="utf-8">
+        <link rel="stylesheet" type="text/css" href="css/style.css">
+        <link href="https://fonts.googleapis.com/css?family=Raleway" rel="stylesheet">
+        <!--I modified jscolor to prevent it from printing the color code to the value of the input onchange. -->
+        <script type="text/javascript" src="js/jscolor.js"></script>
+    </head>
+
+    <body>
+        <div id="loadingContainer">
+        </div>
+
+        <div id="mainContainer">
+            <div id="titleBarContainer">
+                <div id="titleText" style="font-weight:bold;">
+                    Appreciate v1.5
+                </div>
+                <label class="switch">
+                    <input id="appreciateSwitch" type="checkbox" onclick="appreciateSwitchClicked(this)">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+
+            <div id="firstRun" style="display:none;">
+                <i id="tutorialArrow"></i>
+                <div>&nbsp;Use this switch to enable and disable the Appreciate app.</div>
+            </div>
+
+            <div id="progressBarContainer">
+                <span style="font-weight:bold;">Intensity Meter</span>
+                <div id="currentIntensityDisplay">
+                    <span id="currentIntensity" style="width:0%"></span>
+                </div>
+                <div id="crosshatch"></div>
+            </div>
+
+            <div id="optionsContainer">
+                <span style="font-weight:bold;">Options</span>
+
+                <label id="neverWhistleContainer">
+                    Never Whistle
+                    <input id="neverWhistleCheckbox" type="checkbox" onclick="neverWhistleCheckboxClicked(this)">
+                    <span class="checkmark"></span>
+                </label>
+
+                <label id="showAppreciationEntityContainer">
+                    Show Appreciation Dodecahedron
+                    <input id="showAppreciationEntityCheckbox" type="checkbox" onclick="showAppreciationEntityCheckboxClicked(this)">
+                    <span class="checkmark"></span>
+                </label>
+
+                <div id="colorPickerContainer">
+                    <input type="button" id="colorPicker" class="jscolor"
+                        onchange="setEntityColor(this.jscolor)" value="Choose Dodecahedron Color">
+                    </input>
+                </div>
+            </div>
+
+            <div id="instructions">
+                <div id="desktopModeInstructions">
+                    Desktop Mode:<br/>Tap or hold the Z key on your keyboard!
+                </div>
+                <div id="vrModeInstructions">
+                    VR Mode:<br/>Raise your hands above your head and shake them!
+                </div>
+            </div>
+        </div>
+        
+        <!--Include this script here so it only executes once the DOM is ready.-->
+        <script type="text/javascript" src="js/appreciate_ui.js"></script>
+    </body>
+</html>

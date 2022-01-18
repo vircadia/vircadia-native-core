@@ -4,6 +4,7 @@
 //
 //  Created by Vlad Stelmahovsky on 15/5/2018.
 //  Copyright 2018 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -40,22 +41,36 @@ QString AboutUtil::getBuildVersion() const {
     return BuildInfo::VERSION;
 }
 
+QString AboutUtil::getReleaseName() const {
+    return BuildInfo::RELEASE_NAME;
+}
+
 QString AboutUtil::getQtVersion() const {
     return qVersion();
 }
 
 void AboutUtil::openUrl(const QString& url) const {
+    auto abboutUtilInstance = AboutUtil::getInstance();
+    if (!abboutUtilInstance) {
+        return;
+    }
+
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(abboutUtilInstance, "openUrl", Q_ARG(const QString&, url));
+        return;
+    }
+
     auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    auto offscreenUI = DependencyManager::get<OffscreenUi>();
 
-    if (tablet->getToolbarMode()) {
-        offscreenUi->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
+    if (tablet->getToolbarMode() && offscreenUI) {
+        offscreenUI->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
             newObject->setProperty("url", url);
         });
     } else {
-        if (!hmd->getShouldShowTablet() && !qApp->isHMDMode()) {
-            offscreenUi->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
+        if (!hmd->getShouldShowTablet() && !qApp->isHMDMode() && offscreenUI) {
+            offscreenUI->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
                 newObject->setProperty("url", url);
             });
         } else {

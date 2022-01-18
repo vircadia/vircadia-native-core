@@ -282,3 +282,32 @@ void MultiMaterial::calculateMaterialInfo() const {
         _hasCalculatedTextureInfo = allTextures;
     }
 }
+
+void MultiMaterial::resetReferenceTexturesAndMaterials() {
+    _referenceTextures.clear();
+    _referenceMaterials.clear();
+}
+
+void MultiMaterial::addReferenceTexture(const std::function<gpu::TexturePointer()>& textureOperator) {
+    _referenceTextures.emplace_back(textureOperator, textureOperator());
+}
+
+void MultiMaterial::addReferenceMaterial(const std::function<graphics::MaterialPointer()>& materialOperator) {
+    _referenceMaterials.emplace_back(materialOperator, materialOperator());
+}
+
+bool MultiMaterial::anyReferenceMaterialsOrTexturesChanged() const {
+    for (auto textureOperatorPair : _referenceTextures) {
+        if (textureOperatorPair.first() != textureOperatorPair.second) {
+            return true;
+        }
+    }
+
+    for (auto materialOperatorPair : _referenceMaterials) {
+        if (materialOperatorPair.first() != materialOperatorPair.second) {
+            return true;
+        }
+    }
+
+    return false;
+}

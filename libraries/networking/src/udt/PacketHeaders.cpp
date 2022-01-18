@@ -24,7 +24,7 @@ int packetTypeMetaTypeId = qRegisterMetaType<PacketType>();
 
 PacketVersion versionForPacketType(PacketType packetType) {
     switch (packetType) {
-        case PacketType::StunResponse:
+        case PacketType::DomainConnectRequestPending: // keeping the old version to maintain the protocol hash
             return 17;
         case PacketType::DomainList:
             return static_cast<PacketVersion>(DomainListVersion::HasConnectReason);

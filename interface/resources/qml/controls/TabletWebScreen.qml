@@ -27,7 +27,11 @@ Item {
     }
     */
 
-    property alias viewProfile: webroot.webViewCoreProfile
+    // FIXME - Reimplement profiles for... why? Was it so that new windows opened share the same profile? 
+    //         Are profiles written to by the webengine during the session?
+    //         Removed in PR Feature/web entity user agent #988
+    //
+    // property alias viewProfile: webroot.webViewCoreProfile
 
     FlickableWebViewCore {
         id: webroot

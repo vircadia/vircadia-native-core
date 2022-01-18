@@ -16,7 +16,7 @@
     var _this;
     Cat = function() {
         _this = this;
-        this.meowSound = SoundCache.getSound("http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/cat/cat_meow.wav");
+        this.meowSound = SoundCache.getSound("https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/cat/cat_meow.wav");
     };
 
     Cat.prototype = {

@@ -13,7 +13,7 @@
 
 class CauterizedMeshPartPayload : public ModelMeshPartPayload {
 public:
-    CauterizedMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform, const uint64_t& created);
+    CauterizedMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const uint64_t& created);
 
     // matrix palette skinning
     void updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices,
@@ -23,9 +23,9 @@ public:
     void updateClusterBuffer(const std::vector<Model::TransformDualQuaternion>& clusterDualQuaternions,
                              const std::vector<Model::TransformDualQuaternion>& cauterizedClusterQuaternions);
 
-    void updateTransformForCauterizedMesh(const Transform& renderTransform);
+    void updateTransformForCauterizedMesh(const Transform& modelTransform, const Model::MeshState& meshState, bool useDualQuaternionSkinning);
 
-    void bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const override;
+    void bindTransform(gpu::Batch& batch, const Transform& transform, RenderArgs::RenderMode renderMode) const override;
 
     void setEnableCauterization(bool enableCauterization) { _enableCauterization = enableCauterization; }
 

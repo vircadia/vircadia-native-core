@@ -2,18 +2,19 @@
 #  CPackProperties.cmake.in
 #  cmake/templates
 #
-#  Copyright 2016 High Fidelity, Inc.
 #  Created by Stephen Birarda on January 11, 2016
+#  Copyright 2016 High Fidelity, Inc.
+#  Copyright 2020 Vircadia contributors.
 #
 #  Distributed under the Apache License, Version 2.0.
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 #
 
-set(INTERFACE_DISPLAY_NAME "Interface")
+set(INTERFACE_DISPLAY_NAME "Vircadia")
 set(INTERFACE_SHORTCUT_NAME "@INTERFACE_SHORTCUT_NAME@")
 set(INTERFACE_HF_SHORTCUT_NAME "@INTERFACE_HF_SHORTCUT_NAME@")
 set(INTERFACE_WIN_EXEC_NAME "@INTERFACE_EXEC_PREFIX@.exe")
-set(CONSOLE_DISPLAY_NAME "Console")
+set(CONSOLE_DISPLAY_NAME "Vircadia Server Console")
 set(CONSOLE_INSTALL_SUBDIR "@CONSOLE_INSTALL_DIR@")
 set(CONSOLE_SHORTCUT_NAME "@CONSOLE_SHORTCUT_NAME@")
 set(CONSOLE_HF_SHORTCUT_NAME "@CONSOLE_HF_SHORTCUT_NAME@")
@@ -22,9 +23,9 @@ set(SANDBOX_HF_SHORTCUT_NAME "@SANDBOX_HF_SHORTCUT_NAME@")
 set(CONSOLE_WIN_EXEC_NAME "@CONSOLE_EXEC_NAME@")
 set(PRE_SANDBOX_INTERFACE_SHORTCUT_NAME "@PRE_SANDBOX_INTERFACE_SHORTCUT_NAME@")
 set(PRE_SANDBOX_CONSOLE_SHORTCUT_NAME "@PRE_SANDBOX_CONSOLE_SHORTCUT_NAME@")
-set(DS_DISPLAY_NAME "Domain Server")
+set(DS_DISPLAY_NAME "Vircadia Domain Server")
 set(DS_EXEC_NAME "@DS_EXEC_NAME@")
-set(AC_DISPLAY_NAME "Assignment Client")
+set(AC_DISPLAY_NAME "Vircadia Assignment Client")
 set(AC_EXEC_NAME "@AC_EXEC_NAME@")
 set(HIGH_FIDELITY_PROTOCOL "@HIGH_FIDELITY_PROTOCOL@")
 set(HIGH_FIDELITY_APP_PROTOCOL "@HIGH_FIDELITY_APP_PROTOCOL@")

@@ -18,7 +18,7 @@
 
 #include "DependencyManager.h"
 
-/**jsdoc
+/*@jsdoc
  * The <code>Paths</code> API provides absolute paths to the scripts and resources directories.
  *
  * @namespace Paths

@@ -50,6 +50,11 @@ add_subdirectory(${DIR})
 set(DIR "opusCodec")
 add_subdirectory(${DIR})
 
+if (NOT CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+  set(DIR "hifiCodec")
+  add_subdirectory(${DIR})
+endif()
+
 # example plugins
-set(DIR "KasenAPIExample")
+set(DIR "JSAPIExample")
 add_subdirectory(${DIR})

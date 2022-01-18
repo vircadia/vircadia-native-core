@@ -15,8 +15,8 @@ Script.include(utilsPath);
 
 var SCRIPT_URL = Script.resolvePath('bow.js');
 
-var MODEL_URL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/bow/bow-deadly.fbx";
-var COLLISION_HULL_URL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/bow/bow_collision_hull.obj";
+var MODEL_URL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/bow/bow-deadly.fbx";
+var COLLISION_HULL_URL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/bow/bow_collision_hull.obj";
 var BOW_DIMENSIONS = {
     x: 0.04,
     y: 1.3,

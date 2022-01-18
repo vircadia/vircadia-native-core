@@ -4,6 +4,7 @@
 //
 //  Created by Andrzej Kapolka on 5/10/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2020 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -49,6 +50,8 @@
 #include <shared/ConicalViewFrustum.h>
 #include <shared/FileLogger.h>
 #include <RunningMarker.h>
+#include <ModerationFlags.h>
+#include <OffscreenUi.h>
 
 #include "avatar/MyAvatar.h"
 #include "FancyCamera.h"
@@ -324,6 +327,8 @@ public:
     int getOtherAvatarsReplicaCount() { return DependencyManager::get<AvatarHashMap>()->getReplicaCount(); }
     void setOtherAvatarsReplicaCount(int count) { DependencyManager::get<AvatarHashMap>()->setReplicaCount(count); }
 
+    void confirmConnectWithoutAvatarEntities();
+
     bool getLoginDialogPoppedUp() const { return _loginDialogPoppedUp; }
     void createLoginDialog();
     void updateLoginDialogPosition();
@@ -430,6 +435,7 @@ public slots:
     void cycleCamera();
     void cameraModeChanged();
     void cameraMenuChanged();
+    void captureMouseChanged(bool captureMouse);
     void toggleOverlays();
     void setOverlaysVisible(bool visible);
     Q_INVOKABLE void centerUI();
@@ -470,6 +476,8 @@ public slots:
     void setIsInterstitialMode(bool interstitialMode);
 
     void updateVerboseLogging();
+    
+    void setCachebustRequire();
 
     void changeViewAsNeeded(float boomLength);
 
@@ -602,8 +610,9 @@ private:
 
     void maybeToggleMenuVisible(QMouseEvent* event) const;
     void toggleTabletUI(bool shouldOpen = false) const;
+    bool shouldCaptureMouse() const;
 
-    void userKickConfirmation(const QUuid& nodeID);
+    void userKickConfirmation(const QUuid& nodeID, unsigned int banFlags = ModerationFlags::getDefaultBanFlags());
 
     MainWindow* _window;
     QElapsedTimer& _sessionRunTimer;
@@ -718,6 +727,8 @@ private:
     bool _loginDialogPoppedUp{ false };
     bool _desktopRootItemCreated{ false };
 
+    ModalDialogListener* _confirmConnectWithoutAvatarEntitiesDialog { nullptr };
+
     bool _developerMenuVisible{ false };
     QString _previousAvatarSkeletonModel;
     float _previousAvatarTargetScale;
@@ -755,7 +766,9 @@ private:
 
     bool _settingsLoaded { false };
 
-    bool _fakedMouseEvent { false };
+    bool _captureMouse { false };
+    bool _ignoreMouseMove { false };
+    QPointF _mouseCaptureTarget { NAN, NAN };
 
     bool _isMissingSequenceNumbers { false };
 

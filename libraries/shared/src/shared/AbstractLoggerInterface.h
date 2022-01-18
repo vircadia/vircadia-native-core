@@ -23,6 +23,7 @@ public:
     static AbstractLoggerInterface* get();
     AbstractLoggerInterface(QObject* parent = NULL);
     ~AbstractLoggerInterface();
+    inline bool showSourceDebugging() { return _showSourceDebugging; }
     inline bool extraDebugging() { return _extraDebugging; }
     inline bool debugPrint() { return _debugPrint; }
     inline bool infoPrint() { return _infoPrint; }
@@ -31,6 +32,7 @@ public:
     inline bool suppressPrint() { return _suppressPrint; }
     inline bool fatalPrint() { return _fatalPrint; }
     inline bool unknownPrint() { return _unknownPrint; }
+    inline void setShowSourceDebugging(bool showSourceDebugging) { _showSourceDebugging = showSourceDebugging; }
     inline void setExtraDebugging(bool extraDebugging) { _extraDebugging = extraDebugging; }
     inline void setDebugPrint(bool debugPrint) { _debugPrint = debugPrint; }
     inline void setInfoPrint(bool infoPrint) { _infoPrint = infoPrint; }
@@ -49,6 +51,7 @@ signals:
     void logReceived(QString message);
 
 private:
+    bool _showSourceDebugging{ false };
     bool _extraDebugging{ false };
     bool _debugPrint{ true };
     bool _infoPrint{ true };

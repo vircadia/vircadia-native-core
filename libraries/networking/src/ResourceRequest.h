@@ -90,6 +90,7 @@ public:
     void setCacheEnabled(bool value) { _cacheEnabled = value; }
     void setByteRange(ByteRange byteRange) { _byteRange = byteRange; }
 
+    static QString toHttpDateString(uint64_t msecsSinceEpoch);
 public slots:
     void send();
 

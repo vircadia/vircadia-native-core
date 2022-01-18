@@ -55,7 +55,7 @@ Rectangle {
 
         Text {
             id: text1
-            text: qsTr("Model URL")
+            text: qsTr("Model URL <i>(.fbx, .fst, .glb, .gltf, .obj, .gz)</i>")
             color: "#ffffff"
             font.pixelSize: 12
         }
@@ -119,6 +119,12 @@ Rectangle {
                 width: 200
                 height: 600
                 spacing: 10
+
+                CheckBox {
+                    id: useOriginalPivot
+                    text: qsTr("Use Original Pivot")
+                    checked: true
+                }
 
                 CheckBox {
                     id: grabbable
@@ -219,7 +225,8 @@ Rectangle {
                                     url: modelURL.text,
                                     dynamic: dynamic.checked,
                                     collisionShapeIndex: collisionType.currentIndex,
-                                    grabbable: grabbable.checked
+                                    grabbable: grabbable.checked,
+                                    useOriginalPivot: useOriginalPivot.checked
                                 }
                             });
                         }

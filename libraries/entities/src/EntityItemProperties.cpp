@@ -309,7 +309,6 @@ void EntityItemProperties::setScreenshareFromString(const QString& mode) {
     }
 }
 
-
 inline void addTextEffect(QHash<QString, TextEffect>& lookup, TextEffect effect) { lookup[TextEffectHelpers::getNameForTextEffect(effect)] = effect; }
 const QHash<QString, TextEffect> stringToTextEffectLookup = [] {
     QHash<QString, TextEffect> toReturn;
@@ -325,6 +324,23 @@ void EntityItemProperties::setTextEffectFromString(const QString& effect) {
     if (textEffectItr != stringToTextEffectLookup.end()) {
         _textEffect = textEffectItr.value();
         _textEffectChanged = true;
+    }
+}
+
+inline void addTextAlignment(QHash<QString, TextAlignment>& lookup, TextAlignment alignment) { lookup[TextAlignmentHelpers::getNameForTextAlignment(alignment)] = alignment; }
+const QHash<QString, TextAlignment> stringToTextAlignmentLookup = [] {
+    QHash<QString, TextAlignment> toReturn;
+    addTextAlignment(toReturn, TextAlignment::LEFT);
+    addTextAlignment(toReturn, TextAlignment::CENTER);
+    addTextAlignment(toReturn, TextAlignment::RIGHT);
+    return toReturn;
+}();
+QString EntityItemProperties::getAlignmentAsString() const { return TextAlignmentHelpers::getNameForTextAlignment(_alignment); }
+void EntityItemProperties::setAlignmentFromString(const QString& alignment) {
+    auto textAlignmentItr = stringToTextAlignmentLookup.find(alignment.toLower());
+    if (textAlignmentItr != stringToTextAlignmentLookup.end()) {
+        _alignment = textAlignmentItr.value();
+        _alignmentChanged = true;
     }
 }
 
@@ -433,6 +449,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_PRIMITIVE_MODE, primitiveMode);
     CHECK_PROPERTY_CHANGE(PROP_IGNORE_PICK_INTERSECTION, ignorePickIntersection);
     CHECK_PROPERTY_CHANGE(PROP_RENDER_WITH_ZONES, renderWithZones);
+    CHECK_PROPERTY_CHANGE(PROP_BILLBOARD_MODE, billboardMode);
     changedProperties += _grab.getChangedProperties();
 
     // Physics
@@ -493,7 +510,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_ALPHA, alpha);
     changedProperties += _pulse.getChangedProperties();
     CHECK_PROPERTY_CHANGE(PROP_TEXTURES, textures);
-    CHECK_PROPERTY_CHANGE(PROP_BILLBOARD_MODE, billboardMode);
 
     // Particles
     CHECK_PROPERTY_CHANGE(PROP_MAX_PARTICLES, maxParticles);
@@ -538,6 +554,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
     CHECK_PROPERTY_CHANGE(PROP_GROUP_CULLED, groupCulled);
     CHECK_PROPERTY_CHANGE(PROP_BLENDSHAPE_COEFFICIENTS, blendshapeCoefficients);
+    CHECK_PROPERTY_CHANGE(PROP_USE_ORIGINAL_PIVOT, useOriginalPivot);
     changedProperties += _animation.getChangedProperties();
 
     // Light
@@ -563,6 +580,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_TEXT_EFFECT, textEffect);
     CHECK_PROPERTY_CHANGE(PROP_TEXT_EFFECT_COLOR, textEffectColor);
     CHECK_PROPERTY_CHANGE(PROP_TEXT_EFFECT_THICKNESS, textEffectThickness);
+    CHECK_PROPERTY_CHANGE(PROP_TEXT_ALIGNMENT, alignment);
 
     // Zone
     changedProperties += _keyLight.getChangedProperties();
@@ -603,6 +621,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_INPUT_MODE, inputMode);
     CHECK_PROPERTY_CHANGE(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, showKeyboardFocusHighlight);
     CHECK_PROPERTY_CHANGE(PROP_WEB_USE_BACKGROUND, useBackground);
+    CHECK_PROPERTY_CHANGE(PROP_USER_AGENT, userAgent);
 
     // Polyline
     CHECK_PROPERTY_CHANGE(PROP_LINE_POINTS, linePoints);
@@ -645,7 +664,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     return changedProperties;
 }
 
-/**jsdoc
+/*@jsdoc
  * Different entity types have different properties: some common to all entities (listed in the table) and some specific to
  * each {@link Entities.EntityType|EntityType} (linked to below).
  *
@@ -704,7 +723,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *
  * @property {Vec3} naturalPosition=0,0,0 - The center of the entity's unscaled mesh model if it has one, otherwise
  *     {@link Vec3(0)|Vec3.ZERO}. <em>Read-only.</em>
- * @property {Vec3} naturalDimensions - The dimensions of the entity's unscaled mesh model if it has one, otherwise
+ * @property {Vec3} naturalDimensions - The dimensions of the entity's unscaled mesh model or image if it has one, otherwise
  *     {@link Vec3(0)|Vec3.ONE}. <em>Read-only.</em>
  *
  * @property {Vec3} velocity=0,0,0 - The linear velocity of the entity in m/s with respect to world coordinates.
@@ -811,6 +830,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Uuid[]} renderWithZones=[]] - A list of entity IDs representing with which zones this entity should render.
  *     If it is empty, this entity will render normally.  Otherwise, this entity will only render if your avatar is within
  *     one of the zones in this list.
+ * @property {BillboardMode} billboardMode="none" - Whether the entity is billboarded to face the camera.  Use the rotation
+ *     property to control which axis is facing you.
  *
  * @property {Entities.Grab} grab - The entity's grab-related properties.
  *
@@ -850,7 +871,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @see {@link Entities.EntityProperties-Zone|EntityProperties-Zone}
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Box"</code> {@link Entities.EntityType|EntityType} is the same as the <code>"Shape"</code>
  * {@link Entities.EntityType|EntityType} except that its <code>shape</code> value is always set to <code>"Cube"</code>
  * when the entity is created. If its <code>shape</code> property value is subsequently changed then the entity's
@@ -861,7 +882,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @see {@link Entities.EntityProperties-Shape|EntityProperties-Shape}
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Light"</code> {@link Entities.EntityType|EntityType} adds local lighting effects. It has properties in addition
  * to the common {@link Entities.EntityProperties|EntityProperties}.
  *
@@ -890,7 +911,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * });
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Line"</code> {@link Entities.EntityType|EntityType} draws thin, straight lines between a sequence of two or more
  * points. It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
  * <p class=important>Deprecated: Use {@link Entities.EntityProperties-PolyLine|PolyLine} entities instead.</p>
@@ -918,7 +939,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * });
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Material"</code> {@link Entities.EntityType|EntityType} modifies existing materials on entities and avatars. It
  * has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
  * <p>To apply a material to an entity, set the material entity's <code>parentID</code> property to the entity ID.
@@ -930,10 +951,11 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *
  * @typedef {object} Entities.EntityProperties-Material
  * @property {Vec3} dimensions=0.1,0.1,0.1 - Used when <code>materialMappingMode == "projected"</code>.
- * @property {string} materialURL="" - URL to a {@link Entities.MaterialResource|MaterialResource}. If you append
- *     <code>"#name"</code> to the URL, the  material with that name in the {@link Entities.MaterialResource|MaterialResource}
- *     will be applied to the entity. Alternatively, set the property value to <code>"materialData"</code> to use the
- *     <code>materialData</code> property for the {@link Entities.MaterialResource|MaterialResource} values.
+ * @property {string} materialURL="" - URL to a {@link Entities.MaterialResource|MaterialResource}. Alternatively, set the
+ *     property value to <code>"materialData"</code> to use the <code>materialData</code> property for the
+ *     {@link Entities.MaterialResource|MaterialResource} values. If you append <code>"#name"</code> to the URL, the material
+ *     with that name will be applied to the entity. You can also use the ID of another Material entity as the URL, in which
+ *     case this material will act as a copy of that material, with its own unique material transform, priority, etc.
  * @property {string} materialData="" - Used to store {@link Entities.MaterialResource|MaterialResource} data as a JSON string.
  *     You can use <code>JSON.parse()</code> to parse the string into a JavaScript object which you can manipulate the
  *     properties of, and use <code>JSON.stringify()</code> to convert the object into a string to put in the property.
@@ -984,7 +1006,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * });
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Model"</code> {@link Entities.EntityType|EntityType} displays a glTF, FBX, or OBJ model. When adding an entity,
  * if no <code>dimensions</code> value is specified then the model is automatically sized to its
  * <code>{@link Entities.EntityProperties|naturalDimensions}</code>. It has properties in addition to the common
@@ -1002,6 +1024,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {string} blendshapeCoefficients - A JSON string of a map of blendshape names to values.  Only stores set values.
  *     When editing this property, only coefficients that you are editing will change; it will not explicitly reset other
  *     coefficients.
+ * @property {boolean} useOriginalPivot=false - If <code>false</code>, the model will be centered based on its content,
+ *     ignoring any offset in the model itself. If <code>true</code>, the model will respect its original offset.  Currently,
+ *     only pivots relative to <code>{x: 0, y: 0, z: 0}</code> are supported.
  * @property {string} textures="" - A JSON string of texture name, URL pairs used when rendering the model in place of the
  *     model's original textures. Use a texture name from the <code>originalTextures</code> property to override that texture.
  *     Only the texture names and URLs to be overridden need be specified; original textures are used where there are no
@@ -1053,7 +1078,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * });
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"ParticleEffect"</code> {@link Entities.EntityType|EntityType} displays a particle system that can be used to
  * simulate things such as fire, smoke, snow, magic spells, etc. The particles emanate from an ellipsoid or part thereof.
  * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
@@ -1170,7 +1195,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * });
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"PolyLine"</code> {@link Entities.EntityType|EntityType} draws textured, straight lines between a sequence of
  * points. It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
  *
@@ -1214,13 +1239,13 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     ],
  *     strokeWidths: [ 0.1, 0.1, 0.1 ],
  *     color: { red: 255, green: 0, blue: 0 },  // Use just the red channel from the image.
- *     textures: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flowArts/trails.png",
+ *     textures: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/flowArts/trails.png",
  *     isUVModeStretch: true,
  *     lifetime: 300  // Delete after 5 minutes.
  * });
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"PolyVox"</code> {@link Entities.EntityType|EntityType} displays a set of textured voxels.
  * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
  * If you have two or more neighboring PolyVox entities of the same size abutting each other, you can display them as joined by
@@ -1274,7 +1299,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * Entities.setVoxelSphere(polyVox, position, 0.8, 255);
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Shape"</code> {@link Entities.EntityType|EntityType} displays an entity of a specified <code>shape</code>.
  * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
  *
@@ -1295,7 +1320,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * });
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Sphere"</code> {@link Entities.EntityType|EntityType} is the same as the <code>"Shape"</code>
  * {@link Entities.EntityType|EntityType} except that its <code>shape</code> value is always set to <code>"Sphere"</code>
  * when the entity is created. If its <code>shape</code> property value is subsequently changed then the entity's
@@ -1306,7 +1331,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @see {@link Entities.EntityProperties-Shape|EntityProperties-Shape}
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Text"</code> {@link Entities.EntityType|EntityType} displays a 2D rectangle of text in the domain.
  * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
  *
@@ -1332,7 +1357,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Entities.TextEffect} textEffect="none" - The effect that is applied to the text.
  * @property {Color} textEffectColor=255,255,255 - The color of the effect.
  * @property {number} textEffectThickness=0.2 - The magnitude of the text effect, range <code>0.0</code> &ndash; <code>0.5</code>.
- * @property {BillboardMode} billboardMode="none" - Whether the entity is billboarded to face the camera.
+ * @property {Entities.TextAlignment} alignment="left" - How the text is aligned against its background.
  * @property {boolean} faceCamera - <code>true</code> if <code>billboardMode</code> is <code>"yaw"</code>, <code>false</code>
  *     if it isn't. Setting this property to <code>false</code> sets the <code>billboardMode</code> to <code>"none"</code>.
  *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
@@ -1352,10 +1377,11 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * });
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Web"</code> {@link Entities.EntityType|EntityType} displays a browsable web page. Each user views their own copy
  * of the web page: if one user navigates to another page on the entity, other users do not see the change; if a video is being
- * played, users don't see it in sync. It has properties in addition to the common
+ * played, users don't see it in sync. Internally, a Web entity is rendered as a non-repeating, upside down texture, so additional
+ * transformations may be necessary if you reference a Web entity texture by UUID. It has properties in addition to the common
  * {@link Entities.EntityProperties|EntityProperties}.
  *
  * @typedef {object} Entities.EntityProperties-Web
@@ -1368,7 +1394,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} alpha=1 - The opacity of the web surface.
  * @property {Entities.Pulse} pulse - Color and alpha pulse.
  *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
- * @property {BillboardMode} billboardMode="none" - Whether the entity is billboarded to face the camera.
  * @property {boolean} faceCamera - <code>true</code> if <code>billboardMode</code> is <code>"yaw"</code>, <code>false</code>
  *     if it isn't. Setting this property to <code>false</code> sets the <code>billboardMode</code> to <code>"none"</code>.
  *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
@@ -1387,6 +1412,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {boolean} useBackground=true - <code>true</code> if the web entity should have a background,
  *     <code>false</code> if the web entity's background should be transparent. The webpage must have CSS properties for transparency set
  *     on the <code>background-color</code> for this property to have an effect.
+ * @property {string} userAgent - The user agent for the web entity to use when visiting web pages.
+ *     Default value: <code>Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) 
+ *     Chrome/69.0.3497.113 Mobile Safari/537.36</code>
  * @example <caption>Create a Web entity displaying at 1920 x 1080 resolution.</caption>
  * var METERS_TO_INCHES = 39.3701;
  * var entity = Entities.addEntity({
@@ -1404,7 +1432,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * });
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Zone"</code> {@link Entities.EntityType|EntityType} is a volume of lighting effects and avatar permissions.
  * Avatar interaction events such as {@link Entities.enterEntity} are also often used with a Zone entity. It has properties in
  * addition to the common {@link Entities.EntityProperties|EntityProperties}.
@@ -1470,7 +1498,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * });
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Image"</code> {@link Entities.EntityType|EntityType} displays an image on a 2D rectangle in the domain.
  * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
  *
@@ -1487,7 +1515,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} alpha=1 - The opacity of the image.
  * @property {Entities.Pulse} pulse - Color and alpha pulse.
  *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
- * @property {BillboardMode} billboardMode="none" - Whether the entity is billboarded to face the camera.
  * @property {boolean} faceCamera - <code>true</code> if <code>billboardMode</code> is <code>"yaw"</code>, <code>false</code>
  *     if it isn't. Setting this property to <code>false</code> sets the <code>billboardMode</code> to <code>"none"</code>.
  *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
@@ -1506,7 +1533,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * });
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Grid"</code> {@link Entities.EntityType|EntityType} displays a grid on a 2D plane.
  * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
  *
@@ -1534,7 +1561,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * });
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"Gizmo"</code> {@link Entities.EntityType|EntityType} displays an entity that could be used as UI.
  * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
  *
@@ -1611,6 +1638,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_PRIMITIVE_MODE, primitiveMode, getPrimitiveModeAsString());
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IGNORE_PICK_INTERSECTION, ignorePickIntersection);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RENDER_WITH_ZONES, renderWithZones);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BILLBOARD_MODE, billboardMode, getBillboardModeAsString());
     _grab.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
     // Physics
@@ -1733,6 +1761,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_GROUP_CULLED, groupCulled);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_BLENDSHAPE_COEFFICIENTS, blendshapeCoefficients);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_USE_ORIGINAL_PIVOT, useOriginalPivot);
         if (!psuedoPropertyFlagsButDesiredEmpty) {
             _animation.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         }
@@ -1766,7 +1795,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     // Text only
     if (_type == EntityTypes::Text) {
         _pulse.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BILLBOARD_MODE, billboardMode, getBillboardModeAsString());
 
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXT, text);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_HEIGHT, lineHeight);
@@ -1783,6 +1811,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_TEXT_EFFECT, textEffect, getTextEffectAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_TEXT_EFFECT_COLOR, textEffectColor, u8vec3Color);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXT_EFFECT_THICKNESS, textEffectThickness);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_TEXT_ALIGNMENT, alignment, getAlignmentAsString());
     }
 
     // Zones only
@@ -1816,7 +1845,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
         _pulse.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BILLBOARD_MODE, billboardMode, getBillboardModeAsString());
 
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SOURCE_URL, sourceUrl);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DPI, dpi);
@@ -1825,6 +1853,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_INPUT_MODE, inputMode, getInputModeAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, showKeyboardFocusHighlight);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_WEB_USE_BACKGROUND, useBackground);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_USER_AGENT, userAgent);
     }
 
     // PolyVoxel only
@@ -1884,7 +1913,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
         _pulse.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BILLBOARD_MODE, billboardMode, getBillboardModeAsString());
 
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IMAGE_URL, imageURL);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMISSIVE, emissive);
@@ -1917,7 +1945,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         _ring.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
     }
 
-    /**jsdoc
+    /*@jsdoc
      * The axis-aligned bounding box of an entity.
      * @typedef {object} Entities.BoundingBox
      * @property {Vec3} brn - The bottom right near (minimum axes values) corner of the AA box.
@@ -1952,7 +1980,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
         QScriptValue renderInfo = engine->newObject();
 
-        /**jsdoc
+        /*@jsdoc
          * Information on how an entity is rendered. Properties are only filled in for <code>Model</code> entities; other
          * entity types have an empty object, <code>{}</code>.
          * @typedef {object} Entities.RenderInfo
@@ -2032,6 +2060,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(primitiveMode, PrimitiveMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(ignorePickIntersection, bool, setIgnorePickIntersection);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(renderWithZones, qVectorQUuid, setRenderWithZones);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(billboardMode, BillboardMode);
     _grab.copyFromScriptValue(object, _defaultSettings);
 
     // Physics
@@ -2097,7 +2126,6 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alpha, float, setAlpha);
     _pulse.copyFromScriptValue(object, _defaultSettings);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(textures, QString, setTextures);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(billboardMode, BillboardMode);
 
     // Particles
     COPY_PROPERTY_FROM_QSCRIPTVALUE(maxParticles, quint32, setMaxParticles);
@@ -2142,6 +2170,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(relayParentJoints, bool, setRelayParentJoints);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(groupCulled, bool, setGroupCulled);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(blendshapeCoefficients, QString, setBlendshapeCoefficients);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(useOriginalPivot, bool, setUseOriginalPivot);
     _animation.copyFromScriptValue(object, _defaultSettings);
 
     // Light
@@ -2167,6 +2196,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(textEffect, TextEffect);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(textEffectColor, u8vec3Color, setTextEffectColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(textEffectThickness, float, setTextEffectThickness);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(alignment, Alignment);
 
     // Zone
     _keyLight.copyFromScriptValue(object, _defaultSettings);
@@ -2207,6 +2237,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(inputMode, InputMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(showKeyboardFocusHighlight, bool, setShowKeyboardFocusHighlight);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(useBackground, bool, setUseBackground);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(userAgent, QString, setUserAgent);
 
     // Polyline
     COPY_PROPERTY_FROM_QSCRIPTVALUE(linePoints, qVectorVec3, setLinePoints);
@@ -2329,6 +2360,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(primitiveMode);
     COPY_PROPERTY_IF_CHANGED(ignorePickIntersection);
     COPY_PROPERTY_IF_CHANGED(renderWithZones);
+    COPY_PROPERTY_IF_CHANGED(billboardMode);
     _grab.merge(other._grab);
 
     // Physics
@@ -2389,7 +2421,6 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(alpha);
     _pulse.merge(other._pulse);
     COPY_PROPERTY_IF_CHANGED(textures);
-    COPY_PROPERTY_IF_CHANGED(billboardMode);
 
     // Particles
     COPY_PROPERTY_IF_CHANGED(maxParticles);
@@ -2434,6 +2465,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(relayParentJoints);
     COPY_PROPERTY_IF_CHANGED(groupCulled);
     COPY_PROPERTY_IF_CHANGED(blendshapeCoefficients);
+    COPY_PROPERTY_IF_CHANGED(useOriginalPivot);
     _animation.merge(other._animation);
 
     // Light
@@ -2459,6 +2491,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(textEffect);
     COPY_PROPERTY_IF_CHANGED(textEffectColor);
     COPY_PROPERTY_IF_CHANGED(textEffectThickness);
+    COPY_PROPERTY_IF_CHANGED(alignment);
 
     // Zone
     _keyLight.merge(other._keyLight);
@@ -2499,6 +2532,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(inputMode);
     COPY_PROPERTY_IF_CHANGED(showKeyboardFocusHighlight);
     COPY_PROPERTY_IF_CHANGED(useBackground);
+    COPY_PROPERTY_IF_CHANGED(userAgent);
 
     // Polyline
     COPY_PROPERTY_IF_CHANGED(linePoints);
@@ -2625,6 +2659,7 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_PRIMITIVE_MODE, PrimitiveMode, primitiveMode, PrimitiveMode);
         ADD_PROPERTY_TO_MAP(PROP_IGNORE_PICK_INTERSECTION, IgnorePickIntersection, ignorePickIntersection, bool);
         ADD_PROPERTY_TO_MAP(PROP_RENDER_WITH_ZONES, RenderWithZones, renderWithZones, QVector<QUuid>);
+        ADD_PROPERTY_TO_MAP(PROP_BILLBOARD_MODE, BillboardMode, billboardMode, BillboardMode);
         { // Grab
             ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_GRABBABLE, Grab, grab, Grabbable, grabbable);
             ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_KINEMATIC, Grab, grab, GrabKinematic, grabKinematic);
@@ -2721,7 +2756,6 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
             ADD_GROUP_PROPERTY_TO_MAP(PROP_PULSE_ALPHA_MODE, Pulse, pulse, AlphaMode, alphaMode);
         }
         ADD_PROPERTY_TO_MAP(PROP_TEXTURES, Textures, textures, QString);
-        ADD_PROPERTY_TO_MAP(PROP_BILLBOARD_MODE, BillboardMode, billboardMode, BillboardMode);
 
         // Particles
         ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_MAX_PARTICLES, MaxParticles, maxParticles, quint32,
@@ -2790,6 +2824,7 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_RELAY_PARENT_JOINTS, RelayParentJoints, relayParentJoints, bool);
         ADD_PROPERTY_TO_MAP(PROP_GROUP_CULLED, GroupCulled, groupCulled, bool);
         ADD_PROPERTY_TO_MAP(PROP_BLENDSHAPE_COEFFICIENTS, BlendshapeCoefficients, blendshapeCoefficients, QString);
+        ADD_PROPERTY_TO_MAP(PROP_USE_ORIGINAL_PIVOT, UseOriginalPivot, useOriginalPivot, bool);
         { // Animation
             ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_URL, Animation, animation, URL, url);
             ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_ALLOW_TRANSLATION, Animation, animation, AllowTranslation, allowTranslation);
@@ -2826,6 +2861,7 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_TEXT_EFFECT, TextEffect, textEffect, TextEffect);
         ADD_PROPERTY_TO_MAP(PROP_TEXT_EFFECT_COLOR, TextEffectColor, textEffectColor, u8vec3Color);
         ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_TEXT_EFFECT_THICKNESS, TextEffectThickness, textEffectThickness, float, 0.0, 0.5);
+        ADD_PROPERTY_TO_MAP(PROP_TEXT_ALIGNMENT, Alignment, alignment, TextAlignment);
 
         // Zone
         { // Keylight
@@ -2899,6 +2935,7 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_INPUT_MODE, InputMode, inputMode, WebInputMode);
         ADD_PROPERTY_TO_MAP(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, ShowKeyboardFocusHighlight, showKeyboardFocusHighlight, bool);
         ADD_PROPERTY_TO_MAP(PROP_WEB_USE_BACKGROUND, useBackground, useBackground, bool);
+        ADD_PROPERTY_TO_MAP(PROP_USER_AGENT, UserAgent, userAgent, QString);
 
         // Polyline
         ADD_PROPERTY_TO_MAP(PROP_LINE_POINTS, LinePoints, linePoints, QVector<vec3>);
@@ -2970,7 +3007,7 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
     return false;
 }
 
-/**jsdoc
+/*@jsdoc
  * Information about an entity property.
  * @typedef {object} Entities.EntityPropertyInfo
  * @property {number} propertyEnum - The internal number of the property.
@@ -3117,6 +3154,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             APPEND_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, (uint32_t)properties.getPrimitiveMode());
             APPEND_ENTITY_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, properties.getIgnorePickIntersection());
             APPEND_ENTITY_PROPERTY(PROP_RENDER_WITH_ZONES, properties.getRenderWithZones());
+            APPEND_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, (uint32_t)properties.getBillboardMode());
             _staticGrab.setProperties(properties);
             _staticGrab.appendToEditPacket(packetData, requestedProperties, propertyFlags,
                                            propertiesDidntFit, propertyCount, appendState);
@@ -3231,6 +3269,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_RELAY_PARENT_JOINTS, properties.getRelayParentJoints());
                 APPEND_ENTITY_PROPERTY(PROP_GROUP_CULLED, properties.getGroupCulled());
                 APPEND_ENTITY_PROPERTY(PROP_BLENDSHAPE_COEFFICIENTS, properties.getBlendshapeCoefficients());
+                APPEND_ENTITY_PROPERTY(PROP_USE_ORIGINAL_PIVOT, properties.getUseOriginalPivot());
 
                 _staticAnimation.setProperties(properties);
                 _staticAnimation.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
@@ -3249,7 +3288,6 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 _staticPulse.setProperties(properties);
                 _staticPulse.appendToEditPacket(packetData, requestedProperties, propertyFlags,
                     propertiesDidntFit, propertyCount, appendState);
-                APPEND_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, (uint32_t)properties.getBillboardMode());
 
                 APPEND_ENTITY_PROPERTY(PROP_TEXT, properties.getText());
                 APPEND_ENTITY_PROPERTY(PROP_LINE_HEIGHT, properties.getLineHeight());
@@ -3266,6 +3304,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_TEXT_EFFECT, (uint32_t)properties.getTextEffect());
                 APPEND_ENTITY_PROPERTY(PROP_TEXT_EFFECT_COLOR, properties.getTextEffectColor());
                 APPEND_ENTITY_PROPERTY(PROP_TEXT_EFFECT_THICKNESS, properties.getTextEffectThickness());
+                APPEND_ENTITY_PROPERTY(PROP_TEXT_ALIGNMENT, (uint32_t)properties.getAlignment());
             }
 
             if (properties.getType() == EntityTypes::Zone) {
@@ -3321,7 +3360,6 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 _staticPulse.setProperties(properties);
                 _staticPulse.appendToEditPacket(packetData, requestedProperties, propertyFlags,
                     propertiesDidntFit, propertyCount, appendState);
-                APPEND_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, (uint32_t)properties.getBillboardMode());
 
                 APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, properties.getSourceUrl());
                 APPEND_ENTITY_PROPERTY(PROP_DPI, properties.getDPI());
@@ -3330,6 +3368,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_INPUT_MODE, (uint32_t)properties.getInputMode());
                 APPEND_ENTITY_PROPERTY(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, properties.getShowKeyboardFocusHighlight());
                 APPEND_ENTITY_PROPERTY(PROP_WEB_USE_BACKGROUND, properties.getUseBackground());
+                APPEND_ENTITY_PROPERTY(PROP_USER_AGENT, properties.getUserAgent());
             }
 
             if (properties.getType() == EntityTypes::Line) {
@@ -3384,7 +3423,6 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 _staticPulse.setProperties(properties);
                 _staticPulse.appendToEditPacket(packetData, requestedProperties, propertyFlags,
                     propertiesDidntFit, propertyCount, appendState);
-                APPEND_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, (uint32_t)properties.getBillboardMode());
 
                 APPEND_ENTITY_PROPERTY(PROP_IMAGE_URL, properties.getImageURL());
                 APPEND_ENTITY_PROPERTY(PROP_EMISSIVE, properties.getEmissive());
@@ -3610,6 +3648,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PRIMITIVE_MODE, PrimitiveMode, setPrimitiveMode);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IGNORE_PICK_INTERSECTION, bool, setIgnorePickIntersection);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RENDER_WITH_ZONES, QVector<QUuid>, setRenderWithZones);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BILLBOARD_MODE, BillboardMode, setBillboardMode);
     properties.getGrab().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
     // Physics
@@ -3720,6 +3759,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RELAY_PARENT_JOINTS, bool, setRelayParentJoints);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GROUP_CULLED, bool, setGroupCulled);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BLENDSHAPE_COEFFICIENTS, QString, setBlendshapeCoefficients);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_USE_ORIGINAL_PIVOT, bool, setUseOriginalPivot);
 
         properties.getAnimation().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
     }
@@ -3736,7 +3776,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
 
     if (properties.getType() == EntityTypes::Text) {
         properties.getPulse().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BILLBOARD_MODE, BillboardMode, setBillboardMode);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT, QString, setText);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_HEIGHT, float, setLineHeight);
@@ -3753,6 +3792,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT_EFFECT, TextEffect, setTextEffect);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT_EFFECT_COLOR, u8vec3Color, setTextEffectColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT_EFFECT_THICKNESS, float, setTextEffectThickness);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT_ALIGNMENT, TextAlignment, setAlignment);
     }
 
     if (properties.getType() == EntityTypes::Zone) {
@@ -3797,7 +3837,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA, float, setAlpha);
         properties.getPulse().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BILLBOARD_MODE, BillboardMode, setBillboardMode);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SOURCE_URL, QString, setSourceUrl);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DPI, uint16_t, setDPI);
@@ -3806,6 +3845,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_INPUT_MODE, WebInputMode, setInputMode);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, bool, setShowKeyboardFocusHighlight);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_WEB_USE_BACKGROUND, bool, setUseBackground);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_USER_AGENT, QString, setUserAgent);
     }
 
     if (properties.getType() == EntityTypes::Line) {
@@ -3857,7 +3897,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA, float, setAlpha);
         properties.getPulse().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BILLBOARD_MODE, BillboardMode, setBillboardMode);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IMAGE_URL, QString, setImageURL);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMISSIVE, bool, setEmissive);
@@ -4031,6 +4070,7 @@ void EntityItemProperties::markAllChanged() {
     _primitiveModeChanged = true;
     _ignorePickIntersectionChanged = true;
     _renderWithZonesChanged = true;
+    _billboardModeChanged = true;
     _grab.markAllChanged();
 
     // Physics
@@ -4084,7 +4124,6 @@ void EntityItemProperties::markAllChanged() {
     _alphaChanged = true;
     _pulse.markAllChanged();
     _texturesChanged = true;
-    _billboardModeChanged = true;
 
     // Particles
     _maxParticlesChanged = true;
@@ -4129,6 +4168,7 @@ void EntityItemProperties::markAllChanged() {
     _relayParentJointsChanged = true;
     _groupCulledChanged = true;
     _blendshapeCoefficientsChanged = true;
+    _useOriginalPivotChanged = true;
     _animation.markAllChanged();
 
     // Light
@@ -4154,6 +4194,7 @@ void EntityItemProperties::markAllChanged() {
     _textEffectChanged = true;
     _textEffectColorChanged = true;
     _textEffectThicknessChanged = true;
+    _alignmentChanged = true;
 
     // Zone
     _keyLight.markAllChanged();
@@ -4194,6 +4235,7 @@ void EntityItemProperties::markAllChanged() {
     _inputModeChanged = true;
     _showKeyboardFocusHighlightChanged = true;
     _useBackgroundChanged = true;
+    _userAgentChanged = true;
 
     // Polyline
     _linePointsChanged = true;
@@ -4439,6 +4481,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (renderWithZonesChanged()) {
         out += "renderWithZones";
     }
+    if (billboardModeChanged()) {
+        out += "billboardMode";
+    }
     getGrab().listChangedProperties(out);
 
     // Physics
@@ -4574,9 +4619,6 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (texturesChanged()) {
         out += "textures";
     }
-    if (billboardModeChanged()) {
-        out += "billboardMode";
-    }
 
     // Particles
     if (maxParticlesChanged()) {
@@ -4701,6 +4743,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (blendshapeCoefficientsChanged()) {
         out += "blendshapeCoefficients";
     }
+    if (useOriginalPivotChanged()) {
+        out += "useOriginalPivot";
+    }
     getAnimation().listChangedProperties(out);
 
     // Light
@@ -4765,6 +4810,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (textEffectThicknessChanged()) {
         out += "textEffectThickness";
+    }
+    if (alignmentChanged()) {
+        out += "alignment";
     }
 
     // Zone
@@ -4886,6 +4934,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (useBackgroundChanged()) {
         out += "useBackground";
+    }
+    if (userAgentChanged()) {
+        out += "userAgent";
     }
 
     // Shape

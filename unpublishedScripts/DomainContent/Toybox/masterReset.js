@@ -143,7 +143,7 @@ MasterReset = function() {
     }
 
     function createRaveStick(position) {
-        var modelURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flowArts/raveStick.fbx";
+        var modelURL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/flowArts/raveStick.fbx";
         var rotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
         var stick = Entities.addEntity({
             type: "Model",
@@ -238,7 +238,7 @@ MasterReset = function() {
             alphaSpread: 0.1,
             alphaStart: 0.1,
             alphaFinish: 0.1,
-            textures: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flowArts/beamParticle.png",
+            textures: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/flowArts/beamParticle.png",
             emitterShouldTrail: false,
             userData: JSON.stringify({
                 resetMe: {
@@ -249,7 +249,7 @@ MasterReset = function() {
     }
 
     function createGun(position) {
-        var modelURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/pistol/gun.fbx";
+        var modelURL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/pistol/gun.fbx";
 
 
         var pistol = Entities.addEntity({
@@ -277,7 +277,7 @@ MasterReset = function() {
             restitution: 0,
             dynamic: true,
             damping: 0.5,
-            collisionSoundURL: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/pistol/drop.wav",
+            collisionSoundURL: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/pistol/drop.wav",
             userData: JSON.stringify({
                 "wearable": {
                     "joints": {
@@ -323,8 +323,8 @@ MasterReset = function() {
 
         var SCRIPT_URL = Script.resolvePath('bow.js');
         var BOW_ROTATION = Quat.fromPitchYawRollDegrees(-103.05, -178.60, -87.27);
-        var MODEL_URL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/bow/bow-deadly.fbx";
-        var COLLISION_HULL_URL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/bow/bow_collision_hull.obj";
+        var MODEL_URL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/bow/bow-deadly.fbx";
+        var COLLISION_HULL_URL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/bow/bow_collision_hull.obj";
         var BOW_DIMENSIONS = {
             x: 0.04,
             y: 1.3,
@@ -474,7 +474,7 @@ MasterReset = function() {
             type: "ParticleEffect",
             name: "fire",
             animationSettings: animationSettings,
-            textures: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/fire/Particle-Sprite-Smoke-1.png",
+            textures: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/fire/Particle-Sprite-Smoke-1.png",
             position: {
                 x: 551.45,
                 y: 494.82,
@@ -538,10 +538,10 @@ MasterReset = function() {
         var DIAMETER = 0.30;
         var RESET_DISTANCE = 1;
         var MINIMUM_MOVE_LENGTH = 0.05;
-        var basketballURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball2.fbx";
-        var basketballCollisionSoundURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball.wav";
-        var rackURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball_rack.fbx";
-        var rackCollisionHullURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/rack_collision_hull.obj";
+        var basketballURL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/basketball/basketball2.fbx";
+        var basketballCollisionSoundURL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/basketball/basketball.wav";
+        var rackURL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/basketball/basketball_rack.fbx";
+        var rackCollisionHullURL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/basketball/rack_collision_hull.obj";
 
         var rackRotation = Quat.fromPitchYawRollDegrees(0, -90, 0);
 
@@ -618,7 +618,7 @@ MasterReset = function() {
                         z: 0
                     },
                     dynamic: true,
-                    collisionSoundURL: 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball.wav',
+                    collisionSoundURL: 'https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/basketball/basketball.wav',
                     collisionless: false,
                     modelURL: basketballURL,
                     userData: JSON.stringify({
@@ -715,8 +715,8 @@ MasterReset = function() {
     function createTargets() {
 
 
-        var MODEL_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/ping_pong_gun/target.fbx';
-        var COLLISION_HULL_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/ping_pong_gun/target_collision_hull.obj';
+        var MODEL_URL = 'https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/ping_pong_gun/target.fbx';
+        var COLLISION_HULL_URL = 'https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/ping_pong_gun/target_collision_hull.obj';
 
         var MINIMUM_MOVE_LENGTH = 0.05;
         var RESET_DISTANCE = 0.5;
@@ -795,8 +795,8 @@ MasterReset = function() {
 
     function createCat(position) {
 
-        var modelURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/cat/Dark_Cat.fbx";
-        var animationURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/cat/sleeping.fbx";
+        var modelURL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/cat/Dark_Cat.fbx";
+        var animationURL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/cat/sleeping.fbx";
         var animationSettings = JSON.stringify({
             running: true
         });
@@ -832,7 +832,7 @@ MasterReset = function() {
     }
 
     function createFlashlight(position) {
-        var modelURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flashlight/flashlight.fbx";
+        var modelURL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/flashlight/flashlight.fbx";
 
         var flashlight = Entities.addEntity({
             type: "Model",
@@ -846,7 +846,7 @@ MasterReset = function() {
                 z: 0.08
             },
             dynamic: true,
-            collisionSoundURL: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/flashlight/flashlight_drop.L.wav",
+            collisionSoundURL: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/flashlight/flashlight_drop.L.wav",
             gravity: {
                 x: 0,
                 y: -3.5,
@@ -897,7 +897,7 @@ MasterReset = function() {
     }
 
     function createLights() {
-        var modelURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/lights/lightswitch.fbx";
+        var modelURL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/lights/lightswitch.fbx";
 
         var rotation = {
             w: 0.63280689716339111,
@@ -1144,8 +1144,8 @@ MasterReset = function() {
     function createDice() {
         var diceProps = {
             type: "Model",
-            modelURL: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/dice/goldDie.fbx",
-            collisionSoundURL: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/dice/diceCollide.wav",
+            modelURL: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/dice/goldDie.fbx",
+            collisionSoundURL: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/dice/diceCollide.wav",
             name: "dice",
             position: {
                 x: 541.61,
@@ -1192,7 +1192,7 @@ MasterReset = function() {
     }
 
     function createGates() {
-        var MODEL_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/gates/fence.fbx';
+        var MODEL_URL = 'https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/gates/fence.fbx';
         var rotation = Quat.fromPitchYawRollDegrees(0, -16, 0);
         var gate = Entities.addEntity({
             name: 'Front Door Fence',
@@ -1231,9 +1231,9 @@ MasterReset = function() {
     }
 
     function createPingPongBallGun() {
-        var MODEL_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/ping_pong_gun/Pingpong-Gun-New.fbx';
-        var COLLISION_HULL_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/ping_pong_gun/Pingpong-Gun-New.obj';
-        var COLLISION_SOUND_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/ping_pong_gun/plastic_impact.L.wav';
+        var MODEL_URL = 'https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/ping_pong_gun/Pingpong-Gun-New.fbx';
+        var COLLISION_HULL_URL = 'https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/ping_pong_gun/Pingpong-Gun-New.obj';
+        var COLLISION_SOUND_URL = 'https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/ping_pong_gun/plastic_impact.L.wav';
         var position = {
             x: 548.6,
             y: 495.4,
@@ -1299,8 +1299,8 @@ MasterReset = function() {
     }
 
     function createWand(position) {
-        var WAND_MODEL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/bubblewand/wand.fbx';
-        var WAND_COLLISION_SHAPE = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/bubblewand/wand_collision_hull.obj';
+        var WAND_MODEL = 'https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/bubblewand/wand.fbx';
+        var WAND_COLLISION_SHAPE = 'https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/bubblewand/wand_collision_hull.obj';
 
         var wand = Entities.addEntity({
             name: 'Bubble Wand',
@@ -1360,7 +1360,7 @@ MasterReset = function() {
 
     function createBasketBall(position) {
 
-        var modelURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball2.fbx";
+        var modelURL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/basketball/basketball2.fbx";
 
         var entity = Entities.addEntity({
             type: "Model",
@@ -1386,7 +1386,7 @@ MasterReset = function() {
                 y: -0.01,
                 z: 0
             },
-            collisionSoundURL: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/basketball/basketball.wav",
+            collisionSoundURL: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/basketball/basketball.wav",
             userData: JSON.stringify({
                 resetMe: {
                     resetMe: true
@@ -1400,7 +1400,7 @@ MasterReset = function() {
     }
 
     function createDoll(position) {
-        var modelURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/doll/bboy2.fbx";
+        var modelURL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/doll/bboy2.fbx";
 
         var naturalDimensions = {
             x: 1.63,
@@ -1442,7 +1442,7 @@ MasterReset = function() {
     function createSprayCan(position) {
 
 
-        var modelURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/spray_paint/paintcan.fbx";
+        var modelURL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/spray_paint/paintcan.fbx";
 
         var entity = Entities.addEntity({
             type: "Model",
@@ -1456,7 +1456,7 @@ MasterReset = function() {
                 z: 0.07
             },
             dynamic: true,
-            collisionSoundURL: "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/spray_paint/SpryPntCnDrp1.L.wav",
+            collisionSoundURL: "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/spray_paint/SpryPntCnDrp1.L.wav",
             shapeType: 'box',
             gravity: {
                 x: 0,
@@ -1482,7 +1482,7 @@ MasterReset = function() {
     }
 
     function createPottedPlant(position) {
-        var modelURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/potted_plant/potted_plant.fbx";
+        var modelURL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/potted_plant/potted_plant.fbx";
 
         var entity = Entities.addEntity({
             type: "Model",
@@ -1520,8 +1520,8 @@ MasterReset = function() {
 
 
     function createCombinedArmChair(position) {
-        var modelURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/armchair/combined_chair.fbx";
-        var RED_ARM_CHAIR_COLLISION_HULL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/armchair/red_arm_chair_collision_hull.obj";
+        var modelURL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/armchair/combined_chair.fbx";
+        var RED_ARM_CHAIR_COLLISION_HULL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/armchair/red_arm_chair_collision_hull.obj";
 
         var rotation = Quat.fromPitchYawRollDegrees(0, -143, 0);
 
@@ -1563,8 +1563,8 @@ MasterReset = function() {
     }
 
     function createBlocks(position) {
-        var baseURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/planky/";
-        var collisionSoundURL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/planky/ToyWoodBlock.L.wav";
+        var baseURL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/planky/";
+        var collisionSoundURL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/planky/ToyWoodBlock.L.wav";
         var NUM_BLOCKS_PER_COLOR = 4;
         var i, j;
 

@@ -13,7 +13,7 @@
 
 (function() {
     var ball = null;
-    var collisionSoundURL = "http://hifi-production.s3.amazonaws.com/tutorials/golfClub/collision1.wav";
+    var collisionSoundURL = "https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/golfClub/collision1.wav";
     var triggerState = false;
     var BALL_GRAVITY = -9.8;
     var BALL_START_VELOCITY = 0.1;

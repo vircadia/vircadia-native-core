@@ -31,9 +31,9 @@ static inline void for_each_eye(const std::function<void(ovrEye)>& f) {
     f(VRAPI_EYE_RIGHT);
 }
 
-static inline void for_each_hand(const std::function<void(ovrHandedness)>& f) {
-    f(VRAPI_HAND_LEFT);
-    f(VRAPI_HAND_RIGHT);
+static inline void for_each_hand(const std::function<void(ovrTrackedDeviceTypeId)>& f) {
+    f(VRAPI_TRACKED_DEVICE_HAND_LEFT);
+    f(VRAPI_TRACKED_DEVICE_HAND_RIGHT);
 }
 
 static inline glm::mat4 toGlm(const ovrMatrix4f& om) {

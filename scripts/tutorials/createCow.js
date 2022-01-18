@@ -9,9 +9,9 @@
 //
 
 // references to our assets.  entity scripts need to be served from somewhere that is publically accessible -- so http(s) or atp
-var SCRIPT_URL ="http://hifi-production.s3.amazonaws.com/tutorials/entity_scripts/cow.js";
-var MODEL_URL = "http://hifi-production.s3.amazonaws.com/tutorials/cow/cow.fbx";
-var ANIMATION_URL = 'http://hifi-production.s3.amazonaws.com/tutorials/cow/cow.fbx';
+var SCRIPT_URL ="https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/entity_scripts/cow.js";
+var MODEL_URL = "https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/cow/cow.fbx";
+var ANIMATION_URL = 'https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/cow/cow.fbx';
 
 // this part of the code describes how to center the entity in front of your avatar when it is created.
 var orientation = MyAvatar.orientation;

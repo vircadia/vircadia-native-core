@@ -53,7 +53,7 @@
                 position: absolute;
                 top: 0; left: 0; bottom: 0; right: 0;
             }
-			
+
             #image_button {
                 position: absolute;
                 width: 463;
@@ -77,13 +77,13 @@
             var handControllerImageURL = null;
             var index = 0;
             var count = 3;
-            var handControllerRefURL = "https://docs.vircadia.dev/explore/get-started/vr-controls.html#vr-controls";
-            var keyboardRefURL = "https://docs.vircadia.dev/explore/get-started/desktop.html#movement-controls";
-            var gamepadRefURL = "https://docs.vircadia.dev/explore/get-started/vr-controls.html#gamepad";
+            var handControllerRefURL = "https://docs.vircadia.com/explore/get-started/vr-controls.html#vr-controls";
+            var keyboardRefURL = "https://docs.vircadia.com/explore/get-started/desktop.html#movement-controls";
+            var gamepadRefURL = "https://docs.vircadia.com/explore/get-started/vr-controls.html#gamepad";
 
             function showKbm() {
                 document.getElementById("main_image").setAttribute("src", "img/tablet-help-keyboard.jpg");
-                document.getElementById("image_button").setAttribute("href", keyboardRefURL); 
+                document.getElementById("image_button").setAttribute("href", keyboardRefURL);
             }
 
             function showHandControllers() {
@@ -107,7 +107,7 @@
             }
 
             function chooseIcon() {
-                switch (index) 
+                switch (index)
                 {
                     case 0:
                         showGamepad();

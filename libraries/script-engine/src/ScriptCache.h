@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_ScriptCache_h
 #define hifi_ScriptCache_h
 
@@ -32,7 +35,7 @@ public:
     int maxRetries { MAX_RETRIES };
 };
 
-/// Interface for loading scripts
+/// Dependency for for loading and caching scripts
 class ScriptCache : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -60,8 +63,10 @@ private:
     Mutex _containerLock;
     QMap<QUrl, ScriptRequest> _activeScriptRequests;
     
-    QHash<QUrl, QString> _scriptCache;
+    QHash<QUrl, QVariantMap> _scriptCache;
     QMultiMap<QUrl, ScriptUser*> _scriptUsers;
 };
 
 #endif // hifi_ScriptCache_h
+
+/// @}

@@ -22,7 +22,7 @@
 #include "RegisteredMetaTypes.h"
 
 
-/**jsdoc
+/*@jsdoc
  * The <code>Graphics</code> API enables you to access and manipulate avatar, entity, and overlay models in the rendered scene. 
  * This includes getting mesh and material information for applying {@link Entities.EntityProperties-Material|Material} 
  * entities.
@@ -42,7 +42,7 @@ public:
     GraphicsScriptingInterface(QObject* parent = nullptr);
 
 public slots:
-    /**jsdoc
+    /*@jsdoc
      * Gets a handle to the model data used for displaying an avatar, 3D entity, or 3D overlay.
      * <p>Note: The model data may be used for more than one instance of the item displayed in the scene.</p>
      * @function Graphics.getModel
@@ -65,7 +65,7 @@ public slots:
      */
     scriptable::ScriptableModelPointer getModel(const QUuid& uuid);
 
-    /**jsdoc
+    /*@jsdoc
      * Updates the model for an avatar, 3D entity, or 3D overlay in the rendered scene.
      * @function Graphics.updateModel
      * @param {Uuid} id - The ID of the avatar, 3D entity, or 3D overlay to update.
@@ -74,7 +74,7 @@ public slots:
      */
     bool updateModel(const QUuid& uuid, const scriptable::ScriptableModelPointer& model);
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether the model for an avatar, entity, or overlay can be updated in the rendered scene. Only avatars, 
      * <code>"Model"</code> entities and <code>"model"</code> overlays can have their meshes updated.
      * @function Graphics.canUpdateModel
@@ -107,7 +107,7 @@ public slots:
      */
     bool canUpdateModel(const QUuid& uuid, int meshIndex = -1, int partNumber = -1);
 
-    /**jsdoc
+    /*@jsdoc
      * Creates a new graphics model from meshes.
      * @function Graphics.newModel
      * @param {GraphicsMesh[]} meshes - The meshes to include in the model.
@@ -115,7 +115,7 @@ public slots:
      */
     scriptable::ScriptableModelPointer newModel(const scriptable::ScriptableMeshes& meshes);
 
-    /**jsdoc
+    /*@jsdoc
      * Creates a new graphics mesh.
      * @function Graphics.newMesh
      * @param {Graphics.IFSData} ifsMeshData - Index-Faced Set (IFS) data defining the mesh.
@@ -130,7 +130,7 @@ public slots:
     bool updateMeshPart(scriptable::ScriptableMeshPointer mesh, scriptable::ScriptableMeshPartPointer part);
 #endif
 
-    /**jsdoc
+    /*@jsdoc
      * Exports a model to OBJ format.
      * @function Graphics.exportModelToOBJ
      * @param {GraphicsModel} model - The model to export.

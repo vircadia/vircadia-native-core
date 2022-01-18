@@ -7,9 +7,9 @@
 //
 
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(1.5, Quat.getForward(Camera.getOrientation())));
-var SCRIPT_URL = "http://hifi-production.s3.amazonaws.com/tutorials/entity_scripts/pistol.js";
-var MODEL_URL = "http://hifi-production.s3.amazonaws.com/tutorials/pistol/gun.fbx";
-var COLLISION_SOUND_URL = 'http://hifi-production.s3.amazonaws.com/tutorials/pistol/drop.wav'
+var SCRIPT_URL = "https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/entity_scripts/pistol.js";
+var MODEL_URL = "https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/pistol/gun.fbx";
+var COLLISION_SOUND_URL = 'https://cdn-1.vircadia.com/us-e-1/Developer/Tutorials/pistol/drop.wav'
 
 var pistolProperties = {
   type: 'Model',

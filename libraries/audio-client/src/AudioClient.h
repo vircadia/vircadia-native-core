@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 1/22/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -33,7 +34,7 @@
 #include <shared/WebRTC.h>
 
 #include <DependencyManager.h>
-#include <HifiSockAddr.h>
+#include <SockAddr.h>
 #include <NLPacket.h>
 #include <MixedProcessedAudioStream.h>
 #include <RingBufferHistory.h>
@@ -217,6 +218,12 @@ public slots:
 
     void setNoiseReduction(bool isNoiseGateEnabled, bool emitSignal = true);
     bool isNoiseReductionEnabled() const { return _isNoiseGateEnabled; }
+    
+    void setNoiseReductionAutomatic(bool isNoiseGateAutomatic, bool emitSignal = true);
+    bool isNoiseReductionAutomatic() const { return _isNoiseReductionAutomatic; }
+    
+    void setNoiseReductionThreshold(float noiseReductionThreshold, bool emitSignal = true);
+    float noiseReductionThreshold() const { return _noiseReductionThreshold; }
 
     void setWarnWhenMuted(bool isNoiseGateEnabled, bool emitSignal = true);
     bool isWarnWhenMutedEnabled() const { return _warnWhenMuted; }
@@ -265,6 +272,8 @@ signals:
     void inputVolumeChanged(float volume);
     void muteToggled(bool muted);
     void noiseReductionChanged(bool noiseReductionEnabled);
+    void noiseReductionAutomaticChanged(bool noiseReductionAutomatic);
+    void noiseReductionThresholdChanged(bool noiseReductionThreshold);
     void warnWhenMutedChanged(bool warnWhenMutedEnabled);
     void acousticEchoCancellationChanged(bool acousticEchoCancellationEnabled);
     void mutedByMixer();
@@ -309,6 +318,8 @@ private:
 
     friend class CheckDevicesThread;
     friend class LocalInjectorsThread;
+
+    float loudnessToLevel(float loudness);
 
     // background tasks
     void checkDevices();
@@ -397,6 +408,8 @@ private:
     bool _shouldEchoLocally{ false };
     bool _shouldEchoToServer{ false };
     bool _isNoiseGateEnabled{ true };
+    bool _isNoiseReductionAutomatic{ true };
+    float _noiseReductionThreshold{ 0.1f };
     bool _warnWhenMuted;
     bool _isAECEnabled{ true };
 

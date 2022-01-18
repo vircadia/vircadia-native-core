@@ -305,7 +305,7 @@ void Scene::resetItems(const Transaction::Resets& transactions) {
         // Update the item's container
         assert((oldKey.isSpatial() == newKey.isSpatial()) || oldKey._flags.none());
         if (newKey.isSpatial()) {
-            auto newCell = _masterSpatialTree.resetItem(oldCell, oldKey, item.getBound(), itemId, newKey);
+            auto newCell = _masterSpatialTree.resetItem(oldCell, oldKey, item.getBound(nullptr), itemId, newKey);
             item.resetCell(newCell, newKey.isSmall());
         } else {
             _masterNonspatialSet.insert(itemId);
@@ -361,14 +361,14 @@ void Scene::updateItems(const Transaction::Updates& transactions) {
         // Update the item's container
         if (oldKey.isSpatial() == newKey.isSpatial()) {
             if (newKey.isSpatial()) {
-                auto newCell = _masterSpatialTree.resetItem(oldCell, oldKey, item.getBound(), updateID, newKey);
+                auto newCell = _masterSpatialTree.resetItem(oldCell, oldKey, item.getBound(nullptr), updateID, newKey);
                 item.resetCell(newCell, newKey.isSmall());
             }
         } else {
             if (newKey.isSpatial()) {
                 _masterNonspatialSet.erase(updateID);
 
-                auto newCell = _masterSpatialTree.resetItem(oldCell, oldKey, item.getBound(), updateID, newKey);
+                auto newCell = _masterSpatialTree.resetItem(oldCell, oldKey, item.getBound(nullptr), updateID, newKey);
                 item.resetCell(newCell, newKey.isSmall());
             } else {
                 _masterSpatialTree.removeItem(oldCell, oldKey, updateID);

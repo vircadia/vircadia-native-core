@@ -13,10 +13,10 @@
 
     Script.include("../libraries/utils.js");
 
-    var NOTCH_ARROW_SOUND_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/bow/notch.wav';
-    var SHOOT_ARROW_SOUND_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/bow/String_release2.L.wav';
-    var STRING_PULL_SOUND_URL = 'http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/bow/Bow_draw.1.L.wav';
-    var ARROW_HIT_SOUND_URL = 'https://hifi-production.s3.amazonaws.com/DomainContent/Toybox/bow/Arrow_impact1.L.wav'
+    var NOTCH_ARROW_SOUND_URL = 'https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/bow/notch.wav';
+    var SHOOT_ARROW_SOUND_URL = 'https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/bow/String_release2.L.wav';
+    var STRING_PULL_SOUND_URL = 'https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/bow/Bow_draw.1.L.wav';
+    var ARROW_HIT_SOUND_URL = 'https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/bow/Arrow_impact1.L.wav'
 
     var ARROW_DIMENSIONS = {
         x: 0.02,
@@ -32,9 +32,9 @@
         z: 0
     };
 
-    var ARROW_MODEL_URL = "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/bow/newarrow_textured.fbx";
+    var ARROW_MODEL_URL = "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/bow/newarrow_textured.fbx";
     var ARROW_COLLISION_HULL_URL =
-        "http://hifi-production.s3.amazonaws.com/DomainContent/Toybox/bow/newarrow_collision_hull.obj";
+        "https://cdn-1.vircadia.com/us-e-1/DomainContent/Toybox/bow/newarrow_collision_hull.obj";
 
     var ARROW_DIMENSIONS = {
         x: 0.02,

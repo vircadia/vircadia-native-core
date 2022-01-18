@@ -61,8 +61,8 @@ var settingsRoot = "FloofChat";
 var vircadiaGotoUrl = "https://metaverse.vircadia.com/interim/d-goto/app/goto.json";
 var gotoJSONUrl = Settings.getValue(settingsRoot + "/gotoJSONUrl", vircadiaGotoUrl);
 
-var muted = Settings.getValue(settingsRoot + "/muted", {"Local": false, "Domain": false, "Grid": true});
-var mutedAudio = Settings.getValue(settingsRoot + "/mutedAudio", {"Local": false, "Domain": false, "Grid": true});
+var muted = Settings.getValue(settingsRoot + "/muted", {"Local": false, "Domain": true, "Grid": true});
+var mutedAudio = Settings.getValue(settingsRoot + "/mutedAudio", {"Local": false, "Domain": true, "Grid": true});
 var notificationSound = SoundCache.getSound(Script.resolvePath("resources/bubblepop.wav"));
 
 var ws;
@@ -322,13 +322,7 @@ function onWebEventReceived(event) {
             gotoConfirm(event.url);
         }
         if (event.cmd === "URL") {
-            new OverlayWebWindow({
-                title: 'Web',
-                source: event.url,
-                width: 900,
-                height: 700,
-                visible: true
-            });
+            Window.openWebBrowser(event.url);
         }
         if (event.cmd === "EXTERNALURL") {
             Window.openUrl(event.url);
