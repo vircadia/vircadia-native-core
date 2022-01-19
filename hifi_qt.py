@@ -204,8 +204,7 @@ endif()
 
     def installQt(self):
         if not os.path.isdir(self.fullPath):
-            print ('Downloading Qt from AWS')
-            print('Extracting ' + self.qtUrl + ' to ' + self.path)
+            print("Fetching Qt from {} to {}".format(self.qtUrl, self.path))
             hifi_utils.downloadAndExtract(self.qtUrl, self.path)
         else:
             print ('Qt has already been downloaded')
