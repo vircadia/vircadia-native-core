@@ -4,12 +4,9 @@ set(EXTERNAL_NAME neuron)
 
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 
-set(NEURON_URL "${EXTERNAL_BUILD_ASSETS}/dependencies/neuron_datareader_b.12.2.zip")
-set(NEURON_URL_MD5 "84273ad2200bf86a9279d1f412a822ca")
-
 ExternalProject_Add(${EXTERNAL_NAME}
-                    URL ${NEURON_URL}
-                    URL_MD5 ${NEURON_URL_MD5}
+                    URL ${EXTERNAL_NEURON_URLS}
+                    URL_MD5 ${EXTERNAL_NEURON_MD5}
                     CONFIGURE_COMMAND ""
                     BUILD_COMMAND ""
                     INSTALL_COMMAND ""

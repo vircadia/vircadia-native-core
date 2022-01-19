@@ -3,8 +3,8 @@ set(EXTERNAL_NAME GifCreator)
 include(ExternalProject)
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  URL "${EXTERNAL_BUILD_ASSETS}/dependencies/GifCreator.zip"
-  URL_MD5 8ac8ef5196f47c658dce784df5ecdb70
+  URL ${EXTERNAL_GIFCREATOR_URLS}
+  URL_MD5 ${EXTERNAL_GIFCREATOR_MD5}
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
   INSTALL_COMMAND ""
