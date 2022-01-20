@@ -49,8 +49,7 @@ MenuUserData::MenuUserData(QAction* action, QObject* qmlObject, QObject* qmlPare
         virtual bool eventFilter(QObject* o, QEvent* e) override {
             if (e->type() == QEvent::DynamicPropertyChange) {
                 QDynamicPropertyChangeEvent* dpc = static_cast<QDynamicPropertyChangeEvent*>(e);
-                if (dpc->propertyName() == "exclusionGroup")
-                {
+                if (dpc->propertyName() == "exclusionGroup") {
                     // unfortunately Qt doesn't support passing dynamic properties between C++ / QML, so we have to use this ugly helper function
                     QMetaObject::invokeMethod(_qmlParent,
                         "addExclusionGroup",
