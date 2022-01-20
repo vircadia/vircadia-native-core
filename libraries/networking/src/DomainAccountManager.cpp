@@ -57,7 +57,7 @@ void DomainAccountManager::setAuthURL(const QUrl& authURL) {
     }
 
     _currentAuth.authURL = authURL;
-    qCDebug(networking) << "DomainAccountManager URL for authenticated requests has been changed to" 
+    qCDebug(networking) << "DomainAccountManager URL for authenticated requests has been changed to"
         << qPrintable(_currentAuth.authURL.toString());
 
     _currentAuth.accessToken = "";
@@ -70,7 +70,7 @@ bool DomainAccountManager::hasLogIn() {
     return !_currentAuth.authURL.isEmpty();
 }
 
-bool DomainAccountManager::isLoggedIn() { 
+bool DomainAccountManager::isLoggedIn() {
     return !_currentAuth.authURL.isEmpty() && hasValidAccessToken();
 }
 
@@ -92,7 +92,7 @@ void DomainAccountManager::requestAccessToken(const QString& username, const QSt
     formData.append("grant_type=password&");
     formData.append("username=" + QUrl::toPercentEncoding(username) + "&");
     formData.append("password=" + QUrl::toPercentEncoding(password) + "&");
-    formData.append("client_id=" + _currentAuth.clientID);
+    formData.append("client_id=" + _currentAuth.clientID.toUtf8());
 
     request.setUrl(_currentAuth.authURL);
 
@@ -168,7 +168,7 @@ bool DomainAccountManager::hasValidAccessToken() {
     }
 
     // ####### TODO
-        
+
     // if (!_isWaitingForTokenRefresh && needsToRefreshToken()) {
     //     refreshAccessToken();
     // }
@@ -184,18 +184,18 @@ void DomainAccountManager::setTokensFromJSON(const QJsonObject& jsonObject, cons
 bool DomainAccountManager::checkAndSignalForAccessToken() {
     bool hasToken = hasValidAccessToken();
 
-    // ####### TODO: Handle hasToken == true. 
-    // It causes the login dialog not to display (OK) but somewhere the domain server needs to be sent it (and if domain server 
+    // ####### TODO: Handle hasToken == true.
+    // It causes the login dialog not to display (OK) but somewhere the domain server needs to be sent it (and if domain server
     // gets error when trying to use it then user should be prompted to login).
     hasToken = false;
-    
+
     if (!hasToken) {
         // Emit a signal so somebody can call back to us and request an access token given a user name and password.
 
         // Dialog can be hidden immediately after showing if we've just teleported to the domain, unless the signal is delayed.
         auto domain = _currentAuth.authURL.host();
         QTimer::singleShot(500, this, [this, domain] {
-            emit this->authRequired(domain); 
+            emit this->authRequired(domain);
         });
     }
 
