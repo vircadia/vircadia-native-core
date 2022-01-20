@@ -51,12 +51,12 @@ NodeConnectionData NodeConnectionData::fromDataStream(QDataStream& dataStream, c
 
     dataStream >> newHeader.lastPingTimestamp;
     
-    SocketType publicSocketType, localSocketType;
+    quint8 publicSocketType, localSocketType;
     dataStream >> newHeader.nodeType
         >> publicSocketType >> newHeader.publicSockAddr >> localSocketType >> newHeader.localSockAddr
         >> newHeader.interestList >> newHeader.placeName;
-    newHeader.publicSockAddr.setType(publicSocketType);
-    newHeader.localSockAddr.setType(localSocketType);
+    newHeader.publicSockAddr.setType((SocketType)publicSocketType);
+    newHeader.localSockAddr.setType((SocketType)localSocketType);
 
     // For WebRTC connections, the user client's signaling channel WebSocket address is used instead of the actual data 
     // channel's address.

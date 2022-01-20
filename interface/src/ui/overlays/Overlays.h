@@ -746,7 +746,11 @@ signals:
 private:
     void cleanupOverlaysToDelete();
 
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+    mutable QMutex _mutex { QMutex::Recursive };
+#else
     mutable QRecursiveMutex _mutex;
+#endif
     QMap<QUuid, Overlay::Pointer> _overlays;
     QList<Overlay::Pointer> _overlaysToDelete;
 

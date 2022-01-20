@@ -134,9 +134,19 @@ endif()
             return
 
         if 'Windows' == system:
-            self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.15.2-windows.tar.gz'
+            if self.version == "5.15.2":
+                self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.15.2-windows.tar.gz'
+            else:
+                self.version = "5.12.3"
+                self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-windows3.tar.gz%3FversionId=5ADqP0M0j5ZfimUHrx4zJld6vYceHEsI'
+
         elif 'Darwin' == system:
-            self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.15.2-macos.tar.gz'
+            if self.version == "5.15.2":
+                self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.15.2-macos.tar.gz'
+            else:
+                self.version = "5.12.3"
+                self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-macos.tar.gz%3FversionId=bLAgnoJ8IMKpqv8NFDcAu8hsyQy3Rwwz'
+
         elif 'Linux' == system:
             import distro
             cpu_architecture = platform.machine()
@@ -145,7 +155,12 @@ endif()
                 u_major = int( distro.major_version() )
                 u_minor = int( distro.minor_version() )
                 if (distro.id() == 'ubuntu' and u_major == 18) or distro.id() == 'linuxmint' and u_major == 19:
-                    self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.15.2-ubuntu-18.04-amd64.tar.xz'
+                    if self.version == "5.15.2":
+                        self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.15.2-ubuntu-18.04-amd64.tar.xz'
+                    else:
+                        self.version = "5.12.3"
+                        self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-18.04.tar.gz'
+
                 elif (distro.id() == 'ubuntu' and u_major > 18) or (distro.id() == 'linuxmint' and u_major > 19):
                     self.__no_qt_package_error()
                 else:

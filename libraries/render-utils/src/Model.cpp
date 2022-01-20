@@ -1637,7 +1637,11 @@ std::set<unsigned int> Model::getMeshIDsFromMaterialID(QString parentMaterialNam
         };
 
         if (parentMaterialName.length() > 2 && parentMaterialName.startsWith("[") && parentMaterialName.endsWith("]")) {
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+            QStringList list = parentMaterialName.split(",", QString::SkipEmptyParts);
+#else
             QStringList list = parentMaterialName.split(",", Qt::SkipEmptyParts);
+#endif
             for (int i = 0; i < list.length(); i++) {
                 auto& target = list[i];
                 if (i == 0) {

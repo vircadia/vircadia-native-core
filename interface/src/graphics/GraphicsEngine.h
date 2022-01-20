@@ -69,7 +69,11 @@ private:
 
 protected:
 
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+    mutable QMutex _renderArgsMutex{ QMutex::Recursive };
+#else
     mutable QRecursiveMutex _renderArgsMutex;
+#endif
     AppRenderArgs _appRenderArgs;
 
     RateCounter<500> _renderLoopCounter;

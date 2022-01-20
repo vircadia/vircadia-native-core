@@ -81,63 +81,68 @@ public slots:
 signals:
     void packetSent(int wireSize, int payloadSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint);
     void packetRetransmitted(int wireSize, int payloadSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint);
-    
+
     void queueInactive();
 
     void timeout();
-    
+
 private slots:
     void run();
-    
+
 private:
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+    SendQueue(SendQueue& other) = delete;
+    SendQueue(SendQueue&& other) = delete;
+#else
     Q_DISABLE_COPY_MOVE(SendQueue)
+#endif
     SendQueue(Socket* socket, SockAddr dest, SequenceNumber currentSequenceNumber,
               MessageNumber currentMessageNumber, bool hasReceivedHandshakeACK);
-    
+
     void sendHandshake();
-    
+
     int sendPacket(const Packet& packet);
     bool sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket, SequenceNumber sequenceNumber);
-    
+
     int maybeSendNewPacket(); // Figures out what packet to send next
     bool maybeResendPacket(); // Determines whether to resend a packet and which one
-    
+
     bool isInactive(bool attemptedToSendPacket);
     void deactivate(); // makes the queue inactive and cleans it up
 
     bool isFlowWindowFull() const;
-    
+
     // Increments current sequence number and return it
     SequenceNumber getNextSequenceNumber();
-    
+
     PacketQueue _packets;
-    
+
     Socket* _socket { nullptr }; // Socket to send packet on
     SockAddr _destination; // Destination addr
-    
+
     std::atomic<uint32_t> _lastACKSequenceNumber { 0 }; // Last ACKed sequence number
-    
+
     SequenceNumber _currentSequenceNumber { 0 }; // Last sequence number sent out
     std::atomic<uint32_t> _atomicCurrentSequenceNumber { 0 }; // Atomic for last sequence number sent out
-    
+
     std::atomic<int> _packetSendPeriod { 0 }; // Interval between two packet send event in microseconds, set from CC
     std::atomic<State> _state { State::NotStarted };
-    
+
     std::atomic<int> _estimatedTimeout { 0 }; // Estimated timeout, set from CC
-    
+
     std::atomic<int> _flowWindowSize { 0 }; // Flow control window size (number of packets that can be on wire) - set from CC
-    
+
     mutable std::mutex _naksLock; // Protects the naks list.
     LossList _naks; // Sequence numbers of packets to resend
-    
+
     mutable QReadWriteLock _sentLock; // Protects the sent packet list
     using PacketResendPair = std::pair<uint8_t, std::unique_ptr<Packet>>; // Number of resend + packet ptr
     std::unordered_map<SequenceNumber, PacketResendPair> _sentPackets; // Packets waiting for ACK.
-    
+
     std::mutex _handshakeMutex; // Protects the handshake ACK condition_variable
     std::atomic<bool> _hasReceivedHandshakeACK { false }; // flag for receipt of handshake ACK from client
     std::condition_variable _handshakeACKCondition;
-    
+
     std::condition_variable_any _emptyCondition;
 
     std::chrono::high_resolution_clock::time_point _lastPacketSentAt;

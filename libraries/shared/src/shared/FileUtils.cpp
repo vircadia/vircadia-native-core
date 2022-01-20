@@ -67,9 +67,15 @@ QString FileUtils::readFile(const QString& filename) {
     return result;
 }
 
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+QStringList FileUtils::readLines(const QString& filename, QString::SplitBehavior splitBehavior) {
+    return readFile(filename).split(QRegularExpression("[\\r\\n]"), QString::SkipEmptyParts);
+}
+#else
 QStringList FileUtils::readLines(const QString& filename, Qt::SplitBehavior splitBehavior) {
     return readFile(filename).split(QRegularExpression("[\\r\\n]"), Qt::SkipEmptyParts);
 }
+#endif
 
 void FileUtils::locateFile(const QString& filePath) {
 

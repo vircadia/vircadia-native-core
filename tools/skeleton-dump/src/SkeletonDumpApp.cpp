@@ -29,7 +29,11 @@ SkeletonDumpApp::SkeletonDumpApp(int argc, char* argv[]) : QCoreApplication(argc
     parser.addOption(inputFilenameOption);
 
     if (!parser.parse(QCoreApplication::arguments())) {
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+        qCritical() << parser.errorText() << endl;
+#else
         qCritical() << parser.errorText() << Qt::endl;
+#endif
         parser.showHelp();
         _returnCode = 1;
         return;

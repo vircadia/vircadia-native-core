@@ -24,7 +24,11 @@ public:
     static bool isRelative(const QString& fileName);
     static QString standardPath(QString subfolder);
     static QString readFile(const QString& filename);
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+    static QStringList readLines(const QString& filename, QString::SplitBehavior splitBehavior = QString::KeepEmptyParts);
+#else
     static QStringList readLines(const QString& filename, Qt::SplitBehavior splitBehavior = Qt::KeepEmptyParts);
+#endif
     static QString replaceDateTimeTokens(const QString& path);
     static QString computeDocumentPath(const QString& path);
     static bool canCreateFile(const QString& fullPath);

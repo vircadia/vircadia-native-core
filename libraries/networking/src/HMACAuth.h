@@ -39,7 +39,11 @@ public:
     HMACHash result();
 
 private:
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+    QMutex _lock { QMutex::Recursive };
+#else
     QRecursiveMutex _lock;
+#endif
     struct hmac_ctx_st* _hmacContext;
     AuthMethod _authMethod;
 };

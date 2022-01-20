@@ -496,8 +496,8 @@ void NodeList::sendDomainServerCheckIn() {
 
         // pack our data to send to the domain-server including
         // the hostname information (so the domain-server can see which place name we came in on)
-        packetStream << _ownerType.load() << publicSockAddr.getType() << publicSockAddr << localSockAddr.getType() 
-            << localSockAddr << _nodeTypesOfInterest.toList();
+        packetStream << _ownerType.load() << (quint8)publicSockAddr.getType() << publicSockAddr
+            << (quint8)localSockAddr.getType() << localSockAddr << _nodeTypesOfInterest.toList();
         packetStream << DependencyManager::get<AddressManager>()->getPlaceName();
 
         if (!domainIsConnected) {
@@ -882,7 +882,7 @@ void NodeList::processDomainServerRemovedNode(QSharedPointer<ReceivedMessage> me
 void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
     NewNodeInfo info;
 
-    SocketType publicSocketType, localSocketType;
+    quint8 publicSocketType, localSocketType;
     packetStream >> info.type
                  >> info.uuid
                  >> publicSocketType
@@ -893,8 +893,8 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
                  >> info.isReplicated
                  >> info.sessionLocalID
                  >> info.connectionSecretUUID;
-    info.publicSocket.setType(publicSocketType);
-    info.localSocket.setType(localSocketType);
+    info.publicSocket.setType((SocketType)publicSocketType);
+    info.localSocket.setType((SocketType)localSocketType);
 
     // if the public socket address is 0 then it's reachable at the same IP
     // as the domain server

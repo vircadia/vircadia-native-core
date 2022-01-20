@@ -69,6 +69,8 @@ jobs:
           echo "CMAKE_EXTRA=-DVIRCADIA_CPU_ARCHITECTURE= -DCMAKE_OSX_SYSROOT=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DOPENSSL_LIBRARIES=/usr/local/opt/openssl/lib -G Xcode" >> $GITHUB_ENV
           echo "::set-output name=symbols_archive::${BUILD_NUMBER}-${{ matrix.build_type }}-mac-symbols.zip"
           echo "APP_TARGET_NAME=Vircadia" >> $GITHUB_ENV
+          # Build with old Qt to work around incompatibility with newer Qt versions and macOSXSDK10.12. See https://github.com/vircadia/vircadia/issues/1516
+          echo "VIRCADIA_USE_QT_VERSION=5.12.3" >> $GITHUB_ENV
         fi
         # Windows build variables
         if [ "${{ matrix.os }}" = "windows-latest" ]; then

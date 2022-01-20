@@ -107,7 +107,12 @@ protected:
         std::vector<Transition> _transitions;
 
     private:
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+        State(const State&) = delete;
+        State& operator=(const State&) = delete;
+#else
         Q_DISABLE_COPY(State)
+#endif
     };
 
 public:
@@ -150,7 +155,12 @@ protected:
     QString _currentStateVar;
 
 private:
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+    AnimStateMachine(const AnimStateMachine&) = delete;
+    AnimStateMachine& operator=(const AnimStateMachine&) = delete;
+#else
     Q_DISABLE_COPY(AnimStateMachine)
+#endif
 };
 
 #endif // hifi_AnimStateMachine_h

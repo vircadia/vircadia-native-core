@@ -89,7 +89,11 @@ private:
     QHash<size_t, QSharedPointer<Dependency>> _instanceHash;
     QHash<size_t, size_t> _inheritanceHash;
 
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
+    mutable QMutex _instanceHashMutex { QMutex::Recursive };
+#else
     mutable QRecursiveMutex _instanceHashMutex;
+#endif
     mutable QMutex _inheritanceHashMutex;
 
     bool _exiting { false };

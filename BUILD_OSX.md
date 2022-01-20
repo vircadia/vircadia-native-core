@@ -29,6 +29,13 @@ You will need version `10.12` of the macOS SDK for building, otherwise you may h
 cp -rp ~/Downloads/MacOSX10.12.sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
 ```
 
+When using macOSXSDK10.12, you also need to use an older Qt package to avoid compatibility issues on Big Sur and newer.
+To do this, set the appropriate environment variable:
+```bash
+VIRCADIA_USE_QT_VERSION=5.12.3
+```
+ See https://github.com/vircadia/vircadia/issues/1516.
+
 ### OpenSSL
 
 Assuming you've installed OpenSSL using the homebrew instructions above, you'll need to set `OPENSSL_ROOT_DIR` so CMake can find your installations.
