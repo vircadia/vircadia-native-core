@@ -86,7 +86,7 @@ QScriptValue ArrayBufferClass::newInstance(qint32 size) {
 QScriptValue ArrayBufferClass::newInstance(const QByteArray& ba) {
     QScriptEngine* eng = engine();
     QScriptValue data = eng->newVariant(QVariant::fromValue(ba));
-    return engine()->newObject(this, data);
+    return eng->newObject(this, data);
 }
 
 QScriptValue ArrayBufferClass::construct(QScriptContext* context, QScriptEngine* engine) {

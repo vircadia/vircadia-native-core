@@ -61,7 +61,7 @@ QScriptValue ScriptObjectQtProxy::newQObject(ScriptEngineQtScript* engine, QObje
         ScriptEngineQtScript::ObjectWrapperMap::const_iterator lookup = engine->_qobjectWrapperMap.find(object);
         if (lookup != engine->_qobjectWrapperMap.end()) {
             QSharedPointer<ScriptObjectQtProxy> proxy = lookup.value().lock();
-            if (proxy) return static_cast<QScriptEngine*>(engine)->newObject(proxy.get(), qengine->newVariant(QVariant::fromValue(proxy)));;
+            if (proxy) return qengine->newObject(proxy.get(), qengine->newVariant(QVariant::fromValue(proxy)));;
         }
     }
     
@@ -88,7 +88,7 @@ QScriptValue ScriptObjectQtProxy::newQObject(ScriptEngineQtScript* engine, QObje
         ScriptEngineQtScript::ObjectWrapperMap::const_iterator lookup = engine->_qobjectWrapperMap.find(object);
         if (lookup != engine->_qobjectWrapperMap.end()) {
             QSharedPointer<ScriptObjectQtProxy> proxy = lookup.value().lock();
-            if (proxy) return static_cast<QScriptEngine*>(engine)->newObject(proxy.get(), qengine->newVariant(QVariant::fromValue(proxy)));;
+            if (proxy) return qengine->newObject(proxy.get(), qengine->newVariant(QVariant::fromValue(proxy)));;
         }
 
         // register the wrapper with the engine and make sure it cleans itself up
@@ -104,7 +104,7 @@ QScriptValue ScriptObjectQtProxy::newQObject(ScriptEngineQtScript* engine, QObje
         });
     }
 
-    return static_cast<QScriptEngine*>(engine)->newObject(proxy.get(), qengine->newVariant(QVariant::fromValue(proxy)));
+    return qengine->newObject(proxy.get(), qengine->newVariant(QVariant::fromValue(proxy)));
 }
 
 ScriptObjectQtProxy* ScriptObjectQtProxy::unwrapProxy(const QScriptValue& val) {
@@ -385,7 +385,7 @@ QScriptValue ScriptVariantQtProxy::newVariant(ScriptEngineQtScript* engine, cons
         return qengine->newVariant(variant);
     }
     auto proxy = QSharedPointer<ScriptVariantQtProxy>::create(engine, variant, proto, protoProxy);
-    return static_cast<QScriptEngine*>(engine)->newObject(proxy.get(), qengine->newVariant(QVariant::fromValue(proxy)));
+    return qengine->newObject(proxy.get(), qengine->newVariant(QVariant::fromValue(proxy)));
 }
 
 ScriptVariantQtProxy* ScriptVariantQtProxy::unwrapProxy(const QScriptValue& val) {
