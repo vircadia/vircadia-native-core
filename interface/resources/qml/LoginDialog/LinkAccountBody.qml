@@ -407,7 +407,6 @@ Item {
                                 var url = metaverseServerField.text;
                                 console.log("Setting metaverse server to", url);
                                 Settings.setValue("private/selectedMetaverseURL", url);
-                                //setAuthURL(url);
                                 if(AccountServices.isLoggedIn()){
                                     AccountServices.logOut();
                                 }
@@ -421,6 +420,18 @@ Item {
                     root.text = "";
                     if (focus) {
                         root.isPassword = false;
+                    }else{
+                        var url = metaverseServerField.text;
+                        if(!(url == Settings.getValue("private/selectedMetaverseURL")) && !(url == "")){
+                            if (!isLoggingInToDomain) {
+                                console.log("Setting metaverse server to", url);
+                                Settings.setValue("private/selectedMetaverseURL", url);
+                                if(AccountServices.isLoggedIn()){
+                                    AccountServices.logOut();
+                                }
+                                AccountServices.updateAuthURLFromMetaverseServerURL();
+                            }
+                        }
                     }
                 }
             }
