@@ -54,7 +54,6 @@ Vircadia™ is a 3D social software project seeking to incrementally bring about
 - [For Windows - Interface & Server](https://github.com/vircadia/vircadia/blob/master/INSTALLER.md)
 - [For Mac - Interface](https://github.com/vircadia/vircadia/blob/master/INSTALLER.md#os-x)
 - [For Linux - Server .deb - Vircadia Builder](INSTALLER.md#ubuntu-1804--deb)
-- [For Linux - Server .rpm - Vircadia Builder](INSTALLER.md#amazon-linux-2--rpm)
 - [For Linux - Interface AppImage - Vircadia Builder](https://github.com/vircadia/vircadia-builder/blob/master/README.md#building-appimages)
 
 ### Boot to Metaverse: [The Goal](https://vircadia.com/vision/)
@@ -94,10 +93,4 @@ Keep in mind that Vircadia consists of multiple smaller projects that might have
 
 #### Supporters of the Vircadia Project
 
-| [ksuprynowicz (74hc595)](https://github.com/ksuprynowicz) |
-| --- |
-| <p align="center">[<img src="https://vircadia.com/wp-content/uploads/2021/07/74hc595_profile_2-1.png" width="80" alt="ksuprynowicz" />](https://github.com/ksuprynowicz)</p>
-
-#### Sponsors of Open Source
-
-<img src="https://vircadia.com/wp-content/uploads/2021/11/CBT_OS-logo_White-V.png" width="250" alt="CrossBrowserTesting" />
+Two (2) anonymous, three (3) total sponsors through GitHub. ❤️
