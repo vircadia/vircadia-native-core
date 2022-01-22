@@ -407,7 +407,11 @@ Item {
                                 var url = metaverseServerField.text;
                                 console.log("Setting metaverse server to", url);
                                 Settings.setValue("private/selectedMetaverseURL", url);
-                                setAuthURL(url);
+                                //setAuthURL(url);
+                                if(AccountServices.isLoggedIn()){
+                                    AccountServices.logOut();
+                                }
+                                AccountServices.updateAuthURLFromMetaverseServerURL();
                             }
                             linkAccountBody.login();
                             break;

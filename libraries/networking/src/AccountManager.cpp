@@ -205,6 +205,10 @@ void AccountManager::setAuthURL(const QUrl& authURL) {
     }
 }
 
+void AccountManager::updateAuthURLFromMetaverseServerURL() {
+    setAuthURL(MetaverseAPI::getCurrentMetaverseServerURL());
+}
+
 void AccountManager::setSessionID(const QUuid& sessionID) {
     if (_sessionID != sessionID) {
         qCDebug(networking) << "Metaverse session ID changed to" << uuidStringWithoutCurlyBraces(sessionID);
