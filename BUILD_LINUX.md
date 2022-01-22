@@ -57,7 +57,7 @@ Verify OpenGL:
   - Then run `glxinfo | grep "OpenGL version"`.
 
 
-### Extra dependencies to compile an Interface on a server
+### Extra dependencies to compile Interface on a server
 
 
 - Install the following:
@@ -178,7 +178,7 @@ Running assignment client:
 
 #### Interface
 
-Running the Interface:
+Running Interface:
 ```bash
 ./interface/interface
 ```
