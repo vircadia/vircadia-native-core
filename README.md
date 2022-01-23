@@ -93,4 +93,8 @@ Keep in mind that Vircadia consists of multiple smaller projects that might have
 
 #### Supporters of the Vircadia Project
 
-Two (2) anonymous, three (3) total sponsors through GitHub. ❤️
+One (1) anonymous, three (3) total sponsors through GitHub. ❤️
+
+| [Daichi Shimabukuro](https://github.com/mshlomd) |
+| --- |
+| <p align="center">[<img src="https://avatars.githubusercontent.com/u/4787162?v=4" width="80" alt="Daichi Shimabukuro" />](https://github.com/mshlomd)</p>
