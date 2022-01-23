@@ -52,7 +52,7 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
     // Adding the action name
     QHttpPart actionPart;
     actionPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data; name=\"action_name\"");
-    actionPart.setBody(QByteArray().append(action));
+    actionPart.setBody(QByteArray().append(action.toUtf8()));
     multipart->append(actionPart);
 
     // Log the local-time that this event was logged
