@@ -38,14 +38,14 @@
  * <p><em>This API currently has no effect and is not used.</em></p>
  *
  * @namespace OffscreenFlags
- * 
+ *
  * @hifi-interface
  * @hifi-client-entity
  * @hifi-avatar
  *
- * @property {boolean} navigationFocused - <code>true</code> if UI has joystick navigation focus, <code>false</code> if it 
+ * @property {boolean} navigationFocused - <code>true</code> if UI has joystick navigation focus, <code>false</code> if it
  *     doesn't.
- * @property {boolean} navigationFocusDisabled - <code>true</code> if UI joystick navigation focus is disabled, 
+ * @property {boolean} navigationFocusDisabled - <code>true</code> if UI joystick navigation focus is disabled,
  *     <code>false</code> if it isn't.
  */
 
@@ -75,7 +75,7 @@ public:
             emit navigationFocusDisabledChanged();
         }
     }
-    
+
 signals:
 
     /*@jsdoc
@@ -99,9 +99,9 @@ private:
 
 static OffscreenFlags* offscreenFlags { nullptr };
 
-// This hack allows the QML UI to work with keys that are also bound as 
-// shortcuts at the application level.  However, it seems as though the 
-// bound actions are still getting triggered.  At least for backspace.  
+// This hack allows the QML UI to work with keys that are also bound as
+// shortcuts at the application level.  However, it seems as though the
+// bound actions are still getting triggered.  At least for backspace.
 // Not sure why.
 //
 // However, the problem may go away once we switch to the new menu system,
@@ -168,7 +168,7 @@ void OffscreenUi::onRootContextCreated(QQmlContext* qmlContext) {
     qmlContext->setContextProperty("fileDialogHelper", new FileDialogHelper());
 #ifdef DEBUG
     qmlContext->setContextProperty("DebugQML", QVariant(true));
-#else 
+#else
     qmlContext->setContextProperty("DebugQML", QVariant(false));
 #endif
 
@@ -284,7 +284,7 @@ QQuickItem* OffscreenUi::createMessageBox(Icon icon, const QString& title, const
     map.insert("buttons", buttons.operator int());
     map.insert("defaultButton", defaultButton);
     QVariant result;
-    bool invokeResult;
+    bool invokeResult = false;
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
     if (tablet->getToolbarMode() && _desktop) {
@@ -309,7 +309,7 @@ int OffscreenUi::waitForMessageBoxResult(QQuickItem* messageBox) {
     if (!messageBox) {
         return QMessageBox::NoButton;
     }
-    
+
     return MessageBoxListener(messageBox).waitForButtonResult();
 }
 
@@ -424,8 +424,8 @@ QString OffscreenUi::getText(const Icon icon, const QString& title, const QStrin
 QString OffscreenUi::getItem(const Icon icon, const QString& title, const QString& label, const QStringList& items,
     int current, bool editable, bool* ok) {
 
-    if (ok) { 
-        *ok = false; 
+    if (ok) {
+        *ok = false;
     }
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
@@ -580,7 +580,7 @@ QQuickItem* OffscreenUi::createInputDialog(const Icon icon, const QString& title
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
 
-    bool invokeResult;
+    bool invokeResult = false;
     if (tablet->getToolbarMode() && _desktop) {
         invokeResult = QMetaObject::invokeMethod(_desktop, "inputDialog",
                                                  Q_RETURN_ARG(QVariant, result),
@@ -608,7 +608,7 @@ QQuickItem* OffscreenUi::createCustomInputDialog(const Icon icon, const QString&
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
 
-    bool invokeResult;
+    bool invokeResult = false;
     if (tablet->getToolbarMode() && _desktop) {
         invokeResult = QMetaObject::invokeMethod(_desktop, "inputDialog",
                                                  Q_RETURN_ARG(QVariant, result),
@@ -619,7 +619,7 @@ QQuickItem* OffscreenUi::createCustomInputDialog(const Icon icon, const QString&
                                                  Q_ARG(QVariant, QVariant::fromValue(map)));
         emit tabletScriptingInterface->tabletNotification();
     }
-    
+
     if (!invokeResult) {
         qWarning() << "Failed to create custom message box";
         return nullptr;
@@ -648,13 +648,13 @@ void OffscreenUi::setNavigationFocused(bool focused) {
 // FIXME HACK....
 // This hack is an attempt to work around the 'offscreen UI can't gain keyboard focus' bug
 // https://app.asana.com/0/27650181942747/83176475832393
-// The problem seems related to https://bugreports.qt.io/browse/QTBUG-50309 
+// The problem seems related to https://bugreports.qt.io/browse/QTBUG-50309
 //
 // The workaround seems to be to give some other window (same process or another process doesn't seem to matter)
-// focus and then put focus back on the interface main window.  
+// focus and then put focus back on the interface main window.
 //
-// If I could reliably reproduce this bug I could eventually track down what state change is occuring 
-// during the process of the main window losing and then gaining focus, but failing that, here's a 
+// If I could reliably reproduce this bug I could eventually track down what state change is occuring
+// during the process of the main window losing and then gaining focus, but failing that, here's a
 // brute force way of triggering that state change at application start in a way that should be nearly
 // imperceptible to the user.
 class KeyboardFocusHack : public QObject {
@@ -754,7 +754,7 @@ private slots:
 
 QString OffscreenUi::fileDialog(const QVariantMap& properties) {
     QVariant buildDialogResult;
-    bool invokeResult;
+    bool invokeResult = false;
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
     if (tablet->getToolbarMode() && _desktop) {
@@ -783,7 +783,7 @@ QString OffscreenUi::fileDialog(const QVariantMap& properties) {
 
 ModalDialogListener* OffscreenUi::fileDialogAsync(const QVariantMap& properties) {
     QVariant buildDialogResult;
-    bool invokeResult;
+    bool invokeResult = false;
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
     if (tablet->getToolbarMode() && _desktop) {
@@ -1003,7 +1003,7 @@ class AssetDialogListener : public ModalDialogListener {
 QString OffscreenUi::assetDialog(const QVariantMap& properties) {
     // ATP equivalent of fileDialog().
     QVariant buildDialogResult;
-    bool invokeResult;
+    bool invokeResult = false;
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
     if (tablet->getToolbarMode() && _desktop) {
@@ -1033,7 +1033,7 @@ QString OffscreenUi::assetDialog(const QVariantMap& properties) {
 ModalDialogListener *OffscreenUi::assetDialogAsync(const QVariantMap& properties) {
     // ATP equivalent of fileDialog().
     QVariant buildDialogResult;
-    bool invokeResult;
+    bool invokeResult = false;
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
     if (tablet->getToolbarMode() && _desktop) {
@@ -1165,7 +1165,7 @@ bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
     }
 
     // QML input elements absorb key press, but apparently not key release.
-    // therefore we want to ensure that key release events for key presses that were 
+    // therefore we want to ensure that key release events for key presses that were
     // accepted by the QML layer are suppressed
     if (type == QEvent::KeyRelease && pressed) {
         pressed = false;
@@ -1173,10 +1173,6 @@ bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
     }
 
     return result;
-}
-
-unsigned int OffscreenUi::getMenuUserDataId() const {
-    return _vrMenu->_userDataId;
 }
 
 ModalDialogListener::ModalDialogListener(QQuickItem *dialog) : _dialog(dialog) {

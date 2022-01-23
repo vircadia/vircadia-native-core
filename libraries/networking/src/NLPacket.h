@@ -13,8 +13,6 @@
 #ifndef hifi_NLPacket_h
 #define hifi_NLPacket_h
 
-#include <QtCore/QSharedPointer>
-
 #include <UUID.h>
 
 #include "udt/Packet.h"

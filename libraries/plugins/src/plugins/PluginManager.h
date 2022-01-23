@@ -8,6 +8,7 @@
 #pragma once
 
 #include <QObject>
+#include <QtCore/QSharedPointer>
 
 #include <DependencyManager.h>
 #include <SettingHandle.h>

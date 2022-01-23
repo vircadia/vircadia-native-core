@@ -14,6 +14,7 @@
 
 #include <QBuffer>
 #include <QVariantHash>
+#include "shared/HifiTypes.h"
 
 static const unsigned int FST_VERSION = 1;
 static const QString FST_VERSION_FIELD = "version";
@@ -47,23 +48,23 @@ public:
     };
 
     /// Reads an FST mapping from the supplied data.
-    static QVariantHash readMapping(const QByteArray& data);
+    static hifi::VariantMultiHash readMapping(const QByteArray& data);
 
     /// Writes an FST mapping to a byte array.
-    static QByteArray writeMapping(const QVariantHash& mapping);
+    static QByteArray writeMapping(const hifi::VariantMultiHash& mapping);
 
-    /// Predicts the type of model by examining the mapping 
-    static ModelType predictModelType(const QVariantHash& mapping);
+    /// Predicts the type of model by examining the mapping
+    static ModelType predictModelType(const hifi::VariantMultiHash& mapping);
 
-    static QVector<QString> getScripts(const QUrl& fstUrl, const QVariantHash& mapping = QVariantHash());
+    static QVector<QString> getScripts(const QUrl& fstUrl, const hifi::VariantMultiHash& mapping = QVariantHash());
 
     static QString getNameFromType(ModelType modelType);
     static FSTReader::ModelType getTypeFromName(const QString& name);
-    static QVariantHash downloadMapping(const QString& url);
+    static hifi::VariantMultiHash downloadMapping(const QString& url);
 
 private:
     static void writeVariant(QBuffer& buffer, QVariantHash::const_iterator& it);
-    static QVariantHash parseMapping(QIODevice* device);
+    static hifi::VariantMultiHash parseMapping(QIODevice* device);
 
     static QHash<FSTReader::ModelType, QString> _typesToNames;
     static QHash<QString, FSTReader::ModelType> _namesToTypes;

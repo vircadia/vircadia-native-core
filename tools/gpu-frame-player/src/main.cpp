@@ -7,6 +7,7 @@
 //
 
 #include <QtWidgets/QApplication>
+#include <QtCore/QSharedPointer>
 
 #include <shared/FileLogger.h>
 #include "PlayerWindow.h"

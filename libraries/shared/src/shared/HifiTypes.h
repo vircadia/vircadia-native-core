@@ -15,10 +15,14 @@
 #include <QVarLengthArray>
 #include <QVariant>
 #include <QUrl>
+#include <QMultiHash>
+#include <QMultiMap>
 
 namespace hifi {
     using ByteArray = QByteArray;
     using VariantHash = QVariantHash;
+    using VariantMultiHash = QMultiHash<QString, QVariant>;
+    using VariantMultiMap = QMultiMap<QString, QVariant>;
     using URL = QUrl;
 };
 

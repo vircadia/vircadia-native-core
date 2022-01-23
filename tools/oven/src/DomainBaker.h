@@ -15,6 +15,7 @@
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonArray>
 #include <QtCore/QObject>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QUrl>
 #include <QtCore/QThread>
 

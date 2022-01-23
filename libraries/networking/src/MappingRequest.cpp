@@ -11,6 +11,7 @@
 
 #include "MappingRequest.h"
 
+#include <QtCore/QSharedPointer>
 #include <QtCore/QThread>
 
 #include <DependencyManager.h>

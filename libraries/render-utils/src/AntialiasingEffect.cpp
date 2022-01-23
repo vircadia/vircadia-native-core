@@ -54,7 +54,7 @@ Antialiasing::~Antialiasing() {
 const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
     if (!_antialiasingPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::fxaa);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
 
         state->setDepthTest(false, false, gpu::LESS_EQUAL);
         PrepareStencil::testNoAA(*state);
@@ -69,7 +69,7 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
 const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
     if (!_blendPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::fxaa_blend);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
         state->setDepthTest(false, false, gpu::LESS_EQUAL);
         PrepareStencil::testNoAA(*state);
 
@@ -140,7 +140,7 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
 #else
 
 void AntialiasingConfig::setAAMode(int mode) {
-    _mode = std::min((int)AntialiasingConfig::MODE_COUNT, std::max(0, mode));
+    _mode = std::min((int)AntialiasingConfig::MODE_COUNT, std::max(0, mode)); // Just use unsigned?
     emit dirty();
 }
 
@@ -158,7 +158,7 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline(const render::
    
     if (!_antialiasingPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::taa);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
         
         PrepareStencil::testNoAA(*state);
 
@@ -172,7 +172,7 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline(const render::
 const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
     if (!_blendPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::fxaa_blend);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
         PrepareStencil::testNoAA(*state);
         // Good to go add the brand new pipeline
         _blendPipeline = gpu::Pipeline::create(program, state);
@@ -183,7 +183,7 @@ const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
 const gpu::PipelinePointer& Antialiasing::getDebugBlendPipeline() {
     if (!_debugBlendPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::taa_blend);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
         PrepareStencil::testNoAA(*state);
 
 

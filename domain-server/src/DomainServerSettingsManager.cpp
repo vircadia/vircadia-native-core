@@ -551,6 +551,8 @@ void DomainServerSettingsManager::setupConfigMap(const QString& userConfigFilena
             packPermissions();
         }
 
+        // No migration needed to version 2.6.
+
         // write the current description version to our settings
         *versionVariant = _descriptionVersion;
 
@@ -834,7 +836,7 @@ bool DomainServerSettingsManager::ensurePermissionsForGroupRanks() {
             if (_groupPermissions.contains(nameKey)) {
                 perms = _groupPermissions[nameKey];
             } else {
-                perms = NodePermissionsPointer(new NodePermissions(nameKey));
+                perms = std::make_shared<NodePermissions>(nameKey);
                 _groupPermissions[nameKey] = perms;
                 changed = true;
             }
@@ -861,7 +863,7 @@ bool DomainServerSettingsManager::ensurePermissionsForGroupRanks() {
             if (_groupForbiddens.contains(nameKey)) {
                 perms = _groupForbiddens[nameKey];
             } else {
-                perms = NodePermissionsPointer(new NodePermissions(nameKey));
+                perms = std::make_shared<NodePermissions>(nameKey);
                 _groupForbiddens[nameKey] = perms;
                 changed = true;
             }

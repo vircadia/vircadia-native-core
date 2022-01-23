@@ -29,6 +29,7 @@
 #include <QtCore/QReadWriteLock>
 #include <QtCore/QSet>
 #include <QtCore/QSharedMemory>
+#include <QtCore/QSharedPointer>
 #include <QtNetwork/QUdpSocket>
 #include <QtNetwork/QHostAddress>
 
@@ -37,7 +38,6 @@
 #include <DependencyManager.h>
 #include <SharedUtil.h>
 
-#include "DomainHandler.h"
 #include "NetworkingConstants.h"
 #include "Node.h"
 #include "NLPacket.h"
@@ -121,7 +121,7 @@ public:
     QUuid getSessionUUID() const;
     void setSessionUUID(const QUuid& sessionUUID);
     Node::LocalID getSessionLocalID() const;
-    void setSessionLocalID(Node::LocalID localID);
+    void setSessionLocalID(Node::LocalID sessionLocalID);
 
     void setPermissions(const NodePermissions& newPermissions);
     bool isAllowedEditor() const { return _permissions.can(NodePermissions::Permission::canAdjustLocks); }
@@ -135,10 +135,14 @@ public:
     bool getThisNodeCanGetAndSetPrivateUserData() const { return _permissions.can(NodePermissions::Permission::canGetAndSetPrivateUserData); }
     bool getThisNodeCanRezAvatarEntities() const { return _permissions.can(NodePermissions::Permission::canRezAvatarEntities); }
 
-    quint16 getSocketLocalPort() const { return _nodeSocket.localPort(); }
-    Q_INVOKABLE void setSocketLocalPort(quint16 socketLocalPort);
+    quint16 getSocketLocalPort(SocketType socketType) const { return _nodeSocket.localPort(socketType); }
+    Q_INVOKABLE void setSocketLocalPort(SocketType socketType, quint16 socketLocalPort);
 
     QUdpSocket& getDTLSSocket();
+#if defined(WEBRTC_DATA_CHANNELS)
+    const WebRTCSocket* getWebRTCSocket();
+#endif
+
 
     PacketReceiver& getPacketReceiver() { return *_packetReceiver; }
 
@@ -419,7 +423,6 @@ protected:
 
     qint64 sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode,
                       const SockAddr& overridenSockAddr);
-    void fillPacketHeader(const NLPacket& packet, HMACAuth* hmacAuth = nullptr);
 
     void setLocalSocket(const SockAddr& sockAddr);
 
@@ -446,7 +449,7 @@ protected:
     QUdpSocket* _dtlsSocket { nullptr };
     SockAddr _localSockAddr;
     SockAddr _publicSockAddr;
-    SockAddr _stunSockAddr { STUN_SERVER_HOSTNAME, STUN_SERVER_PORT };
+    SockAddr _stunSockAddr { SocketType::UDP, STUN_SERVER_HOSTNAME, STUN_SERVER_PORT };
     bool _hasTCPCheckedLocalSocket { false };
     bool _useAuthentication { true };
 
@@ -486,6 +489,8 @@ private slots:
     void addSTUNHandlerToUnfiltered(); // called once STUN socket known
 
 private:
+    void fillPacketHeader(const NLPacket& packet, HMACAuth* hmacAuth = nullptr);
+
     mutable QReadWriteLock _sessionUUIDLock;
     QUuid _sessionUUID;
     using LocalIDMapping = tbb::concurrent_unordered_map<Node::LocalID, SharedNodePointer>;

@@ -417,7 +417,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
 
     std::map<QString, HFMLight> lights;
 
-    hifi::VariantHash blendshapeMappings = mapping.value("bs").toHash();
+    hifi::VariantMultiHash blendshapeMappings = mapping.value("bs").toHash();
 
     QMultiHash<hifi::ByteArray, WeightedIndex> blendshapeIndices;
     for (int i = 0;; i++) {

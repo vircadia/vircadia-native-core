@@ -948,7 +948,7 @@ In an international environment English is the preferred language.
 
 #### [4.3.2] Use // for all comments, including multi-line comments.
 
-An exception to this rule applies for jsdoc or Doxygen comments.
+An exception to this rule applies to JSDoc and Doxygen comments.
 
 ```cpp
 // Comment spanning
@@ -1008,3 +1008,11 @@ These types of comments are explicitly not allowed. If you need to break up sect
 //--------------------------------------------------------------------------------
 ```
 
+#### [4.3.6] Doxygen comments should use "///"
+
+Use the `///` style of [Doxygen](https://www.doxygen.nl/index.html) comments when documenting public interfaces.
+
+Some editors can automatically create a Doxygen documentation stub if you type `///` in the line above the item to be
+documented.
+
+**Visual Studio:** To configure Visual Studio's Doxygen commenting behavior, search for "Doxygen" in Tools > Options.

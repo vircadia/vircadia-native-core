@@ -18,7 +18,43 @@
 #include <QSignalMapper>
 #include <QAction>
 #include <QMenu>
+#include <QUuid>
 #include "OffscreenUi.h"
+
+
+
+// Binds together a Qt Action or Menu with the QML Menu or MenuItem
+//
+// TODO On reflection, it may be pointless to use the UUID.  Perhaps
+// simply creating the bidirectional link pointing to both the widget
+// and qml object and inject the pointer into both objects
+class MenuUserData : public QObject {
+    Q_OBJECT
+public:
+    MenuUserData(QAction* action, QObject* qmlObject, QObject* qmlParent);
+    ~MenuUserData();
+    void updateQmlItemFromAction();
+    void clear();
+
+    const QUuid uuid{ QUuid::createUuid() };
+
+    static bool hasData(QAction* object);
+
+    static MenuUserData* forObject(QAction* object);
+
+private:
+    Q_DISABLE_COPY(MenuUserData);
+
+    static constexpr const char *USER_DATA{"user_data"};
+
+    QMetaObject::Connection _shutdownConnection;
+    QMetaObject::Connection _changedConnection;
+    QAction* _action { nullptr };
+    QObject* _qml { nullptr };
+    QObject* _qmlParent{ nullptr };
+};
+
+
 
 // FIXME break up the rendering code (VrMenu) and the code for mirroring a Widget based menu in QML
 class VrMenu : public QObject {
@@ -37,7 +73,6 @@ protected:
 
     friend class MenuUserData;
     friend class OffscreenUi;
-    const unsigned int _userDataId { QObject::registerUserData() };
 };
 
 #endif // hifi_VrMenu_h

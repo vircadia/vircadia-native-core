@@ -16,6 +16,7 @@
 #include <vector>
 
 #include <QtCore/QObject>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QUuid>
 
 #include <EntityEditPacketSender.h>

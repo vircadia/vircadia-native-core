@@ -15,6 +15,7 @@
 #include <QtCore/QSet>
 #include <QtCore/QStack>
 #include <QtGui/QMouseEvent>
+#include <QtCore/QSharedPointer>
 
 #include <AudioInjectorManager.h>
 #include <EntityScriptingInterface.h> // for RayToEntityIntersectionResult
@@ -162,7 +163,7 @@ public slots:
 
 protected:
     virtual OctreePointer createTree() override {
-        EntityTreePointer newTree = EntityTreePointer(new EntityTree(true));
+        EntityTreePointer newTree = std::make_shared<EntityTree>(true);
         newTree->createRootElement();
         return newTree;
     }

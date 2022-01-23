@@ -53,7 +53,7 @@ void HalfDownsample::run(const RenderContextPointer& renderContext, const gpu::F
 
     if (!_pipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawTransformUnitQuadTextureOpaque);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
         state->setDepthTest(gpu::State::DepthTest(false, false));
         _pipeline = gpu::Pipeline::create(program, state);
     }
@@ -109,7 +109,7 @@ void Upsample::run(const RenderContextPointer& renderContext, const gpu::Framebu
     if (resampledFrameBuffer != sourceFramebuffer) {
         if (!_pipeline) {
             gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawTransformUnitQuadTextureOpaque);
-            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+            gpu::StatePointer state = std::make_shared<gpu::State>();
             state->setDepthTest(gpu::State::DepthTest(false, false));
             _pipeline = gpu::Pipeline::create(program, state);
         }
@@ -150,7 +150,7 @@ void UpsampleToBlitFramebuffer::run(const RenderContextPointer& renderContext, c
 
     if (resampledFrameBuffer != sourceFramebuffer) {
         if (!_pipeline) {
-            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+            gpu::StatePointer state = std::make_shared<gpu::State>();
             state->setDepthTest(gpu::State::DepthTest(false, false));
 
             _pipeline = gpu::Pipeline::create(gpu::Shader::createProgram(drawTransformUnitQuadTextureOpaque), state);

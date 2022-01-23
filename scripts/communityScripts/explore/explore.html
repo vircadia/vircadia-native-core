@@ -13,8 +13,18 @@
         #component-templates {
             display: none;
         }
+
+        .thumbnailItem .d-flex {
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(5px);
+            text-shadow: 1px 1px 2px black, 0 0 25px black, 0 0 5px black;
+        }
+
+        .thumbnailItemHover .d-flex {
+            background: rgba(100, 100, 100, 0.2);
+        }
     </style>
-    <!--<script src="js/TestEventBridge.js"></script>-->
+    <!--<script src="../Explore/js/TestEventBridge.js"></script>-->
 </head>
 <body>
     <div id="component-templates">
@@ -22,7 +32,7 @@
             <v-dialog v-model="dialog" fullscreen hide-overlay transition="dialog-bottom-transition">
                 <template v-slot:activator="{ on, attrs }">
                     <v-btn color="grey darken-3" class="ml-5" v-show="permission" value="animations" v-bind="attrs" v-on="on" fab small>
-                        <v-icon color="purple">mdi-map-plus</v-icon>
+                        <v-icon color="purple lighten-2">mdi-map-plus</v-icon>
                     </v-btn>
                 </template>
                 <v-card>
@@ -30,7 +40,7 @@
                         <v-btn icon dark @click="closeDialog();">
                             <v-icon>mdi-close</v-icon>
                         </v-btn>
-                        <v-toolbar-title>Add Location</v-toolbar-title>
+                        <v-toolbar-title>Add Location Beacon</v-toolbar-title>
                         <v-spacer></v-spacer>
                         <v-toolbar-items>
                             <v-btn dark text @click="addLocation()">Save</v-btn>
@@ -101,30 +111,28 @@
                         <template v-slot:default="props">
                             <v-row dense>
                                 <v-col v-for="item in props.items"
-                                       :key="item.name"
+                                       :key="item.index"
                                        cols="12"
                                        sm="6"
                                        md="4"
                                        lg="3">
-                                   <v-hover
-                                       v-slot:default="{ hover }"
-                                   >
-                                        <v-card 
-                                            @click.native="openLocation(item['Visit'])"
-                                            :color="hover ? 'grey darken-3' : 'grey darken-4'"
-                                        >
-                                            <!--<v-card-title class="headline">{{ item["Domain Name"] }}</v-card-title>-->
+                                    <v-hover v-slot:default="{ hover }">
+                                        <v-card @click.native="openLocation(item['location'])"
+                                                :color="hover ? 'grey darken-3' : 'grey darken-4'"
+                                                 :style="item.thumbnail ? 'background-size: cover; background-position: center; background-image: url(' + item.thumbnail +');' : '' "
+                                                 :class="item.thumbnail ? (hover ? 'thumbnailItem thumbnailItemHover' : 'thumbnailItem') : '' "
+                                                >
                                             <div class="d-flex flex-no-wrap justify-space-between">
-                                                <div>
-                                                    <v-card-title class="text-h6 d-block text-truncate pa-2" v-text="item['Domain Name']" style="max-width: 400px;"></v-card-title>
-                                                    <v-card-subtitle class="pa-2 d-block text-truncate" style="max-width: 400px;" v-text="item.Owner"></v-card-subtitle>
-                                                </div>
-                                                <div style="text-align: right;">
-                                                    <v-card-title align-right class="align-right" v-text="item['People']"></v-card-title>
-                                                </div>
+                                                    <div>
+                                                        <v-card-title class="text-h6 d-block text-truncate pa-2" v-text="item['name']" style="max-width: 400px;"></v-card-title>
+                                                        <v-card-subtitle class="pa-2 d-block text-truncate" style="max-width: 400px;" v-text="item.owner"></v-card-subtitle>
+                                                    </div>
+                                                    <div style="text-align: right;">
+                                                        <v-card-title align-right class="align-right" v-text="item['userCount']"></v-card-title>
+                                                    </div>
                                             </div>
                                         </v-card>
-                                    </hover>
+                                    </v-hover>
                                 </v-col>
                             </v-row>
                         </template>
@@ -230,7 +238,7 @@
                     <v-tooltip bottom>
                         <template v-slot:activator="{ on, attrs }">
                             <v-btn v-bind="attrs" v-on="on" color="grey darken-3" class="mx-1" v-show="isHomeSet" value="animations" fab small @click="navigateHome()">
-                                <v-icon color="purple">mdi-home</v-icon>
+                                <v-icon color="purple lighten-2">mdi-home</v-icon>
                             </v-btn>
                         </template>
                         <span>Go Home</span>
@@ -238,7 +246,7 @@
                     <v-tooltip bottom>
                         <template v-slot:activator="{ on, attrs }">
                             <v-btn v-bind="attrs" v-on="on" color="grey darken-3" class="mx-1" value="animations" fab small @click="navigateBack()">
-                                <v-icon color="purple">mdi-arrow-left-bold</v-icon>
+                                <v-icon color="purple lighten-2">mdi-arrow-left-bold</v-icon>
                             </v-btn>
                         </template>
                         <span>Go Back</span>
@@ -246,14 +254,14 @@
                     <v-tooltip bottom>
                         <template v-slot:activator="{ on, attrs }">
                             <v-btn v-bind="attrs" v-on="on" color="grey darken-3" class="mx-1" value="animations" fab small @click="navigateForward()">
-                                <v-icon color="purple">mdi-arrow-right-bold</v-icon>
+                                <v-icon color="purple lighten-2">mdi-arrow-right-bold</v-icon>
                             </v-btn>
                         </template>
                         <span>Go Forward</span>
                     </v-tooltip>
                     <!--<v-btn value="animations" fab small>
-        <v-icon color="purple">mdi-map-marker-plus</v-icon>
-    </v-btn>-->
+                        <v-icon color="purple">mdi-map-marker-plus</v-icon>
+                    </v-btn>-->
                     <add-location ref="addLocation" :permission="permission"></add-location>
                 </v-app-bar>
             </div>
@@ -286,22 +294,75 @@
     <script src="../libraries/vue/vue.min.js"></script>
     <script src="../libraries/vue-router/vue-router.js"></script>
     <script src="../libraries/vuetify/vuetify-v2.3.9.js"></script>
+    <script src="../libraries/axios/axios.min.js"></script>
 
     <script>
         var exploreComponent = null;
         var locationData = null;
+        var placesData = null;
+
+        function blendedData() {
+            var joinedData = [];
+            if (locationData != null) {
+                for (var i = 0; i < locationData.length; i++) {
+                    joinedData.push({
+                        "index": joinedData.length, 
+                        "location": locationData[i].Visit, 
+                        "name": locationData[i]['Domain Name'], 
+                        "owner": locationData[i].Owner, 
+                        "userCount": locationData[i].People, 
+                        "description": "", 
+                        "thumbnail": ""
+                    });
+                }
+            }
+
+            if (placesData != null) {
+                var activeThresholdTime = new Date();
+                activeThresholdTime.setMinutes(activeThresholdTime.getMinutes() - 15);
+
+                // while blending metaverse data ensure it is cleaned for active domains
+                for (var i = 0; i < placesData.length; i++) {
+                    if (placesData[i].domain.active && placesData[i].visibility == "open" && new Date(placesData[i].last_activity_update) > activeThresholdTime) {
+                        joinedData.push({
+                            "index": joinedData.length,
+                            "location": placesData[i].name,
+                            "name": placesData[i].name,
+                            "owner": placesData[i].managers[0],
+                            "userCount": placesData[i].current_attendance,
+                            "description": placesData[i].description,
+                            "thumbnail": placesData[i].thumbnail
+                        });
+                    }
+                }
+            }
+
+            return joinedData;
+        }
+
         function getAddressListData(component) {
             exploreComponent = component;
 
-            if (locationData != null) {
-                exploreComponent.updateData(locationData);
-                return;
+            // if json data not loaded fire emti event for it
+            if (locationData == null) {
+                var readyEvent = {
+                    "action": "requestAddressList",
+                };
+                EventBridge.emitWebEvent(JSON.stringify(readyEvent));
             }
 
-            var readyEvent = {
-                "action": "requestAddressList",
-            };
-            EventBridge.emitWebEvent(JSON.stringify(readyEvent));
+            // if metaverse data not loaded fire a request for it
+            if (placesData == null) {
+                // fire off data get against the metaverse
+                axios.get("https://metaverse.vircadia.com/live/api/v1/places")
+                    .then((response) => {
+                        placesData = response.data.data.places;
+                        exploreComponent.updateData(blendedData());
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    });
+            }
         }
 
         var bookmarksComponent = null;
@@ -346,8 +407,8 @@
                     page: 1,
                     pageCount: 0,
                     itemsPerPage: 6,
-                    sortBy: 'People',
-                    items: [], 
+                    sortBy: 'userCount',
+                    items: [],
                 }
             },
             template: document.getElementById("explore-template").innerHTML,
@@ -544,7 +605,7 @@
                     if (messageData.action == "addressListv2") {
                         self.permission = messageData.permission;
                         locationData = messageData.myAddress;
-                        exploreComponent.updateData(locationData);
+                        exploreComponent.updateData(blendedData());
                         self.isHomeSet = messageData.isHomeSet;
                     }
                     if (messageData.action == "bookmarksList") {
@@ -553,9 +614,9 @@
                     }
                     if (messageData.action == "retrievePortInformationResponse") {
                         addLocationData = messageData.goToAddresses;
-                        for (let i = 0; i < addLocationData.length; i++) {	
-                            var metaverseProvider = addLocationData[i].split("/")[2].split(":")[0];	
-                            addLocationData[i] = "https://" + metaverseProvider + "/interim/d-goto/app/decentralizedGoToServerScript.js";	
+                        for (let i = 0; i < addLocationData.length; i++) {
+                            var metaverseProvider = addLocationData[i].split("/")[2].split(":")[0];
+                            addLocationData[i] = "https://" + metaverseProvider + "/interim/d-goto/app/decentralizedGoToServerScript.js";
                         }
                         addLocationComponent.updateData(addLocationData);
                     }

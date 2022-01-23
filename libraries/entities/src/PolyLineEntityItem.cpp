@@ -26,7 +26,7 @@ const float PolyLineEntityItem::DEFAULT_LINE_WIDTH = 0.1f;
 const int PolyLineEntityItem::MAX_POINTS_PER_LINE = 60;
 
 EntityItemPointer PolyLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity(new PolyLineEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
+    std::shared_ptr<PolyLineEntityItem> entity(new PolyLineEntityItem(entityID), [](PolyLineEntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }

@@ -163,7 +163,8 @@ void loop3(const T& start, const T& end, F f) {
 }
 
 EntityItemPointer RenderablePolyVoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    std::shared_ptr<RenderablePolyVoxEntityItem> entity(new RenderablePolyVoxEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
+    std::shared_ptr<RenderablePolyVoxEntityItem> entity(new RenderablePolyVoxEntityItem(entityID),
+                                                        [](RenderablePolyVoxEntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     entity->initializePolyVox();
     return entity;
@@ -1288,7 +1289,7 @@ void RenderablePolyVoxEntityItem::recomputeMesh() {
     auto entity = std::static_pointer_cast<RenderablePolyVoxEntityItem>(getThisPointer());
 
     QtConcurrent::run([entity, voxelSurfaceStyle] {
-        graphics::MeshPointer mesh(new graphics::Mesh());
+        graphics::MeshPointer mesh(std::make_shared<graphics::Mesh>());
 
         // A mesh object to hold the result of surface extraction
         PolyVox::SurfaceMesh<PolyVox::PositionMaterialNormal> polyVoxMesh;

@@ -16,7 +16,7 @@
 
 using namespace platform;
 
-const std::array<const char*, Profiler::Tier::NumTiers> Profiler::TierNames = {{ "UNKNOWN", "LOW", "MID", "HIGH" }};
+const std::array<const char*, Profiler::Tier::NumTiers> Profiler::TierNames = {{ "UNKNOWN", "LOW_POWER", "LOW", "MID", "HIGH" }};
 
 
 bool filterOnComputer(const platform::json& computer, Profiler::Tier& tier);

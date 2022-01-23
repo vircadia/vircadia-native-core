@@ -7,6 +7,7 @@
 //
 
 #include "VirtualPadManager.h"
+#include <QtCore/QSharedPointer>
 
 namespace VirtualPad {
 

@@ -15,7 +15,7 @@
 #include <QOffscreenSurface>
 #include <QQueue>
 #include <QMap>
-#include <QSharedPointer>
+#include <QtCore/QSharedPointer>
 #include <QMutex>
 
 class QOpenGLFramebufferObject;

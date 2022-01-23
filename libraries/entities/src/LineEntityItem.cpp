@@ -24,7 +24,7 @@
 const int LineEntityItem::MAX_POINTS_PER_LINE = 70;
 
 EntityItemPointer LineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity(new LineEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
+    std::shared_ptr<LineEntityItem> entity(new LineEntityItem(entityID), [](LineEntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }

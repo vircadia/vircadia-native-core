@@ -34,7 +34,7 @@ QObject* MappingBuilderProxy::from(const QScriptValue& source) {
 
 QObject* MappingBuilderProxy::from(const Endpoint::Pointer& source) {
     if (source) {
-        auto route = Route::Pointer(new Route());
+        auto route = std::make_shared<Route>();
         route->source = source;
         return new RouteBuilderProxy(_parent, _mapping, route);
     } else {
