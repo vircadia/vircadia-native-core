@@ -3,7 +3,7 @@
 //  places.js
 //
 //  Created by Alezia Kurdis, January 1st, 2022.
-//  Copyright 2022, Overte contributors.
+//  Copyright 2022 Overte e.V.
 //
 //  Generate an explore app based on the differents source of placename data.
 //
