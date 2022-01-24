@@ -1574,10 +1574,18 @@ class ExportProjectWindow : EditorWindow {
                 }
             }
             if (projectLocation.Length > 0) {
-                // before clicking Export we can verify that the project location at least starts with a drive
-                if (!Char.IsLetter(projectLocation[0]) || projectLocation.Length == 1 || projectLocation[1] != ':') {
-                    errorText = "Project location is invalid. Please choose a different project location.\n";
-                    return true;
+                // Check to ensure provided path is absolute, not relative.
+                if(SystemInfo.operatingSystemFamily == OperatingSystemFamily.Windows) {
+                    if (!Char.IsLetter(projectLocation[0]) || projectLocation.Length == 1 || projectLocation[1] != ':') {
+                        errorText = "Project location is invalid. Please choose a different project location.\n";
+                        return true;
+                    }
+                }
+                else {
+                    if (projectLocation[0] != '/') {
+                        errorText = "Project location is invalid. Please choose a different project location.\n";
+                        return true;
+                    }
                 }
             }
             if (exporting) {
