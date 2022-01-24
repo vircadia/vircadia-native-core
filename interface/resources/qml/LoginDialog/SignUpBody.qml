@@ -455,7 +455,7 @@ Item {
     }
     Connections {
         target: loginDialog
-        onHandleSignupCompleted: {
+        function onHandleSignupCompleted(needConfirmation) {
             console.log("Sign Up Completed");
 
             if (signUpBody.loginDialogPoppedUp) {
@@ -465,10 +465,16 @@ Item {
                 UserActivityLogger.logAction("encourageLoginDialog", data);
             }
 
-            loginDialog.login(usernameField.text, passwordField.text);
-            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": false, "linkSteam": false });
+            if (needConfirmation) {
+                Window.alert("You need to confirm your email before you can log in.");
+                bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
+            } else {
+                loginDialog.login(usernameField.text, passwordField.text);
+                bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": false, "linkSteam": false });
+            }
+
         }
-        onHandleSignupFailed: {
+        function onHandleSignupFailed(errorString) {
             console.log("Sign Up Failed")
 
             if (signUpBody.loginDialogPoppedUp) {
@@ -495,14 +501,14 @@ Item {
                 errorContainer.anchors.left = usernameField.left;
             }
         }
-        onFocusEnabled: {
+        function onFocusEnabled() {
             if (!signUpBody.lostFocus) {
                 Qt.callLater(function() {
                     emailField.forceActiveFocus();
                 });
             }
         }
-        onFocusDisabled: {
+        function onFocusDisabled() {
             signUpBody.lostFocus = !root.isTablet && !root.isOverlay;
             if (signUpBody.lostFocus) {
                 Qt.callLater(function() {
