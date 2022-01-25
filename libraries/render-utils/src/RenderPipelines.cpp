@@ -19,6 +19,7 @@
 #include <render/DrawTask.h>
 #include <shaders/Shaders.h>
 #include <graphics/ShaderConstants.h>
+#include <procedural/ReferenceMaterial.h>
 
 #include "render-utils/ShaderConstants.h"
 #include "StencilMaskPass.h"
@@ -378,6 +379,7 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
 
     auto& drawMaterialTextures = multiMaterial.getTextureTable();
     multiMaterial.setTexturesLoading(false);
+    multiMaterial.resetReferenceTexturesAndMaterials();
 
     // The total list of things we need to look for
     static std::set<uint> allFlags;
@@ -408,9 +410,13 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
         }
         materials.pop();
 
+        if (material->isReference()) {
+            multiMaterial.addReferenceMaterial(std::static_pointer_cast<ReferenceMaterial>(material)->getReferenceOperator());
+        }
+
         bool defaultFallthrough = material->getDefaultFallthrough();
-        const auto& materialKey = material->getKey();
-        const auto& textureMaps = material->getTextureMaps();
+        const auto materialKey = material->getKey();
+        const auto textureMaps = material->getTextureMaps();
 
         auto it = flagsToCheck.begin();
         while (it != flagsToCheck.end()) {
@@ -482,6 +488,9 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                             if (itr->second->isDefined()) {
                                 material->resetOpacityMap();
                                 drawMaterialTextures->setTexture(gr::Texture::MaterialAlbedo, itr->second->getTextureView());
+                                if (itr->second->getTextureView().isReference()) {
+                                    multiMaterial.addReferenceTexture(itr->second->getTextureView().getTextureOperator());
+                                }
                                 wasSet = true;
                             } else {
                                 multiMaterial.setTexturesLoading(true);
@@ -501,6 +510,9 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                         if (itr != textureMaps.end()) {
                             if (itr->second->isDefined()) {
                                 drawMaterialTextures->setTexture(gr::Texture::MaterialMetallic, itr->second->getTextureView());
+                                if (itr->second->getTextureView().isReference()) {
+                                    multiMaterial.addReferenceTexture(itr->second->getTextureView().getTextureOperator());
+                                }
                                 wasSet = true;
                             } else {
                                 multiMaterial.setTexturesLoading(true);
@@ -518,6 +530,9 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                         if (itr != textureMaps.end()) {
                             if (itr->second->isDefined()) {
                                 drawMaterialTextures->setTexture(gr::Texture::MaterialRoughness, itr->second->getTextureView());
+                                if (itr->second->getTextureView().isReference()) {
+                                    multiMaterial.addReferenceTexture(itr->second->getTextureView().getTextureOperator());
+                                }
                                 wasSet = true;
                             } else {
                                 multiMaterial.setTexturesLoading(true);
@@ -535,6 +550,9 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                         if (itr != textureMaps.end()) {
                             if (itr->second->isDefined()) {
                                 drawMaterialTextures->setTexture(gr::Texture::MaterialNormal, itr->second->getTextureView());
+                                if (itr->second->getTextureView().isReference()) {
+                                    multiMaterial.addReferenceTexture(itr->second->getTextureView().getTextureOperator());
+                                }
                                 wasSet = true;
                             } else {
                                 multiMaterial.setTexturesLoading(true);
@@ -552,6 +570,9 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                         if (itr != textureMaps.end()) {
                             if (itr->second->isDefined()) {
                                 drawMaterialTextures->setTexture(gr::Texture::MaterialOcclusion, itr->second->getTextureView());
+                                if (itr->second->getTextureView().isReference()) {
+                                    multiMaterial.addReferenceTexture(itr->second->getTextureView().getTextureOperator());
+                                }
                                 wasSet = true;
                             } else {
                                 multiMaterial.setTexturesLoading(true);
@@ -569,6 +590,9 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                         if (itr != textureMaps.end()) {
                             if (itr->second->isDefined()) {
                                 drawMaterialTextures->setTexture(gr::Texture::MaterialScattering, itr->second->getTextureView());
+                                if (itr->second->getTextureView().isReference()) {
+                                    multiMaterial.addReferenceTexture(itr->second->getTextureView().getTextureOperator());
+                                }
                                 wasSet = true;
                             } else {
                                 multiMaterial.setTexturesLoading(true);
@@ -587,6 +611,9 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                         if (itr != textureMaps.end()) {
                             if (itr->second->isDefined()) {
                                 drawMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, itr->second->getTextureView());
+                                if (itr->second->getTextureView().isReference()) {
+                                    multiMaterial.addReferenceTexture(itr->second->getTextureView().getTextureOperator());
+                                }
                                 wasSet = true;
                             } else {
                                 multiMaterial.setTexturesLoading(true);
@@ -607,6 +634,9 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                         if (itr != textureMaps.end()) {
                             if (itr->second->isDefined()) {
                                 drawMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, itr->second->getTextureView());
+                                if (itr->second->getTextureView().isReference()) {
+                                    multiMaterial.addReferenceTexture(itr->second->getTextureView().getTextureOperator());
+                                }
                                 wasSet = true;
                             } else {
                                 multiMaterial.setTexturesLoading(true);

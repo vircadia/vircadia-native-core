@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_ScriptsModel_h
 #define hifi_ScriptsModel_h
 
@@ -64,7 +67,7 @@ public:
     TreeNodeFolder(const QString& foldername, TreeNodeFolder* parent);
 };
 
-/**jsdoc
+/*@jsdoc
  * Information on the scripts that are in the default scripts directory of the Interface installation. This is provided as a 
  * property of {@link ScriptDiscoveryService}.
  *
@@ -119,6 +122,7 @@ public:
  * print("Scripts:");
  * printDirectory(null, 0, "");  // null index for the root directory.
  */
+/// Provides script file information available from the <code><a href="https://apidocs.vircadia.dev/ScriptDiscoveryService.html">ScriptDiscoveryService</a></code> scripting interface
 class ScriptsModel : public QAbstractItemModel {
     Q_OBJECT
 public:
@@ -152,26 +156,26 @@ public:
 
 protected slots:
 
-    /**jsdoc
+    /*@jsdoc
      * @function ScriptsModel.updateScriptsLocation
      * @param {string} newPath - New path.
      * @deprecated This method is deprecated and will be removed from the API.
      */
     void updateScriptsLocation(const QString& newPath);
 
-    /**jsdoc
+    /*@jsdoc
      * @function ScriptsModel.downloadFinished
      * @deprecated This method is deprecated and will be removed from the API.
      */
     void downloadFinished();
 
-    /**jsdoc
+    /*@jsdoc
      * @function ScriptsModel.reloadLocalFiles
      * @deprecated This method is deprecated and will be removed from the API.
      */
     void reloadLocalFiles();
 
-    /**jsdoc
+    /*@jsdoc
      * @function ScriptsModel.reloadDefaultFiles
      * @deprecated This method is deprecated and will be removed from the API.
      */
@@ -191,3 +195,5 @@ private:
 };
 
 #endif // hifi_ScriptsModel_h
+
+/// @}

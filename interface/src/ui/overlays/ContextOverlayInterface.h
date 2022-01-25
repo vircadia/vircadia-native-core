@@ -15,6 +15,7 @@
 
 #include <QtCore/QObject>
 #include <QUuid>
+#include <QtCore/QSharedPointer>
 
 #include <DependencyManager.h>
 #include <PointerEvent.h>
@@ -29,7 +30,7 @@
 #include "EntityTree.h"
 #include "ContextOverlayLogging.h"
 
-/**jsdoc
+/*@jsdoc
  * The <code>ContextOverlay</code> API manages the "i" proof-of-provenance context overlay that appears on Marketplace items 
  * when a user right-clicks them.
  *
@@ -61,7 +62,7 @@ class ContextOverlayInterface : public QObject, public Dependency {
 public:
     ContextOverlayInterface();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the ID of the entity that the context overlay is currently displayed for.
      * @function ContextOverlay.getCurrentEntityWithContextOverlay
      * @returns {Uuid} - The ID of the entity that the context overlay is currently displayed for, <code>null</code> if the 
@@ -76,7 +77,7 @@ public:
     bool getIsInMarketplaceInspectionMode() { return _isInMarketplaceInspectionMode; }
     void setIsInMarketplaceInspectionMode(bool mode) { _isInMarketplaceInspectionMode = mode; }
 
-    /**jsdoc
+    /*@jsdoc
      * Initiates a check on an avatar entity belongs to the user wearing it. The result is returned via 
      * {@link WalletScriptingInterface.ownershipVerificationSuccess} or 
      * {@link WalletScriptingInterface.ownershipVerificationFailed}.
@@ -90,7 +91,7 @@ public:
     EntityPropertyFlags getEntityPropertyFlags() { return _entityPropertyFlags; }
 
 signals:
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the user clicks on the context overlay.
      * @function ContextOverlay.contextOverlayClicked
      * @param {Uuid} id - The ID of the entity that the context overlay is for.
@@ -104,7 +105,7 @@ signals:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * @function ContextOverlay.clickDownOnEntity
      * @param {Uuid} id - Entity ID.
      * @param {PointerEvent} event - Pointer event.
@@ -113,7 +114,7 @@ public slots:
     // FIXME: Method shouldn't be in the API.
     void clickDownOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
 
-    /**jsdoc
+    /*@jsdoc
      * @function ContextOverlay.mouseReleaseOnEntity
      * @param {Uuid} id - Entity ID.
      * @param {PointerEvent} event - Pointer event.
@@ -122,7 +123,7 @@ public slots:
     // FIXME: Method shouldn't be in the API.
     void mouseReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
 
-    /**jsdoc
+    /*@jsdoc
      * Displays or deletes the context overlay as appropriate for the target entity and a pointer event: the context overlay 
      * must be enabled and the pointer event must be a right-click; if so, then any current context overlay is deleted, and if 
      * the target entity should have a context overlay then it is displayed.
@@ -134,7 +135,7 @@ public slots:
      */
     bool createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
 
-    /**jsdoc
+    /*@jsdoc
      * Deletes the context overlay and removes the entity highlight, if shown.
      * @function ContextOverlay.destroyContextOverlay
      * @param {Uuid} entityID - The ID of the entity.
@@ -145,7 +146,7 @@ public slots:
     bool destroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
     bool destroyContextOverlay(const EntityItemID& entityItemID);
 
-    /**jsdoc
+    /*@jsdoc
      * @function ContextOverlay.contextOverlays_hoverEnterOverlay
      * @param {Uuid} id - Overlay ID.
      * @param {PointerEvent} event - Pointer event.
@@ -154,7 +155,7 @@ public slots:
     // FIXME: Method shouldn't be in the API.
     void contextOverlays_hoverEnterOverlay(const QUuid& id, const PointerEvent& event);
 
-    /**jsdoc
+    /*@jsdoc
      * @function ContextOverlay.contextOverlays_hoverLeaveOverlay
      * @param {Uuid} id - Overlay ID.
      * @param {PointerEvent} event - Pointer event.
@@ -163,7 +164,7 @@ public slots:
     // FIXME: Method shouldn't be in the API.
     void contextOverlays_hoverLeaveOverlay(const QUuid& id, const PointerEvent& event);
 
-    /**jsdoc
+    /*@jsdoc
      * @function ContextOverlay.contextOverlays_hoverEnterEntity
      * @param {Uuid} id - Entity ID.
      * @param {PointerEvent} event - Pointer event.
@@ -172,7 +173,7 @@ public slots:
     // FIXME: Method shouldn't be in the API.
     void contextOverlays_hoverEnterEntity(const EntityItemID& entityID, const PointerEvent& event);
 
-    /**jsdoc
+    /*@jsdoc
      * @function ContextOverlay.contextOverlays_hoverLeaveEntity
      * @param {Uuid} id - Entity ID.
      * @param {PointerEvent} event - Pointer event.
@@ -181,7 +182,7 @@ public slots:
     // FIXME: Method shouldn't be in the API.
     void contextOverlays_hoverLeaveEntity(const EntityItemID& entityID, const PointerEvent& event);
 
-    /**jsdoc
+    /*@jsdoc
      * Checks with a context overlay should be displayed for an entity &mdash; in particular, whether the item has a non-empty 
      * certificate ID.
      * @function ContextOverlay.contextOverlayFilterPassed

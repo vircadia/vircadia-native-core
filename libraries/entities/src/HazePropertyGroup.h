@@ -42,7 +42,7 @@ static const float INITIAL_KEY_LIGHT_ALTITUDE{ 200.0f };
 
 // FIXME: Document hazeAttenuationKeyLight, hazeKeyLightRange, and hazeKeyLightAltitude once they're working and are provided 
 // in the Create app's UI.
-/**jsdoc
+/*@jsdoc
  * Haze is defined by the following properties:
  * @typedef {object} Entities.Haze
  *

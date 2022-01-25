@@ -35,7 +35,7 @@
 #include "Assignment.h"
 #include "AudioHelpers.h"
 #include "DomainAccountManager.h"
-#include "HifiSockAddr.h"
+#include "SockAddr.h"
 #include "FingerprintUtils.h"
 
 #include "NetworkLogging.h"
@@ -147,7 +147,7 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
 
     auto& packetReceiver = getPacketReceiver();
     packetReceiver.registerListener(PacketType::DomainList,
-        PacketReceiver::makeUnsourcedListenerReference<NodeList>(this, &NodeList::processDomainServerList));
+        PacketReceiver::makeUnsourcedListenerReference<NodeList>(this, &NodeList::processDomainList));
     packetReceiver.registerListener(PacketType::Ping,
         PacketReceiver::makeSourcedListenerReference<NodeList>(this, &NodeList::processPingPacket));
     packetReceiver.registerListener(PacketType::PingReply,
@@ -176,11 +176,11 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
         PacketReceiver::makeUnsourcedListenerReference<NodeList>(this, &NodeList::processUsernameFromIDReply));
 }
 
-qint64 NodeList::sendStats(QJsonObject statsObject, HifiSockAddr destination) {
+qint64 NodeList::sendStats(QJsonObject statsObject, SockAddr destination) {
     if (thread() != QThread::currentThread()) {
         QMetaObject::invokeMethod(this, "sendStats", Qt::QueuedConnection,
                                   Q_ARG(QJsonObject, statsObject),
-                                  Q_ARG(HifiSockAddr, destination));
+                                  Q_ARG(SockAddr, destination));
         return 0;
     }
 
@@ -245,7 +245,7 @@ void NodeList::timePingReply(ReceivedMessage& message, const SharedNodePointer& 
 void NodeList::processPingPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     // send back a reply
     auto replyPacket = constructPingReplyPacket(*message);
-    const HifiSockAddr& senderSockAddr = message->getSenderSockAddr();
+    const SockAddr& senderSockAddr = message->getSenderSockAddr();
     sendPacket(std::move(replyPacket), *sendingNode, senderSockAddr);
 
     // If we don't have a symmetric socket for this node and this socket doesn't match
@@ -357,14 +357,14 @@ void NodeList::sendDomainServerCheckIn() {
 
     if (publicSockAddr.isNull()) {
         // we don't know our public socket and we need to send it to the domain server
-        qCDebug(networking_ice) << "Waiting for inital public socket from STUN. Will not send domain-server check in.";
+        qCDebug(networking_ice) << "Waiting for initial public socket from STUN. Will not send domain-server check in.";
     } else if (domainHandlerIp.isNull() && _domainHandler.requiresICE()) {
         qCDebug(networking_ice) << "Waiting for ICE discovered domain-server socket. Will not send domain-server check in.";
         handleICEConnectionToDomainServer();
         // let the domain handler know we are due to send a checkin packet
     } else if (!domainHandlerIp.isNull() && !_domainHandler.checkInPacketTimeout()) {
         bool domainIsConnected = _domainHandler.isConnected();
-        HifiSockAddr domainSockAddr = _domainHandler.getSockAddr();
+        SockAddr domainSockAddr = _domainHandler.getSockAddr();
         PacketType domainPacketType = !domainIsConnected
             ? PacketType::DomainConnectRequest : PacketType::DomainListRequest;
 
@@ -376,8 +376,8 @@ void NodeList::sendDomainServerCheckIn() {
             // is this our localhost domain-server?
             // if so we need to make sure we have an up-to-date local port in case it restarted
 
-            if (domainSockAddr.getAddress() == QHostAddress::LocalHost
-                || hostname == "localhost") {
+            if ((domainSockAddr.getAddress() == QHostAddress::LocalHost || hostname == "localhost")
+                && _domainPortAutoDiscovery) {
 
                 quint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
                 getLocalServerPortFromSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, domainPort);
@@ -401,15 +401,16 @@ void NodeList::sendDomainServerCheckIn() {
             return;
         }
 
+        // WEBRTC TODO: Move code into packet library. And update reference in DomainConnectRequest.js.
+
         auto domainPacket = NLPacket::create(domainPacketType);
 
         QDataStream packetStream(domainPacket.get());
 
-        HifiSockAddr localSockAddr = _localSockAddr;
+        SockAddr localSockAddr = _localSockAddr;
         if (domainPacketType == PacketType::DomainConnectRequest) {
 
 #if (PR_BUILD || DEV_BUILD)
-            // #######
             if (_shouldSendNewerVersion) {
                 domainPacket->setVersion(versionForPacketType(domainPacketType) + 1);
             }
@@ -453,7 +454,6 @@ void NodeList::sendDomainServerCheckIn() {
             packetStream << hardwareAddress;
 
             // now add the machine fingerprint
-            auto accountManager = DependencyManager::get<AccountManager>();
             packetStream << FingerprintUtils::getMachineFingerprint();
 
             platform::json all = platform::getAll();
@@ -470,10 +470,12 @@ void NodeList::sendDomainServerCheckIn() {
             QByteArray compressedSystemInfo = qCompress(systemInfo);
 
             if (compressedSystemInfo.size() > MAX_SYSTEM_INFO_SIZE) {
+                // FIXME
                 // Highly unlikely, as not even unreasonable machines will
                 // overflow the max size, but prevent MTU overflow anyway.
                 // We could do something sophisticated like clearing specific
                 // values if they're too big, but we'll save that for later.
+                // Alternative solution would be to write system info at the end of the packet, only if there is space.
                 compressedSystemInfo.clear();
             }
 
@@ -494,7 +496,8 @@ void NodeList::sendDomainServerCheckIn() {
 
         // pack our data to send to the domain-server including
         // the hostname information (so the domain-server can see which place name we came in on)
-        packetStream << _ownerType.load() << publicSockAddr << localSockAddr << _nodeTypesOfInterest.toList();
+        packetStream << _ownerType.load() << publicSockAddr.getType() << publicSockAddr << localSockAddr.getType() 
+            << localSockAddr << _nodeTypesOfInterest.toList();
         packetStream << DependencyManager::get<AddressManager>()->getPlaceName();
 
         if (!domainIsConnected) {
@@ -534,7 +537,7 @@ void NodeList::sendDomainServerCheckIn() {
             sendPacket(std::move(packetCopy), domainSockAddr);
         }
         sendPacket(std::move(domainPacket), domainSockAddr);
-        
+
     }
 }
 
@@ -661,7 +664,7 @@ void NodeList::handleICEConnectionToDomainServer() {
                                                   _domainHandler.getICEClientID(),
                                                   _domainHandler.getPendingDomainID());
     }
-} 
+}
 
 void NodeList::pingPunchForDomainServer() {
     // make sure if we're here that we actually still need to ping the domain-server
@@ -711,9 +714,11 @@ void NodeList::processDomainServerConnectionTokenPacket(QSharedPointer<ReceivedM
     sendDomainServerCheckIn();
 }
 
-void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) {
+void NodeList::processDomainList(QSharedPointer<ReceivedMessage> message) {
 
-    // parse header information 
+    // WEBRTC TODO: Move code into packet library.  And update reference in DomainServerList.js.
+
+    // parse header information
     QDataStream packetStream(message->getMessage());
 
     // grab the domain's ID from the beginning of the packet
@@ -794,7 +799,7 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
 
     if (_domainHandler.isConnected() && _domainHandler.getUUID() != domainUUID) {
         // Received packet from different domain.
-        qWarning() << "IGNORING DomainList packet from" << domainUUID << "while connected to" 
+        qWarning() << "IGNORING DomainList packet from" << domainUUID << "while connected to"
                    << _domainHandler.getUUID() << ": sent " << pingLagTime << " msec ago.";
         qWarning(networking) << "DomainList request lag (interface->ds): " << domainServerRequestLag << "msec";
         qWarning(networking) << "DomainList server processing time: " << domainServerCheckinProcessingTime << "usec";
@@ -821,17 +826,17 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     setSessionLocalID(newLocalID);
     setSessionUUID(newUUID);
 
-    // FIXME: Remove this call to requestDomainSettings() and reinstate the one in DomainHandler::setIsConnected(), in version 
+    // FIXME: Remove this call to requestDomainSettings() and reinstate the one in DomainHandler::setIsConnected(), in version
     // 2021.2.0. (New protocol version implies a domain server upgrade.)
     if (!_domainHandler.isConnected() 
-            && _domainHandler.getScheme() == URL_SCHEME_HIFI && !_domainHandler.getHostname().isEmpty()) {
+            && _domainHandler.getScheme() == URL_SCHEME_VIRCADIA && !_domainHandler.getHostname().isEmpty()) {
         // We're about to connect but we need the domain settings (in particular, the node permissions) in order to adjust the
         // canRezAvatarEntities permission above before using the permissions in determining whether or not to connect without
         // avatar entities rezzing below.
         _domainHandler.requestDomainSettings();
     }
 
-    // Don't continue login to the domain if have avatar entities and don't have permissions to rez them, unless user has OKed 
+    // Don't continue login to the domain if have avatar entities and don't have permissions to rez them, unless user has OKed
     // continuing login.
     if (!newPermissions.can(NodePermissions::Permission::canRezAvatarEntities)
             && (!adjustedPermissions || !_domainHandler.canConnectWithoutAvatarEntities())) {
@@ -877,14 +882,19 @@ void NodeList::processDomainServerRemovedNode(QSharedPointer<ReceivedMessage> me
 void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
     NewNodeInfo info;
 
+    SocketType publicSocketType, localSocketType;
     packetStream >> info.type
                  >> info.uuid
+                 >> publicSocketType
                  >> info.publicSocket
+                 >> localSocketType
                  >> info.localSocket
                  >> info.permissions
                  >> info.isReplicated
                  >> info.sessionLocalID
                  >> info.connectionSecretUUID;
+    info.publicSocket.setType(publicSocketType);
+    info.localSocket.setType(localSocketType);
 
     // if the public socket address is 0 then it's reachable at the same IP
     // as the domain server
@@ -920,7 +930,7 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
     if (node->getConnectionAttempts() > 0 && node->getConnectionAttempts() % NUM_DEBUG_CONNECTION_ATTEMPTS == 0) {
         qCDebug(networking) << "No response to UDP hole punch pings for node" << node->getUUID() << "in last 2 s.";
     }
-    
+
     auto nodeID = node->getUUID();
 
     // send the ping packet to the local and public sockets for this node
@@ -1012,7 +1022,7 @@ void NodeList::sendKeepAlivePings() {
     });
 }
 
-bool NodeList::sockAddrBelongsToDomainOrNode(const HifiSockAddr& sockAddr) {
+bool NodeList::sockAddrBelongsToDomainOrNode(const SockAddr& sockAddr) {
     return _domainHandler.getSockAddr() == sockAddr || LimitedNodeList::sockAddrBelongsToNode(sockAddr);
 }
 

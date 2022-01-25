@@ -295,7 +295,20 @@ bool Model::updateGeometry() {
     // TODO: should all Models have a valid _rig?
     if (_rig.jointStatesEmpty() && getHFMModel().joints.size() > 0) {
         initJointStates();
-        assert(_meshStates.empty());
+
+        if (!_meshStates.empty()) {
+            // See https://github.com/vircadia/vircadia/issues/958 for a discussion of the issues found here with
+            // a previously existing assert, and the likely reasons for things going wrong here.
+            //
+            // TL;DR: There may be a threading issue, or it could be due to something lacking joints, which would cause
+            // initJointStates() to fail to make _rig.jointStatesEmpty() false, causing things to end up here twice.
+            //
+            // In any case it appears to be safe to simply clear _meshStates here, even though this shouldn't happen.
+            _meshStates.clear();
+            qCWarning(renderutils) << "_meshStates has" << _meshStates.size() << "items when it should have none. Model with URL "
+                                   << _url.toString() << "; translation" << _translation << "; rotation" << _rotation << "; scale" << _scale
+                                   << "; joint state count" << _rig.getJointStateCount() << "; type" << (modelProviderType == NestableType::Avatar ? "Avatar" : "Entity");
+        }
 
         const HFMModel& hfmModel = getHFMModel();
         int i = 0;
@@ -443,7 +456,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
             }
         }
 
-        /**jsdoc
+        /*@jsdoc
          * A submesh intersection point.
          * @typedef {object} SubmeshIntersection
          * @property {Vec3} worldIntersectionPoint - The intersection point in world coordinates.
@@ -841,8 +854,8 @@ void Model::calculateTriangleSets(const HFMModel& hfmModel) {
                     int i2 = part.quadIndices[vIndex++];
                     int i3 = part.quadIndices[vIndex++];
 
-                    // track the model space version... these points will be transformed by the FST's offset, 
-                    // which includes the scaling, rotation, and translation specified by the FST/FBX, 
+                    // track the model space version... these points will be transformed by the FST's offset,
+                    // which includes the scaling, rotation, and translation specified by the FST/FBX,
                     // this can't change at runtime, so we can safely store these in our TriangleSet
                     glm::vec3 v0 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i0], 1.0f));
                     glm::vec3 v1 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i1], 1.0f));
@@ -863,8 +876,8 @@ void Model::calculateTriangleSets(const HFMModel& hfmModel) {
                     int i1 = part.triangleIndices[vIndex++];
                     int i2 = part.triangleIndices[vIndex++];
 
-                    // track the model space version... these points will be transformed by the FST's offset, 
-                    // which includes the scaling, rotation, and translation specified by the FST/FBX, 
+                    // track the model space version... these points will be transformed by the FST's offset,
+                    // which includes the scaling, rotation, and translation specified by the FST/FBX,
                     // this can't change at runtime, so we can safely store these in our TriangleSet
                     glm::vec3 v0 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i0], 1.0f));
                     glm::vec3 v1 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i1], 1.0f));
@@ -1624,7 +1637,7 @@ std::set<unsigned int> Model::getMeshIDsFromMaterialID(QString parentMaterialNam
         };
 
         if (parentMaterialName.length() > 2 && parentMaterialName.startsWith("[") && parentMaterialName.endsWith("]")) {
-            QStringList list = parentMaterialName.split(",", QString::SkipEmptyParts);
+            QStringList list = parentMaterialName.split(",", Qt::SkipEmptyParts);
             for (int i = 0; i < list.length(); i++) {
                 auto& target = list[i];
                 if (i == 0) {

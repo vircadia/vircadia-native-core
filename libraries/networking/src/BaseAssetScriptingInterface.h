@@ -15,6 +15,7 @@
 #define hifi_BaseAssetScriptingInterface_h
 
 #include <QtCore/QObject>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QThread>
 #include "AssetClient.h"
 #include <shared/MiniPromises.h>
@@ -25,7 +26,7 @@ class BaseAssetScriptingInterface : public QObject {
     Q_OBJECT
 public:
 
-    /**jsdoc
+    /*@jsdoc
      * <p>Types of response that {@link Assets.decompressData}, {@link Assets.getAsset}, or {@link Assets.loadFromCache} may 
      * provide.</p>
      * <table>
@@ -48,7 +49,7 @@ public:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether a string is a valid path. Note: A valid path must start with a <code>"/"</code>.
      * @function Assets.isValidPath
      * @param {string} path - The path to check.
@@ -56,7 +57,7 @@ public slots:
      */
     bool isValidPath(QString input) { return AssetUtils::isValidPath(input); }
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether a string is a valid path and filename. Note: A valid path and filename must start with a <code>"/"</code> 
      * but must not end with a <code>"/"</code>.
      * @function Assets.isValidFilePath
@@ -65,7 +66,7 @@ public slots:
      */
     bool isValidFilePath(QString input) { return AssetUtils::isValidFilePath(input); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the normalized ATP URL for a path or hash: ensures that it has <code>"atp:"</code> at the start.
      * @function Assets.getATPUrl
      * @param {string} url - The URL to normalize.
@@ -73,7 +74,7 @@ public slots:
      */
     QUrl getATPUrl(QString input) { return AssetUtils::getATPUrl(input); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the SHA256 hexadecimal hash portion of an asset server URL.
      * @function Assets.extractAssetHash
      * @param {string} url - The URL to get the SHA256 hexadecimal hash from.
@@ -81,7 +82,7 @@ public slots:
      */
     QString extractAssetHash(QString input) { return AssetUtils::extractAssetHash(input); }
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether a string is a valid SHA256 hexadecimal hash, i.e., 64 hexadecimal characters.
      * @function Assets.isValidHash
      * @param {string} hash - The hash to check.
@@ -89,7 +90,7 @@ public slots:
      */
     bool isValidHash(QString input) { return AssetUtils::isValidHash(input); }
 
-    /**jsdoc
+    /*@jsdoc
      * Calculates the SHA256 hash of given data.
      * @function Assets.hashData
      * @param {string|ArrayBuffer} data - The data to calculate the hash of.
@@ -97,7 +98,7 @@ public slots:
      */
     QByteArray hashData(const QByteArray& data) { return AssetUtils::hashData(data); }
 
-    /**jsdoc
+    /*@jsdoc
      * Calculates the SHA256 hash of given data, in hexadecimal format.
      * @function Assets.hashDataHex
      * @param {string|ArrayBuffer} data - The data to calculate the hash of.

@@ -24,7 +24,7 @@ namespace controller {
 class ScriptingInterface;
 class UserInputMapper;
 
-/**jsdoc
+/*@jsdoc
  * <p>A {@link Controller} mapping object that can contain a set of routes that map:</p>
  * <ul>
  *     <li>{@link Controller.Standard} outputs to {@link Controller.Actions} actions or script functions.</li>
@@ -61,7 +61,7 @@ class UserInputMapper;
  * @hifi-avatar
  */
 
-/**jsdoc
+/*@jsdoc
  * A {@link MappingObject} can be specified in JSON format. A simple example is provided below. Full examples &mdash; the 
  * default mappings provided in Interface &mdash;  can be found at 
  * <a href="https://github.com/highfidelity/hifi/tree/master/interface/resources/controllers">
@@ -71,7 +71,7 @@ class UserInputMapper;
  * @property {Controller.MappingJSONRoute[]} channels - An array of routes.
  * @example <caption>A simple mapping JSON that makes the right trigger move your avatar up after a dead zone.</caption>
  * {
- *     "name": "com.highfidelity.controllers.example.jsonMapping",
+ *     "name": "com.vircadia.controllers.example.jsonMapping",
  *     "channels": [
  *         { 
  *             "from": "Standard.RT", 
@@ -82,7 +82,7 @@ class UserInputMapper;
  * }
  */
 
-/**jsdoc
+/*@jsdoc
  * A route in a {@link Controller.MappingJSON}.
  * @typedef {object} Controller.MappingJSONRoute
  * @property {string|Controller.MappingJSONAxis} from - The name of a {@link Controller.Hardware} property or an axis made from 
@@ -97,7 +97,7 @@ class UserInputMapper;
  *     <code>"Controller."</code> can be omitted.
  */
 
-/**jsdoc
+/*@jsdoc
  * An axis pair in a {@link Controller.MappingJSONRoute}.
  * @typedef {object} Controller.MappingJSONAxis
  * @property {string[][]} makeAxis - A two-member array of single-member arrays of {@link Controller.Hardware} property names. 
@@ -110,7 +110,7 @@ class UserInputMapper;
  * }
  */
 
-/**jsdoc
+/*@jsdoc
  * A filter in a {@link Controller.MappingJSONRoute}.
  * @typedef {object} Controller.MappingJSONFilter
  * @property {string} type - The name of the filter, being the name of the one of the {@link RouteObject}'s filter methods.
@@ -134,7 +134,7 @@ public:
     MappingBuilderProxy(UserInputMapper& parent, Mapping::Pointer mapping)
         : _parent(parent), _mapping(mapping) { }
 
-    /**jsdoc
+    /*@jsdoc
      * Creates a new {@link RouteObject} from a controller output, ready to be mapped to a standard control, action, or 
      * function.
      * <p>This is a QML-specific version of {@link MappingObject#from|from}: use this version in QML files.</p>
@@ -145,7 +145,7 @@ public:
      */
     Q_INVOKABLE QObject* fromQml(const QJSValue& source);
 
-    /**jsdoc
+    /*@jsdoc
      * Creates a new {@link RouteObject} from two numeric {@link Controller.Hardware} outputs, one applied in the negative 
      * direction and the other in the positive direction, ready to be mapped to a standard control, action, or function.
      * <p>This is a QML-specific version of {@link MappingObject#makeAxis|makeAxis}: use this version in QML files.</p>
@@ -157,7 +157,7 @@ public:
      */
     Q_INVOKABLE QObject* makeAxisQml(const QJSValue& source1, const QJSValue& source2);
 
-    /**jsdoc
+    /*@jsdoc
      * Creates a new {@link RouteObject} from a controller output, ready to be mapped to a standard control, action, or 
      * function.
      * @function MappingObject#from
@@ -167,7 +167,7 @@ public:
      */
     Q_INVOKABLE QObject* from(const QScriptValue& source);
 
-    /**jsdoc
+    /*@jsdoc
      * Creates a new {@link RouteObject} from two numeric {@link Controller.Hardware} outputs, one applied in the negative 
      * direction and the other in the positive direction, ready to be mapped to a standard control, action, or function.
      * @function MappingObject#makeAxis
@@ -176,7 +176,7 @@ public:
      * @returns {RouteObject} A route ready for mapping to an action or function using {@link RouteObject} methods. The data
      *     value passed to the route is the combined value of <code>source2 - source1</code>. 
      * @example <caption>Make the Oculus Touch triggers move your avatar up and down.</caption>
-     * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+     * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
      * var mapping = Controller.newMapping(MAPPING_NAME);
      * mapping
      *     .makeAxis(Controller.Hardware.OculusTouch.LT, Controller.Hardware.OculusTouch.RT)
@@ -189,7 +189,7 @@ public:
      */
     Q_INVOKABLE QObject* makeAxis(const QScriptValue& source1, const QScriptValue& source2);
 
-    /**jsdoc
+    /*@jsdoc
      * Enables or disables the mapping. When enabled, the routes in the mapping take effect.
      * <p>Synonymous with {@link Controller.enableMapping}.</p>
      * @function MappingObject#enable
@@ -198,7 +198,7 @@ public:
      */
     Q_INVOKABLE QObject* enable(bool enable = true);
 
-    /**jsdoc
+    /*@jsdoc
      * Disables the mapping. When disabled, the routes in the mapping have no effect.
      * <p>Synonymous with {@link Controller.disableMapping}.</p>
      * @function MappingObject#disable

@@ -29,6 +29,7 @@
 #include <QtCore/QReadWriteLock>
 #include <QtCore/QSet>
 #include <QtCore/QSharedMemory>
+#include <QtCore/QSharedPointer>
 #include <QtNetwork/QUdpSocket>
 #include <QtNetwork/QHostAddress>
 
@@ -37,7 +38,6 @@
 #include <DependencyManager.h>
 #include <SharedUtil.h>
 
-#include "DomainHandler.h"
 #include "NetworkingConstants.h"
 #include "Node.h"
 #include "NLPacket.h"
@@ -121,7 +121,7 @@ public:
     QUuid getSessionUUID() const;
     void setSessionUUID(const QUuid& sessionUUID);
     Node::LocalID getSessionLocalID() const;
-    void setSessionLocalID(Node::LocalID localID);
+    void setSessionLocalID(Node::LocalID sessionLocalID);
 
     void setPermissions(const NodePermissions& newPermissions);
     bool isAllowedEditor() const { return _permissions.can(NodePermissions::Permission::canAdjustLocks); }
@@ -135,36 +135,40 @@ public:
     bool getThisNodeCanGetAndSetPrivateUserData() const { return _permissions.can(NodePermissions::Permission::canGetAndSetPrivateUserData); }
     bool getThisNodeCanRezAvatarEntities() const { return _permissions.can(NodePermissions::Permission::canRezAvatarEntities); }
 
-    quint16 getSocketLocalPort() const { return _nodeSocket.localPort(); }
-    Q_INVOKABLE void setSocketLocalPort(quint16 socketLocalPort);
+    quint16 getSocketLocalPort(SocketType socketType) const { return _nodeSocket.localPort(socketType); }
+    Q_INVOKABLE void setSocketLocalPort(SocketType socketType, quint16 socketLocalPort);
 
     QUdpSocket& getDTLSSocket();
+#if defined(WEBRTC_DATA_CHANNELS)
+    const WebRTCSocket* getWebRTCSocket();
+#endif
+
 
     PacketReceiver& getPacketReceiver() { return *_packetReceiver; }
 
     virtual bool isDomainServer() const { return true; }
     virtual QUuid getDomainUUID() const { assert(false); return QUuid(); }
     virtual Node::LocalID getDomainLocalID() const { assert(false); return Node::NULL_LOCAL_ID; }
-    virtual HifiSockAddr getDomainSockAddr() const { assert(false); return HifiSockAddr(); }
+    virtual SockAddr getDomainSockAddr() const { assert(false); return SockAddr(); }
 
     // use sendUnreliablePacket to send an unreliable packet (that you do not need to move)
     // either to a node (via its active socket) or to a manual sockaddr
     qint64 sendUnreliablePacket(const NLPacket& packet, const Node& destinationNode);
-    qint64 sendUnreliablePacket(const NLPacket& packet, const HifiSockAddr& sockAddr, HMACAuth* hmacAuth = nullptr);
+    qint64 sendUnreliablePacket(const NLPacket& packet, const SockAddr& sockAddr, HMACAuth* hmacAuth = nullptr);
 
     // use sendPacket to send a moved unreliable or reliable NL packet to a node's active socket or manual sockaddr
     qint64 sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode);
-    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const HifiSockAddr& sockAddr, HMACAuth* hmacAuth = nullptr);
+    qint64 sendPacket(std::unique_ptr<NLPacket> packet, const SockAddr& sockAddr, HMACAuth* hmacAuth = nullptr);
 
     // use sendUnreliableUnorderedPacketList to unreliably send separate packets from the packet list
     // either to a node's active socket or to a manual sockaddr
     qint64 sendUnreliableUnorderedPacketList(NLPacketList& packetList, const Node& destinationNode);
-    qint64 sendUnreliableUnorderedPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr,
+    qint64 sendUnreliableUnorderedPacketList(NLPacketList& packetList, const SockAddr& sockAddr,
         HMACAuth* hmacAuth = nullptr);
 
     // use sendPacketList to send reliable packet lists (ordered or unordered) to a node's active socket
     // or to a manual sock addr
-    qint64 sendPacketList(std::unique_ptr<NLPacketList> packetList, const HifiSockAddr& sockAddr);
+    qint64 sendPacketList(std::unique_ptr<NLPacketList> packetList, const SockAddr& sockAddr);
     qint64 sendPacketList(std::unique_ptr<NLPacketList> packetList, const Node& destinationNode);
 
     std::function<void(Node*)> linkedDataCreateCallback;
@@ -175,7 +179,7 @@ public:
     SharedNodePointer nodeWithLocalID(Node::LocalID localID) const;
 
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
-                                      const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
+                                      const SockAddr& publicSocket, const SockAddr& localSocket,
                                       Node::LocalID localID = Node::NULL_LOCAL_ID, bool isReplicated = false,
                                       bool isUpstream = false, const QUuid& connectionSecret = QUuid(),
                                       const NodePermissions& permissions = DEFAULT_AGENT_PERMISSIONS);
@@ -183,9 +187,9 @@ public:
     static bool parseSTUNResponse(udt::BasePacket* packet, QHostAddress& newPublicAddress, uint16_t& newPublicPort);
     bool hasCompletedInitialSTUN() const { return _hasCompletedInitialSTUN; }
 
-    const HifiSockAddr& getLocalSockAddr() const { return _localSockAddr; }
-    const HifiSockAddr& getPublicSockAddr() const { return _publicSockAddr; }
-    const HifiSockAddr& getSTUNSockAddr() const { return _stunSockAddr; }
+    const SockAddr& getLocalSockAddr() const { return _localSockAddr; }
+    const SockAddr& getPublicSockAddr() const { return _publicSockAddr; }
+    const SockAddr& getSTUNSockAddr() const { return _stunSockAddr; }
 
     void processKillNode(ReceivedMessage& message);
 
@@ -201,9 +205,9 @@ public:
     static std::unique_ptr<NLPacket> constructICEPingPacket(PingType_t pingType, const QUuid& iceID);
     static std::unique_ptr<NLPacket> constructICEPingReplyPacket(ReceivedMessage& message, const QUuid& iceID);
 
-    void sendPeerQueryToIceServer(const HifiSockAddr& iceServerSockAddr, const QUuid& clientID, const QUuid& peerID);
+    void sendPeerQueryToIceServer(const SockAddr& iceServerSockAddr, const QUuid& clientID, const QUuid& peerID);
 
-    SharedNodePointer findNodeWithAddr(const HifiSockAddr& addr);
+    SharedNodePointer findNodeWithAddr(const SockAddr& addr);
 
     using value_type = SharedNodePointer;
     using const_iterator = std::vector<value_type>::const_iterator;
@@ -369,7 +373,7 @@ private slots:
 
 signals:
     // QUuid might be zero for non-sourced packet types.
-    void packetVersionMismatch(PacketType type, const HifiSockAddr& senderSockAddr, const QUuid& senderUUID);
+    void packetVersionMismatch(PacketType type, const SockAddr& senderSockAddr, const QUuid& senderUUID);
 
     void uuidChanged(const QUuid& ownerUUID, const QUuid& oldUUID);
     void nodeAdded(SharedNodePointer);
@@ -379,8 +383,8 @@ signals:
 
     void clientConnectionToNodeReset(SharedNodePointer);
 
-    void localSockAddrChanged(const HifiSockAddr& localSockAddr);
-    void publicSockAddrChanged(const HifiSockAddr& publicSockAddr);
+    void localSockAddrChanged(const SockAddr& localSockAddr);
+    void publicSockAddrChanged(const SockAddr& publicSockAddr);
 
     void isAllowedEditorChanged(bool isAllowedEditor);
     void canRezChanged(bool canRez);
@@ -397,7 +401,7 @@ protected slots:
     void connectedForLocalSocketTest();
     void errorTestingLocalSocket();
 
-    void clientConnectionToSockAddrReset(const HifiSockAddr& sockAddr);
+    void clientConnectionToSockAddrReset(const SockAddr& sockAddr);
 
     void processDelayedAdds();
 
@@ -405,8 +409,8 @@ protected:
     struct NewNodeInfo {
         qint8 type;
         QUuid uuid;
-        HifiSockAddr publicSocket;
-        HifiSockAddr localSocket;
+        SockAddr publicSocket;
+        SockAddr localSocket;
         NodePermissions permissions;
         bool isReplicated;
         Node::LocalID sessionLocalID;
@@ -418,10 +422,9 @@ protected:
     void operator=(LimitedNodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
 
     qint64 sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode,
-                      const HifiSockAddr& overridenSockAddr);
-    void fillPacketHeader(const NLPacket& packet, HMACAuth* hmacAuth = nullptr);
+                      const SockAddr& overridenSockAddr);
 
-    void setLocalSocket(const HifiSockAddr& sockAddr);
+    void setLocalSocket(const SockAddr& sockAddr);
 
     bool packetSourceAndHashMatchAndTrackBandwidth(const udt::Packet& packet, Node* sourceNode = nullptr);
     void processSTUNResponse(std::unique_ptr<udt::BasePacket> packet);
@@ -430,10 +433,10 @@ protected:
 
     void stopInitialSTUNUpdate(bool success);
 
-    void sendPacketToIceServer(PacketType packetType, const HifiSockAddr& iceServerSockAddr, const QUuid& clientID,
+    void sendPacketToIceServer(PacketType packetType, const SockAddr& iceServerSockAddr, const QUuid& clientID,
                                const QUuid& peerRequestID = QUuid());
 
-    bool sockAddrBelongsToNode(const HifiSockAddr& sockAddr);
+    bool sockAddrBelongsToNode(const SockAddr& sockAddr);
 
     void addNewNode(NewNodeInfo info);
     void delayNodeAdd(NewNodeInfo info);
@@ -444,9 +447,9 @@ protected:
     mutable QReadWriteLock _nodeMutex { QReadWriteLock::Recursive };
     udt::Socket _nodeSocket;
     QUdpSocket* _dtlsSocket { nullptr };
-    HifiSockAddr _localSockAddr;
-    HifiSockAddr _publicSockAddr;
-    HifiSockAddr _stunSockAddr { STUN_SERVER_HOSTNAME, STUN_SERVER_PORT };
+    SockAddr _localSockAddr;
+    SockAddr _publicSockAddr;
+    SockAddr _stunSockAddr { SocketType::UDP, STUN_SERVER_HOSTNAME, STUN_SERVER_PORT };
     bool _hasTCPCheckedLocalSocket { false };
     bool _useAuthentication { true };
 
@@ -486,6 +489,8 @@ private slots:
     void addSTUNHandlerToUnfiltered(); // called once STUN socket known
 
 private:
+    void fillPacketHeader(const NLPacket& packet, HMACAuth* hmacAuth = nullptr);
+
     mutable QReadWriteLock _sessionUUIDLock;
     QUuid _sessionUUID;
     using LocalIDMapping = tbb::concurrent_unordered_map<Node::LocalID, SharedNodePointer>;

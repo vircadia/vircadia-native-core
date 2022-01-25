@@ -23,7 +23,7 @@
 
 class EntitySimulation;
 
-/**jsdoc
+/*@jsdoc
  * The <code>EntityViewer</code> API provides a headless viewer for assignment client scripts, so that they can "see" entities 
  * in order for them to be available in the {@link Entities} API.
  *
@@ -54,7 +54,7 @@ public:
 
 protected:
     virtual OctreePointer createTree() override {
-        EntityTreePointer newTree = EntityTreePointer(new EntityTree(true));
+        EntityTreePointer newTree = std::make_shared<EntityTree>(true);
         newTree->createRootElement();
         return newTree;
     }

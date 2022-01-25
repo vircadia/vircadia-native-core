@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2/15/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -45,6 +46,22 @@ static const QHash<NodeType_t, QString> TYPE_NAME_HASH {
     { NodeType::Unassigned, "Unassigned" }
 };
 
+static const QHash<NodeType_t, QString> TYPE_CHAR_HASH {
+    { NodeType::DomainServer, "D" },
+    { NodeType::EntityServer, "o" },
+    { NodeType::Agent, "I" },
+    { NodeType::AudioMixer, "M" },
+    { NodeType::AvatarMixer, "W" },
+    { NodeType::AssetServer, "A" },
+    { NodeType::MessagesMixer, "m" },
+    { NodeType::EntityScriptServer, "S" },
+    { NodeType::UpstreamAudioMixer, "B" },
+    { NodeType::UpstreamAvatarMixer, "C" },
+    { NodeType::DownstreamAudioMixer, "a" },
+    { NodeType::DownstreamAvatarMixer, "w" },
+    { NodeType::Unassigned, QChar(1) }
+};
+
 const QString& NodeType::getNodeTypeName(NodeType_t nodeType) {
     const auto matchedTypeName = TYPE_NAME_HASH.find(nodeType);
     return matchedTypeName != TYPE_NAME_HASH.end() ? matchedTypeName.value() : UNKNOWN_NodeType_t_NAME;
@@ -84,9 +101,12 @@ NodeType_t NodeType::fromString(QString type) {
     return TYPE_NAME_HASH.key(type, NodeType::Unassigned);
 }
 
+NodeType_t NodeType::fromChar(QChar type) {
+    return TYPE_CHAR_HASH.key(type, NodeType::Unassigned);
+}
 
-Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
-    const HifiSockAddr& localSocket, QObject* parent) :
+Node::Node(const QUuid& uuid, NodeType_t type, const SockAddr& publicSocket,
+    const SockAddr& localSocket, QObject* parent) :
     NetworkPeer(uuid, publicSocket, localSocket, parent),
     _type(type),
     _pingMs(-1),  // "Uninitialized"
@@ -176,7 +196,9 @@ bool Node::isIgnoringNodeWithID(const QUuid& nodeID) const {
 QDataStream& operator<<(QDataStream& out, const Node& node) {
     out << node._type;
     out << node._uuid;
+    out << node._publicSocket.getType();
     out << node._publicSocket;
+    out << node._localSocket.getType();
     out << node._localSocket;
     out << node._permissions;
     out << node._isReplicated;
@@ -185,10 +207,15 @@ QDataStream& operator<<(QDataStream& out, const Node& node) {
 }
 
 QDataStream& operator>>(QDataStream& in, Node& node) {
+    SocketType publicSocketType, localSocketType;
     in >> node._type;
     in >> node._uuid;
+    in >> publicSocketType;
     in >> node._publicSocket;
+    node._publicSocket.setType(publicSocketType);
+    in >> localSocketType;
     in >> node._localSocket;
+    node._localSocket.setType(localSocketType);
     in >> node._permissions;
     in >> node._isReplicated;
     in >> node._localID;

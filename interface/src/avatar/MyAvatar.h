@@ -4,6 +4,7 @@
 //
 //  Created by Mark Peng on 8/16/13.
 //  Copyright 2012 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -40,18 +41,18 @@ class ModelItemID;
 class MyHead;
 class DetailedMotionState;
 
-/**jsdoc
+/*@jsdoc
  * <p>Locomotion control types.</p>
  * <table>
  *   <thead>
  *     <tr><th>Value</th><th>Name</th><th>Description</th></tr>
  *   </thead>
  *   <tbody>
- *     <tr><td><code>0</code></td><td>Default</td><td>Your walking speed is constant; it doesn't change depending on how far 
+ *     <tr><td><code>0</code></td><td>Default</td><td>Your walking speed is constant; it doesn't change depending on how far
  *       forward you push your controller's joystick. Fully pushing your joystick forward makes your avatar run.</td></tr>
- *     <tr><td><code>1</code></td><td>Analog</td><td>Your walking speed changes in steps based on how far forward you push your 
+ *     <tr><td><code>1</code></td><td>Analog</td><td>Your walking speed changes in steps based on how far forward you push your
  *       controller's joystick. Fully pushing your joystick forward makes your avatar run.</td></tr>
- *     <tr><td><code>2</code></td><td>AnalogPlus</td><td>Your walking speed changes proportionally to how far forward you push 
+ *     <tr><td><code>2</code></td><td>AnalogPlus</td><td>Your walking speed changes proportionally to how far forward you push
  *       your controller's joystick. Fully pushing your joystick forward makes your avatar run.</td></tr>
  *   </tbody>
  * </table>
@@ -87,7 +88,7 @@ class MyAvatar : public Avatar {
     Q_OBJECT
     friend class AnimStats;
 
-    /**jsdoc
+    /*@jsdoc
      * Your avatar is your in-world representation of you. The <code>MyAvatar</code> API is used to manipulate the avatar.
      * For example, you can customize the avatar's appearance, run custom avatar animations,
      * change the avatar's position within the domain, or manage the avatar's collisions with the environment and other avatars.
@@ -154,11 +155,11 @@ class MyAvatar : public Avatar {
      *     <p><strong>Note:</strong> This property will automatically be set to <code>true</code> if the controller system has
      *     valid facial blend shape actions.</p>
      * @property {boolean} hasProceduralBlinkFaceMovement=true - <code>true</code> if avatars blink automatically by animating
-     *     facial blend shapes, <code>false</code> if automatic blinking is disabled. Set to <code>false</code> to fully control 
+     *     facial blend shapes, <code>false</code> if automatic blinking is disabled. Set to <code>false</code> to fully control
      *     the blink facial blend shapes via the {@link MyAvatar.setBlendshape} method.
      * @property {boolean} hasProceduralEyeFaceMovement=true - <code>true</code> if the facial blend shapes for an avatar's eyes
      *     adjust automatically as the eyes move, <code>false</code> if this automatic movement is disabled. Set this property
-     *     to <code>true</code> to prevent the iris from being obscured by the upper or lower lids. Set to <code>false</code> to 
+     *     to <code>true</code> to prevent the iris from being obscured by the upper or lower lids. Set to <code>false</code> to
      *     fully control the eye blend shapes via the {@link MyAvatar.setBlendshape} method.
      * @property {boolean} hasAudioEnabledFaceMovement=true - <code>true</code> if the avatar's mouth blend shapes animate
      *     automatically based on detected microphone input, <code>false</code> if this automatic movement is disabled. Set
@@ -170,21 +171,22 @@ class MyAvatar : public Avatar {
      *     registration point of the 3D model.
      *
      * @property {Vec3} qmlPosition - A synonym for <code>position</code> for use by QML.
+     *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
      *
      * @property {Vec3} feetPosition - The position of the avatar's feet.
      * @property {boolean} shouldRenderLocally=true - If <code>true</code> then your avatar is rendered for you in Interface,
      *     otherwise it is not rendered for you (but it is still rendered for other users).
      * @property {Vec3} motorVelocity=Vec3.ZERO - The target velocity of your avatar to be achieved by a scripted motor.
-     * @property {number} motorTimescale=1000000 - The timescale for the scripted motor to achieve the target 
+     * @property {number} motorTimescale=1000000 - The timescale for the scripted motor to achieve the target
      *     <code>motorVelocity</code> avatar velocity. Smaller values result in higher acceleration.
-     * @property {string} motorReferenceFrame="camera" -  Reference frame of the <code>motorVelocity</code>. Must be one of the 
+     * @property {string} motorReferenceFrame="camera" -  Reference frame of the <code>motorVelocity</code>. Must be one of the
      *     following: <code>"camera"</code>, <code>"avatar"</code>, and <code>"world"</code>.
-     * @property {string} motorMode="simple" - The Type of scripted motor behavior: <code>"simple"</code> to use the 
+     * @property {string} motorMode="simple" - The Type of scripted motor behavior: <code>"simple"</code> to use the
      *     <code>motorTimescale</code> time scale; <code>"dynamic"</code> to use character controller timescales.
-     * @property {string} collisionSoundURL="Body_Hits_Impact.wav" - The sound that's played when the avatar experiences a 
-     *     collision. It can be a mono or stereo 16-bit WAV file running at either 24kHz or 48kHz. The latter is down-sampled 
+     * @property {string} collisionSoundURL="Body_Hits_Impact.wav" - The sound that's played when the avatar experiences a
+     *     collision. It can be a mono or stereo 16-bit WAV file running at either 24kHz or 48kHz. The latter is down-sampled
      *     by the audio mixer, so all audio effectively plays back at a 24khz. 48kHz RAW files are also supported.
-     * @property {number} audioListenerMode=0 - Specifies the listening position when hearing spatialized audio. Must be one 
+     * @property {number} audioListenerMode=0 - Specifies the listening position when hearing spatialized audio. Must be one
      *     of the following property values:
      *     <ul>
      *         <li><code>MyAvatar.audioListenerModeHead</code></li>
@@ -193,93 +195,93 @@ class MyAvatar : public Avatar {
      *     </ul>
      * @property {number} audioListenerModeHead=0 - The audio listening position is at the avatar's head. <em>Read-only.</em>
      * @property {number} audioListenerModeCamera=1 - The audio listening position is at the camera. <em>Read-only.</em>
-     * @property {number} audioListenerModeCustom=2 - The audio listening position is at a the position specified by set by the 
+     * @property {number} audioListenerModeCustom=2 - The audio listening position is at a the position specified by set by the
      *     <code>customListenPosition</code> and <code>customListenOrientation</code> property values. <em>Read-only.</em>
      * @property {Vec3} customListenPosition=Vec3.ZERO - The listening position used when the <code>audioListenerMode</code>
      *     property value is <code>audioListenerModeCustom</code>.
      * @property {Quat} customListenOrientation=Quat.IDENTITY - The listening orientation used when the
      *     <code>audioListenerMode</code> property value is <code>audioListenerModeCustom</code>.
-     * @property {number} rotationRecenterFilterLength - Configures how quickly the avatar root rotates to recenter its facing 
-     *     direction to match that of the user's torso based on head and hands orientation. A smaller value makes the 
+     * @property {number} rotationRecenterFilterLength - Configures how quickly the avatar root rotates to recenter its facing
+     *     direction to match that of the user's torso based on head and hands orientation. A smaller value makes the
      *     recentering happen more quickly. The minimum value is <code>0.01</code>.
-     * @property {number} rotationThreshold - The angle in radians that the user's torso facing direction (based on head and 
+     * @property {number} rotationThreshold - The angle in radians that the user's torso facing direction (based on head and
      *     hands orientation) can differ from that of the avatar before the avatar's root is rotated to match the user's torso.
-     * @property {boolean} enableStepResetRotation - If <code>true</code> then after the user's avatar takes a step, the 
-     *     avatar's root immediately rotates to recenter its facing direction to match that of the user's torso based on head 
+     * @property {boolean} enableStepResetRotation - If <code>true</code> then after the user's avatar takes a step, the
+     *     avatar's root immediately rotates to recenter its facing direction to match that of the user's torso based on head
      *     and hands orientation.
-     * @property {boolean} enableDrawAverageFacing - If <code>true</code>, debug graphics are drawn that show the average 
-     *     facing direction of the user's torso (based on head and hands orientation). This can be useful if you want to try 
+     * @property {boolean} enableDrawAverageFacing - If <code>true</code>, debug graphics are drawn that show the average
+     *     facing direction of the user's torso (based on head and hands orientation). This can be useful if you want to try
      *     out different filter lengths and thresholds.
      *
-     * @property {Vec3} leftHandPosition - The position of the left hand in avatar coordinates if it's being positioned by 
+     * @property {Vec3} leftHandPosition - The position of the left hand in avatar coordinates if it's being positioned by
      *     controllers, otherwise {@link Vec3(0)|Vec3.ZERO}. <em>Read-only.</em>
      * @property {Vec3} rightHandPosition - The position of the right hand in avatar coordinates if it's being positioned by
      *     controllers, otherwise {@link Vec3(0)|Vec3.ZERO}. <em>Read-only.</em>
-     * @property {Vec3} leftHandTipPosition - The position 0.3m in front of the left hand's position, in the direction along the 
-     *     palm, in avatar coordinates. If the hand isn't being positioned by a controller, the value is 
+     * @property {Vec3} leftHandTipPosition - The position 0.3m in front of the left hand's position, in the direction along the
+     *     palm, in avatar coordinates. If the hand isn't being positioned by a controller, the value is
      *     {@link Vec3(0)|Vec3.ZERO}. <em>Read-only.</em>
-     * @property {Vec3} rightHandTipPosition - The position 0.3m in front of the right hand's position, in the direction along 
-     *     the palm, in avatar coordinates. If the hand isn't being positioned by a controller, the value is 
+     * @property {Vec3} rightHandTipPosition - The position 0.3m in front of the right hand's position, in the direction along
+     *     the palm, in avatar coordinates. If the hand isn't being positioned by a controller, the value is
      *     {@link Vec3(0)|Vec3.ZERO}. <em>Read-only.</em>
      *
-     * @property {Pose} leftHandPose - The left hand's pose as determined by the hand controllers, relative to the avatar. 
+     * @property {Pose} leftHandPose - The left hand's pose as determined by the hand controllers, relative to the avatar.
      *     <em>Read-only.</em>
      * @property {Pose} rightHandPose - The right hand's pose as determined by the hand controllers, relative to the avatar.
      *     <em>Read-only.</em>
-     * @property {Pose} leftHandTipPose - The left hand's pose as determined by the hand controllers, relative to the avatar, 
+     * @property {Pose} leftHandTipPose - The left hand's pose as determined by the hand controllers, relative to the avatar,
      *     with the position adjusted by 0.3m along the direction of the palm. <em>Read-only.</em>
-     * @property {Pose} rightHandTipPose - The right hand's pose as determined by the hand controllers, relative to the avatar, 
+     * @property {Pose} rightHandTipPose - The right hand's pose as determined by the hand controllers, relative to the avatar,
      *     with the position adjusted by 0.3m along the direction of the palm. <em>Read-only.</em>
      *
      * @property {number} energy - <span class="important">Deprecated: This property will be removed.</span>
-     * @property {boolean} isAway - <code>true</code> if your avatar is away (i.e., inactive), <code>false</code> if it is 
+     * @property {boolean} isAway - <code>true</code> if your avatar is away (i.e., inactive), <code>false</code> if it is
      *     active.
      *
      * @property {boolean} centerOfGravityModelEnabled=true - <code>true</code> if the avatar hips are placed according to
      *     the center of gravity model that balances the center of gravity over the base of support of the feet. Set the
      *     value to <code>false</code> for default behavior where the hips are positioned under the head.
-     * @property {boolean} hmdLeanRecenterEnabled=true - <code>true</code> IF the avatar is re-centered to be under the 
-     *     head's position. In room-scale VR, this behavior is what causes your avatar to follow your HMD as you walk around 
+     * @property {boolean} hmdLeanRecenterEnabled=true - <code>true</code> IF the avatar is re-centered to be under the
+     *     head's position. In room-scale VR, this behavior is what causes your avatar to follow your HMD as you walk around
      *     the room. Setting the value <code>false</code> is useful if you want to pin the avatar to a fixed position.
-     * @property {boolean} collisionsEnabled - Set to <code>true</code> to enable the avatar to collide with the environment, 
-     *     <code>false</code> to disable collisions with the environment. May return <code>true</code> even though the value 
+     * @property {boolean} collisionsEnabled - Set to <code>true</code> to enable the avatar to collide with the environment,
+     *     <code>false</code> to disable collisions with the environment. May return <code>true</code> even though the value
      *     was set <code>false</code> because the zone may disallow collisionless avatars.
-     * @property {boolean} otherAvatarsCollisionsEnabled - Set to <code>true</code> to enable the avatar to collide with other 
+     * @property {boolean} otherAvatarsCollisionsEnabled - Set to <code>true</code> to enable the avatar to collide with other
      *     avatars, <code>false</code> to disable collisions with other avatars.
      * @property {boolean} characterControllerEnabled - Synonym of <code>collisionsEnabled</code>.
-     *     <p class="important">Deprecated: This property is deprecated and will be removed. Use <code>collisionsEnabled</code> 
+     *     <p class="important">Deprecated: This property is deprecated and will be removed. Use <code>collisionsEnabled</code>
      *     instead.</p>
-     * @property {boolean} useAdvancedMovementControls - Returns and sets the value of the Interface setting, Settings > 
+     * @property {boolean} useAdvancedMovementControls - Returns and sets the value of the Interface setting, Settings >
      *     Controls > Walking. Note: Setting the value has no effect unless Interface is restarted.
-     * @property {boolean} showPlayArea - Returns and sets the value of the Interface setting, Settings > Controls > Show room 
+     * @property {boolean} showPlayArea - Returns and sets the value of the Interface setting, Settings > Controls > Show room
      *     boundaries while teleporting.
      *     <p><strong>Note:</strong> Setting the value has no effect unless Interface is restarted.</p>
      *
      * @property {number} yawSpeed=75 - The mouse X sensitivity value in Settings > General. <em>Read-only.</em>
      * @property {number} pitchSpeed=50 - The mouse Y sensitivity value in Settings > General. <em>Read-only.</em>
      *
-     * @property {boolean} hmdRollControlEnabled=true - If <code>true</code>, the roll angle of your HMD turns your avatar 
+     * @property {boolean} hmdRollControlEnabled=true - If <code>true</code>, the roll angle of your HMD turns your avatar
      *     while flying.
-     * @property {number} hmdRollControlDeadZone=8 - The amount of HMD roll, in degrees, required before your avatar turns if 
+     * @property {number} hmdRollControlDeadZone=8 - The amount of HMD roll, in degrees, required before your avatar turns if
      *    <code>hmdRollControlEnabled</code> is enabled.
-     * @property {number} hmdRollControlRate If <code>MyAvatar.hmdRollControlEnabled</code> is true, this value determines the 
+     * @property {number} hmdRollControlRate If <code>MyAvatar.hmdRollControlEnabled</code> is true, this value determines the
      *     maximum turn rate of your avatar when rolling your HMD in degrees per second.
      *
      * @property {number} userHeight=1.75 - The height of the user in sensor space.
      * @property {number} userEyeHeight=1.65 - The estimated height of the user's eyes in sensor space. <em>Read-only.</em>
      *
-     * @property {Uuid} SELF_ID - UUID representing "my avatar". Only use for local-only entities in situations 
-     *     where MyAvatar.sessionUUID is not available (e.g., if not connected to a domain). Note: Likely to be deprecated. 
+     * @property {Uuid} SELF_ID - UUID representing "my avatar". Only use for local-only entities in situations
+     *     where MyAvatar.sessionUUID is not available (e.g., if not connected to a domain). Note: Likely to be deprecated.
      *     <em>Read-only.</em>
      *
-     * @property {number} walkSpeed - The walk speed of your avatar for the current control scheme (see 
+     * @property {number} walkSpeed - The walk speed of your avatar for the current control scheme (see
      *     {@link MyAvatar.getControlScheme|getControlScheme}).
-     * @property {number} walkBackwardSpeed - The walk backward speed of your avatar for the current control scheme (see 
+     * @property {number} walkBackwardSpeed - The walk backward speed of your avatar for the current control scheme (see
      *     {@link MyAvatar.getControlScheme|getControlScheme}).
-     * @property {number} sprintSpeed - The sprint (run) speed of your avatar for the current control scheme (see 
+     * @property {number} sprintSpeed - The sprint (run) speed of your avatar for the current control scheme (see
      *     {@link MyAvatar.getControlScheme|getControlScheme}).
      * @property {number} analogPlusWalkSpeed - The walk speed of your avatar for the "AnalogPlus" control scheme.
-     *     <p><strong>Warning:</strong> Setting this value also sets the value of <code>analogPlusSprintSpeed</code> to twice 
+     *     <p><strong>Warning:</strong> Setting this value also sets the value of <code>analogPlusSprintSpeed</code> to twice
      *     the value.</p>
      * @property {number} analogPlusSprintSpeed - The sprint (run) speed of your avatar for the "AnalogPlus" control scheme.
      * @property {MyAvatar.SitStandModelType} userRecenterModel - Controls avatar leaning and recentering behavior.
@@ -289,11 +291,11 @@ class MyAvatar : public Avatar {
      *     is allowed to stand, lean or recenter its footing, depending on user preferences.
      *     The property value automatically updates as the user sits or stands. Setting the property value overrides the current
      *     sitting / standing state, which is updated when the user next sits or stands.
-     * @property {boolean} isSitStandStateLocked - <code>true</code> to lock the avatar sitting/standing state, i.e., use this 
+     * @property {boolean} isSitStandStateLocked - <code>true</code> to lock the avatar sitting/standing state, i.e., use this
      *     to disable automatically changing state.
-     *     <p class="important">Deprecated: This property is deprecated and will be removed.  
+     *     <p class="important">Deprecated: This property is deprecated and will be removed.
      *     See also: <code>getUserRecenterModel</code> and <code>setUserRecenterModel</code>.</p>
-     * @property {boolean} allowTeleporting - <code>true</code> if teleporting is enabled in the Interface settings, 
+     * @property {boolean} allowTeleporting - <code>true</code> if teleporting is enabled in the Interface settings,
      *     <code>false</code> if it isn't. <em>Read-only.</em>
      *
      * @borrows Avatar.getDomainMinScale as getDomainMinScale
@@ -434,8 +436,8 @@ class MyAvatar : public Avatar {
     const bool DEFAULT_STRAFE_ENABLED = true;
 public:
 
-    /**jsdoc
-     * The <code>DriveKeys</code> API provides constant numeric values that represent different logical keys that drive your 
+    /*@jsdoc
+     * The <code>DriveKeys</code> API provides constant numeric values that represent different logical keys that drive your
      * avatar and camera.
      *
      * @namespace DriveKeys
@@ -444,58 +446,58 @@ public:
      * @hifi-client-entity
      * @hifi-avatar
      *
-     * @property {number} TRANSLATE_X - Move the user's avatar in the direction of its x-axis, if the camera isn't in 
+     * @property {number} TRANSLATE_X - Move the user's avatar in the direction of its x-axis, if the camera isn't in
      *     independent or mirror modes.
-     * @property {number} TRANSLATE_Y - Move the user's avatar in the direction of its y-axis, if the camera isn't in 
+     * @property {number} TRANSLATE_Y - Move the user's avatar in the direction of its y-axis, if the camera isn't in
      *     independent or mirror modes.
-     * @property {number} TRANSLATE_Z - Move the user's avatar in the direction of its z-axis, if the camera isn't in 
+     * @property {number} TRANSLATE_Z - Move the user's avatar in the direction of its z-axis, if the camera isn't in
      *     independent or mirror modes.
-     * @property {number} YAW - Rotate the user's avatar about its y-axis at a rate proportional to the control value, if the 
+     * @property {number} YAW - Rotate the user's avatar about its y-axis at a rate proportional to the control value, if the
      *     camera isn't in independent or mirror modes.
      * @property {number} STEP_TRANSLATE_X - No action.
      * @property {number} STEP_TRANSLATE_Y - No action.
      * @property {number} STEP_TRANSLATE_Z - No action.
-     * @property {number} STEP_YAW - Rotate the user's avatar about its y-axis in a step increment, if the camera isn't in 
+     * @property {number} STEP_YAW - Rotate the user's avatar about its y-axis in a step increment, if the camera isn't in
      *     independent or mirror modes.
-     * @property {number} PITCH - Rotate the user's avatar head and attached camera about its negative x-axis (i.e., positive 
-     *     values pitch down) at a rate proportional to the control value, if the camera isn't in HMD, independent, or mirror 
+     * @property {number} PITCH - Rotate the user's avatar head and attached camera about its negative x-axis (i.e., positive
+     *     values pitch down) at a rate proportional to the control value, if the camera isn't in HMD, independent, or mirror
      *     modes.
      * @property {number} ZOOM - Zoom the camera in or out.
-     * @property {number} DELTA_YAW - Rotate the user's avatar about its y-axis by an amount proportional to the control value, 
+     * @property {number} DELTA_YAW - Rotate the user's avatar about its y-axis by an amount proportional to the control value,
      *     if the camera isn't in independent or mirror modes.
-     * @property {number} DELTA_PITCH - Rotate the user's avatar head and attached camera about its negative x-axis (i.e., 
-     *     positive values pitch down) by an amount proportional to the control value, if the camera isn't in HMD, independent, 
+     * @property {number} DELTA_PITCH - Rotate the user's avatar head and attached camera about its negative x-axis (i.e.,
+     *     positive values pitch down) by an amount proportional to the control value, if the camera isn't in HMD, independent,
      *     or mirror modes.
      */
 
-    /**jsdoc
+    /*@jsdoc
      * <p>Logical keys that drive your avatar and camera.</p>
      * <table>
      *   <thead>
      *     <tr><th>Value</th><th>Description</th></tr>
      *   </thead>
      *   <tbody>
-     *     <tr><td><code>{@link DriveKeys|DriveKeys.TRANSLATE_X}</code></td><td>Move the user's avatar in the direction of its 
+     *     <tr><td><code>{@link DriveKeys|DriveKeys.TRANSLATE_X}</code></td><td>Move the user's avatar in the direction of its
      *       x-axis, if the camera isn't in independent or mirror modes.</td></tr>
-     *     <tr><td><code>{@link DriveKeys|DriveKeys.TRANSLATE_Y}</code></td><td>Move the user's avatar in the direction of its 
+     *     <tr><td><code>{@link DriveKeys|DriveKeys.TRANSLATE_Y}</code></td><td>Move the user's avatar in the direction of its
      *       -axis, if the camera isn't in independent or mirror modes.</td></tr>
-     *     <tr><td><code>{@link DriveKeys|DriveKeys.TRANSLATE_Z}</code></td><td>Move the user's avatar in the direction of its 
+     *     <tr><td><code>{@link DriveKeys|DriveKeys.TRANSLATE_Z}</code></td><td>Move the user's avatar in the direction of its
      *       z-axis, if the camera isn't in independent or mirror modes.</td></tr>
-     *     <tr><td><code>{@link DriveKeys|DriveKeys.YAW}</code></td><td>Rotate the user's avatar about its y-axis at a rate 
+     *     <tr><td><code>{@link DriveKeys|DriveKeys.YAW}</code></td><td>Rotate the user's avatar about its y-axis at a rate
      *       proportional to the control value, if the camera isn't in independent or mirror modes.</td></tr>
      *     <tr><td><code>{@link DriveKeys|DriveKeys.STEP_TRANSLATE_X}</code></td><td>No action.</td></tr>
      *     <tr><td><code>{@link DriveKeys|DriveKeys.STEP_TRANSLATE_Y}</code></td><td>No action.</td></tr>
      *     <tr><td><code>{@link DriveKeys|DriveKeys.STEP_TRANSLATE_Z}</code></td><td>No action.</td></tr>
-     *     <tr><td><code>{@link DriveKeys|DriveKeys.STEP_YAW}</code></td><td>Rotate the user's avatar about its y-axis in a 
+     *     <tr><td><code>{@link DriveKeys|DriveKeys.STEP_YAW}</code></td><td>Rotate the user's avatar about its y-axis in a
      *       step increment, if the camera isn't in independent or mirror modes.</td></tr>
-     *     <tr><td><code>{@link DriveKeys|DriveKeys.PITCH}</code></td><td>Rotate the user's avatar head and attached camera 
-     *       about its negative x-axis (i.e., positive values pitch down) at a rate proportional to the control value, if the 
+     *     <tr><td><code>{@link DriveKeys|DriveKeys.PITCH}</code></td><td>Rotate the user's avatar head and attached camera
+     *       about its negative x-axis (i.e., positive values pitch down) at a rate proportional to the control value, if the
      *       camera isn't in HMD, independent, or mirror modes.</td></tr>
      *     <tr><td><code>{@link DriveKeys|DriveKeys.ZOOM}</code></td><td>Zoom the camera in or out.</td></tr>
-     *     <tr><td><code>{@link DriveKeys|DriveKeys.DELTA_YAW}</code></td><td>Rotate the user's avatar about its y-axis by an 
+     *     <tr><td><code>{@link DriveKeys|DriveKeys.DELTA_YAW}</code></td><td>Rotate the user's avatar about its y-axis by an
      *       amount proportional to the control value, if the camera isn't in independent or mirror modes.</td></tr>
-     *     <tr><td><code>{@link DriveKeys|DriveKeys.DELTA_PITCH}</code></td><td>Rotate the user's avatar head and attached 
-     *       camera about its negative x-axis (i.e., positive values pitch down) by an amount proportional to the control 
+     *     <tr><td><code>{@link DriveKeys|DriveKeys.DELTA_PITCH}</code></td><td>Rotate the user's avatar head and attached
+     *       camera about its negative x-axis (i.e., positive values pitch down) by an amount proportional to the control
      *       value, if the camera isn't in HMD, independent, or mirror modes.</td></tr>
      *   </tbody>
      * </table>
@@ -518,7 +520,7 @@ public:
     };
     Q_ENUM(DriveKeys)
 
-    /**jsdoc
+    /*@jsdoc
      * <p>Specifies different avatar leaning and recentering behaviors.</p>
      * <p class="important">Deprecated: This type is deprecated and will be removed.</p>
      * <table>
@@ -526,16 +528,16 @@ public:
      *     <tr><th>Value</th><th>Name</th><th>Description</th></tr>
      *   </thead>
      *   <tbody>
-     *     <tr><td><code>0</code></td><td>ForceSit</td><td>Assumes the user is seated in the real world. Disables avatar 
+     *     <tr><td><code>0</code></td><td>ForceSit</td><td>Assumes the user is seated in the real world. Disables avatar
      *       leaning regardless of what the avatar is doing in the virtual world (i.e., avatar always recenters).</td></tr>
-     *     <tr><td><code>1</code></td><td>ForceStand</td><td>Assumes the user is standing in the real world. Enables avatar 
-     *       leaning regardless of what the avatar is doing in the virtual world (i.e., avatar leans, then if leans too far it 
+     *     <tr><td><code>1</code></td><td>ForceStand</td><td>Assumes the user is standing in the real world. Enables avatar
+     *       leaning regardless of what the avatar is doing in the virtual world (i.e., avatar leans, then if leans too far it
      *       recenters).</td></tr>
-     *     <tr><td><code>2</code></td><td>Auto</td><td>Interface detects when the user is standing or seated in the real world. 
-     *       Avatar leaning is disabled when the user is sitting (i.e., avatar always recenters), and avatar leaning is enabled 
+     *     <tr><td><code>2</code></td><td>Auto</td><td>Interface detects when the user is standing or seated in the real world.
+     *       Avatar leaning is disabled when the user is sitting (i.e., avatar always recenters), and avatar leaning is enabled
      *       when the user is standing (i.e., avatar leans, then if leans too far it recenters).</td></tr>
-     *     <tr><td><code>3</code></td><td>DisableHMDLean</td><td><p>Both avatar leaning and recentering are disabled regardless of 
-     *       what the user is doing in the real world and no matter what their avatar is doing in the virtual world. Enables 
+     *     <tr><td><code>3</code></td><td>DisableHMDLean</td><td><p>Both avatar leaning and recentering are disabled regardless of
+     *       what the user is doing in the real world and no matter what their avatar is doing in the virtual world. Enables
      *       the avatar to sit on the floor when the user sits on the floor.</p>
      *       <p><strong>Note:</strong> Experimental.</p></td></tr>
      *   </tbody>
@@ -590,23 +592,23 @@ public:
 
     void setCollisionWithOtherAvatarsFlags() override;
 
-    /**jsdoc
+    /*@jsdoc
      * Resets the sensor positioning of your HMD (if in use) and recenters your avatar body and head.
      * @function MyAvatar.resetSensorsAndBody
      */
     Q_INVOKABLE void resetSensorsAndBody();
 
-    /**jsdoc
-     * Moves and orients the avatar, such that it is directly underneath the HMD, with toes pointed forward in the direction of 
+    /*@jsdoc
+     * Moves and orients the avatar, such that it is directly underneath the HMD, with toes pointed forward in the direction of
      * the HMD.
      * @function MyAvatar.centerBody
      */
     Q_INVOKABLE void centerBody(); // thread-safe
 
 
-    /**jsdoc
+    /*@jsdoc
      * Clears inverse kinematics joint limit history.
-     * <p>The internal inverse-kinematics system maintains a record of which joints are "locked". Sometimes it is useful to 
+     * <p>The internal inverse-kinematics system maintains a record of which joints are "locked". Sometimes it is useful to
      * forget this history to prevent contorted joints, e.g., after finishing with an override animation.</p>
      * @function MyAvatar.clearIKJointLimitHistory
      */
@@ -620,14 +622,14 @@ public:
     const glm::vec3& getHMDSensorPosition() const { return _hmdSensorPosition; }
     const glm::quat& getHMDSensorOrientation() const { return _hmdSensorOrientation; }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the avatar orientation. Suitable for use in QML.
      * @function MyAvatar.setOrientationVar
      * @param {object} newOrientationVar - The avatar's orientation.
      */
     Q_INVOKABLE void setOrientationVar(const QVariant& newOrientationVar);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the avatar orientation. Suitable for use in QML.
      * @function MyAvatar.getOrientationVar
      * @returns {object} The avatar's orientation.
@@ -655,9 +657,9 @@ public:
 
     void setRealWorldFieldOfView(float realWorldFov) { _realWorldFieldOfView.set(realWorldFov); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the position in world coordinates of the point directly between your avatar's eyes assuming your avatar was in its
-     * default pose. This is a reference position; it does not change as your avatar's head moves relative to the avatar 
+     * default pose. This is a reference position; it does not change as your avatar's head moves relative to the avatar
      * position.
      * @function MyAvatar.getDefaultEyePosition
      * @returns {Vec3} Default position between your avatar's eyes in world coordinates.
@@ -669,20 +671,20 @@ public:
 
     float getRealWorldFieldOfView() { return _realWorldFieldOfView.get(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Overrides the default avatar animations.
      * <p>The avatar animation system includes a set of default animations along with rules for how those animations are blended
-     * together with procedural data (such as look at vectors, hand sensors etc.). <code>overrideAnimation()</code> is used to 
-     * completely override all motion from the default animation system (including inverse kinematics for hand and head 
-     * controllers) and play a set of specified animations. To end these animations and restore the default animations, use 
+     * together with procedural data (such as look at vectors, hand sensors etc.). <code>overrideAnimation()</code> is used to
+     * completely override all motion from the default animation system (including inverse kinematics for hand and head
+     * controllers) and play a set of specified animations. To end these animations and restore the default animations, use
      * {@link MyAvatar.restoreAnimation}.</p>
-     * <p>Note: When using pre-built animation data, it's critical that the joint orientation of the source animation and target 
-     * rig are equivalent, since the animation data applies absolute values onto the joints. If the orientations are different, 
-     * the avatar will move in unpredictable ways. For more information about avatar joint orientation standards, see 
-     * <a href="https://docs.vircadia.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
+     * <p>Note: When using pre-built animation data, it's critical that the joint orientation of the source animation and target
+     * rig are equivalent, since the animation data applies absolute values onto the joints. If the orientations are different,
+     * the avatar will move in unpredictable ways. For more information about avatar joint orientation standards, see
+     * <a href="https://docs.vircadia.com/create/avatars/avatar-standards.html">Avatar Standards</a>.</p>
      * @function MyAvatar.overrideAnimation
-     * @param {string} url - The URL to the animation file. Animation files may be in glTF or FBX format, but only need to 
-     *     contain the avatar skeleton and animation data. glTF models may be in JSON or binary format (".gltf" or ".glb" URLs 
+     * @param {string} url - The URL to the animation file. Animation files may be in glTF or FBX format, but only need to
+     *     contain the avatar skeleton and animation data. glTF models may be in JSON or binary format (".gltf" or ".glb" URLs
      *     respectively).
      *     <p><strong>Warning:</strong> glTF animations currently do not always animate correctly.</p>
      * @param {number} fps - The frames per second (FPS) rate for the animation playback. 30 FPS is normal speed.
@@ -699,13 +701,13 @@ public:
      */
     Q_INVOKABLE void overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
 
-    /**jsdoc
+    /*@jsdoc
      * Overrides the default hand poses that are triggered with controller buttons.
      * Use {@link MyAvatar.restoreHandAnimation} to restore the default poses.
      * @function MyAvatar.overrideHandAnimation
      * @param isLeft {boolean} <code>true</code> to override the left hand, <code>false</code> to override the right hand.
-     * @param {string} url - The URL of the animation file. Animation files need to be in glTF or FBX format, but only need to 
-     *     contain the avatar skeleton and animation data. glTF models may be in JSON or binary format (".gltf" or ".glb" URLs 
+     * @param {string} url - The URL of the animation file. Animation files need to be in glTF or FBX format, but only need to
+     *     contain the avatar skeleton and animation data. glTF models may be in JSON or binary format (".gltf" or ".glb" URLs
      *     respectively).
      *     <p><strong>Warning:</strong> glTF animations currently do not always animate correctly.</p>
      * @param {number} fps - The frames per second (FPS) rate for the animation playback. 30 FPS is normal speed.
@@ -721,12 +723,12 @@ public:
      */
     Q_INVOKABLE void overrideHandAnimation(bool isLeft, const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
 
-    /**jsdoc
+    /*@jsdoc
      * Restores the default animations.
-     * <p>The avatar animation system includes a set of default animations along with rules for how those animations are blended 
-     * together with procedural data (such as look at vectors, hand sensors etc.). Playing your own custom animations will 
-     * override the  default animations. <code>restoreAnimation()</code> is used to restore all motion from the default 
-     * animation system including inverse kinematics for hand and head controllers. If you aren't currently playing an override 
+     * <p>The avatar animation system includes a set of default animations along with rules for how those animations are blended
+     * together with procedural data (such as look at vectors, hand sensors etc.). Playing your own custom animations will
+     * override the  default animations. <code>restoreAnimation()</code> is used to restore all motion from the default
+     * animation system including inverse kinematics for hand and head controllers. If you aren't currently playing an override
      * animation, this function has no effect.</p>
      * @function MyAvatar.restoreAnimation
      * @example <caption> Play a clapping animation on your avatar for three seconds. </caption>
@@ -738,7 +740,7 @@ public:
      */
     Q_INVOKABLE void restoreAnimation();
 
-    /**jsdoc
+    /*@jsdoc
      * Restores the default hand animation state machine that is driven by the state machine in the avatar-animation JSON.
      * <p>The avatar animation system includes a set of default animations along with rules for how those animations are blended
      * together with procedural data (such as look at vectors, hand sensors etc.). Playing your own custom animations will
@@ -755,12 +757,12 @@ public:
      */
     Q_INVOKABLE void restoreHandAnimation(bool isLeft);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the current animation roles.
-     * <p>Each avatar has an avatar-animation.json file that defines which animations are used and how they are blended together 
-     * with procedural data (such as look at vectors, hand sensors etc.). Each animation specified in the avatar-animation.json 
-     * file is known as an animation role. Animation roles map to easily understandable actions that the avatar can perform, 
-     * such as <code>"idleStand"</code>, <code>"idleTalk"</code>, or <code>"walkFwd"</code>. <code>getAnimationRoles()</code> 
+     * <p>Each avatar has an avatar-animation.json file that defines which animations are used and how they are blended together
+     * with procedural data (such as look at vectors, hand sensors etc.). Each animation specified in the avatar-animation.json
+     * file is known as an animation role. Animation roles map to easily understandable actions that the avatar can perform,
+     * such as <code>"idleStand"</code>, <code>"idleTalk"</code>, or <code>"walkFwd"</code>. <code>getAnimationRoles()</code>
      * is used get the list of animation roles defined in the avatar-animation.json.</p>
      * @function MyAvatar.getAnimationRoles
      * @returns {string[]} Array of role strings.
@@ -773,25 +775,25 @@ public:
      */
     Q_INVOKABLE QStringList getAnimationRoles();
 
-    /**jsdoc
+    /*@jsdoc
      * Overrides a specific animation role.
-     * <p>Each avatar has an avatar-animation.json file that defines a set of animation roles. Animation roles map to easily 
-     * understandable actions that the avatar can perform, such as <code>"idleStand"</code>, <code>"idleTalk"</code>, or 
+     * <p>Each avatar has an avatar-animation.json file that defines a set of animation roles. Animation roles map to easily
+     * understandable actions that the avatar can perform, such as <code>"idleStand"</code>, <code>"idleTalk"</code>, or
      * <code>"walkFwd"</code>. To get the full list of roles, use {@ link MyAvatar.getAnimationRoles}.
-     * For each role, the avatar-animation.json defines when the animation is used, the animation clip (glTF or FBX) used, and 
+     * For each role, the avatar-animation.json defines when the animation is used, the animation clip (glTF or FBX) used, and
      * how animations are blended together with procedural data (such as look at vectors, hand sensors etc.).
-     * <code>overrideRoleAnimation()</code> is used to change the animation clip (glTF or FBX) associated with a specified 
+     * <code>overrideRoleAnimation()</code> is used to change the animation clip (glTF or FBX) associated with a specified
      * animation role. To end the role animation and restore the default, use {@link MyAvatar.restoreRoleAnimation}.</p>
-     * <p>Note: Hand roles only affect the hand. Other "main" roles, like "idleStand", "idleTalk", and "takeoffStand", are full 
+     * <p>Note: Hand roles only affect the hand. Other "main" roles, like "idleStand", "idleTalk", and "takeoffStand", are full
      * body.</p>
      * <p>Note: When using pre-built animation data, it's critical that the joint orientation of the source animation and target
      * rig are equivalent, since the animation data applies absolute values onto the joints. If the orientations are different,
-     * the avatar will move in unpredictable ways. For more information about avatar joint orientation standards, see 
-     * <a href="https://docs.vircadia.dev/create/avatars/avatar-standards.html">Avatar Standards</a>.
+     * the avatar will move in unpredictable ways. For more information about avatar joint orientation standards, see
+     * <a href="https://docs.vircadia.com/create/avatars/avatar-standards.html">Avatar Standards</a>.
      * @function MyAvatar.overrideRoleAnimation
      * @param {string} role - The animation role to override
-     * @param {string} url - The URL to the animation file. Animation files need to be in glTF or FBX format, but only need to 
-     *     contain the avatar skeleton and animation data. glTF models may be in JSON or binary format (".gltf" or ".glb" URLs 
+     * @param {string} url - The URL to the animation file. Animation files need to be in glTF or FBX format, but only need to
+     *     contain the avatar skeleton and animation data. glTF models may be in JSON or binary format (".gltf" or ".glb" URLs
      *     respectively).
      *     <p><strong>Warning:</strong> glTF animations currently do not always animate correctly.</p>
      * @param {number} fps - The frames per second (FPS) rate for the animation playback. 30 FPS is normal speed.
@@ -813,15 +815,15 @@ public:
      */
     Q_INVOKABLE void overrideRoleAnimation(const QString& role, const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
 
-    /**jsdoc
+    /*@jsdoc
      * Restores a default role animation.
-     * <p>Each avatar has an avatar-animation.json file that defines a set of animation roles. Animation roles map to easily 
-     * understandable actions that the avatar can perform, such as <code>"idleStand"</code>, <code>"idleTalk"</code>, or 
+     * <p>Each avatar has an avatar-animation.json file that defines a set of animation roles. Animation roles map to easily
+     * understandable actions that the avatar can perform, such as <code>"idleStand"</code>, <code>"idleTalk"</code>, or
      * <code>"walkFwd"</code>. To get the full list of roles, use {@link MyAvatar.getAnimationRoles}. For each role,
-     * the avatar-animation.json defines when the animation is used, the animation clip (glTF or FBX) used, and how animations 
-     * are blended together with procedural data (such as look-at vectors, hand sensors etc.). You can change the animation 
+     * the avatar-animation.json defines when the animation is used, the animation clip (glTF or FBX) used, and how animations
+     * are blended together with procedural data (such as look-at vectors, hand sensors etc.). You can change the animation
      * clip (glTF or FBX) associated with a specified animation role using {@link MyAvatar.overrideRoleAnimation}.
-     * <code>restoreRoleAnimation()</code> is used to restore a specified animation role's default animation clip. If you have 
+     * <code>restoreRoleAnimation()</code> is used to restore a specified animation role's default animation clip. If you have
      * not specified an override animation for the specified role, this function has no effect.
      * @function MyAvatar.restoreRoleAnimation
      * @param role {string} The animation role clip to restore.
@@ -837,39 +839,39 @@ public:
     // adding one of the other handlers. While any handler may change a value in animStateDictionaryIn (or supply different values in animStateDictionaryOut)
     // a handler must not remove properties from animStateDictionaryIn, nor change property values that it does not intend to change.
     // It is not specified in what order multiple handlers are called.
-    /**jsdoc
-     * Adds an animation state handler function that is invoked just before each animation graph update. More than one 
-     * animation state handler function may be added by calling <code>addAnimationStateHandler</code> multiple times. It is not 
+    /*@jsdoc
+     * Adds an animation state handler function that is invoked just before each animation graph update. More than one
+     * animation state handler function may be added by calling <code>addAnimationStateHandler</code> multiple times. It is not
      * specified in what order multiple handlers are called.
      * <p>The animation state handler function is called with an {@link MyAvatar.AnimStateDictionary|AnimStateDictionary}
-     * "<code>animStateDictionaryIn</code>" parameter and is expected to return an 
-     * {@link MyAvatar.AnimStateDictionary|AnimStateDictionary} "<code>animStateDictionaryOut</code>" object. The 
-     * <code>animStateDictionaryOut</code> object can be the same object as <code>animStateDictionaryIn</code>, or it can be a 
-     * different object. The <code>animStateDictionaryIn</code> may be shared among multiple handlers and thus may contain 
+     * "<code>animStateDictionaryIn</code>" parameter and is expected to return an
+     * {@link MyAvatar.AnimStateDictionary|AnimStateDictionary} "<code>animStateDictionaryOut</code>" object. The
+     * <code>animStateDictionaryOut</code> object can be the same object as <code>animStateDictionaryIn</code>, or it can be a
+     * different object. The <code>animStateDictionaryIn</code> may be shared among multiple handlers and thus may contain
      * additional properties specified when adding the different handlers.</p>
-     * <p>A handler may change a value from <code>animStateDictionaryIn</code> or add different values in the 
-     * <code>animStateDictionaryOut</code> returned. Any property values set in <code>animStateDictionaryOut</code> will 
+     * <p>A handler may change a value from <code>animStateDictionaryIn</code> or add different values in the
+     * <code>animStateDictionaryOut</code> returned. Any property values set in <code>animStateDictionaryOut</code> will
      * override those of the internal animation machinery.</p>
      * @function MyAvatar.addAnimationStateHandler
      * @param {function} handler - The animation state handler function to add.
-     * @param {Array<string>|null} propertiesList - The list of {@link MyAvatar.AnimStateDictionary|AnimStateDictionary} 
-     *     properties that should be included in the parameter that the handler function is called with. If <code>null</code> 
+     * @param {Array<string>|null} propertiesList - The list of {@link MyAvatar.AnimStateDictionary|AnimStateDictionary}
+     *     properties that should be included in the parameter that the handler function is called with. If <code>null</code>
      *     then all properties are included in the call parameter.
      * @returns {number} The ID of the animation state handler function if successfully added, <code>undefined</code> if not.
      * @example <caption>Log all the animation state dictionary parameters for a short while.</caption>
      * function animStateHandler(dictionary) {
      *     print("Anim state dictionary: " + JSON.stringify(dictionary));
      * }
-     * 
+     *
      * var handler = MyAvatar.addAnimationStateHandler(animStateHandler, null);
-     * 
+     *
      * Script.setTimeout(function () {
      *     MyAvatar.removeAnimationStateHandler(handler);
      * }, 100);
      */
     Q_INVOKABLE QScriptValue addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) { return _skeletonModel->getRig().addAnimationStateHandler(handler, propertiesList); }
 
-    /**jsdoc
+    /*@jsdoc
      * Removes an animation state handler function.
      * @function MyAvatar.removeAnimationStateHandler
      * @param {number} handler - The ID of the animation state handler function to remove.
@@ -878,124 +880,124 @@ public:
     Q_INVOKABLE void removeAnimationStateHandler(QScriptValue handler) { _skeletonModel->getRig().removeAnimationStateHandler(handler); }
 
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether you do snap turns in HMD mode.
      * @function MyAvatar.getSnapTurn
-     * @returns {boolean} <code>true</code> if you do snap turns in HMD mode; <code>false</code> if you do smooth turns in HMD 
+     * @returns {boolean} <code>true</code> if you do snap turns in HMD mode; <code>false</code> if you do smooth turns in HMD
      *     mode.
      */
     Q_INVOKABLE bool getSnapTurn() const { return _useSnapTurn; }
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether you do snap turns or smooth turns in HMD mode.
      * @function MyAvatar.setSnapTurn
      * @param {boolean} on - <code>true</code> to do snap turns in HMD mode; <code>false</code> to do smooth turns in HMD mode.
      */
     Q_INVOKABLE void setSnapTurn(bool on) { _useSnapTurn = on; }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the control scheme that is in use.
      * @function MyAvatar.getControlScheme
      * @returns {MyAvatar.LocomotionControlsMode} The control scheme that is in use.
      */
     Q_INVOKABLE int getControlScheme() const { return _controlSchemeIndex; }
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the control scheme to use.
      * @function MyAvatar.setControlScheme
      * @param {MyAvatar.LocomotionControlsMode} controlScheme - The control scheme to use.
      */
     Q_INVOKABLE void setControlScheme(int index) { _controlSchemeIndex = (index >= 0 && index <= 2) ? index : 0; }
-    
-    /**jsdoc
+
+    /*@jsdoc
      * Gets whether your avatar hovers when its feet are not on the ground.
      * @function MyAvatar.hoverWhenUnsupported
-     * @returns {boolean} <code>true</code> if your avatar hovers when its feet are not on the ground, <code>false</code> if it 
+     * @returns {boolean} <code>true</code> if your avatar hovers when its feet are not on the ground, <code>false</code> if it
      *     falls.
      */
     // FIXME: Should be named, getHoverWhenUnsupported().
     Q_INVOKABLE bool hoverWhenUnsupported() const { return _hoverWhenUnsupported; }
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether your avatar hovers when its feet are not on the ground.
      * @function MyAvatar.setHoverWhenUnsupported
-     * @param {boolean} hover - <code>true</code> if your avatar hovers when its feet are not on the ground, <code>false</code> 
+     * @param {boolean} hover - <code>true</code> if your avatar hovers when its feet are not on the ground, <code>false</code>
      *     if it falls.
      */
     Q_INVOKABLE void setHoverWhenUnsupported(bool on) { _hoverWhenUnsupported = on; }
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the avatar's dominant hand.
      * @function MyAvatar.setDominantHand
-     * @param {string} hand - The dominant hand: <code>"left"</code> for the left hand or <code>"right"</code> for the right 
+     * @param {string} hand - The dominant hand: <code>"left"</code> for the left hand or <code>"right"</code> for the right
      *     hand. Any other value has no effect.
      */
     Q_INVOKABLE void setDominantHand(const QString& hand);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the avatar's dominant hand.
      * @function MyAvatar.getDominantHand
      * @returns {string} <code>"left"</code> for the left hand, <code>"right"</code> for the right hand.
      */
     Q_INVOKABLE QString getDominantHand() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether strafing is enabled.
      * @function MyAvatar.setStrafeEnabled
      * @param {boolean} enabled - <code>true</code> if strafing is enabled, <code>false</code> if it isn't.
      */
     Q_INVOKABLE void setStrafeEnabled(bool enabled);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether strafing is enabled.
      * @function MyAvatar.getStrafeEnabled
      * @returns {boolean} <code>true</code> if strafing is enabled, <code>false</code> if it isn't.
      */
     Q_INVOKABLE bool getStrafeEnabled() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the HMD alignment relative to your avatar.
      * @function MyAvatar.setHmdAvatarAlignmentType
-     * @param {string} type - <code>"head"</code> to align your head and your avatar's head, <code>"eyes"</code> to align your 
+     * @param {string} type - <code>"head"</code> to align your head and your avatar's head, <code>"eyes"</code> to align your
      *     eyes and your avatar's eyes.
      */
     Q_INVOKABLE void setHmdAvatarAlignmentType(const QString& type);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the HMD alignment relative to your avatar.
      * @function MyAvatar.getHmdAvatarAlignmentType
-     * @returns {string} <code>"head"</code> if aligning your head and your avatar's head, <code>"eyes"</code> if aligning your 
+     * @returns {string} <code>"head"</code> if aligning your head and your avatar's head, <code>"eyes"</code> if aligning your
      *     eyes and your avatar's eyes.
      */
     Q_INVOKABLE QString getHmdAvatarAlignmentType() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether the avatar's hips are balanced over the feet or positioned under the head.
      * @function MyAvatar.setCenterOfGravityModelEnabled
-     * @param {boolean} enabled - <code>true</code> to balance the hips over the feet, <code>false</code> to position the hips 
+     * @param {boolean} enabled - <code>true</code> to balance the hips over the feet, <code>false</code> to position the hips
      *     under the head.
      */
     Q_INVOKABLE void setCenterOfGravityModelEnabled(bool value) { _centerOfGravityModelEnabled = value; }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether the avatar hips are being balanced over the feet or placed under the head.
      * @function MyAvatar.getCenterOfGravityModelEnabled
-     * @returns {boolean} <code>true</code> if the hips are being balanced over the feet, <code>false</code> if the hips are 
+     * @returns {boolean} <code>true</code> if the hips are being balanced over the feet, <code>false</code> if the hips are
      *     being positioned under the head.
      */
     Q_INVOKABLE bool getCenterOfGravityModelEnabled() const { return _centerOfGravityModelEnabled; }
 
-    /**jsdoc
-     * Sets whether the avatar's position updates to recenter the avatar under the head. In room-scale VR, recentering 
-     * causes your avatar to follow your HMD as you walk around the room. Disabling recentering is useful if you want to pin 
+    /*@jsdoc
+     * Sets whether the avatar's position updates to recenter the avatar under the head. In room-scale VR, recentering
+     * causes your avatar to follow your HMD as you walk around the room. Disabling recentering is useful if you want to pin
      * the avatar to a fixed position.
      * @function MyAvatar.setHMDLeanRecenterEnabled
-     * @param {boolean} enabled - <code>true</code> to recenter the avatar under the head as it moves, <code>false</code> to 
+     * @param {boolean} enabled - <code>true</code> to recenter the avatar under the head as it moves, <code>false</code> to
      *     disable recentering.
      */
     Q_INVOKABLE void setHMDLeanRecenterEnabled(bool value) { _hmdLeanRecenterEnabled = value; }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether the avatar's position updates to recenter the avatar under the head. In room-scale VR, recentering
      * causes your avatar to follow your HMD as you walk around the room.
      * @function MyAvatar.getHMDLeanRecenterEnabled
@@ -1003,16 +1005,16 @@ public:
      */
     Q_INVOKABLE bool getHMDLeanRecenterEnabled() const { return _hmdLeanRecenterEnabled; }
 
-    /**jsdoc
-     * Requests that the hand touch effect is disabled for your avatar. Any resulting change in the status of the hand touch 
+    /*@jsdoc
+     * Requests that the hand touch effect is disabled for your avatar. Any resulting change in the status of the hand touch
      * effect will be signaled by {@link MyAvatar.shouldDisableHandTouchChanged}.
-     * <p>The hand touch effect makes the avatar's fingers adapt to the shape of any object grabbed, creating the effect that 
+     * <p>The hand touch effect makes the avatar's fingers adapt to the shape of any object grabbed, creating the effect that
      * it is really touching that object.</p>
      * @function MyAvatar.requestEnableHandTouch
      */
     Q_INVOKABLE void requestEnableHandTouch();
 
-    /**jsdoc
+    /*@jsdoc
      * Requests that the hand touch effect is enabled for your avatar. Any resulting change in the status of the hand touch
      * effect will be signaled by {@link MyAvatar.shouldDisableHandTouchChanged}.
      * <p>The hand touch effect makes the avatar's fingers adapt to the shape of any object grabbed, creating the effect that
@@ -1021,7 +1023,7 @@ public:
      */
     Q_INVOKABLE void requestDisableHandTouch();
 
-    /**jsdoc
+    /*@jsdoc
      * Disables the hand touch effect on a specific entity.
      * <p>The hand touch effect makes the avatar's fingers adapt to the shape of any object grabbed, creating the effect that
      * it is really touching that object.</p>
@@ -1030,7 +1032,7 @@ public:
      */
     Q_INVOKABLE void disableHandTouchForID(const QUuid& entityID);
 
-    /**jsdoc
+    /*@jsdoc
      * Enables the hand touch effect on a specific entity.
      * <p>The hand touch effect makes the avatar's fingers adapt to the shape of any object grabbed, creating the effect that
      * it is really touching that object.</p>
@@ -1072,7 +1074,7 @@ public:
     void setSprintMode(bool sprint);
     float getDriveKey(DriveKeys key) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the value of a drive key, regardless of whether it is disabled.
      * @function MyAvatar.getRawDriveKey
      * @param {DriveKey} key - The drive key.
@@ -1081,8 +1083,8 @@ public:
     Q_INVOKABLE float getRawDriveKey(DriveKeys key) const;
 
     void relayDriveKeysToCharacterController();
-    
-    /**jsdoc
+
+    /*@jsdoc
      * Disables the action associated with a drive key.
      * @function MyAvatar.disableDriveKey
      * @param {DriveKey} key - The drive key to disable.
@@ -1096,15 +1098,15 @@ public:
      */
     Q_INVOKABLE void disableDriveKey(DriveKeys key);
 
-    /**jsdoc
-     * Enables the action associated with a drive key. The action may have been disabled with 
+    /*@jsdoc
+     * Enables the action associated with a drive key. The action may have been disabled with
      * {@link MyAvatar.disableDriveKey|disableDriveKey}.
      * @function MyAvatar.enableDriveKey
      * @param {DriveKey} key - The drive key to enable.
      */
     Q_INVOKABLE void enableDriveKey(DriveKeys key);
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether a drive key is disabled.
      * @function MyAvatar.isDriveKeyDisabled
      * @param {DriveKey} key - The drive key to check.
@@ -1113,30 +1115,30 @@ public:
     Q_INVOKABLE bool isDriveKeyDisabled(DriveKeys key) const;
 
 
-    /**jsdoc
-     * Recenter the avatar in the vertical direction, if <code>{@link MyAvatar|MyAvatar.hmdLeanRecenterEnabled}</code> is 
+    /*@jsdoc
+     * Recenter the avatar in the vertical direction, if <code>{@link MyAvatar|MyAvatar.hmdLeanRecenterEnabled}</code> is
      * <code>false</code>.
      * @function MyAvatar.triggerVerticalRecenter
      */
     Q_INVOKABLE void triggerVerticalRecenter();
 
-    /**jsdoc
-     * Recenter the avatar in the horizontal direction, if <code>{@link MyAvatar|MyAvatar.hmdLeanRecenterEnabled}</code> is 
+    /*@jsdoc
+     * Recenter the avatar in the horizontal direction, if <code>{@link MyAvatar|MyAvatar.hmdLeanRecenterEnabled}</code> is
      * <code>false</code>.
      * @function MyAvatar.triggerHorizontalRecenter
      */
     Q_INVOKABLE void triggerHorizontalRecenter();
 
-    /**jsdoc
+    /*@jsdoc
      * Recenter the avatar's rotation, if <code>{@link MyAvatar|MyAvatar.hmdLeanRecenterEnabled}</code> is <code>false</code>.
      * @function MyAvatar.triggerRotationRecenter
      */
     Q_INVOKABLE void triggerRotationRecenter();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether the avatar is configured to keep its center of gravity under its head.
      * @function MyAvatar.isRecenteringHorizontally
-     * @returns {boolean} <code>true</code> if the avatar is keeping its center of gravity under its head position, 
+     * @returns {boolean} <code>true</code> if the avatar is keeping its center of gravity under its head position,
      *     <code>false</code> if not.
     */
     Q_INVOKABLE bool isRecenteringHorizontally() const;
@@ -1145,7 +1147,7 @@ public:
 
     const MyHead* getMyHead() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the current position of the avatar's "Head" joint.
      * @function MyAvatar.getHeadPosition
      * @returns {Vec3} The current position of the avatar's "Head" joint.
@@ -1154,29 +1156,29 @@ public:
      */
     Q_INVOKABLE glm::vec3 getHeadPosition() const { return getHead()->getPosition(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the yaw of the avatar's head relative to its body.
      * @function MyAvatar.getHeadFinalYaw
      * @returns {number} The yaw of the avatar's head, in degrees.
      */
     Q_INVOKABLE float getHeadFinalYaw() const { return getHead()->getFinalYaw(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the roll of the avatar's head relative to its body.
      * @function MyAvatar.getHeadFinalRoll
      * @returns {number} The roll of the avatar's head, in degrees.
      */
     Q_INVOKABLE float getHeadFinalRoll() const { return getHead()->getFinalRoll(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the pitch of the avatar's head relative to its body.
      * @function MyAvatar.getHeadFinalPitch
      * @returns {number} The pitch of the avatar's head, in degrees.
      */
     Q_INVOKABLE float getHeadFinalPitch() const { return getHead()->getFinalPitch(); }
 
-    /**jsdoc
-     * If a face tracker is connected and being used, gets the estimated pitch of the user's head scaled. This is scale such 
+    /*@jsdoc
+     * If a face tracker is connected and being used, gets the estimated pitch of the user's head scaled. This is scale such
      * that the avatar looks at the edge of the view frustum when the user looks at the edge of their screen.
      * @function MyAvatar.getHeadDeltaPitch
      * @returns {number} The pitch that the avatar's head should be if a face tracker is connected and being used, otherwise
@@ -1184,7 +1186,7 @@ public:
      */
     Q_INVOKABLE float getHeadDeltaPitch() const { return getHead()->getDeltaPitch(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the current position of the point directly between the avatar's eyes.
      * @function MyAvatar.getEyePosition
      * @returns {Vec3} The current position of the point directly between the avatar's eyes.
@@ -1194,77 +1196,77 @@ public:
      */
     Q_INVOKABLE glm::vec3 getEyePosition() const { return getHead()->getEyePosition(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the position of the avatar your avatar is currently looking at.
      * @function MyAvatar.getTargetAvatarPosition
      * @returns {Vec3} The position of the avatar beeing looked at.
      * @example <caption>Report the position of the avatar you're currently looking at.</caption>
      * print(JSON.stringify(MyAvatar.getTargetAvatarPosition()));
      */
-    // FIXME: If not looking at an avatar, the most recently looked-at position is returned. This should be fixed to return 
+    // FIXME: If not looking at an avatar, the most recently looked-at position is returned. This should be fixed to return
     // undefined or {NaN, NaN, NaN} or similar.
     Q_INVOKABLE glm::vec3 getTargetAvatarPosition() const { return _targetAvatarPosition; }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets information on the avatar your avatar is currently looking at.
      * @function MyAvatar.getTargetAvatar
      * @returns {ScriptAvatar} Information on the avatar being looked at, <code>null</code> if no avatar is being looked at.
      */
-    // FIXME: The return type doesn't have a conversion to a script value so the function always returns undefined in 
+    // FIXME: The return type doesn't have a conversion to a script value so the function always returns undefined in
     // JavaScript. Note: When fixed, JSDoc is needed for the return type.
     Q_INVOKABLE ScriptAvatarData* getTargetAvatar() const;
 
 
-    /**jsdoc
-     * Gets the position of the avatar's left hand, relative to the avatar, as positioned by a hand controller (e.g., Oculus 
+    /*@jsdoc
+     * Gets the position of the avatar's left hand, relative to the avatar, as positioned by a hand controller (e.g., Oculus
      * Touch or Vive).
-     * <p>Note: The Leap Motion isn't part of the hand controller input system. (Instead, it manipulates the avatar's joints 
+     * <p>Note: The Leap Motion isn't part of the hand controller input system. (Instead, it manipulates the avatar's joints
      * for hand animation.)</p>
      * @function MyAvatar.getLeftHandPosition
-     * @returns {Vec3} The position of the left hand in avatar coordinates if positioned by a hand controller, otherwise 
+     * @returns {Vec3} The position of the left hand in avatar coordinates if positioned by a hand controller, otherwise
      *     <code>{@link Vec3(0)|Vec3.ZERO}</code>.
      * @example <caption>Report the position of your left hand relative to your avatar.</caption>
      * print(JSON.stringify(MyAvatar.getLeftHandPosition()));
      */
     Q_INVOKABLE glm::vec3 getLeftHandPosition() const;
 
-    /**jsdoc
-     * Gets the position of the avatar's right hand, relative to the avatar, as positioned by a hand controller (e.g., Oculus 
+    /*@jsdoc
+     * Gets the position of the avatar's right hand, relative to the avatar, as positioned by a hand controller (e.g., Oculus
      * Touch or Vive).
-     * <p>Note: The Leap Motion isn't part of the hand controller input system. (Instead, it manipulates the avatar's joints 
+     * <p>Note: The Leap Motion isn't part of the hand controller input system. (Instead, it manipulates the avatar's joints
      * for hand animation.)</p>
      * @function MyAvatar.getRightHandPosition
-     * @returns {Vec3} The position of the right hand in avatar coordinates if positioned by a hand controller, otherwise 
+     * @returns {Vec3} The position of the right hand in avatar coordinates if positioned by a hand controller, otherwise
      *     <code>{@link Vec3(0)|Vec3.ZERO}</code>.
      * @example <caption>Report the position of your right hand relative to your avatar.</caption>
      * print(JSON.stringify(MyAvatar.getLeftHandPosition()));
      */
     Q_INVOKABLE glm::vec3 getRightHandPosition() const;
 
-    /**jsdoc
-     * Gets the position 0.3m in front of the left hand's position in the direction along the palm, in avatar coordinates, as 
+    /*@jsdoc
+     * Gets the position 0.3m in front of the left hand's position in the direction along the palm, in avatar coordinates, as
      * positioned by a hand controller.
      * @function MyAvatar.getLeftHandTipPosition
-     * @returns {Vec3} The position 0.3m in front of the left hand's position in the direction along the palm, in avatar 
+     * @returns {Vec3} The position 0.3m in front of the left hand's position in the direction along the palm, in avatar
      *     coordinates. If the hand isn't being positioned by a controller, <code>{@link Vec3(0)|Vec3.ZERO}</code> is returned.
      */
     Q_INVOKABLE glm::vec3 getLeftHandTipPosition() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the position 0.3m in front of the right hand's position in the direction along the palm, in avatar coordinates, as
      * positioned by a hand controller.
      * @function MyAvatar.getRightHandTipPosition
-     * @returns {Vec3} The position 0.3m in front of the right hand's position in the direction along the palm, in avatar 
+     * @returns {Vec3} The position 0.3m in front of the right hand's position in the direction along the palm, in avatar
      *     coordinates. If the hand isn't being positioned by a controller, <code>{@link Vec3(0)|Vec3.ZERO}</code> is returned.
      */
     Q_INVOKABLE glm::vec3 getRightHandTipPosition() const;
 
 
-    /**jsdoc
-     * Gets the pose (position, rotation, velocity, and angular velocity) of the avatar's left hand as positioned by a 
+    /*@jsdoc
+     * Gets the pose (position, rotation, velocity, and angular velocity) of the avatar's left hand as positioned by a
      * hand controller (e.g., Oculus Touch or Vive).
-     * <p>Note: The Leap Motion isn't part of the hand controller input system. (Instead, it manipulates the avatar's joints 
-     * for hand animation.) If you are using the Leap Motion, the return value's <code>valid</code> property will be 
+     * <p>Note: The Leap Motion isn't part of the hand controller input system. (Instead, it manipulates the avatar's joints
+     * for hand animation.) If you are using the Leap Motion, the return value's <code>valid</code> property will be
      * <code>false</code> and any pose values returned will not be meaningful.</p>
      * @function MyAvatar.getLeftHandPose
      * @returns {Pose} The pose of the avatar's left hand, relative to the avatar, as positioned by a hand controller.
@@ -1273,32 +1275,32 @@ public:
      */
     Q_INVOKABLE controller::Pose getLeftHandPose() const;
 
-    /**jsdoc
-     * Gets the pose (position, rotation, velocity, and angular velocity) of the avatar's left hand as positioned by a 
+    /*@jsdoc
+     * Gets the pose (position, rotation, velocity, and angular velocity) of the avatar's left hand as positioned by a
      * hand controller (e.g., Oculus Touch or Vive).
-     * <p>Note: The Leap Motion isn't part of the hand controller input system. (Instead, it manipulates the avatar's joints 
-     * for hand animation.) If you are using the Leap Motion, the return value's <code>valid</code> property will be 
+     * <p>Note: The Leap Motion isn't part of the hand controller input system. (Instead, it manipulates the avatar's joints
+     * for hand animation.) If you are using the Leap Motion, the return value's <code>valid</code> property will be
      * <code>false</code> and any pose values returned will not be meaningful.</p>
      * @function MyAvatar.getRightHandPose
-     * @returns {Pose} The pose of the avatar's right hand, relative to the avatar, as positioned by a hand controller. 
+     * @returns {Pose} The pose of the avatar's right hand, relative to the avatar, as positioned by a hand controller.
      * @example <caption>Report the pose of your avatar's right hand.</caption>
      * print(JSON.stringify(MyAvatar.getRightHandPose()));
      */
     Q_INVOKABLE controller::Pose getRightHandPose() const;
 
-    /**jsdoc
-     * Gets the pose (position, rotation, velocity, and angular velocity) of the avatar's left hand, relative to the avatar, as 
+    /*@jsdoc
+     * Gets the pose (position, rotation, velocity, and angular velocity) of the avatar's left hand, relative to the avatar, as
      * positioned by a hand controller (e.g., Oculus Touch or Vive), and translated 0.3m along the palm.
      * <p>Note: Leap Motion isn't part of the hand controller input system. (Instead, it manipulates the avatar's joints
      * for hand animation.) If you are using Leap Motion, the return value's <code>valid</code> property will be
      * <code>false</code> and any pose values returned will not be meaningful.</p>
      * @function MyAvatar.getLeftHandTipPose
-     * @returns {Pose} The pose of the avatar's left hand, relative to the avatar, as positioned by a hand controller, and 
+     * @returns {Pose} The pose of the avatar's left hand, relative to the avatar, as positioned by a hand controller, and
      *     translated 0.3m along the palm.
      */
     Q_INVOKABLE controller::Pose getLeftHandTipPose() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the pose (position, rotation, velocity, and angular velocity) of the avatar's right hand, relative to the avatar, as
      * positioned by a hand controller (e.g., Oculus Touch or Vive), and translated 0.3m along the palm.
      * <p>Note: Leap Motion isn't part of the hand controller input system. (Instead, it manipulates the avatar's joints
@@ -1328,7 +1330,7 @@ public:
     virtual void clearJointData(const QString& name) override;
     virtual void clearJointsData() override;
 
-    /**jsdoc
+    /*@jsdoc
      * Sets and locks a joint's position and orientation.
      * <p><strong>Note:</strong> Only works on the hips joint.</p>
      * @function MyAvatar.pinJoint
@@ -1341,7 +1343,7 @@ public:
 
     bool isJointPinned(int index);
 
-    /**jsdoc
+    /*@jsdoc
      * Clears a lock on a joint's position and orientation, as set by {@link MyAvatar.pinJoint|pinJoint}.
      * <p><strong>Note:</strong> Only works on the hips joint.</p>
      * @function MyAvatar.clearPinOnJoint
@@ -1350,14 +1352,14 @@ public:
      */
     Q_INVOKABLE bool clearPinOnJoint(int index);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the maximum error distance from the most recent inverse kinematics (IK) solution.
      * @function MyAvatar.getIKErrorOnLastSolve
      * @returns {number} The maximum IK error distance.
      */
     Q_INVOKABLE float getIKErrorOnLastSolve() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Changes the user's avatar and associated descriptive name.
      * @function MyAvatar.useFullAvatarURL
      * @param {string} fullAvatarURL - The URL of the avatar's <code>.fst</code> file.
@@ -1365,7 +1367,7 @@ public:
      */
     Q_INVOKABLE void useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName = QString());
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the complete URL for the current avatar.
      * @function MyAvatar.getFullAvatarURLFromPreferences
      * @returns {string} The full avatar model name.
@@ -1374,7 +1376,7 @@ public:
      */
     Q_INVOKABLE QUrl getFullAvatarURLFromPreferences() const { return _fullAvatarURLFromPreferences; }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the full avatar model name for the current avatar.
      * @function MyAvatar.getFullAvatarModelName
      * @returns {string} The full avatar model name.
@@ -1445,7 +1447,7 @@ public:
 
     bool hasDriveInput() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the current avatar entity IDs and their properties.
      * @function MyAvatar.getAvatarEntitiesVariant
      * @returns {MyAvatar.AvatarEntityData[]} The current avatar entity IDs and their properties.
@@ -1456,58 +1458,58 @@ public:
     void clearWornAvatarEntities();
     bool hasAvatarEntities() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether your avatar is flying.
      * @function MyAvatar.isFlying
      * @returns {boolean} <code>true</code> if your avatar is flying and not taking off or falling, <code>false</code> if not.
      */
     Q_INVOKABLE bool isFlying();
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether your avatar is in the air.
      * @function MyAvatar.isInAir
-     * @returns {boolean} <code>true</code> if your avatar is taking off, flying, or falling, otherwise <code>false</code> 
+     * @returns {boolean} <code>true</code> if your avatar is taking off, flying, or falling, otherwise <code>false</code>
      *     because your avatar is on the ground.
      */
     Q_INVOKABLE bool isInAir();
 
-    /**jsdoc
-     * Sets your preference for flying in your current desktop or HMD display mode. Note that your ability to fly also depends 
+    /*@jsdoc
+     * Sets your preference for flying in your current desktop or HMD display mode. Note that your ability to fly also depends
      * on whether the domain you're in allows you to fly.
      * @function MyAvatar.setFlyingEnabled
-     * @param {boolean} enabled - Set <code>true</code> if you want to enable flying in your current desktop or HMD display 
+     * @param {boolean} enabled - Set <code>true</code> if you want to enable flying in your current desktop or HMD display
      *     mode, otherwise set <code>false</code>.
      */
     Q_INVOKABLE void setFlyingEnabled(bool enabled);
 
-    /**jsdoc
-     * Gets your preference for flying in your current desktop or HMD display mode. Note that your ability to fly also depends 
+    /*@jsdoc
+     * Gets your preference for flying in your current desktop or HMD display mode. Note that your ability to fly also depends
      * on whether the domain you're in allows you to fly.
      * @function MyAvatar.getFlyingEnabled
-     * @returns {boolean} <code>true</code> if your preference is to enable flying in your current desktop or HMD display mode, 
+     * @returns {boolean} <code>true</code> if your preference is to enable flying in your current desktop or HMD display mode,
      *     otherwise <code>false</code>.
      */
     Q_INVOKABLE bool getFlyingEnabled();
 
-    /**jsdoc
-     * Sets your preference for flying in desktop display mode. Note that your ability to fly also depends on whether the domain 
+    /*@jsdoc
+     * Sets your preference for flying in desktop display mode. Note that your ability to fly also depends on whether the domain
      * you're in allows you to fly.
      * @function MyAvatar.setFlyingDesktopPref
-     * @param {boolean} enabled - Set <code>true</code> if you want to enable flying in desktop display mode, otherwise set 
+     * @param {boolean} enabled - Set <code>true</code> if you want to enable flying in desktop display mode, otherwise set
      *     <code>false</code>.
      */
     Q_INVOKABLE void setFlyingDesktopPref(bool enabled);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets your preference for flying in desktop display mode. Note that your ability to fly also depends on whether the domain
      * you're in allows you to fly.
      * @function MyAvatar.getFlyingDesktopPref
-     * @returns {boolean} <code>true</code> if your preference is to enable flying in desktop display mode, otherwise 
+     * @returns {boolean} <code>true</code> if your preference is to enable flying in desktop display mode, otherwise
      *     <code>false</code>.
      */
     Q_INVOKABLE bool getFlyingDesktopPref();
 
-    /**jsdoc
+    /*@jsdoc
      * Sets your preference for flying in HMD display mode. Note that your ability to fly also depends on whether the domain
      * you're in allows you to fly.
      * @function MyAvatar.setFlyingHMDPref
@@ -1516,7 +1518,7 @@ public:
      */
     Q_INVOKABLE void setFlyingHMDPref(bool enabled);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets your preference for flying in HMD display mode. Note that your ability to fly also depends on whether the domain
      * you're in allows you to fly.
      * @function MyAvatar.getFlyingHMDPref
@@ -1525,7 +1527,7 @@ public:
      */
     Q_INVOKABLE bool getFlyingHMDPref();
 
-    /**jsdoc
+    /*@jsdoc
      * Set your preference for hand-relative movement.
      * @function MyAvatar.setHandRelativeMovement
      * @param {number} enabled - Set <code>true</code> if you want to enable hand-relative movement, otherwise set to <code>false</code>.
@@ -1533,7 +1535,7 @@ public:
     */
     Q_INVOKABLE void setMovementReference(int enabled);
 
-    /**jsdoc
+    /*@jsdoc
      * Get your preference for hand-relative movement.
      * @function MyAvatar.getHandRelativeMovement
      * @returns {number} <code>true</code> if your preference is for user locomotion to be relative to the direction your
@@ -1541,70 +1543,70 @@ public:
     */
     Q_INVOKABLE int getMovementReference();
 
-    /**jsdoc
+    /*@jsdoc
      * Set the first 'shifting point' for acceleration step function.
      * @function MyAvatar.setDriveGear1
      * @param {number} shiftPoint - Set the first shift point for analog movement acceleration step function, between [0.0, 1.0]. Must be less than or equal to Gear 2.
     */
     Q_INVOKABLE void setDriveGear1(float shiftPoint);
 
-    /**jsdoc
+    /*@jsdoc
      * Get the first 'shifting point' for acceleration step function.
      * @function MyAvatar.getDriveGear1
      * @returns {number} Value between [0.0, 1.0].
     */
     Q_INVOKABLE float getDriveGear1();
 
-    /**jsdoc
+    /*@jsdoc
     * Set the second 'shifting point' for acceleration step function.
     * @function MyAvatar.setDriveGear2
     * @param {number} shiftPoint - Defines the second shift point for analog movement acceleration step function, between [0, 1]. Must be greater than or equal to Gear 1 and less than or equal to Gear 2.
     */
     Q_INVOKABLE void setDriveGear2(float shiftPoint);
 
-    /**jsdoc
+    /*@jsdoc
     * Get the second 'shifting point' for acceleration step function.
     * @function MyAvatar.getDriveGear2
     * @returns {number} Value between [0.0, 1.0].
     */
     Q_INVOKABLE float getDriveGear2();
 
-    /**jsdoc
+    /*@jsdoc
     * Set the third 'shifting point' for acceleration step function.
     * @function MyAvatar.setDriveGear3
     * @param {number} shiftPoint - Defines the third shift point for analog movement acceleration step function, between [0, 1]. Must be greater than or equal to Gear 2 and less than or equal to Gear 4.
     */
     Q_INVOKABLE void setDriveGear3(float shiftPoint);
 
-    /**jsdoc
+    /*@jsdoc
     * Get the third 'shifting point' for acceleration step function.
     * @function MyAvatar.getDriveGear3
     * @returns {number} Value between [0.0, 1.0].
     */
     Q_INVOKABLE float getDriveGear3();
 
-    /**jsdoc
+    /*@jsdoc
     * Set the fourth 'shifting point' for acceleration step function.
     * @function MyAvatar.setDriveGear4
     * @param {number} shiftPoint - Defines the fourth shift point for analog movement acceleration step function, between [0, 1]. Must be greater than Gear 3 and less than Gear 5.
     */
     Q_INVOKABLE void setDriveGear4(float shiftPoint);
 
-    /**jsdoc
+    /*@jsdoc
     * Get the fourth 'shifting point' for acceleration step function.
     * @function MyAvatar.getDriveGear4
     * @returns {number} Value between [0.0, 1.0].
     */
     Q_INVOKABLE float getDriveGear4();
 
-    /**jsdoc
+    /*@jsdoc
     * Set the fifth 'shifting point' for acceleration step function.
     * @function MyAvatar.setDriveGear5
     * @param {number} shiftPoint - Defines the fifth shift point for analog movement acceleration step function, between [0, 1]. Must be greater than or equal to Gear 4.
     */
     Q_INVOKABLE void setDriveGear5(float shiftPoint);
 
-    /**jsdoc
+    /*@jsdoc
     * Get the fifth 'shifting point' for acceleration step function.
     * @function MyAvatar.getDriveGear5
     * @returns {number} Value between [0.0, 1.0].
@@ -1615,7 +1617,7 @@ public:
 
     int getControlSchemeIndex();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the target scale of the avatar. The target scale is the desired scale of the avatar without any restrictions on
      * permissible scale values imposed by the domain.
      * @function MyAvatar.getAvatarScale
@@ -1623,26 +1625,26 @@ public:
      */
     Q_INVOKABLE float getAvatarScale() const;
 
-    /**jsdoc
-     * Sets the target scale of the avatar. The target scale is the desired scale of the avatar without any restrictions on 
-     * permissible scale values imposed by the domain. 
+    /*@jsdoc
+     * Sets the target scale of the avatar. The target scale is the desired scale of the avatar without any restrictions on
+     * permissible scale values imposed by the domain.
      * @function MyAvatar.setAvatarScale
      * @param {number} scale - The target scale for the avatar, range <code>0.005</code> &ndash; <code>1000.0</code>.
      */
     Q_INVOKABLE void setAvatarScale(float scale);
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether the avatar should collide with entities.
-     * <p><strong>Note:</strong> A <code>false</code> value won't disable collisions if the avatar is in a zone that disallows 
-     * collisionless avatars. However, the <code>false</code> value will be set so that collisions are disabled as soon as the 
+     * <p><strong>Note:</strong> A <code>false</code> value won't disable collisions if the avatar is in a zone that disallows
+     * collisionless avatars. However, the <code>false</code> value will be set so that collisions are disabled as soon as the
      * avatar moves to a position where collisionless avatars are allowed.
      * @function MyAvatar.setCollisionsEnabled
-     * @param {boolean} enabled - <code>true</code> to enable the avatar to collide with entities, <code>false</code> to 
+     * @param {boolean} enabled - <code>true</code> to enable the avatar to collide with entities, <code>false</code> to
      *     disable.
      */
     Q_INVOKABLE void setCollisionsEnabled(bool enabled);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether the avatar will currently collide with entities.
      * <p><strong>Note:</strong> The avatar will always collide with entities if in a zone that disallows collisionless avatars.
      * @function MyAvatar.getCollisionsEnabled
@@ -1650,31 +1652,31 @@ public:
      */
     Q_INVOKABLE bool getCollisionsEnabled();
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether the avatar should collide with other avatars.
      * @function MyAvatar.setOtherAvatarsCollisionsEnabled
-     * @param {boolean} enabled - <code>true</code> to enable the avatar to collide with other avatars, <code>false</code> 
+     * @param {boolean} enabled - <code>true</code> to enable the avatar to collide with other avatars, <code>false</code>
      *     to disable.
      */
     Q_INVOKABLE void setOtherAvatarsCollisionsEnabled(bool enabled);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether the avatar will collide with other avatars.
      * @function MyAvatar.getOtherAvatarsCollisionsEnabled
      * @returns {boolean} <code>true</code> if the avatar will collide with other avatars, <code>false</code> if it won't.
      */
     Q_INVOKABLE bool getOtherAvatarsCollisionsEnabled();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the avatar's collision capsule: a cylinder with hemispherical ends that approximates the extents or the avatar.
-     * <p><strong>Warning:</strong> The values returned are in world coordinates but aren't necessarily up to date with the 
+     * <p><strong>Warning:</strong> The values returned are in world coordinates but aren't necessarily up to date with the
      * avatar's current position.</p>
      * @function MyAvatar.getCollisionCapsule
      * @returns {MyAvatar.CollisionCapsule} The avatar's collision capsule.
      */
     Q_INVOKABLE QVariantMap getCollisionCapsule() const;
 
-    /**jsdoc
+    /*@jsdoc
      * @function MyAvatar.setCharacterControllerEnabled
      * @param {boolean} enabled - <code>true</code> to enable the avatar to collide with entities, <code>false</code> to
      *     disable.
@@ -1682,14 +1684,14 @@ public:
      */
     Q_INVOKABLE void setCharacterControllerEnabled(bool enabled); // deprecated
 
-    /**jsdoc
+    /*@jsdoc
      * @function MyAvatar.getCharacterControllerEnabled
      * @returns {boolean} <code>true</code> if the avatar will currently collide with entities, <code>false</code> if it won't.
      * @deprecated This function is deprecated and will be removed. Use {@link MyAvatar.getCollisionsEnabled} instead.
      */
     Q_INVOKABLE bool getCharacterControllerEnabled(); // deprecated
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the rotation of a joint relative to the avatar.
      * @comment Different behavior to the Avatar version of this method.
      * @function MyAvatar.getAbsoluteJointRotationInObjectFrame
@@ -1702,7 +1704,7 @@ public:
      */
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the translation of a joint relative to the avatar.
      * @comment Different behavior to the Avatar version of this method.
      * @function MyAvatar.getAbsoluteJointTranslationInObjectFrame
@@ -1745,22 +1747,22 @@ public:
     // results are in sensor frame (-z foward)
     glm::mat4 deriveBodyUsingCgModel();
 
-    /**jsdoc
-     * Tests whether a vector is pointing in the general direction of the avatar's "up" direction (i.e., dot product of vectors 
+    /*@jsdoc
+     * Tests whether a vector is pointing in the general direction of the avatar's "up" direction (i.e., dot product of vectors
      *     is <code>&gt; 0</code>).
      * @function MyAvatar.isUp
      * @param {Vec3} direction - The vector to test.
-     * @returns {boolean} <code>true</code> if the direction vector is pointing generally in the direction of the avatar's "up" 
+     * @returns {boolean} <code>true</code> if the direction vector is pointing generally in the direction of the avatar's "up"
      *     direction.
      */
     Q_INVOKABLE bool isUp(const glm::vec3& direction) { return glm::dot(direction, _worldUpDirection) > 0.0f; }; // true iff direction points up wrt avatar's definition of up.
 
-    /**jsdoc
-     * Tests whether a vector is pointing in the general direction of the avatar's "down" direction (i.e., dot product of 
+    /*@jsdoc
+     * Tests whether a vector is pointing in the general direction of the avatar's "down" direction (i.e., dot product of
      *     vectors is  <code>&lt; 0</code>).
      * @function MyAvatar.isDown
      * @param {Vec3} direction - The vector to test.
-     * @returns {boolean} <code>true</code> if the direction vector is pointing generally in the direction of the avatar's 
+     * @returns {boolean} <code>true</code> if the direction vector is pointing generally in the direction of the avatar's
      *     "down" direction.
      */
     Q_INVOKABLE bool isDown(const glm::vec3& direction) { return glm::dot(direction, _worldUpDirection) < 0.0f; };
@@ -1820,7 +1822,7 @@ public:
     glm::vec3 getNextPosition() { return _goToPending ? _goToPosition : getWorldPosition(); }
     void prepareAvatarEntityDataForReload();
 
-    /**jsdoc
+    /*@jsdoc
      * Turns the avatar's head until it faces the target point within a +90/-90 degree range.
      * Once this method is called, API calls have full control of the head for a limited time.
      * If this method is not called for 2 seconds, the engine regains control of the head.
@@ -1829,43 +1831,43 @@ public:
      */
     Q_INVOKABLE void setHeadLookAt(const glm::vec3& lookAtTarget);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the current target point of the head's look direction in world coordinates.
      * @function MyAvatar.getHeadLookAt
      * @returns {Vec3} The head's look-at target in world coordinates.
      */
     Q_INVOKABLE glm::vec3 getHeadLookAt() { return _lookAtCameraTarget; }
 
-    /**jsdoc
+    /*@jsdoc
      * Returns control of the avatar's head to the engine, and releases control from API calls.
      * @function MyAvatar.releaseHeadLookAtControl
      */
     Q_INVOKABLE void releaseHeadLookAtControl();
 
-    /**jsdoc
+    /*@jsdoc
      * Forces the avatar's eyes to look at a specified location. Once this method is called, API calls
-     * full control of the eyes for a limited time. If this method is not called for 2 seconds, 
+     * full control of the eyes for a limited time. If this method is not called for 2 seconds,
      * the engine regains control of the eyes.
      * @function MyAvatar.setEyesLookAt
      * @param {Vec3} lookAtTarget - The target point in world coordinates.
      */
     Q_INVOKABLE void setEyesLookAt(const glm::vec3& lookAtTarget);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the current target point of the eyes look direction in world coordinates.
      * @function MyAvatar.getEyesLookAt
      * @returns {Vec3} The eyes' look-at target in world coordinates.
      */
     Q_INVOKABLE glm::vec3 getEyesLookAt() { return _eyesLookAtTarget.get(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Returns control of the avatar's eyes to the engine, and releases control from API calls.
      * @function MyAvatar.releaseEyesLookAtControl
      */
     Q_INVOKABLE void releaseEyesLookAtControl();
 
-    /**jsdoc
-     * Sets the point-at target for the <code>"point"</code> reaction that may be started with {@link MyAvatar.beginReaction}. 
+    /*@jsdoc
+     * Sets the point-at target for the <code>"point"</code> reaction that may be started with {@link MyAvatar.beginReaction}.
      * The point-at target is set only if it is in front of the avatar.
      * <p>Note: The <code>"point"</code> reaction should be started before calling this method.</p>
      * @function MyAvatar.setPointAt
@@ -1876,7 +1878,7 @@ public:
 
     glm::quat getLookAtRotation() { return _lookAtYaw * _lookAtPitch; }
 
-    /**jsdoc
+    /*@jsdoc
      * Creates a new grab that grabs an entity.
      * @function MyAvatar.grab
      * @param {Uuid} targetID - The ID of the entity to grab.
@@ -1906,14 +1908,14 @@ public:
     Q_INVOKABLE const QUuid grab(const QUuid& targetID, int parentJointIndex,
                                  glm::vec3 positionalOffset, glm::quat rotationalOffset);
 
-    /**jsdoc
+    /*@jsdoc
      * Releases (deletes) a grab to stop grabbing an entity.
      * @function MyAvatar.releaseGrab
      * @param {Uuid} grabID - The ID of the grab to release.
      */
     Q_INVOKABLE void releaseGrab(const QUuid& grabID);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets details of all avatar entities.
      * <p><strong>Warning:</strong> Potentially an expensive call. Do not use if possible.</p>
      * @function MyAvatar.getAvatarEntityData
@@ -1926,14 +1928,14 @@ public:
 
     AvatarEntityMap getAvatarEntityDataNonDefault() const override;
 
-    /**jsdoc
+    /*@jsdoc
      * Sets all avatar entities from an object.
      * @function MyAvatar.setAvatarEntityData
      * @param {AvatarEntityMap} avatarEntityData - Details of the avatar entities.
      */
     void setAvatarEntityData(const AvatarEntityMap& avatarEntityData) override;
 
-    /**jsdoc
+    /*@jsdoc
      * @comment Uses the base class's JSDoc.
      */
     void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) override;
@@ -1942,43 +1944,43 @@ public:
 
     void storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& payload) override;
 
-    /**jsdoc
+    /*@jsdoc
      * @comment Uses the base class's JSDoc.
      */
     int sendAvatarDataPacket(bool sendAll = false) override;
-    
+
     void addAvatarHandsToFlow(const std::shared_ptr<Avatar>& otherAvatar);
 
-    /**jsdoc
-     * Enables and disables flow simulation of physics on the avatar's hair, clothes, and body parts. See 
-     * {@link https://docs.vircadia.dev/create/avatars/add-flow.html|Add Flow to Your Avatar} for more 
+    /*@jsdoc
+     * Enables and disables flow simulation of physics on the avatar's hair, clothes, and body parts. See
+     * {@link https://docs.vircadia.com/create/avatars/add-flow.html|Add Flow to Your Avatar} for more
      * information.
      * @function MyAvatar.useFlow
      * @param {boolean} isActive - <code>true</code> if flow simulation is enabled on the joint, <code>false</code> if it isn't.
-     * @param {boolean} isCollidable - <code>true</code> to enable collisions in the flow simulation, <code>false</code> to 
+     * @param {boolean} isCollidable - <code>true</code> to enable collisions in the flow simulation, <code>false</code> to
      *     disable.
-     * @param {Object<JointName, MyAvatar.FlowPhysicsOptions>} [physicsConfig] - Physics configurations for particular entity 
+     * @param {Object<JointName, MyAvatar.FlowPhysicsOptions>} [physicsConfig] - Physics configurations for particular entity
      *     and avatar joints.
-     * @param {Object<JointName, MyAvatar.FlowCollisionsOptions>} [collisionsConfig] - Collision configurations for particular 
+     * @param {Object<JointName, MyAvatar.FlowCollisionsOptions>} [collisionsConfig] - Collision configurations for particular
      *     entity and avatar joints.
      */
     Q_INVOKABLE void useFlow(bool isActive, bool isCollidable, const QVariantMap& physicsConfig = QVariantMap(), const QVariantMap& collisionsConfig = QVariantMap());
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the current flow configuration.
      * @function MyAvatar.getFlowData
      * @returns {MyAvatar.FlowData}
      */
     Q_INVOKABLE QVariantMap getFlowData();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the indexes of currently colliding flow joints.
      * @function MyAvatar.getCollidingFlowJoints
      * @returns {number[]} The indexes of currently colliding flow joints.
      */
     Q_INVOKABLE QVariantList getCollidingFlowJoints();
 
-    /**jsdoc
+    /*@jsdoc
      * Starts a sitting action for the avatar.
      * @function MyAvatar.beginSit
      * @param {Vec3} position - The position where the avatar should sit.
@@ -1986,7 +1988,7 @@ public:
      */
     Q_INVOKABLE void beginSit(const glm::vec3& position, const glm::quat& rotation);
 
-    /**jsdoc
+    /*@jsdoc
      * Ends a sitting action for the avatar.
      * @function MyAvatar.endSit
      * @param {Vec3} position - The position of the avatar when standing up.
@@ -1994,7 +1996,7 @@ public:
      */
     Q_INVOKABLE void endSit(const glm::vec3& position, const glm::quat& rotation);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether the avatar is in a seated pose. The seated pose is set by calling {@link MyAvatar.beginSit}.
      * @function MyAvatar.isSeated
      * @returns {boolean} <code>true</code> if the avatar is in a seated pose, <code>false</code> if it isn't.
@@ -2027,12 +2029,12 @@ public:
 
 public slots:
 
-   /**jsdoc
+   /*@jsdoc
     * @comment Uses the base class's JSDoc.
     */
     virtual void setSessionUUID(const QUuid& sessionUUID) override;
 
-    /**jsdoc
+    /*@jsdoc
      * Increases the avatar's scale by five percent, up to a minimum scale of <code>1000</code>.
      * @function MyAvatar.increaseSize
      * @example <caption>Reset your avatar's size to default then grow it 5 times.</caption>
@@ -2045,7 +2047,7 @@ public slots:
      */
     void increaseSize();
 
-    /**jsdoc
+    /*@jsdoc
      * Decreases the avatar's scale by five percent, down to a minimum scale of <code>0.25</code>.
      * @function MyAvatar.decreaseSize
      * @example <caption>Reset your avatar's size to default then shrink it 5 times.</caption>
@@ -2058,35 +2060,35 @@ public slots:
      */
     void decreaseSize();
 
-    /**jsdoc
+    /*@jsdoc
      * Resets the avatar's scale back to the default scale of <code>1.0</code>.
      * @function MyAvatar.resetSize
      */
     void resetSize();
 
-    /**jsdoc
+    /*@jsdoc
      * @function MyAvatar.animGraphLoaded
      * @deprecated This function is deprecated and will be removed.
      */
     void animGraphLoaded();
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the amount of gravity applied to the avatar in the y-axis direction. (Negative values are downward.)
      * @function MyAvatar.setGravity
      * @param {number} gravity - The amount of gravity to be applied to the avatar, in m/s<sup>2</sup>.
      */
     void setGravity(float gravity);
 
-    /**jsdoc
-     * Sets the amount of gravity applied to the avatar in the y-axis direction. (Negative values are downward.) The default 
+    /*@jsdoc
+     * Sets the amount of gravity applied to the avatar in the y-axis direction. (Negative values are downward.) The default
      * value is <code>-5</code> m/s<sup>2</sup>.
      * @function MyAvatar.getGravity
      * @returns {number} The amount of gravity currently applied to the avatar, in m/s<sup>2</sup>.
      */
     float getGravity();
 
-    /**jsdoc
-     * Moves the avatar to a new position and/or orientation in the domain, with safe landing, while taking into account avatar 
+    /*@jsdoc
+     * Moves the avatar to a new position and/or orientation in the domain, with safe landing, while taking into account avatar
      * leg length.
      * @function MyAvatar.goToFeetLocation
      * @param {Vec3} position - The new position for the avatar, in world coordinates.
@@ -2095,37 +2097,37 @@ public slots:
      * @param {boolean} [shouldFaceLocation=false] - Set to <code>true</code> to position the avatar a short distance away from
      *      the new position and orientate the avatar to face the position.
      */
-    void goToFeetLocation(const glm::vec3& newPosition, bool hasOrientation = false, 
+    void goToFeetLocation(const glm::vec3& newPosition, bool hasOrientation = false,
         const glm::quat& newOrientation = glm::quat(), bool shouldFaceLocation = false);
 
-    /**jsdoc
+    /*@jsdoc
      * Moves the avatar to a new position and/or orientation in the domain.
      * @function MyAvatar.goToLocation
      * @param {Vec3} position - The new position for the avatar, in world coordinates.
      * @param {boolean} [hasOrientation=false] - Set to <code>true</code> to set the orientation of the avatar.
      * @param {Quat} [orientation=Quat.IDENTITY] - The new orientation for the avatar.
-     * @param {boolean} [shouldFaceLocation=false] - Set to <code>true</code> to position the avatar a short distance away from 
+     * @param {boolean} [shouldFaceLocation=false] - Set to <code>true</code> to position the avatar a short distance away from
      *     the new position and orientate the avatar to face the position.
      * @param {boolean} [withSafeLanding=true] - Set to <code>false</code> to disable safe landing when teleporting.
      */
     void goToLocation(const glm::vec3& newPosition,
                       bool hasOrientation = false, const glm::quat& newOrientation = glm::quat(),
                       bool shouldFaceLocation = false, bool withSafeLanding = true);
-    /**jsdoc
+    /*@jsdoc
      * Moves the avatar to a new position and (optional) orientation in the domain, with safe landing.
      * @function MyAvatar.goToLocation
      * @param {MyAvatar.GoToProperties} target - The goto target.
      */
     void goToLocation(const QVariant& properties);
 
-    /**jsdoc
+    /*@jsdoc
      * Moves the avatar to a new position, with safe landing, and enables collisions.
      * @function MyAvatar.goToLocationAndEnableCollisions
      * @param {Vec3} position - The new position for the avatar, in world coordinates.
      */
     void goToLocationAndEnableCollisions(const glm::vec3& newPosition);
 
-    /**jsdoc
+    /*@jsdoc
      * @function MyAvatar.safeLanding
      * @param {Vec3} position -The new position for the avatar, in world coordinates.
      * @returns {boolean} <code>true</code> if the avatar was moved, <code>false</code> if it wasn't.
@@ -2134,165 +2136,165 @@ public slots:
     bool safeLanding(const glm::vec3& position);
 
 
-    /**jsdoc
+    /*@jsdoc
      * @function MyAvatar.restrictScaleFromDomainSettings
      * @param {object} domainSettings - Domain settings.
      * @deprecated This function is deprecated and will be removed.
      */
     void restrictScaleFromDomainSettings(const QJsonObject& domainSettingsObject);
 
-    /**jsdoc
+    /*@jsdoc
      * @function MyAvatar.clearScaleRestriction
      * @deprecated This function is deprecated and will be removed.
      */
     void clearScaleRestriction();
 
 
-    /**jsdoc
+    /*@jsdoc
      * Adds a thrust to your avatar's current thrust to be applied for a short while.
      * @function MyAvatar.addThrust
      * @param {Vec3} thrust - The thrust direction and magnitude.
-     * @deprecated This function is deprecated and will be removed. Use {@link MyAvatar|MyAvatar.motorVelocity} and related 
+     * @deprecated This function is deprecated and will be removed. Use {@link MyAvatar|MyAvatar.motorVelocity} and related
      *     properties instead.
      */
     //  Set/Get update the thrust that will move the avatar around
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the thrust currently being applied to your avatar.
      * @function MyAvatar.getThrust
      * @returns {Vec3} The thrust currently being applied to your avatar.
-     * @deprecated This function is deprecated and will be removed. Use {@link MyAvatar|MyAvatar.motorVelocity} and related 
+     * @deprecated This function is deprecated and will be removed. Use {@link MyAvatar|MyAvatar.motorVelocity} and related
      *     properties instead.
      */
     glm::vec3 getThrust() { return _thrust; };
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the thrust to be applied to your avatar for a short while.
      * @function MyAvatar.setThrust
      * @param {Vec3} thrust - The thrust direction and magnitude.
-     * @deprecated This function is deprecated and will be removed. Use {@link MyAvatar|MyAvatar.motorVelocity} and related 
+     * @deprecated This function is deprecated and will be removed. Use {@link MyAvatar|MyAvatar.motorVelocity} and related
      *     properties instead.
      */
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
 
-    /**jsdoc
-     * Updates avatar motion behavior from the Developer &gt; Avatar &gt; Enable Default Motor Control and Enable Scripted 
+    /*@jsdoc
+     * Updates avatar motion behavior from the Developer &gt; Avatar &gt; Enable Default Motor Control and Enable Scripted
      * Motor Control menu items.
      * @function MyAvatar.updateMotionBehaviorFromMenu
      */
     Q_INVOKABLE void updateMotionBehaviorFromMenu();
 
-    /**jsdoc
+    /*@jsdoc
      * @function MyAvatar.setToggleHips
      * @param {boolean} enabled - Enabled.
      * @deprecated This function is deprecated and will be removed.
      */
     void setToggleHips(bool followHead);
 
-    /**jsdoc
-     * Displays the base of support area debug graphics if in HMD mode. If your head goes outside this area your avatar's hips 
-     * are moved to counterbalance your avatar, and if your head moves too far then your avatar's position is moved (i.e., a 
+    /*@jsdoc
+     * Displays the base of support area debug graphics if in HMD mode. If your head goes outside this area your avatar's hips
+     * are moved to counterbalance your avatar, and if your head moves too far then your avatar's position is moved (i.e., a
      * step happens).
      * @function MyAvatar.setEnableDebugDrawBaseOfSupport
      * @param {boolean} enabled - <code>true</code> to show the debug graphics, <code>false</code> to hide.
      */
     void setEnableDebugDrawBaseOfSupport(bool isEnabled);
 
-    /**jsdoc
+    /*@jsdoc
      * Displays default pose debug graphics.
      * @function MyAvatar.setEnableDebugDrawDefaultPose
      * @param {boolean} enabled - <code>true</code> to show the debug graphics, <code>false</code> to hide.
      */
     void setEnableDebugDrawDefaultPose(bool isEnabled);
 
-    /**jsdoc
-     * Displays animation debug graphics. By default, the animation poses used for rendering are displayed. However, 
+    /*@jsdoc
+     * Displays animation debug graphics. By default, the animation poses used for rendering are displayed. However,
      * {@link MyAvatar.setDebugDrawAnimPoseName} can be used to set a specific animation node to display.
      * @function MyAvatar.setEnableDebugDrawAnimPose
      * @param {boolean} enabled - <code>true</code> to show the debug graphics, <code>false</code> to hide.
      */
     void setEnableDebugDrawAnimPose(bool isEnabled);
 
-    /**jsdoc
-     * Sets the animation node to display when animation debug graphics are enabled with 
+    /*@jsdoc
+     * Sets the animation node to display when animation debug graphics are enabled with
      * {@link MyAvatar.setEnableDebugDrawAnimPose}.
      * @function MyAvatar.setDebugDrawAnimPoseName
-     * @param {string} poseName - The name of the animation node to display debug graphics for. Use <code>""</code> to reset to 
+     * @param {string} poseName - The name of the animation node to display debug graphics for. Use <code>""</code> to reset to
      *     default.
      */
     void setDebugDrawAnimPoseName(QString poseName);
 
-    /**jsdoc
+    /*@jsdoc
      * Displays position debug graphics.
      * @function MyAvatar.setEnableDebugDrawPosition
      * @param {boolean} enabled - <code>true</code> to show the debug graphics, <code>false</code> to hide.
      */
     void setEnableDebugDrawPosition(bool isEnabled);
 
-    /**jsdoc
+    /*@jsdoc
      * Displays controller hand target debug graphics.
      * @function MyAvatar.setEnableDebugDrawHandControllers
      * @param {boolean} enabled - <code>true</code> to show the debug graphics, <code>false</code> to hide.
      */
     void setEnableDebugDrawHandControllers(bool isEnabled);
 
-    /**jsdoc
+    /*@jsdoc
      * Displays sensor-to-world matrix debug graphics.
      * @function MyAvatar.setEnableDebugDrawSensorToWorldMatrix
      * @param {boolean} enable - <code>true</code> to show the debug graphics, <code>false</code> to hide.
      */
     void setEnableDebugDrawSensorToWorldMatrix(bool isEnabled);
 
-    /**jsdoc
+    /*@jsdoc
      * Displays inverse kinematics targets debug graphics.
      * @function MyAvatar.setEnableDebugDrawIKTargets
      * @param {boolean} enabled - <code>true</code> to show the debug graphics, <code>false</code> to hide.
      */
     void setEnableDebugDrawIKTargets(bool isEnabled);
 
-    /**jsdoc
+    /*@jsdoc
      * Displays inverse kinematics constraints debug graphics.
      * @function MyAvatar.setEnableDebugDrawIKConstraints
      * @param {boolean} enabled - <code>true</code> to show the debug graphics, <code>false</code> to hide.
      */
     void setEnableDebugDrawIKConstraints(bool isEnabled);
 
-    /**jsdoc
+    /*@jsdoc
      * Displays inverse kinematics chains debug graphics.
      * @function MyAvatar.setEnableDebugDrawIKChains
      * @param {boolean} enabled - <code>true</code> to show the debug graphics, <code>false</code> to hide.
      */
     void setEnableDebugDrawIKChains(bool isEnabled);
 
-    /**jsdoc
+    /*@jsdoc
      * Displays detailed collision debug graphics.
      * @function MyAvatar.setEnableDebugDrawDetailedCollision
      * @param {boolean} enabled - <code>true</code> to show the debug graphics, <code>false</code> to hide.
      */
     void setEnableDebugDrawDetailedCollision(bool isEnabled);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether your avatar mesh is visible.
      * @function MyAvatar.getEnableMeshVisible
      * @returns {boolean} <code>true</code> if your avatar's mesh is visible, otherwise <code>false</code>.
      */
     bool getEnableMeshVisible() const override;
 
-    /**jsdoc
+    /*@jsdoc
      * @comment Uses the base class's JSDoc.
      */
     void clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree = true) override;
 
-    /**jsdoc
+    /*@jsdoc
      * @function MyAvatar.sanitizeAvatarEntityProperties
      * @param {EntityItemProperties} properties - Properties.
      * @deprecated This function is deprecated and will be removed.
      */
     void sanitizeAvatarEntityProperties(EntityItemProperties& properties) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether your avatar mesh is visible to you.
      * @function MyAvatar.setEnableMeshVisible
      * @param {boolean} enabled - <code>true</code> to show your avatar mesh, <code>false</code> to hide.
@@ -2304,7 +2306,7 @@ public slots:
      */
     virtual void setEnableMeshVisible(bool isEnabled) override;
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether inverse kinematics (IK) is enabled for your avatar.
      * @function MyAvatar.setEnableInverseKinematics
      * @param {boolean} enabled - <code>true</code> to enable IK, <code>false</code> to disable.
@@ -2312,28 +2314,28 @@ public slots:
     void setEnableInverseKinematics(bool isEnabled);
 
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the URL of the override animation graph.
-     * <p>See {@link https://docs.vircadia.dev/create/avatars/custom-animations.html|Custom Avatar Animations} for
+     * <p>See {@link https://docs.vircadia.com/create/avatars/custom-animations.html|Custom Avatar Animations} for
      * information on animation graphs.</p>
      * @function MyAvatar.getAnimGraphOverrideUrl
-     * @returns {string} The URL of the override animation graph JSON file. <code>""</code> if there is no override animation 
+     * @returns {string} The URL of the override animation graph JSON file. <code>""</code> if there is no override animation
      *     graph.
      */
     QUrl getAnimGraphOverrideUrl() const;  // thread-safe
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the animation graph to use in preference to the default animation graph.
-     * <p>See {@link https://docs.vircadia.dev/create/avatars/custom-animations.html|Custom Avatar Animations} for
+     * <p>See {@link https://docs.vircadia.com/create/avatars/custom-animations.html|Custom Avatar Animations} for
      * information on animation graphs.</p>
      * @function MyAvatar.setAnimGraphOverrideUrl
      * @param {string} url - The URL of the animation graph JSON file to use. Set to <code>""</code> to clear an override.
      */
     void setAnimGraphOverrideUrl(QUrl value);  // thread-safe
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the URL of animation graph (i.e., the avatar animation JSON) that's currently being used for avatar animations.
-     * <p>See {@link https://docs.vircadia.dev/create/avatars/custom-animations.html|Custom Avatar Animations} for 
+     * <p>See {@link https://docs.vircadia.com/create/avatars/custom-animations.html|Custom Avatar Animations} for
      * information on animation graphs.</p>
      * @function MyAvatar.getAnimGraphUrl
      * @returns {string} The URL of the current animation graph JSON file.
@@ -2342,16 +2344,16 @@ public slots:
      */
     QUrl getAnimGraphUrl() const;  // thread-safe
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the current animation graph  (i.e., the avatar animation JSON) to use for avatar animations and makes it the default.
-     * <p>See {@link https://docs.vircadia.dev/create/avatars/custom-animations.html|Custom Avatar Animations} for
+     * <p>See {@link https://docs.vircadia.com/create/avatars/custom-animations.html|Custom Avatar Animations} for
      * information on animation graphs.</p>
      * @function MyAvatar.setAnimGraphUrl
      * @param {string} url - The URL of the animation graph JSON file to use.
      */
     void setAnimGraphUrl(const QUrl& url);  // thread-safe
 
-    /**jsdoc
+    /*@jsdoc
      * Gets your listening position for spatialized audio. The position depends on the value of the
      * {@link Myavatar|audioListenerMode} property.
      * @function MyAvatar.getPositionForAudio
@@ -2359,22 +2361,22 @@ public slots:
      */
     glm::vec3 getPositionForAudio();
 
-    /**jsdoc
-     * Gets the orientation of your listening position for spatialized audio. The orientation depends on the value of the 
+    /*@jsdoc
+     * Gets the orientation of your listening position for spatialized audio. The orientation depends on the value of the
      * {@link Myavatar|audioListenerMode} property.
      * @function MyAvatar.getOrientationForAudio
      * @returns {Quat} The orientation of your listening position.
      */
     glm::quat getOrientationForAudio();
 
-    /**jsdoc
+    /*@jsdoc
      * @function MyAvatar.setModelScale
      * @param {number} scale - The scale.
      * @deprecated This function is deprecated and will be removed.
      */
     virtual void setModelScale(float scale) override;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the list of reactions names that can be triggered using {@link MyAvatar.triggerReaction}.
      * <p>See also: {@link MyAvatar.getBeginEndReactions}.
      * @function MyAvatar.getTriggerReactions
@@ -2385,8 +2387,8 @@ public slots:
     QStringList getTriggerReactions() const;
 
 
-    /**jsdoc
-     * Gets the list of reactions names that can be enabled using {@link MyAvatar.beginReaction} and 
+    /*@jsdoc
+     * Gets the list of reactions names that can be enabled using {@link MyAvatar.beginReaction} and
      * {@link MyAvatar.endReaction}.
      * <p>See also: {@link MyAvatar.getTriggerReactions}.
      * @function MyAvatar.getBeginEndReactions
@@ -2397,7 +2399,7 @@ public slots:
      */
     QStringList getBeginEndReactions() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Plays a reaction on the avatar. Once the reaction is complete it will stop playing.
      * <p>Only reaction names returned by {@link MyAvatar.getTriggerReactions} are available.</p>
      * @function MyAvatar.triggerReaction
@@ -2406,8 +2408,8 @@ public slots:
      */
     bool triggerReaction(QString reactionName);
 
-    /**jsdoc
-     * Starts playing a reaction on the avatar. The reaction will continue to play until stopped using 
+    /*@jsdoc
+     * Starts playing a reaction on the avatar. The reaction will continue to play until stopped using
      * {@link MyAvatar.endReaction} or superseded by another reaction.
      * <p>Only reactions returned by {@link MyAvatar.getBeginEndReactions} are available.</p>
      * @function MyAvatar.beginReaction
@@ -2416,7 +2418,7 @@ public slots:
      */
     bool beginReaction(QString reactionName);
 
-    /**jsdoc
+    /*@jsdoc
      * Stops playing a reaction that was started using {@link MyAvatar.beginReaction}.
      * @function MyAvatar.endReaction
      * @param {string} reactionName - The reaction to stop playing.
@@ -2426,63 +2428,63 @@ public slots:
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the {@link MyAvatar|audioListenerMode} property value changes.
      * @function MyAvatar.audioListenerModeChanged
-     * @returns {Signal} 
+     * @returns {Signal}
      */
     void audioListenerModeChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the walk speed set for the "AnalogPlus" control scheme changes.
      * @function MyAvatar.analogPlusWalkSpeedChanged
      * @param {number} speed - The new walk speed set for the "AnalogPlus" control scheme.
-     * @returns {Signal} 
+     * @returns {Signal}
      */
     void analogPlusWalkSpeedChanged(float value);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the sprint (run) speed set for the "AnalogPlus" control scheme changes.
      * @function MyAvatar.analogPlusSprintSpeedChanged
      * @param {number} speed - The new sprint speed set for the "AnalogPlus" control scheme.
-     * @returns {Signal} 
+     * @returns {Signal}
      */
     void analogPlusSprintSpeedChanged(float value);
 
-    /**jsdoc
-     * Triggered when the sprint (run) speed set for the current control scheme (see 
+    /*@jsdoc
+     * Triggered when the sprint (run) speed set for the current control scheme (see
      * {@link MyAvatar.getControlScheme|getControlScheme}) changes.
      * @function MyAvatar.sprintSpeedChanged
      * @param {number} speed -The new sprint speed set for the current control scheme.
-     * @returns {Signal} 
+     * @returns {Signal}
      */
     void sprintSpeedChanged(float value);
 
-    /**jsdoc
-     * Triggered when the walk backward speed set for the current control scheme (see 
+    /*@jsdoc
+     * Triggered when the walk backward speed set for the current control scheme (see
      * {@link MyAvatar.getControlScheme|getControlScheme}) changes.
      * @function MyAvatar.walkBackwardSpeedChanged
      * @param {number} speed - The new walk backward speed set for the current control scheme.
-     * @returns {Signal} 
+     * @returns {Signal}
      */
     void walkBackwardSpeedChanged(float value);
 
-    /**jsdoc
+    /*@jsdoc
      * @function MyAvatar.transformChanged
-     * @returns {Signal} 
+     * @returns {Signal}
      * @deprecated This signal is deprecated and will be removed.
      */
     void transformChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the {@link MyAvatar|collisionSoundURL} property value changes.
      * @function MyAvatar.newCollisionSoundURL
      * @param {string} url - The URL of the new collision sound.
-     * @returns {Signal} 
+     * @returns {Signal}
      */
     void newCollisionSoundURL(const QUrl& url);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the avatar collides with an entity.
      * @function MyAvatar.collisionWithEntity
      * @param {Collision} collision - Details of the collision.
@@ -2494,25 +2496,25 @@ signals:
      */
     void collisionWithEntity(const Collision& collision);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when collisions with the environment are enabled or disabled.
      * @function MyAvatar.collisionsEnabledChanged
-     * @param {boolean} enabled - <code>true</code> if collisions with the environment are enabled, <code>false</code> if 
+     * @param {boolean} enabled - <code>true</code> if collisions with the environment are enabled, <code>false</code> if
      *     they're not.
      * @returns {Signal}
      */
     void collisionsEnabledChanged(bool enabled);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when collisions with other avatars are enabled or disabled.
      * @function MyAvatar.otherAvatarsCollisionsEnabledChanged
-     * @param {boolean} enabled - <code>true</code> if collisions with other avatars are enabled, <code>false</code> if they're 
+     * @param {boolean} enabled - <code>true</code> if collisions with other avatars are enabled, <code>false</code> if they're
      *     not.
      * @returns {Signal}
      */
     void otherAvatarsCollisionsEnabledChanged(bool enabled);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the avatar's animation graph being used changes.
      * @function MyAvatar.animGraphUrlChanged
      * @param {string} url - The URL of the new animation graph JSON file.
@@ -2523,40 +2525,40 @@ signals:
      * });     */
     void animGraphUrlChanged(const QUrl& url);
 
-    /**jsdoc
+    /*@jsdoc
      * @function MyAvatar.energyChanged
      * @param {number} energy - Avatar energy.
-     * @returns {Signal} 
+     * @returns {Signal}
      * @deprecated This signal is deprecated and will be removed.
      */
     void energyChanged(float newEnergy);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the avatar has been moved to a new position by one of the MyAvatar "goTo" functions.
      * @function MyAvatar.positionGoneTo
-     * @returns {Signal} 
+     * @returns {Signal}
      */
     // FIXME: Better name would be goneToLocation().
     void positionGoneTo();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the avatar's model finishes loading.
      * @function MyAvatar.onLoadComplete
      * @returns {Signal}
      */
     void onLoadComplete();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the avatar's model has failed to load.
      * @function MyAvatar.onLoadFailed
      * @returns {Signal}
      */
     void onLoadFailed();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when your avatar changes from being active to being away.
      * @function MyAvatar.wentAway
-     * @returns {Signal} 
+     * @returns {Signal}
      * @example <caption>Report when your avatar goes away.</caption>
      * MyAvatar.wentAway.connect(function () {
      *     print("My avatar went away");
@@ -2565,77 +2567,77 @@ signals:
      */
     void wentAway();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when your avatar changes from being away to being active.
      * @function MyAvatar.wentActive
-     * @returns {Signal} 
+     * @returns {Signal}
      */
     void wentActive();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the avatar's model (i.e., {@link MyAvatar|skeletonModelURL} property value) is changed.
      * <p>Synonym of {@link MyAvatar.skeletonModelURLChanged|skeletonModelURLChanged}.</p>
      * @function MyAvatar.skeletonChanged
-     * @returns {Signal} 
+     * @returns {Signal}
      */
     void skeletonChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the avatar's dominant hand changes.
      * @function MyAvatar.dominantHandChanged
      * @param {string} hand - The dominant hand: <code>"left"</code> for the left hand, <code>"right"</code> for the right hand.
-     * @returns {Signal} 
+     * @returns {Signal}
      */
     void dominantHandChanged(const QString& hand);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the HMD alignment for your avatar changes.
      * @function MyAvatar.hmdAvatarAlignmentTypeChanged
-     * @param {string} type - <code>"head"</code> if aligning your head and your avatar's head, <code>"eyes"</code> if aligning 
+     * @param {string} type - <code>"head"</code> if aligning your head and your avatar's head, <code>"eyes"</code> if aligning
      *     your eyes and your avatar's eyes.
      * @returns {Signal}
      */
     void hmdAvatarAlignmentTypeChanged(const QString& type);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the avatar's <code>sensorToWorldScale</code> property value changes.
      * @function MyAvatar.sensorToWorldScaleChanged
-     * @param {number} scale - The scale that transforms dimensions in the user's real world to the avatar's size in the virtual 
+     * @param {number} scale - The scale that transforms dimensions in the user's real world to the avatar's size in the virtual
      *     world.
-     * @returns {Signal} 
+     * @returns {Signal}
      */
     void sensorToWorldScaleChanged(float sensorToWorldScale);
 
-    /**jsdoc
-     * Triggered when the a model is attached to or detached from one of the avatar's joints using one of 
-     * {@link MyAvatar.attach|attach}, {@link MyAvatar.detachOne|detachOne}, {@link MyAvatar.detachAll|detachAll}, or 
+    /*@jsdoc
+     * Triggered when the a model is attached to or detached from one of the avatar's joints using one of
+     * {@link MyAvatar.attach|attach}, {@link MyAvatar.detachOne|detachOne}, {@link MyAvatar.detachAll|detachAll}, or
      * {@link MyAvatar.setAttachmentData|setAttachmentData}.
      * @function MyAvatar.attachmentsChanged
-     * @returns {Signal} 
+     * @returns {Signal}
      * @deprecated This signal is deprecated and will be removed. Use avatar entities instead.
      */
     void attachmentsChanged();
 
-    /**jsdoc
-     * Triggered when the avatar's size changes. This can be due to the user changing the size of their avatar or the domain 
+    /*@jsdoc
+     * Triggered when the avatar's size changes. This can be due to the user changing the size of their avatar or the domain
      * limiting the size of their avatar.
      * @function MyAvatar.scaleChanged
-     * @returns {Signal} 
+     * @returns {Signal}
      */
     void scaleChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the hand touch effect is enabled or disabled for the avatar.
      * <p>The hand touch effect makes the avatar's fingers adapt to the shape of any object grabbed, creating the effect that
      * it is really touching that object.</p>
      * @function MyAvatar.shouldDisableHandTouchChanged
-     * @param {boolean} disabled - <code>true</code> if the hand touch effect is disabled for the avatar, 
+     * @param {boolean} disabled - <code>true</code> if the hand touch effect is disabled for the avatar,
      *     <code>false</code> if it isn't disabled.
      * @returns {Signal}
      */
     void shouldDisableHandTouchChanged(bool shouldDisable);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the hand touch is enabled or disabled on a specific entity.
      * <p>The hand touch effect makes the avatar's fingers adapt to the shape of any object grabbed, creating the effect that
      * it is really touching that object.</p>
@@ -2703,7 +2705,7 @@ private:
 
     virtual void detachOne(const QString& modelURL, const QString& jointName = QString()) override;
     virtual void detachAll(const QString& modelURL, const QString& jointName = QString()) override;
-    
+
     // Attachments/Avatar Entity
     void attachmentDataToEntityProperties(const AttachmentData& data, EntityItemProperties& properties);
     AttachmentData entityPropertiesToAttachmentData(const EntityItemProperties& properties) const;
@@ -2718,7 +2720,7 @@ private:
     void updateEyeContactTarget(float deltaTime);
 
     // These are made private for MyAvatar so that you will use the "use" methods instead
-    /**jsdoc
+    /*@jsdoc
      * @comment Borrows the base class's JSDoc.
      */
     Q_INVOKABLE virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;

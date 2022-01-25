@@ -20,11 +20,15 @@ env:
 
   # OSX specific variables
   DEVELOPER_DIR: /Applications/Xcode_11.2.app/Contents/Developer
-  MACOSX_DEPLOYMENT_TARGET: '10.11'
+  # We are using macOS SDK 10.12 to work around a lot of OpenGL issues in newer SDKs.
+  # There are crashes on startup, crashes on window resize, etc. on newer macOS SDKs.
+  MACOSX_DEPLOYMENT_TARGET: '10.12'
 
   # WIN32 specific variables
   PreferredToolArchitecture: X64
 
+  # Ensure XZ always runs with muticore support
+  XZ_OPT: -T0
 
 jobs:
   build:
@@ -34,14 +38,20 @@ jobs:
           include:
             - os: windows-latest
               build_type: full
-            - os: macOS-latest
+            - os: macOS-10.15
               build_type: full
+            - os: macOS-10.15
+              build_type: client
             - os: ubuntu-18.04
               build_type: full
-              apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
+              apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0 libsnappy1v5 libwebpdemux2 libwebpmux3
             - os: ubuntu-18.04
               build_type: android
               apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
+            # Do not change the names of self-hosted runners without knowing what you are doing, as they correspond to labels that have to be set on the runner.
+            - os: self-hosted_debian-11_aarch64
+              build_type: full
+              apt-dependencies: qtbase5-dev qtbase5-private-dev qtwebengine5-dev qtwebengine5-dev-tools qtmultimedia5-dev libqt5opengl5-dev qtscript5-dev libqt5scripttools5 libqt5webchannel5-dev libqt5websockets5-dev qtxmlpatterns5-dev-tools qttools5-dev libqt5xmlpatterns5-dev libqt5svg5-dev qml-module-qtwebchannel build-essential cmake curl freeglut3-dev git libasound2 libasound2-dev libdouble-conversion-dev libdrm-dev libfontconfig1 libgl1-mesa-dev libglvnd-dev libharfbuzz-dev libjack-dev libjack0 libnspr4 libnss3 libpcre2-16-0 libpulse0 libsdl2-dev libssl-dev libudev-dev libxcb-xinerama0-dev libxcb-xinput0 libxcomposite1 libxcursor1 libxi-dev libxmu-dev libxrandr-dev libxslt1.1 libxtst6 make mesa-common-dev mesa-utils nodejs npm patchelf python2 python3 python3-distro xdg-user-dirs zlib1g-dev ninja-build zip
         fail-fast: false
     runs-on: ${{matrix.os}}
     if: github.event.action != 'labeled' || github.event.label.name == 'rebuild'
@@ -52,25 +62,48 @@ jobs:
       run: |
         echo ::set-output name=github_sha_short::`echo $GIT_COMMIT | cut -c1-7`
         echo "JOB_NAME=build (${{matrix.os}}, ${{matrix.build_type}})" >> $GITHUB_ENV
+        echo "APP_TARGET_NAME=$APP_NAME" >> $GITHUB_ENV
 
         # Linux build variables
-        if [[ "${{ matrix.os }}" = "ubuntu-"* ]]; then
+        if [[ "${{ matrix.os }}" = "ubuntu-"* || "${{ matrix.os }}" = *"debian"* ]]; then
           echo "PYTHON_EXEC=python3" >> $GITHUB_ENV
           echo "INSTALLER_EXT=*" >> $GITHUB_ENV
-          echo "CMAKE_BUILD_EXTRA=-- -j3" >> $GITHUB_ENV
-          echo "CMAKE_EXTRA=-DBUILD_TOOLS:BOOLEAN=FALSE -DHIFI_PYTHON_EXEC:FILEPATH=$(which python3)" >> $GITHUB_ENV
+          echo "CMAKE_BUILD_EXTRA=-- -j$(nproc)" >> $GITHUB_ENV
+          if [ "${{ matrix.os }}" = "self-hosted_debian-11_aarch64" ]; then
+            echo "VIRCADIA_USE_SYSTEM_QT=true" >> $GITHUB_ENV
+            echo "CI_WORKSPACE=${{runner.workspace}}" >> $GITHUB_ENV
+            # Don't optimize builds to save build time.
+            echo "VIRCADIA_OPTIMIZE=false" >> $GITHUB_ENV
+          fi
+          if [[ "${{ matrix.os }}" = *"aarch64" ]]; then
+            echo "VCPKG_FORCE_SYSTEM_BINARIES=true" >> $GITHUB_ENV
+          fi
+          if [ "${{ matrix.build_type }}" = "full" ]; then
+            echo "CMAKE_EXTRA=-DVIRCADIA_CPU_ARCHITECTURE= -DBUILD_TOOLS:BOOLEAN=FALSE -DHIFI_PYTHON_EXEC:FILEPATH=$(which python3)" >> $GITHUB_ENV
+          else
+            echo "CMAKE_EXTRA=-DVIRCADIA_CPU_ARCHITECTURE= -DCLIENT_ONLY=1 -DBUILD_TOOLS:BOOLEAN=FALSE -DHIFI_PYTHON_EXEC:FILEPATH=$(which python3)" >> $GITHUB_ENV
+          fi
         fi
         # Mac build variables
-        if [ "${{ matrix.os }}" = "macOS-latest" ]; then
+        if [ "${{ matrix.os }}" = "macOS-10.15" ]; then
           echo "PYTHON_EXEC=python3" >> $GITHUB_ENV
           echo "INSTALLER_EXT=dmg" >> $GITHUB_ENV
-          echo "CMAKE_EXTRA=-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode" >> $GITHUB_ENV
+          if [ "${{ matrix.build_type }}" = "full" ]; then
+            echo "CMAKE_EXTRA=-DVIRCADIA_CPU_ARCHITECTURE= -DCMAKE_OSX_SYSROOT=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DOPENSSL_LIBRARIES=/usr/local/opt/openssl/lib -G Xcode" >> $GITHUB_ENV
+          else
+            echo "CMAKE_EXTRA=-DVIRCADIA_CPU_ARCHITECTURE= -DCMAKE_OSX_SYSROOT=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk -DCLIENT_ONLY=1 -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DOPENSSL_LIBRARIES=/usr/local/opt/openssl/lib -G Xcode" >> $GITHUB_ENV
+          fi
+          echo "APP_TARGET_NAME=Vircadia" >> $GITHUB_ENV
         fi
         # Windows build variables
         if [ "${{ matrix.os }}" = "windows-latest" ]; then
           echo "PYTHON_EXEC=python" >> $GITHUB_ENV
           echo "INSTALLER_EXT=exe" >> $GITHUB_ENV
-          echo "CMAKE_EXTRA=-A x64" >> $GITHUB_ENV
+          if [ "${{ matrix.build_type }}" = "full" ]; then
+            echo "CMAKE_EXTRA=-A x64" >> $GITHUB_ENV
+          else
+            echo "CMAKE_EXTRA=-A x64 -DCLIENT_ONLY=1" >> $GITHUB_ENV
+          fi
         fi
         # Android + Quest build variables
         if [[ "${{ matrix.build_type }}" == "android" ]]; then
@@ -79,6 +112,7 @@ jobs:
           mkdir $HIFI_ANDROID_PRECOMPILED
           echo "INSTALLER_EXT=apk" >> $GITHUB_ENV
         fi
+
     # Configuration is broken into two steps because you can't set an env var and also reference it in the same step
     - name: Configure Build Environment 2
       shell: bash
@@ -86,60 +120,118 @@ jobs:
         echo "${{ steps.buildenv1.outputs.symbols_archive }}"
         echo "GIT_COMMIT_SHORT=${{ steps.buildenv1.outputs.github_sha_short }}" >> $GITHUB_ENV
         if [[ "${{ matrix.build_type }}" != "android" ]]; then
-          echo "ARTIFACT_PATTERN=Vircadia-PR${{ github.event.number }}-*.$INSTALLER_EXT" >> $GITHUB_ENV
-          # Build type variables
-          echo "INSTALLER=Vircadia-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT" >> $GITHUB_ENV
+          if [ "${{ matrix.build_type }}" = "full" ]; then
+            echo "ARTIFACT_PATTERN=Vircadia-PR${{ github.event.number }}-*.$INSTALLER_EXT" >> $GITHUB_ENV
+            echo "INSTALLER=Vircadia-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT" >> $GITHUB_ENV
+          else
+            echo "ARTIFACT_PATTERN=Vircadia-Interface-PR${{ github.event.number }}-*.$INSTALLER_EXT" >> $GITHUB_ENV
+            echo "INSTALLER=Vircadia-Interface-$RELEASE_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT" >> $GITHUB_ENV
+          fi
         else
           echo "ARTIFACT_PATTERN=*.$INSTALLER_EXT" >> $GITHUB_ENV
         fi
+
     - name: Clear Working Directory
-      if: startsWith(matrix.os, 'windows')
+      if: startsWith(matrix.os, 'windows') || contains(matrix.os, 'self-hosted')
       shell: bash
       working-directory: ${{runner.workspace}}
       run: rm -rf ./*
     - uses: actions/checkout@v1
-      with: 
-        submodules: true
+      with:
+        submodules: false
         fetch-depth: 1
+
     - name: Install dependencies
       shell: bash
-      if: startsWith(matrix.os, 'ubuntu')
+      if: startsWith(matrix.os, 'ubuntu') || contains(matrix.os, 'debian') || startsWith(matrix.os, 'macOS')
       run: |
-        echo "Installing Python Modules:"
-        pip3 install distro || exit 1
+        if [[ "${{ matrix.os }}" =~ "ubuntu" || "${{ matrix.os }}" =~ "debian" ]]; then
+          echo "Installing Python Modules:"
+          pip3 install distro || exit 1
 
-        echo "Updating apt repository index"
-        sudo apt update || exit 1
+          echo "Updating apt repository index"
+          sudo apt update || exit 1
 
-        echo "Installing apt packages"
-        sudo apt install -y ${{ matrix.apt-dependencies }} || exit 1
+          echo "Installing apt packages"
+          sudo apt install -y ${{ matrix.apt-dependencies }} || exit 1
+        else # macOS
+          echo "Downloading MacOSX10.12 SDK.."
+          curl --progress-bar -L -o macOS_SDK10.12.4.tar.xz "https://cloudflare-ipfs.com/ipfs/QmTDLEYdo616YgZKSYC2mySSw8EKQWTz7CH8UyMupMBpzK?filename=macOS_SDK10.12.4.tar.xz" || exit 1
+          echo "  done\n"
+          echo "Checking MacOSX10.12 SDK.."
+          echo "c00e03cb64bed8d0d75d7a01c93de094b6ffaa3bc3318e7b29a9bdc354f0e29e363c454b7db89db8a3b78e9702668d1c661f1af279807de8db11accecb0ca498  macOS_SDK10.12.4.tar.xz" >> macOS_SDK10.12.4.tar.xz.checksum
+          shasum -a 512 -w -c macOS_SDK10.12.4.tar.xz.checksum
+          echo "Extracting MacOSX10.12 SDK.."
+          tar -xf macOS_SDK10.12.4.tar.xz || exit 1
+          echo "  done\n"
+          echo "Installing MacOSX10.12 SDK.."
+          # cp always sets an error code while copying the SDK so we return 0 when that happens.
+          sudo cp -rp MacOSX10.12.sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/ || exit 0
+          echo "  done"
+        fi
+
+    - name: Override NSIS
+      shell: pwsh
+      if: startsWith(matrix.os, 'windows')
+      run: choco install nsis --version=3.06.1
+
     - name: Create Build Environment
       shell: bash
       run: cmake -E make_directory "${{runner.workspace}}/build"
+
     - name: Configure CMake
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DVCPKG_BUILD_TYPE=release $CMAKE_EXTRA
+
+    - name: Compress cmake logs
+      if: always()
+      shell: bash
+      run: |
+        if [ "${{ matrix.os }}" == "macOS-10.15" ]; then
+          TAR=gtar
+        else
+          TAR=tar
+        fi
+
+        if [ ${{ env.CI_WORKSPACE }} ]; then
+          find "$CI_WORKSPACE/vircadia-files/vcpkg" -name '*log' -type f -print0 | $TAR --null --force-local -T - -c --xz -v -f "${{ runner.workspace }}/cmake-logs-${{ matrix.os }}-${{ github.event.number }}.tar.xz"
+        else
+          find "$HOME/vircadia-files/vcpkg" -name '*log' -type f -print0 | $TAR --null --force-local -T - -c --xz -v -f "${{ runner.workspace }}/cmake-logs-${{ matrix.os }}-${{ github.event.number }}.tar.xz"
+        fi
+
+    - name: Archive cmake logs
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: cmake-logs-${{ matrix.os }}-${{ github.event.number }}.tar.xz
+        path: ${{ runner.workspace }}/cmake-logs-${{ matrix.os }}-${{ github.event.number }}.tar.xz
+        if-no-files-found: error
+
     - name: Build Application
       if: matrix.build_type == 'full' || matrix.build_type == 'client'
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME $CMAKE_BUILD_EXTRA
+      run: cmake --build . --config $BUILD_TYPE --target $APP_TARGET_NAME $CMAKE_BUILD_EXTRA
+
     - name: Build Domain Server
       if: matrix.build_type == 'full'
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target domain-server $CMAKE_BUILD_EXTRA
+
     - name: Build Assignment Client
       if: matrix.build_type == 'full'
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target assignment-client $CMAKE_BUILD_EXTRA
+
     - name: Build Console
-      if: matrix.build_type == 'full'
+      if: matrix.build_type == 'full' || matrix.os == 'windows-latest'
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target packaged-server-console $CMAKE_BUILD_EXTRA
+
     - name: Build Installer
       if: matrix.build_type != 'android'
       working-directory: ${{runner.workspace}}/build
@@ -168,6 +260,17 @@ jobs:
           done
         }
         retry cmake --build . --config $BUILD_TYPE --target package $CMAKE_BUILD_EXTRA
+    # As of 05/17/21 GitHub Virtual Environments changed their "Ubuntu 18.04.5 LTS" image to include two versions of CMake for Android
+    # https://github.com/actions/virtual-environments/blob/ubuntu18/20210517.1/images/linux/Ubuntu1804-README.md
+    # Removing 3.18.1 version of CMake as its not compatible with our Android build.
+    # It will fall back to 3.10.2 which is already installed
+    - name: Nuke CMake 3.18.1-g262b901
+      if: matrix.build_type == 'android'
+      shell: bash
+      working-directory: ${{runner.workspace}}/vircadia
+      run: |
+        /usr/local/lib/android/sdk/tools/bin/sdkmanager --uninstall 'cmake;3.18.1'
+
     - name: Build for Android + Quest
       if: matrix.build_type == 'android'
       shell: bash
@@ -180,6 +283,7 @@ jobs:
         ./gradlew -m tasks -PHIFI_ANDROID_PRECOMPILED=$HIFI_ANDROID_PRECOMPILED
         # Build!
         ./build_android.sh
+
     - name: Output system stats
       if: ${{ always() }}
       working-directory: ${{runner.workspace}}/build
@@ -187,11 +291,13 @@ jobs:
       run: |
         echo "Disk usage:"
         df -h
+
     - name: Output Installer Logs
       if: failure() && matrix.os == 'windows-latest'
       shell: bash
       working-directory: ${{runner.workspace}}/build
       run: cat ./_CPack_Packages/win64/NSIS/NSISOutput.log
+
     - name: Upload Artifact
       shell: bash
       working-directory: ${{runner.workspace}}/build

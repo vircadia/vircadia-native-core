@@ -21,7 +21,7 @@
 
 namespace entity {
 
-    /**jsdoc
+    /*@jsdoc
      * <p>A <code>"Shape"</code>, <code>"Box"</code>, or <code>"Sphere"</code> {@link Entities.EntityType|EntityType} may 
      * display as one of the following geometrical shapes:</p>
      * <table>
@@ -87,7 +87,7 @@ void ShapeEntityItem::setShapeInfoCalulator(ShapeEntityItem::ShapeInfoCalculator
 }
 
 ShapeEntityItem::Pointer ShapeEntityItem::baseFactory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    Pointer entity(new ShapeEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
+    Pointer entity(new ShapeEntityItem(entityID), [](ShapeEntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }

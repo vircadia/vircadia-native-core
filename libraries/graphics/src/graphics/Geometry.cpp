@@ -235,7 +235,7 @@ graphics::MeshPointer Mesh::map(std::function<glm::vec3(glm::vec3)> vertexFunc,
         indexDataCursor += sizeof(index);
     }
 
-    graphics::MeshPointer result(new graphics::Mesh());
+    graphics::MeshPointer result(std::make_shared<graphics::Mesh>());
     result->displayName = displayName;
 
     gpu::Element vertexElement = gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ);

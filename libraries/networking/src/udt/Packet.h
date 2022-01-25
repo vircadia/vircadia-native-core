@@ -4,6 +4,7 @@
 //
 //  Created by Clement on 7/2/15.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -69,7 +70,7 @@ public:
     };
 
     static std::unique_ptr<Packet> create(qint64 size = -1, bool isReliable = false, bool isPartOfMessage = false);
-    static std::unique_ptr<Packet> fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr);
+    static std::unique_ptr<Packet> fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size, const SockAddr& senderSockAddr);
     
     // Provided for convenience, try to limit use
     static std::unique_ptr<Packet> createCopy(const Packet& other);
@@ -97,7 +98,7 @@ public:
 
 protected:
     Packet(qint64 size, bool isReliable = false, bool isPartOfMessage = false);
-    Packet(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr);
+    Packet(std::unique_ptr<char[]> data, qint64 size, const SockAddr& senderSockAddr);
     
     Packet(const Packet& other);
     Packet(Packet&& other);

@@ -41,7 +41,14 @@ endif()
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/_env/EXTERNAL_BUILD_ASSETS.txt" "${EXTERNAL_BUILD_ASSETS}")
 MESSAGE(STATUS "EXTERNAL_BUILD_ASSETS: ${EXTERNAL_BUILD_ASSETS}")
 
+# read USE_GLES enviroment variable and sets it as GLES option
+# TODO still gets overwritten by "use GLES on linux aarch64"
 set(GLES_OPTION "$ENV{USE_GLES}")
+
+# use GLES on linux aarch64
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+    set(GLES_OPTION ON)
+endif()
 
 # Will affect VCPKG dependencies
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/_env/USE_GLES.txt" "${GLES_OPTION}")
@@ -50,7 +57,7 @@ MESSAGE(STATUS "GLES_OPTION: ${GLES_OPTION}")
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/macros/TargetPython.cmake")
 target_python()
 
-if (WIN32 AND NOT HIFI_ANDROID)
+if (WIN32 AND NOT HIFI_ANDROID AND NOT (CMAKE_GENERATOR STREQUAL "Ninja"))
     # Force x64 toolset
     set(CMAKE_GENERATOR_TOOLSET "host=x64" CACHE STRING "64-bit toolset" FORCE)
 endif()
@@ -67,10 +74,71 @@ if ((NOT "${RELEASE_TYPE}" STREQUAL "PRODUCTION") AND (NOT "${RELEASE_TYPE}" STR
     set(RELEASE_TYPE "DEV")
 endif()
 
+# VIRCADIA_OPTIMIZE
+# Variable determining vircadia optimization. If not set, it defaults to true.
+# It's used to determine build flags for main codebase and for VCPKG dependencies.
+# Should be set to false to get completely unoptimized build for easier line-by-line debugging
+
+if( NOT WIN32 )
+    if(NOT DEFINED VIRCADIA_OPTIMIZE)
+        message("Enabling code optimization for Vircadia and compiled dependencies")
+        set(VIRCADIA_OPTIMIZE true CACHE BOOL "Enable code optimization for Vircadia and compiled dependencies")
+    endif()
+
+    #compiler needs to be detected before building VCPKG dependencies
+    set(CMAKE_PLATFORM_INFO_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+    include(CMakeDetermineCXXCompiler)
+
+    set(VIRCADIA_OPTIMIZE_FLAGS "")
+
+    if(VIRCADIA_OPTIMIZE)
+
+        file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/_env/VIRCADIA_OPTIMIZE.txt" "${VIRCADIA_OPTIMIZE}")
+        if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+            message("Clang compiler detected, adding -O3 -fPIC -g flags")
+            set(VIRCADIA_OPTIMIZE_FLAGS "-O3 -fPIC -g")
+        elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+            message("GCC compiler detected, adding -O3 -fPIC -ggdb flags")
+            set(VIRCADIA_OPTIMIZE_FLAGS "-O3 -fPIC -ggdb")
+        else()
+            message("No predefined optimization flags for compiler ${CMAKE_CXX_COMPILER_ID}")
+        endif()
+    endif()
+    MESSAGE(STATUS "VIRCADIA_OPTIMIZE: ${VIRCADIA_OPTIMIZE}")
+
+    # VIRCADIA_CPU_ARCHITECTURE
+    # Variable determining CPU architecture for which Vircadia will be built.
+    # If defined, it's appended to CXXFLAGS and CFLAGS for both Vircadia and VCPKG dependencies
+
+    #Assume -march=native for compilers that allow it if architecture is not specified
+    if(NOT DEFINED VIRCADIA_CPU_ARCHITECTURE)
+        if(VIRCADIA_OPTIMIZE AND ( (CMAKE_CXX_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID MATCHES "GNU") ) )
+            message("Optimization is enabled, but architecture is not specified. Assuming native build")
+            set(VIRCADIA_CPU_ARCHITECTURE "-march=native -mtune=native" CACHE STRING "Specify architecture dependent compiler flags here")
+        endif()
+    endif()
+
+    if(DEFINED VIRCADIA_CPU_ARCHITECTURE)
+        file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/_env/VIRCADIA_CPU_ARCHITECTURE.txt" "${VIRCADIA_CPU_ARCHITECTURE}")
+        set(VIRCADIA_OPTIMIZE_FLAGS "${VIRCADIA_OPTIMIZE_FLAGS} ${VIRCADIA_CPU_ARCHITECTURE}")
+        message("Adding CPU architecture flags: ${VIRCADIA_CPU_ARCHITECTURE}")
+        MESSAGE(STATUS "VIRCADIA_CPU_ARCHITECTURE: ${VIRCADIA_CPU_ARCHITECTURE}")
+    endif()
+
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${VIRCADIA_OPTIMIZE_FLAGS}")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${VIRCADIA_OPTIMIZE_FLAGS}")
+
+    set(ENV{CXXFLAGS} "$ENV{CXXFLAGS} ${VIRCADIA_OPTIMIZE_FLAGS}")
+    set(ENV{CFLAGS} "$ENV{CFLAGS} ${VIRCADIA_OPTIMIZE_FLAGS}")
+    message($ENV{CXXFLAGS})
+endif()
+
+
+
 if (HIFI_ANDROID)
     execute_process(
         COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_CURRENT_SOURCE_DIR}/prebuild.py --release-type ${RELEASE_TYPE} --android ${HIFI_ANDROID_APP} --build-root ${CMAKE_BINARY_DIR}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} RESULTS_VARIABLE PREBUILD_RET
     )
 else()
     set(VCPKG_BUILD_TYPE_PARAM "")
@@ -79,7 +147,7 @@ else()
     endif()
     execute_process(
         COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_CURRENT_SOURCE_DIR}/prebuild.py --release-type ${RELEASE_TYPE} --build-root ${CMAKE_BINARY_DIR} ${VCPKG_BUILD_TYPE_PARAM}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} RESULTS_VARIABLE PREBUILD_RET
     )
     # squelch the Policy CMP0074 warning without requiring an update to cmake 3.12.
     if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.12)
@@ -87,6 +155,9 @@ else()
     endif()
 endif()
 
+if (PREBUILD_RET GREATER 0)
+  message(FATAL_ERROR "prebuild.py failed with error ${PREBUILD_RET}")
+endif()
 if(NOT EXISTS "${CMAKE_BINARY_DIR}/vcpkg.cmake")
     message(FATAL_ERROR "vcpkg configuration missing.")
 endif()
@@ -94,11 +165,16 @@ include("${CMAKE_BINARY_DIR}/vcpkg.cmake")
 
 if (HIFI_ANDROID)
   set(QT_CMAKE_PREFIX_PATH "$ENV{HIFI_ANDROID_PRECOMPILED}/qt/lib/cmake")
-else() 
-  if(NOT EXISTS "${CMAKE_BINARY_DIR}/qt.cmake")
-      message(FATAL_ERROR "qt configuration missing.")
+else()
+  if ("$ENV{VIRCADIA_USE_SYSTEM_QT}" STREQUAL "")
+     if(NOT EXISTS "${CMAKE_BINARY_DIR}/qt.cmake")
+        message(FATAL_ERROR "qt configuration missing.")
+    endif()
+    include("${CMAKE_BINARY_DIR}/qt.cmake")
+    message(STATUS "${CMAKE_BINARY_DIR}/qt.cmake included!")
+  else()
+    message(STATUS "System Qt in use, not including qt.cmake!")
   endif()
-  include("${CMAKE_BINARY_DIR}/qt.cmake")
 endif()
 
 option(VCPKG_APPLOCAL_DEPS OFF)
@@ -123,6 +199,15 @@ if (ANDROID OR UWP)
   set(MOBILE 1)
 else()
   set(MOBILE 0)
+endif()
+
+set(SCREENSHARE 0)
+if (WIN32)
+  set(SCREENSHARE 1)
+endif()
+if (APPLE AND NOT CLIENT_ONLY)
+  # Don't include Screenshare in OSX client-only builds.
+  set(SCREENSHARE 1)
 endif()
 
 # Use default time server if none defined in environment
@@ -187,7 +272,7 @@ else ()
   set(PLATFORM_QT_COMPONENTS WebEngine Xml)
 endif ()
 
-if (USE_GLES AND (NOT ANDROID))
+if (USE_GLES AND (NOT ANDROID AND NOT UNIX))
   set(DISABLE_QML_OPTION ON)
 endif()
 
@@ -258,17 +343,38 @@ add_custom_target(cmake SOURCES ${CMAKE_SRC})
 GroupSources("cmake")
 unset(CMAKE_SRC)
 
-file(GLOB_RECURSE JS_SRC scripts/*.js unpublishedScripts/*.js)
+file(GLOB_RECURSE JS_SRC scripts/*.* unpublishedScripts/*.*)
 add_custom_target(js SOURCES ${JS_SRC})
 GroupSources("scripts")
 GroupSources("unpublishedScripts")
 unset(JS_SRC)
 
+# Include Vircadia Web app files if cloned into a subdirectory.
+if (IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/vircadia-web")
+    file(GLOB_RECURSE WEB_APP_SRC vircadia-web/*.*)
+    list(FILTER WEB_APP_SRC EXCLUDE REGEX "vircadia-web/(dist|node_modules|public)/*" )
+    add_custom_target(vircadia-web SOURCES ${WEB_APP_SRC})
+    GroupSources("vircadia-web")
+    unset(WEB_APP_SRC)
+endif()
+
+# Include Vircadia Web SDK files if cloned into a subdirectory.
+if (IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/vircadia-web-sdk")
+    file(GLOB_RECURSE WEB_SDK_SRC vircadia-web-sdk/*.*)
+    list(FILTER WEB_SDK_SRC EXCLUDE REGEX "vircadia-web-sdk/(dist|node_modules|public)/*" )
+    add_custom_target(vircadia-web-sdk SOURCES ${WEB_SDK_SRC})
+    GroupSources("vircadia-web-sdk")
+    unset(WEB_SDK_SRC)
+endif()
+
 set_packaging_parameters()
 
 # Locate the required Qt build on the filesystem
 setup_qt()
-list(APPEND CMAKE_PREFIX_PATH "${QT_CMAKE_PREFIX_PATH}")
+
+if ("$ENV{VIRCADIA_USE_SYSTEM_QT}" STREQUAL "")
+  list(APPEND CMAKE_PREFIX_PATH "${QT_CMAKE_PREFIX_PATH}")
+endif()
 
 find_package( Threads )
 
@@ -304,6 +410,13 @@ if (BUILD_GPU_FRAME_PLAYER_ONLY)
     add_subdirectory(tools/gpu-frame-player)
 else()
 
+if (SCREENSHARE)
+  add_subdirectory(screenshare)
+endif()
+
+# BUILD_TOOLS option will be handled inside the tools's CMakeLists.txt because 'scribe' tool is required for build anyway
+add_subdirectory(tools)
+
 # add subdirectories for all targets
 if (BUILD_SERVER)
   add_subdirectory(assignment-client)
@@ -316,8 +429,11 @@ endif()
 
 if (BUILD_CLIENT)
   add_subdirectory(interface)
-  add_subdirectory(screenshare)
-  set_target_properties(interface PROPERTIES FOLDER "Apps")
+  if (APPLE)
+    set_target_properties(Vircadia PROPERTIES FOLDER "Apps")
+  else()
+    set_target_properties(interface PROPERTIES FOLDER "Apps")
+  endif()
 
   option(USE_SIXENSE "Build Interface with sixense library/plugin" OFF)
 endif()
@@ -326,9 +442,6 @@ if (BUILD_CLIENT OR BUILD_SERVER)
   add_subdirectory(plugins)
   add_subdirectory(server-console)
 endif()
-
-# BUILD_TOOLS option will be handled inside the tools's CMakeLists.txt because 'scribe' tool is required for build anyway
-add_subdirectory(tools)
 
 endif()
 

@@ -4,6 +4,7 @@
 //
 //  Created by Clement on 7/27/15.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -17,7 +18,7 @@
 
 #include <NumericalConstants.h>
 
-#include "../HifiSockAddr.h"
+#include "../SockAddr.h"
 #include "../NetworkLogging.h"
 
 #include "CongestionControl.h"
@@ -30,7 +31,7 @@
 using namespace udt;
 using namespace std::chrono;
 
-Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::unique_ptr<CongestionControl> congestionControl) :
+Connection::Connection(Socket* parentSocket, SockAddr destination, std::unique_ptr<CongestionControl> congestionControl) :
     _parentSocket(parentSocket),
     _destination(destination),
     _congestionControl(move(congestionControl))
@@ -53,7 +54,7 @@ Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::uniq
     static std::mt19937 generator(rd());
     static std::uniform_int_distribution<> distribution(0, SequenceNumber::MAX);
 
-    // randomize the intial sequence number
+    // randomize the initial sequence number
     _initialSequenceNumber = SequenceNumber(distribution(generator));
 }
 
@@ -254,9 +255,6 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
         return false;
     }
     
-    // mark our last receive time as now (to push the potential expiry farther)
-    _lastReceiveTime = p_high_resolution_clock::now();
-    
     // If this is not the next sequence number, report loss
     if (sequenceNumber > _lastReceivedSequenceNumber + 1) {
         if (_lastReceivedSequenceNumber + 1 == sequenceNumber - 1) {
@@ -416,9 +414,6 @@ void Connection::resetReceiveState() {
     // clear the loss list
     _lossList.clear();
     
-    // clear sync variables
-    _connectionStart = p_high_resolution_clock::now();
-    
     // clear any pending received messages
     for (auto& pendingMessage : _pendingReceivedMessages) {
         _parentSocket->messageFailed(this, pendingMessage.first);
@@ -450,12 +445,6 @@ void PendingReceivedMessage::enqueuePacket(std::unique_ptr<Packet> packet) {
                "PendingReceivedMessage::enqueuePacket",
                "called with a packet that is not part of a message");
     
-    if (packet->getPacketPosition() == Packet::PacketPosition::LAST ||
-        packet->getPacketPosition() == Packet::PacketPosition::ONLY) {
-        _hasLastPacket = true;
-        _numPackets = packet->getMessagePartNumber() + 1;
-    }
-
     // Insert into the packets list in sorted order. Because we generally expect to receive packets in order, begin
     // searching from the end of the list.
     auto messagePartNumber = packet->getMessagePartNumber();
@@ -485,7 +474,7 @@ std::unique_ptr<Packet> PendingReceivedMessage::removeNextPacket() {
     return std::unique_ptr<Packet>();
 }
 
-void Connection::setDestinationAddress(const HifiSockAddr& destination) {
+void Connection::setDestinationAddress(const SockAddr& destination) {
     if (_destination != destination) {
         _destination = destination;
         emit destinationAddressChange(destination);

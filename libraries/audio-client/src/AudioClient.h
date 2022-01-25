@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 1/22/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -23,6 +24,7 @@
 #include <QtCore/QByteArray>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QObject>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QVector>
 #include <QtMultimedia/QAudio>
 #include <QtMultimedia/QAudioFormat>
@@ -33,7 +35,7 @@
 #include <shared/WebRTC.h>
 
 #include <DependencyManager.h>
-#include <HifiSockAddr.h>
+#include <SockAddr.h>
 #include <NLPacket.h>
 #include <MixedProcessedAudioStream.h>
 #include <RingBufferHistory.h>
@@ -55,6 +57,12 @@
 #include "AudioIOStats.h"
 #include "AudioFileWav.h"
 #include "HifiAudioDeviceInfo.h"
+
+#if defined(WEBRTC_AUDIO)
+#  define WEBRTC_APM_DEBUG_DUMP 0
+#  include <modules/audio_processing/include/audio_processing.h>
+#  include "modules/audio_processing/audio_processing_impl.h"
+#endif
 
 #ifdef _WIN32
 #pragma warning( push )
@@ -210,7 +218,7 @@ public slots:
     void audioMixerKilled();
 
     void setMuted(bool muted, bool emitSignal = true);
-    bool isMuted() { return _muted; }
+    bool isMuted() { return _isMuted; }
 
     virtual bool setIsStereoInput(bool stereo) override;
     virtual bool isStereoInput() override { return _isStereoInput; }
@@ -403,7 +411,7 @@ private:
     float _timeSinceLastClip{ -1.0f };
     int _totalInputAudioSamples;
 
-    bool _muted{ false };
+    bool _isMuted{ false };
     bool _shouldEchoLocally{ false };
     bool _shouldEchoToServer{ false };
     bool _isNoiseGateEnabled{ true };
@@ -450,7 +458,7 @@ private:
     void updateReverbOptions();
     void handleLocalEchoAndReverb(QByteArray& inputByteArray);
 
-#if defined(WEBRTC_ENABLED)
+#if defined(WEBRTC_AUDIO)
     static const int WEBRTC_SAMPLE_RATE_MAX = 96000;
     static const int WEBRTC_CHANNELS_MAX = 2;
     static const int WEBRTC_FRAMES_MAX = webrtc::AudioProcessing::kChunkSizeMs * WEBRTC_SAMPLE_RATE_MAX / 1000;

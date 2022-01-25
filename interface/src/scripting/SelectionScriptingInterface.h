@@ -14,6 +14,7 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QMap>
+#include <QtCore/QSharedPointer>
 #include <DependencyManager.h>
 
 #include <AbstractViewStateInterface.h>
@@ -76,7 +77,7 @@ protected:
     render::HighlightStyle _style;
 };
 
-/**jsdoc
+/*@jsdoc
  * The <code>Selection</code> API provides a means of grouping together and highlighting avatars and entities in named lists.
  *
  * @namespace Selection
@@ -124,7 +125,7 @@ class SelectionScriptingInterface : public QObject, public Dependency {
 public:
     SelectionScriptingInterface();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the names of all current selection lists.
      * @function Selection.getListNames
      * @returns {string[]} The names of all current selection lists.
@@ -133,7 +134,7 @@ public:
      */
     Q_INVOKABLE QStringList getListNames() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Deletes a selection list.
      * @function Selection.removeListFromMap
      * @param {string} listName - The name of the selection list to delete.
@@ -141,7 +142,7 @@ public:
      */
     Q_INVOKABLE bool removeListFromMap(const QString& listName);
 
-    /**jsdoc
+    /*@jsdoc
      * Adds an item to a selection list. The list is created if it doesn't exist.
      * @function Selection.addToSelectedItemsList
      * @param {string} listName - The name of the selection list to add the item to.
@@ -152,7 +153,7 @@ public:
      */
     Q_INVOKABLE bool addToSelectedItemsList(const QString& listName, const QString& itemType, const QUuid& id);
 
-    /**jsdoc
+    /*@jsdoc
      * Removes an item from a selection list.
      * @function Selection.removeFromSelectedItemsList
      * @param {string} listName - The name of the selection list to remove the item from.
@@ -163,7 +164,7 @@ public:
      */
     Q_INVOKABLE bool removeFromSelectedItemsList(const QString& listName, const QString& itemType, const QUuid& id);
 
-    /**jsdoc
+    /*@jsdoc
      * Removes all items from a selection list.
      * @function Selection.clearSelectedItemsList
      * @param {string} listName - The name of the selection list.
@@ -171,14 +172,14 @@ public:
      */
     Q_INVOKABLE bool clearSelectedItemsList(const QString& listName);
 
-    /**jsdoc
+    /*@jsdoc
      * Prints the list of avatars and entities in a selection to the program log (but not the Script Log window).
      * @function Selection.printList
      * @param {string} listName - The name of the selection list.
      */
     Q_INVOKABLE void printList(const QString& listName);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the list of avatars and entities in a selection list.
      * @function Selection.getSelectedItemsList
      * @param {string} listName - The name of the selection list.
@@ -186,14 +187,14 @@ public:
      */
     Q_INVOKABLE QVariantMap getSelectedItemsList(const QString& listName) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the names of all current selection lists that have highlighting enabled.
      * @function Selection.getHighlightedListNames
      * @returns {string[]} The names of the selection lists that currently have highlighting enabled.
      */
     Q_INVOKABLE QStringList getHighlightedListNames() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Enables highlighting for a selection list. All items in or subsequently added to the list are displayed with the 
      * highlight effect specified. The method can be called multiple times with different values in the style to modify the 
      * highlighting.
@@ -205,7 +206,7 @@ public:
      */
     Q_INVOKABLE bool enableListHighlight(const QString& listName, const QVariantMap& highlightStyle);
 
-    /**jsdoc
+    /*@jsdoc
      * Disables highlighting for a selection list.
      * <p>Note: This function implicitly calls {@link Selection.disableListToScene|disableListToScene}.</p>
      * @function Selection.disableListHighlight
@@ -214,7 +215,7 @@ public:
      */
     Q_INVOKABLE bool disableListHighlight(const QString& listName);
 
-    /**jsdoc
+    /*@jsdoc
      * Enables scene selection for a selection list. All items in or subsequently added to the list are sent to a scene 
      * selection in the rendering engine for debugging purposes.
      * @function Selection.enableListToScene
@@ -223,7 +224,7 @@ public:
      */
     Q_INVOKABLE bool enableListToScene(const QString& listName);
 
-    /**jsdoc
+    /*@jsdoc
      * Disables scene selection for a selection list.
      * @function Selection.disableListToScene
      * @param {string} listName - The name of the selection list.
@@ -231,7 +232,7 @@ public:
      */
     Q_INVOKABLE bool disableListToScene(const QString& listName);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the current highlighting style for a selection list.
      * @function Selection.getListHighlightStyle
      * @param {string} listName - The name of the selection list.
@@ -248,7 +249,7 @@ public:
     void onSelectedItemsListChanged(const QString& listName);
 
 signals:
-    /**jsdoc
+    /*@jsdoc
      * Triggered when a selection list's content changes or the list is deleted.
      * @function Selection.selectedItemsListChanged
      * @param {string} listName - The name of the selection list that changed.

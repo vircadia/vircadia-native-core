@@ -11,6 +11,8 @@
 
 #include "SpatiallyNestable.h"
 
+#include <QtCore/QSharedPointer>
+
 #include <queue>
 
 #include "DependencyManager.h"
@@ -1407,7 +1409,7 @@ SpatiallyNestablePointer SpatiallyNestable::findByID(QUuid id, bool& success) {
     return parentWP.lock();
 }
 
-/**jsdoc
+/*@jsdoc
  * <p>An in-world item may be one of the following types:</p>
  * <table>
  *   <thead>

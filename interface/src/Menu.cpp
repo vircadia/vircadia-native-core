@@ -405,9 +405,6 @@ Menu::Menu() {
     // Developer > Render >>>
     MenuWrapper* renderOptionsMenu = developerMenu->addMenu("Render");
 
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::AntiAliasing, 0, RenderScriptingInterface::getInstance()->getAntialiasingEnabled(),
-        RenderScriptingInterface::getInstance(), SLOT(setAntialiasingEnabled(bool)));
-
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Shadows, 0, RenderScriptingInterface::getInstance()->getShadowsEnabled(),
         RenderScriptingInterface::getInstance(), SLOT(setShadowsEnabled(bool)));
 
@@ -827,10 +824,10 @@ Menu::Menu() {
     });
 
     // Help > Vircadia Forum
-    /* action = addActionToQMenuAndActionHash(helpMenu, "Online Forums");
+    action = addActionToQMenuAndActionHash(helpMenu, "Community Support");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(NetworkingConstants::HELP_FORUM_URL));
-    }); */
+        QDesktopServices::openUrl(NetworkingConstants::HELP_COMMUNITY_URL);
+    });
 
     // Help > Scripting Reference
     action = addActionToQMenuAndActionHash(helpMenu, "Online Script Reference");

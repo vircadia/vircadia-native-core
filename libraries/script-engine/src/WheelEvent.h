@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_WheelEvent_h
 #define hifi_WheelEvent_h
 
@@ -18,6 +21,7 @@
 class QScriptValue;
 class QScriptEngine;
 
+/// Represents a mouse wheel event to the scripting engine. Exposed as <code><a href="https://apidocs.vircadia.dev/global.html#WheelEvent">WheelEvent</a></code>
 class WheelEvent {
 public:
     WheelEvent();
@@ -42,3 +46,5 @@ public:
 Q_DECLARE_METATYPE(WheelEvent)
 
 #endif // hifi_WheelEvent_h
+
+/// @}

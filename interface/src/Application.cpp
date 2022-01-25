@@ -164,6 +164,7 @@
 #include <RenderableWebEntityItem.h>
 #include <StencilMaskPass.h>
 #include <procedural/ProceduralMaterialCache.h>
+#include <procedural/ReferenceMaterial.h>
 #include "recording/ClipCache.h"
 
 #include "AudioClient.h"
@@ -380,12 +381,7 @@ const std::vector<std::pair<QString, Application::AcceptURLMethod>> Application:
 class DeadlockWatchdogThread : public QThread {
 public:
     static const unsigned long HEARTBEAT_UPDATE_INTERVAL_SECS = 1;
-    // TODO: go back to 2 min across the board, after figuring out the issues with mac
-#if defined(Q_OS_MAC)
-    static const unsigned long MAX_HEARTBEAT_AGE_USECS = 600 * USECS_PER_SECOND; // 10 mins with no checkin probably a deadlock, right now, on MAC
-#else
     static const unsigned long MAX_HEARTBEAT_AGE_USECS = 120 * USECS_PER_SECOND; // 2 mins with no checkin probably a deadlock
-#endif
     static const int WARNING_ELAPSED_HEARTBEAT = 500 * USECS_PER_MSEC; // warn if elapsed heartbeat average is large
     static const int HEARTBEAT_SAMPLES = 100000; // ~5 seconds worth of samples
 
@@ -657,7 +653,7 @@ private:
     }
 };
 
-/**jsdoc
+/*@jsdoc
  * <p>The <code>Controller.Hardware.Application</code> object has properties representing Interface's state. The property
  * values are integer IDs, uniquely identifying each output. <em>Read-only.</em></p>
  * <p>These states can be mapped to actions or functions or <code>Controller.Standard</code> items in a {@link RouteObject}
@@ -804,11 +800,13 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
 
     {
         const QString resourcesBinaryFile = PathUtils::getRccPath();
+        qCInfo(interfaceapp) << "Loading primary resources from" << resourcesBinaryFile;
+
         if (!QFile::exists(resourcesBinaryFile)) {
-            throw std::runtime_error("Unable to find primary resources");
+            throw std::runtime_error(QString("Unable to find primary resources from '%1'").arg(resourcesBinaryFile).toStdString());
         }
         if (!QResource::registerResource(resourcesBinaryFile)) {
-            throw std::runtime_error("Unable to load primary resources");
+            throw std::runtime_error(QString("Unable to load primary resources from '%1'").arg(resourcesBinaryFile).toStdString());
         }
     }
 
@@ -1011,7 +1009,7 @@ const bool DEFAULT_HMD_TABLET_BECOMES_TOOLBAR = false;
 const bool DEFAULT_PREFER_STYLUS_OVER_LASER = false;
 const bool DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS = false;
 const QString DEFAULT_CURSOR_NAME = "DEFAULT";
-const bool DEFAULT_MINI_TABLET_ENABLED = true;
+const bool DEFAULT_MINI_TABLET_ENABLED = false;
 const bool DEFAULT_AWAY_STATE_WHEN_FOCUS_LOST_IN_VR_ENABLED = true;
 
 QSharedPointer<OffscreenUi> getOffscreenUI() {
@@ -1030,9 +1028,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _logger(new FileLogger(this)),
 #endif
     _previousSessionCrashed(setupEssentials(argc, argv, runningMarkerExisted)),
-    _entitySimulation(new PhysicalEntitySimulation()),
-    _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
-    _entityClipboard(new EntityTree()),
+    _entitySimulation(std::make_shared<PhysicalEntitySimulation>()),
+    _physicsEngine(std::make_shared<PhysicsEngine>(Vectors::ZERO)),
+    _entityClipboard(std::make_shared<EntityTree>()),
     _previousScriptLocation("LastScriptLocation", DESKTOP_LOCATION),
     _fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
     _hmdTabletScale("hmdTabletScale", DEFAULT_HMD_TABLET_SCALE_PERCENT),
@@ -1964,7 +1962,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     }
 
     QString scriptsSwitch = QString("--").append(SCRIPTS_SWITCH);
-    _defaultScriptsLocation = getCmdOption(argc, constArgv, scriptsSwitch.toStdString().c_str());
+    _defaultScriptsLocation.setPath(getCmdOption(argc, constArgv, scriptsSwitch.toStdString().c_str()));
 
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
@@ -1972,7 +1970,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     loadSettings();
 
     updateVerboseLogging();
-    
+
     setCachebustRequire();
 
     // Make sure we don't time out during slow operations at startup
@@ -2156,6 +2154,32 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             }
         }
         return QSizeF(0.0f, 0.0f);
+    });
+
+    Texture::setUnboundTextureForUUIDOperator([this](const QUuid& entityID) -> gpu::TexturePointer {
+        if (_aboutToQuit) {
+            return nullptr;
+        }
+
+        auto renderable = getEntities()->renderableForEntityId(entityID);
+        if (renderable) {
+            return renderable->getTexture();
+        }
+
+        return nullptr;
+    });
+
+    ReferenceMaterial::setMaterialForUUIDOperator([this](const QUuid& entityID) -> graphics::MaterialPointer {
+        if (_aboutToQuit) {
+            return nullptr;
+        }
+
+        auto renderable = getEntities()->renderableForEntityId(entityID);
+        if (renderable) {
+            return renderable->getTopMaterial();
+        }
+
+        return nullptr;
     });
 
     connect(this, &Application::aboutToQuit, [this]() {
@@ -2624,7 +2648,7 @@ void Application::setCachebustRequire() {
         return;
     }
     bool enable = menu->isOptionChecked(MenuOption::CachebustRequire);
-    
+
     Setting::Handle<bool>{ CACHEBUST_SCRIPT_REQUIRE_SETTING_NAME, false }.set(enable);
 }
 
@@ -2667,21 +2691,21 @@ QString Application::getUserAgent() {
     auto formatPluginName = [](QString name) -> QString { return name.trimmed().replace(" ", "-");  };
 
     // For each plugin, add to userAgent
-    auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
-    for (auto& dp : displayPlugins) {
+    const auto& displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
+    for (const auto& dp : displayPlugins) {
         if (dp->isActive() && dp->isHmd()) {
             userAgent += " " + formatPluginName(dp->getName());
         }
     }
-    auto inputPlugins= PluginManager::getInstance()->getInputPlugins();
-    for (auto& ip : inputPlugins) {
+    const auto& inputPlugins = PluginManager::getInstance()->getInputPlugins();
+    for (const auto& ip : inputPlugins) {
         if (ip->isActive()) {
             userAgent += " " + formatPluginName(ip->getName());
         }
     }
     // for codecs, we include all of them, even if not active
-    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
-    for (auto& cp : codecPlugins) {
+    const auto& codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    for (const auto& cp : codecPlugins) {
         userAgent += " " + formatPluginName(cp->getName());
     }
 
@@ -2748,7 +2772,7 @@ void Application::onAboutToQuit() {
         _firstRun.set(false);
     }
 
-    foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
+    for(const auto& inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
         if (inputPlugin->isActive()) {
             inputPlugin->deactivate();
         }
@@ -3130,14 +3154,14 @@ void Application::initializeGL() {
 }
 
 void Application::initializeDisplayPlugins() {
-    auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
+    const auto& displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
     Setting::Handle<QString> activeDisplayPluginSetting{ ACTIVE_DISPLAY_PLUGIN_SETTING_NAME, displayPlugins.at(0)->getName() };
     auto lastActiveDisplayPluginName = activeDisplayPluginSetting.get();
 
     auto defaultDisplayPlugin = displayPlugins.at(0);
     // Once time initialization code
     DisplayPluginPointer targetDisplayPlugin;
-    foreach(auto displayPlugin, displayPlugins) {
+    for(const auto& displayPlugin : displayPlugins) {
         displayPlugin->setContext(_graphicsEngine.getGPUContext());
         if (displayPlugin->getName() == lastActiveDisplayPluginName) {
             targetDisplayPlugin = displayPlugin;
@@ -3237,16 +3261,16 @@ void Application::initializeUi() {
         auto newValidator = [=](const QUrl& url) -> bool {
             QString whitelistPrefix = "[WHITELIST ENTITY SCRIPTS]";
             QList<QString> safeURLS = { "" };
-            safeURLS += qEnvironmentVariable("EXTRA_WHITELIST").trimmed().split(QRegExp("\\s*,\\s*"), QString::SkipEmptyParts);
+            safeURLS += qEnvironmentVariable("EXTRA_WHITELIST").trimmed().split(QRegExp("\\s*,\\s*"), Qt::SkipEmptyParts);
 
             // PULL SAFEURLS FROM INTERFACE.JSON Settings
 
             QVariant raw = Setting::Handle<QVariant>("private/settingsSafeURLS").get();
-            QStringList settingsSafeURLS = raw.toString().trimmed().split(QRegExp("\\s*[,\r\n]+\\s*"), QString::SkipEmptyParts);
+            QStringList settingsSafeURLS = raw.toString().trimmed().split(QRegExp("\\s*[,\r\n]+\\s*"), Qt::SkipEmptyParts);
             safeURLS += settingsSafeURLS;
 
             // END PULL SAFEURLS FROM INTERFACE.JSON Settings
-            
+
             if (AUTHORIZED_EXTERNAL_QML_SOURCE.isParentOf(url)) {
                 return true;
             } else {
@@ -3387,7 +3411,7 @@ void Application::initializeUi() {
 
     // This will set up the input plugins UI
     _activeInputPlugins.clear();
-    foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
+    for(const auto& inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
         if (KeyboardMouseDevice::NAME == inputPlugin->getName()) {
             _keyboardMouseDevice = std::dynamic_pointer_cast<KeyboardMouseDevice>(inputPlugin);
         }
@@ -3437,7 +3461,7 @@ void Application::initializeUi() {
 #if !defined(DISABLE_QML)
     // Now that the menu is instantiated, ensure the display plugin menu is properly updated
     {
-        auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
+        DisplayPluginList displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
         // first sort the plugins into groupings: standard, advanced, developer
         std::stable_sort(displayPlugins.begin(), displayPlugins.end(),
             [](const DisplayPluginPointer& a, const DisplayPluginPointer& b) -> bool { return a->getGrouping() < b->getGrouping(); });
@@ -4004,7 +4028,7 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     parser.parse(arguments());
     if (parser.isSet(urlOption)) {
         QUrl url = QUrl(parser.value(urlOption));
-        if (url.scheme() == URL_SCHEME_HIFIAPP) {
+        if (url.scheme() == URL_SCHEME_VIRCADIAAPP) {
             Setting::Handle<QVariant>("startUpApp").set(url.path());
         } else {
             addressLookupString = url.toString();
@@ -4022,7 +4046,7 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
             DependencyManager::get<LocationBookmarks>()->setHomeLocationToAddress(NetworkingConstants::DEFAULT_VIRCADIA_ADDRESS);
             Menu::getInstance()->triggerOption(MenuOption::HomeLocation);
         }
-        
+
         if (!_overrideEntry) {
             DependencyManager::get<AddressManager>()->goToEntry();
             sentTo = SENT_TO_ENTRY;
@@ -4126,7 +4150,7 @@ std::map<QString, QString> Application::prepareServerlessDomainContents(QUrl dom
     nodeList->setPermissions(permissions);
 
     // FIXME: Lock the main tree and import directly into it.
-    EntityTreePointer tmpTree(new EntityTree());
+    EntityTreePointer tmpTree(std::make_shared<EntityTree>());
     tmpTree->setIsServerlessMode(true);
     tmpTree->createRootElement();
     auto myAvatar = getMyAvatar();
@@ -4461,7 +4485,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_7:
                 if (isControlOrCommand || isOption) {
                     unsigned int index = static_cast<unsigned int>(event->key() - Qt::Key_1);
-                    auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
+                    const auto& displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
                     if (index < displayPlugins.size()) {
                         auto targetPlugin = displayPlugins.at(index);
                         QString targetName = targetPlugin->getName();
@@ -4516,7 +4540,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_7:
                 if (isControlOrCommand || isOption) {
                     unsigned int index = static_cast<unsigned int>(event->key() - Qt::Key_1);
-                    auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
+                    const auto& displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
                     if (index < displayPlugins.size()) {
                         auto targetPlugin = displayPlugins.at(index);
                         QString targetName = targetPlugin->getName();
@@ -4689,8 +4713,8 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 }
 
 void Application::focusOutEvent(QFocusEvent* event) {
-    auto inputPlugins = PluginManager::getInstance()->getInputPlugins();
-    foreach(auto inputPlugin, inputPlugins) {
+    const auto& inputPlugins = PluginManager::getInstance()->getInputPlugins();
+    for(const auto& inputPlugin : inputPlugins) {
         if (inputPlugin->isActive()) {
             inputPlugin->pluginFocusOutEvent();
         }
@@ -5377,8 +5401,8 @@ void Application::idle() {
         PerformanceTimer perfTimer("pluginIdle");
         PerformanceWarning warn(showWarnings, "Application::idle()... pluginIdle()");
         getActiveDisplayPlugin()->idle();
-        auto inputPlugins = PluginManager::getInstance()->getInputPlugins();
-        foreach(auto inputPlugin, inputPlugins) {
+        const auto& inputPlugins = PluginManager::getInstance()->getInputPlugins();
+        for(const auto& inputPlugin : inputPlugins) {
             if (inputPlugin->isActive()) {
                 inputPlugin->idle();
             }
@@ -5521,8 +5545,8 @@ void Application::loadSettings() {
 
     bool isFirstPerson = false;
     if (arguments().contains("--no-launcher")) {
-        auto displayPlugins = pluginManager->getDisplayPlugins();
-        for (auto& plugin : displayPlugins) {
+        const auto& displayPlugins = pluginManager->getDisplayPlugins();
+        for (const auto& plugin : displayPlugins) {
             if (!plugin->isHmd()) {
                 if (auto action = menu->getActionForOption(plugin->getName())) {
                     action->setChecked(true);
@@ -5536,8 +5560,8 @@ void Application::loadSettings() {
         if (_firstRun.get()) {
             // If this is our first run, and no preferred devices were set, default to
             // an HMD device if available.
-            auto displayPlugins = pluginManager->getDisplayPlugins();
-            for (auto& plugin : displayPlugins) {
+            const auto& displayPlugins = pluginManager->getDisplayPlugins();
+            for (const auto& plugin : displayPlugins) {
                 if (plugin->isHmd()) {
                     if (auto action = menu->getActionForOption(plugin->getName())) {
                         action->setChecked(true);
@@ -5574,8 +5598,8 @@ void Application::loadSettings() {
     _myCamera.setMode((isFirstPerson) ? CAMERA_MODE_FIRST_PERSON_LOOK_AT : CAMERA_MODE_LOOK_AT);
     cameraMenuChanged();
 
-    auto inputs = pluginManager->getInputPlugins();
-    for (auto plugin : inputs) {
+    const auto& inputs = pluginManager->getInputPlugins();
+    for (const auto& plugin : inputs) {
         if (!plugin->isActive()) {
             plugin->activate();
         }
@@ -6397,7 +6421,7 @@ void Application::update(float deltaTime) {
         };
 
         InputPluginPointer keyboardMousePlugin;
-        for (auto inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
+        for(const auto& inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
             if (inputPlugin->getName() == KeyboardMouseDevice::NAME) {
                 keyboardMousePlugin = inputPlugin;
             } else if (inputPlugin->isActive()) {
@@ -7198,7 +7222,7 @@ void Application::updateWindowTitle() const {
     QString buildVersion = " - Vircadia - "
         + (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable ? QString("Version") : QString("Build"))
         + " " + applicationVersion();
-        
+
     if (BuildInfo::RELEASE_NAME != "") {
         buildVersion += " - " + BuildInfo::RELEASE_NAME;
     }
@@ -7285,7 +7309,7 @@ void Application::clearDomainOctreeDetails(bool clearAll) {
 
 void Application::domainURLChanged(QUrl domainURL) {
     // disable physics until we have enough information about our new location to not cause craziness.
-    setIsServerlessMode(domainURL.scheme() != URL_SCHEME_HIFI);
+    setIsServerlessMode(domainURL.scheme() != URL_SCHEME_VIRCADIA);
     if (isServerlessMode()) {
         loadServerlessDomain(domainURL);
     }
@@ -7294,7 +7318,7 @@ void Application::domainURLChanged(QUrl domainURL) {
 
 void Application::goToErrorDomainURL(QUrl errorDomainURL) {
     // disable physics until we have enough information about our new location to not cause craziness.
-    setIsServerlessMode(errorDomainURL.scheme() != URL_SCHEME_HIFI);
+    setIsServerlessMode(errorDomainURL.scheme() != URL_SCHEME_VIRCADIA);
     if (isServerlessMode()) {
         loadErrorDomain(errorDomainURL);
     }
@@ -7658,7 +7682,7 @@ bool Application::canAcceptURL(const QString& urlString) const {
     QUrl url(urlString);
     if (url.query().contains(WEB_VIEW_TAG)) {
         return false;
-    } else if (urlString.startsWith(URL_SCHEME_HIFI)) {
+    } else if (urlString.startsWith(URL_SCHEME_VIRCADIA)) {
         return true;
     }
     QString lowerPath = url.path().toLower();
@@ -7673,7 +7697,7 @@ bool Application::canAcceptURL(const QString& urlString) const {
 bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
     QUrl url(urlString);
 
-    if (url.scheme() == URL_SCHEME_HIFI) {
+    if (url.scheme() == URL_SCHEME_VIRCADIA) {
         // this is a hifi URL - have the AddressManager handle it
         QMetaObject::invokeMethod(DependencyManager::get<AddressManager>().data(), "handleLookupString",
                                   Qt::AutoConnection, Q_ARG(const QString&, urlString));
@@ -7901,7 +7925,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
             static const QString infoText = simpleWordWrap("Your domain's content will be replaced with a new content set. "
                 "If you want to save what you have now, create a backup before proceeding. For more information about backing up "
                 "and restoring content, visit the documentation page at: ", MAX_CHARACTERS_PER_LINE) +
-                "\nhttps://docs.vircadia.dev/host/maintain-domain/backup-domain.html";
+                "\nhttps://docs.vircadia.com/host/maintain-domain/backup-domain.html";
 
             ModalDialogListener* dig = OffscreenUi::asyncQuestion("Are you sure you want to replace this domain's content set?",
                                                                   infoText, QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
@@ -8819,19 +8843,19 @@ void Application::initPlugins(const QStringList& arguments) {
     parser.parse(arguments);
 
     if (parser.isSet(display)) {
-        auto preferredDisplays = parser.value(display).split(',', QString::SkipEmptyParts);
+        auto preferredDisplays = parser.value(display).split(',', Qt::SkipEmptyParts);
         qInfo() << "Setting prefered display plugins:" << preferredDisplays;
         PluginManager::getInstance()->setPreferredDisplayPlugins(preferredDisplays);
     }
 
     if (parser.isSet(disableDisplays)) {
-        auto disabledDisplays = parser.value(disableDisplays).split(',', QString::SkipEmptyParts);
+        auto disabledDisplays = parser.value(disableDisplays).split(',', Qt::SkipEmptyParts);
         qInfo() << "Disabling following display plugins:"  << disabledDisplays;
         PluginManager::getInstance()->disableDisplays(disabledDisplays);
     }
 
     if (parser.isSet(disableInputs)) {
-        auto disabledInputs = parser.value(disableInputs).split(',', QString::SkipEmptyParts);
+        auto disabledInputs = parser.value(disableInputs).split(',', Qt::SkipEmptyParts);
         qInfo() << "Disabling following input plugins:" << disabledInputs;
         PluginManager::getInstance()->disableInputs(disabledInputs);
     }
@@ -8999,14 +9023,14 @@ void Application::updateDisplayMode() {
     }
 
     // Once time initialization code that depends on the UI being available
-    auto displayPlugins = getDisplayPlugins();
+    const auto& displayPlugins = getDisplayPlugins();
 
     // Default to the first item on the list, in case none of the menu items match
 
     DisplayPluginPointer newDisplayPlugin = displayPlugins.at(0);
     auto menu = getPrimaryMenu();
     if (menu) {
-        foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
+        for (const auto& displayPlugin : PluginManager::getInstance()->getDisplayPlugins()) {
             QString name = displayPlugin->getName();
             QAction* action = menu->getActionForOption(name);
             // Menu might have been removed if the display plugin lost
@@ -9059,7 +9083,7 @@ void Application::setDisplayPlugin(DisplayPluginPointer newDisplayPlugin) {
         bool active = newDisplayPlugin->activate();
 
         if (!active) {
-            auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
+            const DisplayPluginList& displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
 
             // If the new plugin fails to activate, fallback to last display
             qWarning() << "Failed to activate display: " << newDisplayPlugin->getName();
@@ -9400,7 +9424,7 @@ void Application::unresponsiveApplication() {
 
 void Application::setActiveDisplayPlugin(const QString& pluginName) {
     DisplayPluginPointer newDisplayPlugin;
-    for (DisplayPluginPointer displayPlugin : PluginManager::getInstance()->getDisplayPlugins()) {
+    for (const DisplayPluginPointer& displayPlugin : PluginManager::getInstance()->getDisplayPlugins()) {
         QString name = displayPlugin->getName();
         if (pluginName == name) {
             newDisplayPlugin = displayPlugin;

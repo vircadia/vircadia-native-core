@@ -161,7 +161,7 @@ private:
     // application specific position, when it's in desktop mode, the reticle position will simply move
     // the system mouse.
     glm::vec2 _reticlePositionInHMD { 0.0f, 0.0f };
-    mutable QMutex _reticleLock { QMutex::Recursive };
+    mutable QRecursiveMutex _reticleLock;
 
     QPointF _lastKnownRealMouse;
     bool _ignoreMouseMove { false };
@@ -175,7 +175,7 @@ private:
     ReticleInterface* _reticleInterface { nullptr };
 };
 
-/**jsdoc
+/*@jsdoc
  * The <code>Reticle</code> API provides access to the mouse cursor. The cursor may be an arrow or a reticle circle, depending 
  * on Interface settings. The mouse cursor is visible in HMD mode if controllers aren't being used.
  *
@@ -221,7 +221,7 @@ class ReticleInterface : public QObject {
 public:
     ReticleInterface(CompositorHelper* outer) : QObject(outer), _compositor(outer) {}
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether the mouse cursor is captured, displaying only in Interface and not on the rest of the desktop. The mouse 
      * cursor is captured when in HMD mode and the Interface window content (excluding menu items) has focus, if capturing is 
      * enabled (<code>allowMouseCapture</code> property value is <code>true</code>).
@@ -231,7 +231,7 @@ public:
      */
     Q_INVOKABLE bool isMouseCaptured() { return _compositor->shouldCaptureMouse(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether the mouse cursor will be captured when in HMD mode and the Interface window content (excluding menu items) 
      * has focus. When captured, the mouse cursor displays only in Interface, not on the rest of the desktop.
      * @function Reticle.getAllowMouseCapture
@@ -240,7 +240,7 @@ public:
      */
     Q_INVOKABLE bool getAllowMouseCapture() { return _compositor->getAllowMouseCapture(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether the mouse cursor will be captured when in HMD mode and the Interface window content (excluding menu items)
      * has focus. When captured, the mouse cursor displays only in Interface, not on the rest of desktop.
      * @function Reticle.setAllowMouseCapture
@@ -249,7 +249,7 @@ public:
      */
     Q_INVOKABLE void setAllowMouseCapture(bool value) { return _compositor->setAllowMouseCapture(value); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether the mouse cursor is pointing at UI in the Interface window in desktop mode or on the HUD surface in HMD 
      * mode.
      * @function Reticle.isPointingAtSystemOverlay
@@ -258,7 +258,7 @@ public:
      */
     Q_INVOKABLE bool isPointingAtSystemOverlay() { return !_compositor->getReticleOverDesktop(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether the reticle circle is visible in desktop mode, or the arrow or reticle circle are visible in HMD mode.
      * @function Reticle.getVisible
      * @returns {boolean} <code>true</code> if the reticle circle is visible in desktop mode, and the arrow or 
@@ -267,7 +267,7 @@ public:
      */
     Q_INVOKABLE bool getVisible() { return _compositor->getReticleVisible(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether the reticle circle is visible in desktop mode, or the arrow or reticle circle are visible in HMD mode.
      * @function Reticle.setVisible
      * @param {boolean} visible - <code>true</code> if the reticle circle is visible in desktop mode, and the arrow or reticle 
@@ -276,21 +276,21 @@ public:
      */
     Q_INVOKABLE void setVisible(bool visible) { _compositor->setReticleVisible(visible); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the depth (distance) that the reticle is displayed at relative to the HMD view, in HMD mode.
      * @function Reticle.getDepth
      * @returns {number} The depth (distance) that the reticle is displayed at relative to the HMD view, in HMD mode.
      */
     Q_INVOKABLE float getDepth() { return _compositor->getReticleDepth(); }
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the depth (distance) that the reticle is displayed at relative to the HMD view, in HMD mode.
      * @function Reticle.setDepth
      * @param {number} depth - The depth (distance) that the reticle is displayed at relative to the HMD view, in HMD mode.
      */
     Q_INVOKABLE void setDepth(float depth) { _compositor->setReticleDepth(depth); }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the scale of the reticle circle in desktop mode, and the arrow and reticle circle in HMD mode. (Does not affect the 
      * size of the arrow in desktop mode.) The default scale is <code>1.0</code>.
      * @function Reticle.getScale
@@ -298,7 +298,7 @@ public:
      */
     Q_INVOKABLE float getScale() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the scale of the reticle circle in desktop mode, and the arrow and reticle circle in HMD mode. (Does not affect the
      * size of the arrow in desktop mode.) The default scale is <code>1.0</code>.
      * @function Reticle.setScale
@@ -306,7 +306,7 @@ public:
      */
     Q_INVOKABLE void setScale(float scale);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the position of the cursor. This is the position relative to the Interface window in desktop mode, and the HUD 
      * surface in HMD mode.
      * <p><strong>Note:</strong> The position values may be negative.</p>
@@ -315,7 +315,7 @@ public:
      */
     Q_INVOKABLE QVariant getPosition() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the position of the cursor. This is the position relative to the Interface window in desktop mode, and the HUD 
      * surface in HMD mode.
      * <p><strong>Note:</strong> The position values may be negative.</p>
@@ -324,7 +324,7 @@ public:
      */
     Q_INVOKABLE void setPosition(QVariant position);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the maximum reticle coordinates on the display device in desktop mode or the HUD surface in HMD mode. (The minimum 
      * reticle coordinates on the desktop display device or HUD surface are <code>0</code>, <code>0</code>.)
      * @function Reticle.getMaximumPosition

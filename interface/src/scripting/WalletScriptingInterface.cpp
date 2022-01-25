@@ -10,6 +10,7 @@
 //
 
 #include "WalletScriptingInterface.h"
+#include <QtCore/QSharedPointer>
 #include <SettingHandle.h>
 
 CheckoutProxy::CheckoutProxy(QObject* qmlObject, QObject* parent) : QmlWrapper(qmlObject, parent) {

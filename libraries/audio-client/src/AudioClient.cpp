@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 1/22/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -363,7 +364,7 @@ AudioClient::AudioClient() {
 
     configureReverb();
 
-#if defined(WEBRTC_ENABLED)
+#if defined(WEBRTC_AUDIO)
     configureWebrtc();
 #endif
 
@@ -941,7 +942,7 @@ void AudioClient::Gate::flush() {
 
 
 void AudioClient::handleNoisyMutePacket(QSharedPointer<ReceivedMessage> message) {
-    if (!_muted) {
+    if (!_isMuted) {
         setMuted(true);
 
         // have the audio scripting interface emit a signal to say we were muted by the mixer
@@ -962,10 +963,10 @@ void AudioClient::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> me
 void AudioClient::negotiateAudioFormat() {
     auto nodeList = DependencyManager::get<NodeList>();
     auto negotiateFormatPacket = NLPacket::create(PacketType::NegotiateAudioFormat);
-    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    const auto& codecPlugins = PluginManager::getInstance()->getCodecPlugins();
     quint8 numberOfCodecs = (quint8)codecPlugins.size();
     negotiateFormatPacket->writePrimitive(numberOfCodecs);
-    for (auto& plugin : codecPlugins) {
+    for (const auto& plugin : codecPlugins) {
         auto codecName = plugin->getName();
         negotiateFormatPacket->writeString(codecName);
     }
@@ -988,7 +989,7 @@ void AudioClient::selectAudioFormat(const QString& selectedCodecName) {
 
     _selectedCodecName = selectedCodecName;
 
-    qCDebug(audioclient) << "Selected Codec:" << _selectedCodecName << "isStereoInput:" << _isStereoInput;
+    qCDebug(audioclient) << "Selected codec:" << _selectedCodecName << "; Is stereo input:" << _isStereoInput;
 
     // release any old codec encoder/decoder first...
     if (_codec && _encoder) {
@@ -998,13 +999,13 @@ void AudioClient::selectAudioFormat(const QString& selectedCodecName) {
     }
     _receivedAudioStream.cleanupCodec();
 
-    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
-    for (auto& plugin : codecPlugins) {
+    const auto& codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    for (const auto& plugin : codecPlugins) {
         if (_selectedCodecName == plugin->getName()) {
             _codec = plugin;
             _receivedAudioStream.setupCodec(plugin, _selectedCodecName, AudioConstants::STEREO);
             _encoder = plugin->createEncoder(AudioConstants::SAMPLE_RATE, _isStereoInput ? AudioConstants::STEREO : AudioConstants::MONO);
-            qCDebug(audioclient) << "Selected Codec Plugin:" << _codec.get();
+            qCDebug(audioclient) << "Selected codec plugin:" << _codec.get();
             break;
         }
     }
@@ -1142,7 +1143,7 @@ void AudioClient::setReverbOptions(const AudioEffectOptions* options) {
     }
 }
 
-#if defined(WEBRTC_ENABLED)
+#if defined(WEBRTC_AUDIO)
 
 static void deinterleaveToFloat(const int16_t* src, float* const* dst, int numFrames, int numChannels) {
     for (int i = 0; i < numFrames; i++) {
@@ -1175,7 +1176,9 @@ void AudioClient::configureWebrtc() {
     config.high_pass_filter.enabled = false;
     config.echo_canceller.enabled = true;
     config.echo_canceller.mobile_mode = false;
+#if defined(WEBRTC_LEGACY)
     config.echo_canceller.use_legacy_aec = false;
+#endif
     config.noise_suppression.enabled = false;
     config.noise_suppression.level = webrtc::AudioProcessing::Config::NoiseSuppression::kModerate;
     config.voice_detection.enabled = false;
@@ -1261,12 +1264,12 @@ void AudioClient::processWebrtcNearEnd(int16_t* samples, int numFrames, int numC
     }
 }
 
-#endif // WEBRTC_ENABLED
+#endif // WEBRTC_AUDIO
 
 void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     // If there is server echo, reverb will be applied to the recieved audio stream so no need to have it here.
     bool hasReverb = _reverb || _receivedAudioStream.hasReverb();
-    if ((_muted && !_shouldEchoLocally) || !_audioOutput || (!_shouldEchoLocally && !hasReverb) || !_audioGateOpen) {
+    if ((_isMuted && !_shouldEchoLocally) || !_audioOutput || (!_shouldEchoLocally && !hasReverb) || !_audioGateOpen) {
         return;
     }
 
@@ -1354,7 +1357,7 @@ void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
 
         bool audioGateOpen = false;
 
-        if (!_muted) {
+        if (!_isMuted) {
             int16_t* samples = reinterpret_cast<int16_t*>(audioBuffer.data());
             int numSamples = audioBuffer.size() / AudioConstants::SAMPLE_SIZE;
             int numFrames = numSamples / (_isStereoInput ? AudioConstants::STEREO : AudioConstants::MONO);
@@ -1375,7 +1378,7 @@ void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
         }
 
         // loudness after mute/gate
-        _lastInputLoudness = (_muted || !audioGateOpen) ? 0.0f : _lastRawInputLoudness;
+        _lastInputLoudness = (_isMuted || !audioGateOpen) ? 0.0f : _lastRawInputLoudness;
 
         // detect gate opening and closing
         bool openedInLastBlock = !_audioGateOpen && audioGateOpen;  // the gate just opened
@@ -1462,7 +1465,7 @@ void AudioClient::handleMicAudioInput() {
         }
         isClipping = (_timeSinceLastClip >= 0.0f) && (_timeSinceLastClip < 2.0f);  // 2 second hold time
 
-#if defined(WEBRTC_ENABLED)
+#if defined(WEBRTC_AUDIO)
         if (_isAECEnabled) {
             processWebrtcNearEnd(inputAudioSamples.get(), inputSamplesRequired / _inputFormat.channelCount(),
                                  _inputFormat.channelCount(), _inputFormat.sampleRate());
@@ -1479,7 +1482,7 @@ void AudioClient::handleMicAudioInput() {
 
         emit inputLoudnessChanged(_lastSmoothedRawInputLoudness, isClipping);
 
-        if (!_muted) {
+        if (!_isMuted) {
             possibleResampling(_inputToNetworkResampler,
                 inputAudioSamples.get(), networkAudioSamples,
                 inputSamplesRequired, numNetworkSamples,
@@ -1745,10 +1748,10 @@ void AudioClient::sendMuteEnvironmentPacket() {
 }
 
 void AudioClient::setMuted(bool muted, bool emitSignal) {
-    if (_muted != muted) {
-        _muted = muted;
+    if (_isMuted != muted) {
+        _isMuted = muted;
         if (emitSignal) {
-            emit muteToggled(_muted);
+            emit muteToggled(_isMuted);
         }
     }
 }
@@ -1893,7 +1896,6 @@ bool AudioClient::switchInputToAudioDevice(const HifiAudioDeviceInfo inputDevice
 
     if (_dummyAudioInput) {
         _dummyAudioInput->stop();
-
         _dummyAudioInput->deleteLater();
         _dummyAudioInput = NULL;
     }
@@ -2420,7 +2422,7 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     // limit the audio
     _audio->_audioLimiter.render(mixBuffer, scratchBuffer, framesPopped);
 
-#if defined(WEBRTC_ENABLED)
+#if defined(WEBRTC_AUDIO)
     if (_audio->_isAECEnabled) {
         _audio->processWebrtcFarEnd(scratchBuffer, framesPopped, OUTPUT_CHANNEL_COUNT, _audio->_outputFormat.sampleRate());
     }
@@ -2476,8 +2478,8 @@ void AudioClient::loadSettings() {
     _receivedAudioStream.setStaticJitterBufferFrames(staticJitterBufferFrames.get());
 
     qCDebug(audioclient) << "---- Initializing Audio Client ----";
-    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
-    for (auto& plugin : codecPlugins) {
+    const auto& codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    for (const auto& plugin : codecPlugins) {
         qCDebug(audioclient) << "Codec available:" << plugin->getName();
     }
 

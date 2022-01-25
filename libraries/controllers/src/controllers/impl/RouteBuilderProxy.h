@@ -25,7 +25,7 @@ namespace controller {
 
 class ScriptingInterface;
 
-/**jsdoc
+/*@jsdoc
  * <p>A route in a {@link MappingObject} used by the {@link Controller} API.</p>
  *
  * <p>Create a route using {@link MappingObject} methods and apply this object's methods to process it, terminating with 
@@ -51,7 +51,7 @@ class RouteBuilderProxy : public QObject {
         RouteBuilderProxy(UserInputMapper& parent, Mapping::Pointer mapping, Route::Pointer route)
             : _parent(parent), _mapping(mapping), _route(route) { }
 
-        /**jsdoc
+        /*@jsdoc
          * Terminates the route with a standard control, an action, or a script function. The output value from the route is 
          * sent to the specified destination.
          * <p>This is a QML-specific version of {@link MappingObject#to|to}: use this version in QML files.</p>
@@ -62,7 +62,7 @@ class RouteBuilderProxy : public QObject {
          */
         Q_INVOKABLE void toQml(const QJSValue& destination);
 
-        /**jsdoc
+        /*@jsdoc
          * Processes the route only if a condition is satisfied. The condition is evaluated before the route input is read, and
          * the input is read only if the condition is <code>true</code>. Thus, if the condition is not met then subsequent
          * routes using the same input are processed.
@@ -81,7 +81,7 @@ class RouteBuilderProxy : public QObject {
          */
         Q_INVOKABLE QObject* whenQml(const QJSValue& expression);
 
-        /**jsdoc
+        /*@jsdoc
          * Terminates the route with a standard control, an action, or a script function. The output value from the route is 
          * sent to the specified destination.
          * @function RouteObject#to
@@ -90,7 +90,7 @@ class RouteBuilderProxy : public QObject {
          * an in-line function definition.
          *
          * @example <caption>Make the right trigger move your avatar up.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          *
          * mapping.from(Controller.Standard.RT).to(Controller.Actions.TranslateY);
@@ -105,7 +105,7 @@ class RouteBuilderProxy : public QObject {
          *     print("Trigger value: " + value);
          * }
          *
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          *
          * mapping.from(Controller.Standard.RT).to(onRightTrigger);
@@ -117,14 +117,14 @@ class RouteBuilderProxy : public QObject {
          */
         Q_INVOKABLE void to(const QScriptValue& destination);
 
-        /**jsdoc
+        /*@jsdoc
          * Enables or disables writing debug information for a route to the program log.
          * @function RouteObject#debug
          * @param {boolean} [enable=true] - If <code>true</code> then writing debug information is enabled for the route, 
          *     otherwise it is disabled.
          * @returns {RouteObject} The <code>RouteObject</code> with debug output enabled or disabled.
          * @example <caption>Write debug information to the program log for a right trigger mapping.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          *
          * mapping.from(Controller.Standard.RT).debug().to(function (value) {
@@ -147,7 +147,7 @@ class RouteBuilderProxy : public QObject {
          */
         Q_INVOKABLE QObject* debug(bool enable = true);
 
-        /**jsdoc
+        /*@jsdoc
          * Processes the route without marking the controller output as having been read, so that other routes from the same 
          * controller output can also process.
          * @function RouteObject#peek
@@ -157,7 +157,7 @@ class RouteBuilderProxy : public QObject {
          */
         Q_INVOKABLE QObject* peek(bool enable = true);
 
-        /**jsdoc
+        /*@jsdoc
          * Processes the route only if a condition is satisfied. The condition is evaluated before the route input is read, and 
          * the input is read only if the condition is <code>true</code>. Thus, if the condition is not met then subsequent 
          * routes using the same input are processed.
@@ -175,7 +175,7 @@ class RouteBuilderProxy : public QObject {
          * calls.</p>
          * @returns {RouteObject} The <code>RouteObject</code> with the condition added.
          * @example <caption>Process the right trigger differently in HMD and desktop modes.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          *
          * // Processed only if in HMD mode.
@@ -195,7 +195,7 @@ class RouteBuilderProxy : public QObject {
          */
         Q_INVOKABLE QObject* when(const QScriptValue& expression);
 
-        /**jsdoc
+        /*@jsdoc
          * Filters numeric route values to lie between two values; values outside this range are not passed on through the 
          * route.
          * @function RouteObject#clamp
@@ -203,7 +203,7 @@ class RouteBuilderProxy : public QObject {
          * @param {number} max - The maximum value to pass through.
          * @returns {RouteObject} The route object with the clamp filter added.
          * @example <caption>Clamp right trigger values to between 0.3 and 0.7.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          * mapping.from(Controller.Standard.RT).clamp(0.3, 0.7).to(function (value) {
          *     print("Value: " + value);
@@ -216,7 +216,7 @@ class RouteBuilderProxy : public QObject {
          */
         Q_INVOKABLE QObject* clamp(float min, float max);
 
-        /**jsdoc
+        /*@jsdoc
          * Filters numeric route values such that they are rounded to <code>0</code> or <code>1</code> without output values 
          * flickering when the input value hovers around <code>0.5</code>. For example, this enables you to use an analog input 
          * as if it were a toggle.
@@ -225,7 +225,7 @@ class RouteBuilderProxy : public QObject {
          * @param {number} max - When the input value rises above this value the output value changes to <code>1</code>.
          * @returns {RouteObject} The <code>RouteObject</code> with the filter applied.
          * @example <caption>Round the right joystick forward/back values to 0 or 1 with hysteresis.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          * mapping.from(Controller.Standard.RY).peek().to(function (value) {
          *     print("Raw value: " + value);  // 0.0 - 1.0.
@@ -241,13 +241,13 @@ class RouteBuilderProxy : public QObject {
          */
         Q_INVOKABLE QObject* hysteresis(float min, float max);
 
-        /**jsdoc
+        /*@jsdoc
          * Filters numeric route values to send at a specified interval.
          * @function RouteObject#pulse
          * @param {number} interval - The interval between sending values, in seconds.
          * @returns {RouteObject} The <code>RouteObject</code> with the filter applied.
          * @example <caption>Send right trigger values every half second.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          * mapping.from(Controller.Standard.RT).pulse(0.5).to(function (value) {
          *     print("Value: " + value);
@@ -260,13 +260,13 @@ class RouteBuilderProxy : public QObject {
          */
         Q_INVOKABLE QObject* pulse(float interval);
 
-        /**jsdoc
+        /*@jsdoc
          * Filters numeric and {@link Pose} route values to be scaled by a constant amount.
          * @function RouteObject#scale
          * @param {number} multiplier - The scale to multiply the value by.
          * @returns {RouteObject} The <code>RouteObject</code> with the filter applied.
          * @example <caption>Scale the value of the right joystick forward/back values by 10.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          * mapping.from(Controller.Standard.LY).to(function (value) {
          *     print("L value: " + value);  // -1.0 to 1.0 values.
@@ -282,13 +282,13 @@ class RouteBuilderProxy : public QObject {
          */
         Q_INVOKABLE QObject* scale(float multiplier);
 
-        /**jsdoc
+        /*@jsdoc
          * Filters numeric and {@link Pose} route values to have the opposite sign, e.g., <code>0.5</code> is changed to 
          * <code>-0.5</code>.
          * @function RouteObject#invert
          * @returns {RouteObject} The <code>RouteObject</code> with the filter applied.
          * @example <caption>Invert the value of the right joystick forward/back values.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          * mapping.from(Controller.Standard.LY).to(function (value) {
          *     print("L value: " + value);  // -1.0 to 1.0 values, forward to back.
@@ -304,7 +304,7 @@ class RouteBuilderProxy : public QObject {
          */
         Q_INVOKABLE QObject* invert();
 
-        /**jsdoc
+        /*@jsdoc
          * Filters numeric route values such that they're sent only when the input value is outside a dead-zone. When the input 
          * passes the dead-zone value, output is sent starting at <code>0.0</code> and catching up with the input value. As the 
          * input returns toward the dead-zone value, output values reduce to <code>0.0</code> at the dead-zone value.
@@ -313,7 +313,7 @@ class RouteBuilderProxy : public QObject {
          *    negative of this value is used.
          * @returns {RouteObject} The <code>RouteObject</code> with the filter applied.
          * @example <caption>Apply a dead-zone to the right joystick forward/back values.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          * mapping.from(Controller.Standard.RY).deadZone(0.2).to(function (value) {
          *     print("Value: " + value);  // 0.0 - 1.0 values once outside the dead-zone.
@@ -326,7 +326,7 @@ class RouteBuilderProxy : public QObject {
          */
         Q_INVOKABLE QObject* deadZone(float min);
 
-        /**jsdoc
+        /*@jsdoc
          * Filters numeric route values such that they are rounded to <code>-1</code>, <code>0</code>, or <code>1</code>.
          * For example, this enables you to use an analog input as if it were a toggle or, in the case of a bidirectional axis, 
          * a tri-state switch.
@@ -334,7 +334,7 @@ class RouteBuilderProxy : public QObject {
          * @returns {RouteObject} The <code>RouteObject</code> with the filter applied.
          * @example <caption>Round the right joystick forward/back values to <code>-1</code>, <code>0</code>, or 
          *     <code>1</code>.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          * mapping.from(Controller.Standard.RY).constrainToInteger().to(function (value) {
          *     print("Value: " + value);  // -1, 0, or 1
@@ -347,13 +347,13 @@ class RouteBuilderProxy : public QObject {
          */
         Q_INVOKABLE QObject* constrainToInteger();
 
-        /**jsdoc
+        /*@jsdoc
          * Filters numeric route values such that they are rounded to <code>0</code> or <code>1</code>. For example, this 
          * enables you to use an analog input as if it were a toggle.
          * @function RouteObject#constrainToPositiveInteger
          * @returns {RouteObject} The <code>RouteObject</code> with the filter applied.
          * @example <caption>Round the right joystick forward/back values to <code>0</code> or <code>1</code>.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          * mapping.from(Controller.Standard.RY).constrainToPositiveInteger().to(function (value) {
          *     print("Value: " + value);  // 0, or 1
@@ -366,7 +366,7 @@ class RouteBuilderProxy : public QObject {
          */
         Q_INVOKABLE QObject* constrainToPositiveInteger();
 
-        /**jsdoc
+        /*@jsdoc
          * Filters {@link Pose} route values to have a pre-translation applied.
          * @function RouteObject#translate
          * @param {Vec3} translate - The pre-translation to add to the pose.
@@ -375,7 +375,7 @@ class RouteBuilderProxy : public QObject {
         // No JSDoc example because filter not currently used.
         Q_INVOKABLE QObject* translate(glm::vec3 translate);
 
-        /**jsdoc
+        /*@jsdoc
          * Filters {@link Pose} route values to have a pre-transform applied.
          * @function RouteObject#transform
          * @param {Mat4} transform - The pre-transform to apply.
@@ -384,7 +384,7 @@ class RouteBuilderProxy : public QObject {
         // No JSDoc example because filter not currently used.
         Q_INVOKABLE QObject* transform(glm::mat4 transform);
 
-        /**jsdoc
+        /*@jsdoc
          * Filters {@link Pose} route values to have a post-transform applied.
          * @function RouteObject#postTransform
          * @param {Mat4} transform - The post-transform to apply.
@@ -393,7 +393,7 @@ class RouteBuilderProxy : public QObject {
         // No JSDoc example because filter not currently used.
         Q_INVOKABLE QObject* postTransform(glm::mat4 transform);
 
-        /**jsdoc
+        /*@jsdoc
          * Filters {@link Pose} route values to have a pre-rotation applied.
          * @function RouteObject#rotate
          * @param {Quat} rotation - The pre-rotation to add to the pose.
@@ -402,7 +402,7 @@ class RouteBuilderProxy : public QObject {
         // No JSDoc example because filter not currently used.
         Q_INVOKABLE QObject* rotate(glm::quat rotation);
 
-        /**jsdoc
+        /*@jsdoc
          * Filters {@link Pose} route values to be smoothed by a low velocity filter. The filter's rotation and translation 
          * values are calculated as: <code>(1 - f) * currentValue + f * previousValue</code> where 
          * <code>f = currentVelocity / filterConstant</code>. At low velocities, the filter value is largely the previous 
@@ -417,7 +417,7 @@ class RouteBuilderProxy : public QObject {
         // No JSDoc example because filter not currently used.
         Q_INVOKABLE QObject* lowVelocity(float rotationConstant, float translationConstant);
 
-        /**jsdoc
+        /*@jsdoc
          * Filters {@link Pose} route values to be smoothed by an exponential decay filter. The filter's rotation and 
          * translation values are calculated as: <code>filterConstant * currentValue + (1 - filterConstant) * 
          * previousValue</code>. Values near 1 are less smooth with lower latency; values near 0 are more smooth with higher 
@@ -430,13 +430,13 @@ class RouteBuilderProxy : public QObject {
         // No JSDoc example because filter used only in Vive.json.
         Q_INVOKABLE QObject* exponentialSmoothing(float rotationConstant, float translationConstant);
 
-        /**jsdoc
+        /*@jsdoc
          * Filters numeric route values such that a value of <code>0.0</code> is changed to <code>1.0</code>, and other values 
          * are changed to <code>0.0</code>.
          * @function RouteObject#logicalNot
          * @returns {RouteObject} The <code>RouteObject</code> with the filter applied.
          * @example <caption>Logical NOT of LSTouch value.</caption>
-         * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
+         * var MAPPING_NAME = "com.vircadia.controllers.example.newMapping";
          * var mapping = Controller.newMapping(MAPPING_NAME);
          * 
          * mapping.from(Controller.Standard.RSTouch).peek().to(function (value) {

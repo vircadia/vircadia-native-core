@@ -18,7 +18,7 @@
 #include "../RefreshRateManager.h"
 
 
-/**jsdoc
+/*@jsdoc
  * The <code>Performance</code> API provides control and information on graphics performance settings.
  *
  * @namespace Performance
@@ -37,7 +37,7 @@ class PerformanceScriptingInterface : public QObject {
 
 public:
 
-    /**jsdoc
+    /*@jsdoc
      * <p>Graphics performance presets.</p>
      * <table>
      *   <thead>
@@ -57,13 +57,14 @@ public:
     // PerformanceManager PerformancePreset tri state level enums
     enum PerformancePreset {
         UNKNOWN = PerformanceManager::PerformancePreset::UNKNOWN,
+        LOW_POWER = PerformanceManager::PerformancePreset::LOW_POWER,
         LOW = PerformanceManager::PerformancePreset::LOW,
         MID = PerformanceManager::PerformancePreset::MID,
         HIGH = PerformanceManager::PerformancePreset::HIGH,
     };
     Q_ENUM(PerformancePreset)
 
-    /**jsdoc
+    /*@jsdoc
      * <p>Refresh rate profile.</p>
      * <table>
      *   <thead>
@@ -93,21 +94,21 @@ public:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * Sets graphics performance to a preset.
      * @function Performance.setPerformancePreset
      * @param {Performance.PerformancePreset} performancePreset - The graphics performance preset to to use.
      */
     void setPerformancePreset(PerformancePreset performancePreset);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the current graphics performance preset in use.
      * @function Performance.getPerformancePreset
      * @returns {Performance.PerformancePreset} The current graphics performance preset in use.
      */
     PerformancePreset getPerformancePreset() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the names of the graphics performance presets.
      * @function Performance.getPerformancePresetNames
      * @returns {string[]} The names of the graphics performance presets. The array index values correspond to 
@@ -116,21 +117,21 @@ public slots:
     QStringList getPerformancePresetNames() const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the curfrent refresh rate profile.
      * @function Performance.setRefreshRateProfile
      * @param {Performance.RefreshRateProfile} refreshRateProfile - The refresh rate profile.
      */
     void setRefreshRateProfile(RefreshRateProfile refreshRateProfile);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the current refresh rate profile in use.
      * @function Performance.getRefreshRateProfile
      * @returns {Performance.RefreshRateProfile} The refresh rate profile.
      */
     RefreshRateProfile getRefreshRateProfile() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the names of the refresh rate profiles.
      * @function Performance.getRefreshRateProfileNames
      * @returns {string[]} The names of the refresh rate profiles. The array index values correspond to 
@@ -139,7 +140,7 @@ public slots:
     QStringList getRefreshRateProfileNames() const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the current target refresh rate, in Hz, per the current refresh rate profile and refresh rate regime if in desktop 
      * mode; a higher rate if in VR mode.
      * @function Performance.getActiveRefreshRate
@@ -147,14 +148,14 @@ public slots:
      */
     int getActiveRefreshRate() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the current user experience mode.
      * @function Performance.getUXMode
      * @returns {UXMode} The current user experience mode.
      */
     RefreshRateManager::UXMode getUXMode() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the current refresh rate regime that's in effect.
      * @function Performance.getRefreshRateRegime
      * @returns {RefreshRateRegime} The current refresh rate regime.
@@ -163,7 +164,7 @@ public slots:
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the performance preset or refresh rate profile is changed.
      * @function Performance.settingsChanged
      * @returns {Signal}

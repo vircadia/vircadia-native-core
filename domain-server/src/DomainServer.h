@@ -27,6 +27,8 @@
 #include <Assignment.h>
 #include <HTTPSConnection.h>
 #include <LimitedNodeList.h>
+#include <shared/WebRTC.h>
+#include <webrtc/WebRTCSignalingServer.h>
 
 #include "AssetsBackupHandler.h"
 #include "DomainGatekeeper.h"
@@ -113,7 +115,7 @@ private slots:
     void setupPendingAssignmentCredits();
     void sendPendingTransactionsToServer();
 
-    void performIPAddressPortUpdate(const HifiSockAddr& newPublicSockAddr);
+    void performIPAddressPortUpdate(const SockAddr& newPublicSockAddr);
     void sendHeartbeatToMetaverse() { sendHeartbeatToMetaverse(QString(), int()); }
     void sendHeartbeatToIceServer();
     void nodePingMonitor();
@@ -141,11 +143,16 @@ private slots:
     void updateReplicatedNodes();
     void updateDownstreamNodes();
     void updateUpstreamNodes();
+
     void initializeExporter();
     void initializeMetadataExporter();
 
     void tokenGrantFinished();
     void profileRequestFinished();
+
+#if defined(WEBRTC_DATA_CHANNELS)
+    void forwardAssignmentClientSignalingMessageToUserClient(QSharedPointer<ReceivedMessage> message);
+#endif
 
     void aboutToQuit();
 
@@ -153,6 +160,12 @@ signals:
     void iceServerChanged();
     void userConnected();
     void userDisconnected();
+
+#if defined(WEBRTC_DATA_CHANNELS)
+    void webrtcSignalingMessageForDomainServer(const QJsonObject& json);
+    void webrtcSignalingMessageForUserClient(const QJsonObject& json);
+#endif
+
 
 private:
     QUuid getID();
@@ -186,7 +199,7 @@ private:
     void handleKillNode(SharedNodePointer nodeToKill);
     void broadcastNodeDisconnect(const SharedNodePointer& disconnnectedNode);
 
-    void sendDomainListToNode(const SharedNodePointer& node, quint64 requestPacketReceiveTime, const HifiSockAddr& senderSockAddr, bool newConnection);
+    void sendDomainListToNode(const SharedNodePointer& node, quint64 requestPacketReceiveTime, const SockAddr& senderSockAddr, bool newConnection);
 
     bool isInInterestSet(const SharedNodePointer& nodeA, const SharedNodePointer& nodeB);
 
@@ -212,7 +225,7 @@ private:
     QNetworkReply* profileRequestGivenTokenReply(QNetworkReply* tokenReply);
     Headers setupCookieHeadersFromProfileReply(QNetworkReply* profileReply);
 
-    QJsonObject jsonForSocket(const HifiSockAddr& socket);
+    QJsonObject jsonForSocket(const SockAddr& socket);
     QJsonObject jsonObjectForNode(const SharedNodePointer& node);
 
     bool shouldReplicateNode(const Node& node);
@@ -228,11 +241,18 @@ private:
     bool processPendingContent(HTTPConnection* connection, QString itemName, QString filename, QByteArray dataChunk);
 
     bool forwardMetaverseAPIRequest(HTTPConnection* connection,
+                                    const QUrl& requestUrl,
                                     const QString& metaversePath,
-                                    const QString& requestSubobject,
+                                    const QString& requestSubobjectKey = "",
                                     std::initializer_list<QString> requiredData = { },
                                     std::initializer_list<QString> optionalData = { },
                                     bool requireAccessToken = true);
+
+#if defined(WEBRTC_DATA_CHANNELS)
+    void setUpWebRTCSignalingServer();
+    void routeWebRTCSignalingMessage(const QJsonObject& json);
+    void sendWebRTCSignalingMessageToAssignmentClient(const QJsonObject& json);
+#endif
 
     QString operationToString(const QNetworkAccessManager::Operation &op);
 
@@ -246,7 +266,7 @@ private:
     HTTPManager _httpManager;
     HTTPManager* _httpExporterManager { nullptr };
     HTTPManager* _httpMetadataExporterManager { nullptr };
-    
+
     std::unique_ptr<HTTPSManager> _httpsManager;
 
     QHash<QUuid, SharedAssignmentPointer> _allAssignments;
@@ -270,7 +290,7 @@ private:
 
     DomainServerSettingsManager _settingsManager;
 
-    HifiSockAddr _iceServerSocket;
+    SockAddr _iceServerSocket;
     std::unique_ptr<NLPacket> _iceServerHeartbeatPacket;
 
     // These will be parented to this, they are not dangling
@@ -311,6 +331,10 @@ private:
     std::unordered_map<int, std::unique_ptr<QTemporaryFile>> _pendingContentFiles;
 
     QThread _assetClientThread;
+
+#if defined(WEBRTC_DATA_CHANNELS)
+    std::unique_ptr<WebRTCSignalingServer> _webrtcSignalingServer { nullptr };
+#endif
 };
 
 

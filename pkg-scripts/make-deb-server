@@ -2,6 +2,7 @@
 
 if [ "$VIRCADIA" = "" ]; then
 	VIRCADIA=`realpath ../..`
+	QT5_LIBS=`realpath ../../../vircadia-files/qt/qt5-install/lib`
 fi
 
 GITDATE=`git -C $VIRCADIA/source log -n 1 --format=raw | grep author | cut -d">" -f 2 | cut -d" " -f 2 | xargs -I {} date -d @{} +"%Y%m%d"`
@@ -21,15 +22,17 @@ cp $VIRCADIA/build/tools/oven/oven $DEB_BUILD_ROOT
 cp $VIRCADIA/build/libraries/*/*.so $DEB_BUILD_ROOT
 #cp $VIRCADIA/build/ice-server/ice-server $DEB_BUILD_ROOT
 chrpath -d $DEB_BUILD_ROOT/*
-cp $VIRCADIA/qt5-install/lib/libQt5Network.so.*.*.* $DEB_BUILD_ROOT
-cp $VIRCADIA/qt5-install/lib/libQt5Core.so.*.*.* $DEB_BUILD_ROOT
-cp $VIRCADIA/qt5-install/lib/libQt5Widgets.so.*.*.* $DEB_BUILD_ROOT
-cp $VIRCADIA/qt5-install/lib/libQt5Gui.so.*.*.* $DEB_BUILD_ROOT
-cp $VIRCADIA/qt5-install/lib/libQt5Script.so.*.*.* $DEB_BUILD_ROOT
-cp $VIRCADIA/qt5-install/lib/libQt5WebSockets.so.*.*.* $DEB_BUILD_ROOT
-cp $VIRCADIA/qt5-install/lib/libQt5Qml.so.*.*.* $DEB_BUILD_ROOT
-cp $VIRCADIA/qt5-install/lib/libQt5ScriptTools.so.*.*.* $DEB_BUILD_ROOT
-chmod +x $DEB_BUILD_ROOT/*.so.*.*.*
+if [ "$VIRCADIA_USE_SYSTEM_QT" = "" ]; then
+	cp $QT5_LIBS/libQt5Network.so.*.*.* $DEB_BUILD_ROOT
+	cp $QT5_LIBS/libQt5Core.so.*.*.* $DEB_BUILD_ROOT
+	cp $QT5_LIBS/libQt5Widgets.so.*.*.* $DEB_BUILD_ROOT
+	cp $QT5_LIBS/libQt5Gui.so.*.*.* $DEB_BUILD_ROOT
+	cp $QT5_LIBS/libQt5Script.so.*.*.* $DEB_BUILD_ROOT
+	cp $QT5_LIBS/libQt5WebSockets.so.*.*.* $DEB_BUILD_ROOT
+	cp $QT5_LIBS/libQt5Qml.so.*.*.* $DEB_BUILD_ROOT
+	cp $QT5_LIBS/libQt5ScriptTools.so.*.*.* $DEB_BUILD_ROOT
+	chmod +x $DEB_BUILD_ROOT/*.so.*.*.*
+fi
 strip --strip-all $DEB_BUILD_ROOT/*
 cp $VIRCADIA/source/pkg-scripts/new-server $DEB_BUILD_ROOT
 cp -a $VIRCADIA/source/domain-server/resources $DEB_BUILD_ROOT
@@ -71,9 +74,11 @@ echo domain-server opt/vircadia >> debian/install
 echo oven opt/vircadia >> debian/install
 #echo ice-server opt/vircadia >> debian/install
 echo new-server opt/vircadia >> debian/install
-for so in *.so.*.*.*; do
-	echo $so opt/vircadia/lib >> debian/install
-done
+if [ "$VIRCADIA_USE_SYSTEM_QT" = "" ]; then
+	for so in *.so.*.*.*; do
+		echo $so opt/vircadia/lib >> debian/install
+	done
+fi
 for so in *.so; do
 	echo $so opt/vircadia/lib >> debian/install
 done
@@ -86,7 +91,11 @@ done
 find resources -type f -exec sh -c 'echo {} opt/vircadia/$(dirname "{}") >> debian/install' \;
 find plugins -type f -exec sh -c 'echo {} opt/vircadia/$(dirname "{}") >> debian/install' \;
 
-SOFILES=`ls *.so *.so.*.*.* | grep -Po '^(.+\.so(\.\d+)?)' | sed 's/\./\\\./g' | paste -d'|' -s`
+if [ "$VIRCADIA_USE_SYSTEM_QT" = "" ]; then
+	SOFILES=`ls *.so *.so.*.*.* | grep -Po '^(.+\.so(\.\d+)?)' | sed 's/\./\\\./g' | paste -d'|' -s`
+else
+	SOFILES=`ls *.so | grep -Po '^(.+\.so(\.\d+)?)' | sed 's/\./\\\./g' | paste -d'|' -s`
+fi
 
 DEPENDS=`find * -path debian -prune -o -type f -executable -exec sh -c 'objdump -p {} | grep NEEDED' \; \
 	| awk '{print $2}' | sort | uniq | egrep -v "^($SOFILES)$" \

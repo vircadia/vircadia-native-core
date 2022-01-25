@@ -9,13 +9,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_SceneScriptingInterface_h
 #define hifi_SceneScriptingInterface_h
 
 #include <qscriptengine.h>
 #include <DependencyManager.h>
 
-/**jsdoc
+/*@jsdoc
  * The <code>Scene</code> API provides some control over what is rendered.
  *
  * @namespace Scene
@@ -28,6 +31,7 @@
  * @property {boolean} shouldRenderEntities - <code>true</code> if entities (domain, avatar, and local) are rendered, 
  *     <code>false</code> if they aren't.
  */
+/// Provides the <code><a href="https://apidocs.vircadia.dev/Scene.html">Scene</a></code> scripting interface
 class SceneScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -42,7 +46,7 @@ public:
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when whether or not avatars are rendered changes.
      * @function Scene.shouldRenderAvatarsChanged
      * @param {boolean} shouldRenderAvatars - <code>true</code> if avatars are rendered, <code>false</code> if they aren't.
@@ -54,7 +58,7 @@ signals:
      */
     void shouldRenderAvatarsChanged(bool shouldRenderAvatars);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when whether or not entities are rendered changes.
      * @function Scene.shouldRenderEntitiesChanged
      * @param {boolean} shouldRenderEntities - <code>true</code> if entities (domain, avatar, and local) are rendered, 
@@ -69,3 +73,5 @@ protected:
 };
 
 #endif // hifi_SceneScriptingInterface_h 
+
+/// @}

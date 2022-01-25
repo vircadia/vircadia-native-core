@@ -13,6 +13,8 @@
 
 #include "CrashHandler.h"
 
+Q_LOGGING_CATEGORY(crash_handler, "vircadia.crash_handler")
+
 #include <assert.h>
 
 #include <vector>
@@ -139,6 +141,10 @@ crashpad::SimpleStringDictionary* crashpadAnnotations{ nullptr };
 static const QString CRASHPAD_HANDLER_NAME{ "crashpad_handler.exe" };
 #else
 static const QString CRASHPAD_HANDLER_NAME{ "crashpad_handler" };
+#endif
+
+#ifdef Q_OS_LINUX
+#include <unistd.h>
 #endif
 
 #ifdef Q_OS_WIN
@@ -311,8 +317,38 @@ void checkUnhandledExceptionHook() {
 // ------------------------------------------------------------------------------------------------
 #endif  // Q_OS_WIN
 
+// Locate the full path to the binary's directory
+static QString findBinaryDir() {
+    // Normally we'd just use QCoreApplication::applicationDirPath(), but we can't.
+    // That function needs the QApplication to be created first, and Crashpad is initialized as early as possible,
+    // which is well before QApplication, so that function throws out a warning and returns ".".
+    //
+    // So we must do things the hard way here. In particular this is needed to correctly handle things in AppImage
+    // on Linux. On Windows and MacOS falling back to argv[0] should be fine.
+
+#ifdef Q_OS_LINUX
+    // Find outselves by looking at /proc/<PID>/exe
+    pid_t ourPid = getpid();
+    QString exeLink = QString("/proc/%1/exe").arg(ourPid);
+    qCDebug(crash_handler) << "Looking at" << exeLink;
+
+    QFileInfo exeLinkInfo(exeLink);
+    if (exeLinkInfo.isSymLink()) {
+        QFileInfo exeInfo(exeLinkInfo.symLinkTarget());
+        qCDebug(crash_handler) << "exe symlink points at" << exeInfo;
+        return exeInfo.absoluteDir().absolutePath();
+    } else {
+        qCWarning(crash_handler) << exeLink << "isn't a symlink. /proc not mounted?";
+    }
+
+#endif
+
+    return QString();
+}
+
 bool startCrashHandler(std::string appPath) {
     if (BACKTRACE_URL.empty() || BACKTRACE_TOKEN.empty()) {
+        qCCritical(crash_handler) << "Backtrace URL or token not set, crash handler disabled.";
         return false;
     }
 
@@ -338,10 +374,30 @@ bool startCrashHandler(std::string appPath) {
     const auto crashpadDbPath = crashpadDbDir.toStdString() + "/" + crashpadDbName;
 
     // Locate Crashpad handler
-    const QFileInfo interfaceBinary{ QString::fromStdString(appPath) };
-    const QDir interfaceDir = interfaceBinary.dir();
-    assert(interfaceDir.exists(CRASHPAD_HANDLER_NAME));
+    QString binaryDir = findBinaryDir();
+    QDir interfaceDir;
+
+    if (!binaryDir.isEmpty()) {
+        // Locating ourselves by argv[0] fails in the case of AppImage on Linux, as we get the AppImage
+        // itself in there. If we have a platform-specific method, and it succeeds, we use that instead
+        // of argv.
+        qCDebug(crash_handler) << "Locating own directory by platform-specific method";
+        interfaceDir.setPath(binaryDir);
+    } else {
+        qCDebug(crash_handler) << "Locating own directory by argv[0]";
+        interfaceDir.setPath(QString::fromStdString(appPath));
+        // argv[0] gets us the path including the binary file
+        interfaceDir.cdUp();
+    }
+
+    if (!interfaceDir.exists(CRASHPAD_HANDLER_NAME)) {
+        qCCritical(crash_handler) << "Failed to find" << CRASHPAD_HANDLER_NAME << "in" << interfaceDir << ", can't start crash handler";
+        return false;
+    }
+
     const std::string CRASHPAD_HANDLER_PATH = interfaceDir.filePath(CRASHPAD_HANDLER_NAME).toStdString();
+
+    qCDebug(crash_handler) << "Crashpad handler found at" << QString::fromStdString(CRASHPAD_HANDLER_PATH);
 
     // Setup different file paths
     base::FilePath::StringType dbPath;
@@ -352,8 +408,10 @@ bool startCrashHandler(std::string appPath) {
     base::FilePath db(dbPath);
     base::FilePath handler(handlerPath);
 
+    qCDebug(crash_handler) << "Opening crashpad database" << QString::fromStdString(crashpadDbPath);
     auto database = crashpad::CrashReportDatabase::Initialize(db);
     if (database == nullptr || database->GetSettings() == nullptr) {
+        qCCritical(crash_handler) << "Failed to open crashpad database" << QString::fromStdString(crashpadDbPath);
         return false;
     }
 
@@ -361,6 +419,7 @@ bool startCrashHandler(std::string appPath) {
     database->GetSettings()->SetUploadsEnabled(true);
 
     if (!client->StartHandler(handler, db, db, BACKTRACE_URL, annotations, arguments, true, true)) {
+        qCCritical(crash_handler) << "Failed to start crashpad handler";
         return false;
     }
 
@@ -369,6 +428,7 @@ bool startCrashHandler(std::string appPath) {
     gl_crashpadUnhandledExceptionFilter = SetUnhandledExceptionFilter(unhandledExceptionHandler);
 #endif
 
+    qCInfo(crash_handler) << "Crashpad initialized";
     return true;
 }
 

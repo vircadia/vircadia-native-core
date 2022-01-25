@@ -60,7 +60,7 @@ MouseEvent::MouseEvent(const QMouseEvent& event) :
     }
 }
 
-/**jsdoc
+/*@jsdoc
  * A controller mouse movement or button event.
  * @typedef {object} MouseEvent
  * @property {number} x - Integer x-coordinate of the event on the Interface window or HMD HUD.

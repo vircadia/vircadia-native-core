@@ -11,7 +11,7 @@
 
 #include "QString"
 
-/**jsdoc
+/*@jsdoc
  * <p>Specifies how a web surface processes events.</p>
  * <table>
  *   <thead>

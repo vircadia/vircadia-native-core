@@ -16,7 +16,7 @@ const float HACK_HMD_TARGET_WEIGHT = 8.0f;
 
 class IKTarget {
 public:
-    /**jsdoc
+    /*@jsdoc
      * <p>An IK target type.</p>
      * <table>
      *   <thead>

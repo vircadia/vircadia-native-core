@@ -29,7 +29,7 @@ public:
     CheckoutProxy(QObject* qmlObject, QObject* parent = nullptr);
 };
 
-/**jsdoc
+/*@jsdoc
  * The <code>WalletScriptingInterface</code> API provides functions related to the user's wallet and verification of certified 
  * avatar entities.
  *
@@ -54,13 +54,13 @@ public:
 
     WalletScriptingInterface();
 
-    /**jsdoc
+    /*@jsdoc
      * Checks and updates the user's wallet status.
      * @function WalletScriptingInterface.refreshWalletStatus
      */
     Q_INVOKABLE void refreshWalletStatus();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the current status of the user's wallet.
      * @function WalletScriptingInterface.getWalletStatus
      * @returns {WalletScriptingInterface.WalletStatus}
@@ -70,7 +70,7 @@ public:
      */
     Q_INVOKABLE uint getWalletStatus() { return _walletStatus; }
 
-    /**jsdoc
+    /*@jsdoc
      * Check that a certified avatar entity is owned by the avatar whose entity it is. The result of the check is provided via 
      * the {@link WalletScriptingInterface.ownershipVerificationSuccess|ownershipVerificationSuccess} and 
      * {@link WalletScriptingInterface.ownershipVerificationFailed|ownershipVerificationFailed} signals.
@@ -117,7 +117,7 @@ public:
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the user's wallet status changes.
      * @function WalletScriptingInterface.walletStatusChanged
      * @returns {Signal}
@@ -128,14 +128,14 @@ signals:
      */
     void walletStatusChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the user's limited commerce status changes.
      * @function WalletScriptingInterface.limitedCommerceChanged
      * @returns {Signal}
      */
     void limitedCommerceChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the user rezzes a certified entity but the user's wallet is not ready. So the certified location of the
      * entity cannot be updated in the metaverse.
      * @function WalletScriptingInterface.walletNotSetup
@@ -143,7 +143,7 @@ signals:
      */
     void walletNotSetup();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when a certified avatar entity's ownership check requested via 
      * {@link WalletScriptingInterface.proveAvatarEntityOwnershipVerification|proveAvatarEntityOwnershipVerification} or 
      * {@link ContextOverlay.requestOwnershipVerification} succeeds. 
@@ -153,7 +153,7 @@ signals:
      */
     void ownershipVerificationSuccess(const QUuid& entityID);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when a certified avatar entity's ownership check requested via
      * {@link WalletScriptingInterface.proveAvatarEntityOwnershipVerification|proveAvatarEntityOwnershipVerification} or
      * {@link ContextOverlay.requestOwnershipVerification} fails.

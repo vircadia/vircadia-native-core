@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2014-10-02.
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -37,7 +38,7 @@ NetworkPeer::NetworkPeer(QObject* parent) :
     _lastHeardMicrostamp = usecTimestampNow();
 }
 
-NetworkPeer::NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket, QObject* parent) :
+NetworkPeer::NetworkPeer(const QUuid& uuid, const SockAddr& publicSocket, const SockAddr& localSocket, QObject* parent) :
     QObject(parent),
     _uuid(uuid),
     _publicSocket(publicSocket),
@@ -50,7 +51,7 @@ NetworkPeer::NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, co
     _lastHeardMicrostamp = usecTimestampNow();
 }
 
-void NetworkPeer::setPublicSocket(const HifiSockAddr& publicSocket) {
+void NetworkPeer::setPublicSocket(const SockAddr& publicSocket) {
     if (publicSocket != _publicSocket) {
         if (_activeSocket == &_publicSocket) {
             // if the active socket was the public socket then reset it to NULL
@@ -70,7 +71,7 @@ void NetworkPeer::setPublicSocket(const HifiSockAddr& publicSocket) {
     }
 }
 
-void NetworkPeer::setLocalSocket(const HifiSockAddr& localSocket) {
+void NetworkPeer::setLocalSocket(const SockAddr& localSocket) {
     if (localSocket != _localSocket) {
         if (_activeSocket == &_localSocket) {
             // if the active socket was the local socket then reset it to NULL
@@ -90,7 +91,7 @@ void NetworkPeer::setLocalSocket(const HifiSockAddr& localSocket) {
     }
 }
 
-void NetworkPeer::setSymmetricSocket(const HifiSockAddr& symmetricSocket) {
+void NetworkPeer::setSymmetricSocket(const SockAddr& symmetricSocket) {
     if (symmetricSocket != _symmetricSocket) {
         if (_activeSocket == &_symmetricSocket) {
             // if the active socket was the symmetric socket then reset it to NULL
@@ -110,13 +111,13 @@ void NetworkPeer::setSymmetricSocket(const HifiSockAddr& symmetricSocket) {
     }
 }
 
-void NetworkPeer::setActiveSocket(HifiSockAddr* discoveredSocket) {
+void NetworkPeer::setActiveSocket(SockAddr* discoveredSocket) {
     _activeSocket = discoveredSocket;
 
     // we have an active socket, stop our ping timer
     stopPingTimer();
 
-    // we're now considered connected to this peer - reset the number of connection attemps
+    // we're now considered connected to this peer - reset the number of connection attempts
     resetConnectionAttempts();
     
     if (_activeSocket) {
@@ -145,7 +146,7 @@ void NetworkPeer::activateSymmetricSocket() {
     }
 }
 
-void NetworkPeer::activateMatchingOrNewSymmetricSocket(const HifiSockAddr& matchableSockAddr) {
+void NetworkPeer::activateMatchingOrNewSymmetricSocket(const SockAddr& matchableSockAddr) {
     if (matchableSockAddr == _publicSocket) {
         activatePublicSocket();
     } else if (matchableSockAddr == _localSocket) {

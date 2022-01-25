@@ -1,9 +1,13 @@
 # add the tool directories
+message(STATUS "Checking for npm")
 find_npm()
 
 if (NPM_EXECUTABLE)
-  add_subdirectory(jsdoc)
-  set_target_properties(jsdoc PROPERTIES FOLDER "Tools")
+    message(STATUS "Checking for npm - found ${NPM_EXECUTABLE}, will build jsdoc")
+    add_subdirectory(jsdoc)
+    set_target_properties(jsdoc PROPERTIES FOLDER "Tools")
+else()
+    message(NOTICE "Checking for npm - not found, jsdoc won't be genereated. Tab completion in the js console won't work!")
 endif()
 
 function(check_test name)
@@ -21,20 +25,27 @@ endfunction()
 if (BUILD_TOOLS)
     set(ALL_TOOLS 
         udt-test
-        vhacd-util
         gpu-frame-player
         ice-client
         ktx-tool
         ac-client
         skeleton-dump
         atp-client
-        oven
     )
+
+    # Don't include oven or vhacd-til in OSX client-only DMGs.
+    if (NOT CLIENT_ONLY OR NOT APPLE)
+        list(APPEND ALL_TOOLS oven)
+        list(APPEND ALL_TOOLS vhacd-util)
+    endif()
 
     # Allow different tools for stable builds
     if (STABLE_BUILD)
     else()
-        list(APPEND ALL_TOOLS nitpick)
+        # Don't include nitpick in OSX client-only DMGs.
+        if (NOT APPLE OR NOT CLIENT_ONLY)
+            list(APPEND ALL_TOOLS nitpick)
+        endif()
     endif()
 
     foreach(TOOL ${ALL_TOOLS})

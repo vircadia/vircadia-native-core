@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2015-07-24.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -26,7 +27,7 @@ int ControlPacket::maxPayloadSize() {
 }
 
 std::unique_ptr<ControlPacket> ControlPacket::fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size,
-                                                                 const HifiSockAddr &senderSockAddr) {
+                                                                 const SockAddr &senderSockAddr) {
     // Fail with null data
     Q_ASSERT(data);
     
@@ -56,7 +57,7 @@ ControlPacket::ControlPacket(Type type, qint64 size) :
     writeType();
 }
 
-ControlPacket::ControlPacket(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr) :
+ControlPacket::ControlPacket(std::unique_ptr<char[]> data, qint64 size, const SockAddr& senderSockAddr) :
     BasePacket(std::move(data), size, senderSockAddr)
 {
     // sanity check before we decrease the payloadSize with the payloadCapacity
@@ -97,10 +98,11 @@ void ControlPacket::writeType() {
 void ControlPacket::readType() {
     ControlBitAndType bitAndType = *reinterpret_cast<ControlBitAndType*>(_packet.get());
     
-    Q_ASSERT_X(bitAndType & CONTROL_BIT_MASK, "ControlPacket::readHeader()", "This should be a control packet");
+    Q_ASSERT_X(bitAndType & CONTROL_BIT_MASK, "ControlPacket::readType()", "This should be a control packet");
     
     uint16_t packetType = (bitAndType & ~CONTROL_BIT_MASK) >> (8 * sizeof(Type));
-    Q_ASSERT_X(packetType <= ControlPacket::Type::HandshakeRequest, "ControlPacket::readType()", "Received a control packet with wrong type");
+    Q_ASSERT_X(packetType <= ControlPacket::Type::HandshakeRequest, "ControlPacket::readType()",
+        "Received a control packet with invalid type");
     
     // read the type
     _type = (Type) packetType;

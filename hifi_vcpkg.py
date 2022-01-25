@@ -44,13 +44,14 @@ endif()
         self.assets_url = self.readVar('EXTERNAL_BUILD_ASSETS')
 
         # The noClean flag indicates we're doing weird dependency maintenance stuff
-        # i.e. we've got an explicit checkout of vcpkg and we don't want the script to 
-        # do stuff it might otherwise do.  It typically indicates that we're using our 
+        # i.e. we've got an explicit checkout of vcpkg and we don't want the script to
+        # do stuff it might otherwise do.  It typically indicates that we're using our
         # own git checkout of vcpkg and manually managing it
         self.noClean = False
 
         # OS dependent information
         system = platform.system()
+        machine = platform.machine()
 
         if 'HIFI_VCPKG_PATH' in os.environ:
             self.path = os.environ['HIFI_VCPKG_PATH']
@@ -59,8 +60,11 @@ endif()
             self.path = args.vcpkg_root
             self.noClean = True
         else:
-            defaultBasePath = os.path.expanduser('~/hifi/vcpkg')
-            self.basePath = os.getenv('HIFI_VCPKG_BASE', defaultBasePath)
+            defaultBasePath = os.path.expanduser('~/vircadia-files/vcpkg')
+            if 'CI_WORKSPACE' in os.environ:
+                self.basePath = os.path.join(os.getenv('CI_WORKSPACE'), 'vircadia-files/vcpkg')
+            else:
+                self.basePath = os.getenv('HIFI_VCPKG_BASE', defaultBasePath)
             if self.args.android:
                 self.basePath = os.path.join(self.basePath, 'android')
             if (not os.path.isdir(self.basePath)):
@@ -105,6 +109,12 @@ endif()
             self.bootstrapEnv['CXXFLAGS'] = '-D_CTERMID_H_'
             if usePrebuilt:
                 self.prebuiltArchive = self.assets_url + "/dependencies/vcpkg/builds/vcpkg-osx.tgz%3FversionId=6JrIMTdvpBF3MAsjA92BMkO79Psjzs6Z"
+        elif 'Linux' == system and 'aarch64' == machine:
+            self.exe = os.path.join(self.path, 'vcpkg')
+            self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '-disableMetrics' ]
+            self.vcpkgUrl = self.assets_url + '/dependencies/vcpkg/vcpkg-linux_aarch64_2021.05.12.tar.xz'
+            self.vcpkgHash = '7abb7aa96200e3cb5a6d0ec1c6ee63aa7886df2d1fecf8f9ee41ebe4d2cea0d4143274222c4941cb7aca61e4048229fdfe9eb2cd36dd559dd26db871a3b3ed61'
+            self.hostTriplet = 'arm64-linux'
         else:
             self.exe = os.path.join(self.path, 'vcpkg')
             self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '-disableMetrics' ]

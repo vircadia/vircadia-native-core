@@ -24,7 +24,7 @@ void CalculateMeshNormalsTask::run(const baker::BakeContextPointer& context, con
         auto& normalsOut = normalsPerMeshOut[normalsPerMeshOut.size()-1];
         // Only calculate normals if this mesh doesn't already have them
         if (!mesh.normals.empty()) {
-            normalsOut = mesh.normals.toStdVector();
+            normalsOut = std::vector<glm::vec3>(mesh.normals.begin(), mesh.normals.end());
         } else {
             normalsOut.resize(mesh.vertices.size());
             baker::calculateNormals(mesh,

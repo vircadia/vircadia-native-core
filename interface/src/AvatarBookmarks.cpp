@@ -180,7 +180,7 @@ void AvatarBookmarks::updateAvatarEntities(const QVariantList &avatarEntities) {
     }
 }
 
-/**jsdoc
+/*@jsdoc
  * Details of an avatar bookmark.
  * @typedef {object} AvatarBookmarks.BookmarkData
  * @property {number} version - The version of the bookmark data format.

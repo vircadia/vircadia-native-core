@@ -4,6 +4,7 @@
 //
 //  Created by Clement on 7/2/15.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -61,7 +62,7 @@ std::unique_ptr<Packet> Packet::create(qint64 size, bool isReliable, bool isPart
     return packet;
 }
 
-std::unique_ptr<Packet> Packet::fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr) {
+std::unique_ptr<Packet> Packet::fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size, const SockAddr& senderSockAddr) {
     // Fail with invalid size
     Q_ASSERT(size >= 0);
 
@@ -87,7 +88,7 @@ Packet::Packet(qint64 size, bool isReliable, bool isPartOfMessage) :
     writeHeader();
 }
 
-Packet::Packet(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr) :
+Packet::Packet(std::unique_ptr<char[]> data, qint64 size, const SockAddr& senderSockAddr) :
     BasePacket(std::move(data), size, senderSockAddr)
 {
     readHeader();

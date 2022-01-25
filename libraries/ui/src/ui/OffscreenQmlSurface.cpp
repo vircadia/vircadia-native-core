@@ -24,6 +24,7 @@
 #include <QtQuick/QQuickRenderControl>
 #include <QtCore/QThread>
 #include <QtCore/QMutex>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QWaitCondition>
 #include <QtMultimedia/QMediaService>
 #include <QtMultimedia/QAudioOutputSelectorControl>

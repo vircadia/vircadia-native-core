@@ -12,7 +12,37 @@ vcpkg_from_github(
   HEAD_REF
   master)
 
-vcpkg_configure_cmake(SOURCE_PATH ${SOURCE_PATH} PREFER_NINJA)
+if(WIN32)
+    set(VIRCADIA_OPUS_OPTIONS "")
+else()
+    if(EXISTS "${VCPKG_ROOT_DIR}/_env/VIRCADIA_OPTIMIZE.txt")
+        file(READ "${VCPKG_ROOT_DIR}/_env/VIRCADIA_OPTIMIZE.txt" VIRCADIA_OPTIMIZE)
+    endif()
+    if(EXISTS "${VCPKG_ROOT_DIR}/_env/VIRCADIA_CPU_ARCHITECTURE.txt")
+        file(READ "${VCPKG_ROOT_DIR}/_env/VIRCADIA_CPU_ARCHITECTURE.txt" VIRCADIA_CPU_ARCHITECTURE)
+    endif()
+
+    if(VIRCADIA_OPTIMIZE)
+        set(VIRCADIA_OPUS_OPTIONS "-DCMAKE_BUILD_TYPE=Release")
+    else()
+        set(VIRCADIA_OPUS_OPTIONS "-DCMAKE_BUILD_TYPE=RelWithDebInfo")
+    endif()
+
+    set(VIRCADIA_OPUS_OPTIONS "${VIRCADIA_OPUS_OPTIONS}")
+
+    if(DEFINED VIRCADIA_CPU_ARCHITECTURE)
+        set(VIRCADIA_OPUS_OPTIONS "${VIRCADIA_OPUS_OPTIONS} -DCMAKE_CXX_FLAGS=\"${VIRCADIA_CPU_ARCHITECTURE}\" -DCMAKE_C_FLAGS=\"${VIRCADIA_CPU_ARCHITECTURE}\" ")
+    endif()
+endif()
+
+message("Optimization options for Opus: ${VIRCADIA_OPUS_OPTIONS}")
+
+vcpkg_configure_cmake(
+    SOURCE_PATH ${SOURCE_PATH}
+    PREFER_NINJA
+    OPTIONS ${VIRCADIA_OPUS_OPTIONS}
+)
+
 vcpkg_install_cmake()
 vcpkg_fixup_cmake_targets(CONFIG_PATH lib/cmake/Opus)
 vcpkg_copy_pdbs()

@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 11/25/2013.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -13,6 +14,7 @@
 
 #include <assert.h>
 
+#include <QJsonDocument>
 #include <QProcess>
 #include <QSharedMemory>
 #include <QThread>
@@ -44,7 +46,8 @@ const long long ASSIGNMENT_REQUEST_INTERVAL_MSECS = 1 * 1000;
 
 AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QString assignmentPool,
                                    quint16 listenPort, QUuid walletUUID, QString assignmentServerHostname,
-                                   quint16 assignmentServerPort, quint16 assignmentMonitorPort) :
+                                   quint16 assignmentServerPort, quint16 assignmentMonitorPort,
+                                   bool disableDomainPortAutoDiscovery) :
     _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME)
 {
     LogUtils::init();
@@ -82,12 +85,19 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
         _assignmentServerHostname = assignmentServerHostname;
     }
 
-    _assignmentServerSocket = HifiSockAddr(_assignmentServerHostname, assignmentServerPort, true);
+    _assignmentServerSocket = SockAddr(SocketType::UDP, _assignmentServerHostname, assignmentServerPort, true);
     if (_assignmentServerSocket.isNull()) {
         qCCritical(assignment_client) << "PAGE: Couldn't resolve domain server address" << _assignmentServerHostname;
     }
     _assignmentServerSocket.setObjectName("AssignmentServer");
     nodeList->setAssignmentServerSocket(_assignmentServerSocket);
+
+    if (disableDomainPortAutoDiscovery) {
+        _disableDomainPortAutoDiscovery = disableDomainPortAutoDiscovery;
+        qCDebug(assignment_client) << "Disabling domain port auto discovery by the assignment client due to parsed command line parameter.";
+    }
+
+    nodeList->disableDomainPortAutoDiscovery(_disableDomainPortAutoDiscovery);
 
     qCDebug(assignment_client) << "Assignment server socket is" << _assignmentServerSocket;
 
@@ -110,7 +120,8 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
 
     // did we get an assignment-client monitor port?
     if (assignmentMonitorPort > 0) {
-        _assignmentClientMonitorSocket = HifiSockAddr(DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME, assignmentMonitorPort);
+        _assignmentClientMonitorSocket = SockAddr(SocketType::UDP, DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME, 
+            assignmentMonitorPort);
         _assignmentClientMonitorSocket.setObjectName("AssignmentClientMonitor");
 
         qCDebug(assignment_client) << "Assignment-client monitor socket is" << _assignmentClientMonitorSocket;
@@ -123,6 +134,18 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
         PacketReceiver::makeUnsourcedListenerReference<AssignmentClient>(this, &AssignmentClient::handleCreateAssignmentPacket));
     packetReceiver.registerListener(PacketType::StopNode,
         PacketReceiver::makeUnsourcedListenerReference<AssignmentClient>(this, &AssignmentClient::handleStopNodePacket));
+
+#if defined(WEBRTC_DATA_CHANNELS)
+    auto webrtcSocket = nodeList->getWebRTCSocket();
+
+    // Route inbound WebRTC signaling messages from the Domain Server.
+    packetReceiver.registerListener(PacketType::WebRTCSignaling,
+        PacketReceiver::makeUnsourcedListenerReference<AssignmentClient>(this, &AssignmentClient::handleWebRTCSignalingPacket));
+    connect(this, &AssignmentClient::webrtcSignalingMessageFromUserClient, webrtcSocket, &WebRTCSocket::onSignalingMessage);
+
+    // Route outbound WebRTC signaling messages via the Domain Server to the user client.
+    connect(webrtcSocket, &WebRTCSocket::sendSignalingMessage, this, &AssignmentClient::sendSignalingMessageToUserClient);
+#endif
 }
 
 void AssignmentClient::stopAssignmentClient() {
@@ -164,7 +187,7 @@ void AssignmentClient::setUpStatusToMonitor() {
 void AssignmentClient::sendStatusPacketToACM() {
     // tell the assignment client monitor what this assignment client is doing (if anything)
     auto nodeList = DependencyManager::get<NodeList>();
-    
+
     quint8 assignmentType = Assignment::Type::AllTypes;
 
     if (_currentAssignment) {
@@ -175,7 +198,7 @@ void AssignmentClient::sendStatusPacketToACM() {
 
     statusPacket->write(_childAssignmentUUID.toRfc4122());
     statusPacket->writePrimitive(assignmentType);
-    
+
     nodeList->sendPacket(std::move(statusPacket), _assignmentClientMonitorSocket);
 }
 
@@ -185,7 +208,7 @@ void AssignmentClient::sendAssignmentRequest() {
 
         auto nodeList = DependencyManager::get<NodeList>();
 
-        if (_assignmentServerHostname == "localhost") {
+        if (_assignmentServerHostname == "localhost" && !_disableDomainPortAutoDiscovery) {
             // we want to check again for the local domain-server port in case the DS has restarted
             quint16 localAssignmentServerPort;
             if (nodeList->getLocalServerPortFromSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, localAssignmentServerPort)) {
@@ -269,11 +292,11 @@ void AssignmentClient::handleCreateAssignmentPacket(QSharedPointer<ReceivedMessa
 }
 
 void AssignmentClient::handleStopNodePacket(QSharedPointer<ReceivedMessage> message) {
-    const HifiSockAddr& senderSockAddr = message->getSenderSockAddr();
-    
+    const SockAddr& senderSockAddr = message->getSenderSockAddr();
+
     if (senderSockAddr.getAddress() == QHostAddress::LocalHost ||
         senderSockAddr.getAddress() == QHostAddress::LocalHostIPv6) {
-        
+
         qCDebug(assignment_client) << "AssignmentClientMonitor at" << senderSockAddr << "requested stop via PacketType::StopNode.";
         QCoreApplication::quit();
     } else {
@@ -307,7 +330,7 @@ void AssignmentClient::handleAuthenticationRequest() {
 
 void AssignmentClient::assignmentCompleted() {
     crash::annotations::setShutdownState(true);
-    
+
     // we expect that to be here the previous assignment has completely cleaned up
     assert(_currentAssignment.isNull());
 
@@ -328,6 +351,48 @@ void AssignmentClient::assignmentCompleted() {
     nodeList->setOwnerType(NodeType::Unassigned);
     nodeList->reset("Assignment completed");
     nodeList->resetNodeInterestSet();
-    
+
     _isAssigned = false;
 }
+
+#if defined(WEBRTC_DATA_CHANNELS)
+
+void AssignmentClient::handleWebRTCSignalingPacket(QSharedPointer<ReceivedMessage> message) {
+    auto messageString = message->readString();
+    auto json = QJsonDocument::fromJson(messageString.toUtf8()).object();
+    if (json.keys().contains("echo")) {
+        // Echo message back to sender.
+
+        if (!json.keys().contains("to") || !json.keys().contains("from")) {
+            qCDebug(assignment_client) << "Invalid WebRTC signaling echo message received.";
+            return;
+        }
+
+        // Swap to/from.
+        auto to = json.value("to");
+        json.insert("to", json.value("from"));
+        json.insert("from", to);
+
+        // Send back to sender via the Domain Server.
+        auto packetList = NLPacketList::create(PacketType::WebRTCSignaling, QByteArray(), true, true);
+        packetList->writeString(QJsonDocument(json).toJson(QJsonDocument::Compact));
+        auto nodeList = DependencyManager::get<NodeList>();
+        auto domainServerAddress = nodeList->getDomainHandler().getSockAddr();
+        nodeList->sendPacketList(std::move(packetList), domainServerAddress);
+
+    } else {
+        // WebRTC signaling message.
+        emit webrtcSignalingMessageFromUserClient(json);
+    }
+}
+
+// Sends a signaling message from the assignment client to the user client via the Domain Server.
+void AssignmentClient::sendSignalingMessageToUserClient(const QJsonObject& json) {
+    auto packetList = NLPacketList::create(PacketType::WebRTCSignaling, QByteArray(), true, true);
+    packetList->writeString(QJsonDocument(json).toJson(QJsonDocument::Compact));
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto domainServerAddress = nodeList->getDomainHandler().getSockAddr();
+    nodeList->sendPacketList(std::move(packetList), domainServerAddress);
+}
+
+#endif

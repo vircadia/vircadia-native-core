@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_MenuItemProperties_h
 #define hifi_MenuItemProperties_h
 
@@ -17,6 +20,7 @@
 #include "KeyEvent.h"
 
 
+/// Represents a menu item a script may declare and bind events to. Exposed as <code><a href="https://apidocs.vircadia.dev/Menu.html#.MenuItemProperties">MenuItemProperties</a></code>
 class MenuItemProperties {
 public:
     MenuItemProperties() {}
@@ -56,3 +60,5 @@ void registerMenuItemProperties(QScriptEngine* engine);
 
 
 #endif // hifi_MenuItemProperties_h
+
+/// @}

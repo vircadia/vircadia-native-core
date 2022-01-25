@@ -13,8 +13,10 @@
 #include "Application.h"
 
 #include "RenderForward.h"
+#include "AntialiasingEffect.h"
 
-/**jsdoc
+
+/*@jsdoc
  * The <code>Render</code> API enables you to configure the graphics engine.
  *
  * @namespace Render
@@ -27,7 +29,7 @@
  * @property {boolean} shadowsEnabled - <code>true</code> if shadows are enabled, <code>false</code> if they're disabled.
  * @property {boolean} ambientOcclusionEnabled - <code>true</code> if ambient occlusion is enabled, <code>false</code> if it's 
  *     disabled.
- * @property {boolean} antialiasingEnabled - <code>true</code> if anti-aliasing is enabled, <code>false</code> if it's disabled.
+ * @property {integer} antialiasingMode - The active anti-aliasing mode.
  * @property {number} viewportResolutionScale - The view port resolution scale, <code>&gt; 0.0</code>.
  */
 class RenderScriptingInterface : public QObject {
@@ -35,7 +37,7 @@ class RenderScriptingInterface : public QObject {
     Q_PROPERTY(RenderMethod renderMethod READ getRenderMethod WRITE setRenderMethod NOTIFY settingsChanged)
     Q_PROPERTY(bool shadowsEnabled READ getShadowsEnabled WRITE setShadowsEnabled NOTIFY settingsChanged)
     Q_PROPERTY(bool ambientOcclusionEnabled READ getAmbientOcclusionEnabled WRITE setAmbientOcclusionEnabled NOTIFY settingsChanged)
-    Q_PROPERTY(bool antialiasingEnabled READ getAntialiasingEnabled WRITE setAntialiasingEnabled NOTIFY settingsChanged)
+    Q_PROPERTY(AntialiasingConfig::Mode antialiasingMode READ getAntialiasingMode WRITE setAntialiasingMode NOTIFY settingsChanged)
     Q_PROPERTY(float viewportResolutionScale READ getViewportResolutionScale WRITE setViewportResolutionScale NOTIFY settingsChanged)
 
 public:
@@ -43,7 +45,7 @@ public:
 
     static RenderScriptingInterface* getInstance();
 
-    /**jsdoc
+    /*@jsdoc
      * <p>The rendering method is specified by the following values:</p>
      * <table>
      *   <thead>
@@ -73,7 +75,7 @@ public:
     void loadSettings();
 
 public slots:
-    /**jsdoc
+    /*@jsdoc
      * Gets the configuration for a rendering job by name.
      * <p><strong>Warning:</strong> For internal, debugging purposes. Subject to change.</p>
      * @function Render.getConfig
@@ -83,7 +85,7 @@ public slots:
     QObject* getConfig(const QString& name) { return qApp->getRenderEngine()->getConfiguration()->getConfig(name); }
 
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the render method being used.
      * @function Render.getRenderMethod
      * @returns {Render.RenderMethod} The render method being used.
@@ -93,14 +95,14 @@ public slots:
      */
     RenderMethod getRenderMethod() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the render method to use.
      * @function Render.setRenderMethod
      * @param {Render.RenderMethod} renderMethod - The render method to use.
      */
     void setRenderMethod(RenderMethod renderMethod);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the names of the possible render methods, per {@link Render.RenderMethod}.
      * @function Render.getRenderMethodNames
      * @returns {string[]} The names of the possible render methods.
@@ -114,56 +116,56 @@ public slots:
     QStringList getRenderMethodNames() const;
 
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether or not shadows are enabled.
      * @function Render.getShadowsEnabled
      * @returns {boolean} <code>true</code> if shadows are enabled, <code>false</code> if they're disabled.
      */
     bool getShadowsEnabled() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether or not shadows are enabled.
      * @function Render.setShadowsEnabled
      * @param {boolean} enabled - <code>true</code> to enable shadows, <code>false</code> to disable.
      */
     void setShadowsEnabled(bool enabled);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether or not ambient occlusion is enabled.
      * @function Render.getAmbientOcclusionEnabled
      * @returns {boolean} <code>true</code> if ambient occlusion is enabled, <code>false</code> if it's disabled.
      */
     bool getAmbientOcclusionEnabled() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether or not ambient occlusion is enabled.
      * @function Render.setAmbientOcclusionEnabled
      * @param {boolean} enabled - <code>true</code> to enable ambient occlusion, <code>false</code> to disable.
      */
     void setAmbientOcclusionEnabled(bool enabled);
 
-    /**jsdoc
-     * Gets whether or not anti-aliasing is enabled.
-     * @function Render.getAntialiasingEnabled
-     * @returns {boolean} <code>true</code> if anti-aliasing is enabled, <code>false</code> if it's disabled.
+    /*@jsdoc
+     * Gets the active anti-aliasing mode.
+     * @function Render.getAntialiasingMode
+     * @returns {integer} the active anti-aliasing mode.
      */
-    bool getAntialiasingEnabled() const;
+    AntialiasingConfig::Mode getAntialiasingMode() const;
 
-    /**jsdoc
-     * Sets whether or not anti-aliasing is enabled.
-     * @function Render.setAntialiasingEnabled
-     * @param {boolean} enabled - <code>true</code> to enable anti-aliasing, <code>false</code> to disable.
+    /*@jsdoc
+     * Sets the active anti-aliasing mode.
+     * @function Render.setAntialiasingMode
+     * @param {integer} the active anti-aliasing mode.
      */
-    void setAntialiasingEnabled(bool enabled);
+    void setAntialiasingMode(AntialiasingConfig::Mode mode);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the view port resolution scale.
      * @function Render.getViewportResolutionScale
      * @returns {number} The view port resolution scale, <code>&gt; 0.0</code>.
      */
     float getViewportResolutionScale() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Sets the view port resolution scale.
      * @function Render.setViewportResolutionScale
      * @param {number} resolutionScale - The view port resolution scale to set, <code>&gt; 0.0</code>.
@@ -172,7 +174,7 @@ public slots:
 
 signals:
     
-    /**jsdoc
+    /*@jsdoc
      * Triggered when one of the <code>Render</code> API's properties changes.
      * @function Render.settingsChanged
      * @returns {Signal}
@@ -192,21 +194,22 @@ private:
     int  _renderMethod{ RENDER_FORWARD ? render::Args::RenderMethod::FORWARD : render::Args::RenderMethod::DEFERRED };
     bool _shadowsEnabled{ true };
     bool _ambientOcclusionEnabled{ false };
-    bool _antialiasingEnabled{ true };
+    AntialiasingConfig::Mode _antialiasingMode{ AntialiasingConfig::Mode::TAA };
     float _viewportResolutionScale{ 1.0f };
 
     // Actual settings saved on disk
     Setting::Handle<int> _renderMethodSetting { "renderMethod", RENDER_FORWARD ? render::Args::RenderMethod::FORWARD : render::Args::RenderMethod::DEFERRED };
     Setting::Handle<bool> _shadowsEnabledSetting { "shadowsEnabled", true };
     Setting::Handle<bool> _ambientOcclusionEnabledSetting { "ambientOcclusionEnabled", false };
-    Setting::Handle<bool> _antialiasingEnabledSetting { "antialiasingEnabled", true };
+    //Setting::Handle<AntialiasingConfig::Mode> _antialiasingModeSetting { "antialiasingMode", AntialiasingConfig::Mode::TAA };
+    Setting::Handle<int> _antialiasingModeSetting { "antialiasingMode", AntialiasingConfig::Mode::TAA };
     Setting::Handle<float> _viewportResolutionScaleSetting { "viewportResolutionScale", 1.0f };
 
     // Force assign both setting AND runtime value to the parameter value
     void forceRenderMethod(RenderMethod renderMethod);
     void forceShadowsEnabled(bool enabled);
     void forceAmbientOcclusionEnabled(bool enabled);
-    void forceAntialiasingEnabled(bool enabled);
+    void forceAntialiasingMode(AntialiasingConfig::Mode mode);
     void forceViewportResolutionScale(float scale);
 
     static std::once_flag registry_flag;

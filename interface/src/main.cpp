@@ -8,8 +8,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <thread>
-
 #include <QCommandLineParser>
 #include <QtCore/QProcess>
 #include <QDebug>
@@ -265,7 +263,7 @@ int main(int argc, const char* argv[]) {
         if (socket.waitForConnected(LOCAL_SERVER_TIMEOUT_MS)) {
             if (parser.isSet(urlOption)) {
                 QUrl url = QUrl(parser.value(urlOption));
-                if (url.isValid() && (url.scheme() == URL_SCHEME_HIFI || url.scheme() == URL_SCHEME_HIFIAPP
+                if (url.isValid() && (url.scheme() == URL_SCHEME_VIRCADIA || url.scheme() == URL_SCHEME_VIRCADIAAPP
                         || url.scheme() == HIFI_URL_SCHEME_HTTP || url.scheme() == HIFI_URL_SCHEME_HTTPS
                         || url.scheme() == HIFI_URL_SCHEME_FILE)) {
                     qDebug() << "Writing URL to local socket";

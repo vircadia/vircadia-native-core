@@ -786,11 +786,11 @@ QUuid Overlays::addOverlay(const QString& type, const QVariant& properties) {
 
         Overlay::Pointer overlay;
         if (type == ImageOverlay::TYPE) {
-            overlay = Overlay::Pointer(new ImageOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
+            overlay = std::shared_ptr<ImageOverlay>(new ImageOverlay(), [](ImageOverlay* ptr) { ptr->deleteLater(); });
         } else if (type == TextOverlay::TYPE) {
-            overlay = Overlay::Pointer(new TextOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
+            overlay = std::shared_ptr<TextOverlay>(new TextOverlay(), [](TextOverlay* ptr) { ptr->deleteLater(); });
         } else if (type == RectangleOverlay::TYPE) {
-            overlay = Overlay::Pointer(new RectangleOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
+            overlay = std::shared_ptr<RectangleOverlay>(new RectangleOverlay(), [](RectangleOverlay* ptr) { ptr->deleteLater(); });
         }
         if (overlay) {
             overlay->setProperties(properties.toMap());
@@ -1329,7 +1329,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
     return result;
 }
 
-/**jsdoc
+/*@jsdoc
  * <p>An overlay may be one of the following types:</p>
  * <table>
  *   <thead>
@@ -1397,7 +1397,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @typedef {string} Overlays.OverlayType
  */
 
-/**jsdoc
+/*@jsdoc
  * Different overlay types have different properties: some common to all overlays (listed in the table) and some specific to 
  * each {@link Overlays.OverlayType|OverlayType} (linked to below).
  * <p>3D overlays are local entities, internally, so they also support the relevant entity's properties.</p>
@@ -1422,7 +1422,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @see {@link Overlays.OverlayProperties-Circle3D|OverlayProperties-Circle3D} &mdash; <span class="important">Deprecated.</span>
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"image"</code> {@link Overlays.OverlayType|OverlayType} is for 2D images.
  * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
  * @typedef {object} Overlays.OverlayProperties-Image
@@ -1442,7 +1442,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <code>1.0</code>. <em>Write-only.</em>
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"text"</code> {@link Overlays.OverlayType|OverlayType} is for 2D text.
  * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
  * @typedef {object} Overlays.OverlayProperties-Text
@@ -1468,7 +1468,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <em>Write-only.</em>
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"rectangle"</code> {@link Overlays.OverlayType|OverlayType} is for 2D rectangles.
  * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
  * @typedef {object} Overlays.OverlayProperties-Rectangle
@@ -1487,7 +1487,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <em>Write-only.</em>
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"cube"</code> {@link Overlays.OverlayType|OverlayType} is for 3D cubes.
  * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
  * It additionally has properties per the {@link Entities.EntityProperties-Box|Box} entity.
@@ -1535,7 +1535,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     than a joint. 
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"sphere"</code> {@link Overlays.OverlayType|OverlayType} is for 3D spheres.
  * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
  * It additionally has properties per the {@link Entities.EntityProperties-Sphere|Sphere} entity.
@@ -1583,7 +1583,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     than a joint.
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"rectangle3D"</code> {@link Overlays.OverlayType|OverlayType} is for 3D rectangles.
  * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
  * It additionally has properties per the {@link Entities.EntityProperties-Shape|Shape} entity, with the <code>shape</code> 
@@ -1632,7 +1632,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     than a joint. 
  */
 
-/**jsdoc
+/*@jsdoc
  * <p>A <code>"shape"</code> {@link Overlays.OverlayType|OverlayType} may display as one of the following geometrical 
  * shapes:</p>
  * <table>
@@ -1659,7 +1659,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @typedef {string} Overlays.Shape
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"shape"</code> {@link Overlays.OverlayType|OverlayType} is for 3D shapes.
  * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
  * It additionally has properties per the {@link Entities.EntityProperties-Shape|Shape} entity.
@@ -1709,7 +1709,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {Overlays.Shape} shape=Hexagon - The geometrical shape of the overlay.
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"model"</code> {@link Overlays.OverlayType|OverlayType} is for 3D models.
  * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
  * It additionally has properties per the {@link Entities.EntityProperties-Model|Model} entity.
@@ -1750,7 +1750,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {Entities.AnimationProperties} animationSettings - An animation to play on the model.
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"text3D"</code> {@link Overlays.OverlayType|OverlayType} is for 3D text.
  * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
  * It additionally has properties per the {@link Entities.EntityProperties-Text|Text} entity.
@@ -1796,7 +1796,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     than a joint.
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"image3D"</code> {@link Overlays.OverlayType|OverlayType} is for 3D images.
  * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
  * It additionally has properties per the {@link Entities.EntityProperties-Image|Image} entity.
@@ -1842,7 +1842,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {string} url - The URL of the image to display.
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"web3d"</code> {@link Overlays.OverlayType|OverlayType} is for 3D web surfaces.
  * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
  * It additionally has properties per the {@link Entities.EntityProperties-Web|Web} entity.
@@ -1888,7 +1888,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {string} url - The URL of the web page to display.
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"line3d"</code> {@link Overlays.OverlayType|OverlayType} is for 3D lines.
  * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
  * It additionally has properties per the {@link Entities.EntityProperties-PolyLine|PolyLine} entity.
@@ -1956,7 +1956,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     property to retrieve its value instead.</em></p>
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"grid"</code> {@link Overlays.OverlayType|OverlayType} is for 3D grids.
  * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
  * It additionally has properties per the {@link Entities.EntityProperties-Grid|Grid} entity.
@@ -2000,7 +2000,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     than a joint.
  */
 
-/**jsdoc
+/*@jsdoc
  * The <code>"circle3d"</code> {@link Overlays.OverlayType|OverlayType} is for 3D circles.
  * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
  * It additionally has properties per the {@link Entities.EntityProperties-Gizmo|Gizmo} entity, with the 

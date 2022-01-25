@@ -35,7 +35,7 @@
 const int CLIENT_TO_AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 50;
 const quint64 MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS = USECS_PER_SECOND / CLIENT_TO_AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND;
 
-/**jsdoc
+/*@jsdoc
  * The <code>AvatarList</code> API provides information about avatars within the current domain.
  *
  * <p><strong>Warning:</strong> An API named "<code>AvatarList</code>" is also provided for Interface, client entity, and avatar 
@@ -80,7 +80,7 @@ public:
 
     // Currently, your own avatar will be included as the null avatar id.
     
-    /**jsdoc
+    /*@jsdoc
      * Gets the IDs of all avatars in the domain.
      * <p><strong>Warning:</strong> If the AC script is acting as an avatar (i.e., <code>Agent.isAvatar == true</code>) the 
      * avatar's ID is NOT included in results.</p>
@@ -92,7 +92,7 @@ public:
      */
     Q_INVOKABLE QVector<QUuid> getAvatarIdentifiers();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the IDs of all avatars within a specified distance from a point.
      * <p><strong>Warning:</strong> If the AC script is acting as an avatar (i.e., <code>Agent.isAvatar == true</code>) the
      * avatar's ID is NOT included in results.</p>
@@ -107,7 +107,7 @@ public:
      */
     Q_INVOKABLE QVector<QUuid> getAvatarsInRange(const glm::vec3& position, float rangeMeters) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets information about an avatar.
      * @function AvatarList.getAvatar
      * @param {Uuid} avatarID - The ID of the avatar.
@@ -126,7 +126,7 @@ public:
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when an avatar arrives in the domain.
      * @function AvatarList.avatarAddedEvent
      * @param {Uuid} sessionUUID - The ID of the avatar that arrived in the domain.
@@ -140,7 +140,7 @@ signals:
      */
     void avatarAddedEvent(const QUuid& sessionUUID);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when an avatar leaves the domain.
      * @function AvatarList.avatarRemovedEvent
      * @param {Uuid} sessionUUID - The ID of the avatar that left the domain.
@@ -154,7 +154,7 @@ signals:
      */
     void avatarRemovedEvent(const QUuid& sessionUUID);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when an avatar's session ID changes.
      * @function AvatarList.avatarSessionChangedEvent
      * @param {Uuid} newSessionUUID - The new session ID.
@@ -171,7 +171,7 @@ signals:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether there is an avatar within a specified distance from a point.
      * @function AvatarList.isAvatarInRange
      * @param {string} position - The test position.
@@ -183,7 +183,7 @@ public slots:
 
 protected slots:
 
-    /**jsdoc
+    /*@jsdoc
      * @function AvatarList.sessionUUIDChanged
      * @param {Uuid} sessionUUID - New session ID.
      * @param {Uuid} oldSessionUUID - Old session ID.
@@ -191,7 +191,7 @@ protected slots:
      */
     void sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID);
 
-    /**jsdoc
+    /*@jsdoc
      * @function AvatarList.processAvatarDataPacket
      * @param {object} message - Message.
      * @param {object} sendingNode - Sending node.
@@ -199,7 +199,7 @@ protected slots:
      */
     void processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
    
-    /**jsdoc
+    /*@jsdoc
      * @function AvatarList.processAvatarIdentityPacket
      * @param {object} message - Message.
      * @param {object} sendingNode - Sending node.
@@ -207,7 +207,7 @@ protected slots:
      */
     void processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     
-    /**jsdoc
+    /*@jsdoc
      * @function AvatarList.processBulkAvatarTraits
      * @param {object} message - Message.
      * @param {object} sendingNode - Sending node.
@@ -215,7 +215,7 @@ protected slots:
      */
     void processBulkAvatarTraits(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     
-    /**jsdoc
+    /*@jsdoc
      * @function AvatarList.processKillAvatar
      * @param {object} message - Message.
      * @param {object} sendingNode - Sending node.

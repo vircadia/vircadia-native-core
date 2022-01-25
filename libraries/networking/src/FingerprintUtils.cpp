@@ -32,20 +32,31 @@
 #include <IOKit/storage/IOMedia.h>
 #endif //Q_OS_MAC
 
+// Number of iterations to apply to the hash, for stretching.
+// The number is arbitrary and has the only purpose of slowing down brute-force
+// attempts. The number here should be low enough not to cause any trouble for
+// low-end hardware.
+//
+// Changing this results in different hardware IDs being computed.
+static const int HASH_ITERATIONS = 65535;
+
+// Salt string for the hardware ID, makes our IDs unique to our project.
+// Changing this results in different hardware IDs being computed.
+static const QByteArray HASH_SALT{"Vircadia"};
+
 static const QString FALLBACK_FINGERPRINT_KEY = "fallbackFingerprint";
 
 QUuid FingerprintUtils::_machineFingerprint { QUuid() };
 
 QString FingerprintUtils::getMachineFingerprintString() {
-    QString uuidString;
+    QCryptographicHash hash(QCryptographicHash::Keccak_256);
+
 #ifdef Q_OS_LINUX
     // As per the documentation:
     // https://man7.org/linux/man-pages/man5/machine-id.5.html
     //
     // we use the machine id as a base, but add an application-specific key to it.
     // If machine-id isn't available, we try hardware networking devices instead.
-
-    QCryptographicHash hash(QCryptographicHash::Keccak_256);
 
     QFile machineIdFile("/etc/machine-id");
     if (!machineIdFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -58,7 +69,7 @@ QString FingerprintUtils::getMachineFingerprintString() {
         if (netDevicesInfo.empty()) {
             // Let getMachineFingerprint handle this contingency
             qCWarning(networking) << "Failed to find any hardware networking devices";
-            return "";
+            return QUuid().toString();
         }
 
         for(auto& fileInfo : netDevicesInfo) {
@@ -84,49 +95,20 @@ QString FingerprintUtils::getMachineFingerprintString() {
         hash.addData(data);
     }
 
-    // Makes this hash unique to us
-    hash.addData("Vircadia");
-
-    // Stretching
-    for (int i=0; i < 65535; i++) {
-        hash.addData(hash.result());
-    }
-
-    QByteArray result = hash.result();
-    result.resize(128 / 8); // GUIDs are 128 bit numbers
-
-    // Set UUID version to 4, ensuring it's a valid UUID
-    result[6] = (result[6] & 0x0F) | 0x40;
-
-    // Of course, Qt couldn't be nice and just parse something like:
-    // 1b1b9d6d45c2473bac13dc3011ff58d6
-    //
-    // So we have to turn it into:
-    // {1b1b9d6d-45c2-473b-ac13-dc3011ff58d6}
-
-    uuidString = result.toHex();
-    uuidString.insert(20, '-');
-    uuidString.insert(16, '-');
-    uuidString.insert(12, '-');
-    uuidString.insert(8, '-');
-    uuidString.prepend("{");
-    uuidString.append("}");
-
-    qCDebug(networking) << "Linux machine fingerprint:" << uuidString;
 #endif //Q_OS_LINUX
 
 #ifdef Q_OS_MAC
     io_registry_entry_t ioRegistryRoot = IORegistryEntryFromPath(kIOMasterPortDefault, "IOService:/");
     CFStringRef uuidCf = (CFStringRef) IORegistryEntryCreateCFProperty(ioRegistryRoot, CFSTR(kIOPlatformUUIDKey), kCFAllocatorDefault, 0);
     IOObjectRelease(ioRegistryRoot);
-    uuidString = QString::fromCFString(uuidCf);
+    hash.addData(QString::fromCFString(uuidCf).toUtf8());
     CFRelease(uuidCf); 
-    qCDebug(networking) << "Mac serial number: " << uuidString;
 #endif //Q_OS_MAC
 
 #ifdef Q_OS_WIN
     HKEY cryptoKey;
-    
+    bool success = false;
+
     // try and open the key that contains the machine GUID
     if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Cryptography", 0, KEY_READ, &cryptoKey) == ERROR_SUCCESS) {
         DWORD type;
@@ -143,7 +125,8 @@ QString FingerprintUtils::getMachineFingerprintString() {
 
                 if (RegQueryValueEx(cryptoKey, MACHINE_GUID_KEY, NULL, NULL,
                                     reinterpret_cast<LPBYTE>(&machineGUID[0]), &guidSize) == ERROR_SUCCESS) {
-                    uuidString = QString::fromStdString(machineGUID);
+                    hash.addData(QString::fromStdString(machineGUID).toUtf8());
+                    success = true;
                 }
             }
         }
@@ -151,10 +134,43 @@ QString FingerprintUtils::getMachineFingerprintString() {
         RegCloseKey(cryptoKey);
     }
 
+    if (!success) {
+        // Let getMachineFingerprint handle this contingency
+        return QUuid().toString();
+    }
 #endif //Q_OS_WIN
 
-    return uuidString;
+    // Makes this hash unique to us
+    hash.addData(HASH_SALT);
 
+    // Stretching
+    for (int i = 0; i < HASH_ITERATIONS; i++) {
+        hash.addData(hash.result());
+    }
+
+    QByteArray result = hash.result();
+    result.resize(128 / 8); // GUIDs are 128 bit numbers
+
+    // Set UUID version to 4, ensuring it's a valid UUID
+    result[6] = (result[6] & 0x0F) | 0x40;
+
+    // Of course, Qt couldn't be nice and just parse something like:
+    // 1b1b9d6d45c2473bac13dc3011ff58d6
+    //
+    // So we have to turn it into:
+    // {1b1b9d6d-45c2-473b-ac13-dc3011ff58d6}
+
+    QString uuidString = result.toHex();
+    uuidString.insert(20, '-');
+    uuidString.insert(16, '-');
+    uuidString.insert(12, '-');
+    uuidString.insert(8, '-');
+    uuidString.prepend("{");
+    uuidString.append("}");
+
+    qCDebug(networking) << "Final machine fingerprint:" << uuidString;
+
+    return uuidString;
 }
 
 QUuid FingerprintUtils::getMachineFingerprint() {

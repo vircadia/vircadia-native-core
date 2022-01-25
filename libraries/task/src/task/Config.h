@@ -59,7 +59,7 @@ public:
         auto preset = _preset.get();
         if (preset != _preset.getDefault() && _presets.contains(preset)) {
             // Load the persisted configuration
-            C::load(_presets[preset].toMap());
+            C::load(_presets.value(preset).toMap());
         }
     }
 
@@ -79,8 +79,8 @@ public:
     }
 
 protected:
-    QVariantMap _default;
-    QVariantMap _presets;
+    QMultiMap<QString, QVariant> _default;
+    QMultiMap<QString, QVariant> _presets;
     Setting::Handle<QString> _preset;
 };
 
@@ -91,7 +91,7 @@ public:
     using Config = JobConfig;
 };
 
-/**jsdoc
+/*@jsdoc
  * @namespace Workload
  *
  * @hifi-interface
@@ -132,14 +132,14 @@ public:
 
     virtual void setPresetList(const QJsonObject& object);
 
-    /**jsdoc
+    /*@jsdoc
      * @function Workload.toJSON
      * @returns {string}
      */
     // This must be named toJSON to integrate with the global scripting JSON object
     Q_INVOKABLE QString toJSON() { return QJsonDocument(toJsonValue(*this).toObject()).toJson(QJsonDocument::Compact); }
 
-    /**jsdoc
+    /*@jsdoc
      * @function Workload.load
      * @param {object} map
      */
@@ -150,7 +150,7 @@ public:
     void setCPURunTime(const std::chrono::nanoseconds& runtime) { _msCPURunTime = std::chrono::duration<double, std::milli>(runtime).count(); emit newStats(); }
     double getCPURunTime() const { return _msCPURunTime; }
 
-    /**jsdoc
+    /*@jsdoc
      * @function Workload.getConfig
      * @param {string} name
      * @returns {object}
@@ -173,19 +173,19 @@ public:
     }
 
     // Describe the node graph data connections of the associated Job/Task
-   /**jsdoc
+   /*@jsdoc
     * @function Workload.isTask
     * @returns {boolean}
     */
     Q_INVOKABLE bool isTask() const { return _isTask; }
 
-    /**jsdoc
+    /*@jsdoc
      * @function Workload.isSwitch
      * @returns {boolean}
      */
     Q_INVOKABLE bool isSwitch() const { return _isSwitch; }
 
-    /**jsdoc
+    /*@jsdoc
      * @function Workload.getSubConfigs
      * @returns {object[]}
      */
@@ -198,13 +198,13 @@ public:
         return returned;
     }
 
-    /**jsdoc
+    /*@jsdoc
      * @function Workload.getNumSubs
      * @returns {number}
      */
     Q_INVOKABLE int getNumSubs() const { return getSubConfigs().size(); }
 
-    /**jsdoc
+    /*@jsdoc
      * @function Workload.getSubConfig
      * @param {number} index
      * @returns {object}
@@ -224,32 +224,32 @@ public:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * @function Workload.load
      * @param {object} json
      */
     void load(const QJsonObject& val) { qObjectFromJsonValue(val, *this); emit loaded(); }
 
-    /**jsdoc
+    /*@jsdoc
      * @function Workload.refresh
      */
     void refresh();
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * @function Workload.loaded
      * @returns {Signal}
      */
     void loaded();
 
-    /**jsdoc
+    /*@jsdoc
      * @function Workload.newStats
      * @returns {Signal}
      */
     void newStats();
 
-    /**jsdoc
+    /*@jsdoc
      * @function Workload.dirtyEnabled
      * @returns {Signal}
      */

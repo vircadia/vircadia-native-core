@@ -16,7 +16,7 @@
 
 #include <QObject>
 
-/**jsdoc
+/*@jsdoc
  * The <code>About</code> API provides information about the version of Interface that is currently running. It also has the
  * functionality to open a web page in an Interface browser window.
  *
@@ -41,7 +41,7 @@
  * print("Qt version: " + About.qtVersion);
  */
 
- /**jsdoc
+ /*@jsdoc
  * The <code>HifiAbout</code> API provides information about the version of Interface that is currently running. It also
  * has the functionality to open a web page in an Interface browser window.
  *
@@ -82,7 +82,7 @@ public:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * Display a web page in an Interface browser window or the tablet.
      * @function About.openUrl
      * @param {string} url - The URL of the web page you want to view in Interface.

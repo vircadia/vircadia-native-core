@@ -1,6 +1,6 @@
 # Creating an Installer
 
-*Last Updated on March 4, 2021*
+*Last Updated on June 16, 2021*
 
 Follow the [build guide](BUILD.md) to figure out how to build Vircadia for your platform.
 
@@ -79,25 +79,45 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
 1.  Build CMakeTargets->PACKAGE   
     The installer is now available in `build\_CPack_Packages\win64\NSIS`
 
+#### Create an MSIX Package
+
+1. Get the 'MSIX Packaging Tool' from the Windows Store.
+2. Run the process to create a new MSIX package from an existing .exe or .msi installer. This process will allow you to install Vircadia with the usual installer, however it will monitor changes to the computer to replicate the functionality in the MSIX Package. Therefore, you will want to avoid doing anything else on your computer during this process.
+3. Be sure to select no shortcuts and install only the Vircadia Interface.
+4. When asked for "Entry" points, select only the Interface entry and not the uninstaller. This is because the MSIX package is uninstalled by Windows itself. If for some reason the uninstaller shows up anyway, you can edit the manifest to manually remove it from view even if the uninstaller is present in the package. This is necessary to uplaod to the Windows Store.
+5. Once completed, you can sign the package with this application or with other tools such as 'MSIX Hero'. It must be signed with a local certificate to test, and with a proper certificate to distribute.
+6. If uploading to the Windows Store, you will have to ensure all your manifest info including publisher information matches what is registered with your Microsoft Developer account for Windows. You will see these errors and the expected values when validating it.
+
 #### FAQ
 
 1. **Problem:** Failure to open a file. ```File: failed opening file "\FOLDERSHARE\XYZSRelease\...\Credits.rtf" Error in script "C:\TFS\XYZProject\Releases\NullsoftInstaller\XYZWin7Installer.nsi" on line 77 -- aborting creation process```
     1. **Cause:** The complete path (current directory + relative path) has to be < 260 characters to any of the relevant files.
     1. **Solution:** Move your build and packaging folder as high up in the drive as possible to prevent an overage.
 
-### OS X
+### MacOS
 
-1.   [npm](<https://www.npmjs.com/get-npm>)
-      Install version 12.16.3 LTS
-   
-1.  Perform a clean CMake.
-1.  Perform a Release build of ALL_BUILD
-1.  Perform a Release build of `packaged-server-console` 
+1. Ensure you have all the prerequisites fulfilled from the [MacOS Build Guide](BUILD_OSX.md).
+2. Perform a clean CMake in your build folder. e.g.
+    ```bash
+    BUILD_GLOBAL_SERVICES=STABLE USE_STABLE_GLOBAL_SERVICES=1 RELEASE_BUILD=PRODUCTION BUILD_NUMBER="Insert Build Identifier here e.g. short hash of your last Git commit" RELEASE_NAME="Insert Release Name Here" STABLE_BUILD=1 PRODUCTION_BUILD=1 RELEASE_NUMBER="Insert Release Version Here e.g. 1.1.0" RELEASE_TYPE=PRODUCTION cmake -DCMAKE_OSX_SYSROOT="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk" -DCLIENT_ONLY=1 -DCMAKE_OSX_DEPLOYMENT_TARGET=10.12 -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DOSX_SDK=10.12  ..
+    ```
+3. Pick a method to build and package your release.
+
+#### Option A: Use Xcode GUI
+
+1. Perform a Release build of ALL_BUILD
+2. Perform a Release build of `packaged-server-console` 
      This will add a folder to `build\server-console\` -  
      Sandbox-darwin-x64
-1.  Perform a Release build of `package`
-      Installer is now available in `build/_CPack_Packages/Darwin/DragNDrop
-      
+3. Perform a Release build of `package`
+      Installer is now available in `build/_CPack_Packages/Darwin/DragNDrop`
+
+#### Option B: Use Terminal
+
+1. Navigate to your build folder with your terminal.
+2. `make -j4`, you can change the number to match the number of threads you would like to use.
+3. `make package` to create the package.
+     
 ### Linux
 
 #### Server
@@ -167,13 +187,13 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
     ```bash
     cd ../Vircadia/source/pkg-scripts/
     ```
-17. Generate the .rpm package. Set `RPMVERSION` to the same version you entered for the `Release number` on Vircadia Builder. *Advanced users: the version cannot begin with a letter and cannot include underscores or dashes in it.*
+17. Generate the .deb package. Set `DEBVERSION` to the same version you entered for the `Release number` on Vircadia Builder. Set `DEBEMAIL` and `DEBFULLNAME` to your own information to be packaged with the release. *The version cannot begin with a letter and cannot include underscores or dashes in it.*
     ```bash
     DEBVERSION="2021.1.0" DEBEMAIL="your-email@somewhere.com" DEBFULLNAME="Your Full Name" ./make-deb-server
     ```
 18. If successful, the generated .deb package will be in the `pkg-scripts` folder.
 
-##### Amazon Linux 2 | .rpm
+##### Amazon Linux 2 | .rpm (Deprecated)
 
 1. Ensure you are using an Amazon Linux 2 system. You will need many CPU cores to complete this process within a reasonable time. As an alternative to AWS EC2, you may use a [virtual machine](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/amazon-linux-2-virtual-machine.html). Here are the recommended specs:
     ```text
@@ -246,7 +266,7 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
     ```bash
     cd ../Vircadia/source/pkg-scripts/
     ```
-18. Generate the .rpm package. Set `RPMVERSION` to the same version you entered for the `Release number` on Vircadia Builder. *Advanced users: the version cannot begin with a letter and cannot include underscores or dashes in it.*
+18. Generate the .rpm package. Set `RPMVERSION` to the same version you entered for the `Release number` on Vircadia Builder. *The version cannot begin with a letter and cannot include underscores or dashes in it.*
     ```bash
     RPMVERSION="2021.1.0" ./make-rpm-server
     ```

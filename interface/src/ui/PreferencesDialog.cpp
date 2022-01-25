@@ -362,10 +362,10 @@ void setupPreferences() {
         auto getter = [myAvatar]()->float { return qApp->getCamera().getSensitivity(); };
         auto setter = [myAvatar](float value) { qApp->getCamera().setSensitivity(value); };
         auto preference = new SpinnerSliderPreference(VR_MOVEMENT, "Camera Sensitivity", getter, setter);
-        preference->setMin(0.01f);
+        preference->setMin(0.1f);
         preference->setMax(5.0f);
         preference->setStep(0.1f);
-        preference->setDecimals(2);
+        preference->setDecimals(1);
         preferences->addPreference(preference);
     }
     {
@@ -385,7 +385,7 @@ void setupPreferences() {
         preference->setMin(6.0f);
         preference->setMax(30.0f);
         preference->setStep(1);
-        preference->setDecimals(2);
+        preference->setDecimals(0);
         preferences->addPreference(preference);
     }
     {
@@ -465,8 +465,8 @@ void setupPreferences() {
         auto preference = new SpinnerPreference(VR_MOVEMENT, "User real-world height (meters)", getter, setter);
         preference->setMin(1.0f);
         preference->setMax(2.2f);
-        preference->setDecimals(3);
-        preference->setStep(0.001f);
+        preference->setDecimals(2);
+        preference->setStep(0.01f);
         preferences->addPreference(preference);
     }
 
@@ -478,7 +478,7 @@ void setupPreferences() {
         preference->setMin(1.0f);
         preference->setMax(360.0f);
         preference->setStep(1);
-        preference->setDecimals(1);
+        preference->setDecimals(0);
         preferences->addPreference(preference);
     }
     {
@@ -488,7 +488,7 @@ void setupPreferences() {
         preference->setMin(1.0f);
         preference->setMax(360.0f);
         preference->setStep(1);
-        preference->setDecimals(1);
+        preference->setDecimals(0);
         preferences->addPreference(preference);
     }
 
@@ -551,7 +551,7 @@ void setupPreferences() {
             auto getter = [nodeListWeak] {
                 auto nodeList = nodeListWeak.lock();
                 if (nodeList) {
-                    return static_cast<int>(nodeList->getSocketLocalPort());
+                    return static_cast<int>(nodeList->getSocketLocalPort(SocketType::UDP));
                 } else {
                     return -1;
                 }
@@ -559,7 +559,7 @@ void setupPreferences() {
             auto setter = [nodeListWeak](int preset) {
                 auto nodeList = nodeListWeak.lock();
                 if (nodeList) {
-                    nodeList->setSocketLocalPort(static_cast<quint16>(preset));
+                    nodeList->setSocketLocalPort(SocketType::UDP, static_cast<quint16>(preset));
                 }
             };
             auto preference = new IntSpinnerPreference(NETWORKING, "Listening Port", getter, setter);

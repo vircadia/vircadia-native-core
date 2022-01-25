@@ -2024,7 +2024,7 @@ void GeometryCache::useGridPipeline(gpu::Batch& batch, GridBuffer gridBuffer, bo
         };
 
         for (auto& key : keys) {
-            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+            gpu::StatePointer state = std::make_shared<gpu::State>();
             state->setDepthTest(true, !std::get<0>(key), gpu::LESS_EQUAL);
             if (std::get<0>(key)) {
                 PrepareStencil::testMask(*state);
@@ -2132,7 +2132,7 @@ gpu::PipelinePointer GeometryCache::getWebBrowserProgram(bool transparent, bool 
             // For any non-opaque or non-deferred pipeline, we use web_browser_forward
             auto pipeline = (transparent || forward) ? web_browser_forward : web_browser;
 
-            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+            gpu::StatePointer state = std::make_shared<gpu::State>();
             state->setDepthTest(true, !transparent, gpu::LESS_EQUAL);
             // FIXME: do we need a testMaskDrawNoAA?
             PrepareStencil::testMaskDrawShapeNoAA(*state);
@@ -2419,7 +2419,7 @@ graphics::MeshPointer GeometryCache::meshFromShape(Shape geometryShape, glm::vec
         colorsBufferView.edit<glm::vec3>((gpu::BufferView::Index)i) = color;
     }
 
-    graphics::MeshPointer mesh(new graphics::Mesh());
+    graphics::MeshPointer mesh(std::make_shared<graphics::Mesh>());
     mesh->setVertexBuffer(positionsBufferView);
     mesh->setIndexBuffer(indexBufferView);
     mesh->addAttribute(gpu::Stream::NORMAL, normalsBufferView);

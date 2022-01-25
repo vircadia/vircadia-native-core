@@ -18,6 +18,7 @@
 #include <QtCore/QString>
 #include <QtCore/QVariant>
 #include <QtCore/QReadWriteLock>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QDebug>
 
 #include <glm/glm.hpp>

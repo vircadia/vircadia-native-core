@@ -65,7 +65,7 @@ const std::string TextureCache::KTX_DIRNAME{ "ktx_cache" };
 #endif
 const std::string TextureCache::KTX_EXT { "ktx" };
 
-/**jsdoc
+/*@jsdoc
  * <p>The views that may be visible on the PC display.</p>
  * <table>
  *   <thead>
@@ -97,6 +97,8 @@ static const QUrl HMD_PREVIEW_FRAME_URL("resource://hmdPreviewFrame");
 
 static const float SKYBOX_LOAD_PRIORITY { 10.0f }; // Make sure skybox loads first
 static const float HIGH_MIPS_LOAD_PRIORITY { 9.0f }; // Make sure high mips loads after skybox but before models
+
+std::function<gpu::TexturePointer(const QUuid&)> Texture::_unboundTextureForUUIDOperator { nullptr };
 
 TextureCache::TextureCache() {
     _ktxCache->initialize();
@@ -252,6 +254,10 @@ NetworkTexturePointer TextureCache::getTexture(const QUrl& url, image::TextureUs
     if (url.scheme() == RESOURCE_SCHEME) {
         return getResourceTexture(url);
     }
+    QString decodedURL = QUrl::fromPercentEncoding(url.toEncoded());
+    if (decodedURL.startsWith("{")) {
+        return getTextureByUUID(decodedURL);
+    }
     auto modifiedUrl = url;
     if (type == image::TextureUsage::SKY_TEXTURE) {
         QUrlQuery query { url.query() };
@@ -360,11 +366,11 @@ gpu::TexturePointer TextureCache::getImageTexture(const QString& path, image::Te
 }
 
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url) {
-    return QSharedPointer<Resource>(new NetworkTexture(url), &Resource::deleter);
+    return QSharedPointer<NetworkTexture>(new NetworkTexture(url), &Resource::deleter);
 }
 
 QSharedPointer<Resource> TextureCache::createResourceCopy(const QSharedPointer<Resource>& resource) {
-    return QSharedPointer<Resource>(new NetworkTexture(*resource.staticCast<NetworkTexture>()), &Resource::deleter);
+    return QSharedPointer<NetworkTexture>(new NetworkTexture(*resource.staticCast<NetworkTexture>()), &Resource::deleter);
 }
 
 int networkTexturePointerMetaTypeId = qRegisterMetaType<QWeakPointer<NetworkTexture>>();
@@ -385,8 +391,6 @@ NetworkTexture::NetworkTexture(const NetworkTexture& other) :
     _type(other._type),
     _sourceChannel(other._sourceChannel),
     _currentlyLoadingResourceType(other._currentlyLoadingResourceType),
-    _originalWidth(other._originalWidth),
-    _originalHeight(other._originalHeight),
     _width(other._width),
     _height(other._height),
     _maxNumPixels(other._maxNumPixels),
@@ -462,13 +466,12 @@ void NetworkTexture::setExtra(void* extra) {
 
 void NetworkTexture::setImage(gpu::TexturePointer texture, int originalWidth,
                               int originalHeight) {
-    _originalWidth = originalWidth;
-    _originalHeight = originalHeight;
 
     // Passing ownership
     _textureSource->resetTexture(texture);
 
     if (texture) {
+        texture->setOriginalSize(originalWidth, originalHeight);
         _width = texture->getWidth();
         _height = texture->getHeight();
         setSize(texture->getStoredSize());
@@ -478,6 +481,12 @@ void NetworkTexture::setImage(gpu::TexturePointer texture, int originalWidth,
         finishedLoading(false);
     }
 
+    emit networkTextureCreated(qWeakPointerCast<NetworkTexture, Resource> (_self));
+}
+
+void NetworkTexture::setImageOperator(std::function<gpu::TexturePointer()> textureOperator) {
+    _textureSource->resetTextureOperator(textureOperator);
+    finishedLoading((bool)textureOperator);
     emit networkTextureCreated(qWeakPointerCast<NetworkTexture, Resource> (_self));
 }
 
@@ -1312,7 +1321,6 @@ void ImageReader::read() {
 }
 
 NetworkTexturePointer TextureCache::getResourceTexture(const QUrl& resourceTextureUrl) {
-    gpu::TexturePointer texture;
     if (resourceTextureUrl == SPECTATOR_CAMERA_FRAME_URL) {
         if (!_spectatorCameraNetworkTexture) {
             _spectatorCameraNetworkTexture.reset(new NetworkTexture(resourceTextureUrl, true));
@@ -1329,6 +1337,7 @@ NetworkTexturePointer TextureCache::getResourceTexture(const QUrl& resourceTextu
             _hmdPreviewNetworkTexture.reset(new NetworkTexture(resourceTextureUrl, true));
         }
         if (_hmdPreviewFramebuffer) {
+            gpu::TexturePointer texture;
             texture = _hmdPreviewFramebuffer->getRenderBuffer(0);
             if (texture) {
                 texture->setSource(HMD_PREVIEW_FRAME_URL.toString().toStdString());
@@ -1374,4 +1383,28 @@ void TextureCache::updateSpectatorCameraNetworkTexture() {
             _spectatorCameraNetworkTexture->setImage(texture, texture->getWidth(), texture->getHeight());
         }
     }
+}
+
+NetworkTexturePointer TextureCache::getTextureByUUID(const QString& uuid) {
+    QUuid quuid = QUuid(uuid);
+    if (!quuid.isNull()) {
+        // We mark this as a resource texture because it's just a reference to another texture.  The source
+        // texture will be marked properly
+        NetworkTexturePointer toReturn = NetworkTexturePointer::create(uuid, true);
+        toReturn->setImageOperator(Texture::getTextureForUUIDOperator(uuid));
+        return toReturn;
+    }
+    return NetworkTexturePointer();
+}
+
+std::function<gpu::TexturePointer()> Texture::getTextureForUUIDOperator(const QUuid& uuid) {
+    if (_unboundTextureForUUIDOperator) {
+        return std::bind(_unboundTextureForUUIDOperator, uuid);
+    }
+    return nullptr;
+}
+
+
+void Texture::setUnboundTextureForUUIDOperator(std::function<gpu::TexturePointer(const QUuid&)> textureForUUIDOperator) {
+    _unboundTextureForUUIDOperator = textureForUUIDOperator;
 }

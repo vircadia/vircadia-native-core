@@ -167,7 +167,7 @@ scriptable::ScriptableMeshPointer GraphicsScriptingInterface::newMesh(const QVar
     // TODO: this is bare-bones way for now to improvise a new mesh from the scripting side
     //  in the future we want to support a formal C++ structure data type here instead
 
-    /**jsdoc
+    /*@jsdoc
      * IFS (Indexed-Face Set) data defining a mesh.
      * @typedef {object} Graphics.IFSData
      * @property {string} [name=""] - Mesh name. (Useful for debugging.)
@@ -237,7 +237,7 @@ scriptable::ScriptableMeshPointer GraphicsScriptingInterface::newMesh(const QVar
         qCWarning(graphics_scripting) << "newMesh - texCoords1 not yet supported; ignoring";
     }
 
-    graphics::MeshPointer mesh(new graphics::Mesh());
+    graphics::MeshPointer mesh(std::make_shared<graphics::Mesh>());
     mesh->modelName = "graphics::newMesh";
     mesh->displayName = meshName.toStdString();
 
@@ -355,7 +355,7 @@ namespace scriptable {
         qScriptValueToSequence(array, result);
     }
 
-    /**jsdoc
+    /*@jsdoc
      * A material in a {@link GraphicsModel}.
      * @typedef {object} Graphics.Material
      * @property {string} name - The name of the material.

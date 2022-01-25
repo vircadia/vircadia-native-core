@@ -14,6 +14,7 @@
 #include <QtCore/QByteArray>
 #include <QtCore/QDir>
 #include <QtCore/QFileInfo>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QJsonObject>
 #include <QtCore/QLoggingCategory>
 #include <QtCore/QThread>
@@ -77,7 +78,7 @@ namespace REPLACE_ME_WITH_UNIQUE_NAME {
         // (note: Qt script engines automatically look for a ".toString" method on native classes when coercing values to strings)
         QString toString() const { return QString("[%1 version=%2]").arg(objectName()).arg(_version); }
 
-        /**jsdoc
+        /*@jsdoc
          * Returns current microseconds (usecs) since Epoch. note: 1000usecs == 1ms
          * @example <caption>Measure current setTimeout accuracy.</caption>
          * var expected = 1000;
@@ -89,7 +90,7 @@ namespace REPLACE_ME_WITH_UNIQUE_NAME {
          */
         QVariant now() const { return usecTimestampNow(); }
 
-        /**jsdoc
+        /*@jsdoc
          * Example of returning a JS Object key-value map
          * @example <caption>"zip" a list of keys and corresponding values to form key-value map</caption>
          * print(JSON.stringify(JSAPIExample.zip(["a","b"], [1,2])); // { "a": 1, "b": 2 }
@@ -102,7 +103,7 @@ namespace REPLACE_ME_WITH_UNIQUE_NAME {
             return out;
         }
 
-        /**jsdoc
+        /*@jsdoc
          * Example of returning a JS Array result
          * @example <caption>emulate Object.values(keyValues)</caption>
          * print(JSON.stringify(JSAPIExample.values({ "a": 1, "b": 2 }))); // [1,2]
@@ -112,7 +113,7 @@ namespace REPLACE_ME_WITH_UNIQUE_NAME {
             return values;
         }
 
-        /**jsdoc
+        /*@jsdoc
          * Another example of returning JS Array data
          * @example <caption>generate an integer sequence (inclusive of [from, to])</caption>
          * print(JSON.stringify(JSAPIExample.seq(1,5)));// [1,2,3,4,5]
@@ -125,7 +126,7 @@ namespace REPLACE_ME_WITH_UNIQUE_NAME {
             return out;
         }
 
-        /**jsdoc
+        /*@jsdoc
          * Example of returning arbitrary binary data from C++ (resulting in a JS ArrayBuffer)
          * see also: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer#Examples
          * @example <caption>return compressed/decompressed versions of the input data</caption>

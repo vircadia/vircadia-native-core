@@ -18,7 +18,7 @@
 #include <glm/glm.hpp>
 #include <QString>
 
-/**jsdoc
+/*@jsdoc
 * <p>A <code>BoxFace</code> specifies the face of an axis-aligned (AA) box.
 * <table>
 *   <thead>

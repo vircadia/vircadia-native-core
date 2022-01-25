@@ -4,6 +4,7 @@
 //
 //  Created by Clement Brisset on 4/5/2017.
 //  Copyright 2017 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -23,17 +24,17 @@ namespace image {
 
     std::function<gpu::uint32(const glm::vec3&)> getHDRPackingFunction();
     std::function<glm::vec3(gpu::uint32)> getHDRUnpackingFunction();
-    void convertToFloatFromPacked(const unsigned char* source, int width, int height, size_t srcLineByteStride, gpu::Element sourceFormat, 
+    void convertToFloatFromPacked(const unsigned char* source, int width, int height, size_t srcLineByteStride, gpu::Element sourceFormat,
                         glm::vec4* output, size_t outputLinePixelStride);
     void convertToPackedFromFloat(unsigned char* output, int width, int height, size_t outputLineByteStride, gpu::Element outputFormat,
                           const glm::vec4* source, size_t srcLinePixelStride);
 
 namespace TextureUsage {
 
-/**jsdoc
+/*@jsdoc
  * <p>Describes the type of texture.</p>
- * <p>See also: {@link Material} and 
- * {@link https://docs.vircadia.dev/create/3d-models/pbr-materials-guide.html|PBR Materials Guide}.</p>
+ * <p>See also: {@link Material} and
+ * {@link https://docs.vircadia.com/create/3d-models/pbr-materials-guide.html|PBR Materials Guide}.</p>
  * <table>
  *   <thead>
  *     <tr><th>Value</th><th>Name</th><th>Description</th></tr>
@@ -102,7 +103,7 @@ gpu::TexturePointer createCubeTextureFromImage(Image&& image, const std::string&
 gpu::TexturePointer createAmbientCubeTextureAndIrradianceFromImage(Image&& image, const std::string& srcImageName,
                                                                    bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
 gpu::TexturePointer createLightmapTextureFromImage(Image&& image, const std::string& srcImageName,
-                                                   bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing); 
+                                                   bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
 gpu::TexturePointer process2DTextureColorFromImage(Image&& srcImage, const std::string& srcImageName, bool compress,
                                                    gpu::BackendTarget target, bool isStrict, const std::atomic<bool>& abortProcessing);
 gpu::TexturePointer process2DTextureNormalMapFromImage(Image&& srcImage, const std::string& srcImageName, bool compress,

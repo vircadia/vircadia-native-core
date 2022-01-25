@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2015-08-24.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -13,10 +14,10 @@
 
 #include <QtCore/QDataStream>
 
-NodeConnectionData NodeConnectionData::fromDataStream(QDataStream& dataStream, const HifiSockAddr& senderSockAddr,
+NodeConnectionData NodeConnectionData::fromDataStream(QDataStream& dataStream, const SockAddr& senderSockAddr,
                                                       bool isConnectRequest) {
     NodeConnectionData newHeader;
-    
+
     if (isConnectRequest) {
         dataStream >> newHeader.connectUUID;
 
@@ -50,9 +51,29 @@ NodeConnectionData NodeConnectionData::fromDataStream(QDataStream& dataStream, c
 
     dataStream >> newHeader.lastPingTimestamp;
     
+    SocketType publicSocketType, localSocketType;
     dataStream >> newHeader.nodeType
-        >> newHeader.publicSockAddr >> newHeader.localSockAddr
+        >> publicSocketType >> newHeader.publicSockAddr >> localSocketType >> newHeader.localSockAddr
         >> newHeader.interestList >> newHeader.placeName;
+    newHeader.publicSockAddr.setType(publicSocketType);
+    newHeader.localSockAddr.setType(localSocketType);
+
+    // For WebRTC connections, the user client's signaling channel WebSocket address is used instead of the actual data 
+    // channel's address.
+    if (senderSockAddr.getType() == SocketType::WebRTC) {
+        if (newHeader.publicSockAddr.getType() != SocketType::WebRTC
+            || newHeader.localSockAddr.getType() != SocketType::WebRTC) {
+            qDebug() << "Inconsistent WebRTC socket types!";
+        }
+
+        // We don't know whether it's a public or local connection so set both the same.
+        auto address = senderSockAddr.getAddress();
+        auto port = senderSockAddr.getPort();
+        newHeader.publicSockAddr.setAddress(address);
+        newHeader.publicSockAddr.setPort(port);
+        newHeader.localSockAddr.setAddress(address);
+        newHeader.localSockAddr.setPort(port);
+    }
 
     newHeader.senderSockAddr = senderSockAddr;
     

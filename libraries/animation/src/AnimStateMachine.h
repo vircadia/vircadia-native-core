@@ -107,9 +107,7 @@ protected:
         std::vector<Transition> _transitions;
 
     private:
-        // no copies
-        State(const State&) = delete;
-        State& operator=(const State&) = delete;
+        Q_DISABLE_COPY(State)
     };
 
 public:
@@ -152,9 +150,7 @@ protected:
     QString _currentStateVar;
 
 private:
-    // no copies
-    AnimStateMachine(const AnimStateMachine&) = delete;
-    AnimStateMachine& operator=(const AnimStateMachine&) = delete;
+    Q_DISABLE_COPY(AnimStateMachine)
 };
 
 #endif // hifi_AnimStateMachine_h

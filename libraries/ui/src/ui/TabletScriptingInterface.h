@@ -13,6 +13,7 @@
 #include <atomic>
 
 #include <QtCore/QObject>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QUuid>
 #include <QtCore/QVariant>
 #include <QtCore/QAbstractListModel>
@@ -38,7 +39,7 @@ class TabletButtonProxy;
 class QmlWindowClass;
 class OffscreenQmlSurface;
 
-/**jsdoc
+/*@jsdoc
  * The <code>Tablet</code> API provides the facilities to work with the system or other tablet. In toolbar mode (see Developer 
  * &gt; UI options), the tablet's menu buttons are displayed in a toolbar and other tablet content is displayed in a dialog.
  *
@@ -50,7 +51,7 @@ class OffscreenQmlSurface;
  * @hifi-client-entity
  * @hifi-avatar
  */
-/**jsdoc
+/*@jsdoc
  * The <code>tabletInterface</code> API provides the facilities to work with the system or other tablet.
  *
  * @namespace tabletInterface
@@ -69,7 +70,7 @@ class TabletScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 public:
 
-    /**jsdoc
+    /*@jsdoc
      * <p>Standard tablet sounds.</p>
      * <table>
      *   <thead>
@@ -98,7 +99,7 @@ public:
 
     void setToolbarScriptingInterface(ToolbarScriptingInterface* toolbarScriptingInterface) { _toolbarScriptingInterface = toolbarScriptingInterface; }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets an instance of a tablet. A new tablet is created if one with the specified name doesn't already exist.
      * @function Tablet.getTablet
      * @param {string} name - A unique name that identifies the tablet.
@@ -111,7 +112,7 @@ public:
 
     void preloadSounds();
 
-    /**jsdoc
+    /*@jsdoc
      * Plays a standard tablet sound. The sound is played locally (only the user running the script hears it) without a 
      * position.
      * @function Tablet.playSound
@@ -132,7 +133,7 @@ public:
 
     QObject* getFlags();
 signals:
-    /**jsdoc
+    /*@jsdoc
      * Triggered when a tablet message or dialog is displayed on the tablet that needs the user's attention.
      * <p><strong>Note:</strong> Only triggered if the script is running in the same script engine as the script that created 
      * the tablet. By default, this means in scripts included as part of the default scripts.</p>
@@ -154,7 +155,7 @@ protected:
     bool _toolbarMode { false };
 };
 
-/**jsdoc
+/*@jsdoc
  * Information on the buttons in the tablet main menu (toolbar in toolbar mode) for use in QML. Has properties and functions 
  * per <a href="http://doc.qt.io/qt-5/qabstractlistmodel.html">http://doc.qt.io/qt-5/qabstractlistmodel.html</a>.
  * @typedef {object} TabletProxy.TabletButtonListModel
@@ -210,7 +211,7 @@ private:
 
 Q_DECLARE_METATYPE(TabletButtonsProxyModel*);
 
-/**jsdoc
+/*@jsdoc
  * An instance of a tablet. In toolbar mode (see Developer &gt; UI options), the tablet's menu buttons are displayed in a 
  * toolbar and other tablet content is displayed in a dialog.
  *
@@ -251,7 +252,7 @@ public:
     void setToolbarMode(bool toolbarMode);
     void unfocus();
 
-    /**jsdoc
+    /*@jsdoc
      * Displays the tablet menu. The tablet is opened if it isn't already open.
      * @function TabletProxy#gotoMenuScreen
      * @param {string} [submenu=""] - The name of a submenu to display, if any.
@@ -260,20 +261,20 @@ public:
      */
     Q_INVOKABLE void gotoMenuScreen(const QString& submenu = "");
 
-    /**jsdoc
+    /*@jsdoc
      * @function TabletProxy#initialScreen
      * @param {string} url - URL.
      * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE void initialScreen(const QVariant& url);
 
-    /**jsdoc
+    /*@jsdoc
      * Displays the tablet home screen, if the tablet is open.
      * @function TabletProxy#gotoHomeScreen
      */
     Q_INVOKABLE void gotoHomeScreen();
 
-    /**jsdoc
+    /*@jsdoc
      * Opens a web app or page in addition to any current app. In tablet mode, the app or page is displayed over the top of the
      * current app; in toolbar mode, the app is opened in a new window that replaces any current window open. If in tablet
      * mode, the app or page can be closed using {@link TabletProxy#returnToPreviousApp}.
@@ -287,7 +288,7 @@ public:
     Q_INVOKABLE void gotoWebScreen(const QString& url);
     Q_INVOKABLE void gotoWebScreen(const QString& url, const QString& injectedJavaScriptUrl, bool loadOtherBase = false);
 
-    /**jsdoc
+    /*@jsdoc
      * Opens a QML app or dialog on the tablet.
      * @function TabletProxy#loadQMLSource
      * @param {string} path - The path of the QML app or dialog.
@@ -296,28 +297,28 @@ public:
      */
     Q_INVOKABLE void loadQMLSource(const QVariant& path, bool resizable = false);
 
-    /**jsdoc
+    /*@jsdoc
      * @function TabletProxy#loadQMLSourceImpl
      * @deprecated This function is deprecated and will be removed.
      */
     // Internal function, do not call from scripts.
     Q_INVOKABLE void loadQMLSourceImpl(const QVariant& path, bool resizable, bool localSafeContext);
 
-    /**jsdoc
+    /*@jsdoc
      * @function TabletProxy#loadHTMLSourceOnTopImpl
      * @deprecated This function is deprecated and will be removed.
      */
     // Internal function, do not call from scripts.
     Q_INVOKABLE void loadHTMLSourceOnTopImpl(const QString& url, const QString& injectedJavaScriptUrl, bool loadOtherBase, bool localSafeContext);
 
-    /**jsdoc
+    /*@jsdoc
      * @function TabletProxy#returnToPreviousAppImpl
      * @deprecated This function is deprecated and will be removed.
      */
     // Internal function, do not call from scripts.
     Q_INVOKABLE void returnToPreviousAppImpl(bool localSafeContext);
 
-    /**jsdoc
+    /*@jsdoc
      * @function TabletProxy#loadQMLOnTopImpl
      * @deprecated This function is deprecated and will be removed.
      */
@@ -327,7 +328,7 @@ public:
     // FIXME: This currently relies on a script initializing the tablet (hence the bool denoting success);
     //        it should be initialized internally so it cannot fail
 
-    /**jsdoc
+    /*@jsdoc
      * Displays a QML dialog over the top of the current dialog, without closing the current dialog. Use 
      * {@link TabletProxy#popFromStack|popFromStack} to close the dialog.
      * <p>If the current dialog or its ancestors contain a QML <code>StackView</code> with <code>objectName: "stack"</code> and 
@@ -341,7 +342,7 @@ public:
     // edit.js provides an example of using this outside of main menu.
     Q_INVOKABLE bool pushOntoStack(const QVariant& path);
 
-    /**jsdoc
+    /*@jsdoc
      * Closes a QML dialog that was displayed using {@link Tablet#pushOntoStack|pushOntoStack} with a dialog implementing a QML 
      * <code>StackView</code>; otherwise, no action is taken.
      * <p>If using a QML <code>StackView</code>, its <code>popSource()</code> function is called.</p>
@@ -349,7 +350,7 @@ public:
      */
     Q_INVOKABLE void popFromStack();
 
-    /**jsdoc
+    /*@jsdoc
      * Opens a QML app or dialog in addition to any current app. In tablet mode, the app or dialog is displayed over the top of 
      * the current app; in toolbar mode, the app or dialog is opened in a new window. If in tablet mode, the app can be closed 
      * using {@link TabletProxy#returnToPreviousApp}.
@@ -358,7 +359,7 @@ public:
      */
     Q_INVOKABLE void loadQMLOnTop(const QVariant& path);
 
-    /**jsdoc
+    /*@jsdoc
      * Opens a web app or page in addition to any current app. In tablet mode, the app or page is displayed over the top of the
      * current app; in toolbar mode, the app is opened in a new window that replaces any current window open. If in tablet 
      * mode, the app or page can be closed using {@link TabletProxy#returnToPreviousApp}.
@@ -369,28 +370,28 @@ public:
     Q_INVOKABLE void loadWebScreenOnTop(const QVariant& url);
     Q_INVOKABLE void loadWebScreenOnTop(const QVariant& url, const QString& injectedJavaScriptUrl);
 
-    /**jsdoc
+    /*@jsdoc
      * Closes the current app and returns to the previous app, if in tablet mode and the current app was loaded using 
      * {@link TabletProxy#loadQMLOnTop|loadQMLOnTop} or {@link TabletProxy#loadWebScreenOnTop|loadWebScreenOnTop}.
      * @function TabletProxy#returnToPreviousApp
      */
     Q_INVOKABLE void returnToPreviousApp();
 
-    /**jsdoc
+    /*@jsdoc
      * Checks if the tablet has a modal, non-modal, or message dialog open.
      * @function TabletProxy#isMessageDialogOpen
      * @returns {boolean} <code>true</code> if a modal, non-modal, or message dialog is open, <code>false</code> if there isn't.
      */
     Q_INVOKABLE bool isMessageDialogOpen();
 
-    /**jsdoc
+    /*@jsdoc
      * Closes any open modal, non-modal, or message dialog, opened by {@link Window.prompt}, {@link Window.promptAsync}, 
      * {@link Window.openMessageBox}, or similar.
      * @function TabletProxy#closeDialog
      */
     Q_INVOKABLE void closeDialog();
 
-    /**jsdoc
+    /*@jsdoc
      * Adds a new button to the tablet menu.
      * @function TabletProxy#addButton
      * @param {TabletButtonProxy.ButtonProperties} properties - Button properties.
@@ -410,14 +411,14 @@ public:
     //FIXME: UI_TABLET_HACK: enumerate the button properties when we figure out what they should be!
     Q_INVOKABLE TabletButtonProxy* addButton(const QVariant& properties);
 
-    /**jsdoc
+    /*@jsdoc
      * Removes a button from the tablet menu.
      * @function TabletProxy#removeButton
      * @param {TabletButtonProxy} button - The button to remove.
      */
     Q_INVOKABLE void removeButton(TabletButtonProxy* tabletButtonProxy);
 
-    /**jsdoc
+    /*@jsdoc
      * Sends a message to the current web page. To receive the message, the web page's script must connect to the
      * <code>EventBridge</code> that is automatically provided to the script:
      * <pre class="prettyprint"><code>EventBridge.scriptEventReceived.connect(function(message) {
@@ -434,7 +435,7 @@ public:
      */
     Q_INVOKABLE void emitScriptEvent(const QVariant& msg);
 
-    /**jsdoc
+    /*@jsdoc
      * Sends a message to the current QML page. To receive the message, the QML page must implement a function:
      * <pre class="prettyprint"><code>function fromScript(message) {
      *   ...
@@ -444,14 +445,14 @@ public:
      */
     Q_INVOKABLE void sendToQml(const QVariant& msg);
 
-    /**jsdoc
+    /*@jsdoc
      * Checks if the tablet is on the home screen.
      * @function TabletProxy#onHomeScreen
      * @returns {boolean} <code>true</code> if the tablet is on the home screen, <code>false</code> if it isn't.
      */
     Q_INVOKABLE bool onHomeScreen();
 
-    /**jsdoc
+    /*@jsdoc
      * Sets whether the tablet is displayed in landscape or portrait mode.
      * <p>Note: The setting isn't used in toolbar mode.</p>
      * @function TabletProxy#setLandscape
@@ -460,7 +461,7 @@ public:
      */
     Q_INVOKABLE void setLandscape(bool landscape) { _landscape = landscape; }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets whether the tablet is displayed in landscape or portrait mode.
      * <p>Note: The setting isn't used in toolbar mode.</p>
      * @function TabletProxy#getLandscape
@@ -469,7 +470,7 @@ public:
      */
     Q_INVOKABLE bool getLandscape() { return _landscape; }
 
-    /**jsdoc
+    /*@jsdoc
      * Checks if a path is the current app or dialog displayed.
      * @function TabletProxy#isPathLoaded
      * @param {string} path - The path to test.
@@ -488,7 +489,7 @@ public:
     TabletButtonListModel* getButtons() { return &_buttons; }
 
 signals:
-    /**jsdoc
+    /*@jsdoc
      * Triggered when a message from the current HTML web page displayed on the tablet is received. The HTML web page can send 
      * a message by calling:
      * <pre class="prettyprint"><code>EventBridge.emitWebEvent(message);</code></pre>
@@ -498,7 +499,7 @@ signals:
      */
     void webEventReceived(QVariant msg);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when a message from the current QML page displayed on the tablet is received. The QML page can send a message 
      * (string or object) by calling: <pre class="prettyprint"><code>sendToScript(message);</code></pre>
      * @function TabletProxy#fromQml
@@ -507,7 +508,7 @@ signals:
      */
     void fromQml(QVariant msg);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the tablet's screen changes.
      * @function TabletProxy#screenChanged
      * @param type {string} - The type of the new screen or change: <code>"Home"</code>, <code>"Menu"</code>, 
@@ -517,7 +518,7 @@ signals:
      */
     void screenChanged(QVariant type, QVariant url);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the tablet is opened or closed.
      * <p>Note: Doesn't apply in toolbar mode.</p>
      * @function TabletProxy#tabletShownChanged
@@ -525,7 +526,7 @@ signals:
      */
     void tabletShownChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the tablet's toolbar mode changes.
      * @function TabletProxy#toolbarModeChanged
      * @returns {Signal}
@@ -540,20 +541,20 @@ signals:
 
 protected slots:
     
-    /**jsdoc
+    /*@jsdoc
      * @function TabletProxy#desktopWindowClosed
      * @deprecated This function is deprecated and will be removed.
      */
     void desktopWindowClosed();
 
-    /**jsdoc
+    /*@jsdoc
      * @function TabletProxy#emitWebEvent
      * @param {object|string} message - Message
      * @deprecated This function is deprecated and will be removed.
      */
     void emitWebEvent(const QVariant& msg);
 
-    /**jsdoc
+    /*@jsdoc
      * @function TabletProxy#onTabletShown
      * @deprecated This function is deprecated and will be removed.
      */
@@ -586,7 +587,7 @@ private:
 
 Q_DECLARE_METATYPE(TabletProxy*);
 
-/**jsdoc
+/*@jsdoc
  * A tablet button. In toolbar mode (Developer &gt; UI &gt; Tablet Becomes Toolbar), the tablet button is displayed on the 
  * toolbar.
  *
@@ -613,7 +614,7 @@ public:
 
     QUuid getUuid() const { return _uuid; }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the current values of the button's properties. Only properties that have been set during button creation or 
      * subsequently edited are returned.
      * @function TabletButtonProxy#getProperties
@@ -631,7 +632,7 @@ public:
      */
     Q_INVOKABLE QVariantMap getProperties();
 
-    /**jsdoc
+    /*@jsdoc
      * Changes the values of the button's properties.
      * @function TabletButtonProxy#editProperties
      * @param {TabletButtonProxy.ButtonProperties} properties - The properties to change.
@@ -654,7 +655,7 @@ public:
     Q_INVOKABLE void editProperties(const QVariantMap& properties);
 
 signals:
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the button is clicked.
      * @function TabletButtonProxy#clicked
      * @returns {Signal}
@@ -672,7 +673,7 @@ signals:
      */
     void clicked();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when a button's properties are changed.
      * @function TabletButtonProxy#propertiesChanged
      * @returns {Signal}

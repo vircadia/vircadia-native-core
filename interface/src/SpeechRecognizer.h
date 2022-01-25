@@ -22,7 +22,7 @@
 
 #include <DependencyManager.h>
 
-/**jsdoc
+/*@jsdoc
  * The <code>SpeechRecognizer</code> API provides facilities to recognize voice commands.
  * <p>Speech recognition is enabled or disabled via the Developer &gt; Scripting &gt; Enable Speech Control API menu item or 
  * the {@link SpeechRecognizer.setEnabled} method.</p>
@@ -43,21 +43,21 @@ public:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * Enables or disables speech recognition.
      * @function SpeechRecognizer.setEnabled
      * @param {boolean} enabled - <code>true</code> to enable speech recognition, <code>false</code> to disable.
      */
     void setEnabled(bool enabled);
 
-    /**jsdoc
+    /*@jsdoc
      * Adds a voice command to the speech recognizer.
      * @function SpeechRecognizer.addCommand
      * @param {string} command - The voice command to recognize.
      */
     void addCommand(const QString& command);
 
-    /**jsdoc
+    /*@jsdoc
      * Removes a voice command from the speech recognizer.
      * @function SpeechRecognizer.removeCommand
      * @param {string} command - The voice command to stop recognizing.
@@ -66,7 +66,7 @@ public slots:
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when a voice command has been recognized.
      * @function SpeechRecognizer.commandRecognized
      * @param {string} command - The voice command recognized.
@@ -82,7 +82,7 @@ signals:
      *     return turnRate;
      * }
      * 
-     * var MAPPING_NAME = "com.highfidelity.controllers.example.speechRecognizer";
+     * var MAPPING_NAME = "com.vircadia.controllers.example.speechRecognizer";
      * var mapping = Controller.newMapping(MAPPING_NAME);
      * 
      * mapping.from(getTurnRate).to(Controller.Actions.Yaw);
@@ -115,7 +115,7 @@ signals:
      */
     void commandRecognized(const QString& command);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when speech recognition is enabled or disabled.
      * @function SpeechRecognizer.enabledUpdated
      * @param {boolean} enabled - <code>true</code> if speech recognition is enabled, <code>false</code> if it is disabled.

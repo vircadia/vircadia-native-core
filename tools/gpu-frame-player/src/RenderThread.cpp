@@ -54,7 +54,7 @@ void RenderThread::initialize(QWindow* window) {
     
     if (!_presentPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTexture);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
         _presentPipeline = gpu::Pipeline::create(program, state);
     }
 #else

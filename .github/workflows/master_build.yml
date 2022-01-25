@@ -1,6 +1,6 @@
 name: Master CI Build
 
-on: 
+on:
   push:
     branches:
       - master
@@ -20,7 +20,9 @@ env:
 
   # OSX-specific variables
   DEVELOPER_DIR: /Applications/Xcode_11.2.app/Contents/Developer
-  MACOSX_DEPLOYMENT_TARGET: '10.11'
+  # We are using macOS SDK 10.12 to work around a lot of OpenGL issues in newer SDKs.
+  # There are crashes on startup, crashes on window resize, etc. on newer macOS SDKs.
+  MACOSX_DEPLOYMENT_TARGET: '10.12'
 
   # WIN-specific variables
   PreferredToolArchitecture: X64
@@ -29,13 +31,13 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-latest, macOS-latest, ubuntu-18.04]
+        os: [windows-latest, macOS-10.15, ubuntu-18.04]
         # build_type: [full, client]
         build_type: [full]
         include:
           - os: ubuntu-18.04
             build_type: full
-            apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0
+            apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0 libsnappy1v5 libwebpdemux2 libwebpmux3
       fail-fast: false
     runs-on: ${{matrix.os}}
     steps:
@@ -50,21 +52,23 @@ jobs:
         echo "UPLOAD_PREFIX=master" >> $GITHUB_ENV
         echo ::set-output name=github_sha_short::`echo $GIT_COMMIT | cut -c1-7`
         echo "JOB_NAME=build (${{matrix.os}}, ${{matrix.build_type}})" >> $GITHUB_ENV
+        echo "APP_TARGET_NAME=$APP_NAME" >> $GITHUB_ENV
         # Linux build variables
         if [[ "${{ matrix.os }}" = "ubuntu-"* ]]; then
           echo "PYTHON_EXEC=python3" >> $GITHUB_ENV
           echo "INSTALLER_EXT=tgz" >> $GITHUB_ENV
           echo "CMAKE_BUILD_EXTRA=-- -j3" >> $GITHUB_ENV
-          echo "CMAKE_EXTRA=-DBUILD_TOOLS:BOOLEAN=FALSE -DHIFI_PYTHON_EXEC:FILEPATH=$(which python3)" >> $GITHUB_ENV
+          echo "CMAKE_EXTRA=-DVIRCADIA_CPU_ARCHITECTURE= -DBUILD_TOOLS:BOOLEAN=FALSE -DHIFI_PYTHON_EXEC:FILEPATH=$(which python3)" >> $GITHUB_ENV
         fi
         # Mac build variables
-        if [ "${{ matrix.os }}" = "macOS-latest" ]; then
+        if [ "${{ matrix.os }}" = "macOS-10.15" ]; then
           echo "PYTHON_EXEC=python3" >> $GITHUB_ENV
           echo "ZIP_COMMAND=zip" >> $GITHUB_ENV
           echo "ZIP_ARGS=-r" >> $GITHUB_ENV
           echo "INSTALLER_EXT=dmg" >> $GITHUB_ENV
-          echo "CMAKE_EXTRA=-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -G Xcode" >> $GITHUB_ENV
+          echo "CMAKE_EXTRA=-DVIRCADIA_CPU_ARCHITECTURE= -DCMAKE_OSX_SYSROOT=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=OFF -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DOPENSSL_LIBRARIES=/usr/local/opt/openssl/lib -G Xcode" >> $GITHUB_ENV
           echo "::set-output name=symbols_archive::${BUILD_NUMBER}-${{ matrix.build_type }}-mac-symbols.zip"
+          echo "APP_TARGET_NAME=Vircadia" >> $GITHUB_ENV
         fi
         # Windows build variables
         if [ "${{ matrix.os }}" = "windows-latest" ]; then
@@ -99,46 +103,78 @@ jobs:
       working-directory: ${{runner.workspace}}
       run: rm -rf ./*
     - uses: actions/checkout@v1
-      with: 
-        submodules: true
+      with:
+        submodules: false
         fetch-depth: 1
+
     - name: Install dependencies
-      if: startsWith(matrix.os, 'ubuntu')
       shell: bash
+      if: startsWith(matrix.os, 'ubuntu') || contains(matrix.os, 'debian') || startsWith(matrix.os, 'macOS')
       run: |
-        echo "Installing Python Modules:"
-        pip3 install distro || exit 1
-        echo "Updating apt repository index"
-        sudo apt update || exit 1
-        echo "Installing apt packages"
-        sudo apt install -y ${{ matrix.apt-dependencies }} || exit 1
+        if [[ "${{ matrix.os }}" =~ "ubuntu" || "${{ matrix.os }}" =~ "debian" ]]; then
+          echo "Installing Python Modules:"
+          pip3 install distro || exit 1
+
+          echo "Updating apt repository index"
+          sudo apt update || exit 1
+
+          echo "Installing apt packages"
+          sudo apt install -y ${{ matrix.apt-dependencies }} || exit 1
+        else # macOS
+          echo "Downloading MacOSX10.12 SDK.."
+          curl --progress-bar -L -o macOS_SDK10.12.4.tar.xz "https://cloudflare-ipfs.com/ipfs/QmTDLEYdo616YgZKSYC2mySSw8EKQWTz7CH8UyMupMBpzK?filename=macOS_SDK10.12.4.tar.xz" || exit 1
+          echo "  done\n"
+          echo "Checking MacOSX10.12 SDK.."
+          echo "c00e03cb64bed8d0d75d7a01c93de094b6ffaa3bc3318e7b29a9bdc354f0e29e363c454b7db89db8a3b78e9702668d1c661f1af279807de8db11accecb0ca498  macOS_SDK10.12.4.tar.xz" >> macOS_SDK10.12.4.tar.xz.checksum
+          shasum -a 512 -w -c macOS_SDK10.12.4.tar.xz.checksum
+          echo "Extracting MacOSX10.12 SDK.."
+          tar -xf macOS_SDK10.12.4.tar.xz || exit 1
+          echo "  done\n"
+          echo "Installing MacOSX10.12 SDK.."
+          # cp always sets an error code while copying the SDK so we return 0 when that happens.
+          sudo cp -rp MacOSX10.12.sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/ || exit 0
+          echo "  done"
+        fi
+
+    - name: Override NSIS
+      shell: pwsh
+      if: startsWith(matrix.os, 'windows')
+      run: choco install nsis --version=3.06.1
+
     - name: Install Python modules
       if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macOS')
       shell: bash
       run: $PYTHON_EXEC -m pip install boto3 PyGithub
+
     - name: Create build environment
       shell: bash
       run: cmake -E make_directory "${{runner.workspace}}/build"
+
     - name: Configure CMake
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DVCPKG_BUILD_TYPE=release -DCLIENT_ONLY:BOOLEAN=$CLIENT_ONLY -DBYPASS_SIGNING:BOOLEAN=TRUE $CMAKE_EXTRA
+
     - name: Build application
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config $BUILD_TYPE --target $APP_NAME $CMAKE_BUILD_EXTRA
+      run: cmake --build . --config $BUILD_TYPE --target $APP_TARGET_NAME $CMAKE_BUILD_EXTRA
+
     - name: Build domain server
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target domain-server $CMAKE_BUILD_EXTRA
+
     - name: Build assignment client
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target assignment-client $CMAKE_BUILD_EXTRA
+
     - name: Build console
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target packaged-server-console $CMAKE_BUILD_EXTRA
+
     - name: Build installer
       working-directory: ${{runner.workspace}}/build
       shell: bash
@@ -165,11 +201,13 @@ jobs:
           done
         }
         retry cmake --build . --config $BUILD_TYPE --target package $CMAKE_BUILD_EXTRA
+
     #- name: Sign installer (Windows)
     #  if: startsWith(matrix.os, 'windows')
     #  shell: powershell
     #  working-directory: C:\Program Files (x86)\Windows Kits\10\bin\10.0.18362.0\x64
     #  run: .\signtool.exe sign /fd sha256 /f ${{runner.workspace}}\build\codesign.pfx /p ${{secrets.pfx_key}} /tr http://sha256timestamp.ws.symantec.com/sha256/timestamp /td SHA256 ${{runner.workspace}}\build\${env:INSTALLER}
+
     - name: Output system stats
       if: ${{ always() }}
       working-directory: ${{runner.workspace}}/build
@@ -177,19 +215,22 @@ jobs:
       run: |
         echo "Disk usage:"
         df -h
+
     - name: Output installer logs
       if: failure() && startsWith(matrix.os, 'windows')
       shell: bash
       working-directory: ${{runner.workspace}}/build
       run: cat ./_CPack_Packages/win64/NSIS/NSISOutput.log
+
     - name: Upload artifact
       if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macOS')
       shell: bash
-      working-directory: ${{runner.workspace}}/build	
-      env:	
+      working-directory: ${{runner.workspace}}/build
+      env:
         AWS_ACCESS_KEY_ID: ${{ secrets.aws_access_key_id }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_access_key }}	
-      run: $PYTHON_EXEC $GITHUB_WORKSPACE/tools/ci-scripts/upload.py 
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_access_key }}
+      run: $PYTHON_EXEC $GITHUB_WORKSPACE/tools/ci-scripts/upload.py
+
     #- name: Archive symbols
     #  if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macOS')
     #  working-directory: ${{runner.workspace}}

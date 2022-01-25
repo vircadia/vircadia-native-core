@@ -14,6 +14,7 @@
 #include "RegisteredMetaTypes.h"
 
 #include "Procedural.h"
+#include "ReferenceMaterial.h"
 
 NetworkMaterialResource::NetworkMaterialResource(const QUrl& url) :
     Resource(url) {}
@@ -30,7 +31,7 @@ void NetworkMaterialResource::downloadFinished(const QByteArray& data) {
     finishedLoading(true);
 }
 
-/**jsdoc
+/*@jsdoc
  * <p>An RGB or SRGB color value.</p>
  * <table>
  *   <thead>
@@ -71,11 +72,12 @@ bool NetworkMaterialResource::parseJSONColor(const QJsonValue& array, glm::vec3&
     return false;
 }
 
-/**jsdoc
+/*@jsdoc
  * A material or set of materials used by a {@link Entities.EntityType|Material entity}.
  * @typedef {object} Entities.MaterialResource
  * @property {number} materialVersion=1 - The version of the material. <em>Currently not used.</em>
- * @property {Entities.Material|Entities.Material[]} materials - The details of the material or materials.
+ * @property {Entities.Material|Entities.Material[]|string} materials - The details of the material or materials, or the ID of another
+ *     Material entity.
  */
 NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMaterials(const QJsonDocument& materialJSON, const QUrl& baseUrl) {
     ParsedMaterials toReturn;
@@ -92,14 +94,14 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
                 if (materialsValue.isArray()) {
                     QJsonArray materials = materialsValue.toArray();
                     for (auto material : materials) {
-                        if (!material.isNull() && material.isObject()) {
-                            auto parsedMaterial = parseJSONMaterial(material.toObject(), baseUrl);
+                        if (!material.isNull() && (material.isObject() || material.isString())) {
+                            auto parsedMaterial = parseJSONMaterial(material, baseUrl);
                             toReturn.networkMaterials[parsedMaterial.first] = parsedMaterial.second;
                             toReturn.names.push_back(parsedMaterial.first);
                         }
                     }
-                } else if (materialsValue.isObject()) {
-                    auto parsedMaterial = parseJSONMaterial(materialsValue.toObject(), baseUrl);
+                } else if (materialsValue.isObject() || materialsValue.isString()) {
+                    auto parsedMaterial = parseJSONMaterial(materialsValue, baseUrl);
                     toReturn.networkMaterials[parsedMaterial.first] = parsedMaterial.second;
                     toReturn.names.push_back(parsedMaterial.first);
                 }
@@ -110,7 +112,18 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
     return toReturn;
 }
 
-/**jsdoc
+NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseMaterialForUUID(const QJsonValue& entityIDJSON) {
+    ParsedMaterials toReturn;
+    if (!entityIDJSON.isNull() && entityIDJSON.isString()) {
+        auto parsedMaterial = parseJSONMaterial(entityIDJSON);
+        toReturn.networkMaterials[parsedMaterial.first] = parsedMaterial.second;
+        toReturn.names.push_back(parsedMaterial.first);
+    }
+
+    return toReturn;
+}
+
+/*@jsdoc
  * A material used in a {@link Entities.MaterialResource|MaterialResource}.
  * @typedef {object} Entities.Material
  * @property {string} name="" - A name for the material. Supported by all material models.
@@ -136,12 +149,14 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
  * @property {number|string} scattering - The scattering, range <code>0.0</code> &ndash; <code>1.0</code>. 
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {string} emissiveMap - The URL of the emissive texture image. 
- *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {string} albedoMap - The URL of the albedo texture image. 
- *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {string} opacityMap - The URL of the opacity texture image. Set the value the same as the <code>albedoMap</code> 
- *     value for transparency. 
+ * @property {string} emissiveMap - The URL of the emissive texture image, or an entity ID.  An entity ID may be that of an
+ *     Image or Web entity.  Set to <code>"fallthrough"</code> to fall through to the material below.
+ *     <code>"hifi_pbr"</code> model only.
+ * @property {string} albedoMap - The URL of the albedo texture image, or an entity ID.  An entity ID may be that of an Image
+ *     or Web entity.  Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code>
+ *     model only.
+ * @property {string} opacityMap - The URL of the opacity texture image, or an entity ID.  An entity ID may be that of an Image
+ *     or Web entity.  Set the value the same as the <code>albedoMap</code> value for transparency.
  *     <code>"hifi_pbr"</code> model only.
  * @property {string} opacityMapMode - The mode defining the interpretation of the opacity map. Values can be:
  *     <ul>
@@ -176,23 +191,27 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
  * @property {string} glossMap - The URL of the gloss texture image. You can use this or <code>roughnessMap</code>, but not 
  *     both. 
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {string} metallicMap - The URL of the metallic texture image. You can use this or <code>specularMap</code>, but 
- *     not both. 
+ * @property {string} metallicMap - The URL of the metallic texture image, or an entity ID.  An entity ID may be that of an
+ *     Image or Web entity.  You can use this or <code>specularMap</code>, but not both.
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {string} specularMap - The URL of the specular texture image. You can use this or <code>metallicMap</code>, but 
- *     not both. 
+ * @property {string} specularMap - The URL of the specular texture image, or an entity ID.  An entity ID may be that of an
+ *     Image or Web entity.  You can use this or <code>metallicMap</code>, but not both.
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {string} normalMap - The URL of the normal texture image. You can use this or <code>bumpMap</code>, but not both. 
+ * @property {string} normalMap - The URL of the normal texture image, or an entity ID.  An entity ID may be that of an Image
+ *     or Web entity.  You can use this or <code>bumpMap</code>, but not both. Set to <code>"fallthrough"</code> to fall
+ *     through to the material below. <code>"hifi_pbr"</code> model only.
+ * @property {string} bumpMap - The URL of the bump texture image, or an entity ID.  An entity ID may be that of an Image
+ *     or Web entity.  You can use this or <code>normalMap</code>, but not both. Set to <code>"fallthrough"</code> to
+ *     fall through to the material below. <code>"hifi_pbr"</code> model only.
+ * @property {string} occlusionMap - The URL of the occlusion texture image, or an entity ID.  An entity ID may be that of
+ *     an Image or Web entity.  Set to <code>"fallthrough"</code> to fall through to the material below.
+ *     <code>"hifi_pbr"</code> model only.
+ * @property {string} scatteringMap - The URL of the scattering texture image, or an entity ID.  An entity ID may be that of an
+ *     Image or Web entity.  Only used if <code>normalMap</code> or <code>bumpMap</code> is specified.
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {string} bumpMap - The URL of the bump texture image. You can use this or <code>normalMap</code>, but not both. 
- *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {string} occlusionMap - The URL of the occlusion texture image. 
- *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {string} scatteringMap - The URL of the scattering texture image. Only used if <code>normalMap</code> or 
- *     <code>bumpMap</code> is specified. 
- *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {string} lightMap - The URL of the light map texture image. 
- *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
+ * @property {string} lightMap - The URL of the light map texture image, or an entity ID.  An entity ID may be that of an Image
+ *     or Web entity.  Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code>
+ *     model only.
  * @property {Mat4|string} texCoordTransform0 - The transform to use for all of the maps apart from <code>occlusionMap</code> 
  *     and <code>lightMap</code>. 
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
@@ -210,9 +229,21 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
  * @property {ProceduralData} procedural - The definition of a procedural shader material.  <code>"hifi_shader_simple"</code> model only.
  */
 // Note: See MaterialEntityItem.h for default values used in practice.
-std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource::parseJSONMaterial(const QJsonObject& materialJSON, const QUrl& baseUrl) {
+std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource::parseJSONMaterial(const QJsonValue& materialJSONValue, const QUrl& baseUrl) {
     std::string name = "";
     std::shared_ptr<NetworkMaterial> networkMaterial;
+
+    if (materialJSONValue.isString()) {
+        QString uuidString = materialJSONValue.toString();
+        name = uuidString.toStdString();
+        QUuid uuid = QUuid(uuidString);
+        if (!uuid.isNull()) {
+            networkMaterial = std::make_shared<ReferenceMaterial>(uuid);
+        }
+        return std::pair<std::string, std::shared_ptr<NetworkMaterial>>(name, networkMaterial);
+    }
+
+    QJsonObject materialJSON = materialJSONValue.toObject();
 
     std::string modelString = graphics::Material::HIFI_PBR;
     auto modelJSONIter = materialJSON.find("model");
@@ -550,11 +581,11 @@ NetworkMaterialResourcePointer MaterialCache::getMaterial(const QUrl& url) {
 }
 
 QSharedPointer<Resource> MaterialCache::createResource(const QUrl& url) {
-    return QSharedPointer<Resource>(new NetworkMaterialResource(url), &Resource::deleter);
+    return QSharedPointer<NetworkMaterialResource>(new NetworkMaterialResource(url), &Resource::deleter);
 }
 
 QSharedPointer<Resource> MaterialCache::createResourceCopy(const QSharedPointer<Resource>& resource) {
-    return QSharedPointer<Resource>(new NetworkMaterialResource(*resource.staticCast<NetworkMaterialResource>()), &Resource::deleter);
+    return QSharedPointer<NetworkMaterialResource>(new NetworkMaterialResource(*resource.staticCast<NetworkMaterialResource>()), &Resource::deleter);
 }
 
 NetworkMaterial::NetworkMaterial(const NetworkMaterial& m) :

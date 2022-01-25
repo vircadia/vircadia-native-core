@@ -266,7 +266,7 @@ void Midi::MidiCleanup() {
 }
 #endif
 
-/**jsdoc
+/*@jsdoc
  * A MIDI message.
  * <p><strong>Warning:</strong> The <code>status</code> property is NOT a MIDI status value.</p>
  * @typedef {object} Midi.MidiMessage
@@ -280,7 +280,7 @@ void Midi::MidiCleanup() {
  * @property {number} bend - Pitch bend: <code>-8192</code> &ndash; <code>8191</code>.
  * @property {number} program - Program change: <code>0</code> &ndash; <code>127</code>.
  */
-/**jsdoc
+/*@jsdoc
  * An integer DWORD (unsigned 32 bit) message with bits having values as follows:
  * <table>
  *   <tbody>
@@ -302,7 +302,7 @@ void Midi::MidiCleanup() {
  * <p>The number in the first bit of each byte denotes whether it is a command (1) or data (0).
  * @typedef {number} Midi.RawMidiMessage
  */
-/**jsdoc
+/*@jsdoc
  * <p>A MIDI status value. The following MIDI status values are supported:</p>
  * <table>
  *   <thead>

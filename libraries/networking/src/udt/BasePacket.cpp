@@ -4,6 +4,7 @@
 //
 //  Created by Stephen Birarda on 2015-07-23.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -36,7 +37,7 @@ std::unique_ptr<BasePacket> BasePacket::create(qint64 size) {
 }
 
 std::unique_ptr<BasePacket> BasePacket::fromReceivedPacket(std::unique_ptr<char[]> data,
-                                                           qint64 size, const HifiSockAddr& senderSockAddr) {
+                                                           qint64 size, const SockAddr& senderSockAddr) {
     // Fail with invalid size
     Q_ASSERT(size >= 0);
     
@@ -57,7 +58,7 @@ BasePacket::BasePacket(qint64 size) {
     }
     
     // Sanity check
-    Q_ASSERT(size >= 0 || size < maxPayload);
+    Q_ASSERT(size >= 0 && size <= maxPayload);
     
     _packetSize = size;
     _packet.reset(new char[_packetSize]());
@@ -66,7 +67,7 @@ BasePacket::BasePacket(qint64 size) {
     _payloadStart = _packet.get();
 }
 
-BasePacket::BasePacket(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr) :
+BasePacket::BasePacket(std::unique_ptr<char[]> data, qint64 size, const SockAddr& senderSockAddr) :
     _packetSize(size),
     _packet(std::move(data)),
     _payloadStart(_packet.get()),

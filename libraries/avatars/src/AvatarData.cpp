@@ -1491,7 +1491,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     return numBytesRead;
 }
 
-/**jsdoc
+/*@jsdoc
  * <p>The avatar mixer data comprises different types of data, with the data rates of each being tracked in kbps.</p>
  *
  * <table>
@@ -1596,7 +1596,7 @@ float AvatarData::getDataRate(const QString& rateName) const {
     return 0.0f;
 }
 
-/**jsdoc
+/*@jsdoc
  * <p>The avatar mixer data comprises different types of data updated at different rates, in Hz.</p>
  *
  * <table>
@@ -2926,7 +2926,7 @@ glm::vec3 AvatarData::getAbsoluteJointTranslationInObjectFrame(int index) const 
     return glm::vec3();
 }
 
-/**jsdoc
+/*@jsdoc
  * Information on an attachment worn by the avatar.
  * @typedef {object} AttachmentData
  * @property {string} modelUrl - The URL of the glTF, FBX, or OBJ model file. glTF models may be in JSON or binary format 
@@ -3126,7 +3126,7 @@ glm::mat4 AvatarData::getControllerRightHandMatrix() const {
     return _controllerRightHandMatrixCache.get();
 }
 
-/**jsdoc
+/*@jsdoc
  * Information about a ray-to-avatar intersection.
  * @typedef {object} RayToAvatarIntersectionResult
  * @property {boolean} intersects - <code>true</code> if an avatar is intersected, <code>false</code> if it isn't.
@@ -3182,7 +3182,7 @@ float AvatarData::_avatarSortCoefficientSize { 8.0f };
 float AvatarData::_avatarSortCoefficientCenter { 0.25f };
 float AvatarData::_avatarSortCoefficientAge { 1.0f };
 
-/**jsdoc
+/*@jsdoc
  * An object with the UUIDs of avatar entities as keys and avatar entity properties objects as values.
  * @typedef {Object.<Uuid, Entities.EntityProperties>} AvatarEntityMap
  */

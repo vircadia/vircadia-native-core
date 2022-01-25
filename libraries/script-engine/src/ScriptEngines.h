@@ -6,6 +6,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_ScriptEngines_h
 #define hifi_ScriptEngines_h
 
@@ -16,6 +19,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QMutex>
 #include <QtCore/QReadWriteLock>
+#include <QtCore/QUrl>
 
 #include <SettingHandle.h>
 #include <DependencyManager.h>
@@ -28,7 +32,7 @@
 
 class ScriptEngine;
 
-/**jsdoc
+/*@jsdoc
  * The <code>ScriptDiscoveryService</code> API provides facilities to work with Interface scripts.
  *
  * @namespace ScriptDiscoveryService
@@ -37,19 +41,19 @@ class ScriptEngine;
  * @hifi-avatar
  * @hifi-client-entity
  *
- * @property {string} debugScriptUrl="" - The path and name of a script to debug using the "API Debugger" developer tool 
- *     (currentAPI.js). If set, the API Debugger dialog displays the objects and values exposed by the script using 
+ * @property {string} debugScriptUrl="" - The path and name of a script to debug using the "API Debugger" developer tool
+ *     (currentAPI.js). If set, the API Debugger dialog displays the objects and values exposed by the script using
  *     {@link Script.registerValue} and similar.
- * @property {string} defaultScriptsPath - The path where the default scripts are located in the Interface installation. 
+ * @property {string} defaultScriptsPath - The path where the default scripts are located in the Interface installation.
  *     <em>Read-only.</em>
- * @property {ScriptsModel} scriptsModel - Information on the scripts that are in the default scripts directory of the 
+ * @property {ScriptsModel} scriptsModel - Information on the scripts that are in the default scripts directory of the
  *     Interface installation.
  *     <em>Read-only.</em>
- * @property {ScriptsModelFilter} scriptsModelFilter - Sorted and filtered information on the scripts that are in the default 
+ * @property {ScriptsModelFilter} scriptsModelFilter - Sorted and filtered information on the scripts that are in the default
  *     scripts directory of the Interface installation.
  *     <em>Read-only.</em>
  */
-
+/// Provides the <code><a href="https://apidocs.vircadia.dev/ScriptDiscoveryService.html">ScriptDiscoveryService</a></code> scripting interface
 class ScriptEngines : public QObject, public Dependency, public ScriptInitializerMixin<ScriptEnginePointer> {
     Q_OBJECT
 
@@ -78,59 +82,59 @@ public:
 
     QString getDefaultScriptsLocation() const;
 
-    /**jsdoc
-     * Starts running an Interface script, if it isn't already running. The script is automatically loaded next time Interface 
+    /*@jsdoc
+     * Starts running an Interface script, if it isn't already running. The script is automatically loaded next time Interface
      * starts.
      * <p>This is a synonym for calling {@link ScriptDiscoveryService.loadScript|loadScript} with just the script URL.</p>
      * <p class="availableIn"><strong>Supported Script Types:</strong> Interface Scripts &bull; Avatar Scripts</p>
      * <p>See also, {@link Script.load}.</p>
      * @function ScriptDiscoveryService.loadOneScript
-     * @param {string} url - The path and name of the script. If a local file, including the <code>"file:///"</code> scheme is 
+     * @param {string} url - The path and name of the script. If a local file, including the <code>"file:///"</code> scheme is
      *     optional.
      */
     Q_INVOKABLE void loadOneScript(const QString& scriptFilename);
 
-    /**jsdoc
+    /*@jsdoc
      * Starts running an Interface script, if it isn't already running.
      * <p class="availableIn"><strong>Supported Script Types:</strong> Interface Scripts &bull; Avatar Scripts</p>
      * <p>See also, {@link Script.load}.</p>
      * @function ScriptDiscoveryService.loadScript
-     * @param {string} [url=""] - The path and name of the script. If a local file, including the <code>"file:///"</code> 
+     * @param {string} [url=""] - The path and name of the script. If a local file, including the <code>"file:///"</code>
      *     scheme is optional.
-     * @param {boolean} [isUserLoaded=true] - <code>true</code> if the user specifically loaded it, <code>false</code> if not 
+     * @param {boolean} [isUserLoaded=true] - <code>true</code> if the user specifically loaded it, <code>false</code> if not
      *     (e.g., a script loaded it). If <code>false</code>, the script is not automatically loaded next time Interface starts.
      * @param {boolean} [loadScriptFromEditor=false] - <em>Not used.</em>
      * @param {boolean} [activateMainWindow=false] - <em>Not used.</em>
-     * @param {boolean} [reload=false] - <code>true</code> to redownload the script, <code>false</code> to use the copy from 
+     * @param {boolean} [reload=false] - <code>true</code> to redownload the script, <code>false</code> to use the copy from
      *     the cache if available.
-     * @param {boolean} [quitWhenFinished=false] - <code>true</code> to close Interface when the script finishes, 
+     * @param {boolean} [quitWhenFinished=false] - <code>true</code> to close Interface when the script finishes,
      *     <code>false</code> to not close Interface.
      * @returns {object} An empty object, <code>{}</code>.
      */
     Q_INVOKABLE ScriptEnginePointer loadScript(const QUrl& scriptFilename = QString(),
         bool isUserLoaded = true, bool loadScriptFromEditor = false, bool activateMainWindow = false, bool reload = false, bool quitWhenFinished = false);
 
-    /**jsdoc
+    /*@jsdoc
      * Stops or restarts an Interface script.
      * @function ScriptDiscoveryService.stopScript
-     * @param {string} url - The path and name of the script. If a local file, including the <code>"file:///"</code> scheme is 
+     * @param {string} url - The path and name of the script. If a local file, including the <code>"file:///"</code> scheme is
      *     optional.
-     * @param {boolean} [restart=false] -  <code>true</code> to redownload and restart the script, <code>false</code> to stop 
+     * @param {boolean} [restart=false] -  <code>true</code> to redownload and restart the script, <code>false</code> to stop
      *     it.
-     * @returns {boolean} <code>true</code> if the script was successfully stopped or restarted, <code>false</code> if it 
+     * @returns {boolean} <code>true</code> if the script was successfully stopped or restarted, <code>false</code> if it
      *     wasn't (e.g., the script couldn't be found).
      */
     Q_INVOKABLE bool stopScript(const QString& scriptHash, bool restart = false);
 
 
-    /**jsdoc
+    /*@jsdoc
      * Restarts all Interface, avatar, and client entity scripts after clearing the scripts cache.
      * @function ScriptDiscoveryService.reloadAllScripts
      */
     Q_INVOKABLE void reloadAllScripts();
 
-    /**jsdoc
-     * Stops or restarts all Interface scripts. The scripts cache is not cleared. If restarting, avatar and client entity 
+    /*@jsdoc
+     * Stops or restarts all Interface scripts. The scripts cache is not cleared. If restarting, avatar and client entity
      * scripts are also restarted.
      * @function ScriptDiscoveryService.stopAllScripts
      * @param {boolean} [restart=false] - <code>true</code> to restart the scripts, <code>false</code> to stop them.
@@ -138,7 +142,7 @@ public:
     Q_INVOKABLE void stopAllScripts(bool restart = false);
 
 
-    /**jsdoc
+    /*@jsdoc
      * Gets a list of all Interface scripts that are currently running.
      * @function ScriptDiscoveryService.getRunning
      * @returns {ScriptDiscoveryService.RunningScript[]} All Interface scripts that are currently running.
@@ -151,15 +155,15 @@ public:
      */
     Q_INVOKABLE QVariantList getRunning();
 
-    /**jsdoc
+    /*@jsdoc
      * Gets a list of all script files that are in the default scripts directory of the Interface installation.
      * @function ScriptDiscoveryService.getPublic
-     * @returns {ScriptDiscoveryService.PublicScript[]} All scripts in the "scripts" directory of the Interface 
+     * @returns {ScriptDiscoveryService.PublicScript[]} All scripts in the "scripts" directory of the Interface
      *     installation.
      */
     Q_INVOKABLE QVariantList getPublic();
 
-    /**jsdoc
+    /*@jsdoc
      * @function ScriptDiscoveryService.getLocal
      * @returns {ScriptDiscoveryService.LocalScript[]} Local scripts.
      * @deprecated This function is deprecated and will be removed.
@@ -177,12 +181,12 @@ public:
     bool isStopped() const { return _isStopped; }
 
     void addScriptEngine(ScriptEnginePointer);
-    
+
     ScriptGatekeeper scriptGatekeeper;
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the number of Interface scripts running changes.
      * @function ScriptDiscoveryService.scriptCountChanged
      * @returns {Signal}
@@ -193,16 +197,16 @@ signals:
      */
     void scriptCountChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when Interface, avatar, and client entity scripts are restarting as a result of
-     * {@link ScriptDiscoveryService.reloadAllScripts|reloadAllScripts} or 
+     * {@link ScriptDiscoveryService.reloadAllScripts|reloadAllScripts} or
      * {@link ScriptDiscoveryService.stopAllScripts|stopAllScripts}.
      * @function ScriptDiscoveryService.scriptsReloading
      * @returns {Signal}
      */
     void scriptsReloading();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when a script could not be loaded.
      * @function ScriptDiscoveryService.scriptLoadError
      * @param {string} url - The path and name of the script that could not be loaded.
@@ -211,7 +215,7 @@ signals:
      */
     void scriptLoadError(const QString& filename, const QString& error);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when any script prints a message to the program log via {@link  print}, {@link Script.print},
      * {@link console.log}, or {@link console.debug}.
      * @function ScriptDiscoveryService.printedMessage
@@ -221,7 +225,7 @@ signals:
      */
     void printedMessage(const QString& message, const QString& engineName);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when any script generates an error or {@link console.error} is called.
      * @function ScriptDiscoveryService.errorMessage
      * @param {string} message - The error message.
@@ -230,7 +234,7 @@ signals:
      */
     void errorMessage(const QString& message, const QString& engineName);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when any script generates a warning or {@link console.warn} is called.
      * @function ScriptDiscoveryService.warningMessage
      * @param {string} message - The warning message.
@@ -239,7 +243,7 @@ signals:
      */
     void warningMessage(const QString& message, const QString& engineName);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when any script generates an information message or {@link console.info} is called.
      * @function ScriptDiscoveryService.infoMessage
      * @param {string} message - The information message.
@@ -248,7 +252,7 @@ signals:
      */
     void infoMessage(const QString& message, const QString& engineName);
 
-    /**jsdoc
+    /*@jsdoc
      * @function ScriptDiscoveryService.errorLoadingScript
      * @param {string} url - URL.
      * @returns {Signal}
@@ -257,7 +261,7 @@ signals:
     // Deprecated because never emitted.
     void errorLoadingScript(const QString& url);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the Debug Window is cleared.
      * @function ScriptDiscoveryService.clearDebugWindow
      * @returns {Signal}
@@ -266,7 +270,7 @@ signals:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * @function ScriptDiscoveryService.onPrintedMessage
      * @param {string} message - Message.
      * @param {string} scriptName - Script name.
@@ -275,7 +279,7 @@ public slots:
     // Deprecated because only use is to emit a signal.
     void onPrintedMessage(const QString& message, const QString& scriptName);
 
-    /**jsdoc
+    /*@jsdoc
      * @function ScriptDiscoveryService.onErrorMessage
      * @param {string} message - Message.
      * @param {string} scriptName - Script name.
@@ -284,7 +288,7 @@ public slots:
     // Deprecated because only use is to emit a signal.
     void onErrorMessage(const QString& message, const QString& scriptName);
 
-    /**jsdoc
+    /*@jsdoc
      * @function ScriptDiscoveryService.onWarningMessage
      * @param {string} message - Message.
      * @param {string} scriptName - Script name.
@@ -293,7 +297,7 @@ public slots:
     // Deprecated because only use is to emit a signal.
     void onWarningMessage(const QString& message, const QString& scriptName);
 
-    /**jsdoc
+    /*@jsdoc
      * @function ScriptDiscoveryService.onInfoMessage
      * @param {string} message - Message.
      * @param {string} scriptName - Script name.
@@ -302,7 +306,7 @@ public slots:
     // Deprecated because only use is to emit a signal.
     void onInfoMessage(const QString& message, const QString& scriptName);
 
-    /**jsdoc
+    /*@jsdoc
      * @function ScriptDiscoveryService.onErrorLoadingScript
      * @param {string} url - URL.
      * @deprecated This function is deprecated and will be removed.
@@ -310,7 +314,7 @@ public slots:
     // Deprecated because only use is to emit a signal. And it isn't used.
     void onErrorLoadingScript(const QString& url);
 
-    /**jsdoc
+    /*@jsdoc
      * @function ScriptDiscoveryService.onClearDebugWindow
      * @deprecated This function is deprecated and will be removed.
      */
@@ -319,7 +323,7 @@ public slots:
 
 protected slots:
 
-    /**jsdoc
+    /*@jsdoc
      * @function ScriptDiscoveryService.onScriptFinished
      * @param {string} scriptName - Script name.
      * @param {object} engine - Engine.
@@ -340,7 +344,7 @@ protected:
 
     ScriptEngine::Context _context;
     QReadWriteLock _scriptEnginesHashLock;
-    QHash<QUrl, ScriptEnginePointer> _scriptEnginesHash;
+    QMultiHash<QUrl, ScriptEnginePointer> _scriptEnginesHash;
     QSet<ScriptEnginePointer> _allKnownScriptEngines;
     QMutex _allScriptsMutex;
     ScriptsModel _scriptsModel;
@@ -362,3 +366,5 @@ QString expandScriptPath(const QString& rawPath);
 QUrl expandScriptUrl(const QUrl& rawScriptURL);
 
 #endif // hifi_ScriptEngine_h
+
+/// @}

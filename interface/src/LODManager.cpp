@@ -4,6 +4,7 @@
 //
 //  Created by Clement on 1/16/15.
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2021 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -19,8 +20,12 @@
 #include "ui/DialogsManager.h"
 #include "InterfaceLogging.h"
 
-Setting::Handle<int> desktopWorldDetailQuality("desktopWorldDetailQuality", (int)DEFAULT_WORLD_DETAIL_QUALITY);
-Setting::Handle<int> hmdWorldDetailQuality("hmdWorldDetailQuality", (int)DEFAULT_WORLD_DETAIL_QUALITY);
+const QString LOD_SETTINGS_PREFIX { "lodManager/" };
+
+Setting::Handle<bool> automaticLODAdjust(LOD_SETTINGS_PREFIX + "automaticLODAdjust", (bool)DEFAULT_LOD_AUTO_ADJUST);
+Setting::Handle<float> lodHalfAngle(LOD_SETTINGS_PREFIX + "lodHalfAngle", (float)getHalfAngleFromVisibilityDistance(DEFAULT_VISIBILITY_DISTANCE_FOR_UNIT_ELEMENT));
+Setting::Handle<int> desktopWorldDetailQuality(LOD_SETTINGS_PREFIX + "desktopWorldDetailQuality", (int)DEFAULT_WORLD_DETAIL_QUALITY);
+Setting::Handle<int> hmdWorldDetailQuality(LOD_SETTINGS_PREFIX + "hmdWorldDetailQuality", (int)DEFAULT_WORLD_DETAIL_QUALITY);
 
 LODManager::LODManager() {
 }
@@ -188,12 +193,14 @@ void LODManager::setVisibilityDistance(float distance) {
     // Maintain behavior with deprecated _boundaryLevelAdjust property
     float userDistance = distance / powf(2.0f, _boundaryLevelAdjust);
     _lodHalfAngle = getHalfAngleFromVisibilityDistance(userDistance);
+    saveSettings();
 }
 
 void LODManager::setLODAngleDeg(float lodAngle) {
     auto newLODAngleDeg = std::max(0.001f, std::min(lodAngle, 90.f));
     auto newLODHalfAngle = glm::radians(newLODAngleDeg * 0.5f);
     _lodHalfAngle = newLODHalfAngle;
+    saveSettings();
 }
 
 void LODManager::setSmoothScale(float t) {
@@ -244,6 +251,7 @@ void LODManager::resetLODAdjust() {
 void LODManager::setAutomaticLODAdjust(bool value) {
     std::lock_guard<std::mutex> { _automaticLODLock };
     _automaticLODAdjust = value;
+    saveSettings();
     emit autoLODChanged();
 }
 
@@ -330,14 +338,19 @@ void LODManager::loadSettings() {
     if (qApp->property(hifi::properties::OCULUS_STORE).toBool() && firstRun.get()) {
         hmdQuality = WORLD_DETAIL_HIGH;
     }
+    
+    _automaticLODAdjust = automaticLODAdjust.get();
+    _lodHalfAngle = lodHalfAngle.get();
 
     setWorldDetailQuality(desktopQuality, false);
     setWorldDetailQuality(hmdQuality, true);
 }
 
 void LODManager::saveSettings() {
+    automaticLODAdjust.set((bool)_automaticLODAdjust);
     desktopWorldDetailQuality.set((int)_desktopWorldDetailQuality);
     hmdWorldDetailQuality.set((int)_hmdWorldDetailQuality);
+    lodHalfAngle.set((float)_lodHalfAngle);
 }
 
 const float MIN_DECREASE_FPS = 0.5f;
@@ -405,6 +418,7 @@ void LODManager::setWorldDetailQuality(WorldDetailQuality quality, bool isHMDMod
     
 void LODManager::setWorldDetailQuality(WorldDetailQuality quality) {
     setWorldDetailQuality(quality, qApp->isHMDMode());
+    saveSettings();
     emit worldDetailQualityChanged();
 }
 

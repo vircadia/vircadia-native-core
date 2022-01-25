@@ -10,7 +10,6 @@
 
 #include <functional>
 #include <mutex>
-#include <QSharedPointer>
 #include "../DependencyManager.h"
 
 class QScriptEngine;

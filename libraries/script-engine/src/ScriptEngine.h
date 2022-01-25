@@ -10,6 +10,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/// @addtogroup ScriptEngine
+/// @{
+
 #ifndef hifi_ScriptEngine_h
 #define hifi_ScriptEngine_h
 
@@ -19,6 +22,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 #include <QtCore/QSet>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QWaitCondition>
 #include <QtCore/QStringList>
 #include <QMap>
@@ -49,8 +53,6 @@
 #include "ConsoleScriptingInterface.h"
 #include "SettingHandle.h"
 #include "Profile.h"
-
-class QScriptEngineDebugger;
 
 static const QString NO_SCRIPT("");
 
@@ -103,7 +105,7 @@ public:
     QUrl definingSandboxURL { QUrl("about:EntityScript") };
 };
 
-/**jsdoc
+/*@jsdoc
  * The <code>Script</code> API provides facilities for working with scripts.
  *
  * @namespace Script
@@ -135,6 +137,7 @@ public:
  *     <em>Read-only.</em>
  * @property {Script.ResourceBuckets} ExternalPaths - External resource buckets.
  */
+/// The main class managing a scripting engine.  Also provides the <code><a href="https://apidocs.vircadia.dev/Script.html">Script</a></code> scripting interface
 class ScriptEngine : public BaseScriptEngine, public EntitiesScriptEngineProvider {
     Q_OBJECT
     Q_PROPERTY(QString context READ getContext)
@@ -167,8 +170,6 @@ public:
     /// services before calling this.
     void runInThread();
 
-    void runDebuggable();
-
     /// run the script in the callers thread, exit when stop() is called.
     void run();
 
@@ -176,7 +177,7 @@ public:
 
     QList<EntityItemID> getListOfEntityScriptIDs();
 
-    /**jsdoc
+    /*@jsdoc
      * Stops and unloads the current script.
      * <p><strong>Warning:</strong> If an assignment client script, the script gets restarted after stopping.</p>
      * @function Script.stop
@@ -186,7 +187,7 @@ public:
      * Script.setInterval(function () {
      *     print("Hello");
      * }, 1000);
-     * 
+     *
      * Script.setTimeout(function () {
      *     Script.stop(true);
      * }, 5000);
@@ -202,7 +203,7 @@ public:
     // NOTE - these are NOT intended to be public interfaces available to scripts, the are only Q_INVOKABLE so we can
     //        properly ensure they are only called on the correct thread
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.registerGlobalObject
      * @param {string} name - Name.
      * @param {object} object - Object.
@@ -211,7 +212,7 @@ public:
     /// registers a global object by name
     Q_INVOKABLE void registerGlobalObject(const QString& name, QObject* object);
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.registerGetterSetter
      * @param {string} name - Name.
      * @param {function} getter - Getter.
@@ -223,7 +224,7 @@ public:
     Q_INVOKABLE void registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,
                                           QScriptEngine::FunctionSignature setter, const QString& parent = QString(""));
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.registerFunction
      * @param {string} name - Name.
      * @param {function} function - Function.
@@ -233,7 +234,7 @@ public:
     /// register a global function
     Q_INVOKABLE void registerFunction(const QString& name, QScriptEngine::FunctionSignature fun, int numArguments = -1);
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.registerFunction
      * @param {string} parent - Parent.
      * @param {string} name - Name.
@@ -245,7 +246,7 @@ public:
     Q_INVOKABLE void registerFunction(const QString& parent, const QString& name, QScriptEngine::FunctionSignature fun,
                                       int numArguments = -1);
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.registerEnum
      * @param {string} name - Name.
      * @param {object} enum - Enum.
@@ -256,7 +257,7 @@ public:
     /// registers a global enum
     Q_INVOKABLE void registerEnum(const QString& enumName, QMetaEnum newEnum);
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.registerValue
      * @param {string} name - Name.
      * @param {object} value - Value.
@@ -265,7 +266,7 @@ public:
     /// registers a global object by name
     Q_INVOKABLE void registerValue(const QString& valueName, QScriptValue value);
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.evaluate
      * @param {string} program - Program.
      * @param {string} filename - File name.
@@ -276,7 +277,7 @@ public:
     /// evaluate some code in the context of the ScriptEngine and return the result
     Q_INVOKABLE QScriptValue evaluate(const QString& program, const QString& fileName, int lineNumber = 1); // this is also used by the script tool widget
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.evaluateInClosure
      * @param {object} locals - Locals.
      * @param {object} program - Program.
@@ -291,7 +292,7 @@ public:
     void loadURL(const QUrl& scriptURL, bool reload);
     bool hasValidScriptSuffix(const QString& scriptFileName);
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the context that the script is running in: Interface/avatar, client entity, server entity, or assignment client.
      * @function Script.getContext
      * @returns {string} The context that the script is running in:
@@ -304,40 +305,40 @@ public:
      */
     Q_INVOKABLE QString getContext() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether the script is running as an Interface or avatar script.
      * @function Script.isClientScript
-     * @returns {boolean} <code>true</code> if the script is running as an Interface or avatar script, <code>false</code> if it 
+     * @returns {boolean} <code>true</code> if the script is running as an Interface or avatar script, <code>false</code> if it
      *     isn't.
      */
     Q_INVOKABLE bool isClientScript() const { return _context == CLIENT_SCRIPT; }
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether the application was compiled as a debug build.
      * @function Script.isDebugMode
-     * @returns {boolean} <code>true</code> if the application was compiled as a debug build, <code>false</code> if it was 
+     * @returns {boolean} <code>true</code> if the application was compiled as a debug build, <code>false</code> if it was
      *     compiled as a release build.
      */
     Q_INVOKABLE bool isDebugMode() const;
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether the script is running as a client entity script.
      * @function Script.isEntityClientScript
      * @returns {boolean} <code>true</code> if the script is running as a client entity script, <code>false</code> if it isn't.
      */
     Q_INVOKABLE bool isEntityClientScript() const { return _context == ENTITY_CLIENT_SCRIPT; }
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether the script is running as a server entity script.
      * @function Script.isEntityServerScript
      * @returns {boolean} <code>true</code> if the script is running as a server entity script, <code>false</code> if it isn't.
      */
     Q_INVOKABLE bool isEntityServerScript() const { return _context == ENTITY_SERVER_SCRIPT; }
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether the script is running as an assignment client script.
      * @function Script.isAgentScript
-     * @returns {boolean} <code>true</code> if the script is running as an assignment client script, <code>false</code> if it 
+     * @returns {boolean} <code>true</code> if the script is running as an assignment client script, <code>false</code> if it
      *     isn't.
      */
     Q_INVOKABLE bool isAgentScript() const { return _context == AGENT_SCRIPT; }
@@ -345,13 +346,13 @@ public:
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // NOTE - these are intended to be public interfaces available to scripts
 
-    /**jsdoc
+    /*@jsdoc
      * Adds a function to the list of functions called when a particular event occurs on a particular entity.
      * <p>See also, the {@link Entities} API.</p>
      * @function Script.addEventHandler
      * @param {Uuid} entityID - The ID of the entity.
      * @param {Script.EntityEvent} eventName - The name of the event.
-     * @param {Script~entityEventCallback|Script~pointerEventCallback|Script~collisionEventCallback} handler - The function to 
+     * @param {Script~entityEventCallback|Script~pointerEventCallback|Script~collisionEventCallback} handler - The function to
      *     call when the event occurs on the entity. It can be either the name of a function or an in-line definition.
      * @example <caption>Report when a mouse press occurs on a particular entity.</caption>
      * var entityID = Entities.addEntity({
@@ -360,16 +361,16 @@ public:
      *     dimensions: { x: 0.5, y: 0.5, z: 0.5 },
      *     lifetime: 300  // Delete after 5 minutes.
      * });
-     * 
+     *
      * function reportMousePress(entityID, event) {
      *     print("Mouse pressed on entity: " + JSON.stringify(event));
      * }
-     * 
+     *
      * Script.addEventHandler(entityID, "mousePressOnEntity", reportMousePress);
      */
     Q_INVOKABLE void addEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler);
 
-    /**jsdoc
+    /*@jsdoc
      * Removes a function from the list of functions called when an entity event occurs on a particular entity.
      * <p>See also, the {@link Entities} API.</p>
      * @function Script.removeEventHandler
@@ -379,8 +380,8 @@ public:
      */
     Q_INVOKABLE void removeEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler);
 
-    /**jsdoc
-     * Starts running another script in Interface, if it isn't already running. The script is not automatically loaded next 
+    /*@jsdoc
+     * Starts running another script in Interface, if it isn't already running. The script is not automatically loaded next
      * time Interface starts.
      * <p class="availableIn"><strong>Supported Script Types:</strong> Interface Scripts &bull; Avatar Scripts</p>
      * <p>See also, {@link ScriptDiscoveryService.loadScript}.</p>
@@ -401,24 +402,24 @@ public:
      */
     Q_INVOKABLE void load(const QString& loadfile);
 
-    /**jsdoc
-     * Includes JavaScript from other files in the current script. If a callback is specified, the files are loaded and 
-     * included asynchronously, otherwise they are included synchronously (i.e., script execution blocks while the files are 
+    /*@jsdoc
+     * Includes JavaScript from other files in the current script. If a callback is specified, the files are loaded and
+     * included asynchronously, otherwise they are included synchronously (i.e., script execution blocks while the files are
      * included).
      * @function Script.include
      * @variation 0
      * @param {string[]} filenames - The URLs of the scripts to include. Each can be relative to the current script.
-     * @param {function} [callback=null] - The function to call back when the scripts have been included. It can be either the 
+     * @param {function} [callback=null] - The function to call back when the scripts have been included. It can be either the
      *     name of a function or an in-line definition.
      */
     Q_INVOKABLE void include(const QStringList& includeFiles, QScriptValue callback = QScriptValue());
 
-    /**jsdoc
+    /*@jsdoc
      * Includes JavaScript from another file in the current script. If a callback is specified, the file is loaded and included
      * asynchronously, otherwise it is included synchronously (i.e., script execution blocks while the file is included).
      * @function Script.include
      * @param {string} filename - The URL of the script to include. It can be relative to the current script.
-     * @param {function} [callback=null] - The function to call back when the script has been included. It can be either the 
+     * @param {function} [callback=null] - The function to call back when the script has been included. It can be either the
      *     name of a function or an in-line definition.
      * @example <caption>Include a script file asynchronously.</caption>
      * // First file: scriptA.js
@@ -441,18 +442,18 @@ public:
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // MODULE related methods
 
-    /**jsdoc
-     * Provides access to methods or objects provided in an external JavaScript or JSON file. 
-     * See {@link https://docs.vircadia.dev/script/js-tips.html} for further details.
+    /*@jsdoc
+     * Provides access to methods or objects provided in an external JavaScript or JSON file.
+     * See {@link https://docs.vircadia.com/script/js-tips.html} for further details.
      * @function Script.require
-     * @param {string} module - The module to use. May be a JavaScript file, a JSON file, or the name of a system module such 
+     * @param {string} module - The module to use. May be a JavaScript file, a JSON file, or the name of a system module such
      *     as <code>"appUi"</code> (i.e., the "appUi.js" system module JavaScript file).
-     * @returns {object|array} The value assigned to <code>module.exports</code> in the JavaScript file, or the value defined 
+     * @returns {object|array} The value assigned to <code>module.exports</code> in the JavaScript file, or the value defined
      *     in the JSON file.
      */
     Q_INVOKABLE QScriptValue require(const QString& moduleId);
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.resetModuleCache
      * @param {boolean} [deleteScriptCache=false] - Delete script cache.
      * @deprecated This function is deprecated and will be removed.
@@ -465,7 +466,7 @@ public:
     QVariantMap fetchModuleSource(const QString& modulePath, const bool forceDownload = false);
     QScriptValue instantiateModule(const QScriptValue& module, const QString& sourceCode);
 
-    /**jsdoc
+    /*@jsdoc
      * Calls a function repeatedly, at a set interval.
      * @function Script.setInterval
      * @param {function} function - The function to call. This can be either the name of a function or an in-line definition.
@@ -478,7 +479,7 @@ public:
     */
     Q_INVOKABLE QObject* setInterval(const QScriptValue& function, int intervalMS);
 
-    /**jsdoc
+    /*@jsdoc
      * Calls a function once, after a delay.
      * @function Script.setTimeout
      * @param {function} function - The function to call. This can be either the name of a function or an in-line definition.
@@ -491,7 +492,7 @@ public:
      */
     Q_INVOKABLE QObject* setTimeout(const QScriptValue& function, int timeoutMS);
 
-    /**jsdoc
+    /*@jsdoc
      * Stops an interval timer set by {@link Script.setInterval|setInterval}.
      * @function Script.clearInterval
      * @param {object} timer - The interval timer to stop.
@@ -509,7 +510,7 @@ public:
      */
     Q_INVOKABLE void clearInterval(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
 
-    /**jsdoc
+    /*@jsdoc
      * Stops a timeout timer set by {@link Script.setTimeout|setTimeout}.
      * @function Script.clearTimeout
      * @param {object} timer - The timeout timer to stop.
@@ -524,7 +525,7 @@ public:
      */
     Q_INVOKABLE void clearTimeout(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
 
-    /**jsdoc
+    /*@jsdoc
      * Prints a message to the program log and emits {@link Script.printedMessage}.
      * <p>Alternatively, you can use {@link print} or one of the {@link console} API methods.</p>
      * @function Script.print
@@ -532,7 +533,7 @@ public:
      */
     Q_INVOKABLE void print(const QString& message);
 
-    /**jsdoc
+    /*@jsdoc
      * Resolves a relative path to an absolute path. The relative path is relative to the script's location.
      * @function Script.resolvePath
      * @param {string} path - The relative path to resolve.
@@ -546,23 +547,23 @@ public:
      */
     Q_INVOKABLE QUrl resolvePath(const QString& path) const;
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the path to the resources directory for QML files.
      * @function Script.resourcesPath
      * @returns {string} The path to the resources directory for QML files.
      */
     Q_INVOKABLE QUrl resourcesPath() const;
 
-    /**jsdoc
-     * Starts timing a section of code in order to send usage data about it to Vircadia. Shouldn't be used outside of the 
+    /*@jsdoc
+     * Starts timing a section of code in order to send usage data about it to Vircadia. Shouldn't be used outside of the
      * standard scripts.
      * @function Script.beginProfileRange
      * @param {string} label - A name that identifies the section of code.
      */
     Q_INVOKABLE void beginProfileRange(const QString& label) const;
 
-    /**jsdoc
-     * Finishes timing a section of code in order to send usage data about it to Vircadia. Shouldn't be used outside of 
+    /*@jsdoc
+     * Finishes timing a section of code in order to send usage data about it to Vircadia. Shouldn't be used outside of
      * the standard scripts.
      * @function Script.endProfileRange
      * @param {string} label - A name that identifies the section of code.
@@ -572,7 +573,7 @@ public:
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Entity Script Related methods
 
-    /**jsdoc
+    /*@jsdoc
      * Checks whether an entity has an entity script running.
      * @function Script.isEntityScriptRunning
      * @param {Uuid} entityID - The ID of the entity.
@@ -586,7 +587,7 @@ public:
     QVariant cloneEntityScriptDetails(const EntityItemID& entityID);
     QFuture<QVariant> getLocalEntityScriptDetails(const EntityItemID& entityID) override;
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.loadEntityScript
      * @param {Uuid} entityID - Entity ID.
      * @param {string} script - Script.
@@ -595,7 +596,7 @@ public:
      */
     Q_INVOKABLE void loadEntityScript(const EntityItemID& entityID, const QString& entityScript, bool forceRedownload);
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.unloadEntityScript
      * @param {Uuid} entityID - Entity ID.
      * @param {boolean} [shouldRemoveFromMap=false] - Should remove from map.
@@ -603,14 +604,14 @@ public:
      */
     Q_INVOKABLE void unloadEntityScript(const EntityItemID& entityID, bool shouldRemoveFromMap = false); // will call unload method
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.unloadAllEntityScripts
      * @param {boolean} [blockingCall=false] - Wait for completion if call moved to another thread.
      * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE void unloadAllEntityScripts(bool blockingCall = false);
 
-    /**jsdoc
+    /*@jsdoc
      * Calls a method in an entity script.
      * @function Script.callEntityScriptMethod
      * @param {Uuid} entityID - The ID of the entity running the entity script.
@@ -622,7 +623,7 @@ public:
                                             const QStringList& params = QStringList(),
                                             const QUuid& remoteCallerID = QUuid()) override;
 
-    /**jsdoc
+    /*@jsdoc
      * Calls a method in an entity script.
      * @function Script.callEntityScriptMethod
      * @param {Uuid} entityID - Entity ID.
@@ -632,7 +633,7 @@ public:
      */
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const PointerEvent& event);
 
-    /**jsdoc
+    /*@jsdoc
      * Calls a method in an entity script.
      * @function Script.callEntityScriptMethod
      * @param {Uuid} entityID - Entity ID.
@@ -643,14 +644,14 @@ public:
      */
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const EntityItemID& otherID, const Collision& collision);
 
-    /**jsdoc
-     * Manually runs the JavaScript garbage collector which reclaims memory by disposing of objects that are no longer 
+    /*@jsdoc
+     * Manually runs the JavaScript garbage collector which reclaims memory by disposing of objects that are no longer
      * reachable.
      * @function Script.requestGarbageCollection
      */
     Q_INVOKABLE void requestGarbageCollection() { collectGarbage(); }
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.generateUUID
      * @returns {Uuid} A new UUID.
      * @deprecated This function is deprecated and will be removed. Use {@link Uuid(0).generate|Uuid.generate} instead.
@@ -666,8 +667,6 @@ public:
 
     // this is used by code in ScriptEngines.cpp during the "reload all" operation
     bool isStopping() const { return _isStopping; }
-
-    bool isDebuggable() const { return _debuggable; }
 
     void disconnectNonEssentialSignals();
 
@@ -696,14 +695,14 @@ public:
 
     void setScriptEngines(QSharedPointer<ScriptEngines>& scriptEngines) { _scriptEngines = scriptEngines; }
 
-    /**jsdoc
+    /*@jsdoc
      * Gets the URL for an asset in an external resource bucket. (The location where the bucket is hosted may change over time
      * but this method will return the asset's current URL.)
      * @function Script.getExternalPath
      * @param {Script.ResourceBucket} bucket - The external resource bucket that the asset is in.
-     * @param {string} path - The path within the external resource bucket where the asset is located. 
+     * @param {string} path - The path within the external resource bucket where the asset is located.
      *     <p>Normally, this should start with a path or filename to be appended to the bucket URL.
-     *     Alternatively, it can be a relative path starting with <code>./</code> or <code>../</code>, to navigate within the 
+     *     Alternatively, it can be a relative path starting with <code>./</code> or <code>../</code>, to navigate within the
      *     resource bucket's URL.</p>
      * @Returns {string} The URL of an external asset.
      * @example <caption>Report the URL of a default particle.</caption>
@@ -715,7 +714,7 @@ public:
 
 public slots:
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.callAnimationStateHandler
      * @param {function} callback - Callback function.
      * @param {object} parameters - Parameters.
@@ -726,7 +725,7 @@ public slots:
      */
     void callAnimationStateHandler(QScriptValue callback, AnimVariantMap parameters, QStringList names, bool useNames, AnimVariantResultHandler resultHandler);
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.updateMemoryCost
      * @param {number} deltaSize - Delta size.
      * @deprecated This function is deprecated and will be removed.
@@ -735,7 +734,7 @@ public slots:
 
 signals:
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.scriptLoaded
      * @param {string} filename - File name.
      * @returns {Signal}
@@ -743,7 +742,7 @@ signals:
      */
     void scriptLoaded(const QString& scriptFilename);
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.errorLoadingScript
      * @param {string} filename - File name.
      * @returns {Signal}
@@ -751,7 +750,7 @@ signals:
      */
     void errorLoadingScript(const QString& scriptFilename);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered frequently at a system-determined interval.
      * @function Script.update
      * @param {number} deltaTime - The time since the last update, in s.
@@ -763,7 +762,7 @@ signals:
      */
     void update(float deltaTime);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the script is stopping.
      * @function Script.scriptEnding
      * @returns {Signal}
@@ -781,7 +780,7 @@ signals:
      */
     void scriptEnding();
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.finished
      * @param {string} filename - File name.
      * @param {object} engine - Engine.
@@ -790,7 +789,7 @@ signals:
      */
     void finished(const QString& fileNameString, ScriptEnginePointer);
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.cleanupMenuItem
      * @param {string} menuItem - Menu item.
      * @returns {Signal}
@@ -798,9 +797,9 @@ signals:
      */
     void cleanupMenuItem(const QString& menuItemString);
 
-    /**jsdoc
-     * Triggered when the script prints a message to the program log via {@link  print}, {@link Script.print}, 
-     * {@link console.log}, {@link console.debug}, {@link console.group}, {@link console.groupEnd}, {@link console.time}, or 
+    /*@jsdoc
+     * Triggered when the script prints a message to the program log via {@link  print}, {@link Script.print},
+     * {@link console.log}, {@link console.debug}, {@link console.group}, {@link console.groupEnd}, {@link console.time}, or
      * {@link console.timeEnd}.
      * @function Script.printedMessage
      * @param {string} message - The message.
@@ -809,8 +808,8 @@ signals:
      */
     void printedMessage(const QString& message, const QString& scriptName);
 
-    /**jsdoc
-     * Triggered when the script generates an error, {@link console.error} or {@link console.exception} is called, or 
+    /*@jsdoc
+     * Triggered when the script generates an error, {@link console.error} or {@link console.exception} is called, or
      * {@link console.assert} is called and fails.
      * @function Script.errorMessage
      * @param {string} message - The error message.
@@ -819,7 +818,7 @@ signals:
      */
     void errorMessage(const QString& message, const QString& scriptName);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the script generates a warning or {@link console.warn} is called.
      * @function Script.warningMessage
      * @param {string} message - The warning message.
@@ -828,7 +827,7 @@ signals:
      */
     void warningMessage(const QString& message, const QString& scriptName);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the script generates an information message or {@link console.info} is called.
      * @function Script.infoMessage
      * @param {string} message - The information message.
@@ -837,21 +836,21 @@ signals:
      */
     void infoMessage(const QString& message, const QString& scriptName);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the running state of the script changes, e.g., from running to stopping.
      * @function Script.runningStateChanged
      * @returns {Signal}
      */
     void runningStateChanged();
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.clearDebugWindow
      * @returns {Signal}
      * @deprecated This signal is deprecated and will be removed.
      */
     void clearDebugWindow();
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.loadScript
      * @param {string} scriptName - Script name.
      * @param {boolean} isUserLoaded - Is user loaded.
@@ -860,7 +859,7 @@ signals:
      */
     void loadScript(const QString& scriptName, bool isUserLoaded);
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.reloadScript
      * @param {string} scriptName - Script name.
      * @param {boolean} isUserLoaded - Is user loaded.
@@ -869,14 +868,14 @@ signals:
      */
     void reloadScript(const QString& scriptName, bool isUserLoaded);
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the script has stopped.
      * @function Script.doneRunning
      * @returns {Signal}
      */
     void doneRunning();
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.entityScriptDetailsUpdated
      * @returns {Signal}
      * @deprecated This signal is deprecated and will be removed.
@@ -885,7 +884,7 @@ signals:
     // script is updated (goes from RUNNING to ERROR_RUNNING_SCRIPT, for example)
     void entityScriptDetailsUpdated();
 
-    /**jsdoc
+    /*@jsdoc
      * Triggered when the script starts for the user. See also, {@link Entities.preload}.
      * <p class="availableIn"><strong>Supported Script Types:</strong> Client Entity Scripts &bull; Server Entity Scripts</p>
      * @function Script.entityScriptPreloadFinished
@@ -916,7 +915,7 @@ signals:
 protected:
     void init();
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.executeOnScriptThread
      * @param {function} function - Function.
      * @param {ConnectionType} [type=2] - Connection type.
@@ -924,7 +923,7 @@ protected:
      */
     Q_INVOKABLE void executeOnScriptThread(std::function<void()> function, const Qt::ConnectionType& type = Qt::QueuedConnection );
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script._requireResolve
      * @param {string} module - Module.
      * @param {string} [relativeTo=""] - Relative to.
@@ -950,7 +949,7 @@ protected:
     QHash<EntityItemID, RegisteredEventHandlers> _registeredHandlers;
     void forwardHandlerCall(const EntityItemID& entityID, const QString& eventName, QScriptValueList eventHanderArgs);
 
-    /**jsdoc
+    /*@jsdoc
      * @function Script.entityScriptContentAvailable
      * @param {Uuid} entityID - Entity ID.
      * @param {string} scriptOrURL - Path.
@@ -982,8 +981,6 @@ protected:
     EntityScriptContentAvailableMap _contentAvailableQueue;
 
     bool _isThreaded { false };
-    QScriptEngineDebugger* _debugger { nullptr };
-    bool _debuggable { false };
     qint64 _lastUpdate;
 
     QString _fileNameString;
@@ -1020,3 +1017,5 @@ ScriptEnginePointer scriptEngineFactory(ScriptEngine::Context context,
                                         const QString& fileNameString);
 
 #endif // hifi_ScriptEngine_h
+
+/// @}
