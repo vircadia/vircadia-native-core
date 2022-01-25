@@ -5,6 +5,8 @@
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+//  Modified for cross-platform use for Vircadia™ by https://github.com/mrkcdf (Micah) 24 Jan 2022 
 
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -17,7 +19,7 @@ using System.Text.RegularExpressions;
 
 class AvatarExporter : MonoBehaviour {
     // update version number for every PR that changes this file, also set updated version in README file
-    static readonly string AVATAR_EXPORTER_VERSION = "0.4.1";
+    static readonly string AVATAR_EXPORTER_VERSION = "0.4.2";
     
     static readonly float HIPS_MIN_Y_PERCENT_OF_HEIGHT = 0.03f;
     static readonly float BELOW_GROUND_THRESHOLD_PERCENT_OF_HEIGHT = -0.15f;
@@ -31,6 +33,7 @@ class AvatarExporter : MonoBehaviour {
     static readonly Vector3 PREVIEW_CAMERA_DIRECTION = new Vector3(0.0f, 0.0f, -1.0f);
     
     // TODO: use regex
+    // TODO: Also test compatibility with newer versions of Unity
     static readonly string[] RECOMMENDED_UNITY_VERSIONS = new string[] {
         "2018.2.12f1",
         "2018.2.11f1",
@@ -61,7 +64,7 @@ class AvatarExporter : MonoBehaviour {
         "2017.4.15f1",
     };
    
-    static readonly Dictionary<string, string> HUMANOID_TO_HIFI_JOINT_NAME = new Dictionary<string, string> {
+    static readonly Dictionary<string, string> HUMANOID_TO_VIRC_JOINT_NAME = new Dictionary<string, string> {
         {"Chest", "Spine1"},
         {"Head", "Head"},
         {"Hips", "Hips"},
@@ -353,17 +356,17 @@ class AvatarExporter : MonoBehaviour {
     static GameObject avatarPreviewObject;
     static GameObject heightReferenceObject;
 
-    [MenuItem("High Fidelity/Export New Avatar")]
+    [MenuItem("Vircadia/Export New Avatar")]
     static void ExportNewAvatar() {
         ExportSelectedAvatar(false);
     }
 
-    [MenuItem("High Fidelity/Update Existing Avatar")]
+    [MenuItem("Vircadia/Update Existing Avatar")]
     static void UpdateAvatar() {
         ExportSelectedAvatar(true);
     }
     
-    [MenuItem("High Fidelity/About")]
+    [MenuItem("Vircadia/About")]
     static void About() {
         EditorUtility.DisplayDialog("About", "High Fidelity, Inc.\nAvatar Exporter\nVersion " + AVATAR_EXPORTER_VERSION, "Ok");
     }
@@ -462,23 +465,23 @@ class AvatarExporter : MonoBehaviour {
         }
         
         string documentsFolder = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments);
-        string hifiFolder = documentsFolder + "\\High Fidelity Projects";
+        string vircadiaFolder = documentsFolder + "/Vircadia Projects";
         if (updateExistingAvatar) { // Update Existing Avatar menu option           
             // open update existing project popup window including project to update, scale, and warnings
-            // default the initial file chooser location to HiFi projects folder in user documents folder
+            // default the initial file chooser location to Vircadia projects folder in user documents folder
             ExportProjectWindow window = ScriptableObject.CreateInstance<ExportProjectWindow>();
-            string initialPath = Directory.Exists(hifiFolder) ? hifiFolder : documentsFolder;
+            string initialPath = Directory.Exists(vircadiaFolder) ? vircadiaFolder : documentsFolder;
             window.Init(initialPath, warnings, updateExistingAvatar, avatarPreviewObject, OnUpdateExistingProject, OnExportWindowClose);
         } else { // Export New Avatar menu option
-            // create High Fidelity Projects folder in user documents folder if it doesn't exist
-            if (!Directory.Exists(hifiFolder)) {    
-                Directory.CreateDirectory(hifiFolder);
+            // create Vircadia Projects folder in user documents folder if it doesn't exist
+            if (!Directory.Exists(vircadiaFolder)) {    
+                Directory.CreateDirectory(vircadiaFolder);
             }
             
             // open export new project popup window including project name, project location, scale, and warnings
-            // default the initial project location path to the High Fidelity Projects folder above
+            // default the initial project location path to the Vircadia Projects folder above
             ExportProjectWindow window = ScriptableObject.CreateInstance<ExportProjectWindow>();
-            window.Init(hifiFolder, warnings, updateExistingAvatar, avatarPreviewObject, OnExportNewProject, OnExportWindowClose);
+            window.Init(vircadiaFolder, warnings, updateExistingAvatar, avatarPreviewObject, OnExportNewProject, OnExportWindowClose);
         }
     }
     
@@ -505,7 +508,7 @@ class AvatarExporter : MonoBehaviour {
             return;
         }
         
-        string exportModelPath = Path.GetDirectoryName(exportFstPath) + "\\" + assetName + ".fbx";
+        string exportModelPath = Path.GetDirectoryName(exportFstPath) + "/" + assetName + ".fbx";
         if (File.Exists(exportModelPath)) { 
             // if the fbx in Unity Assets is newer than the fbx in the target export
             // folder or vice-versa then ask to replace the older fbx with the newer fbx
@@ -608,7 +611,7 @@ class AvatarExporter : MonoBehaviour {
         
         // create empty Textures and Scripts folders in the project directory
         string texturesDirectory = GetTextureDirectory(projectDirectory);
-        string scriptsDirectory = projectDirectory + "\\scripts";
+        string scriptsDirectory = projectDirectory + "/scripts";
         Directory.CreateDirectory(texturesDirectory);
         Directory.CreateDirectory(scriptsDirectory);
         
@@ -639,7 +642,7 @@ class AvatarExporter : MonoBehaviour {
         ClosePreviewScene();
     }
     
-    // The High Fidelity FBX Serializer omits the colon based prefixes. This will make the jointnames compatible.
+    // The Vircadia FBX Serializer omits the colon based prefixes. This will make the jointnames compatible.
     static string removeTypeFromJointname(string jointName) {
         return jointName.Substring(jointName.IndexOf(':') + 1);
     }
@@ -659,8 +662,8 @@ class AvatarExporter : MonoBehaviour {
         // write out joint mappings to fst file
         foreach (var userBoneInfo in userBoneInfos) {
             if (userBoneInfo.Value.HasHumanMapping()) {
-                string hifiJointName = HUMANOID_TO_HIFI_JOINT_NAME[userBoneInfo.Value.humanName];
-                File.AppendAllText(exportFstPath, "jointMap = " + hifiJointName + " = " + removeTypeFromJointname(userBoneInfo.Key) + "\n");
+                string vircJointName = HUMANOID_TO_VIRC_JOINT_NAME[userBoneInfo.Value.humanName];
+                File.AppendAllText(exportFstPath, "jointMap = " + vircJointName + " = " + removeTypeFromJointname(userBoneInfo.Key) + "\n");
             }
         }
         
@@ -699,7 +702,7 @@ class AvatarExporter : MonoBehaviour {
                 }
             }
             
-            // swap from left-handed (Unity) to right-handed (HiFi) coordinates and write out joint rotation offset to fst
+            // swap from left-handed (Unity) to right-handed (Vircadia) coordinates and write out joint rotation offset to fst
             jointOffset = new Quaternion(-jointOffset.x, jointOffset.y, jointOffset.z, -jointOffset.w);
             File.AppendAllText(exportFstPath, "jointRotationOffset2 = " + removeTypeFromJointname(userBoneName) + " = (" + jointOffset.x + ", " +
                                               jointOffset.y + ", " + jointOffset.z + ", " + jointOffset.w + ")\n");
@@ -756,10 +759,10 @@ class AvatarExporter : MonoBehaviour {
         foreach (HumanBone bone in boneMap) {
             string humanName = bone.humanName;
             string userBoneName = bone.boneName;
-            string hifiJointName;
+            string vircJointName;
             if (userBoneInfos.ContainsKey(userBoneName)) {
                 ++userBoneInfos[userBoneName].mappingCount;
-                if (HUMANOID_TO_HIFI_JOINT_NAME.TryGetValue(humanName, out hifiJointName)) {
+                if (HUMANOID_TO_VIRC_JOINT_NAME.TryGetValue(humanName, out vircJointName)) {
                     userBoneInfos[userBoneName].humanName = humanName;
                     humanoidToUserBoneMappings.Add(humanName, userBoneName);
                 }
@@ -1135,8 +1138,8 @@ class AvatarExporter : MonoBehaviour {
     }
     
     static string GetTextureDirectory(string basePath) {
-        string textureDirectory = Path.GetDirectoryName(basePath) + "\\" + TEXTURES_DIRECTORY;
-        textureDirectory = textureDirectory.Replace("\\\\", "\\");
+        string textureDirectory = Path.GetDirectoryName(basePath) + "/" + TEXTURES_DIRECTORY;
+        textureDirectory = textureDirectory.Replace("//", "/");
         return textureDirectory;
     }
 
@@ -1166,7 +1169,7 @@ class AvatarExporter : MonoBehaviour {
     static bool CopyExternalTextures(string texturesDirectory) {
         // copy the found dependency textures from the local asset folder to the textures folder in the target export project
         foreach (var texture in textureDependencies) {
-            string targetPath = texturesDirectory + "\\" + texture.Key;
+            string targetPath = texturesDirectory + "/" + texture.Key;
             try {
                 File.Copy(texture.Value, targetPath, true);
             } catch {
@@ -1474,7 +1477,7 @@ class ExportProjectWindow : EditorWindow {
         if (GUILayout.Button("Browse", buttonStyle)) {
             string result = "";
             if (updateExistingAvatar) {
-                // open file explorer starting at hifi projects folder in user documents and select target fst to update
+                // open file explorer starting at vircadia projects folder in user documents and select target fst to update
                 string initialPath = string.IsNullOrEmpty(projectLocation) ? initialProjectLocation : projectLocation;
                 result = EditorUtility.OpenFilePanel("Select .fst to update", initialPath, "fst");
             } else {
@@ -1482,7 +1485,7 @@ class ExportProjectWindow : EditorWindow {
                 result = EditorUtility.OpenFolderPanel("Select export location", projectLocation, "");
             }
             if (!string.IsNullOrEmpty(result)) { // file/folder selection not cancelled
-                projectLocation = result.Replace('/', '\\');
+                projectLocation = result.Replace('\\', '/');
             }
         }
         
@@ -1561,7 +1564,7 @@ class ExportProjectWindow : EditorWindow {
                 return true;
             }
         } else {
-            projectDirectory = projectLocation + "\\" + projectName + "\\";
+            projectDirectory = projectLocation + "/" + projectName + "/";
             if (projectName.Length > 0) {
                 // new project must have a unique folder name since the folder will be created for it
                 if (Directory.Exists(projectDirectory)) {
@@ -1571,10 +1574,18 @@ class ExportProjectWindow : EditorWindow {
                 }
             }
             if (projectLocation.Length > 0) {
-                // before clicking Export we can verify that the project location at least starts with a drive
-                if (!Char.IsLetter(projectLocation[0]) || projectLocation.Length == 1 || projectLocation[1] != ':') {
-                    errorText = "Project location is invalid. Please choose a different project location.\n";
-                    return true;
+                // Check to ensure provided path is absolute, not relative.
+                if(SystemInfo.operatingSystemFamily == OperatingSystemFamily.Windows) {
+                    if (!Char.IsLetter(projectLocation[0]) || projectLocation.Length == 1 || projectLocation[1] != ':') {
+                        errorText = "Project location is invalid. Please choose a different project location.\n";
+                        return true;
+                    }
+                }
+                else {
+                    if (projectLocation[0] != '/') {
+                        errorText = "Project location is invalid. Please choose a different project location.\n";
+                        return true;
+                    }
                 }
             }
             if (exporting) {
