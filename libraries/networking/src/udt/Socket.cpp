@@ -559,8 +559,8 @@ void Socket::handleSocketError(SocketType socketType, QAbstractSocket::SocketErr
 #endif
     int pending = _networkSocket.bytesToWrite(socketType);
     QString errorString;
-    QDebug(&errorString) << "udt::Socket (" << socketTypeToString(socketType) << _networkSocket.state(socketType) 
-        << ") error - " << wsaError << socketError << "(" << _networkSocket.errorString(socketType) << ")" 
+    QDebug(&errorString) << "udt::Socket (" << SocketTypeToString::socketTypeToString(socketType) << _networkSocket.state(socketType)
+        << ") error - " << wsaError << socketError << "(" << _networkSocket.errorString(socketType) << ")"
         << (pending ? "pending bytes:" : "pending:") << pending;
 
     if (previousWsaError.exchange(wsaError) != wsaError) {
@@ -576,7 +576,7 @@ void Socket::handleSocketError(SocketType socketType, QAbstractSocket::SocketErr
 
 void Socket::handleStateChanged(SocketType socketType, QAbstractSocket::SocketState socketState) {
     if (socketState != QAbstractSocket::BoundState) {
-        qCDebug(networking) << socketTypeToString(socketType) << "socket state changed - state is now" << socketState;
+        qCDebug(networking) << SocketTypeToString::socketTypeToString(socketType) << "socket state changed - state is now" << socketState;
     }
 }
 

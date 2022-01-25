@@ -298,7 +298,7 @@ void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename
     // If there are no blendshape mappings, and we detect that this is likely a mixamo file,
     // then we can add the default mixamo to blendshape mappings.
     if (!mapping.contains(BLENDSHAPE_FIELD) && likelyMixamoFile) {
-        QVariantHash blendshapes;
+        hifi::VariantMultiHash blendshapes;
         blendshapes.insert("BrowsD_L", QVariantList() << "BrowsDown_Left" << 1.0);
         blendshapes.insert("BrowsD_R", QVariantList() << "BrowsDown_Right" << 1.0);
         blendshapes.insert("BrowsU_C", QVariantList() << "BrowsUp_Left" << 1.0);
