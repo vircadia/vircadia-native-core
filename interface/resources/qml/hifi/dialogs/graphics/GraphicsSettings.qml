@@ -183,9 +183,8 @@ Item {
                     }
                 }
 
-                Item {
+                ColumnLayout {
                     Layout.preferredWidth: parent.width
-                    Layout.preferredHeight: 35
                     Layout.topMargin: 20
 
                     HifiStylesUit.RalewayRegular {
@@ -199,61 +198,109 @@ Item {
                         color: "#FFFFFF"
                     }
 
-                    ListModel {
-                        id: renderingEffectsModel
-
-                        ListElement {
-                            text: "No Rendering Effects"
-                            preferredRenderMethod: 1 // "FORWARD"
-                            shadowsEnabled: false
-                        }
-                        ListElement {
-                            text: "Local Lights, Fog, Bloom"
-                            preferredRenderMethod: 0 // "DEFERRED"
-                            shadowsEnabled: false
-                        }
-                        ListElement {
-                            text: "Local Lights, Fog, Bloom, Shadows"
-                            preferredRenderMethod: 0 // "DEFERRED"
-                            shadowsEnabled: true
-                        }
-                    }
-                
-                    HifiControlsUit.ComboBox {
-                        id: renderingEffectsDropdown
-                        enabled: performanceCustom.checked
+                    ColumnLayout {
                         anchors.left: renderingEffectsHeader.right
                         anchors.leftMargin: 20
-                        anchors.top: parent.top
-                        width: 280
-                        height: parent.height
-                        colorScheme: hifi.colorSchemes.dark
-                        model: renderingEffectsModel
-                        currentIndex: -1
+			Layout.preferredWidth: parent.width
+			spacing: 0
+                        enabled: performanceCustom.checked
 
-                        function refreshRenderingEffectsDropdownDisplay() {
-                            if (Render.shadowsEnabled) {
-                                renderingEffectsDropdown.currentIndex = 2;
-                            } else if (Render.renderMethod === 0) {
-                                renderingEffectsDropdown.currentIndex = 1;
-                            } else {
-                                renderingEffectsDropdown.currentIndex = 0;
+                        HifiControlsUit.RadioButton {
+                            id: renderingEffectsDisabled
+                            colorScheme: hifi.colorSchemes.dark
+                            height: 18
+                            fontSize: 16
+                            leftPadding: 0
+                            text: "Disabled"
+                            checked: Render.renderMethod === 1
+                            onClicked: {
+                                Render.renderMethod = 1; // "FORWARD"
+                                //refreshRenderingEffectCheckboxes();
                             }
                         }
 
-                        Component.onCompleted: {
-                            renderingEffectsDropdown.refreshRenderingEffectsDropdownDisplay();
-                        }
-                        
-                        onCurrentIndexChanged: {
-                            var renderMethodToSet = 1;
-                            if (model.get(currentIndex).preferredRenderMethod === 0 &&
-                                PlatformInfo.isRenderMethodDeferredCapable()) {
-                                renderMethodToSet = 0;
+                        HifiControlsUit.RadioButton {
+                            id: renderingEffectsEnabled
+                            enabled: PlatformInfo.isRenderMethodDeferredCapable()
+                            colorScheme: hifi.colorSchemes.dark
+                            height: 18
+                            fontSize: 16
+                            leftPadding: 0
+                            text: "Enabled"
+                            checked: Render.renderMethod === 0
+                            onClicked: {
+                                Render.renderMethod = 0; // "DEFERRED"
                             }
-                            Render.renderMethod = renderMethodToSet;
-                            Render.shadowsEnabled = model.get(currentIndex).shadowsEnabled;
-                            renderingEffectsDropdown.displayText = model.get(currentIndex).text;
+                        }
+
+                        ColumnLayout {
+                            id: renderingEffectCheckboxes
+                            Layout.preferredWidth: parent.width
+                            anchors.left: parent.left
+                            anchors.leftMargin: 24
+                            anchors.topMargin: 8
+                            anchors.bottom: parent.bottom
+                            anchors.bottomMargin: Layout.topMargin
+                            enabled: performanceCustom.checked && renderingEffectsEnabled.checked
+
+                            HifiControlsUit.CheckBox {
+                                id: renderingEffectShadows
+                                checked: Render.shadowsEnabled
+                                boxSize: 16
+                                text: "Shadows"
+                                spacing: -1
+                                colorScheme: hifi.colorSchemes.dark
+                                anchors.left: parent.left
+                                anchors.top: parent.top
+                                onCheckedChanged: {
+                                    Render.shadowsEnabled = renderingEffectShadows.checked;
+                                }
+                            }
+                            HifiControlsUit.CheckBox {
+                                id: renderingEffectLocalLights
+                                enabled: false
+                                //checked: Render.localLightsEnabled
+                                checked: renderingEffectsEnabled.checked
+                                boxSize: 16
+                                text: "Local lights"
+                                spacing: -1
+                                colorScheme: hifi.colorSchemes.dark
+                                anchors.left: parent.left
+                                anchors.top: renderingEffectShadows.bottom
+                                //onCheckedChanged: {
+                                //    Render.localLightsEnabled = renderingEffectLocalLightsEnabled.checked;
+                                //}
+                            }
+                            HifiControlsUit.CheckBox {
+                                id: renderingEffectFog
+                                enabled: false
+                                //checked: Render.fogEnabled
+                                checked: renderingEffectsEnabled.checked
+                                boxSize: 16
+                                text: "Fog"
+                                spacing: -1
+                                colorScheme: hifi.colorSchemes.dark
+                                anchors.left: parent.left
+                                anchors.top: renderingEffectLocalLights.bottom
+                                //onCheckedChanged: {
+                                //    Render.fogEnabled = renderingEffectFogEnabled.checked;
+                                //}
+                            }
+                            HifiControlsUit.CheckBox {
+                                id: renderingEffectBloom
+                                enabled: false
+                                //checked: Render.bloomEnabled
+                                checked: renderingEffectsEnabled.checked
+                                boxSize: 16
+                                text: "Bloom"
+                                spacing: -1
+                                colorScheme: hifi.colorSchemes.dark
+                                anchors.left: parent.left
+                                anchors.top: renderingEffectFog.bottom
+                                //onCheckedChanged: {
+                                //    Render.bloomEnabled = renderingEffectBloomEnabled.checked;
+                                //}
+                            }
                         }
                     }
                 }
@@ -261,7 +308,7 @@ Item {
                 Item {
                     Layout.preferredWidth: parent.width
                     Layout.preferredHeight: 35
-                    Layout.topMargin: 20
+                    Layout.topMargin: 10
 
                     HifiStylesUit.RalewayRegular {
                         id: refreshRateHeader
@@ -439,7 +486,6 @@ Item {
 
     function refreshAllDropdowns() {
         worldDetailDropdown.refreshWorldDetailDropdown();
-        renderingEffectsDropdown.refreshRenderingEffectsDropdownDisplay();
         refreshRateDropdown.refreshRefreshRateDropdownDisplay();
         antialiasingDropdown.refreshAntialiasingDropdown();
     }

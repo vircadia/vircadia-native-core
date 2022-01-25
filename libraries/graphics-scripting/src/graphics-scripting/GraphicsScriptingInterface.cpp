@@ -237,7 +237,7 @@ scriptable::ScriptableMeshPointer GraphicsScriptingInterface::newMesh(const QVar
         qCWarning(graphics_scripting) << "newMesh - texCoords1 not yet supported; ignoring";
     }
 
-    graphics::MeshPointer mesh(new graphics::Mesh());
+    graphics::MeshPointer mesh(std::make_shared<graphics::Mesh>());
     mesh->modelName = "graphics::newMesh";
     mesh->displayName = meshName.toStdString();
 

@@ -288,10 +288,10 @@ void Agent::nodeKilled(SharedNodePointer killedNode) {
 void Agent::negotiateAudioFormat() {
     auto nodeList = DependencyManager::get<NodeList>();
     auto negotiateFormatPacket = NLPacket::create(PacketType::NegotiateAudioFormat);
-    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    const auto& codecPlugins = PluginManager::getInstance()->getCodecPlugins();
     quint8 numberOfCodecs = (quint8)codecPlugins.size();
     negotiateFormatPacket->writePrimitive(numberOfCodecs);
-    for (auto& plugin : codecPlugins) {
+    for (const auto& plugin : codecPlugins) {
         auto codecName = plugin->getName();
         negotiateFormatPacket->writeString(codecName);
     }
@@ -326,8 +326,8 @@ void Agent::selectAudioFormat(const QString& selectedCodecName) {
     }
     _receivedAudioStream.cleanupCodec();
 
-    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
-    for (auto& plugin : codecPlugins) {
+    const auto& codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    for (const auto& plugin : codecPlugins) {
         if (_selectedCodecName == plugin->getName()) {
             _codec = plugin;
             _receivedAudioStream.setupCodec(plugin, _selectedCodecName, AudioConstants::STEREO);

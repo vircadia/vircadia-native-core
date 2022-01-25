@@ -82,7 +82,7 @@ signals:
      *     return turnRate;
      * }
      * 
-     * var MAPPING_NAME = "com.highfidelity.controllers.example.speechRecognizer";
+     * var MAPPING_NAME = "com.vircadia.controllers.example.speechRecognizer";
      * var mapping = Controller.newMapping(MAPPING_NAME);
      * 
      * mapping.from(getTurnRate).to(Controller.Actions.Yaw);

@@ -38,7 +38,7 @@ public:
     virtual DisplayPluginList getDisplayPlugins() override {
         static std::once_flag once;
         std::call_once(once, [&] {
-            DisplayPluginPointer plugin(new OculusDisplayPlugin());
+            DisplayPluginPointer plugin(std::make_shared<OculusDisplayPlugin>());
             if (plugin->isSupported()) {
                 _displayPlugins.push_back(plugin);
             }
@@ -46,7 +46,7 @@ public:
             // Windows Oculus Simulator... uses head tracking and the same rendering 
             // as the connected hardware, but without using the SDK to display to the 
             // Rift.  Useful for debugging Rift performance with nSight.
-            plugin = DisplayPluginPointer(new OculusDebugDisplayPlugin());
+            plugin = std::make_shared<OculusDebugDisplayPlugin>();
             if (plugin->isSupported()) {
                 _displayPlugins.push_back(plugin);
             }
@@ -57,7 +57,7 @@ public:
     virtual InputPluginList getInputPlugins() override {
         static std::once_flag once;
         std::call_once(once, [&] {
-            InputPluginPointer plugin(new OculusControllerManager());
+            InputPluginPointer plugin(std::make_shared<OculusControllerManager>());
             if (plugin->isSupported()) {
                 _inputPlugins.push_back(plugin);
             }

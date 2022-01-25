@@ -52,8 +52,8 @@ ModelPointer ModelEntityWrapper::getModel() const {
 }
 
 EntityItemPointer RenderableModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity(new RenderableModelEntityItem(entityID, properties.getDimensionsInitialized()),
-                             [](EntityItem* ptr) { ptr->deleteLater(); });
+    std::shared_ptr<RenderableModelEntityItem> entity(new RenderableModelEntityItem(entityID, properties.getDimensionsInitialized()),
+                             [](RenderableModelEntityItem* ptr) { ptr->deleteLater(); });
     
     entity->setProperties(properties);
 
