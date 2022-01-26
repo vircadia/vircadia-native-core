@@ -23,14 +23,14 @@ public:
     virtual void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) override;
 
 
-    int getComplexity() const;
-    void setComplexity(int complexity);
+    int getComplexity() const override;
+    void setComplexity(int complexity) override;
 
-    int getBitrate() const;
-    void setBitrate(int bitrate);
+    int getBitrate() const override;
+    void setBitrate(int bitrate) override;
 
-    int getVBR() const;
-    void setVBR(int vbr);
+    bool getVBR() const override;
+    void setVBR(bool vbr) override;
 
     int getVBRConstraint() const;
     void setVBRConstraint(int vbrConstraint);
@@ -41,19 +41,19 @@ public:
     int getBandwidth() const;
     void setBandwidth(int bandwidth);
 
-    int getSignal() const;
-    void setSignal(int signal);
+    Encoder::SignalType getSignalType() const override;
+    void setSignalType(Encoder::SignalType signal) override;
 
-    int getApplication() const;
-    void setApplication(int application);
+    ApplicationType getApplication() const override;
+    void setApplication(ApplicationType application) override;
 
     int getLookahead() const;
 
-    int getInbandFEC() const;
-    void setInbandFEC(int inBandFEC);
+    bool getFEC() const override;
+    void setFEC(bool inBandFEC) override;
 
-    int getExpectedPacketLossPercentage() const;
-    void setExpectedPacketLossPercentage(int percentage);
+    int getPacketLossPercent() const override;
+    void setPacketLossPercent(int percentage) override;
 
     int getDTX() const;
     void setDTX(int dtx);

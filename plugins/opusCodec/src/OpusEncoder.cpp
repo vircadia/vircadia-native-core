@@ -55,8 +55,8 @@ AthenaOpusEncoder::AthenaOpusEncoder(int sampleRate, int numChannels) {
 
     setBitrate(DEFAULT_BITRATE);
     setComplexity(DEFAULT_COMPLEXITY);
-    setApplication(DEFAULT_APPLICATION);
-    setSignal(DEFAULT_SIGNAL);
+    setApplication(Encoder::ApplicationType::Audio);
+    setSignalType(Encoder::SignalType::Auto);
 
     qCDebug(encoder) << "Opus encoder initialized, sampleRate = " << sampleRate << "; numChannels = " << numChannels;
 }
@@ -121,16 +121,16 @@ void AthenaOpusEncoder::setBitrate(int bitrate) {
     }
 }
 
-int AthenaOpusEncoder::getVBR() const {
+bool AthenaOpusEncoder::getVBR() const {
     assert(_encoder);
     int returnValue;
     opus_encoder_ctl(_encoder, OPUS_GET_VBR(&returnValue));
-    return returnValue;
+    return (bool)returnValue;
 }
 
-void AthenaOpusEncoder::setVBR(int vbr) {
+void AthenaOpusEncoder::setVBR(bool vbr) {
     assert(_encoder);
-    int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_VBR(vbr));
+    int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_VBR(int(vbr)));
 
     if (errorCode != OPUS_OK) {
         qCWarning(encoder) << "Error when setting VBR to " << vbr << ": " << errorToString(errorCode);
@@ -185,35 +185,86 @@ void AthenaOpusEncoder::setBandwidth(int bandwidth) {
     }
 }
 
-int AthenaOpusEncoder::getSignal() const {
+Encoder::SignalType AthenaOpusEncoder::getSignalType() const {
     assert(_encoder);
     int signal;
     opus_encoder_ctl(_encoder, OPUS_GET_SIGNAL(&signal));
-    return signal;
+
+    switch(signal) {
+        case OPUS_AUTO:
+            return SignalType::Auto;
+        case OPUS_SIGNAL_MUSIC:
+            return SignalType::Music;
+        case OPUS_SIGNAL_VOICE:
+            return SignalType::Voice;
+        default:
+            qCCritical(encoder) << "Opus returned unrecognized signal type" << signal;
+            return SignalType::Auto;
+    }
+
 }
 
-void AthenaOpusEncoder::setSignal(int signal) {
+void AthenaOpusEncoder::setSignalType(Encoder::SignalType signal) {
     assert(_encoder);
-    int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_SIGNAL(signal));
+    int sig = OPUS_SIGNAL_MUSIC;
+
+    switch(signal) {
+        case SignalType::Auto:
+            sig = OPUS_AUTO;
+            break;
+        case SignalType::Music:
+            sig = OPUS_SIGNAL_MUSIC;
+            break;
+        case SignalType::Voice:
+            sig = OPUS_SIGNAL_VOICE;
+            break;
+    }
+
+    int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_SIGNAL(sig));
 
     if (errorCode != OPUS_OK) {
-        qCWarning(encoder) << "Error when setting signal to " << signal << ": " << errorToString(errorCode);
+        qCWarning(encoder) << "Error when setting signal to " << sig << ": " << errorToString(errorCode);
     }
 }
 
-int AthenaOpusEncoder::getApplication() const {
+Encoder::ApplicationType AthenaOpusEncoder::getApplication() const {
     assert(_encoder);
     int applicationValue;
     opus_encoder_ctl(_encoder, OPUS_GET_APPLICATION(&applicationValue));
-    return applicationValue;
+
+    switch(applicationValue) {
+        case OPUS_APPLICATION_AUDIO:
+            return ApplicationType::Audio;
+        case OPUS_APPLICATION_RESTRICTED_LOWDELAY:
+            return ApplicationType::LowDelay;
+        case OPUS_APPLICATION_VOIP:
+            return ApplicationType::VOIP;
+        default:
+            qCCritical(encoder) << "Opus returned unrecognized application value" << applicationValue;
+            return ApplicationType::Audio;
+    }
 }
 
-void AthenaOpusEncoder::setApplication(int application) {
+void AthenaOpusEncoder::setApplication(Encoder::ApplicationType application) {
     assert(_encoder);
-    int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_APPLICATION(application));
+    int app = OPUS_APPLICATION_AUDIO;
+
+    switch(application) {
+        case ApplicationType::Audio:
+            app = OPUS_APPLICATION_AUDIO;
+            break;
+        case ApplicationType::LowDelay:
+            app = OPUS_APPLICATION_RESTRICTED_LOWDELAY;
+            break;
+        case ApplicationType::VOIP:
+            app = OPUS_APPLICATION_VOIP;
+            break;
+    }
+
+    int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_APPLICATION(app));
 
     if (errorCode != OPUS_OK) {
-        qCWarning(encoder) << "Error when setting application to " << application << ": " << errorToString(errorCode);
+        qCWarning(encoder) << "Error when setting application to " << app << ": " << errorToString(errorCode);
     }
 }
 
@@ -224,30 +275,30 @@ int AthenaOpusEncoder::getLookahead() const {
     return lookAhead;
 }
 
-int AthenaOpusEncoder::getInbandFEC() const {
+bool AthenaOpusEncoder::getFEC() const {
     assert(_encoder);
     int fec;
     opus_encoder_ctl(_encoder, OPUS_GET_INBAND_FEC(&fec));
-    return fec;
+    return (bool)fec;
 }
 
-void AthenaOpusEncoder::setInbandFEC(int inBandFEC) {
+void AthenaOpusEncoder::setFEC(bool inBandFEC) {
     assert(_encoder);
-    int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_INBAND_FEC(inBandFEC));
+    int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_INBAND_FEC((int)inBandFEC));
 
     if (errorCode != OPUS_OK) {
         qCWarning(encoder) << "Error when setting inband FEC to " << inBandFEC << ": " << errorToString(errorCode);
     }
 }
 
-int AthenaOpusEncoder::getExpectedPacketLossPercentage() const {
+int AthenaOpusEncoder::getPacketLossPercent() const {
     assert(_encoder);
     int lossPercentage;
     opus_encoder_ctl(_encoder, OPUS_GET_PACKET_LOSS_PERC(&lossPercentage));
     return lossPercentage;
 }
 
-void AthenaOpusEncoder::setExpectedPacketLossPercentage(int percentage) {
+void AthenaOpusEncoder::setPacketLossPercent(int percentage) {
     assert(_encoder);
     int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_PACKET_LOSS_PERC(percentage));
 

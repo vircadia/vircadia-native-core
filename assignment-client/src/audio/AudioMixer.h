@@ -24,6 +24,7 @@
 
 #include "AudioMixerStats.h"
 #include "AudioMixerSlavePool.h"
+#include "plugins/CodecPlugin.h"
 
 class PositionalAudioStream;
 class AvatarAudioStream;
@@ -52,6 +53,19 @@ public:
         float wetLevel;
     };
 
+/*
+    struct CodecSettings {
+        QString codec;
+        Encoder::Bandpass bandpass = Encoder::Bandpass::Fullband;
+        Encoder::ApplicationType applicationType = Encoder::ApplicationType::Audio;
+        Encoder::SignalType signalType = Encoder::SignalType::Auto;
+        int bitrate = 128000;
+        int complexity = 100;
+        bool enableFEC = 0;
+        int packetLossPercent = 0;
+        bool enableVBR = 1;
+    };
+*/
     static int getStaticJitterFrames() { return _numStaticJitterFrames; }
     static bool shouldMute(float quietestFrame) { return quietestFrame > _noiseMutingThreshold; }
     static float getAttenuationPerDoublingInDistance() { return _attenuationPerDoublingInDistance; }
@@ -59,6 +73,7 @@ public:
     static const std::vector<ZoneSettings>& getZoneSettings() { return _zoneSettings; }
     static const std::vector<ReverbSettings>& getReverbSettings() { return _zoneReverbSettings; }
     static const std::pair<QString, CodecPluginPointer> negotiateCodec(std::vector<QString> codecs);
+    static const std::vector<Encoder::CodecSettings> getCodecSettings() { return _codecSettings; }
 
     static bool shouldReplicateTo(const Node& from, const Node& to) {
         return to.getType() == NodeType::DownstreamAudioMixer &&
@@ -67,7 +82,7 @@ public:
     }
 
     virtual void aboutToFinish() override;
-    
+
 public slots:
     void run() override;
     void sendStatsPacket() override;
@@ -149,6 +164,7 @@ private:
     static std::vector<ZoneDescription> _audioZones;
     static std::vector<ZoneSettings> _zoneSettings;
     static std::vector<ReverbSettings> _zoneReverbSettings;
+    static std::vector<Encoder::CodecSettings> _codecSettings;
 
     float _throttleStartTarget = 0.9f;
     float _throttleBackoffTarget = 0.44f;

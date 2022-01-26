@@ -1277,7 +1277,7 @@
     {
       "name": "audio_env",
       "label": "Audio Environment",
-      "assignment-types": [ 0 ],
+      "assignment-types": [ 0, 5 ],
       "settings": [
         {
           "name": "attenuation_per_doubling_in_distance",
@@ -1417,10 +1417,62 @@
         {
           "name": "codec_preference_order",
           "label": "Audio Codec Preference Order",
-          "help": "List of codec names in order of preferred usage",
+          "help": "List of codec names in order of preferred usage -- mod2",
           "placeholder": "opus, hifiAC, zlib, pcm",
           "default": "opus,hifiAC,zlib,pcm",
           "advanced": true
+        },
+        {
+          "name": "codec_settings",
+          "label": "Audio Codec Settings",
+          "help": "Advanced settings for audio codecs",
+          "advanced": true,
+          "type": "table",
+          "numbered": false,
+          "content_setting": false,
+          "can_add_new_rows": true,
+          "columns" : [
+            {
+              "name": "codec",
+              "label": "Codec",
+              "can_set": false,
+              "placeholder": "(codec)"
+            },
+            {
+              "name": "complexity",
+              "label": "Complexity",
+              "can_set": true,
+              "type": "int",
+              "placeholder": "(percentage)"
+            },
+            {
+              "name": "bitrate",
+              "label": "Bitrate",
+              "can_set": true,
+              "placeholder": "(bps)"
+            },
+            {
+              "name": "vbr",
+              "label": "Variable Bitrate",
+              "can_set": true,
+              "type": "checkbox"
+            },
+            {
+              "name": "fec",
+              "label": "Error correction",
+              "can_set": true,
+              "type": "checkbox",
+              "placeholder": "(percentage)"
+            },
+            {
+              "name": "packet_loss",
+              "label": "Expected loss %",
+              "can_set": true,
+              "type": "int",
+              "placeholder": "(percentage)"
+            }
+
+          ]
         }
       ]
     },

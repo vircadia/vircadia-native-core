@@ -13,37 +13,80 @@
 #include <algorithm>
 #include "Plugin.h"
 #include <QDebug>
+#include <QJsonObject>
 
-#ifndef VIRCADIA_CODECPLUGIN_H
-#define VIRCADIA_CODECPLUGIN_H
 
+#include <QLoggingCategory>
+
+Q_DECLARE_LOGGING_CATEGORY(codec_plugin)
+
+
+/**
+ * @brief Audio encoder
+ *
+ * This class is the base interface for all encoders. It provides an interface to encode audio, and exposes encoding
+ * settings and data about the encoder.
+ *
+ * Some settings don't apply to some encoders and will be ignored. Methods are provided to determine whether a setting will apply.
+ *
+ * Settings may be clamped or fit into certain ranges. For instance an encoder may adjust the wanted bitrate to the nearest one it supports.
+ *
+ * @warning Both set and get functions must be implemented for each setting. The class doesn't store any data internally and it's up to the
+ * derived class to deal with storage.
+ *
+ */
 class Encoder {
 public:
-    enum class EncoderBandpass {
+    enum class Bandpass {
         Narrowband, Mediumband, Wideband, Superwideband, Fullband
     };
 
-    enum class EncoderSignal {
+    enum class SignalType {
         Auto, Voice, Music
     };
 
-    enum class EncoderApplication {
+    enum class ApplicationType {
         VOIP, Audio, LowDelay
     };
 
-/*
-    enum class Capabilities : int {
-        None = 0x00,
-        Lossless = 0x01,
-        Complexity = 0x02,
-        Bitrate = 0x04,
-        FEC = 0x08,
-        Bandpass = 0x10,
-        SignalType = 0x20,
-        VBR = 0x40
-    };
-*/
+    /**
+     * @brief Represents the settings loaded from the domain's configuration page
+     *
+     * Encoder classes are created EntityScriptServer, Agent, AudioMixerClientData and AudioClient,
+     * and they need to store configuration data internally for passing it to new Encoder objects
+     * when they create them.
+     *
+     */
+    struct CodecSettings {
+        QString codec;
+        Encoder::Bandpass bandpass = Encoder::Bandpass::Fullband;
+        Encoder::ApplicationType applicationType = Encoder::ApplicationType::Audio;
+        Encoder::SignalType signalType = Encoder::SignalType::Auto;
+        int bitrate = 128000;
+        int complexity = 100;
+        bool enableFEC = 0;
+        int packetLossPercent = 0;
+        bool enableVBR = 1;
 
+
+    };
+
+    /**
+     * @brief Parse the codec settings from a domain's config into a vector of CodecSettings.
+     *
+     * @param root A QJsonObject which contains a codec_settings dictionary with codec settings inside.
+     * @return std::vector<CodecSettings>
+     */
+    static std::vector<CodecSettings> parseSettings(const QJsonObject &root);
+    /**
+     * @brief Configures a given encoder with the values parsed from the configuration
+     *
+     * This takes the whole vector as an argument, and automatically tries to find a matching
+     * configuration in there.
+     *
+     * @param settings A vector of CodecSettings. The function will look for a matching configuration within.
+     */
+    void configure(const std::vector<CodecSettings> &settings);
 
     virtual ~Encoder() { }
     virtual void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) = 0;
@@ -51,12 +94,19 @@ public:
     /**
      * @brief Get the codec's name
      *
-     * Returns the name of the codec, for usage in debug output and UI.
+     * Returns the name of the codec. Used for display, debugging and configuration.
+     * This must match the values found within the configuration.
      *
      * @return QString Codec's name
      */
     virtual const QString getName() const { return "Encoder"; }
 
+    /**
+     * @brief Whether this codec is lossless
+     *
+     * @return true Codec is lossless
+     * @return false Codec is lossy
+     */
     virtual bool isLossless() const { return false; }
 
     /**
@@ -70,9 +120,9 @@ public:
      */
     //virtual Capabilities getCapabilities() { return Capabilities::None; }
 
-    virtual void setApplication(EncoderApplication app) { _application = app; }
+    virtual void setApplication(ApplicationType app) {  }
     virtual bool hasApplication() const { return false; }
-    EncoderApplication getApplication() const { return _application; }
+    virtual ApplicationType getApplication() const { return ApplicationType::Audio; }
 
     /**
      * @brief Set the codec's complexity (CPU usage)
@@ -82,9 +132,9 @@ public:
      *
      * @param complexity A value from 0 to 100.
      */
-    virtual void setComplexity(int complexity) { _complexity = qBound(complexity, 0, 100); }
+    virtual void setComplexity(int complexity) {  }
     virtual bool hasComplexity() const { return false; }
-    int getComplexity() const { return _complexity; }
+    virtual int getComplexity() const { return 0; }
 
     /**
      * @brief Set the bitrate
@@ -93,9 +143,9 @@ public:
      *
      * @param bitrate A rate in bits per second from 500 to 512000
      */
-    virtual void setBitrate(int bitrate) { _bitrate = qBound(bitrate, 500, 512000); }
+    virtual void setBitrate(int bitrate) { }
     virtual bool hasBitrate() const { return false; }
-    int getBitrate() const { return _bitrate; }
+    virtual int getBitrate() const { return 0; }
 
     /**
      * @brief Sets whether to use Forward Error Correction
@@ -103,9 +153,9 @@ public:
      * When enabled, redundant data is included in the codec's output to compensate for packet loss
      * @param enabled
      */
-    virtual void setFEC(bool enabled) { _useFEC = enabled; }
+    virtual void setFEC(bool enabled) {  }
     virtual bool hasFEC() const { return false; }
-    bool getFEC() const { return _useFEC; }
+    virtual bool getFEC() const { return false; }
 
     /**
      * @brief Set how much packet loss to tolerate
@@ -114,93 +164,41 @@ public:
      *
      * @param percent 0 to 100
      */
-    virtual void setPacketLossPercent(int percent) { _packetLossPercent = qBound(percent, 0, 100); }
+    virtual void setPacketLossPercent(int percent) { }
     virtual bool hasPacketLossPercent() const { return false; }
-    int getPacketLossPercent() const { return _packetLossPercent; }
+    virtual int getPacketLossPercent() const {  return 0; }
 
     /**
      * @brief Set the bandpass
      *
      * @param bandpass
      */
-    virtual void setBandpass(EncoderBandpass bandpass) { _bandpass = bandpass;}
+    virtual void setBandpass(Bandpass bandpass) { }
     virtual bool hasBandpass() const { return false; }
-    EncoderBandpass getBandpass() const { return _bandpass; }
+    virtual Bandpass getBandpass() const { return Bandpass::Fullband; }
 
     /**
      * @brief Set the type of audio signal
      *
      * @param signal
      */
-    virtual void setSignalType(EncoderSignal signal) { _signal = signal;}
+    virtual void setSignalType(SignalType signal) {}
     virtual bool hasSignalType() const { return false; }
-    EncoderSignal getSignalType() const { return _signal; }
+    virtual SignalType getSignalType() const { return SignalType::Auto; }
 
     /**
      * @brief Whether to use variable bitrate
      *
      * @param use_vbr
      */
-    virtual void setVBR(bool use_vbr) { _useVBR = use_vbr; }
+    virtual void setVBR(bool use_vbr) { }
     virtual bool hasVBR() const { return false; }
-    bool getVBR() const { return _useVBR; }
+    virtual bool getVBR() const { return false; }
 
-    QDebug operator<<(QDebug debug) {
-        debug << "{ Codec = " << getName();
-        if ( hasComplexity() ) {
-            debug << "; Complexity = " << getComplexity();
-        }
-
-        if ( hasBitrate() ) {
-            debug << "; Bitrate = " << getBitrate();
-        }
-
-        if ( hasFEC() ) {
-            debug << "; FEC = " << getFEC();
-        }
-
-        if ( hasPacketLossPercent() ) {
-            debug << "; PacketLoss = " << getPacketLossPercent();
-        }
-
-        if ( hasBandpass() ) {
-            debug << "; Bandpass = " << (int)getBandpass();
-        }
-
-        if ( hasSignalType() ) {
-            debug << "; Signal = " << (int)getSignalType();
-        }
-
-        if ( hasVBR() ) {
-            debug << "; VBR = " << getVBR();
-        }
-
-        debug << "}";
-
-        return debug;
-    }
-
-/*
-    Encoder::Capabilities operator|(Encoder::Capabilities lhs, Encoder::Capabilities rhs) {
-    return static_cast<Encoder::Capabilities>(
-        static_cast<std::underlying_type<Encoder::Capabilities>::type>(lhs) |
-        static_cast<std::underlying_type<Encoder::Capabilities>::type>(rhs)
-    );
-
-}
-   */
-protected:
-    int _complexity;
-    int _bitrate;
-    bool _useFEC;
-    bool _useVBR;
-    int _packetLossPercent;
-    EncoderBandpass _bandpass;
-    EncoderSignal _signal;
-    EncoderApplication _application;
+    QDebug operator<<(QDebug debug);
 };
 
-
+QDebug operator<<(QDebug &debug, const Encoder::CodecSettings &settings);
 
 class Decoder {
 public:
@@ -220,5 +218,3 @@ public:
     virtual void releaseEncoder(Encoder* encoder) = 0;
     virtual void releaseDecoder(Decoder* decoder) = 0;
 };
-
-#endif

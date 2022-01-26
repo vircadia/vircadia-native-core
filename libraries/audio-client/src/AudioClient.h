@@ -124,7 +124,7 @@ public:
         AudioClient* _audio;
         int _unfulfilledReads;
     };
-    
+
     void startThread();
     void negotiateAudioFormat();
     void selectAudioFormat(const QString& selectedCodecName);
@@ -170,7 +170,7 @@ public:
 
     HifiAudioDeviceInfo getActiveAudioDevice(QAudio::Mode mode) const;
     QList<HifiAudioDeviceInfo> getAudioDevices(QAudio::Mode mode) const;
-  
+
     void enablePeakValues(bool enable) { _enablePeakValues = enable; }
     bool peakValuesAvailable() const;
 
@@ -186,6 +186,7 @@ public:
     void setAudioPaused(bool pause);
 
     AudioSolo& getAudioSolo() override { return _solo; }
+    void setCodecSettings(const std::vector<Encoder::CodecSettings> &settings ) { _codecSettings = settings; }
 
 #ifdef Q_OS_WIN
     static QString getWinDeviceName(wchar_t* guid);
@@ -225,10 +226,10 @@ public slots:
 
     void setNoiseReduction(bool isNoiseGateEnabled, bool emitSignal = true);
     bool isNoiseReductionEnabled() const { return _isNoiseGateEnabled; }
-    
+
     void setNoiseReductionAutomatic(bool isNoiseGateAutomatic, bool emitSignal = true);
     bool isNoiseReductionAutomatic() const { return _isNoiseReductionAutomatic; }
-    
+
     void setNoiseReductionThreshold(float noiseReductionThreshold, bool emitSignal = true);
     float noiseReductionThreshold() const { return _noiseReductionThreshold; }
 
@@ -338,6 +339,7 @@ private:
     bool mixLocalAudioInjectors(float* mixBuffer);
     float azimuthForSource(const glm::vec3& relativePosition);
     float gainForSource(float distance, float volume);
+    std::vector<Encoder::CodecSettings> _codecSettings;
 
 #ifdef Q_OS_ANDROID
     QTimer _checkInputTimer{ this };
@@ -527,7 +529,7 @@ private:
 #endif
 
     AudioSolo _solo;
-    
+
     QFuture<void> _localPrepInjectorFuture;
     QReadWriteLock _hmdNameLock;
     Mutex _checkDevicesMutex;
