@@ -78,7 +78,7 @@ Item {
         if (!isLoggingInToDomain) {
             Settings.setValue("private/selectedMetaverseURL", metaverseServerField.text);
         }
-        
+
         if (keepMeLoggedInCheckbox.checked) {
             if (!isLoggingInToDomain) {
                 Settings.setValue("keepMeLoggedIn/savedUsername", emailField.text);
@@ -92,7 +92,7 @@ Item {
         } else {
             loginDialog.loginDomain(emailField.text, passwordField.text);
         }
-        
+
         if (linkAccountBody.loginDialogPoppedUp) {
             var data;
             if (linkAccountBody.linkSteam) {
@@ -205,7 +205,7 @@ Item {
                     visible: false
                 }
             }
-            
+
             Item {
                 id: loginDialogTextContainer
                 height: 56
@@ -215,7 +215,7 @@ Item {
                     right: parent.right
                     topMargin: 1.5 * hifi.dimensions.contentSpacing.y
                 }
-            
+
                 Text {
                     id: loginDialogText
                     text: qsTr("Log In")
@@ -295,7 +295,7 @@ Item {
                         case Qt.Key_Enter:
                         case Qt.Key_Return:
                             event.accepted = true;
-                            
+
                             linkAccountBody.login();
                             break;
                     }
@@ -404,8 +404,13 @@ Item {
                         case Qt.Key_Return:
                             event.accepted = true;
                             if (!isLoggingInToDomain) {
-                                console.log("Setting metaverse server to", metaverseServerField.text);
-                                Settings.setValue("private/selectedMetaverseURL", metaverseServerField.text);
+                                var url = metaverseServerField.text;
+                                console.log("Setting metaverse server to", url);
+                                Settings.setValue("private/selectedMetaverseURL", url);
+                                if(AccountServices.isLoggedIn()){
+                                    AccountServices.logOut();
+                                }
+                                AccountServices.updateAuthURLFromMetaverseServerURL();
                             }
                             linkAccountBody.login();
                             break;
@@ -415,6 +420,18 @@ Item {
                     root.text = "";
                     if (focus) {
                         root.isPassword = false;
+                    }else{
+                        var url = metaverseServerField.text;
+                        if(!(url == Settings.getValue("private/selectedMetaverseURL")) && !(url == "")){
+                            if (!isLoggingInToDomain) {
+                                console.log("Setting metaverse server to", url);
+                                Settings.setValue("private/selectedMetaverseURL", url);
+                                if(AccountServices.isLoggedIn()){
+                                    AccountServices.logOut();
+                                }
+                                AccountServices.updateAuthURLFromMetaverseServerURL();
+                            }
+                        }
                     }
                 }
             }
