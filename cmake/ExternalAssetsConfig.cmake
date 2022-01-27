@@ -15,6 +15,7 @@ set(EXTERNAL_BUILD_ASSETS_DIRECT_BASE_URLS
 
 set(EXTERNAL_BUILD_ASSETS_IPFS_BASE_URLS
     "http://localhost:8080/ipfs"
+    "http://ipfs.vircadia.dev/ipfs"
     "https://cf-ipfs.com/ipfs"
     "https://gateway.ipfs.io/ipfs"
     "https://cloudflare-ipfs.com/ipfs"
