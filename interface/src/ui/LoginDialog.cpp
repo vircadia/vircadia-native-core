@@ -381,7 +381,7 @@ void LoginDialog::signupCompleted(QNetworkReply* reply) {
     const auto jsonDoc = QJsonDocument::fromJson(response, &error);
 
     static const QString RESPONSE_STATUS_KEY = "status";
-    static const QString JSON_RESPONSE_ERROR = "There was an error communicating with Metaverse server. Please try again later.";
+    static const QString JSON_RESPONSE_ERROR = "There was an error communicating with the Metaverse server. Please try again later.";
 
     if (jsonDoc.isNull()) {
         qWarning() << "Metaverse server sign up failed parsing response as JSON: " << error.errorString();
