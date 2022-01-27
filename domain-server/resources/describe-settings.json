@@ -1435,43 +1435,89 @@
             {
               "name": "codec",
               "label": "Codec",
-              "can_set": false,
-              "placeholder": "(codec)"
+              "can_set": true,
+              "placeholder": "(codec)",
+              "editable": false
             },
             {
               "name": "complexity",
               "label": "Complexity",
               "can_set": true,
               "type": "int",
-              "placeholder": "(percentage)"
+              "placeholder": "(percentage)",
+              "default": 0,
+              "editable": true
             },
             {
               "name": "bitrate",
               "label": "Bitrate",
               "can_set": true,
-              "placeholder": "(bps)"
+              "placeholder": "(bps)",
+              "default" : 0,
+              "editable": true
             },
             {
               "name": "vbr",
               "label": "Variable Bitrate",
               "can_set": true,
-              "type": "checkbox"
+              "type": "checkbox",
+              "default": false,
+              "editable": true
             },
             {
               "name": "fec",
               "label": "Error correction",
               "can_set": true,
               "type": "checkbox",
-              "placeholder": "(percentage)"
+              "default" : false,
+              "editable": true
             },
             {
               "name": "packet_loss",
               "label": "Expected loss %",
               "can_set": true,
               "type": "int",
-              "placeholder": "(percentage)"
+              "placeholder": "(percentage)",
+              "default": 0,
+              "editable": true
             }
 
+          ],
+          "non-deletable-row-key": "codec",
+          "non-deletable-row-values": [ "pcm", "zlib", "hifiAC", "opus" ],
+          "default": [
+            {
+                "codec": "pcm",
+                "complexity": 0,
+                "bitrate": 0,
+                "vbr": false,
+                "fec": false,
+                "packet_loss": 0
+            },
+            {
+              "codec": "zlib",
+              "complexity": 6,
+              "bitrate": 0,
+              "vbr": false,
+              "fec": false,
+              "packet_loss": 0
+            },
+            {
+              "codec": "hifiAC",
+              "complexity": 0,
+              "bitrate": 0,
+              "vbr": false,
+              "fec": false,
+              "packet_loss": 0
+            },
+            {
+              "codec": "opus",
+              "complexity": 10,
+              "bitrate": 128000,
+              "vbr": true,
+              "fec": false,
+              "packet_loss": 0
+            }
           ]
         }
       ]
