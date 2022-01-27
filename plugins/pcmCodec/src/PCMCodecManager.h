@@ -31,6 +31,8 @@ public:
     /// Called when a plugin is no longer being used.  May be called multiple times.
     void deactivate() override;
 
+    bool isLossless() const override { return true; }
+
     virtual Encoder* createEncoder(int sampleRate, int numChannels) override;
     virtual Decoder* createDecoder(int sampleRate, int numChannels) override;
     virtual void releaseEncoder(Encoder* encoder) override;
@@ -61,6 +63,12 @@ public:
     bool isSupported() const override;
     const QString getName() const override { return NAME; }
 
+    bool isLossless() const override { return true; }
+
+    bool hasComplexity() const override { return true; }
+
+    void setComplexity(int complexity) override { _compressionLevel = qBound(0, complexity/11, 9); }
+
     void init() override;
     void deinit() override;
 
@@ -75,7 +83,7 @@ public:
     virtual void releaseDecoder(Decoder* decoder) override;
 
     virtual void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) override {
-        encodedBuffer = qCompress(decodedBuffer);
+        encodedBuffer = qCompress(decodedBuffer, _compressionLevel);
     }
 
     virtual void decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) override {
@@ -89,6 +97,7 @@ public:
 
 private:
     static const char* NAME;
+    int _compressionLevel = 6; // Default compression level for zLib
 };
 
 #endif // hifi__PCMCodecManager_h
