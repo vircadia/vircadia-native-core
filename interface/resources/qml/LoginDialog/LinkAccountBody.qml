@@ -410,9 +410,9 @@ Item {
                                 if(AccountServices.isLoggedIn()){
                                     AccountServices.logOut();
                                 }
+                                passwordField.text = "";
                                 AccountServices.updateAuthURLFromMetaverseServerURL();
                             }
-                            linkAccountBody.login();
                             break;
                     }
                 }
@@ -429,6 +429,7 @@ Item {
                                 if(AccountServices.isLoggedIn()){
                                     AccountServices.logOut();
                                 }
+                                passwordField.text = "";
                                 AccountServices.updateAuthURLFromMetaverseServerURL();
                             }
                         }
