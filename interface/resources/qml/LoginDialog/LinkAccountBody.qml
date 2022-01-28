@@ -630,111 +630,110 @@ Item {
                     }
                 }
             }
-        }
 
-        Item {
-            id: signUpContainer
-            width: loginContainer.width
-            height: signUpTextMetrics.height
-            visible: !linkAccountBody.linkSteam && !linkAccountBody.linkOculus && !linkAccountBody.isLoggingInToDomain
-            anchors {
-                left: loginContainer.left
-                top: loginContainer.bottom
-                topMargin: 0.05 * parent.height
-            }
-            TextMetrics {
-                id: signUpTextMetrics
-                font: signUpText.font
-                text: signUpText.text
-            }
-            Text {
-                id: signUpText
-                text: qsTr("Don't have an account?")
+            Item {
+                id: signUpContainer
+                width: displayNameField.width;
+                height: signUpTextMetrics.height
+                visible: !linkAccountBody.linkSteam && !linkAccountBody.linkOculus && !linkAccountBody.isLoggingInToDomain
                 anchors {
-                    left: parent.left
+                    top: cantAccessText.bottom
+                    left: displayNameField.left
                 }
-                lineHeight: 1
-                color: "white"
-                font.family: linkAccountBody.fontFamily
-                font.pixelSize: linkAccountBody.textFieldFontSize
-                font.bold: linkAccountBody.fontBold
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignHCenter
-            }
-
-            HifiStylesUit.ShortcutText {
-                id: signUpShortcutText
-                z: 10
-                font.family: linkAccountBody.fontFamily
-                font.pixelSize: linkAccountBody.textFieldFontSize
-                font.bold: linkAccountBody.fontBold
-                anchors {
-                     left: signUpText.right
-                     leftMargin: hifi.dimensions.contentSpacing.x
+                TextMetrics {
+                    id: signUpTextMetrics
+                    font: signUpText.font
+                    text: signUpText.text
                 }
-
-                text: "<a href='https://metaverse.vircadia.com/users/register'>Sign Up</a>"
-
-                linkColor: hifi.colors.blueAccent
-                onLinkActivated: {
-                    Tablet.playSound(TabletEnums.ButtonClick);
-                    if (linkAccountBody.loginDialogPoppedUp) {
-                        var data = {
-                            "action": "user clicked sign up button"
-                        };
-                        UserActivityLogger.logAction("encourageLoginDialog", data);
+                Text {
+                    id: signUpText
+                    text: qsTr("Don't have an account?")
+                    anchors {
+                        left: parent.left
                     }
-                    bodyLoader.setSource("SignUpBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader,
-                        "errorString": "" });
+                    lineHeight: 1
+                    color: "white"
+                    font.family: linkAccountBody.fontFamily
+                    font.pixelSize: linkAccountBody.textFieldFontSize
+                    font.bold: linkAccountBody.fontBold
+                    verticalAlignment: Text.AlignVCenter
+                    horizontalAlignment: Text.AlignHCenter
                 }
-            }
 
-            Text {
-                id: signUpTextSecond
-                text: qsTr("or")
-                anchors {
-                    left: signUpShortcutText.right
-                    leftMargin: hifi.dimensions.contentSpacing.x
-                }
-                lineHeight: 1
-                color: "white"
-                font.family: linkAccountBody.fontFamily
-                font.pixelSize: linkAccountBody.textFieldFontSize
-                font.bold: linkAccountBody.fontBold
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignHCenter
-                visible: loginDialog.getLoginDialogPoppedUp() && !linkAccountBody.linkSteam && !linkAccountBody.linkOculus;
-            }
-
-            TextMetrics {
-                id: dismissButtonTextMetrics
-                font: loginErrorMessage.font
-                text: dismissButton.text
-            }
-            HifiControlsUit.Button {
-                id: dismissButton
-                width: loginButton.width
-                height: d.minHeightButton
-                anchors {
-                    top: signUpText.bottom
-                    topMargin: hifi.dimensions.contentSpacing.y
-                    left: loginButton.left
-                }
-                text: qsTr("Use without account, log in anonymously")
-                fontCapitalization: Font.MixedCase
-                fontFamily: linkAccountBody.fontFamily
-                fontSize: linkAccountBody.fontSize
-                fontBold: linkAccountBody.fontBold
-                visible: loginDialog.getLoginDialogPoppedUp() && !linkAccountBody.linkSteam && !linkAccountBody.linkOculus;
-                onClicked: {
-                    if (linkAccountBody.loginDialogPoppedUp) {
-                        var data = {
-                            "action": "user dismissed login screen"
-                        };
-                        UserActivityLogger.logAction("encourageLoginDialog", data);
-                        loginDialog.dismissLoginDialog();
+                HifiStylesUit.ShortcutText {
+                    id: signUpShortcutText
+                    z: 10
+                    font.family: linkAccountBody.fontFamily
+                    font.pixelSize: linkAccountBody.textFieldFontSize
+                    font.bold: linkAccountBody.fontBold
+                    anchors {
+                         left: signUpText.right
+                         leftMargin: hifi.dimensions.contentSpacing.x
                     }
-                    root.tryDestroy();
+
+                    text: "<a href='https://metaverse.vircadia.com/users/register'>Sign Up</a>"
+
+                    linkColor: hifi.colors.blueAccent
+                    onLinkActivated: {
+                        Tablet.playSound(TabletEnums.ButtonClick);
+                        if (linkAccountBody.loginDialogPoppedUp) {
+                            var data = {
+                                "action": "user clicked sign up button"
+                            };
+                            UserActivityLogger.logAction("encourageLoginDialog", data);
+                        }
+                        bodyLoader.setSource("SignUpBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader,
+                            "errorString": "" });
+                    }
+                }
+
+                Text {
+                    id: signUpTextSecond
+                    text: qsTr("or")
+                    anchors {
+                        left: signUpShortcutText.right
+                        leftMargin: hifi.dimensions.contentSpacing.x
+                    }
+                    lineHeight: 1
+                    color: "white"
+                    font.family: linkAccountBody.fontFamily
+                    font.pixelSize: linkAccountBody.textFieldFontSize
+                    font.bold: linkAccountBody.fontBold
+                    verticalAlignment: Text.AlignVCenter
+                    horizontalAlignment: Text.AlignHCenter
+                    visible: loginDialog.getLoginDialogPoppedUp() && !linkAccountBody.linkSteam && !linkAccountBody.linkOculus;
+                }
+
+                TextMetrics {
+                    id: dismissButtonTextMetrics
+                    font: loginErrorMessage.font
+                    text: dismissButton.text
+                }
+                HifiControlsUit.Button {
+                    id: dismissButton
+                    width: loginButton.width
+                    height: d.minHeightButton
+                    anchors {
+                        top: signUpText.bottom
+                        topMargin: hifi.dimensions.contentSpacing.y
+                        left: loginButton.left
+                    }
+                    text: qsTr("Use without account, log in anonymously")
+                    fontCapitalization: Font.MixedCase
+                    fontFamily: linkAccountBody.fontFamily
+                    fontSize: linkAccountBody.fontSize
+                    fontBold: linkAccountBody.fontBold
+                    visible: loginDialog.getLoginDialogPoppedUp() && !linkAccountBody.linkSteam && !linkAccountBody.linkOculus;
+                    onClicked: {
+                        if (linkAccountBody.loginDialogPoppedUp) {
+                            var data = {
+                                "action": "user dismissed login screen"
+                            };
+                            UserActivityLogger.logAction("encourageLoginDialog", data);
+                            loginDialog.dismissLoginDialog();
+                        }
+                        root.tryDestroy();
+                    }
                 }
             }
         }
