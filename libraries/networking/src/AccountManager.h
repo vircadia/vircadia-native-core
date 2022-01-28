@@ -79,6 +79,7 @@ public:
     const QUrl& getAuthURL() const { return _authURL; }
     void setAuthURL(const QUrl& authURL);
     bool hasAuthEndpoint() { return !_authURL.isEmpty(); }
+    Q_INVOKABLE void updateAuthURLFromMetaverseServerURL();
 
     bool isLoggedIn() { return !_authURL.isEmpty() && hasValidAccessToken(); }
     bool hasValidAccessToken();
