@@ -68,6 +68,9 @@ Item {
     }
 
     function signup() {
+
+        Settings.setValue("private/selectedMetaverseURL", metaverseServerField.text);
+
         loginDialog.signup(emailField.text, usernameField.text, passwordField.text);
     }
 
@@ -82,6 +85,10 @@ Item {
         root.text = "";
         root.isPassword = false;
         loginContainer.visible = true;
+
+        var metaverseServer = Settings.getValue("private/selectedMetaverseURL", "");
+        console.log("Saved metaverse server:", metaverseServer);
+        metaverseServerField.text = metaverseServer;
     }
 
     Item {
@@ -300,6 +307,60 @@ Item {
                     }
                 }
             }
+            HifiControlsUit.TextField {
+                id: metaverseServerField
+                width: root.bannerWidth
+                height: signUpBody.textFieldHeight
+                font.pixelSize: signUpBody.textFieldFontSize
+                styleRenderType: Text.QtRendering
+                anchors {
+                    top: passwordField.bottom
+                    topMargin: 1.5 * hifi.dimensions.contentSpacing.y
+                }
+                placeholderText: "Metaverse Server (optional)"
+                activeFocusOnPress: true
+                Keys.onPressed: {
+                    switch (event.key) {
+                        case Qt.Key_Tab:
+                            event.accepted = true;
+                            displayNameField.focus = true;
+                            break;
+                        case Qt.Key_Backtab:
+                            event.accepted = true;
+                            passwordField.focus = true;
+                            break;
+                        case Qt.Key_Enter:
+                        case Qt.Key_Return:
+                            event.accepted = true;
+                            var url = metaverseServerField.text;
+                            console.log("Setting metaverse server to", url);
+                            Settings.setValue("private/selectedMetaverseURL", url);
+                            if(AccountServices.isLoggedIn()){
+                                AccountServices.logOut();
+                            }
+                            AccountServices.updateAuthURLFromMetaverseServerURL();
+                            signUpBody.signup();
+                            break;
+                    }
+                }
+                onFocusChanged: {
+                    root.text = "";
+                    if (focus) {
+                        root.isPassword = false;
+                    }else{
+                        var url = metaverseServerField.text;
+                        if(!(url == Settings.getValue("private/selectedMetaverseURL")) && !(url == "")){
+                            console.log("Setting metaverse server to", url);
+                            Settings.setValue("private/selectedMetaverseURL", url);
+                            if(AccountServices.isLoggedIn()){
+                                AccountServices.logOut();
+                            }
+                            AccountServices.updateAuthURLFromMetaverseServerURL();
+                        }
+                    }
+                }
+            }
+
             HifiControlsUit.CheckBox {
                 id: keepMeLoggedInCheckbox
                 checked: Settings.getValue("keepMeLoggedIn", false);
@@ -309,9 +370,9 @@ Item {
                 labelFontSize: 18;
                 color: hifi.colors.white;
                 anchors {
-                    top: passwordField.bottom;
+                    top: metaverseServerField.bottom;
                     topMargin: hifi.dimensions.contentSpacing.y;
-                    left: passwordField.left;
+                    left: metaverseServerField.left;
                 }
                 onCheckedChanged: {
                     Settings.setValue("keepMeLoggedIn", checked);
