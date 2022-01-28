@@ -76,10 +76,10 @@
             </table>
             <div id='filters'>
                 <div id="searchFiltersBar">
-                <button title="Name" class='fieldsSearchFilterOn' id='searchFilterName' onClick = 'filterSearchFeild("name");'>NAME</button>
-                <button title="Description" class='fieldsSearchFilterOn' id='searchFilterDesc' onClick = 'filterSearchFeild("description");'>DESC</button>
-                <button title="Owners" class='fieldsSearchFilterOn' id='searchFilterOwners' onClick = 'filterSearchFeild("owners");'>OWNERS</button>
-                <button title="Tags" class='fieldsSearchFilterOn' id='searchFilterTags' onClick = 'filterSearchFeild("tags");'>TAGS</button>
+                <button title="Name" class='fieldsSearchFilterOn' id='searchFilterName' onClick = 'filterSearchField("name");'>NAME</button>
+                <button title="Description" class='fieldsSearchFilterOn' id='searchFilterDesc' onClick = 'filterSearchField("description");'>DESC</button>
+                <button title="Owners" class='fieldsSearchFilterOn' id='searchFilterOwners' onClick = 'filterSearchField("owners");'>OWNERS</button>
+                <button title="Tags" class='fieldsSearchFilterOn' id='searchFilterTags' onClick = 'filterSearchField("tags");'>TAGS</button>
                 &nbsp;&nbsp;&nbsp;
                 </div>
                 <button class='localFilterOn' id='localPlacesFilter' onClick = 'filterRegion("local");'>LOC</button>
@@ -581,7 +581,7 @@
                 generateContent();            
             }
 
-            function filterSearchFeild(targeted) {
+            function filterSearchField(targeted) {
                 if (seachedFieldsFilter.indexOf(targeted) === -1) {
                     seachedFieldsFilter.push(targeted);
                 } else {
