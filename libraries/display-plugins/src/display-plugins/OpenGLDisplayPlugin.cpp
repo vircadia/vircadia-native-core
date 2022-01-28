@@ -844,7 +844,7 @@ glm::uvec2 OpenGLDisplayPlugin::getSurfacePixels() const {
     uvec2 result;
     auto window = _container->getPrimaryWidget();
     if (window) {
-        result = toGlm(window->geometry().size() * window->devicePixelRatio());
+        result = toGlm(window->geometry().size() * window->devicePixelRatioF());
     }
     return result;
 }
