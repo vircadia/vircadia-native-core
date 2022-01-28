@@ -67,9 +67,20 @@ Item {
         }
     }
 
+    function getMetaverseUrl(url) {
+        Settings.getValue("private/selectedMetaverseURL", "");
+    }
+
+    function setMetaverseUrl(url) {
+        if (url === "") {
+            url = null; // deletes the value, restoring the default url
+        }
+        Settings.setValue("private/selectedMetaverseURL", url);
+    }
+
     function signup() {
 
-        Settings.setValue("private/selectedMetaverseURL", metaverseServerField.text);
+        setMetaverseUrl(metaverseServerField.text);
 
         loginDialog.signup(emailField.text, usernameField.text, passwordField.text);
     }
@@ -86,7 +97,7 @@ Item {
         root.isPassword = false;
         loginContainer.visible = true;
 
-        var metaverseServer = Settings.getValue("private/selectedMetaverseURL", "");
+        var metaverseServer = getMetaverseUrl();
         console.log("Saved metaverse server:", metaverseServer);
         metaverseServerField.text = metaverseServer;
     }
@@ -333,9 +344,13 @@ Item {
                         case Qt.Key_Return:
                             event.accepted = true;
                             var url = metaverseServerField.text;
-                            console.log("Setting metaverse server to", url);
-                            Settings.setValue("private/selectedMetaverseURL", url);
-                            if(AccountServices.isLoggedIn()){
+                            if (url === "") {
+                                console.log("Setting metaverse server URL to", url);
+                            } else {
+                                console.log("Resetting metaverse server URL");
+                            }
+                            setMetaverseUrl(url);
+                            if (AccountServices.isLoggedIn()){
                                 AccountServices.logOut();
                             }
                             AccountServices.updateAuthURLFromMetaverseServerURL();
@@ -347,12 +362,16 @@ Item {
                     root.text = "";
                     if (focus) {
                         root.isPassword = false;
-                    }else{
+                    } else {
                         var url = metaverseServerField.text;
-                        if(!(url == Settings.getValue("private/selectedMetaverseURL")) && !(url == "")){
-                            console.log("Setting metaverse server to", url);
-                            Settings.setValue("private/selectedMetaverseURL", url);
-                            if(AccountServices.isLoggedIn()){
+                        if (url !== getMetaverseUrl()) {
+                            if (url === "") {
+                                console.log("Setting metaverse server URL to", url);
+                            } else {
+                                console.log("Resetting metaverse server URL");
+                            }
+                            setMetaverseUrl(url);
+                            if (AccountServices.isLoggedIn()){
                                 AccountServices.logOut();
                             }
                             AccountServices.updateAuthURLFromMetaverseServerURL();
