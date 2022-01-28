@@ -1452,6 +1452,7 @@
               "name": "bitrate",
               "label": "Bitrate",
               "can_set": true,
+              "type": "int",
               "placeholder": "(bps)",
               "default" : 0,
               "editable": true
