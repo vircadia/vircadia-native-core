@@ -93,11 +93,13 @@ int AthenaOpusEncoder::getComplexity() const {
     assert(_encoder);
     int returnValue;
     opus_encoder_ctl(_encoder, OPUS_GET_COMPLEXITY(&returnValue));
-    return returnValue;
+    return returnValue*10;
 }
 
 void AthenaOpusEncoder::setComplexity(int complexity) {
     assert(_encoder);
+    complexity = qBound(0, complexity/10, 10); // The generic interface is 0 to 100, Opus is 0 to 10.
+
     int returnValue = opus_encoder_ctl(_encoder, OPUS_SET_COMPLEXITY(complexity));
 
     if (returnValue != OPUS_OK) {
@@ -114,6 +116,7 @@ int AthenaOpusEncoder::getBitrate() const {
 
 void AthenaOpusEncoder::setBitrate(int bitrate) {
     assert(_encoder);
+    bitrate = qBound(500, bitrate, 512000); // Opus limits
     int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_BITRATE(bitrate));
 
     if (errorCode != OPUS_OK) {
