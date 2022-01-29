@@ -142,8 +142,11 @@ endif()
             cpu_architecture = platform.machine()
 
             if 'x86_64' == cpu_architecture:
-                u_major = int( distro.major_version() )
-                u_minor = int( distro.minor_version() )
+                try:
+                    u_major = int( distro.major_version() )
+                except ValueError:
+                    u_major = 0
+
                 if distro.id() == 'ubuntu' or distro.id() == 'linuxmint':
                     if (distro.id() == 'ubuntu' and u_major == 18) or distro.id() == 'linuxmint' and u_major == 19:
                         self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.15.2-ubuntu-18.04-amd64.tar.xz'
@@ -157,8 +160,10 @@ endif()
 
             elif 'aarch64' == cpu_architecture:
                 if distro.id() == 'ubuntu':
-                    u_major = int( distro.major_version() )
-                    u_minor = int( distro.minor_version() )
+                    try:
+                        u_major = int( distro.major_version() )
+                    except ValueError:
+                        u_major = 0
 
                     if u_major == 18:
                         self.qtUrl = 'http://motofckr9k.ddns.net/vircadia_packages/qt5-install-5.15.2-ubuntu-18.04-aarch64_test.tar.xz'
@@ -168,7 +173,10 @@ endif()
                         self.__unsupported_error()
 
                 elif distro.id() == 'debian':
-                    u_major = int( distro.major_version() )
+                    try:
+                        u_major = int( distro.major_version() )
+                    except ValueError:
+                        u_major = 0
 
                     if u_major == 10:
                         self.qtUrl = 'https://data.moto9000.moe/vircadia_packages/qt5-install-5.15.2-debian-10-aarch64.tar.xz'
