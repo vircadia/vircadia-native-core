@@ -22,6 +22,7 @@ public:
 
     virtual void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) override;
 
+    const QString getName() const override { return "opus"; }
 
     int getComplexity() const override;
     void setComplexity(int complexity) override;

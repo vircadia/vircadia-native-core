@@ -186,6 +186,12 @@ public:
     void setAudioPaused(bool pause);
 
     AudioSolo& getAudioSolo() override { return _solo; }
+
+    QStringList getCodecs() override;
+    QString getCodec() override;
+
+    QStringList getAllowedCodecs() override { return _allowedCodecs; }
+    void setAllowedCodecs(const QStringList &codecs) override;
     void setCodecSettings(const std::vector<Encoder::CodecSettings> &settings ) { _codecSettings = settings; }
 
 #ifdef Q_OS_WIN
@@ -454,6 +460,9 @@ private:
     float* _localOutputMixBuffer { NULL };
     Mutex _localAudioMutex;
     AudioLimiter _audioLimiter{ AudioConstants::SAMPLE_RATE, OUTPUT_CHANNEL_COUNT };
+
+    // Negotiate only these codecs with the domain
+    QStringList _allowedCodecs;
 
     // Adds Reverb
     void configureReverb();

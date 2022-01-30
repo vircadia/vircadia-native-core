@@ -444,6 +444,48 @@ void AudioClient::setAudioPaused(bool pause) {
     }
 }
 
+
+QStringList AudioClient::getCodecs() {
+    QStringList codecs;
+
+    const auto& codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    for (const auto& plugin : codecPlugins) {
+        codecs << plugin->getName();
+    }
+
+    return codecs;
+}
+
+QString AudioClient::getCodec() {
+    if ( _encoder ) {
+        return _encoder->getName();
+    }
+
+    return "";
+}
+
+void AudioClient::setAllowedCodecs(const QStringList &userCodecs) {
+    QStringList list;
+    QSet<QString> knownCodecs;
+
+
+    const auto& codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    for (const auto& plugin : codecPlugins) {
+        knownCodecs << plugin->getName();
+    }
+
+    for(const auto &uc : userCodecs) {
+        if ( knownCodecs.contains(uc)) {
+            list << uc;
+        } else {
+            qCWarning(audioclient) << "setAllowedCodecs called with unknown codec name" << uc;
+        }
+    }
+
+    _allowedCodecs = list;
+    negotiateAudioFormat();
+}
+
 HifiAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName, const QString& hmdName, bool isHmd=false) {
     HifiAudioDeviceInfo result;
     foreach (HifiAudioDeviceInfo audioDevice, getAvailableDevices(mode,hmdName)) {
@@ -965,12 +1007,19 @@ void AudioClient::negotiateAudioFormat() {
     auto negotiateFormatPacket = NLPacket::create(PacketType::NegotiateAudioFormat);
     const auto& codecPlugins = PluginManager::getInstance()->getCodecPlugins();
     quint8 numberOfCodecs = (quint8)codecPlugins.size();
-    negotiateFormatPacket->writePrimitive(numberOfCodecs);
-    for (const auto& plugin : codecPlugins) {
-        auto codecName = plugin->getName();
-        negotiateFormatPacket->writeString(codecName);
-    }
 
+    if ( _allowedCodecs.length() ) {
+        negotiateFormatPacket->writePrimitive((quint8)_allowedCodecs.length());
+        for (const auto& codecName : _allowedCodecs) {
+            negotiateFormatPacket->writeString(codecName);
+        }
+    } else {
+        negotiateFormatPacket->writePrimitive(numberOfCodecs);
+        for (const auto& plugin : codecPlugins) {
+            auto codecName = plugin->getName();
+            negotiateFormatPacket->writeString(codecName);
+        }
+    }
     // grab our audio mixer from the NodeList, if it exists
     SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
 

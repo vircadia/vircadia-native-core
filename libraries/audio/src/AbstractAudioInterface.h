@@ -55,6 +55,11 @@ public slots:
     virtual void setServerEcho(bool serverEcho) = 0;
     virtual void toggleServerEcho() = 0;
 
+    virtual QStringList getCodecs() = 0;
+    virtual QString getCodec() = 0;
+    virtual void setAllowedCodecs(const QStringList &codec) = 0;
+    virtual QStringList getAllowedCodecs() = 0;
+
 signals:
     void isStereoInputChanged(bool isStereo);
 };
