@@ -60,6 +60,26 @@ public slots:
     virtual void setAllowedCodecs(const QStringList &codec) = 0;
     virtual QStringList getAllowedCodecs() = 0;
 
+    virtual QMap<QString,bool> getEncoderFeatures() = 0;
+
+    virtual bool getEncoderVBR() = 0;
+    virtual void setEncoderVBR(bool enabled) = 0;
+
+    virtual int getEncoderBitrate() = 0;
+    virtual void setEncoderBitrate(int bitrate) = 0;
+
+    virtual int getEncoderComplexity() = 0;
+    virtual void setEncoderComplexity(int complexity) = 0;
+
+    virtual bool getEncoderFEC() = 0;
+    virtual void setEncoderFEC(bool enabled) = 0;
+
+    virtual int getEncoderPacketLossPercent() = 0;
+    virtual void setEncoderPacketLossPercent(int percent) = 0;
+
+
+
+
 signals:
     void isStereoInputChanged(bool isStereo);
 };

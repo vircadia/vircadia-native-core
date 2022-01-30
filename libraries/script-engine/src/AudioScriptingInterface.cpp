@@ -151,3 +151,83 @@ QStringList AudioScriptingInterface::getAllowedCodecs() {
 
     return codecs;
 }
+
+QMap<QString,bool> AudioScriptingInterface::getEncoderFeatures() {
+    QMap<QString, bool> features;
+
+    if (_localAudioInterface) {
+        features = _localAudioInterface->getEncoderFeatures();
+    }
+
+    return features;
+}
+
+int AudioScriptingInterface::getEncoderBitrate() {
+    if (_localAudioInterface) {
+        return _localAudioInterface->getEncoderBitrate();
+    }
+
+    return 0;
+}
+
+void AudioScriptingInterface::setEncoderBitrate(int bitrate) {
+    if (_localAudioInterface) {
+        _localAudioInterface->setEncoderBitrate(bitrate);
+    }
+}
+
+int AudioScriptingInterface::getEncoderComplexity() {
+    if (_localAudioInterface) {
+        return _localAudioInterface->getEncoderComplexity();
+    }
+
+    return 0;
+}
+
+void AudioScriptingInterface::setEncoderComplexity(int complexity) {
+    if (_localAudioInterface) {
+        _localAudioInterface->setEncoderComplexity(complexity);
+    }
+}
+
+bool AudioScriptingInterface::getEncoderVBR() {
+    if (_localAudioInterface) {
+        return _localAudioInterface->getEncoderVBR();
+    }
+
+    return 0;
+}
+
+void AudioScriptingInterface::setEncoderVBR(bool enabled) {
+    if (_localAudioInterface) {
+        _localAudioInterface->setEncoderVBR(enabled);
+    }
+}
+
+bool AudioScriptingInterface::getEncoderFEC() {
+    if (_localAudioInterface) {
+        return _localAudioInterface->getEncoderFEC();
+    }
+
+    return 0;
+}
+
+void AudioScriptingInterface::setEncoderFEC(bool enabled) {
+    if (_localAudioInterface) {
+        _localAudioInterface->setEncoderFEC(enabled);
+    }
+}
+
+int AudioScriptingInterface::getEncoderPacketLossPercent() {
+    if (_localAudioInterface) {
+        return _localAudioInterface->getEncoderPacketLossPercent();
+    }
+
+    return 0;
+}
+
+void AudioScriptingInterface::setEncoderPacketLossPercent(int percent) {
+    if (_localAudioInterface) {
+        _localAudioInterface->setEncoderPacketLossPercent(percent);
+    }
+}

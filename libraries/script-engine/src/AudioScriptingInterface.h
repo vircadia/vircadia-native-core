@@ -162,6 +162,29 @@ public:
 
     Q_INVOKABLE QStringList getAllowedCodecs();
 
+    Q_INVOKABLE QMap<QString,bool> getEncoderFeatures();
+
+    Q_INVOKABLE int getEncoderBitrate();
+
+    Q_INVOKABLE void setEncoderBitrate(int bitrate);
+
+    Q_INVOKABLE bool getEncoderVBR();
+
+    Q_INVOKABLE void setEncoderVBR(bool enabled);
+
+    Q_INVOKABLE int getEncoderComplexity();
+
+    Q_INVOKABLE void setEncoderComplexity(int complexity);
+
+    Q_INVOKABLE bool getEncoderFEC();
+
+    Q_INVOKABLE void setEncoderFEC(bool enabled);
+
+    Q_INVOKABLE int getEncoderPacketLossPercent();
+
+    Q_INVOKABLE void setEncoderPacketLossPercent(int percent);
+
+
 
 protected:
     AudioScriptingInterface() = default;

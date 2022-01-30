@@ -486,6 +486,95 @@ void AudioClient::setAllowedCodecs(const QStringList &userCodecs) {
     negotiateAudioFormat();
 }
 
+QMap<QString,bool> AudioClient::getEncoderFeatures() {
+    QMap<QString,bool> features;
+
+    if (_encoder) {
+        features.insert("isLossless", _encoder->isLossless());
+        features.insert("hasApplication", _encoder->hasApplication());
+        features.insert("hasComplexity", _encoder->hasComplexity());
+        features.insert("hasBitrate", _encoder->hasBitrate());
+        features.insert("hasFEC", _encoder->hasFEC());
+        features.insert("hasPacketLossPercent", _encoder->hasPacketLossPercent());
+        features.insert("hasBandpass", _encoder->hasBandpass());
+        features.insert("hasSignalType", _encoder->hasSignalType());
+        features.insert("hasVBR", _encoder->hasVBR());
+    }
+
+    return features;
+}
+
+bool AudioClient::getEncoderVBR() {
+    if (_encoder) {
+        return _encoder->getVBR();
+    }
+
+    return false;
+}
+
+void AudioClient::setEncoderVBR(bool enabled) {
+    if (_encoder) {
+        _encoder->setVBR(enabled);
+    }
+}
+
+int AudioClient::getEncoderBitrate() {
+    if (_encoder) {
+        return _encoder->getBitrate();
+    }
+
+    return 0;
+}
+
+void AudioClient::setEncoderBitrate(int bitrate) {
+    if (_encoder) {
+        _encoder->setBitrate(bitrate);
+    }
+}
+
+int AudioClient::getEncoderComplexity() {
+    if (_encoder) {
+        return _encoder->getComplexity();
+    }
+
+    return 0;
+}
+
+void AudioClient::setEncoderComplexity(int complexity) {
+    if (_encoder) {
+        _encoder->setComplexity(complexity);
+    }
+}
+
+bool AudioClient::getEncoderFEC() {
+    if (_encoder) {
+        return _encoder->getFEC();
+    }
+
+    return false;
+}
+
+void AudioClient::setEncoderFEC(bool enabled) {
+    if (_encoder) {
+        _encoder->setFEC(enabled);
+    }
+}
+
+int AudioClient::getEncoderPacketLossPercent() {
+    if (_encoder) {
+        return _encoder->getPacketLossPercent();
+    }
+
+    return 0;
+}
+
+void AudioClient::setEncoderPacketLossPercent(int percent) {
+    if (_encoder) {
+        _encoder->setPacketLossPercent(percent);
+    }
+}
+
+
 HifiAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName, const QString& hmdName, bool isHmd=false) {
     HifiAudioDeviceInfo result;
     foreach (HifiAudioDeviceInfo audioDevice, getAvailableDevices(mode,hmdName)) {

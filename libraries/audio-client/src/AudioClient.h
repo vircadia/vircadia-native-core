@@ -194,6 +194,23 @@ public:
     void setAllowedCodecs(const QStringList &codecs) override;
     void setCodecSettings(const std::vector<Encoder::CodecSettings> &settings ) { _codecSettings = settings; }
 
+    QMap<QString,bool> getEncoderFeatures() override;
+
+    bool getEncoderVBR() override;
+    void setEncoderVBR(bool enabled) override;
+
+    int getEncoderBitrate() override;
+    void setEncoderBitrate(int bitrate) override;
+
+    int getEncoderComplexity() override;
+    void setEncoderComplexity(int complexity) override;
+
+    bool getEncoderFEC() override;
+    void setEncoderFEC(bool enabled) override;
+
+    int getEncoderPacketLossPercent() override;
+    void setEncoderPacketLossPercent(int percent) override;
+
 #ifdef Q_OS_WIN
     static QString getWinDeviceName(wchar_t* guid);
 #endif
