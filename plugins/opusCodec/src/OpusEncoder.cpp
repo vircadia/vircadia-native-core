@@ -116,7 +116,7 @@ int AthenaOpusEncoder::getBitrate() const {
 
 void AthenaOpusEncoder::setBitrate(int bitrate) {
     assert(_encoder);
-    bitrate = qBound(500, bitrate, 512000); // Opus limits
+    bitrate = qBound(2400, bitrate, 512000); // Opus limits
     int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_BITRATE(bitrate));
 
     if (errorCode != OPUS_OK) {
