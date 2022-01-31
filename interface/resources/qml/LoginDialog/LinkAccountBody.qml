@@ -3,7 +3,7 @@
 //
 //  Created by Clement on 7/18/16
 //  Copyright 2015 High Fidelity, Inc.
-//  Copyright 2020 Vircadia contributors.
+//  Copyright 2020, 2022 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -73,21 +73,12 @@ Item {
         }
     }
 
-    function getMetaverseUrl() {
-        return Settings.getValue("private/selectedMetaverseURL", "");
-    }
-
-    function setMetaverseUrl(url) {
-        if (url === "") {
-            url = null; // deletes the value, restoring the default url
-        }
-        Settings.setValue("private/selectedMetaverseURL", url);
-    }
-
     function login() {
-        // make sure the metaverse server is set so we don't send your password to the wrong place!
+
         if (!isLoggingInToDomain) {
-            setMetaverseUrl(metaverseServerField.text);
+            MetaverseSettings.setBaseUrl(metaverseServerField.text.trim());
+            metaverseServerField.text = MetaverseSettings.getBaseUrl();
+            AccountServices.updateAuthURLFromMetaverseServerURL();
         }
 
         if (keepMeLoggedInCheckbox.checked) {
@@ -143,7 +134,7 @@ Item {
             var savedUsername = Settings.getValue("keepMeLoggedIn/savedUsername", "");
             emailField.text = keepMeLoggedInCheckbox.checked ? savedUsername === "Unknown user" ? "" : savedUsername : "";
 
-            var metaverseServer = getMetaverseUrl();
+            var metaverseServer = MetaverseSettings.getBaseUrl();
             console.log("Saved metaverse server:", metaverseServer);
             metaverseServerField.text = metaverseServer;
         } else {
@@ -395,6 +386,8 @@ Item {
                 height: linkAccountBody.textFieldHeight
                 font.pixelSize: linkAccountBody.textFieldFontSize
                 styleRenderType: Text.QtRendering
+                visible: !linkAccountBody.linkSteam && !linkAccountBody.linkOculus && !linkAccountBody.isLoggingInToDomain
+                enabled: unlockMetaverseMouseArea.unlocked
                 anchors {
                     top: passwordField.bottom
                     topMargin: 1.5 * hifi.dimensions.contentSpacing.y
@@ -421,11 +414,14 @@ Item {
                                 } else {
                                     console.log("Resetting metaverse server URL");
                                 }
-                                setMetaverseUrl(url);
+
                                 if(AccountServices.isLoggedIn()){
                                     AccountServices.logOut();
                                 }
                                 passwordField.text = "";
+
+                                MetaverseSettings.setBaseUrl(url.trim());
+                                metaverseServerField.text = MetaverseSettings.getBaseUrl();
                                 AccountServices.updateAuthURLFromMetaverseServerURL();
                             }
                             break;
@@ -437,22 +433,77 @@ Item {
                         root.isPassword = false;
                     }else{
                         var url = metaverseServerField.text;
-                        if (url !== getMetaverseUrl()){
+                        if (url !== MetaverseSettings.getBaseUrl()){
                             if (!isLoggingInToDomain) {
                                 if (url === "") {
                                     console.log("Setting metaverse server URL to", url);
                                 } else {
                                     console.log("Resetting metaverse server URL");
                                 }
-                                setMetaverseUrl(url);
+
                                 if (AccountServices.isLoggedIn()){
                                     AccountServices.logOut();
                                 }
                                 passwordField.text = "";
+
+                                MetaverseSettings.setBaseUrl(url.trim());
+                                metaverseServerField.text = MetaverseSettings.getBaseUrl();
                                 AccountServices.updateAuthURLFromMetaverseServerURL();
                             }
                         }
                     }
+                }
+            }
+            Item {
+                id: unlockMetaverseContainer
+                z: 10
+                // width + image's rightMargin
+                width: unlockMetaverseIcon.width + 8
+                height: metaverseServerField.height
+                anchors {
+                    right: metaverseServerField.right
+                    top: metaverseServerField.top
+                }
+
+                Image {
+                    id: unlockMetaverseIcon
+                    width: metaverseServerField.height * passwordImageRatio
+                    height: metaverseServerField.height * passwordImageRatio
+                    anchors {
+                        right: parent.right
+                        rightMargin: 8
+                        top: parent.top
+                        topMargin: 6
+                        bottom: parent.bottom
+                        bottomMargin: 5
+                    }
+                    source: unlockMetaverseMouseArea.unlocked ?  "../../images/unlock.svg" : "../../images/lock.svg"
+                    MouseArea {
+                        id: unlockMetaverseMouseArea
+                        anchors.fill: parent
+                        acceptedButtons: Qt.LeftButton
+                        property bool unlocked: false
+                        onClicked: {
+                            unlocked = !unlocked;
+                        }
+                    }
+                }
+            }
+            Keys.onPressed: {
+                switch (event.key) {
+                    case Qt.Key_Tab:
+                        event.accepted = true;
+                        metaverseServerField.focus = true;
+                        break;
+                    case Qt.Key_Backtab:
+                        event.accepted = true;
+                        emailField.focus = true;
+                        break;
+                    case Qt.Key_Enter:
+                    case Qt.Key_Return:
+                        event.accepted = true;
+                        linkAccountBody.login();
+                        break;
                 }
             }
             HifiControlsUit.CheckBox {
