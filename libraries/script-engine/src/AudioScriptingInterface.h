@@ -154,34 +154,119 @@ public:
      */
     Q_INVOKABLE void toggleLocalEcho();
 
+    /*@jsdoc
+     * Returns the list of codecs known to the system as an array
+     * @function Audio.getCodecs
+     */
     Q_INVOKABLE QStringList getCodecs();
 
+    /*@jsdoc
+     * Returns the currently used codec
+     * @function Audio.getCodec
+     */
     Q_INVOKABLE QString getCodec();
 
+    /*@jsdoc
+     * Sets the list of codecs the client will try to negotiate with the domain.
+     * This is a sub-set of the list returned by getCodecs.
+     * If this list is empty, all system codecs are accepted.
+     * @parm {String[]} list of codecs to accept
+     * @function Audio.setAllowedCodecs
+     */
     Q_INVOKABLE void setAllowedCodecs(const QStringList &codecs);
 
+    /*@jsdoc
+     * Returns the list of currently accepted codecs.
+     * If this list is empty, all system codecs are accepted.
+     * @function Audio.setAllowedCodecs
+     */
     Q_INVOKABLE QStringList getAllowedCodecs();
 
     Q_INVOKABLE QMap<QString,bool> getEncoderFeatures();
 
+    /*@jsdoc
+     * Returns the bitrate of the current encoder
+     * @function Audio.getEncoderBitrate
+     */
     Q_INVOKABLE int getEncoderBitrate();
 
+    /*@jsdoc
+     * Sets the bitrate of the current encoder.
+     *
+     * @parm {int} Bit rate, in bps (eg, 128000 for 128kbps)
+     * @function Audio.setEncoderBitrate
+     */
     Q_INVOKABLE void setEncoderBitrate(int bitrate);
 
+    /*@jsdoc
+     * Returns whether the current encoder has Variable Bit Rate enabled.
+     * @function Audio.getEncoderVBR
+     */
     Q_INVOKABLE bool getEncoderVBR();
+
+    /*@jsdoc
+     * Sets whether the current encoder uses Variable Bit Rate.
+     *
+     * When VBR is enabled, the encoder will use less bandwidth during times of silence and low
+     * audio signal complexity.
+     * @parm {bool} Whether VBR is abled
+     * @function Audio.setEncoderVBR
+     */
 
     Q_INVOKABLE void setEncoderVBR(bool enabled);
 
+    /*@jsdoc
+     * Returns the complexity of the current encoder.
+     * The complexity is a number from 0 to 100 indicating how hard the codec tries to compress the data.
+     * This is expected to have an effect on the amount of CPU time needed to compress the audio.
+     * Higher levels are more CPU intensive but produce better quality or lower bandwidth usage.
+     * @function Audio.getEncoderComplexity
+     */
     Q_INVOKABLE int getEncoderComplexity();
+
+    /*@jsdoc
+     * Sets the complexity of the current encoder.
+     * The complexity is a number from 0 to 100 indicating how hard the codec tries to compress the data.
+     * This is expected to have an effect on the amount of CPU time needed to compress the audio.
+     * Higher levels are more CPU intensive but produce better quality or lower bandwidth usage.
+     * @parm {int} Complexity, from 0 to 100.
+     * @function Audio.setEncoderComplexity
+     */
 
     Q_INVOKABLE void setEncoderComplexity(int complexity);
 
+    /*@jsdoc
+     * Returns whether the current encoder has Forward Error Correction enabled
+     * @function Audio.getEncoderFEC
+     */
     Q_INVOKABLE bool getEncoderFEC();
 
+    /*@jsdoc
+     * Sets whether the current encoder uses Forward Error Correction
+     * FEC compensates for data loss in audio. Enabling this on a codec that supports it should result
+     * in better audio quality with bad network connections.
+     *
+     * Enabling this may cost additional bandwidth, or reduce encoding quality to make room for the redundancy.
+     * @parm {bool} Whether FEC is enabled
+     * @function Audio.setEncoderFEC
+     */
     Q_INVOKABLE void setEncoderFEC(bool enabled);
 
+    /*@jsdoc
+     * Returns the current encoder's expected packet loss percent
+     * @function Audio.getEncoderPacketLossPercent
+     */
     Q_INVOKABLE int getEncoderPacketLossPercent();
 
+    /*@jsdoc
+     * Sets whether the expected packet loss for FEC
+     * FEC compensates for data loss in audio. Enabling this on a codec that supports it should result
+     * in better audio quality with bad network connections.
+     *
+     * Enabling this may cost additional bandwidth, or reduce encoding quality to make room for the redundancy.
+     * @parm {int} Expected packet loss, in percent
+     * @function Audio.setEncoderPacketLossPercent
+     */
     Q_INVOKABLE void setEncoderPacketLossPercent(int percent);
 
 
