@@ -103,16 +103,20 @@ def downloadFile(urls, hash=None, hasher=hashlib.sha512(), retries=3):
     for url in urls:
         for i in range(retries):
             tempFileName = None
-            # OSX Python doesn't support SSL, so we need to bypass it.
-            # However, we still validate the downloaded file's sha512 hash
+            # some sites may block non-browser user agents
+            user_agent = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.7) Gecko/2009021910 Firefox/3.0.7'
+            headers = { 'User-Agent': user_agent }
+            request = urllib.request.Request(url, None, headers)
             try:
+                # OSX Python doesn't support SSL, so we need to bypass it.
+                # However, we still validate the downloaded file's sha512 hash
                 if 'Darwin' == platform.system():
-                    tempFileDescriptor, tempFileName = tempfile.mkstemp()
                     context = ssl._create_unverified_context()
-                    with urllib.request.urlopen(url, context=context) as response, open(tempFileDescriptor, 'wb') as tempFile:
-                        shutil.copyfileobj(response, tempFile)
                 else:
-                    tempFileName, headers = urllib.request.urlretrieve(url)
+                    context = None
+                tempFileDescriptor, tempFileName = tempfile.mkstemp()
+                with urllib.request.urlopen(request, context=context) as response, open(tempFileDescriptor, 'wb') as tempFile:
+                    shutil.copyfileobj(response, tempFile)
             except Exception as e:
                 print(url, ": ", repr(e))
                 continue
