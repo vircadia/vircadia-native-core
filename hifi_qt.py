@@ -141,8 +141,11 @@ endif()
             cpu_architecture = platform.machine()
 
             if 'x86_64' == cpu_architecture:
-                u_major = int( distro.major_version() )
-                u_minor = int( distro.minor_version() )
+                try:
+                    u_major = int( distro.major_version() )
+                except ValueError:
+                    u_major = 0
+
                 if distro.id() == 'ubuntu' or distro.id() == 'linuxmint':
                     if (distro.id() == 'ubuntu' and u_major == 18) or distro.id() == 'linuxmint' and u_major == 19:
                         self.qtUrl = hifi_utils.readEnviromentVariableFromFile(self.args.build_root, 'EXTERNAL_QT_LINUX_URLS').split(";")
@@ -156,8 +159,10 @@ endif()
 
             elif 'aarch64' == cpu_architecture:
                 if distro.id() == 'ubuntu':
-                    u_major = int( distro.major_version() )
-                    u_minor = int( distro.minor_version() )
+                    try:
+                        u_major = int( distro.major_version() )
+                    except ValueError:
+                        u_major = 0
 
                     if u_major == 18:
                         self.qtUrl = hifi_utils.readEnviromentVariableFromFile(self.args.build_root, 'EXTERNAL_QT_UBUNTU_AARCH64_URLS').split(";")
@@ -167,7 +172,10 @@ endif()
                         self.__unsupported_error()
 
                 elif distro.id() == 'debian':
-                    u_major = int( distro.major_version() )
+                    try:
+                        u_major = int( distro.major_version() )
+                    except ValueError:
+                        u_major = 0
 
                     if u_major == 10:
                         self.qtUrl = hifi_utils.readEnviromentVariableFromFile(self.args.build_root, 'EXTERNAL_QT_DEBIAN_AARCH64_URLS').split(";")
