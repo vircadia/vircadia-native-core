@@ -24,9 +24,9 @@ Rectangle {
         spacing: 5
 
         Image {
-            width: 400; height: 73
+            width: 218; height: 73
             fillMode: Image.PreserveAspectFit
-            source: "../../../images/vircadia-banner.svg"
+            source: "../../../images/brand-banner.svg"
         }
         Item { height: 25; width: 1 }
         Column {

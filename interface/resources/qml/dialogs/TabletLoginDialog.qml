@@ -129,9 +129,9 @@ FocusScope {
         Image {
             id: banner
             anchors.centerIn: parent
-            sourceSize.width: 400
+            sourceSize.width: 218
             sourceSize.height: 73
-            source: "../../images/vircadia-banner.svg"
+            source: "../../images/brand-banner.svg"
             horizontalAlignment: Image.AlignHCenter
         }
     }

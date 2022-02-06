@@ -380,7 +380,7 @@ int main(int argc, const char* argv[]) {
         PROFILE_SYNC_END(startup, "app full ctor", "");
 
 #if defined(Q_OS_LINUX)
-        app.setWindowIcon(QIcon(PathUtils::resourcesPath() + "images/vircadia-logo.svg"));
+        app.setWindowIcon(QIcon(PathUtils::resourcesPath() + "images/brand-logo.svg"));
 #endif
         startCrashHookMonitor(&app);
 
