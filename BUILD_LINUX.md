@@ -1,12 +1,18 @@
 # Build Linux
 
-*Last Updated on January 6, 2022*
+*Last Updated on February 8, 2022*
 
 Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only Linux specific instructions are found in this file.
 
 You can use the [Vircadia Builder](https://github.com/vircadia/vircadia-builder) to build on Linux more easily. Alternatively, you can follow the manual steps below.
 
-## Ubuntu 18.04
+[ Ubuntu guide](#ubuntu) | [Arch guide](#arch-linux)
+
+---
+
+## Ubuntu
+
+This guide focuses on Ubuntu 18.04 only.
 
 ### Ubuntu 18.04 Server only
 Add the universe repository:  
@@ -191,3 +197,175 @@ If your goal is to set up a development environment, it is desirable to set the 
 For example, you might set `HIFI_VCPKG_BASE` to `/home/$USER/vcpkg`.
 
 By default, vcpkg will build in the `~/vircadia-files/vcpkg/` directory.
+
+---
+
+## Arch Linux
+
+### Install build tools:
+-  First update the system:  
+```bash
+sudo pacman -Syu
+```
+
+-  Install git
+```bash
+sudo pacman -S git
+```
+Verify git was installed by running `git --version`.
+
+-  Install gcc
+```bash
+sudo pacman -S gcc
+```
+Verify gcc was installed by running `gcc --version`.
+
+-  Install CMake
+```bash
+sudo pacman -S cmake
+```
+Verify CMake was installed by running `cmake --version`.
+
+### Install build dependencies:
+-  OpenSSL:
+```bash
+sudo pacman -S openssl
+```
+Verify OpenSSL was installed by running `openssl version`.
+
+- OpenGL:
+```bash
+sudo pacman -S mesa-demos
+```
+
+Verify OpenGL:
+
+  - First install mesa-utils with the following command:
+```bash
+sudo pacman -S mesa-utils
+```
+  - Then run:
+```bash
+glxinfo | grep "OpenGL version"
+```
+
+### Extra dependencies to compile Interface on a server
+
+- Install the following:
+```bash
+sudo pacman -S install libpulse libnss_nis nspr fontconfig libxcursor libxcomposite libxtst libxslt
+```
+
+-  Misc dependencies:
+```bash
+sudo pacman -S libxmu libxi freeglut libxrandr zlib jack2
+```
+
+-  Install Python 3 and required packages:
+```bash
+sudo pacman -S python python3 python-pip
+```
+
+-  Install Node.js as it is required to build the jsdoc documentation:
+```bash
+sudo pacman -S nodejs
+```
+
+-  Install Make:
+```bash
+sudo pacman -S make
+```
+
+-  Install unzip:
+```bash
+sudo pacman -S unzip
+```
+
+### Get code and checkout the branch you need
+
+Clone this repository:
+```bash
+git clone https://github.com/vircadia/vircadia.git
+```
+
+Then checkout the master branch with:
+```bash
+git checkout master
+```
+
+If you need a different branch, you can get a list of all tags with:
+```bash
+git fetch --tags
+git tag
+```
+
+### Install Qt5
+
+```bash
+sudo pacman -S qt5
+```
+
+### Compiling
+
+Create the build directory:
+```bash
+cd vircadia
+mkdir build
+cd build
+```
+
+Define path to QT:
+```bash
+export VIRCADIA_USE_SYSTEM_QT=1
+```
+
+Prepare makefiles:
+```bash
+cmake ..
+```
+
+#### Server
+
+To compile the Domain server:
+```bash
+make domain-server assignment-client
+```
+
+*Note: For a server, it is not necessary to compile the Interface.*
+
+#### Interface
+
+To compile the Interface client:
+```bash
+make interface
+```
+
+The commands above will compile with a single thread. If you have enough memory, you can decrease your build time using the `-j` flag. Since most x64 CPUs support two threads per core, this works out to CPU_COUNT*2. As an example, if you have a 2 core machine, you could use:
+```bash
+make -j4 interface
+```
+
+### Running the software
+
+#### Domain server
+
+Running Domain server:
+```bash
+./domain-server/domain-server
+```
+
+#### Assignment clients
+
+Running assignment client:
+```bash
+./assignment-client/assignment-client -n 6
+```
+
+#### Interface
+
+Running Interface:
+```bash
+./interface/interface
+```
+
+Go to "localhost" in the running Interface to visit your newly launched Domain server.
