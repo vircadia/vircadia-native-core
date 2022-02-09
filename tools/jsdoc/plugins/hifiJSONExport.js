@@ -27,7 +27,7 @@ exports.handlers = {
                 return console.log(err);
             }
 
-            console.log("The Vircadia JSDoc JSON was saved into " + outputFolder + "!");
+            console.log("The Overte JSDoc JSON was saved into " + outputFolder + "!");
         });
     }
 };

@@ -28,7 +28,7 @@ var options = {
 
 const EXEC_NAME = "server-console";
 var SHORT_NAME = argv.client_only ? "Console" : "Sandbox";
-var FULL_NAME = argv.client_only ? "Vircadia Console" : "Vircadia Sandbox";
+var FULL_NAME = argv.client_only ? "Overte Console" : "Overte Sandbox";
 
 // setup per OS options
 if (osType == "Darwin") {
@@ -36,7 +36,7 @@ if (osType == "Darwin") {
     options["name"] = SHORT_NAME
 } else if (osType == "Windows_NT") {
     options["version-string"] = {
-        CompanyName: "Vircadia",
+        CompanyName: "Overte",
         FileDescription: FULL_NAME,
         ProductName: FULL_NAME,
         OriginalFilename: EXEC_NAME + ".exe"

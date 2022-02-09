@@ -8,7 +8,7 @@ Please read the [general build guide](BUILD.md) for information on dependencies 
 
 ### CMake, OpenSSL, and NPM
 
-[Homebrew](https://brew.sh/) is an excellent package manager for macOS. It makes the installation of some Vircadia dependencies very simple.
+[Homebrew](https://brew.sh/) is an excellent package manager for macOS. It makes the installation of some Overte dependencies very simple.
 
 ```bash
 brew install cmake openssl npm

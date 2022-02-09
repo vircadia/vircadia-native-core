@@ -720,7 +720,7 @@ export default defineComponent({
             // Consts
             WELCOME_TEXT_TIMEOUT: 4500,
             MAIN_WIZARD_TRANSITION_TIME: 1000,
-            DEFAULT_METAVERSE_URL: "https://metaverse.vircadia.com/live",
+            DEFAULT_METAVERSE_URL: "https://overte.org/mvs",
             FINAL_WIZARD_STEP: 9,
             COMPLETE_WIZARD_REDIRECT_DELAY: 4000
         };

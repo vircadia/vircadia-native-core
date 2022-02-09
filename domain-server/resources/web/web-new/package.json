@@ -1,8 +1,8 @@
 {
     "name": "vircadia-domain-dashboard",
     "version": "0.0.1",
-    "description": "The Domain dashboard for Vircadia virtual worlds.",
-    "productName": "Vircadia Domain Dashboard",
+    "description": "The Domain dashboard for Overte virtual worlds.",
+    "productName": "Overte Domain Dashboard",
     "author": "Kalila L. <somnilibertas@gmail.com>",
     "private": true,
     "scripts": {

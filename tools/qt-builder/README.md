@@ -15,7 +15,7 @@ If you don’t have Community or Professional edition of Visual Studio 2019, dow
 Install with C++ support.
 1.  python 2.7.x >= 2.7.16
 Download MSI installer from https://www.python.org/ and add directory of the python executable to PATH.
-NOTE:  REMOVE python 3 from PATH. (Regular Vircadia builds use python 3, however these will still work because
+NOTE:  REMOVE python 3 from PATH. (Regular Overte builds use python 3, however these will still work because
 the make files automatically handle this.)
 Verify by running `python.exe --version`
 1.  git >= 1.6
@@ -117,10 +117,10 @@ Make sure that the directory you are using to build Qt is not deeply nested.  It
 #### Preparing OpenSSL
 
 Do one of the following to provide OpenSSL for building against:
-a. If you have installed a local copy of Qt 5.15.2 and have built Vircadia against that, including OpenSSL, find the
+a. If you have installed a local copy of Qt 5.15.2 and have built Overte against that, including OpenSSL, find the
 **HIFI_VCPKG_BASE** subdirectory used in your build and make an environment variable **HIFI_VCPKG_BASE_DIR** point to the
 *installed\x64-windows* folder.
-a. Follow https://github.com/vircadia/vcpkg to install *vcpkg* and then *openssl*.
+a. Follow https://github.com/overte-org/vcpkg to install *vcpkg* and then *openssl*.
 Then make an environment variable **HIFI_VCPKG_BASE_DIR** point to the *packages\openssl-windows_x64-windows* vcpkg folder.
 
 #### Preparing source files
@@ -194,12 +194,12 @@ Using 7-Zip:
 
 Upload qt5-install-5.15.2-windows.tar.gz to the Amazon S3 vircadia-public bucket, under the dependencies/vckpg directory.
 Update hifi_vcpkg.py to use this new URL. Additionally, you should make a small change to any file in the vircadia/cmake/ports
-directory to force the re-download of the qt-install.tar.gz during the build process for Vircadia.
+directory to force the re-download of the qt-install.tar.gz during the build process for Overte.
 
 #### Preparing Symbols
 
 Using Python 3, Run the following command in the *qt5* folder, substituting in paths as required. The
-*prepare-windows-symbols-for-backtrace.py* file is in the Vircadia repository's *tools\qt-builder* folder.
+*prepare-windows-symbols-for-backtrace.py* file is in the Overte repository's *tools\qt-builder* folder.
 `<path>python <path>prepare-windows-symbols-for-backtrace.py qt5-install`
 
 This scans the qt5-install directory for dlls and pdbs,  and copies them to a *backtrace* directory.

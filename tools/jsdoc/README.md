@@ -8,7 +8,7 @@
 If you would like the extra functionality for gravPrep:
 * Run `npm install`
 
-To generate HTML documentation for the Vircadia JavaScript API:
+To generate HTML documentation for the Overte JavaScript API:
 
 * `cd tools/jsdoc`
 * `jsdoc root.js -r api-mainpage.md -c config.json`

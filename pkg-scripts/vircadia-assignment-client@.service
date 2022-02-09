@@ -1,5 +1,5 @@
 [Unit]
-Description=Assignment client service for the Vircadia server
+Description=Assignment client service for the Overte server
 After=network.target
 PartOf=vircadia-server@%i.target
 

@@ -1,5 +1,5 @@
 [Unit]
-Description=Ice Server service for Vircadia
+Description=Ice Server service for Overte
 After=network.target
 PartOf=vircadia-server.target
 

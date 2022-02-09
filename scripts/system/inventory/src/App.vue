@@ -691,7 +691,7 @@ var vue_this;
 
 function browserDevelopment() {
     if (typeof EventBridge !== 'undefined') {
-        return false; // We are in Vircadia.
+        return false; // We are in Overte.
     } else {
         return true; // We are in the browser, probably for development purposes.
     }

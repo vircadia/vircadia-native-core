@@ -20,7 +20,7 @@ namespace NetworkingConstants {
     // If you want to use STAGING instead of STABLE,
     // links from the Domain Server web interface (like the connect account token generation)
     // will still point at stable unless you ALSO change the Domain Server Metaverse Server URL inside of:
-    // <vircadia repo>\domain-server\resources\web\js\shared.js
+    // <Overte repo>\domain-server\resources\web\js\shared.js
 
     // You can avoid changing that and still effectively use a connected domain on staging
     // if you manually generate a personal access token for the domains scope
@@ -29,12 +29,12 @@ namespace NetworkingConstants {
     const QString WEB_ENGINE_VERSION = "Chrome/83.0.4103.122";
 
     // For now we only have one Metaverse server.
-    const QUrl METAVERSE_SERVER_URL_STABLE { "https://metaverse.vircadia.com/live" };
-    const QUrl METAVERSE_SERVER_URL_STAGING { "https://metaverse.vircadia.com/live" };
+    const QUrl METAVERSE_SERVER_URL_STABLE { "https://overte.org/mvs" };
+    const QUrl METAVERSE_SERVER_URL_STAGING { "https://overte.org/mvs" };
 
     // Web Engine requests to this parent domain have an account authorization header added
-    const QString AUTH_HOSTNAME_BASE = "vircadia.com";
-    const QStringList IS_AUTHABLE_HOSTNAME = { "vircadia.com", "vircadia.io" };
+    const QString AUTH_HOSTNAME_BASE = "overte.org";
+    const QStringList IS_AUTHABLE_HOSTNAME = { "overte.org" };
 
     // Use a custom User-Agent to avoid ModSecurity filtering, e.g. by hosting providers.
     const QByteArray VIRCADIA_USER_AGENT = "Mozilla/5.0 (VircadiaInterface)";
@@ -43,7 +43,7 @@ namespace NetworkingConstants {
     const QString MOBILE_USER_AGENT = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) " + WEB_ENGINE_VERSION + " Mobile Safari/537.36";
 
     // WebEntity Defaults
-    const QString WEB_ENTITY_DEFAULT_SOURCE_URL = "https://vircadia.com/";
+    const QString WEB_ENTITY_DEFAULT_SOURCE_URL = "https://overte.org/";
     const QString WEB_ENTITY_DEFAULT_USER_AGENT = WEB_ENGINE_USER_AGENT;
 
     // Builds URLs

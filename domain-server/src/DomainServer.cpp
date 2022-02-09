@@ -395,7 +395,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
 void DomainServer::parseCommandLine(int argc, char* argv[]) {
     QCommandLineParser parser;
-    parser.setApplicationDescription("Vircadia Domain Server");
+    parser.setApplicationDescription("Overte Domain Server");
     const QCommandLineOption versionOption = parser.addVersionOption();
     const QCommandLineOption helpOption = parser.addHelpOption();
 
