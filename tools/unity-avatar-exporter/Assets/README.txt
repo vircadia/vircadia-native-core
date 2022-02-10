@@ -1,6 +1,8 @@
 High Fidelity, Inc.
+(Adapted for use with Vircadia™)
+
 Avatar Exporter
-Version 0.4.1
+Version 0.4.2
 
 Note: It is recommended to use Unity versions between 2017.4.15f1 and 2018.2.12f1 for this Avatar Exporter.
 

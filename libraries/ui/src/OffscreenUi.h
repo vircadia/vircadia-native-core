@@ -74,7 +74,7 @@ public:
 
     // Setting pinned to true will hide all overlay elements on the desktop that don't have a pinned flag
     void setPinned(bool pinned = true);
-    
+
     void togglePinned();
     void setConstrainToolbarToCenterX(bool constrained);
 
@@ -237,7 +237,6 @@ public:
     static ModalDialogListener* getTextAsync(const Icon icon, const QString & title, const QString & label, const QString & text = QString());
     static ModalDialogListener* getItemAsync(const Icon icon, const QString & title, const QString & label, const QStringList & items, int current = 0, bool editable = true);
 
-    unsigned int getMenuUserDataId() const;
     QList<QObject *> &getModalDialogListeners();
 
 signals:
@@ -270,7 +269,7 @@ private:
     QList<QObject*> _modalDialogListeners;
     std::unordered_map<int, bool> _pressedKeys;
     VrMenu* _vrMenu { nullptr };
-    QQueue<std::function<void(VrMenu*)>> _queuedMenuInitializers; 
+    QQueue<std::function<void(VrMenu*)>> _queuedMenuInitializers;
 };
 
 #endif
