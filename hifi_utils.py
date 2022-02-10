@@ -125,6 +125,7 @@ def downloadFile(urls, hash=None, hasher=hashlib.sha512(), retries=3):
             # Verify the hash
             if hash is not None and hash != downloadHash:
                 print("Try {}: Downloaded file {} hash {} does not match expected hash {} for url {}".format(i + 1, tempFileName, downloadHash, hash, url))
+                print("File stats: ", os.stat(tempFileName))
                 os.remove(tempFileName)
                 continue
             return tempFileName
