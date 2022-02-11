@@ -94,7 +94,7 @@ Rectangle {
         id: comboDialog;
         z: 998; // Force the ComboDialog on top of everything else
         dialogWidth: parent.width - 50;
-        dialogHeight: parent.height - 100;
+        dialogHeight: parent.height - 200;
     }
     function letterbox(headerGlyph, headerText, message) {
         letterboxMessage.headerGlyph = headerGlyph;
@@ -632,7 +632,7 @@ Rectangle {
                             : hifi.buttons.disabledTextColor[actionButton.colorScheme];
                     }
                 }
-                
+
                 HifiControlsUit.Button {
                     id: hardBanButton;
                     color: 2; // Red
