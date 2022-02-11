@@ -187,7 +187,7 @@ void inputControllerFromScriptValue(const QScriptValue &object, controller::Inpu
 //
 // Extract the url portion of a url that has been encoded with encodeEntityIdIntoEntityUrl(...)
 QString extractUrlFromEntityUrl(const QString& url) {
-    auto parts = url.split(' ', QString::SkipEmptyParts);
+    auto parts = url.split(' ', Qt::SkipEmptyParts);
     if (parts.length() > 0) {
         return parts[0];
     } else {
@@ -2386,7 +2386,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         bool passList = false;  // assume unsafe
         QString whitelistPrefix = "[WHITELIST ENTITY SCRIPTS]";
         QList<QString> safeURLPrefixes = { "file:///", "atp:", "cache:" };
-        safeURLPrefixes += qEnvironmentVariable("EXTRA_WHITELIST").trimmed().split(QRegExp("\\s*,\\s*"), QString::SkipEmptyParts);
+        safeURLPrefixes += qEnvironmentVariable("EXTRA_WHITELIST").trimmed().split(QRegExp("\\s*,\\s*"), Qt::SkipEmptyParts);
 
         // Entity Script Whitelist toggle check.
         Setting::Handle<bool> whitelistEnabled {"private/whitelistEnabled", false };
@@ -2397,7 +2397,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         
         // Pull SAFEURLS from the Interface.JSON settings.
         QVariant raw = Setting::Handle<QVariant>("private/settingsSafeURLS").get();
-        QStringList settingsSafeURLS = raw.toString().trimmed().split(QRegExp("\\s*[,\r\n]+\\s*"), QString::SkipEmptyParts);
+        QStringList settingsSafeURLS = raw.toString().trimmed().split(QRegExp("\\s*[,\r\n]+\\s*"), Qt::SkipEmptyParts);
         safeURLPrefixes += settingsSafeURLS;
         // END Pull SAFEURLS from the Interface.JSON settings.
         

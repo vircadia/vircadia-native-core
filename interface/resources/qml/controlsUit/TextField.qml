@@ -3,6 +3,7 @@
 //
 //  Created by David Rowe on 17 Feb 2016
 //  Copyright 2016 High Fidelity, Inc.
+//  Copyright 2022 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -84,18 +85,24 @@ TextField {
             if (isLightColorScheme) {
                 if (textField.activeFocus) {
                     hifi.colors.white
+                } else if (!textField.enabled) {
+                    hifi.colors.baseGray
                 } else {
                     hifi.colors.textFieldLightBackground
                 }
             } else if (isFaintGrayColorScheme) {
                 if (textField.activeFocus) {
                     hifi.colors.white
+                } else if (!textField.enabled) {
+                    hifi.colors.faintGray
                 } else {
                     hifi.colors.faintGray50
                 }
             } else {
                 if (textField.activeFocus) {
                     hifi.colors.black
+                } else if (!textField.enabled) {
+                    hifi.colors.darkGray
                 } else {
                     hifi.colors.baseGrayShadow
                 }

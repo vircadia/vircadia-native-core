@@ -419,7 +419,7 @@ void HmdDisplayPlugin::HUDRenderer::build() {
     uniformsBuffer = std::make_shared<gpu::Buffer>(sizeof(Uniforms), nullptr);
 
     auto program = gpu::Shader::createProgram(shader::render_utils::program::hmd_ui);
-    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+    gpu::StatePointer state = std::make_shared<gpu::State>();
     state->setDepthTest(gpu::State::DepthTest(true, true, gpu::LESS_EQUAL));
     state->setBlendFunction(true,
                             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,

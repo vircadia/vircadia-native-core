@@ -79,6 +79,7 @@ public:
     const QUrl& getAuthURL() const { return _authURL; }
     void setAuthURL(const QUrl& authURL);
     bool hasAuthEndpoint() { return !_authURL.isEmpty(); }
+    Q_INVOKABLE void updateAuthURLFromMetaverseServerURL();
 
     bool isLoggedIn() { return !_authURL.isEmpty() && hasValidAccessToken(); }
     bool hasValidAccessToken();
@@ -163,8 +164,7 @@ private slots:
     void postAccountSettingsError(QNetworkReply::NetworkError error);
 
 private:
-    AccountManager(AccountManager const& other) = delete;
-    void operator=(AccountManager const& other) = delete;
+    Q_DISABLE_COPY(AccountManager);
 
     void persistAccountToFile();
 

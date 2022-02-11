@@ -87,7 +87,7 @@ void ShapeEntityItem::setShapeInfoCalulator(ShapeEntityItem::ShapeInfoCalculator
 }
 
 ShapeEntityItem::Pointer ShapeEntityItem::baseFactory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    Pointer entity(new ShapeEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
+    Pointer entity(new ShapeEntityItem(entityID), [](ShapeEntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }

@@ -525,7 +525,7 @@ bool Wallet::readSecurityImage(const QString& inputFilePath, unsigned char** out
         } else {
             foundFooter = (line == IMAGE_FOOTER);
             if (!foundFooter) {
-                base64EncryptedBuffer.append(line);
+                base64EncryptedBuffer.append(line.toUtf8());
             }
         }
     }

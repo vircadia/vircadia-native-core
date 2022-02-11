@@ -1,19 +1,19 @@
 #!python
 
-# The prebuild script is intended to simplify life for developers and dev-ops.  It's repsonsible for acquiring 
-# tools required by the build as well as dependencies on which we rely.  
-# 
+# The prebuild script is intended to simplify life for developers and dev-ops.  It's repsonsible for acquiring
+# tools required by the build as well as dependencies on which we rely.
+#
 # By using this script, we can reduce the requirements for a developer getting started to:
 #
 # * A working C++ dev environment like visual studio, xcode, gcc, or clang
-# * Qt 
+# * Qt
 # * CMake
 # * Python 3.x
 #
 # The function of the build script is to acquire, if not already present, all the other build requirements
-# The build script should be idempotent.  If you run it with the same arguments multiple times, that should 
-# have no negative impact on the subsequent build times (i.e. re-running the prebuild script should not 
-# trigger a header change that causes files to be rebuilt).  Subsequent runs after the first run should 
+# The build script should be idempotent.  If you run it with the same arguments multiple times, that should
+# have no negative impact on the subsequent build times (i.e. re-running the prebuild script should not
+# trigger a header change that causes files to be rebuilt).  Subsequent runs after the first run should
 # execute quickly, determining that no work is to be done
 
 import hifi_singleton
@@ -58,22 +58,6 @@ class TrackableLogger(logging.Logger):
 logging.setLoggerClass(TrackableLogger)
 logger = logging.getLogger('prebuild')
 
-def headSha():
-    if shutil.which('git') is None:
-        logger.warn("Unable to find git executable, can't caclulate commit ID")
-        return '0xDEADBEEF'
-    repo_dir = os.path.dirname(os.path.abspath(__file__))
-    git = subprocess.Popen(
-        'git rev-parse --short HEAD',
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        shell=True, cwd=repo_dir, universal_newlines=True,
-    )
-    stdout, _ = git.communicate()
-    sha = stdout.split('\n')[0]
-    if not sha:
-        raise RuntimeError("couldn't find git sha for repository {}".format(repo_dir))
-    return sha
-
 @contextmanager
 def timer(name):
     ''' Print the elapsed time a context's execution takes to execute '''
@@ -107,7 +91,7 @@ def parse_args():
 
 def main():
     # Fixup env variables.  Leaving `USE_CCACHE` on will cause scribe to fail to build
-    # VCPKG_ROOT seems to cause confusion on Windows systems that previously used it for 
+    # VCPKG_ROOT seems to cause confusion on Windows systems that previously used it for
     # building OpenSSL
     removeEnvVars = ['VCPKG_ROOT', 'USE_CCACHE']
     for var in removeEnvVars:
@@ -115,12 +99,11 @@ def main():
             del os.environ[var]
 
     args = parse_args()
-    assets_url = hifi_utils.readEnviromentVariableFromFile(args.build_root, 'EXTERNAL_BUILD_ASSETS')
+    nsis_urls = hifi_utils.readEnviromentVariableFromFile(args.build_root, 'EXTERNAL_NSIS_HIFI_PLUGINS_URLS').split(';')
 
     if args.ci_build:
         logging.basicConfig(datefmt='%H:%M:%S', format='%(asctime)s %(guid)s %(message)s', level=logging.INFO)
 
-    logger.info('sha=%s' % headSha())
     logger.info('start')
 
     # OS dependent information
@@ -128,7 +111,7 @@ def main():
     if 'Windows' == system and 'CI_BUILD' in os.environ and os.environ["CI_BUILD"] == "Github":
         logger.info("Downloading NSIS")
         with timer('NSIS'):
-            hifi_utils.downloadAndExtract(assets_url + '/dependencies/NSIS-hifi-plugins-1.0.tgz', "C:/Program Files (x86)")
+            hifi_utils.downloadAndExtract(nsis_urls, "C:/Program Files (x86)")
 
     qtInstallPath = None
     # If not android, install our Qt build
@@ -166,7 +149,7 @@ def main():
             if not pm.upToDate():
                 pm.bootstrap()
 
-        # Always write the tag, even if we changed nothing.  This 
+        # Always write the tag, even if we changed nothing.  This
         # allows vcpkg to reclaim disk space by identifying directories with
         # tags that haven't been touched in a long time
         pm.writeTag()
@@ -177,7 +160,7 @@ def main():
         with timer('Setting up dependencies'):
             pm.setupDependencies(qt=qtInstallPath)
 
-        # wipe out the build directories (after writing the tag, since failure 
+        # wipe out the build directories (after writing the tag, since failure
         # here shouldn't invalidate the vcpkg install)
         with timer('Cleaning builds'):
             pm.cleanBuilds()

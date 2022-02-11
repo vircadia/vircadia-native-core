@@ -203,8 +203,8 @@ EntityListTool = function(shouldUseEditTabletApp) {
             var cameraPosition = Camera.position;
             PROFILE("getMultipleProperties", function () {
                 var multipleProperties = Entities.getMultipleEntityProperties(ids, ['position', 'name', 'type', 'locked',
-                    'visible', 'renderInfo', 'modelURL', 'materialURL', 'imageURL', 'script', 'certificateID',
-                    'skybox.url', 'ambientLight.url', 'created', 'lastEdited']);
+                    'visible', 'renderInfo', 'modelURL', 'materialURL', 'imageURL', 'script', 'serverScripts', 
+                    'certificateID', 'skybox.url', 'ambientLight.url', 'created', 'lastEdited']);
                 for (var i = 0; i < multipleProperties.length; i++) {
                     var properties = multipleProperties[i];
 
@@ -247,7 +247,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
                             isBaked: entityIsBaked(properties),
                             drawCalls: (properties.renderInfo !== undefined ?
                                 valueIfDefined(properties.renderInfo.drawCalls) : ""),
-                            hasScript: properties.script !== "",
+                            hasScript: (properties.script !== "" || properties.serverScripts !== ""),
                             parentState: parentState,
                             created: formatToStringDateTime(properties.created),
                             lastEdited: formatToStringDateTime(properties.lastEdited)

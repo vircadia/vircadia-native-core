@@ -4,6 +4,7 @@
 //
 //  Created by Brad Hefta-Gaub on 8/6/14.
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2022 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -52,8 +53,8 @@ ModelPointer ModelEntityWrapper::getModel() const {
 }
 
 EntityItemPointer RenderableModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity(new RenderableModelEntityItem(entityID, properties.getDimensionsInitialized()),
-                             [](EntityItem* ptr) { ptr->deleteLater(); });
+    std::shared_ptr<RenderableModelEntityItem> entity(new RenderableModelEntityItem(entityID, properties.getDimensionsInitialized()),
+                             [](RenderableModelEntityItem* ptr) { ptr->deleteLater(); });
     
     entity->setProperties(properties);
 
@@ -1469,12 +1470,15 @@ void ModelEntityRenderer::doRender(RenderArgs* args) {
     DETAILED_PROFILE_RANGE(render_detail, "MetaModelRender");
     DETAILED_PERFORMANCE_TIMER("RMEIrender");
 
-    // If the model doesn't have visual geometry, render our bounding box as green wireframe
-    static glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
-    gpu::Batch& batch = *args->_batch;
-    batch.setModelTransform(getModelTransform()); // we want to include the scale as well
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-    geometryCache->renderWireCubeInstance(args, batch, greenColor, geometryCache->getShapePipelinePointer(false, false, args->_renderMethod == Args::RenderMethod::FORWARD));
+    auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    if (entityTreeRenderer->shouldRenderModelEntityPlaceholders()) {
+        // If the model doesn't have visual geometry, render our bounding box as green wireframe
+        static glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
+        gpu::Batch& batch = *args->_batch;
+        batch.setModelTransform(getModelTransform()); // we want to include the scale as well
+        auto geometryCache = DependencyManager::get<GeometryCache>();
+        geometryCache->renderWireCubeInstance(args, batch, greenColor, geometryCache->getShapePipelinePointer(false, false, args->_renderMethod == Args::RenderMethod::FORWARD));
+    }
 
 #if WANT_EXTRA_DEBUGGING
     ModelPointer model = resultWithReadLock<ModelPointer>([&] {

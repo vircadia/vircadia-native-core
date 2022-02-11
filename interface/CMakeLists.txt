@@ -236,7 +236,7 @@ target_openssl()
 
 target_bullet()
 
-set(OpenGL_GL_PREFERENCE "LEGACY")
+set(OpenGL_GL_PREFERENCE "GLVND")
 target_opengl()
 add_crashpad()
 target_breakpad()
@@ -394,6 +394,9 @@ else()
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
       "${PROJECT_SOURCE_DIR}/resources/serverless/redirect.json"
       "${RESOURCES_DEV_DIR}/serverless/redirect.json"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+      "${RESOURCES_RCC}"
+      "${INTERFACE_EXEC_DIR}/resources.rcc"
   )
 
   if (JSDOC_ENABLED)

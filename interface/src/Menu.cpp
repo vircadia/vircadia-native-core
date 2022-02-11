@@ -35,6 +35,7 @@
 #include <MenuItemProperties.h>
 #include <ui/types/FileTypeProfile.h>
 #include <ui/types/HFWebEngineProfile.h>
+#include <SceneScriptingInterface.h>
 
 #include "Application.h"
 #include "AccountManager.h"
@@ -405,9 +406,6 @@ Menu::Menu() {
     // Developer > Render >>>
     MenuWrapper* renderOptionsMenu = developerMenu->addMenu("Render");
 
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::AntiAliasing, 0, RenderScriptingInterface::getInstance()->getAntialiasingEnabled(),
-        RenderScriptingInterface::getInstance(), SLOT(setAntialiasingEnabled(bool)));
-
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Shadows, 0, RenderScriptingInterface::getInstance()->getShadowsEnabled(),
         RenderScriptingInterface::getInstance(), SLOT(setShadowsEnabled(bool)));
 
@@ -517,6 +515,11 @@ Menu::Menu() {
         addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::HighlightTransitions, 0, false,
             drawStatusConfig, SLOT(setShowFade(bool)));
     }
+
+    action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::GreenBoxesForMissingModels, 0, true);
+    connect(action, &QAction::triggered, [&](bool checked) {
+        DependencyManager::get<SceneScriptingInterface>()->setShouldRenderModelEntityPlaceholders(checked);
+    });
 
     // Developer > Assets >>>
     // Menu item is not currently needed but code should be kept in case it proves useful again at some stage.
@@ -827,10 +830,10 @@ Menu::Menu() {
     });
 
     // Help > Vircadia Forum
-    /* action = addActionToQMenuAndActionHash(helpMenu, "Online Forums");
+    action = addActionToQMenuAndActionHash(helpMenu, "Community Support");
     connect(action, &QAction::triggered, qApp, [] {
-        QDesktopServices::openUrl(NetworkingConstants::HELP_FORUM_URL));
-    }); */
+        QDesktopServices::openUrl(NetworkingConstants::HELP_COMMUNITY_URL);
+    });
 
     // Help > Scripting Reference
     action = addActionToQMenuAndActionHash(helpMenu, "Online Script Reference");

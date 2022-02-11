@@ -32,7 +32,7 @@ public:
     virtual DisplayPluginList getDisplayPlugins() override {
         static std::once_flag once;
         std::call_once(once, [&] {
-            DisplayPluginPointer plugin(new OpenVrDisplayPlugin());
+            DisplayPluginPointer plugin(std::make_shared<OpenVrDisplayPlugin>());
             if (plugin->isSupported()) {
                 _displayPlugins.push_back(plugin);
             }
@@ -43,7 +43,7 @@ public:
     virtual InputPluginList getInputPlugins() override {
         static std::once_flag once;
         std::call_once(once, [&] {
-            InputPluginPointer plugin(new ViveControllerManager());
+            InputPluginPointer plugin(std::make_shared<ViveControllerManager>());
             if (plugin->isSupported()) {
                 _inputPlugins.push_back(plugin);
             }

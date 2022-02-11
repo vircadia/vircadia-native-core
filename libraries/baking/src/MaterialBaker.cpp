@@ -67,7 +67,7 @@ void MaterialBaker::loadMaterial() {
     if (!_isURL) {
         qCDebug(material_baking) << "Loading local material" << _materialData;
 
-        _materialResource = NetworkMaterialResourcePointer(new NetworkMaterialResource());
+        _materialResource = QSharedPointer<NetworkMaterialResource>::create();
         // TODO: add baseURL to allow these to reference relative files next to them
         _materialResource->parsedMaterials = NetworkMaterialResource::parseJSONMaterials(QJsonDocument::fromJson(_materialData.toUtf8()), QUrl());
     } else {

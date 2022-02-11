@@ -55,7 +55,7 @@ def executeSubprocessCapture(processArgs):
     if (0 != processResult.returncode):
         raise RuntimeError('Call to "{}" failed.\n\narguments:\n{}\n\nstdout:\n{}\n\nstderr:\n{}'.format(
             processArgs[0],
-            ' '.join(processArgs[1:]), 
+            ' '.join(processArgs[1:]),
             processResult.stdout.decode('utf-8'),
             processResult.stderr.decode('utf-8')))
     return processResult.stdout.decode('utf-8')
@@ -99,37 +99,45 @@ def hashFolder(folder):
     filenames = recursiveFileList(folder)
     return hashFiles(filenames)
 
-def downloadFile(url, hash=None, hasher=hashlib.sha512(), retries=3):
-    for i in range(retries):
-        tempFileName = None
-        # OSX Python doesn't support SSL, so we need to bypass it.  
-        # However, we still validate the downloaded file's sha512 hash
-        if 'Darwin' == platform.system():
-            tempFileDescriptor, tempFileName = tempfile.mkstemp()
-            context = ssl._create_unverified_context()
-            with urllib.request.urlopen(url, context=context) as response, open(tempFileDescriptor, 'wb') as tempFile:
-                shutil.copyfileobj(response, tempFile)
-        else:
-            tempFileName, headers = urllib.request.urlretrieve(url)
+def downloadFile(urls, hash=None, hasher=hashlib.sha512(), retries=3):
+    for url in urls:
+        for i in range(retries):
+            tempFileName = None
+            # some sites may block non-browser user agents
+            user_agent = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.7) Gecko/2009021910 Firefox/3.0.7'
+            headers = { 'User-Agent': user_agent }
+            request = urllib.request.Request(url, None, headers)
+            try:
+                # OSX Python doesn't support SSL, so we need to bypass it.
+                # However, we still validate the downloaded file's sha512 hash
+                if 'Darwin' == platform.system():
+                    context = ssl._create_unverified_context()
+                else:
+                    context = None
+                tempFileDescriptor, tempFileName = tempfile.mkstemp()
+                with urllib.request.urlopen(request, context=context) as response, open(tempFileDescriptor, 'wb') as tempFile:
+                    shutil.copyfileobj(response, tempFile)
+            except Exception as e:
+                print(url, ": ", repr(e))
+                continue
 
-        downloadHash = hashFile(tempFileName, hasher)
-        # Verify the hash
-        if hash is not None and hash != downloadHash:
-            print("Try {}: Downloaded file {} hash {} does not match expected hash {} for url {}".format(i + 1, tempFileName, downloadHash, hash, url))
-            os.remove(tempFileName)
-            continue
-        return tempFileName
+            downloadHash = hashFile(tempFileName, hasher)
+            # Verify the hash
+            if hash is not None and hash != downloadHash:
+                print("Try {}: Downloaded file {} hash {} does not match expected hash {} for url {}".format(i + 1, tempFileName, downloadHash, hash, url))
+                os.remove(tempFileName)
+                continue
+            return tempFileName
 
-    raise RuntimeError("Downloaded file hash {} does not match expected hash {} for\n{}".format(downloadHash, hash, url))
+    raise RuntimeError("Failed to download file from any of {}".format(urls))
 
 
-def downloadAndExtract(url, destPath, hash=None, hasher=hashlib.sha512(), isZip=False):
-    tempFileName = downloadFile(url, hash, hasher)
-    if isZip or ".zip" in url:
+def downloadAndExtract(urls, destPath, hash=None, hasher=hashlib.sha512()):
+    tempFileName = downloadFile(urls, hash, hasher)
+    try:
         with zipfile.ZipFile(tempFileName) as zip:
             zip.extractall(destPath)
-    else:
-        # Extract the archive
+    except zipfile.BadZipFile as error:
         with tarfile.open(tempFileName, 'r:*') as tgz:
             tgz.extractall(destPath)
     os.remove(tempFileName)

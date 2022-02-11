@@ -45,8 +45,8 @@ if (WIN32)
 
     ExternalProject_Add(
         qtlite
-        URL "${EXTERNAL_BUILD_ASSETS}/dependencies/qtlite/qt-lite-5.9.9-win-oct-15-2019.zip"
-        URL_HASH MD5=0176277bca37d219e83738caf3a698eb
+        URL ${EXTERNAL_QTLITE_WIN_URLS}
+        URL_HASH MD5=${EXTERNAL_QTLITE_WIN_MD5}
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
         INSTALL_COMMAND ""
@@ -69,7 +69,7 @@ if (WIN32)
   set(OPENSSL_ROOT_DIR ${SSL_DIR})
   message("SSL dir is ${SSL_DIR}")
   set(OPENSSL_USE_STATIC_LIBS TRUE)
-  find_package(OpenSSL REQUIRED)
+  find_package(OpenSSL 1.1.0 REQUIRED)
 
   message("-- Found OpenSSL Libs ${OPENSSL_LIBRARIES}")
 
@@ -78,8 +78,8 @@ endif ()
 if (APPLE)
   ExternalProject_Add(
     qtlite
-    URL "${EXTERNAL_BUILD_ASSETS}/dependencies/qtlite/qt-lite-5.9.9-mac.zip"
-    URL_HASH MD5=0cd78d40e5f539a7e314cf99b6cae0d0
+    URL ${EXTERNAL_QTLITE_MAC_URLS}
+    URL_HASH MD5=${EXTERNAL_QTLITE_MAC_MD5}
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
@@ -105,7 +105,7 @@ endif()
 
 if (APPLE)
   set(OPENSSL_USE_STATIC_LIBS TRUE)
-  find_package(OpenSSL REQUIRED)
+  find_package(OpenSSL 1.1.0 REQUIRED)
 endif()
 
 find_package(Qt5 COMPONENTS Core Gui Qml Quick QuickControls2 Network REQUIRED)

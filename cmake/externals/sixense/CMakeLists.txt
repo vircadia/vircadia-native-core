@@ -4,16 +4,16 @@ set(EXTERNAL_NAME sixense)
 
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 
-#set(SIXENSE_URL "${EXTERNAL_BUILD_ASSETS}/dependencies/SixenseSDK_062612.zip")
-#set(SIXENSE_URL_MD5 "10cc8dc470d2ac1244a88cf04bc549cc")
+#set(SIXENSE_URL ${EXTERNAL_SIXENSE_OLDER_URLS})
+#set(SIXENSE_URL_MD5 EXTERNAL_SIXENSE_OLDER_MD5)
 #set(SIXENSE_NEW_LAYOUT 0)
 
-set(SIXENSE_URL "${EXTERNAL_BUILD_ASSETS}/dependencies/SixenseSDK_071615.zip")
-set(SIXENSE_URL_MD5 "752a3901f334124e9cffc2ba4136ef7d")
+set(SIXENSE_URL ${EXTERNAL_SIXENSE_URLS})
+set(SIXENSE_URL_MD5 ${EXTERNAL_SIXENSE_MD5})
 set(SIXENSE_NEW_LAYOUT 1)
 
-#set(SIXENSE_URL "${EXTERNAL_BUILD_ASSETS}/dependencies/SixenseSDK_102215.zip")
-#set(SIXENSE_URL_MD5 "93c3a6795cce777a0f472b09532935f1")
+#set(SIXENSE_URL ${EXTERNAL_SIXENSE_NEWER_URLS})
+#set(SIXENSE_URL_MD5 EXTERNAL_SIXENSE_NEWER_MD5)
 #set(SIXENSE_NEW_LAYOUT 1)
 
 ExternalProject_Add(
@@ -41,7 +41,7 @@ if (WIN32)
         set(ARCH_DIR "Win32")
         set(ARCH_SUFFIX "")
     endif()
-    
+
     if (${SIXENSE_NEW_LAYOUT})
         # for 2015 SDKs (using the VS2013 versions may be causing the crash, so use the VS2010 versions)
         set(${EXTERNAL_NAME_UPPER}_DLL_PATH "${SOURCE_DIR}/bin/${ARCH_DIR}/VS2010/release_dll")
@@ -58,10 +58,10 @@ if (WIN32)
 elseif(APPLE)
 
     # We no longer support Sixense on Macs due to bugs in the Sixense DLL
-    
+
 elseif(NOT ANDROID)
 
-    # FIXME need to account for different architectures 
+    # FIXME need to account for different architectures
     set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${SOURCE_DIR}/lib/linux_x64/release/libsixense_x64.so CACHE STRING INTERNAL)
 
 endif()

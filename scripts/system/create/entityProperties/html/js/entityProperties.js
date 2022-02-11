@@ -1383,7 +1383,8 @@ const GROUPS = [
             {
                 type: "buttons",
                 buttons: [  { id: "copyRotation", label: "Copy Rotation", className: "secondary", onClick: copyRotationProperty },
-                            { id: "pasteRotation", label: "Paste Rotation", className: "secondary", onClick: pasteRotationProperty } ],
+                            { id: "pasteRotation", label: "Paste Rotation", className: "secondary", onClick: pasteRotationProperty },
+                            { id: "setRotationToZero", label: "Reset Rotation", className: "secondary_red red", onClick: setRotationToZeroProperty }],
                 propertyID: "copyPasteRotation"
             },          
             {
@@ -1874,10 +1875,16 @@ function setCopyPastePositionAndRotationAvailability (selectionLength, islocked)
     
     if (selectionLength > 0 && !islocked) {
         $('#property-copyPastePosition-button-pastePosition').attr('disabled', false);
-        $('#property-copyPasteRotation-button-pasteRotation').attr('disabled', false);           
+        $('#property-copyPasteRotation-button-pasteRotation').attr('disabled', false);
+        if (selectionLength === 1) {
+            $('#property-copyPasteRotation-button-setRotationToZero').attr('disabled', false);
+        } else {
+            $('#property-copyPasteRotation-button-setRotationToZero').attr('disabled', true);
+        }
     } else {
         $('#property-copyPastePosition-button-pastePosition').attr('disabled', true);
-        $('#property-copyPasteRotation-button-pasteRotation').attr('disabled', true);            
+        $('#property-copyPasteRotation-button-pasteRotation').attr('disabled', true);
+        $('#property-copyPasteRotation-button-setRotationToZero').attr('disabled', true);
     }
 }
 
@@ -3273,7 +3280,12 @@ function pasteRotationProperty() {
         action: "pasteRotation"
     }));    
 }
-
+function setRotationToZeroProperty() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "action",
+        action: "setRotationToZero"
+    }));    
+}
 /**
  * USER DATA FUNCTIONS
  */
@@ -3700,8 +3712,16 @@ function addZoneToZonesSelection(propertyId, id) {
         hiddenField.value = "[]";
     }
     let selectedZones = JSON.parse(hiddenField.value);
-    if (!selectedZones.includes(id)) {
-        selectedZones.push(id);
+    if (id === "ALL") {
+        for (let i = 0; i < zonesList.length; i++) {
+            if (!selectedZones.includes(zonesList[i].id)) {
+                selectedZones.push(zonesList[i].id);
+            }
+        }        
+    } else {
+        if (!selectedZones.includes(id)) {
+            selectedZones.push(id);
+        }
     }
     hiddenField.value = JSON.stringify(selectedZones);
     displaySelectedZones(propertyId, true);
@@ -3801,7 +3821,10 @@ function setZonesSelectionData(element, isEditable) {
     zoneSelector += "<input type='button' value = 'Add a Zone' id='zones-select-add-" + element.id + "' onClick='document.getElementById(";
     zoneSelector += '"' + "zones-select-selector-list-panel-" + element.id + '"' + ").style.display = " + '"' + "block" + '"' + ";'>";
     zoneSelector += "<div class = 'zoneSelectorListPanel' id='zones-select-selector-list-panel-" + element.id + "'>";
-    zoneSelector += "<div class='zoneSelectListHeader'>Select the Zone to add: </div>";
+    zoneSelector += "<div class='zoneSelectListHeader'>Select the Zone to add:";
+    zoneSelector += "<input type='button' id='zones-select-add-all-" + element.id + "' class='blue forceAlignRight' value = 'Add All Zones'";
+    zoneSelector += "onClick='addZoneToZonesSelection(" + '"' + element.id + '", "ALL"' + ");'>";
+    zoneSelector += "</div>";
     zoneSelector += "<div class='zoneSelectList' id = 'zones-select-selector-list-" + element.id + "'>";
     let i, name;
     for (i = 0; i < zonesList.length; i++) {

@@ -16,6 +16,7 @@
 #include <QProcess>
 #include <QtCore/QCoreApplication>
 #include <QNetworkReply>
+#include <QtCore/QSharedPointer>
 
 #include <PathUtils.h>
 #include <ReceivedMessage.h>

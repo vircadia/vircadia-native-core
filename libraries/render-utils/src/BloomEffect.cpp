@@ -68,7 +68,7 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
 
     if (!_pipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::bloomThreshold);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
         _pipeline = gpu::Pipeline::create(program, state);
     }
 
@@ -113,7 +113,7 @@ void BloomApply::run(const render::RenderContextPointer& renderContext, const In
 
     if (!_pipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::bloomApply);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
         state->setDepthTest(gpu::State::DepthTest(false, false));
         _pipeline = gpu::Pipeline::create(program, state);
     }
@@ -164,7 +164,7 @@ void BloomDraw::run(const render::RenderContextPointer& renderContext, const Inp
 
         if (!_pipeline) {
             gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawTransformUnitQuadTextureOpaque);
-            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+            gpu::StatePointer state = std::make_shared<gpu::State>();
             state->setDepthTest(gpu::State::DepthTest(false, false));
             state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE,
                                     gpu::State::ZERO, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
@@ -225,7 +225,7 @@ void DebugBloom::run(const render::RenderContextPointer& renderContext, const In
 
     if (!_pipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawTextureOpaqueTexcoordRect);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
         state->setDepthTest(gpu::State::DepthTest(false));
         _pipeline = gpu::Pipeline::create(program, state);
     }

@@ -15,6 +15,7 @@
 #define hifi_OctreePersistThread_h
 
 #include <QString>
+#include <QtCore/QSharedPointer>
 #include <GenericThread.h>
 #include "Octree.h"
 

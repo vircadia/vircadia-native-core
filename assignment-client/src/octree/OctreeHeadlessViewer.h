@@ -12,6 +12,8 @@
 #ifndef hifi_OctreeHeadlessViewer_h
 #define hifi_OctreeHeadlessViewer_h
 
+#include <QtCore/QSharedPointer>
+
 #include <OctreeProcessor.h>
 #include <OctreeQuery.h>
 

@@ -9,6 +9,8 @@
 #ifndef hifi_Recording_ClipCache_h
 #define hifi_Recording_ClipCache_h
 
+#include <QtCore/QSharedPointer>
+
 #include <ResourceCache.h>
 
 #include "Forward.h"

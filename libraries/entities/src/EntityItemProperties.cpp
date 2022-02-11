@@ -688,8 +688,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Uuid} owningAvatarID=Uuid.NULL - The session ID of the owning avatar if <code>avatarEntity</code> is
  *     <code>true</code>, otherwise {@link Uuid(0)|Uuid.NULL}. <em>Read-only.</em>
  *
- * @property {string} created - The UTC date and time that the entity was created, in ISO 8601 format as
- *     <code>yyyy-MM-ddTHH:mm:ssZ</code>. <em>Read-only.</em>
+ * @property {number} created - When the entity was created, expressed as the number of microseconds since
+ *     1970-01-01T00:00:00 UTC. <em>Read-only.</em>
  * @property {number} age - The age of the entity in seconds since it was created. <em>Read-only.</em>
  * @property {string} ageAsText - The age of the entity since it was created, formatted as <code>h hours m minutes s
  *     seconds</code>.

@@ -32,7 +32,7 @@ ToneMapAndResample::ToneMapAndResample() {
 
 void ToneMapAndResample::init() {
     // shared_ptr to gpu::State
-    gpu::StatePointer blitState = gpu::StatePointer(new gpu::State());
+    gpu::StatePointer blitState = std::make_shared<gpu::State>();
 
     blitState->setDepthTest(gpu::State::DepthTest(false, false));
     blitState->setColorWriteMask(true, true, true, true);

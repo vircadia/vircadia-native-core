@@ -15,8 +15,6 @@
 #include <algorithm>
 #include <chrono>
 
-#include "QSharedPointer"
-
 int receivedMessageMetaTypeId = qRegisterMetaType<ReceivedMessage*>("ReceivedMessage*");
 int sharedPtrReceivedMessageMetaTypeId = qRegisterMetaType<QSharedPointer<ReceivedMessage>>("QSharedPointer<ReceivedMessage>");
 

@@ -1,12 +1,13 @@
 include(vcpkg_common_functions)
 
-file(READ "${VCPKG_ROOT_DIR}/_env/EXTERNAL_BUILD_ASSETS.txt" EXTERNAL_BUILD_ASSETS)
+file(READ "${VCPKG_ROOT_DIR}/_env/EXTERNAL_POLYVOX_URLS.txt" EXTERNAL_POLYVOX_URLS)
+file(READ "${VCPKG_ROOT_DIR}/_env/EXTERNAL_POLYVOX_SHA512.txt" EXTERNAL_POLYVOX_SHA512)
 
 # else Linux desktop
 vcpkg_download_distfile(
     SOURCE_ARCHIVE
-    URLS ${EXTERNAL_BUILD_ASSETS}/dependencies/polyvox-master-2015-7-15.zip
-    SHA512 cc04cd43ae74b9c7bb065953540c0048053fcba6b52dc4218b3d9431fba178d65ad4f6c53cc1122ba61d0ab4061e99a7ebbb15db80011d607c5070ebebf8eddc
+    URLS ${EXTERNAL_POLYVOX_URLS}
+    SHA512 ${EXTERNAL_POLYVOX_SHA512}
     FILENAME polyvox.zip
 )
 
@@ -18,7 +19,7 @@ vcpkg_extract_source_archive_ex(
 vcpkg_configure_cmake(
   SOURCE_PATH ${SOURCE_PATH}
   PREFER_NINJA
-  OPTIONS -DENABLE_EXAMPLES=OFF -DENABLE_BINDINGS=OFF 
+  OPTIONS -DENABLE_EXAMPLES=OFF -DENABLE_BINDINGS=OFF
 )
 
 vcpkg_install_cmake()

@@ -6,7 +6,7 @@ set(EXTERNAL_NAME LibOVR)
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 
 # These are all provided in order to allow easier testing of both
-# the legacy display plugin and the new windows only plugin on 
+# the legacy display plugin and the new windows only plugin on
 # various versions of the SDK, all on windows
 #
 # 0.5 public
@@ -17,8 +17,8 @@ if (WIN32)
 
   ExternalProject_Add(
     ${EXTERNAL_NAME}
-    URL "${EXTERNAL_BUILD_ASSETS}/dependencies/ovr_sdk_win_1.35.0.zip"
-    URL_MD5 1e3e8b2101387af07ff9c841d0ea285e
+    URL ${EXTERNAL_LIBOVR_WIN_URLS}
+    URL_MD5 ${EXTERNAL_LIBOVR_WIN_MD5}
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
     PATCH_COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/LibOVRCMakeLists.txt" <SOURCE_DIR>/CMakeLists.txt
     LOG_DOWNLOAD 1
@@ -35,11 +35,11 @@ if (WIN32)
   set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${${EXTERNAL_NAME_UPPER}_LIBRARIES} CACHE STRING INTERNAL)
 
 elseif(APPLE)
-  
+
   ExternalProject_Add(
     ${EXTERNAL_NAME}
-    URL "${EXTERNAL_BUILD_ASSETS}/dependencies/ovr_sdk_macos_0.5.0.1.tar.gz"
-    URL_MD5 0a0785a04fb285f64f62267388344ad6
+    URL ${EXTERNAL_LIBOVR_MAC_URLS}
+    URL_MD5 ${EXTERNAL_LIBOVR_MAC_MD5}
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
@@ -52,7 +52,7 @@ elseif(APPLE)
   # so they released a framework with missing headers.
   #set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/LibOVR/Lib/Mac/Release/LibOVR.framework/Headers/ CACHE STRING INTERNAL)
 
-  # Work around the broken framework by using a different path for the headers. 
+  # Work around the broken framework by using a different path for the headers.
   set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/LibOVR/Include CACHE STRING INTERNAL)
   set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${SOURCE_DIR}/LibOVR/Lib/Mac/Release/LibOVR.framework/LibOVR CACHE STRING INTERNAL)
 
@@ -70,13 +70,13 @@ elseif(NOT ANDROID)
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
     LOG_DOWNLOAD ON
   )
-  
+
   ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
   ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
-    
+
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/libovr.a CACHE STRING INTERNAL)
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG "" CACHE STRING INTERNAL)
-    
+
   find_package(Threads REQUIRED)
   find_package(X11 REQUIRED)
 
@@ -88,7 +88,7 @@ elseif(NOT ANDROID)
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_EXTRAS rt udev ${CMAKE_THREAD_LIBS_INIT} ${X11_X11_LIB} ${X11_Xrandr_LIB})
 
   select_library_configurations(${EXTERNAL_NAME_UPPER})
-  
+
   set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/LibOVR/Include ${SOURCE_DIR}/LibOVR/Src  CACHE STRING INTERNAL)
   set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${${EXTERNAL_NAME_UPPER}_LIBRARY} ${${EXTERNAL_NAME_UPPER}_LIBRARY_EXTRAS} CACHE STRING INTERNAL)
 endif()

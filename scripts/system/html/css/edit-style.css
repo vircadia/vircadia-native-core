@@ -479,7 +479,22 @@ input[type=button].secondary, button.hifi-edit-button.secondary {
     background: linear-gradient(#343434 20%, #000 100%);
     cursor: pointer;
 }
-
+input[type=button].secondary_red, button.hifi-edit-button.secondary_red {
+    font-family: Raleway-Bold;
+    font-size: 10px;
+    text-transform: uppercase;
+    vertical-align: top;
+    height: 18px;
+    min-width: 60px;
+    padding: 0 14px;
+    margin-right: 6px;
+    border-radius: 4px;
+    border: none;
+    color: #fff;
+    background-color: #94132e;
+    background: linear-gradient(#d42043 20%, #94132e 100%);
+    cursor: pointer;
+}
 input[type=button]:enabled:hover, button.hifi-edit-button:enabled:hover {
     background: linear-gradient(#000, #000);
     border: none;
@@ -2012,6 +2027,10 @@ div.zoneSelectListFooter {
     cursor: pointer;
     border-width: 0px;
     text-align: right;
+}
+
+.forceAlignRight {
+    float: right;
 }
 
 #menuBackgroundOverlay{

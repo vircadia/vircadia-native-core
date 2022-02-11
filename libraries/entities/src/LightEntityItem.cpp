@@ -32,7 +32,7 @@ const float LightEntityItem::DEFAULT_CUTOFF = PI / 2.0f;
 bool LightEntityItem::_lightsArePickable = false;
 
 EntityItemPointer LightEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity(new LightEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
+    std::shared_ptr<LightEntityItem> entity(new LightEntityItem(entityID), [](LightEntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }

@@ -26,7 +26,7 @@
 
 QVariantMap HifiConfigVariantMap::mergeCLParametersWithJSONConfig(const QStringList& argumentList) {
 
-    QVariantMap mergedMap;
+    QMultiMap<QString, QVariant> mergedMap;
 
     // Add anything in the CL parameter list to the variant map.
     // Take anything with a dash in it as a key, and the values after it as the value.
@@ -49,7 +49,7 @@ QVariantMap HifiConfigVariantMap::mergeCLParametersWithJSONConfig(const QStringL
 
             if (nextKeyIndex == keyIndex + 1 || keyIndex == argumentList.size() - 1) {
                 // this option is simply a switch, so add it to the map with a value of `true`
-                mergedMap.insertMulti(key, QVariant(true));
+                mergedMap.insert(key, QVariant(true));
             } else {
                 int maxIndex = (nextKeyIndex == -1) ? argumentList.size() : nextKeyIndex;
 

@@ -4,6 +4,7 @@
 //
 //  Created by Brad Hefta-Gaub on 12/6/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2022 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -15,6 +16,7 @@
 #include <QtCore/QSet>
 #include <QtCore/QStack>
 #include <QtGui/QMouseEvent>
+#include <QtCore/QSharedPointer>
 
 #include <AudioInjectorManager.h>
 #include <EntityScriptingInterface.h> // for RayToEntityIntersectionResult
@@ -139,6 +141,8 @@ public:
     size_t getPrevNumEntityUpdates() const { return _prevNumEntityUpdates; }
     size_t getPrevTotalNeededEntityUpdates() const { return _prevTotalNeededEntityUpdates; }
 
+    bool shouldRenderModelEntityPlaceholders() const { return _shouldRenderModelEntityPlaceholders; }
+
 signals:
     void enterEntity(const EntityItemID& entityItemID);
     void leaveEntity(const EntityItemID& entityItemID);
@@ -150,6 +154,7 @@ public slots:
     void entityScriptChanging(const EntityItemID& entityID, const bool reload);
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
     void updateEntityRenderStatus(bool shouldRenderEntities);
+    void updateRenderModelEntityPlaceholders(bool shouldRenderModelEntityPlaceholders);
     void updateZone(const EntityItemID& id);
 
     // optional slots that can be wired to menu items
@@ -162,7 +167,7 @@ public slots:
 
 protected:
     virtual OctreePointer createTree() override {
-        EntityTreePointer newTree = EntityTreePointer(new EntityTree(true));
+        EntityTreePointer newTree = std::make_shared<EntityTree>(true);
         newTree->createRootElement();
         return newTree;
     }
@@ -276,6 +281,7 @@ private:
     static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToAvatarOperator;
     static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromAvatarOperator;
 
+    bool _shouldRenderModelEntityPlaceholders { true };
 };
 
 

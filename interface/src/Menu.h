@@ -224,7 +224,6 @@ namespace MenuOption {
     const QString DesktopTabletToToolbar = "Desktop Tablet Becomes Toolbar";
     const QString HMDTabletToToolbar = "HMD Tablet Becomes Toolbar";
     const QString Shadows = "Shadows";
-    const QString AntiAliasing = "Temporal Antialiasing (FXAA if disabled)";
     const QString AmbientOcclusion = "Ambient Occlusion";
     const QString NotificationSounds = "play_notification_sounds";
     const QString NotificationSoundsSnapshot = "play_notification_sounds_snapshot";
@@ -233,6 +232,7 @@ namespace MenuOption {
     const QString ComputeBlendshapes = "Compute Blendshapes";
     const QString HighlightTransitions = "Highlight Transitions";
     const QString MaterialProceduralShaders = "Enable Procedural Materials";
+    const QString GreenBoxesForMissingModels = "Green Boxes For Missing Models";
 }
 
 #endif // hifi_Menu_h

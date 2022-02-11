@@ -25,9 +25,9 @@ NetworkShaderPointer ShaderCache::getShader(const QUrl& url) {
 }
 
 QSharedPointer<Resource> ShaderCache::createResource(const QUrl& url) {
-    return QSharedPointer<Resource>(new NetworkShader(url), &Resource::deleter);
+    return QSharedPointer<NetworkShader>(new NetworkShader(url), &Resource::deleter);
 }
 
 QSharedPointer<Resource> ShaderCache::createResourceCopy(const QSharedPointer<Resource>& resource) {
-    return QSharedPointer<Resource>(new NetworkShader(*resource.staticCast<NetworkShader>()), &Resource::deleter);
+    return QSharedPointer<NetworkShader>(new NetworkShader(*resource.staticCast<NetworkShader>()), &Resource::deleter);
 }

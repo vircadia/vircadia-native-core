@@ -13,6 +13,7 @@
 #define hifi_AssetServer_h
 
 #include <QtCore/QDir>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QThreadPool>
 #include <QRunnable>
 

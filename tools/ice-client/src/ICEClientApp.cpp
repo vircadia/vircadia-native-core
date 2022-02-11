@@ -15,6 +15,7 @@
 #include <QDataStream>
 #include <QLoggingCategory>
 #include <QCommandLineParser>
+#include <QtCore/QSharedPointer>
 
 #include <PathUtils.h>
 #include <LimitedNodeList.h>
@@ -63,7 +64,7 @@ ICEClientApp::ICEClientApp(int argc, char* argv[]) :
         const_cast<QLoggingCategory*>(&networking())->setEnabled(QtWarningMsg, false);
     }
 
-    _stunSockAddr = SockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT, true);
+    _stunSockAddr = SockAddr(SocketType::UDP, STUN_SERVER_HOSTNAME, STUN_SERVER_PORT, true);
 
     _cacheSTUNResult = parser.isSet(cacheSTUNOption);
 
@@ -80,7 +81,7 @@ ICEClientApp::ICEClientApp(int argc, char* argv[]) :
         }
     }
 
-    _iceServerAddr = SockAddr("127.0.0.1", ICE_SERVER_DEFAULT_PORT);
+    _iceServerAddr = SockAddr(SocketType::UDP, "127.0.0.1", ICE_SERVER_DEFAULT_PORT);
     if (parser.isSet(iceServerAddressOption)) {
         // parse the IP and port combination for this target
         QString hostnamePortString = parser.value(iceServerAddressOption);
@@ -97,7 +98,7 @@ ICEClientApp::ICEClientApp(int argc, char* argv[]) :
 
             QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
         } else {
-            _iceServerAddr = SockAddr(address, port);
+            _iceServerAddr = SockAddr(SocketType::UDP, address, port);
         }
     }
 
@@ -133,7 +134,7 @@ void ICEClientApp::openSocket() {
 
     _socket = new udt::Socket();
     unsigned int localPort = 0;
-    _socket->bind(QHostAddress::AnyIPv4, localPort);
+    _socket->bind(SocketType::UDP, QHostAddress::AnyIPv4, localPort);
     _socket->setPacketHandler([this](std::unique_ptr<udt::Packet> packet) { processPacket(std::move(packet)); });
     _socket->addUnfilteredHandler(_stunSockAddr,
                                   [this](std::unique_ptr<udt::BasePacket> packet) {
@@ -141,10 +142,10 @@ void ICEClientApp::openSocket() {
                                   });
 
     if (_verbose) {
-        qDebug() << "local port is" << _socket->localPort();
+        qDebug() << "local port is" << _socket->localPort(SocketType::UDP);
     }
-    _localSockAddr = SockAddr("127.0.0.1", _socket->localPort());
-    _publicSockAddr = SockAddr("127.0.0.1", _socket->localPort());
+    _localSockAddr = SockAddr(SocketType::UDP, "127.0.0.1", _socket->localPort(SocketType::UDP));
+    _publicSockAddr = SockAddr(SocketType::UDP, "127.0.0.1", _socket->localPort(SocketType::UDP));
     _domainPingCount = 0;
 }
 
@@ -189,7 +190,7 @@ void ICEClientApp::doSomething() {
             if (_verbose) {
                 qDebug() << "using cached STUN response";
             }
-            _publicSockAddr.setPort(_socket->localPort());
+            _publicSockAddr.setPort(_socket->localPort(SocketType::UDP));
             setState(talkToIceServer);
         }
 
@@ -304,7 +305,7 @@ void ICEClientApp::processSTUNResponse(std::unique_ptr<udt::BasePacket> packet) 
     uint16_t newPublicPort;
     QHostAddress newPublicAddress;
     if (LimitedNodeList::parseSTUNResponse(packet.get(), newPublicAddress, newPublicPort)) {
-        _publicSockAddr = SockAddr(newPublicAddress, newPublicPort);
+        _publicSockAddr = SockAddr(SocketType::UDP, newPublicAddress, newPublicPort);
         if (_verbose) {
             qDebug() << "My public address is" << _publicSockAddr;
         }
