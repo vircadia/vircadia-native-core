@@ -24,7 +24,7 @@ Rectangle {
         spacing: 5
 
         Image {
-            width: 218; height: 73
+            width: 278; height: 73
             fillMode: Image.PreserveAspectFit
             source: "../../../images/brand-banner.svg"
         }
