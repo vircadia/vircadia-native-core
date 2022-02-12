@@ -85,7 +85,7 @@ FocusScope {
         Image {
             id: banner
             anchors.centerIn: parent
-            sourceSize.width: 346
+            sourceSize.width: 272
             sourceSize.height: 91
             source: "../images/brand-banner.svg"
             horizontalAlignment: Image.AlignHCenter
