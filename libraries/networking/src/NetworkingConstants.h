@@ -60,12 +60,12 @@ namespace NetworkingConstants {
     const QString VIRCADIA_CONTENT_CDN_URL = "https://cdn-1.vircadia.com/us-e-1/";
 
 #if USE_STABLE_GLOBAL_SERVICES
-    const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.vircadia.com";
+    const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.overte.org:7337";
 
     const QString STUN_SERVER_DEFAULT_HOSTNAME = "stun1.l.google.com";
     const unsigned short STUN_SERVER_DEFAULT_PORT = 19302;
 #else
-    const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.vircadia.com";
+    const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.overte.org:7337";
 
     const QString STUN_SERVER_DEFAULT_HOSTNAME = "stun2.l.google.com";
     const unsigned short STUN_SERVER_DEFAULT_PORT = 19302;
