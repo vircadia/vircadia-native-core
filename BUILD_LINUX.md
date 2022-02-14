@@ -2,11 +2,11 @@
 
 *Last Updated on February 8, 2022*
 
-Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only Linux specific instructions are found in this file.
+Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only Linux specific instructions are found in this file. Check out the [notes](#notes) for other important information.
 
-You can use the [Vircadia Builder](https://github.com/vircadia/vircadia-builder) to build on Linux more easily. Alternatively, you can follow the manual steps below.
+You can use the [Vircadia Builder](https://github.com/vircadia/vircadia-builder) to automate the build process on Linux. Alternatively, you can follow the manual steps below.
 
-[ Ubuntu guide](#ubuntu) | [Arch guide](#arch-linux)
+[Ubuntu guide](#ubuntu) | [Arch guide](#arch-linux)
 
 ---
 
@@ -29,7 +29,7 @@ sudo apt-get update -y
 sudo apt-get upgrade -y
 ```
 
--  Install git
+-  Install Git
 ```bash
 sudo apt-get install git -y
 ```
@@ -117,18 +117,6 @@ The system's Qt can be used, if the development packages are installed, by setti
 also the last version available in the Qt 5 branch. It is expected that Linux distributions will have
 Qt 5.15.2 available for a long time.
 
-### Architecture support
-
-If the build is intended to be packaged for distribution, the `VIRCADIA_CPU_ARCHITECTURE`
-CMake variable needs to be set to an architecture specific value.
-
-By default, it is set to `-march=native -mtune=native`, which yields builds optimized for a particular
-machine, but these builds will not work on machines lacking same CPU instructions.
-
-For packaging, it is recommended to set it to a different value, for example `-msse3`. This will help ensure that the build will run on all reasonably modern CPUs.
-
-Setting `VIRCADIA_CPU_ARCHITECTURE` to an empty string will use the default compiler settings and yield maximum compatibility.
-
 ### Compiling
 
 Create the build directory:
@@ -145,16 +133,16 @@ cmake ..
 
 If cmake fails with a vcpkg error, then delete `~/vircadia-files/vcpkg/`.  
 
-#### Server
+#### Vircadia Server
 
 To compile the Domain server:
 ```bash
 make domain-server assignment-client
 ```
 
-*Note: For a server, it is not necessary to compile the Interface.*
+#### Vircadia Interface
 
-#### Interface
+*Note: For a server, it is not necessary to compile the Interface as it is a client used only for visiting the world.*
 
 To compile the Interface client:
 ```bash
@@ -191,13 +179,6 @@ Running Interface:
 
 Go to "localhost" in the running Interface to visit your newly launched Domain server.
 
-### Notes
-
-If your goal is to set up a development environment, it is desirable to set the directory that vcpkg builds into with the `HIFI_VCPKG_BASE` environment variable.
-For example, you might set `HIFI_VCPKG_BASE` to `/home/$USER/vcpkg`.
-
-By default, vcpkg will build in the `~/vircadia-files/vcpkg/` directory.
-
 ---
 
 ## Arch Linux
@@ -208,13 +189,13 @@ By default, vcpkg will build in the `~/vircadia-files/vcpkg/` directory.
 sudo pacman -Syu
 ```
 
--  Install git
+-  Install Git
 ```bash
 sudo pacman -S git
 ```
 Verify git was installed by running `git --version`.
 
--  Install gcc
+-  Install GCC
 ```bash
 sudo pacman -S gcc
 ```
@@ -227,6 +208,7 @@ sudo pacman -S cmake
 Verify CMake was installed by running `cmake --version`.
 
 ### Install build dependencies:
+
 -  OpenSSL:
 ```bash
 sudo pacman -S openssl
@@ -314,7 +296,7 @@ mkdir build
 cd build
 ```
 
-Define path to QT:
+Define path to Qt:
 ```bash
 export VIRCADIA_USE_SYSTEM_QT=1
 ```
@@ -324,16 +306,16 @@ Prepare makefiles:
 cmake ..
 ```
 
-#### Server
+#### Vircadia Server
 
 To compile the Domain server:
 ```bash
 make domain-server assignment-client
 ```
 
-*Note: For a server, it is not necessary to compile the Interface.*
+#### Vircadia Interface
 
-#### Interface
+*Note: For a server, it is not necessary to compile the Interface as it is a client used only for visiting the world.*
 
 To compile the Interface client:
 ```bash
@@ -356,16 +338,37 @@ Running Domain server:
 
 #### Assignment clients
 
-Running assignment client:
+Running an Assignment client:
 ```bash
 ./assignment-client/assignment-client -n 6
 ```
 
 #### Interface
 
-Running Interface:
+Running the Interface:
 ```bash
 ./interface/interface
 ```
 
 Go to "localhost" in the running Interface to visit your newly launched Domain server.
+
+## Notes
+
+### vcpkg
+
+If your goal is to set up a development environment, it is desirable to set the directory 
+that vcpkg builds into with the `HIFI_VCPKG_BASE` environment variable.
+For example, you might set `HIFI_VCPKG_BASE` to `/home/$USER/vcpkg`.
+
+By default, vcpkg will build in the `~/vircadia-files/vcpkg/` directory.
+
+### Architecture support
+
+If the build is intended to be packaged for distribution, the `VIRCADIA_CPU_ARCHITECTURE`
+CMake variable needs to be set to an architecture specific value. For example you can set 
+it to `-msse3`. This will help ensure that the build can run on all reasonably modern CPUs.
+
+By default, it is set to `-march=native -mtune=native`, which yields builds optimized for a particular
+machine, but these builds will not work on machines lacking same CPU instructions.
+
+Setting `VIRCADIA_CPU_ARCHITECTURE` to an empty string will use the default compiler settings and yield maximum compatibility.
