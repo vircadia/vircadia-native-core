@@ -22,39 +22,41 @@ sudo add-apt-repository universe
 sudo apt-get update
 ```
 
-### Install build tools:
+### Install build tools
 -  First update the repositories:  
 ```bash
 sudo apt-get update -y
 sudo apt-get upgrade -y
 ```
 
--  Install Git
+#### Git
 ```bash
 sudo apt-get install git -y
 ```
-Verify git was installed by running `git --version`.
+Verify Git was installed by running `git --version`.
 
--  Install g++
+#### g++
 ```bash
 sudo apt-get install g++ -y
 ```
 Verify g++ was installed by running `g++ --version`.
 
--  **Ubuntu 18.04** CMake
+
+#### CMake
 ```bash
 sudo apt-get install cmake -y
 ```
 Verify CMake was installed by running `cmake --version`.
 
-### Install build dependencies:
--  OpenSSL:
+### Install build dependencies
+
+#### OpenSSL
 ```bash
 sudo apt-get install libssl-dev
 ```
 Verify OpenSSL was installed by running `openssl version`.
 
-- OpenGL:
+#### OpenGL
 ```bash
 sudo apt-get install libgl1-mesa-dev -y
 ```
@@ -66,22 +68,25 @@ Verify OpenGL:
 ### Extra dependencies to compile Interface on a server
 
 
-- Install the following:
+Install the following:
 ```bash
 sudo apt-get -y install libpulse0 libnss3 libnspr4 libfontconfig1 libxcursor1 libxcomposite1 libxtst6 libxslt1.1
 ```
 
--  Misc dependencies:
+Misc dependencies:
 ```bash
 sudo apt-get install libasound2 libxmu-dev libxi-dev freeglut3-dev libasound2-dev libjack0 libjack-dev libxrandr-dev libudev-dev libssl-dev zlib1g-dev
 ```
 
--  Install Python 3 and required packages:
+#### Python 3
+
+Install Python 3 and required packages:
 ```bash
 sudo apt-get install python python3 python3-distro
 ```
 
--  Install Node.js as it is required to build the jsdoc documentation:
+#### Node.js
+Install Node.js as it is required to build the jsdoc documentation:
 ```bash
 sudo apt-get install nodejs
 ```
@@ -165,7 +170,7 @@ Running Domain server:
 
 #### Assignment clients
 
-Running assignment client:
+Launch Assignment Clients:
 ```bash
 ./assignment-client/assignment-client -n 6
 ```
@@ -189,19 +194,19 @@ Go to "localhost" in the running Interface to visit your newly launched Domain s
 sudo pacman -Syu
 ```
 
--  Install Git
+#### Git
 ```bash
 sudo pacman -S git
 ```
-Verify git was installed by running `git --version`.
+Verify Git was installed by running `git --version`.
 
--  Install GCC
+#### GCC
 ```bash
 sudo pacman -S gcc
 ```
-Verify gcc was installed by running `gcc --version`.
+Verify GCC was installed by running `gcc --version`.
 
--  Install CMake
+#### CMake
 ```bash
 sudo pacman -S cmake
 ```
@@ -209,56 +214,61 @@ Verify CMake was installed by running `cmake --version`.
 
 ### Install build dependencies:
 
--  OpenSSL:
+#### OpenSSL
 ```bash
 sudo pacman -S openssl
 ```
 Verify OpenSSL was installed by running `openssl version`.
 
-- OpenGL:
+#### OpenGL
 ```bash
 sudo pacman -S mesa-demos
 ```
 
 Verify OpenGL:
 
-  - First install mesa-utils with the following command:
+- First install mesa-utils with the following command:
 ```bash
 sudo pacman -S mesa-utils
 ```
-  - Then run:
+
+- Then run:
 ```bash
 glxinfo | grep "OpenGL version"
 ```
 
 ### Extra dependencies to compile Interface on a server
 
-- Install the following:
+Install the following:
 ```bash
 sudo pacman -S install libpulse libnss_nis nspr fontconfig libxcursor libxcomposite libxtst libxslt
 ```
 
--  Misc dependencies:
+Misc dependencies:
 ```bash
 sudo pacman -S libxmu libxi freeglut libxrandr zlib jack2
 ```
 
--  Install Python 3 and required packages:
+#### Python 3
+
+Install Python 3 and required packages:
 ```bash
 sudo pacman -S python python3 python-pip
 ```
+
+#### Node.js
 
 -  Install Node.js as it is required to build the jsdoc documentation:
 ```bash
 sudo pacman -S nodejs
 ```
 
--  Install Make:
+#### Make
 ```bash
 sudo pacman -S make
 ```
 
--  Install unzip:
+#### Unzip
 ```bash
 sudo pacman -S unzip
 ```
