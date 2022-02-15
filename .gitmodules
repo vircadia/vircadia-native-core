@@ -1,3 +1,3 @@
 [submodule "libraries/networking/src/acme"]
 	path = libraries/networking/src/acme
-	url = https://github.com/namark/acme-lw
+	url = https://github.com/vircadia/acme-lw
