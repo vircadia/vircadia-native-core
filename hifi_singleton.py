@@ -48,7 +48,7 @@ class Singleton:
                     self.fh = None
                 # print is horked here so write directly to stdout.
                 with open(1, mode="w", closefd=False) as _stdout:
-                    _stdout.write("Couldn't aquire lock, retrying in 10 seconds\n")
+                    _stdout.write("Couldn't acquire lock, retrying in 10 seconds\n")
                     _stdout.flush()
                 time.sleep(10)
         return self
