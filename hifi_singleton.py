@@ -37,6 +37,8 @@ class Singleton:
                     self.fh = open(self.path, 'x')
                     fcntl.lockf(self.fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 success = True
+            except PermissionError:
+                raise
             except EnvironmentError as err:
                 if self.fh is not None:
                     if self.windows:
