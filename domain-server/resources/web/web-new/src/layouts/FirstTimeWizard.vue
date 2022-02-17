@@ -12,6 +12,15 @@
     <q-layout id="vantaBG" view="hHh lpR fFf">
         <q-page-container>
             <div id="firstTimeWizardContainer">
+                <div id="bgFreezeCheckboxContainer">
+                    <q-checkbox
+                        v-model="bgFreezeCheckbox"
+                        label="Freeze Background"
+                        left-label
+                        dark
+                        @update:model-value = "bgFreezeCheckboxUpdate"
+                    />
+                </div>
                 <router-view />
             </div>
         </q-page-container>
@@ -19,12 +28,17 @@
 </template>
 
 <script>
-import { defineComponent } from "vue";
+import { defineComponent, ref } from "vue";
 
 import * as THREE from "three";
 
 export default defineComponent({
     name: "FirstTimeWizard",
+    setup () {
+        return {
+            bgFreezeCheckbox: ref(false)
+        };
+    },
     data () {
         return {
             vantaBG: null,
@@ -42,6 +56,20 @@ export default defineComponent({
         visualViewport.addEventListener("resize", this.onResize);
     },
     methods: {
+        bgFreezeCheckboxUpdate (value) {
+            if (this.vantaBG) {
+                if (value) {
+                    if (this.vantaBG.req) {
+                        window.cancelAnimationFrame(this.vantaBG.req);
+                        this.vantaBG.req = null;
+                    }
+                } else {
+                    if (this.vantaBG.req === null) {
+                        this.vantaBG.req = window.requestAnimationFrame(this.vantaBG.animationLoop);
+                    }
+                }
+            }
+        },
         onResize () {
             if (this.refreshVantaTimeout) {
                 clearTimeout(this.refreshVantaTimeout);
@@ -49,6 +77,14 @@ export default defineComponent({
 
             this.refreshVantaTimeout = setTimeout(() => {
                 this.initVanta();
+
+                // force single run of animation loop
+                // otherwise it looks broken if cancelled immediately after initialization
+                window.cancelAnimationFrame(this.vantaBG.req);
+                this.vantaBG.animationLoop();
+
+                this.bgFreezeCheckboxUpdate(this.bgFreezeCheckbox);
+
                 this.refreshVantaTimeout = null;
             }, this.DELAY_REFRESH_VANTA);
         },
