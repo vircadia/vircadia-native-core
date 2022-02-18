@@ -2,7 +2,7 @@
 
 *Last Updated on 15 Apr 2021*
 
-This is a stand-alone guide for creating your first Vircadia build for Windows 64-bit.
+This is a stand-alone guide for creating your first Overte build for Windows 64-bit.
 
 Note: We are now using Visual Studio 2019 and Qt 5.15.2.
 If you are upgrading from previous versions, do a clean uninstall of those versions before going through this guide.
@@ -68,7 +68,7 @@ To create this variable:
 * Set "Variable value" to `%QT_INSTALL_DIR%\5.15.2\msvc2019_64\lib\cmake`, where `%QT_INSTALL_DIR%` is the directory you specified for Qt's installation. The default is `C:\Qt`.
 
 ## Step 6. Create VCPKG environment variable
-In the next step, you will use CMake to build Vircadia. By default, the CMake process builds dependency files in Windows' `%TEMP%` directory, which is periodically cleared by the operating system. To prevent you from having to re-build the dependencies in the event that Windows clears that directory, we recommend that you create a `HIFI_VCPKG_BASE` environment variable linked to a directory somewhere on your machine. That directory will contain all dependency files until you manually remove them.
+In the next step, you will use CMake to build Overte. By default, the CMake process builds dependency files in Windows' `%TEMP%` directory, which is periodically cleared by the operating system. To prevent you from having to re-build the dependencies in the event that Windows clears that directory, we recommend that you create a `HIFI_VCPKG_BASE` environment variable linked to a directory somewhere on your machine. That directory will contain all dependency files until you manually remove them.
 
 To create this variable:
 * Navigate to 'Edit the System Environment Variables' Through the Start menu.
@@ -96,7 +96,7 @@ Run Command Prompt from Start and run the following commands:
 ### Visual Studio 2019
 Run `cmake .. -G "Visual Studio 16 2019" -A x64`.
 
-Where `%VIRCADIA_DIR%` is the directory for the Vircadia repository.
+Where `%VIRCADIA_DIR%` is the directory for the Overte repository.
 
 ## Step 8. Making a Build
 
@@ -116,16 +116,16 @@ Restart Visual Studio again.
 
 In Visual Studio, right-click "interface" under the Apps folder in Solution Explorer and select "Set as Startup Project". Run from the menu bar `Debug > Start Debugging`.
 
-Now, you should have a full build of Vircadia and be able to run the Interface using Visual Studio.
+Now, you should have a full build of Overte and be able to run the Interface using Visual Studio.
 
 Note: You can also run Interface by launching it from command line or File Explorer from `%VIRCADIA_DIR%\build\interface\Release\interface.exe`
 
 # Troubleshooting
 
 For any problems after Step #7, first try this:
-* Delete your locally cloned copy of the Vircadia repository
+* Delete your locally cloned copy of the Overte repository
 * Restart your computer
-* Redownload the [repository](https://github.com/vircadia/vircadia)
+* Redownload the [repository](https://github.com/overte.org/overte)
 * Restart directions from Step #7
 
 ## CMake gives you the same error message repeatedly after the build fails

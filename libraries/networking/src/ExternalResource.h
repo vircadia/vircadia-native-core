@@ -46,9 +46,9 @@ public:
      * <p>An external resource bucket.</p>
      * <p>The original High Fidelity used "Public", "Content", and "MPAssets" Amazon S3 buckets. The intention is that the
      * community-run versions of these will keep the original data and structure, and any new additions will be made to 
-     * Vircadia's "Assets" bucket. This should ease the transition from High Fidelity and ensure a clean separation.</p>
+     * Overte's "Assets" bucket. This should ease the transition from High Fidelity and ensure a clean separation.</p>
      * @typedef {object} Script.ResourceBuckets
-     * @property {Script.ResourceBucket} Assets - Vircadia assets.
+     * @property {Script.ResourceBucket} Assets - Overte assets.
      * @property {Script.ResourceBucket} HF_Public - Assets that used to be in High Fidelity's <code>hifi-public</code> Amazon 
      *     S3 bucket.
      * @property {Script.ResourceBucket} HF_Content - Assets that used to be in High Fidelity's <code>hifi-content</code> Amazon
@@ -69,7 +69,7 @@ public:
      *       Amazon S3 bucket.</td></tr>
      *     <tr><td><code>2</code></td><td>HF_Marketplace</td><td>Assets that used to be in the High Fidelity's 
      *       <code>mpassets</code> Amazon S3 bucket. (High Fidelity marketplace.)</td></tr>
-     *     <tr><td><code>3</code></td><td>Assets</td><td>Vircadia assets.</td></tr>
+     *     <tr><td><code>3</code></td><td>Assets</td><td>Overte assets.</td></tr>
      *   </tbody>
      * </table>
      * @typedef {number} Script.ResourceBucket

@@ -1,8 +1,8 @@
 {
     "name": "vircadia-domain-dashboard",
     "version": "0.0.1",
-    "description": "The Domain dashboard for Vircadia virtual worlds.",
-    "productName": "Vircadia Domain Dashboard",
+    "description": "The Domain dashboard for Overte virtual worlds.",
+    "productName": "Overte Domain Dashboard",
     "author": "Kalila L. <somnilibertas@gmail.com>",
     "private": true,
     "scripts": {
@@ -31,7 +31,8 @@
         "eslint-plugin-import": "^2.19.1",
         "eslint-plugin-node": "^11.0.0",
         "eslint-plugin-promise": "^5.1.0",
-        "eslint-plugin-vue": "^7.0.0"
+        "eslint-plugin-vue": "^7.0.0",
+        "strip-ansi": "^3.0.1"
     },
     "browserslist": [
         "last 10 Chrome versions",

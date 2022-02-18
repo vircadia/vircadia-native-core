@@ -5,11 +5,11 @@
 Name:           vircadia-server
 Version:        %{version}
 Release:        1%{?dist}
-Summary:        Vircadia metaverse platform, based on the High Fidelity Engine.
+Summary:        Overte platform, based on the High Fidelity Engine.
 
 License:        ASL 2.0
-URL:            https://vircadia.com
-Source0:        https://github.com/vircadia/vircadia-builder/blob/master/vircadia-builder
+URL:            https://overte.org
+Source0:        https://github.com/overte-org/overte-builder/blob/master/vircadia-builder
 
 #BuildRequires:  systemd-rpm-macros
 BuildRequires:  chrpath
@@ -19,8 +19,8 @@ AutoReq:        no
 AutoProv:       no
 
 %description
-Vircadia allows creation and sharing of VR experiences.
-  The Vircadia metaverse provides built-in social features, including avatar interactions, spatialized audio and interactive physics. Additionally, you have the ability to import any 3D object into your virtual environment.
+Overte allows creation and sharing of VR experiences.
+  The Overte provides built-in social features, including avatar interactions, spatialized audio and interactive physics. Additionally, you have the ability to import any 3D object into your virtual environment.
 
 
 %prep

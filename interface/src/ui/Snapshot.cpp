@@ -42,12 +42,12 @@
 #include "Snapshot.h"
 #include "SnapshotUploader.h"
 
-// filename format: vircadia-snap-by-%username%-on-%date%_%time%_@-%location%.jpg
+// filename format: overte-snap-by-%username%-on-%date%_%time%_@-%location%.jpg
 // %1 <= username, %2 <= date and time, %3 <= current location
-const QString FILENAME_PATH_FORMAT = "vircadia-snap-by-%1-on-%2.jpg";
+const QString FILENAME_PATH_FORMAT = "overte-snap-by-%1-on-%2.jpg";
 const QString DATETIME_FORMAT = "yyyy-MM-dd_hh-mm-ss";
 const QString SNAPSHOTS_DIRECTORY = "Snapshots";
-const QString URL = "vircadia_url";
+const QString URL = "overte_url";
 static const int SNAPSHOT_360_TIMER_INTERVAL = 350;
 static const QList<QString> SUPPORTED_IMAGE_FORMATS = { "jpg", "jpeg", "png" };
 

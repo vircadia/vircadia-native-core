@@ -4,7 +4,7 @@
 
 Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only Linux specific instructions are found in this file.
 
-You can use the [Vircadia Builder](https://github.com/vircadia/vircadia-builder) to build on Linux more easily. Alternatively, you can follow the manual steps below.
+You can use the [Overte Builder](https://github.com/overte-org/overte-builder) to build on Linux more easily. Alternatively, you can follow the manual steps below.
 
 ## Ubuntu 18.04
 
@@ -84,7 +84,7 @@ sudo apt-get install nodejs
 
 Clone this repository:
 ```bash
-git clone https://github.com/vircadia/vircadia.git
+git clone https://github.com/overte-org/overte.git
 ```
 
 Then checkout the master branch with:
@@ -127,7 +127,7 @@ Setting `VIRCADIA_CPU_ARCHITECTURE` to an empty string will use the default comp
 
 Create the build directory:
 ```bash
-cd vircadia
+cd overte
 mkdir build
 cd build
 ```

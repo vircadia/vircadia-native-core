@@ -319,63 +319,32 @@
     "faceCamera": false,
     "isFacingAvatar": false
 },
-    {
-    "id": "{0436152a-b188-4608-abe9-a3fb1c4b283d}",
+{
     "type": "Model",
-    "lastEdited": 1617140818158676,
-    "name": "Vircadia Sign",
-    "locked": true,
-    "position": {
-        "x": 43.52519226074219,
-        "y": 4.912969589233398,
-        "z": 8.236417770385742
-    },
+    "name": "LOGO",
     "dimensions": {
-        "x": 4.443090915679932,
-        "y": 0.7363157868385315,
-        "z": 0.16073395311832428
+        "x": 13.745243072509766,
+        "y": 3.6150240898132324,
+        "z": 0.5063754320144653
     },
     "rotation": {
-        "x": -0.0000152587890625,
-        "y": -0.7019302845001221,
-        "z": 0.0000152587890625,
-        "w": 0.7122453451156616
+        "x": 0,
+        "y": -0.7933533787727356,
+        "z": 0,
+        "w": 0.6087614297866821
     },
-    "created": 1614198986205729,
-    "lastEditedBy": "{7f097416-1c40-4cba-aa7c-6e20a7281823}",
-    "queryAACube": {
-        "x": 41.271915435791016,
-        "y": 2.659691333770752,
-        "z": 5.983139514923096,
-        "scale": 4.506556510925293
+    "position": {
+        "x":60.310699462890625,
+        "y":4.58831787109375,
+        "z":18.133499145507812
     },
+    "canCastShadow": false,
     "grab": {
-        "grabbable": false,
-        "equippableLeftRotation": {
-            "x": -0.0000152587890625,
-            "y": -0.0000152587890625,
-            "z": -0.0000152587890625,
-            "w": 1
-        },
-        "equippableRightRotation": {
-            "x": -0.0000152587890625,
-            "y": -0.0000152587890625,
-            "z": -0.0000152587890625,
-            "w": 1
-        }
+        "grabbable": false
     },
-    "damping": 0,
-    "angularDamping": 0,
-    "modelURL": "qrc:///serverless/Models/VircadiaLogo.fbx",
-    "blendshapeCoefficients": "{\n}\n",
-    "animation": {
-        "allowTranslation": false
-    },
-    "clientOnly": false,
-    "avatarEntity": false,
-    "localEntity": false,
-    "faceCamera": false,
-    "isFacingAvatar": false
+    "modelURL": "qrc:///serverless/Models/logo_overte_white-color-emissive.fst",
+    "useOriginalPivot": true,
+    "locked": true
 },
     {
     "id": "{06b826d4-5385-4c49-92c2-47e24f97b35a}",
@@ -451,67 +420,6 @@
     "localEntity": false,
     "faceCamera": true,
     "isFacingAvatar": false
-},
-    {
-    "id": "{159f2743-d862-47e3-9f27-5de062b09941}",
-    "type": "Material",
-    "lastEdited": 1617140810844450,
-    "parentID": "{0436152a-b188-4608-abe9-a3fb1c4b283d}",
-    "parentJointIndex": 0,
-    "name": "VClogo",
-    "locked": true,
-    "userData": "{\"verticalOffset\":0,\"segments\":16,\"updateInterval\":1000}",
-    "position": {
-        "x": -0.00001823902130126953,
-        "y": -0.0002636909484863281,
-        "z": 0.10145187377929688
-    },
-    "rotation": {
-        "x": 0.0012969970703125,
-        "y": 0.0000152587890625,
-        "z": 0.0000457763671875,
-        "w": 0.999969482421875
-    },
-    "created": 1614198986205783,
-    "lastEditedBy": "{7f097416-1c40-4cba-aa7c-6e20a7281823}",
-    "queryAACube": {
-        "x": 47.7151985168457,
-        "y": 1.0358200073242188,
-        "z": 24.254812240600586,
-        "scale": 4.506557464599609
-    },
-    "canCastShadow": false,
-    "grab": {
-        "grabbable": false,
-        "equippableLeftRotation": {
-            "x": -0.0000152587890625,
-            "y": -0.0000152587890625,
-            "z": -0.0000152587890625,
-            "w": 1
-        },
-        "equippableRightRotation": {
-            "x": -0.0000152587890625,
-            "y": -0.0000152587890625,
-            "z": -0.0000152587890625,
-            "w": 1
-        }
-    },
-    "collisionMask": 23,
-    "collidesWith": "static,dynamic,kinematic,otherAvatar,",
-    "scriptTimestamp": 1597610738986,
-    "materialURL": "materialData",
-    "priority": 3,
-    "parentMaterialName": "[mat::NeonTubes]",
-    "materialMappingPos": {
-        "x": 0.8125,
-        "y": 0
-    },
-    "materialData": "{\"materialVersion\":1,\"materials\":[{\"name\":\"baseMaterial2\",\"model\":\"hifi_pbr\",\"opacity\":1,\"albedo\":[0,0,0],\"roughness\":1,\"metallic\":0,\"emissive\":[2.3,2,2],\"scattering\":0,\"unlit\":false,\"opacityMapMode\":\"OPACITY_MAP_MASK\",\"cullFaceMode\":\"CULL_BACK\",\"defaultFallthrough\":false}]}",
-    "clientOnly": false,
-    "avatarEntity": false,
-    "localEntity": false,
-    "faceCamera": false,
-    "isFacingAvatar": false 
 },
 {
     "id": "{5b6443c5-ec22-4c8a-9581-85134ceb6856}",

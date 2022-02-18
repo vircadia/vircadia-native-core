@@ -215,13 +215,13 @@ private:
 /// @brief Manages WebRTC data channels on the domain server or an assignment client that Interface clients can connect to.
 ///
 /// @details Presents multiple individual WebRTC data channels as a single one-to-many WebRTCDataChannels object. Interface
-/// clients may use WebRTC data channels for Vircadia protocol network communications instead of UDP.
+/// clients may use WebRTC data channels for Overte protocol network communications instead of UDP.
 /// A WebRTCSignalingServer is used in the process of setting up a WebRTC data channel between an Interface client and the
 /// domain server or assignment client.
 /// The Interface client initiates the connection - including initiating the data channel - and the domain server or assignment
 /// client responds.
 ///
-/// Additionally, for debugging purposes, instead of containing a Vircadia protocol payload, a WebRTC message may be an echo
+/// Additionally, for debugging purposes, instead of containing a Overte protocol payload, a WebRTC message may be an echo
 /// request. This is bounced back to the client.
 /// 
 /// A WebRTC data channel is identified by the IP address and port of the client WebSocket that was used when opening the data
@@ -305,9 +305,9 @@ signals:
     void signalingMessage(const QJsonObject& message);
 
     /// @brief A WebRTC data message received from the Interface client.
-    /// @details This message is for handling at a higher level in the Vircadia protocol.
+    /// @details This message is for handling at a higher level in the Overte protocol.
     /// @param address The address of the signaling WebSocket that the client used to connect.
-    /// @param byteArray The Vircadia protocol message.
+    /// @param byteArray The Overte protocol message.
     void dataMessage(const SockAddr& address, const QByteArray& byteArray);
 
     /// @brief Signals that the peer connection for a WebRTC data channel should be closed.

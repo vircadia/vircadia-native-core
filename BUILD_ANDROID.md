@@ -79,7 +79,7 @@ SUPPRESS_QUEST_FRAME_PLAYER
 
 ### Clone the repository
 
-`git clone https://github.com/vircadia/vircadia.git`
+`git clone https://github.com/overte-org/overte.git`
 
 ## Building & Running
 

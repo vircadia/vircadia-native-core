@@ -555,7 +555,7 @@ public:
     Q_INVOKABLE QUrl resourcesPath() const;
 
     /*@jsdoc
-     * Starts timing a section of code in order to send usage data about it to Vircadia. Shouldn't be used outside of the
+     * Starts timing a section of code in order to send usage data about it to Overte. Shouldn't be used outside of the
      * standard scripts.
      * @function Script.beginProfileRange
      * @param {string} label - A name that identifies the section of code.
@@ -563,7 +563,7 @@ public:
     Q_INVOKABLE void beginProfileRange(const QString& label) const;
 
     /*@jsdoc
-     * Finishes timing a section of code in order to send usage data about it to Vircadia. Shouldn't be used outside of
+     * Finishes timing a section of code in order to send usage data about it to Overte. Shouldn't be used outside of
      * the standard scripts.
      * @function Script.endProfileRange
      * @param {string} label - A name that identifies the section of code.
@@ -707,7 +707,7 @@ public:
      * @Returns {string} The URL of an external asset.
      * @example <caption>Report the URL of a default particle.</caption>
      * print(Script.getExternalPath(Script.ExternalPaths.Assets, "Bazaar/Assets/Textures/Defaults/Interface/default_particle.png"));
-     * @example <caption>Report the root directory where the Vircadia assets are located.</caption>
+     * @example <caption>Report the root directory where the Overte assets are located.</caption>
      * print(Script.getExternalPath(Script.ExternalPaths.Assets, "."));
      */
     Q_INVOKABLE QString getExternalPath(ExternalResource::Bucket bucket, const QString& path);

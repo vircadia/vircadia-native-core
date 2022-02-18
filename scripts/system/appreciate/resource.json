@@ -2,7 +2,7 @@
     "name": "Appreciate App",
     "version": "1.5.0",
     "description": "Show someone else that you like what they're doing. Open the app to see usage instructions and some options!",
-    "homepage": "http://www.vircadia.com",
+    "homepage": "http://overte.org",
     "bugs": "",
     "keywords": [
         "Clapping",
@@ -25,7 +25,7 @@
     ],
     "repository": {
         "type": "git",
-        "url": "https://github.com/vircadia/vircadia-content.git"
+        "url": "https://github.com/overte-org/overte-content.git"
     },
     "main": "/appreciate_app.js",
     "type": "app",

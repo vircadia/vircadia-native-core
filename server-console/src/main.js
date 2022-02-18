@@ -134,7 +134,7 @@ function shutdown() {
             dialog.showMessageBox({
                 type: 'question',
                 buttons: ['Yes', 'No'],
-                title: 'Stopping Vircadia Sandbox',
+                title: 'Stopping Overte Sandbox',
                 message: 'Quitting will stop your Sandbox and your Home domain will no longer be running.\nDo you wish to continue?'
             }, shutdownCallback);
         } else {
@@ -280,7 +280,7 @@ function binaryMissingMessage(displayName, executableName, required) {
     var message = "The " + displayName + " executable was not found.\n";
 
     if (required) {
-        message += "It is required for the Vircadia Sandbox to run.\n\n";
+        message += "It is required for the Overte Sandbox to run.\n\n";
     } else {
         message += "\n";
     }
@@ -293,7 +293,7 @@ function binaryMissingMessage(displayName, executableName, required) {
         message += paths.join("\n");
     } else {
         message += "It is expected to be found beside this executable.\n";
-        message += "You may need to re-install the Vircadia Sandbox.";
+        message += "You may need to re-install the Overte Sandbox.";
     }
 
     return message;
@@ -399,7 +399,7 @@ function visitSandboxClicked() {
         StartInterface('hifi://localhost');
     } else {
         // show an error to say that we can't go home without an interface instance
-        dialog.showErrorBox("Client Not Found", binaryMissingMessage("Vircadia client", "Interface", false));
+        dialog.showErrorBox("Client Not Found", binaryMissingMessage("Overte client", "Interface", false));
     }
 }
 
@@ -613,7 +613,7 @@ function updateTrayMenu(serverState) {
         tray.setImage(trayIcons[notificationState]);
         tray.setContextMenu(Menu.buildFromTemplate(menuArray));
         if (isShuttingDown) {
-            tray.setToolTip('Vircadia - Shutting Down');
+            tray.setToolTip('Overte - Shutting Down');
         }
     }
 }
@@ -868,7 +868,7 @@ function onContentLoaded() {
                     notifier.notify({
                         icon: notificationIcon,
                         title: 'An update is available!',
-                        message: 'Vircadia version ' + latestVersion + ' is available',
+                        message: 'Overte version ' + latestVersion + ' is available',
                         wait: true,
                         appID: buildInfo.appUserModelId,
                         url: url
@@ -941,7 +941,7 @@ app.on('ready', function() {
 
     // Create tray icon
     tray = new Tray(trayIcons[NotificationState.UNNOTIFIED]);
-    tray.setToolTip('Vircadia');
+    tray.setToolTip('Overte');
 
     tray.on('click', function() {
         tray.popUpContextMenu(tray.menu);

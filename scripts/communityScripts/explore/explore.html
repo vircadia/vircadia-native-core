@@ -354,7 +354,7 @@
             // if metaverse data not loaded fire a request for it
             if (placesData == null) {
                 // fire off data get against the metaverse
-                axios.get("https://metaverse.vircadia.com/live/api/v1/places")
+                axios.get("https://overte.org/mvs/api/v1/places")
                     .then((response) => {
                         placesData = response.data.data.places;
                         exploreComponent.updateData(blendedData());

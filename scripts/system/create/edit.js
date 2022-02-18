@@ -448,7 +448,7 @@ const DEFAULT_ENTITY_PROPERTIES = {
             y: 0.9,
             z: 0.01
         },
-        sourceUrl: "https://vircadia.com/",
+        sourceUrl: "https://overte.org/",
         dpi: 30,
     },
     ParticleEffect: {

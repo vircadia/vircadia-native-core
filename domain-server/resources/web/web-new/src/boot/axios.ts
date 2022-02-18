@@ -19,7 +19,7 @@ declare module "@vue/runtime-core" {
 Log.info(Log.types.OTHER, "Bootstrapping Axios.");
 
 // TODO: This needs to be centralized and not hardcoded.
-const METAVERSE_URL = "https://metaverse.vircadia.com/live";
+const METAVERSE_URL = "https://overte.org/mvs";
 axios.interceptors.request.use((config) => {
     // This is a necessary header to be passed to the Metaverse server in order for
     // it to fail with an HTTP error code instead of succeeding and returning

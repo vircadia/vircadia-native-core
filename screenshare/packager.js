@@ -26,8 +26,8 @@ if (osType == "Darwin") {
     options["app-bundle-id"] = "com.highfidelity.hifi-screenshare";
 } else if (osType == "Windows_NT") {
     options["version-string"] = {
-        CompanyName: "Vircadia",
-        FileDescription: "Vircadia Screenshare",
+        CompanyName: "Overte",
+        FileDescription: "Overte Screenshare",
         ProductName: NAME,
         OriginalFilename: NAME + ".exe"
     }

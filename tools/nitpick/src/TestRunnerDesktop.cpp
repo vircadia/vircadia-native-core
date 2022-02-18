@@ -194,7 +194,7 @@ void TestRunnerDesktop::downloadComplete() {
         // Download of Build XML has completed
         buildXMLDownloaded = true;
 
-        // Download the Vircadia installer
+        // Download the Overte installer
         QStringList urls;
         QStringList filenames;
         if (_runLatest->isChecked()) {
@@ -257,7 +257,7 @@ void TestRunnerDesktop::runInstaller() {
         QDir().mkdir(_installationFolder);
     }
 
-    // This script installs Vircadia.  It is run as "yes | install_app.sh... so "yes" is killed at the end
+    // This script installs Overte.  It is run as "yes | install_app.sh... so "yes" is killed at the end
     script.write("#!/bin/sh\n\n");
     script.write("VOLUME=`hdiutil attach \"$1\" | grep Volumes | awk '{print $3}'`\n");
 
@@ -304,10 +304,10 @@ void TestRunnerDesktop::verifyInstallationSucceeded() {
     if (!interfaceExe.exists() || !assignmentClientExe.exists() || !domainServerExe.exists()) {
         if (_runLatest->isChecked()) {
             // On Windows, the reason is probably that UAC has blocked the installation.  This is treated as a critical error
-            QMessageBox::critical(0, "Installation of Vircadia has failed", "Please verify that UAC has been disabled");
+            QMessageBox::critical(0, "Installation of Overte has failed", "Please verify that UAC has been disabled");
             exit(-1);
         } else {
-            QMessageBox::critical(0, "Installation of vircadia not found", "Please verify that working folder contains a proper installation");
+            QMessageBox::critical(0, "Installation of Overte not found", "Please verify that working folder contains a proper installation");
         }
     }
 #endif
@@ -556,7 +556,7 @@ void TestRunnerDesktop::interfaceExecutionComplete() {
 
     evaluateResults();
 
-    // The Vircadia AppData folder will be restored after evaluation has completed
+    // The Overte AppData folder will be restored after evaluation has completed
 }
 
 void TestRunnerDesktop::evaluateResults() {

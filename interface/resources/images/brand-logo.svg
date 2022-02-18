@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="14.816667mm"
+   height="14.816667mm"
+   viewBox="0 0 14.816667 14.816667"
+   version="1.1"
+   id="svg5"
+   inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20)"
+   sodipodi:docname="LOGO_Overte_Interface.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <title
+     id="title715">LOGO_Overte_Interface</title>
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#d1d1d1"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="true"
+     inkscape:document-units="mm"
+     showgrid="false"
+     inkscape:zoom="1.2057243"
+     inkscape:cx="163.38727"
+     inkscape:cy="60.959209"
+     inkscape:window-width="1627"
+     inkscape:window-height="1011"
+     inkscape:window-x="1705"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer4" />
+  <defs
+     id="defs2" />
+  <g
+     inkscape:groupmode="layer"
+     id="layer4"
+     inkscape:label="pastille"
+     style="display:inline"
+     transform="translate(-64.878913,-47.104301)">
+    <circle
+       style="fill:#6667ab;fill-opacity:1;stroke-width:0.326686"
+       id="path12778"
+       cx="72.287247"
+       cy="54.512634"
+       r="7.4083333" />
+  </g>
+  <g
+     inkscape:label="Letters"
+     inkscape:groupmode="layer"
+     id="layer1"
+     style="display:inline"
+     transform="translate(-64.878913,-47.104301)">
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke-width:0.0240699"
+       d="m 71.752748,60.147164 c -1.377172,-0.14605 -2.574378,-0.732869 -3.530213,-1.730362 -0.825342,-0.861313 -1.341717,-1.931985 -1.516444,-3.144257 -0.04744,-0.329165 -0.04014,-1.234694 0.01269,-1.573208 0.220327,-1.411764 0.906991,-2.625395 2.001937,-3.538291 0.406864,-0.339217 0.998514,-0.688227 1.513503,-0.892803 0.204169,-0.0811 0.718969,-0.241851 0.774539,-0.241851 0.02985,0 0.03471,0.208002 0.03471,1.487877 v 1.48788 l -0.09026,0.04291 c -0.261261,0.124198 -0.69358,0.506545 -0.926976,0.819823 -0.7253,0.973539 -0.719063,2.366351 0.01495,3.335577 0.675906,0.892517 1.728786,1.300709 2.82169,1.093946 1.110321,-0.210056 2.027379,-1.147031 2.226244,-2.274592 0.04085,-0.23159 0.04094,-0.754422 2.06e-4,-0.986869 -0.07876,-0.449196 -0.279384,-0.901684 -0.549607,-1.239604 -0.23905,-0.298937 -0.685088,-0.667484 -0.963399,-0.796026 L 73.475802,51.95089 73.4751,50.476605 c -4.67e-4,-1.042841 0.007,-1.474284 0.02546,-1.474284 0.05635,0 0.413281,0.100024 0.646028,0.181038 2.077867,0.723258 3.543285,2.558867 3.779523,4.734302 0.03259,0.300057 0.03259,0.917373 0,1.21743 -0.116007,1.068259 -0.594065,2.195254 -1.273315,3.001776 -0.907409,1.077435 -2.114515,1.75767 -3.504262,1.974746 -0.280638,0.04384 -1.116884,0.06513 -1.395838,0.03555 z"
+       id="path339"
+       sodipodi:nodetypes="cssssssscsscsscssccscsssscc" />
+  </g>
+  <metadata
+     id="metadata713">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:title>LOGO_Overte_Interface</dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+</svg>

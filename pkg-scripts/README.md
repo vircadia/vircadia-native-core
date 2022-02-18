@@ -1,7 +1,7 @@
-# Vircadia Server Packaging Scripts
+# Overte Server Packaging Scripts
 
 Collection of scripts to create server distribution packages. Most of these scripts assume
-use of the build script at https://github.com/vircadia/vircadia-builder, specifically that
+use of the build script at https://github.com/overte-org/overte-builder, specifically that
 the following directory structure exists:
 
 ```
@@ -67,7 +67,7 @@ vircadia-domain-server@.service
 vircadia-server@.target - used to launch/shutdown the two prior services
 ```
 
-The top three services in this list are the "normal" services that launch Vircadia
+The top three services in this list are the "normal" services that launch Overte
 in the typical fashion. The bottom three services are "template" services designed
 to permit multiple services to be installed and running on a single machine.
 
@@ -82,7 +82,7 @@ used to configure and run the domain on your server.
 
 The server stores its files in the following locations:
 ```
-/var/lib/vircadia/.local - "unnamed" services (the default location for Vircadia servers)
+/var/lib/vircadia/.local - "unnamed" services (the default location for Overte servers)
 /var/lib/vircadia/serverName - "named" (template) domains
 /etc/opt/vircadia - environment variables when launching named domains
 ```
