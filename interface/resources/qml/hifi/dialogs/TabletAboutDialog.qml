@@ -24,9 +24,9 @@ Rectangle {
         spacing: 5
 
         Image {
-            width: 400; height: 73
+            width: 278; height: 73
             fillMode: Image.PreserveAspectFit
-            source: "../../../images/vircadia-banner.svg"
+            source: "../../../images/brand-banner.svg"
         }
         Item { height: 25; width: 1 }
         Column {
@@ -59,10 +59,10 @@ Rectangle {
             textFormat: Text.StyledText
             linkColor: "#00B4EF"
             color: "white"
-            text: "<a href=\"https://vircadia.com\">Website</a>"
+            text: "<a href=\"https://overte.org\">Website</a>"
             size: 20
             onLinkActivated: {
-                About.openUrl("https://vircadia.com");
+                About.openUrl("https://overte.org");
             }
 
         }
@@ -70,10 +70,10 @@ Rectangle {
             textFormat: Text.StyledText
             linkColor: "#00B4EF"
             color: "white"
-            text: "<a href=\"https://github.com/vircadia/vircadia\">Source</a>"
+            text: "<a href=\"https://github.com/overte-org/overte\">Source</a>"
             size: 20
             onLinkActivated: {
-                About.openUrl("https://github.com/vircadia/vircadia");
+                About.openUrl("https://github.com/overte-org/overte");
             }
 
         }
@@ -131,6 +131,11 @@ Rectangle {
             }
         }
         Item { height: 20; width: 1 }
+        RalewayRegular {
+            color: "white"
+            text: "© 2022 Overte e.V."
+            size: 14
+        }
         RalewayRegular {
             color: "white"
             text: "© 2019 - 2021 Vircadia contributors."

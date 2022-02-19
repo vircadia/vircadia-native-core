@@ -1,6 +1,6 @@
-# Build MacOS
+# Build macOS
 
-*Last Updated on October 19, 2021*
+*Last Updated on December 1, 2021*
 
 Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. This will include the necessary environment variables to customize your build. Only macOS specific instructions are found in this document.
 
@@ -8,7 +8,7 @@ Please read the [general build guide](BUILD.md) for information on dependencies 
 
 ### CMake, OpenSSL, and NPM
 
-[Homebrew](https://brew.sh/) is an excellent package manager for macOS. It makes the installation of some Vircadia dependencies very simple.
+[Homebrew](https://brew.sh/) is an excellent package manager for macOS. It makes the installation of some Overte dependencies very simple.
 
 ```bash
 brew install cmake openssl npm
@@ -21,9 +21,9 @@ brew install cmake openssl npm
 Download an install Python 3.6.6 or higher from [here](https://www.python.org/downloads/).
 Execute the `Update Shell Profile.command` script that is provided with the installer.
 
-### MacOS SDK
+### macOS SDK
 
-You will need version `10.12` of the macOS SDK for building, otherwise you may have crashing or other unintended issues due to the deprecation of OpenGL on macOS. You can get that SDK from [here](https://github.com/phracker/MacOSX-SDKs). You must copy it in to your Xcode SDK directory, e.g.
+You will need version `10.12` of the macOS SDK for building, otherwise you may experience crashing or other unintended issues due to the deprecation of OpenGL on macOS. You can get that SDK from [here](https://github.com/phracker/MacOSX-SDKs). You must copy it in to your Xcode SDK directory, e.g.
 
 ```bash
 cp -rp ~/Downloads/MacOSX10.12.sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
@@ -71,14 +71,17 @@ You can append `-j4` to assign more threads to build with. The number indicates 
 
 To package the installation, you can simply run `make package` afterwards.
 
-## Notes
+## Architecture Support
 
-If build is intended for packaging or creation of AppImage, `VIRCADIA_CPU_ARCHITECTURE`
-CMake variable needs to be set to architecture specific value.
-It defaults to `-march=native -mtune=native`, which yields builds optimized for particular
-machine, but builds will not work on machines lacking same CPU instructions.
-For packaging and AppImage it is recommended to set it to different value, for example `-msse3`.
-Setting `VIRCADIA_CPU_ARCHITECTURE` to empty string will use default compiler settings and yield
+If the build is intended to be packaged for distribution, the `VIRCADIA_CPU_ARCHITECTURE`
+CMake variable needs to be set to an architecture specific value.
+
+By default, it is set to `-march=native -mtune=native`, which yields builds optimized for a particular
+machine, but these builds will not work on machines lacking same CPU instructions.
+
+For packaging, it is recommended to set it to a different value, for example `-msse3`. This will help ensure that the build will run on all reasonably modern CPUs.
+
+Setting `VIRCADIA_CPU_ARCHITECTURE` to an empty string will use the default compiler settings and yield
 maximum compatibility.
 
 ## FAQ

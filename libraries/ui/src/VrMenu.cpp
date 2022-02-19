@@ -17,139 +17,116 @@
 #include "OffscreenUi.h"
 #include "ui/Logging.h"
 
-static unsigned int USER_DATA_ID = 0;
 
-// Binds together a Qt Action or Menu with the QML Menu or MenuItem
-//
-// TODO On reflection, it may be pointless to use the UUID.  Perhaps
-// simply creating the bidirectional link pointing to both the widget
-// and qml object and inject the pointer into both objects
-class MenuUserData : public QObjectUserData {
-public:
-    MenuUserData(QAction* action, QObject* qmlObject, QObject* qmlParent) {
-        if (!USER_DATA_ID) {
-            USER_DATA_ID = DependencyManager::get<OffscreenUi>()->getMenuUserDataId();
-        }
-        _action = action;
-        _qml = qmlObject;
-        _qmlParent = qmlParent;
 
-        action->setUserData(USER_DATA_ID, this);
-        qmlObject->setUserData(USER_DATA_ID, this);
-        qmlObject->setObjectName(uuid.toString());
-        // Make sure we can find it again in the future
+MenuUserData::MenuUserData(QAction* action, QObject* qmlObject, QObject* qmlParent) {
+    _action = action;
+    _qml = qmlObject;
+    _qmlParent = qmlParent;
+
+    action->setProperty(USER_DATA, QVariant::fromValue(this));
+    qmlObject->setProperty(USER_DATA, QVariant::fromValue(this));
+    qmlObject->setObjectName(uuid.toString());
+    // Make sure we can find it again in the future
+    updateQmlItemFromAction();
+    _changedConnection = QObject::connect(action, &QAction::changed, [=] {
         updateQmlItemFromAction();
-        _changedConnection = QObject::connect(action, &QAction::changed, [=] {
-            updateQmlItemFromAction();
-        });
-        _shutdownConnection = QObject::connect(qApp, &QCoreApplication::aboutToQuit, [=] {
-            QObject::disconnect(_changedConnection);
-        });
-
-        class ExclusionGroupSetter : public QObject {
-        public:
-            ExclusionGroupSetter(QObject* from, QObject* to, QObject* qmlParent) : QObject(from), _from(from), _to(to), _qmlParent(qmlParent) {
-                _from->installEventFilter(this);
-            }
-
-            ~ExclusionGroupSetter() {
-                _from->removeEventFilter(this);
-            }
-        protected:
-            virtual bool eventFilter(QObject* o, QEvent* e) override {
-                if (e->type() == QEvent::DynamicPropertyChange) {
-                    QDynamicPropertyChangeEvent* dpc = static_cast<QDynamicPropertyChangeEvent*>(e);
-                    if (dpc->propertyName() == "exclusionGroup")
-                    {
-                        // unfortunately Qt doesn't support passing dynamic properties between C++ / QML, so we have to use this ugly helper function
-                        QMetaObject::invokeMethod(_qmlParent,
-                            "addExclusionGroup",
-                            Qt::DirectConnection,
-                            Q_ARG(QVariant, QVariant::fromValue(_to)),
-                            Q_ARG(QVariant, _from->property(dpc->propertyName())));
-                    }
-                }
-
-                return QObject::eventFilter(o, e);
-            }
-
-        private:
-            QObject* _from;
-            QObject* _to;
-            QObject* _qmlParent;
-        };
-
-        new ExclusionGroupSetter(action, qmlObject, qmlParent);
-    }
-
-    ~MenuUserData() {
+    });
+    _shutdownConnection = QObject::connect(qApp, &QCoreApplication::aboutToQuit, [=] {
         QObject::disconnect(_changedConnection);
-        QObject::disconnect(_shutdownConnection);
-        _action->setUserData(USER_DATA_ID, nullptr);
-        _qml->setUserData(USER_DATA_ID, nullptr);
-    }
+    });
 
-    void updateQmlItemFromAction() {
-        _qml->setProperty("checkable", _action->isCheckable());
-        _qml->setProperty("enabled", _action->isEnabled());
-        QString text = _action->text();
-        _qml->setProperty("text", text);
-        _qml->setProperty("shortcut", _action->shortcut().toString());
-        _qml->setProperty("checked", _action->isChecked());
-        _qml->setProperty("visible", _action->isVisible());
-    }
-
-    void clear() {
-        _qml->setProperty("checkable", 0);
-        _qml->setProperty("enabled", 0);
-        _qml->setProperty("text", 0);
-        _qml->setProperty("shortcut", 0);
-        _qml->setProperty("checked", 0);
-        _qml->setProperty("visible", 0);
-
-        _action->setUserData(USER_DATA_ID, nullptr);
-        _qml->setUserData(USER_DATA_ID, nullptr);
-    }
-
-
-    const QUuid uuid{ QUuid::createUuid() };
-
-    static bool hasData(QAction* object) {
-        if (!object) {
-            qWarning() << "Attempted to fetch MenuUserData for null object";
-            return false;
+    class ExclusionGroupSetter : public QObject {
+    public:
+        ExclusionGroupSetter(QObject* from, QObject* to, QObject* qmlParent) : QObject(from), _from(from), _to(to), _qmlParent(qmlParent) {
+            _from->installEventFilter(this);
         }
-        return (nullptr != static_cast<MenuUserData*>(object->userData(USER_DATA_ID)));
-    }
 
-    static MenuUserData* forObject(QAction* object) {
-        if (!object) {
-            qWarning() << "Attempted to fetch MenuUserData for null object";
-            return nullptr;
+        ~ExclusionGroupSetter() {
+            _from->removeEventFilter(this);
         }
-        auto result = static_cast<MenuUserData*>(object->userData(USER_DATA_ID));
-        if (!result) {
-            qWarning() << "Unable to find MenuUserData for object " << object;
-            if (auto action = dynamic_cast<QAction*>(object)) {
-                qWarning() << action->text();
-            } else if (auto menu = dynamic_cast<QMenu*>(object)) {
-                qWarning() << menu->title();
+    protected:
+        virtual bool eventFilter(QObject* o, QEvent* e) override {
+            if (e->type() == QEvent::DynamicPropertyChange) {
+                QDynamicPropertyChangeEvent* dpc = static_cast<QDynamicPropertyChangeEvent*>(e);
+                if (dpc->propertyName() == "exclusionGroup") {
+                    // unfortunately Qt doesn't support passing dynamic properties between C++ / QML, so we have to use this ugly helper function
+                    QMetaObject::invokeMethod(_qmlParent,
+                        "addExclusionGroup",
+                        Qt::DirectConnection,
+                        Q_ARG(QVariant, QVariant::fromValue(_to)),
+                        Q_ARG(QVariant, _from->property(dpc->propertyName())));
+                }
             }
-            return nullptr;
+
+            return QObject::eventFilter(o, e);
         }
-        return result;
+
+    private:
+        QObject* _from;
+        QObject* _to;
+        QObject* _qmlParent;
+    };
+
+    new ExclusionGroupSetter(action, qmlObject, qmlParent);
+}
+
+MenuUserData::~MenuUserData() {
+    QObject::disconnect(_changedConnection);
+    QObject::disconnect(_shutdownConnection);
+    _action->setProperty(USER_DATA, QVariant());
+    _qml->setProperty(USER_DATA, QVariant());
+}
+
+void MenuUserData::updateQmlItemFromAction() {
+    _qml->setProperty("checkable", _action->isCheckable());
+    _qml->setProperty("enabled", _action->isEnabled());
+    QString text = _action->text();
+    _qml->setProperty("text", text);
+    _qml->setProperty("shortcut", _action->shortcut().toString());
+    _qml->setProperty("checked", _action->isChecked());
+    _qml->setProperty("visible", _action->isVisible());
+}
+
+void MenuUserData::clear() {
+    _qml->setProperty("checkable", 0);
+    _qml->setProperty("enabled", 0);
+    _qml->setProperty("text", 0);
+    _qml->setProperty("shortcut", 0);
+    _qml->setProperty("checked", 0);
+    _qml->setProperty("visible", 0);
+
+    _action->setProperty(USER_DATA, QVariant());
+    _qml->setProperty(USER_DATA, QVariant());
+}
+
+
+
+bool MenuUserData::hasData(QAction* object) {
+    if (!object) {
+        qWarning() << "Attempted to fetch MenuUserData for null object";
+        return false;
     }
+    return (nullptr != object->property(USER_DATA).value<MenuUserData*>());
+}
 
-private:
-    Q_DISABLE_COPY(MenuUserData);
-
-    QMetaObject::Connection _shutdownConnection;
-    QMetaObject::Connection _changedConnection;
-    QAction* _action { nullptr };
-    QObject* _qml { nullptr };
-    QObject* _qmlParent{ nullptr };
-};
-
+MenuUserData* MenuUserData::forObject(QAction* object) {
+    if (!object) {
+        qWarning() << "Attempted to fetch MenuUserData for null object";
+        return nullptr;
+    }
+    auto result = object->property(USER_DATA).value<MenuUserData*>();
+    if (!result) {
+        qWarning() << "Unable to find MenuUserData for object " << object;
+        if (auto action = dynamic_cast<QAction*>(object)) {
+            qWarning() << action->text();
+        } else if (auto menu = dynamic_cast<QMenu*>(object)) {
+            qWarning() << menu->title();
+        }
+        return nullptr;
+    }
+    return result;
+}
 
 VrMenu::VrMenu(OffscreenUi* parent) : QObject(parent) {
     _rootMenu = parent->getRootItem()->findChild<QObject*>("rootMenu");

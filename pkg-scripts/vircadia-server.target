@@ -1,5 +1,5 @@
 [Unit]
-Description=Vircadia virtual domain
+Description=Overte virtual domain
 Wants=vircadia-assignment-client.service
 Wants=vircadia-domain-server.service
 #Wants=vircadia-ice-server.service

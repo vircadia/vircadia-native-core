@@ -1,4 +1,4 @@
-<p align="center"><a href="https://vircadia.com/"><img src="interface/resources/images/vircadia-banner.svg" alt="Vircadia - Codename Athena" width="350"/></a></p>
+<p align="center"><a href="https://overte.org/"><img src="interface/resources/images/brand-banner-black.svg" alt="Overte" width="350"/></a></p>
 <h3 align="center"><a href="https://vircadia.com/">Website</a> | <a href="https://discordapp.com/invite/Pvx2vke">Discord</a> | <a href="https://vircadia.com/download-vircadia/">Download</a></h3>
 <p align="center">
     <a href="https://vircadia.com/contribute"><img alt="GitHub contributors" src="https://img.shields.io/github/contributors/vircadia/vircadia"></a>
@@ -54,7 +54,6 @@ Vircadia™ is a 3D social software project seeking to incrementally bring about
 - [For Windows - Interface & Server](https://github.com/vircadia/vircadia/blob/master/INSTALLER.md)
 - [For Mac - Interface](https://github.com/vircadia/vircadia/blob/master/INSTALLER.md#os-x)
 - [For Linux - Server .deb - Vircadia Builder](INSTALLER.md#ubuntu-1804--deb)
-- [For Linux - Server .rpm - Vircadia Builder](INSTALLER.md#amazon-linux-2--rpm)
 - [For Linux - Interface AppImage - Vircadia Builder](https://github.com/vircadia/vircadia-builder/blob/master/README.md#building-appimages)
 
 ### Boot to Metaverse: [The Goal](https://vircadia.com/vision/)
@@ -94,10 +93,8 @@ Keep in mind that Vircadia consists of multiple smaller projects that might have
 
 #### Supporters of the Vircadia Project
 
-| [ksuprynowicz (74hc595)](https://github.com/ksuprynowicz) |
+One (1) anonymous, three (3) total sponsors through GitHub. ❤️
+
+| [Daichi Shimabukuro](https://github.com/mshlomd) |
 | --- |
-| <p align="center">[<img src="https://vircadia.com/wp-content/uploads/2021/07/74hc595_profile_2-1.png" width="80" alt="ksuprynowicz" />](https://github.com/ksuprynowicz)</p>
-
-#### Sponsors of Open Source
-
-<img src="https://vircadia.com/wp-content/uploads/2021/11/CBT_OS-logo_White-V.png" width="250" alt="CrossBrowserTesting" />
+| <p align="center">[<img src="https://avatars.githubusercontent.com/u/4787162?v=4" width="80" alt="Daichi Shimabukuro" />](https://github.com/mshlomd)</p>

@@ -45,7 +45,7 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
 
     // parse command-line
     QCommandLineParser parser;
-    parser.setApplicationDescription("Vircadia Assignment Client");
+    parser.setApplicationDescription("Overte Assignment Client");
     const QCommandLineOption helpOption = parser.addHelpOption();
     const QCommandLineOption versionOption = parser.addVersionOption();
 

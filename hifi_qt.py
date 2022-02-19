@@ -164,7 +164,8 @@ endif()
                 elif (distro.id() == 'ubuntu' and u_major > 18) or (distro.id() == 'linuxmint' and u_major > 19):
                     self.__no_qt_package_error()
                 else:
-                    self.__unsupported_error()
+                    self.__no_qt_package_error()
+
 
             elif 'aarch64' == cpu_architecture:
                 if distro.id() == 'ubuntu':
@@ -202,7 +203,7 @@ endif()
     def showQtBuildInfo(self):
         print("")
         print("It's also possible to build Qt for your distribution, please see the documentation at:")
-        print("https://github.com/vircadia/vircadia/tree/master/tools/qt-builder")
+        print("https://github.com/overte-org/overte/tree/master/tools/qt-builder")
         print("")
         print("Alternatively, you can try building against the system Qt by setting the VIRCADIA_USE_SYSTEM_QT environment variable.")
         print("You'll need to install the development packages, and to have Qt 5.15.0 or later.")
@@ -250,11 +251,11 @@ endif()
         print("    export VIRCADIA_USE_SYSTEM_QT=1")
         print("")
         hifi_utils.color('clear')
-        print("If you'd like to try to build Qt from source either for building Vircadia, or")
+        print("If you'd like to try to build Qt from source either for building Overte, or")
         print("to contribute a prebuilt package for your distribution, please see the")
         print("documentation at: ", end='')
         hifi_utils.color('blue')
-        print("https://github.com/vircadia/vircadia/tree/master/tools/qt-builder")
+        print("https://github.com/overte-org/overte/tree/master/tools/qt-builder")
         hifi_utils.color('clear')
         print('')
         raise hifi_utils.SilentFatalError(2)

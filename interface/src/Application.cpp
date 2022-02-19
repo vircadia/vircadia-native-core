@@ -1149,7 +1149,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Graphik-SemiBold.ttf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Graphik-Regular.ttf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Graphik-Medium.ttf");
-    _window->setWindowTitle("Vircadia");
+    _window->setWindowTitle("Overte");
 
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
 
@@ -3243,7 +3243,7 @@ void Application::showLoginScreen() {
         QJsonObject loginData = {};
         loginData["action"] = "login dialog popped up";
         UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
-        _window->setWindowTitle("Vircadia");
+        _window->setWindowTitle("Overte");
     } else {
         resumeAfterLoginDialogActionTaken();
     }
@@ -7222,7 +7222,7 @@ void Application::updateWindowTitle() const {
     bool isDomainLoggedIn = domainAccountManager->isLoggedIn();
     QString authedDomainName = domainAccountManager->getAuthedDomainName();
 
-    QString buildVersion = " - Vircadia - "
+    QString buildVersion = " - Overte - "
         + (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable ? QString("Version") : QString("Build"))
         + " " + applicationVersion();
 

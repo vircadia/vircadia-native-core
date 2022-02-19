@@ -128,7 +128,7 @@ ShadowRectangle {
         }
     }
 
-    // FIXME: Link to a Vircadias version of the video.
+    // FIXME: Link to a Overte's version of the video.
     /*
     RalewayButton {
         id: video

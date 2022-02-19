@@ -26,7 +26,7 @@
  * @hifi-client-entity
  * @hifi-avatar
  *
- * @property {string} platform - The name of the Interface platform running, e,g., <code>"Vircadia"</code> for the Vircadia.
+ * @property {string} platform - The name of the Interface platform running, e,g., <code>"Overte"</code> for the Overte.
  *     <em>Read-only.</em>
  * @property {string} buildDate - The build date of Interface that is currently running. <em>Read-only.</em>
  * @property {string} buildVersion - The build version of Interface that is currently running. <em>Read-only.</em>
@@ -53,7 +53,7 @@
  *
  * @deprecated This API is deprecated and will be removed. Use the {@link About} API instead.
  *
- * @property {string} platform - The name of the Interface platform running, e,g., <code>"Vircadia"</code> for the Vircadia.
+ * @property {string} platform - The name of the Interface platform running, e,g., <code>"Overte"</code> for the Overte.
  *     <em>Read-only.</em>
  * @property {string} buildDate - The build date of Interface that is currently running. <em>Read-only.</em>
  * @property {string} buildVersion - The build version of Interface that is currently running. <em>Read-only.</em>
@@ -74,7 +74,7 @@ public:
     static AboutUtil* getInstance();
     ~AboutUtil() {}
 
-    QString getPlatformName() const { return "Vircadia"; }
+    QString getPlatformName() const { return "Overte"; }
     QString getBuildDate() const;
     QString getBuildVersion() const;
     QString getReleaseName() const;

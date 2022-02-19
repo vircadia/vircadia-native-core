@@ -38,7 +38,7 @@ These are not placed in your normal build tree when doing an out of source build
 
 ### CMake
 
-Vircadia uses CMake to generate build files and project files for your platform.
+Overte uses CMake to generate build files and project files for your platform.
 
 ### Qt
 
@@ -73,7 +73,7 @@ Note: Installing Qt Creator is optional but recommended if you will be editing Q
 
 ### VCPKG
 
-Vircadia uses vcpkg to download and build dependencies.
+Overte uses vcpkg to download and build dependencies.
 You do not need to install vcpkg.
 
 Building the dependencies can be lengthy and the resulting files will be stored in your OS temp directory.
@@ -177,7 +177,7 @@ In the examples below the variable $NAME would be replaced by the name of the de
 
 * $NAME_ROOT_DIR - pass this variable to Cmake with the -DNAME_ROOT_DIR= flag when running Cmake to generate build files
 * $NAME_ROOT_DIR - set this variable in your ENV
-* HIFI_LIB_DIR - set this variable in your ENV to your Vircadia lib folder, should contain a folder '$name'
+* HIFI_LIB_DIR - set this variable in your ENV to your Overte lib folder, should contain a folder '$name'
 
 ## Optional Components
 

@@ -6,7 +6,7 @@ import controlsUit 1.0
 
 WebView {
     id: webview
-    url: "https://vircadia.com/"
+    url: "https://overte.org/"
     profile: FileTypeProfile;
     property var parentRoot: null
 

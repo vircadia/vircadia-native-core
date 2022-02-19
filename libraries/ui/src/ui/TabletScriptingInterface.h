@@ -104,9 +104,9 @@ public:
      * @function Tablet.getTablet
      * @param {string} name - A unique name that identifies the tablet.
      * @returns {TabletProxy} The tablet instance.
-     * @example <caption>Display the Vircadia home page on the system tablet.</caption>
+     * @example <caption>Display the Overte home page on the system tablet.</caption>
      * var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-     * tablet.gotoWebScreen("https://vircadia.com/");
+     * tablet.gotoWebScreen("https://overte.org/");
      */
     Q_INVOKABLE TabletProxy* getTablet(const QString& tabletId);
 

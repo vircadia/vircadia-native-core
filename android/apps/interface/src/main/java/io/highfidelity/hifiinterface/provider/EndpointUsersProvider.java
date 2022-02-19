@@ -28,7 +28,7 @@ import retrofit2.http.Query;
 
 public class EndpointUsersProvider implements UsersProvider {
 
-    public static final String BASE_URL = "https://metaverse.vircadia.com/live/";
+    public static final String BASE_URL = "https://overte.ovg/mvs/";
     private final Retrofit mRetrofit;
     private final EndpointUsersProviderService mEndpointUsersProviderService;
 

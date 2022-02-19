@@ -629,7 +629,7 @@ BOOL LauncherManager::createApplicationRegistryKeys(int size) {
     success = LauncherUtils::insertRegistryKey(REGISTRY_PATH, "UninstallString", uninstallPath);
     success = LauncherUtils::insertRegistryKey(REGISTRY_PATH, "DisplayVersion", LauncherUtils::cStringToStd(_latestVersion));
     success = LauncherUtils::insertRegistryKey(REGISTRY_PATH, "DisplayIcon", applicationExe);
-    success = LauncherUtils::insertRegistryKey(REGISTRY_PATH, "Publisher", "Vircadia");
+    success = LauncherUtils::insertRegistryKey(REGISTRY_PATH, "Publisher", "Overte");
     success = LauncherUtils::insertRegistryKey(REGISTRY_PATH, "InstallDate", LauncherUtils::cStringToStd(CTime::GetCurrentTime().Format("%Y%m%d")));
     success = LauncherUtils::insertRegistryKey(REGISTRY_PATH, "EstimatedSize", (DWORD)size);
     success = LauncherUtils::insertRegistryKey(REGISTRY_PATH, "NoModify", (DWORD)1);

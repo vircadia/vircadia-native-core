@@ -75,14 +75,14 @@ if ((NOT "${RELEASE_TYPE}" STREQUAL "PRODUCTION") AND (NOT "${RELEASE_TYPE}" STR
 endif()
 
 # VIRCADIA_OPTIMIZE
-# Variable determining vircadia optimization. If not set, it defaults to true.
+# Variable determining Overte optimization. If not set, it defaults to true.
 # It's used to determine build flags for main codebase and for VCPKG dependencies.
 # Should be set to false to get completely unoptimized build for easier line-by-line debugging
 
 if( NOT WIN32 )
     if(NOT DEFINED VIRCADIA_OPTIMIZE)
-        message("Enabling code optimization for Vircadia and compiled dependencies")
-        set(VIRCADIA_OPTIMIZE true CACHE BOOL "Enable code optimization for Vircadia and compiled dependencies")
+        message("Enabling code optimization for Overte and compiled dependencies")
+        set(VIRCADIA_OPTIMIZE true CACHE BOOL "Enable code optimization for Overte and compiled dependencies")
     endif()
 
     #compiler needs to be detected before building VCPKG dependencies
@@ -107,8 +107,8 @@ if( NOT WIN32 )
     MESSAGE(STATUS "VIRCADIA_OPTIMIZE: ${VIRCADIA_OPTIMIZE}")
 
     # VIRCADIA_CPU_ARCHITECTURE
-    # Variable determining CPU architecture for which Vircadia will be built.
-    # If defined, it's appended to CXXFLAGS and CFLAGS for both Vircadia and VCPKG dependencies
+    # Variable determining CPU architecture for which Overte will be built.
+    # If defined, it's appended to CXXFLAGS and CFLAGS for both Overte and VCPKG dependencies
 
     #Assume -march=native for compilers that allow it if architecture is not specified
     if(NOT DEFINED VIRCADIA_CPU_ARCHITECTURE)
@@ -349,7 +349,7 @@ GroupSources("scripts")
 GroupSources("unpublishedScripts")
 unset(JS_SRC)
 
-# Include Vircadia Web app files if cloned into a subdirectory.
+# Include Overte Web app files if cloned into a subdirectory.
 if (IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/vircadia-web")
     file(GLOB_RECURSE WEB_APP_SRC vircadia-web/*.*)
     list(FILTER WEB_APP_SRC EXCLUDE REGEX "vircadia-web/(dist|node_modules|public)/*" )
@@ -358,7 +358,7 @@ if (IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/vircadia-web")
     unset(WEB_APP_SRC)
 endif()
 
-# Include Vircadia Web SDK files if cloned into a subdirectory.
+# Include Overte Web SDK files if cloned into a subdirectory.
 if (IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/vircadia-web-sdk")
     file(GLOB_RECURSE WEB_SDK_SRC vircadia-web-sdk/*.*)
     list(FILTER WEB_SDK_SRC EXCLUDE REGEX "vircadia-web-sdk/(dist|node_modules|public)/*" )

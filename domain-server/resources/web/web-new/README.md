@@ -1,6 +1,6 @@
-# Vircadia Domain Dashboard (vircadia-domain-dashboard)
+# Overte Domain Dashboard (vircadia-domain-dashboard)
 
-The Domain dashboard for Vircadia virtual worlds.
+The Domain dashboard for Overte virtual worlds.
 
 ## Maintainer Instructions
 

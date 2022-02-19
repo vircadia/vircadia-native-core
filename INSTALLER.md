@@ -2,11 +2,11 @@
 
 *Last Updated on June 16, 2021*
 
-Follow the [build guide](BUILD.md) to figure out how to build Vircadia for your platform.
+Follow the [build guide](BUILD.md) to figure out how to build Overte for your platform.
 
 During generation, CMake should produce an `install` target and a `package` target.
 
-The `install` target will copy the Vircadia targets and their dependencies to your `CMAKE_INSTALL_PREFIX`.  
+The `install` target will copy the Overte targets and their dependencies to your `CMAKE_INSTALL_PREFIX`.  
 This variable is set by the `project(hifi)` command in `CMakeLists.txt` to `C:/Program Files/hifi` and stored in `build/CMakeCache.txt`
 
 ## Packaging
@@ -82,8 +82,8 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
 #### Create an MSIX Package
 
 1. Get the 'MSIX Packaging Tool' from the Windows Store.
-2. Run the process to create a new MSIX package from an existing .exe or .msi installer. This process will allow you to install Vircadia with the usual installer, however it will monitor changes to the computer to replicate the functionality in the MSIX Package. Therefore, you will want to avoid doing anything else on your computer during this process.
-3. Be sure to select no shortcuts and install only the Vircadia Interface.
+2. Run the process to create a new MSIX package from an existing .exe or .msi installer. This process will allow you to install Overte with the usual installer, however it will monitor changes to the computer to replicate the functionality in the MSIX Package. Therefore, you will want to avoid doing anything else on your computer during this process.
+3. Be sure to select no shortcuts and install only the Overte Interface.
 4. When asked for "Entry" points, select only the Interface entry and not the uninstaller. This is because the MSIX package is uninstalled by Windows itself. If for some reason the uninstaller shows up anyway, you can edit the manifest to manually remove it from view even if the uninstaller is present in the package. This is necessary to uplaod to the Windows Store.
 5. Once completed, you can sign the package with this application or with other tools such as 'MSIX Hero'. It must be signed with a local certificate to test, and with a proper certificate to distribute.
 6. If uploading to the Windows Store, you will have to ensure all your manifest info including publisher information matches what is registered with your Microsoft Developer account for Windows. You will see these errors and the expected values when validating it.
@@ -129,27 +129,25 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
     Recommended CPU Cores: 16
     Minimum Disk Space: 40GB
     ```
-3. Get and bootstrap Vircadia Builder.
+3. Get and bootstrap Overte Builder.
     ```bash
-    git clone https://github.com/vircadia/vircadia-builder.git
-    cd vircadia-builder
+    git clone https://github.com/overte-org/overte-builder.git
+    cd overte-builder
     ```
-3. Run Vircadia Builder.
-    ```bash
-    ./vircadia-builder --build server
-    ```
-4. If Vircadia Builder needed to install dependencies and asks you to run it again then do so. Otherwise, skip to the next step.
+3. Run Overte Builder.
     ```bash
     ./vircadia-builder --build server
     ```
-5. Vircadia Builder will ask you to configure it to build the server. The values will be prefilled with defaults, the following steps will explain what they are and what you might want to put. *Advanced users: See [here](BUILD.md#possible-environment-variables) for possible environment variables and settings.*
-6. This value is the Git repository of Vircadia. You can set this URL to your fork of the Vircadia repository if you need to.
+4. If Overte Builder needed to install dependencies and asks you to run it again then do so. Otherwise, skip to the next step.
+    ```bash
+    ./vircadia-builder --build server
+    ```
+5. Overte Builder will ask you to configure it to build the server. The values will be prefilled with defaults, the following steps will explain what they are and what you might want to put. *Advanced users: See [here](BUILD.md#possible-environment-variables) for possible environment variables and settings.*
+6. This value is the Git repository of Overte. You can set this URL to your fork of the Overte repository if you need to.
     ```text
-    Git repository: https://github.com/vircadia/vircadia/
-    # OR, for example
-    Git repository: https://github.com/digisomni/vircadia/
+    Git repository: https://github.com/overte-org/overte/
     ```
-7. This value is the tag on the repository. If you would like to use a specific version of Vircadia, typically tags will be named like this: "v2021.1.0-rc"
+7. This value is the tag on the repository. If you would like to use a specific version of Overte, typically tags will be named like this: "v2021.1.0-rc"
     ```text
     Git tag: master
     # OR, for example
@@ -169,25 +167,25 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
     ```text
     Build number: fd6973b
     ```
-11. This value is the directory that Vircadia will get installed to. You should leave this as the default value unless you are an advanced user.
+11. This value is the directory that Overte will get installed to. You should leave this as the default value unless you are an advanced user.
     ```text
     Installation dir: /home/ubuntu/Vircadia
     ```
-12. This value is the number of CPU cores that the Vircadia Builder will use to compile the Vircadia server. By default it will use all cores available on your build server. You should leave this as the default value it gives you for your build server.
+12. This value is the number of CPU cores that the Overte Builder will use to compile the Overte server. By default it will use all cores available on your build server. You should leave this as the default value it gives you for your build server.
     ```text
-    CPU cores to use for Vircadia: 16
+    CPU cores to use for Overte: 16
     ```
-13. This value is the number of CPU cores that the Vircadia Builder will use to compile Qt5 (a required component for Vircadia). By default it will use all cores available on your build server. You should leave this as the default value it gives you for your build server.
+13. This value is the number of CPU cores that the Overte Builder will use to compile Qt5 (a required component for Overte). By default it will use all cores available on your build server. You should leave this as the default value it gives you for your build server.
     ```text
     CPU cores to use for Qt5: 16
     ```
 14. It will ask you if you would like to proceed with the specified values. If you're happy with the configuration, type `yes`, otherwise enter `no` and press enter to start over. You can press `Ctrl` + `C` simultaneously on your keyboard to exit.
-15. Vircadia Builder will now run, it may take a while. See this [table](https://github.com/vircadia/vircadia-builder#how-long-does-it-take) for estimated times.
+15. Overte Builder will now run, it may take a while. See this [table](https://github.com/overte-org/overte-builder#how-long-does-it-take) for estimated times.
 16. Navigate to the `pkg-scripts` directory.
     ```bash
     cd ../Vircadia/source/pkg-scripts/
     ```
-17. Generate the .deb package. Set `DEBVERSION` to the same version you entered for the `Release number` on Vircadia Builder. Set `DEBEMAIL` and `DEBFULLNAME` to your own information to be packaged with the release. *The version cannot begin with a letter and cannot include underscores or dashes in it.*
+17. Generate the .deb package. Set `DEBVERSION` to the same version you entered for the `Release number` on Overte Builder. Set `DEBEMAIL` and `DEBFULLNAME` to your own information to be packaged with the release. *The version cannot begin with a letter and cannot include underscores or dashes in it.*
     ```bash
     DEBVERSION="2021.1.0" DEBEMAIL="your-email@somewhere.com" DEBFULLNAME="Your Full Name" ./make-deb-server
     ```
@@ -207,28 +205,26 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
     sudo yum install git -y
     sudo yum install rpm-build
     ```
-3. Get and bootstrap Vircadia Builder.
+3. Get and bootstrap Overte Builder.
     ```bash
-    git clone https://github.com/vircadia/vircadia-builder.git
-    cd vircadia-builder
+    git clone https://github.com/overte-org/overte-builder.git
+    cd overte-builder
     sudo ./install_amazon_linux_deps.sh
     ```
-4. Run Vircadia Builder.
+4. Run Overte Builder.
     ```bash
     ./vircadia-builder --build server
     ```
-5. If Vircadia Builder needed to install dependencies and asks you to run it again then do so. Otherwise, skip to the next step.
+5. If Overte Builder needed to install dependencies and asks you to run it again then do so. Otherwise, skip to the next step.
     ```bash
     ./vircadia-builder --build server
     ```
-6. Vircadia Builder will ask you to configure it to build the server. The values will be prefilled with defaults, the following steps will explain what they are and what you might want to put. *Advanced users: See [here](BUILD.md#possible-environment-variables) for possible environment variables and settings.*
-7. This value is the Git repository of Vircadia. You can set this URL to your fork of the Vircadia repository if you need to.
+6. Overte Builder will ask you to configure it to build the server. The values will be prefilled with defaults, the following steps will explain what they are and what you might want to put. *Advanced users: See [here](BUILD.md#possible-environment-variables) for possible environment variables and settings.*
+7. This value is the Git repository of Overte. You can set this URL to your fork of the Overte repository if you need to.
     ```text
-    Git repository: https://github.com/vircadia/vircadia/
-    # OR, for example
-    Git repository: https://github.com/digisomni/vircadia/
+    Git repository: https://github.com/overte-org/overte/
     ```
-8. This value is the tag on the repository. If you would like to use a specific version of Vircadia, typically tags will be named like this: "v2021.1.0-rc".
+8. This value is the tag on the repository. If you would like to use a specific version of Overte, typically tags will be named like this: "v2021.1.0-rc".
     ```text
     Git tag: master
     # OR, for example
@@ -248,26 +244,26 @@ For code signing to work, you will need to set the `HF_PFX_FILE` and `HF_PFX_PAS
     ```text
     Build number: fd6973b
     ```
-12. This value is the directory that Vircadia will get installed to. You should leave this as the default value unless you are an advanced user.
+12. This value is the directory that Overte will get installed to. You should leave this as the default value unless you are an advanced user.
     ```text
     Installation dir: /root/Vircadia
     ```
-13. This value is the number of CPU cores that the Vircadia Builder will use to compile the Vircadia server. By default it will use all cores available on your build server given you have enough memory. You should leave this as the default value it gives you for your build server.
+13. This value is the number of CPU cores that the Overte Builder will use to compile the Overte server. By default it will use all cores available on your build server given you have enough memory. You should leave this as the default value it gives you for your build server.
     ```text
-    CPU cores to use for Vircadia: 16
+    CPU cores to use for Overte: 16
     ```
-14. This value is the number of CPU cores that the Vircadia Builder will use to compile Qt5 (a required component for Vircadia). By default it will use all cores available on your build server given you have enough memory. You should leave this as the default value it gives you for your build server.
+14. This value is the number of CPU cores that the Overte Builder will use to compile Qt5 (a required component for Overte). By default it will use all cores available on your build server given you have enough memory. You should leave this as the default value it gives you for your build server.
     ```text
     CPU cores to use for Qt5: 16
     ```
 15. It will ask you if you would like to proceed with the specified values. If you're happy with the configuration, type `yes`, otherwise enter `no` and press enter to start over. You can press `Ctrl` + `C` simultaneously on your keyboard to exit.
-16. Vircadia Builder will now run, it may take a while. See this [table](https://github.com/vircadia/vircadia-builder#how-long-does-it-take) for estimated times.
+16. Overte Builder will now run, it may take a while. See this [table](https://github.com/overte-org/overte-builder#how-long-does-it-take) for estimated times.
 17. Navigate to the `pkg-scripts` directory.
     ```bash
     cd ../Vircadia/source/pkg-scripts/
     ```
-18. Generate the .rpm package. Set `RPMVERSION` to the same version you entered for the `Release number` on Vircadia Builder. *The version cannot begin with a letter and cannot include underscores or dashes in it.*
+18. Generate the .rpm package. Set `RPMVERSION` to the same version you entered for the `Release number` on Overte Builder. *The version cannot begin with a letter and cannot include underscores or dashes in it.*
     ```bash
     RPMVERSION="2021.1.0" ./make-rpm-server
     ```
-19. If successful, the generated .rpm package will be in the `pkg-scripts` folder of the Vircadia source files.
+19. If successful, the generated .rpm package will be in the `pkg-scripts` folder of the Overte source files.

@@ -1,5 +1,5 @@
 [Unit]
-Description=Domain Server service for Vircadia
+Description=Domain Server service for Overte
 After=network.target
 PartOf=vircadia-server.target
 

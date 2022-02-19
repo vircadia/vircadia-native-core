@@ -34,7 +34,7 @@ exports.getBuildInfo = function() {
         buildIdentifier: "dev",
         buildNumber: "0",
         stableBuild: "0",
-        organization: "Vircadia - dev",
+        organization: "Overte - dev",
         appUserModelId: "com.vircadia.console"
     };
     var buildInfo = DEFAULT_BUILD_INFO;

@@ -67,7 +67,7 @@ export default {
         password: "",
         showPassword: false,
         // TODO: Needs to be stored somewhere central.
-        DEFAULT_METAVERSE_URL: "https://metaverse.vircadia.com/live",
+        DEFAULT_METAVERSE_URL: "https://overte.org/mvs",
         AUTOCOMPLETE: false
     }),
 

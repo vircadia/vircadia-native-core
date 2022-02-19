@@ -2,7 +2,7 @@
 if [ -z "$1" ] || [ -z "$2" ]; then
 	echo "new-server {name} {base-port}"
 	echo
-	echo "Sets up a new vircadia server with the specified name and base port number"
+	echo "Sets up a new Overte server with the specified name and base port number"
 	echo "  {name} - a simple name used to identify the server to scripts (not used in the server configuration)"
 	echo "  {base-port} - the base port number (default server is 40100).  The metaverse port will be {base-port}+2"
 	echo "                Four contiguous port numbers are allocated, these must not overlap with other running services on this machine"
@@ -39,7 +39,7 @@ echo HIFI_DOMAIN_SERVER_HTTPS_PORT=$(($2 + 1)) >> /etc/opt/vircadia/$1.conf
 echo HIFI_DOMAIN_SERVER_PORT=$(($2 + 2)) >> /etc/opt/vircadia/$1.conf
 echo HIFI_DOMAIN_SERVER_DTLS_PORT=$(($2 + 3)) >> /etc/opt/vircadia/$1.conf
 
-echo "A new vircadia server has been created with the name of '$1'"
+echo "A new Overte server has been created with the name of '$1'"
 echo
 echo "To launch it:"
 echo "  sudo systemctl start vircadia-server@$1.target"

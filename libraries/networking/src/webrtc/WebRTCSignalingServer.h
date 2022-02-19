@@ -28,7 +28,7 @@
 /// @details The signaling server is expected to be hosted in the domain server. It provides a WebSocket for Interface clients
 /// to use in the WebRTC signaling handshake process to establish WebRTC data channel connections to each of the domain server
 /// and the assignment clients (i.e., separate WebRTC data channels for each but only a single signaling WebSocket). The
-/// assignment client signaling messages are expected to be relayed - by the domain server - via Vircadia protocol messages on
+/// assignment client signaling messages are expected to be relayed - by the domain server - via Overte protocol messages on
 /// the UDP connections between the domain server and assignment clients.
 /// 
 /// Additionally, for debugging purposes, instead of containing a WebRTC payload a signaling message may be an echo request.

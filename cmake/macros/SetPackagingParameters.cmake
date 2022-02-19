@@ -48,7 +48,7 @@ macro(SET_PACKAGING_PARAMETERS)
     set(DEPLOY_PACKAGE TRUE)
     set(PRODUCTION_BUILD 1)
     set(BUILD_VERSION ${RELEASE_NUMBER})
-    set(BUILD_ORGANIZATION "Vircadia")
+    set(BUILD_ORGANIZATION "Overte")
     set(HIGH_FIDELITY_PROTOCOL "hifi")
     set(HIGH_FIDELITY_APP_PROTOCOL "hifiapp")
     set(INTERFACE_ICON_PREFIX "interface")
@@ -72,7 +72,7 @@ macro(SET_PACKAGING_PARAMETERS)
     set(DEPLOY_PACKAGE TRUE)
     set(PR_BUILD 1)
     set(BUILD_VERSION "PR${RELEASE_NUMBER}")
-    set(BUILD_ORGANIZATION "Vircadia - PR${RELEASE_NUMBER}")
+    set(BUILD_ORGANIZATION "Overte - PR${RELEASE_NUMBER}")
     set(INTERFACE_ICON_PREFIX "interface-beta")
 
     # add definition for this release type
@@ -80,7 +80,7 @@ macro(SET_PACKAGING_PARAMETERS)
   else ()
     set(DEV_BUILD 1)
     set(BUILD_VERSION "dev")
-    set(BUILD_ORGANIZATION "Vircadia - ${BUILD_VERSION}")
+    set(BUILD_ORGANIZATION "Overte - ${BUILD_VERSION}")
     set(INTERFACE_ICON_PREFIX "interface-beta")
 
     # add definition for this release type
@@ -185,21 +185,21 @@ macro(SET_PACKAGING_PARAMETERS)
 
     # shortcut names
     if (PRODUCTION_BUILD)
-      set(INTERFACE_SHORTCUT_NAME "Vircadia")
+      set(INTERFACE_SHORTCUT_NAME "Overte")
       set(CONSOLE_SHORTCUT_NAME "Console")
       set(SANDBOX_SHORTCUT_NAME "Server")
       set(APP_USER_MODEL_ID "com.vircadia.console")
     else ()
-      set(INTERFACE_SHORTCUT_NAME "Vircadia - ${BUILD_VERSION_NO_SHA}")
+      set(INTERFACE_SHORTCUT_NAME "Overte - ${BUILD_VERSION_NO_SHA}")
       set(CONSOLE_SHORTCUT_NAME "Console - ${BUILD_VERSION_NO_SHA}")
       set(SANDBOX_SHORTCUT_NAME "Server - ${BUILD_VERSION_NO_SHA}")
     endif ()
 
     set(INTERFACE_HF_SHORTCUT_NAME "${INTERFACE_SHORTCUT_NAME}")
-    set(CONSOLE_HF_SHORTCUT_NAME "Vircadia ${CONSOLE_SHORTCUT_NAME}")
-    set(SANDBOX_HF_SHORTCUT_NAME "Vircadia ${SANDBOX_SHORTCUT_NAME}")
+    set(CONSOLE_HF_SHORTCUT_NAME "Overte ${CONSOLE_SHORTCUT_NAME}")
+    set(SANDBOX_HF_SHORTCUT_NAME "Overte ${SANDBOX_SHORTCUT_NAME}")
 	
-    set(PRE_SANDBOX_INTERFACE_SHORTCUT_NAME "Vircadia")
+    set(PRE_SANDBOX_INTERFACE_SHORTCUT_NAME "Overte")
     set(PRE_SANDBOX_CONSOLE_SHORTCUT_NAME "Server Console")
 
     # check if we need to find signtool

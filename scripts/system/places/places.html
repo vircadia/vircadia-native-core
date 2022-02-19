@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<!--
+//
+//  places.html
+//
+//  Created by Alezia Kurdis, January 1st, 2022.
+//  Copyright 2022 Overte e.V.
+//
+//  html for the ui of the Places application.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+-->
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Places</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="fonts.css">
+        <link rel="stylesheet" href="places.css">
+        <script>
+            var thisPageName = "places.html";        
+            var currentPath = window.location.protocol + "//" + window.location.host + window.location.pathname;
+            var ROOTPATH = currentPath.replace(thisPageName, "");
+            var channel = "com.overte.places";
+            
+            var placeList = [];
+            var currentLocation = "";
+            var warning = "";
+            var metaverseList = [];
+
+            var lifeOnlyFilter = false;
+            
+            var localFilter = true;
+            var federationFilter = true;
+            var externalFilter = true; 
+            
+            var maturityFilter = ["adult", "mature", "teen", "everyone", "unrated"];
+            var seachedFieldsFilter = ["name", "description", "owners", "tags"];
+            
+            var NUMBER_OF_RECORDS_PER_LOAD = 20;
+            var loadRecordsUpTo = NUMBER_OF_RECORDS_PER_LOAD;
+            var currentListFormat = "PLACES";
+        </script>
+    </head>
+    <body>
+        <div id="toolbar">
+            <table id='navigationBarContainer'>
+                <tr valign = 'middle'>
+                    <td width = '20%'>
+                        <div id='navigationBar'>
+                            <input type='image' class='navBtn' src='icons/home.png' onClick = 'goHome();'>
+                            <input type='image' class='navBtn' src='icons/back.png' onClick = 'goBack();'>
+                            <input type='image' class='navBtn' src='icons/forward.png' onClick = 'goForward();'>
+                        </div>
+                    </td>
+                    <td width = '80%'>
+                        <table id='searchTableExternal'>
+                            <tr>
+                                <td width='90%'>
+                                    <div id='searchFrame'>
+                                        <table id='searchTable'>
+                                            <tr>
+                                                <td width='90%' align='right'><input id='search' placeholder= 'Search / Visit' type = 'text' onkeyup = 'filterSearch();'></td>
+                                                <td width='10%'><a href="javascript:void(0)" id='clearBtn' onClick = 'clearSearch();'>&times;</a></td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </td>
+                                <td width='10%' align='left'><input type='image' class='searchBtn' src='icons/teleport.png' onClick = 'teleportUsingAddressBarValue(document.getElementById("search").value);'></td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+            <div id='filters'>
+                <div id="searchFiltersBar">
+                <button title="Name" class='fieldsSearchFilterOn' id='searchFilterName' onClick = 'filterSearchField("name");'>NAME</button>
+                <button title="Description" class='fieldsSearchFilterOn' id='searchFilterDesc' onClick = 'filterSearchField("description");'>DESC</button>
+                <button title="Owners" class='fieldsSearchFilterOn' id='searchFilterOwners' onClick = 'filterSearchField("owners");'>OWNERS</button>
+                <button title="Tags" class='fieldsSearchFilterOn' id='searchFilterTags' onClick = 'filterSearchField("tags");'>TAGS</button>
+                &nbsp;&nbsp;&nbsp;
+                </div>
+                <button class='localFilterOn' id='localPlacesFilter' onClick = 'filterRegion("local");'>LOC</button>
+                <button class='federationFilterOn' id='fedPlacesFilter' onClick = 'filterRegion("federation");'>FED</button>
+                <button class='externalFilterOn' id='extPlacesFilter' onClick = 'filterRegion("external");'>EXT</button>
+                &nbsp;&nbsp;&nbsp;               
+                <button class='filterLifeOff' id='presenceOfLife' onClick = 'filterLifeOnly();'>USERS</button>
+                &nbsp;&nbsp;&nbsp;
+                <button title="Adult" class='adultFilterOn' id='maturityAdult' onClick = 'filterMaturity("adult");'>A</button>
+                <button title="Mature" class='matureFilterOn' id='maturityMature' onClick = 'filterMaturity("mature");'>M</button>
+                <button title="Teen" class='teenFilterOn' id='maturityTeen' onClick = 'filterMaturity("teen");'>T</button>
+                <button title="Everyone" class='everyoneFilterOn' id='maturityEveryone' onClick = 'filterMaturity("everyone");'>E</button>
+                <button title="Unrated" class='unratedFilterOn' id='maturityUnrated' onClick = 'filterMaturity("unrated");'>U</button>
+            </div>
+            <div id='tabs'>
+                <button id='listFormatMetaverse' class='tabBtn' onclick='displayTab("REGIONS");' >Regions</button>
+                <button id='listFormatDomains' class='tabBtn' onclick='displayTab("DOMAINS");'>Domains</button>
+                <button id='listFormatPlaces' class='tabBtn' onclick='displayTab("PLACES");' disabled>Places</button>
+                
+            </div>
+        </div>
+        <div id='list_content'><br>&nbsp;&nbsp;Loading...</div>
+        <div id='listInfo'></div>
+        <input type = 'text' readonly id='currentLocation'>
+        <div id="placeDetail" class="overlay">
+          <a href="javascript:void(0)" class="closebtn" onclick="closeDetail();">&times;</a>
+          <div class="overlay-content">
+                <img id="placeDetail-image" onclick="closeDetail();" draggable="false">
+                <div id="placeDetail-placeName"></div>
+                <table width='100%'>
+                    <tr valign='top'>
+                        <td width='68%'>
+                            <div id="placeDetail-managers"></div>
+                            <div id="placeDetail-description"></div></td>
+                        <td width='3%'>&nbsp;</td>
+                        <td id="" width='29%'>
+                            
+                            <div id="placeDetail-visitBtn-container"></div>
+                            <div id="placeDetail-maturity"></div>
+                            <div id="placeDetail-placedata">
+                                DOMAIN:
+                                <div id="placeDetail-domain"></div>
+                                <br><br>USERS:<br>
+                                <div id="placeDetail-users"></div>
+                                <br><br>
+                                <div id="placeDetail-capacity"></div>
+                                <br><br>
+                                REGION:
+                                <div id="placeDetail-metaverse"></div>
+                                <div id="placeDetail-region"></div>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+          </div>
+        </div>
+
+        <script>
+            //LISTENER FROM JS FILE:
+            EventBridge.scriptEventReceived.connect(function (message) {
+                if (message.channel === channel && message.action === "PLACE_DATA") {
+                    placeList = [];
+                    placeList = message.data;
+                    warning = message.warning;
+                    metaverseList = message.metaverseServers;
+                    generateContent();
+                }
+                if (message.channel === channel && message.action === "CURRENT_LOCATION") {
+                    currentLocation = message.data;
+                    displayCurrentLocation();
+                }                
+            });
+            
+            var goSignal = {
+                "channel": channel,
+                "action": "READY_FOR_CONTENT"
+                };
+                
+            EventBridge.emitWebEvent(JSON.stringify(goSignal));
+            
+            function reload() {
+                var goSignal = {
+                    "channel": channel,
+                    "action": "READY_FOR_CONTENT"
+                    };
+                    
+                EventBridge.emitWebEvent(JSON.stringify(goSignal));
+                closeDetail();
+            }
+            
+
+            function displayCurrentLocation() {
+                loadRecordsUpTo = NUMBER_OF_RECORDS_PER_LOAD;
+                document.getElementById("currentLocation").value = currentLocation;
+            }
+
+            function sortDomainsOrder(a, b) {
+                var orderA = a.domainOrder.toUpperCase();
+                var orderB = b.domainOrder.toUpperCase();
+                if (orderA > orderB) {
+                    return 1;    
+                } else if (orderA < orderB) {
+                    return -1;
+                }
+                if (a.domainOrder > b.domainOrder) {
+                    return 1;    
+                } else if (a.domainOrder < b.domainOrder) {
+                    return -1;
+                }
+                return 0;
+            }
+
+            function generateContent() {
+                if (currentListFormat === "REGIONS") {
+                    //Display metaverse page here
+                    
+                    var formattedMetaverseList = "";
+                    var metaverseCounter = 0;
+                    
+                    for (var m = 0; m < metaverseList.length; m++) {
+                        if (metaverseCounter === loadRecordsUpTo) {
+                            //Display Load More button
+                            formattedMetaverseList = formattedMetaverseList + "<div id='loadMore'><button id='loadMoreBtn' onClick='loadMore();'>LOAD MORE...</button></div>";
+                            break;
+                        }
+
+                        var regionStyle = "";
+                        if (metaverseList[m].order === "A") {
+                            regionStyle = " style='background-color: #574000;'";
+                        } else if (metaverseList[m].order === "F") {
+                            regionStyle = " style='background-color: #00571e;'";
+                        } else if (metaverseList[m].order === "Z") { 
+                            regionStyle = " style='background-color: #004d57;'";
+                        }
+
+                        formattedMetaverseList = formattedMetaverseList + "<div class = 'placeEntry' id='place-" + metaverseList[m].url + "'" + regionStyle + "><div class = 'blur'>";
+                        formattedMetaverseList = formattedMetaverseList + "<table class='placeTable'>";
+                        formattedMetaverseList = formattedMetaverseList + "    <tr valign = 'top'>";
+                        formattedMetaverseList = formattedMetaverseList + "        <td width='2%'></td>";                                
+                        formattedMetaverseList = formattedMetaverseList + "        <td align='left' width='75%' ><font class= 'metaverseTitle region-" + metaverseList[m].region.toUpperCase() + "' >" + metaverseList[m].url + "</font></td>";
+                        if (!metaverseList[m].pinned) {
+                            formattedMetaverseList = formattedMetaverseList + "        <td align='right' ><span style='padding: 0%; cursor: pointer;' onclick='pinMetaverse(" + m + ", true);'><img src='icons/notpinned.png' width='26' height='26' draggable='false'></span></td>";
+                        } else {
+                            formattedMetaverseList = formattedMetaverseList + "        <td align='right' ><span style='padding: 0%; cursor: pointer;' onclick='pinMetaverse(" + m + ", false);'><img src='icons/pinned.png' width='26' height='26' draggable='false'></span></td>";                        
+                        }
+                        formattedMetaverseList = formattedMetaverseList + "    </tr>";
+                        formattedMetaverseList = formattedMetaverseList + "</table>";
+
+                        formattedMetaverseList = formattedMetaverseList + "<table class='placeTable'>";
+                        formattedMetaverseList = formattedMetaverseList + "    <tr valign='middle'>";
+                        formattedMetaverseList = formattedMetaverseList + "        <td width='2%'></td>";
+                        if (!metaverseList[m].fetch) {
+                            formattedMetaverseList = formattedMetaverseList + "        <td align='left' width='50%'><span style='padding: 0%; cursor: pointer;' onclick='fetchMetaverse(" + m + ", true);'><img src='icons/notfetched.png' width='40' height='16' draggable='false'></span></td>";
+                        } else {
+                            formattedMetaverseList = formattedMetaverseList + "        <td align='left' width='50%'><span style='padding: 0%; cursor: pointer;' onclick='fetchMetaverse(" + m + ", false);'><img src='icons/fetched.png' width='40' height='16' draggable='false'></span></td>";                        
+                        }                        
+                        formattedMetaverseList = formattedMetaverseList + "        <td align='right' width='50%' ><font class='metaverseRegion region-" + metaverseList[m].region.toUpperCase() + "'>" + metaverseList[m].region.toUpperCase() + "</font></td>";
+                        formattedMetaverseList = formattedMetaverseList + "    </tr>";
+                        formattedMetaverseList = formattedMetaverseList + "</table>";
+
+                        formattedMetaverseList = formattedMetaverseList + "</div></div>";
+
+                        metaverseCounter++;
+                        
+                    }
+                    
+                    document.getElementById("searchFiltersBar").style.display = "none";
+                    
+                    document.getElementById("list_content").innerHTML = formattedMetaverseList;
+                    
+                    var metaversePageInfo = " nodes";
+                    if (metaverseCounter <= 1) {
+                        metaversePageInfo = " node";
+                    }
+                    document.getElementById("listInfo").innerHTML = metaverseCounter + metaversePageInfo + " of " + metaverseList.length + ".";
+                } else {
+                    var placeRecords = placeList.slice();
+
+                    if (currentListFormat === "DOMAINS") {
+                        placeRecords.sort(sortDomainsOrder);
+                    }
+                    
+                    var currentDomain = "";
+                    var counter = 0;
+                    var formatedList = "";
+                    
+                    if (warning !== "") {
+                        formatedList = formatedList + "<div class='warningEntry'>";
+                        formatedList = formatedList + "<table class='warningTable'>";
+                        formatedList = formatedList + "<tr>";
+                        formatedList = formatedList + "<td width='5%'>&nbsp;</td>";
+                        formatedList = formatedList + "<td width='95%' valign='top' class='warningTitle'>" + warning + "</td>";
+                        formatedList = formatedList + "</tr>";
+                        formatedList = formatedList + "</table>";
+                        formatedList = formatedList + "</div>";                    
+                    }
+                                    
+                    for (var i = 0; i < placeRecords.length; i++) {
+                        if (counter === loadRecordsUpTo) {
+                            //Display Load More button
+                            formatedList = formatedList + "<div id='loadMore'><button id='loadMoreBtn' onClick='loadMore();'>LOAD MORE...</button></div>";
+                            break;
+                        }
+                        
+
+                        /*
+                        Here's where you generate the list.
+                        This is the data that you can use to build each portal:
+                        
+                            placeRecords[i].order
+                                //String (Just a sequence used to establish the current ordering. 
+                                //No expected to be use, the list is already sorted based on it for you when the page get the data.)
+                            
+                            placeRecords[i].category
+                                //STRING (Possible Values: 
+                                    //"A" = Attraction (places that have a thumbnail to attact trafic)
+                                    //"Z" = Other (places that have no tumbnail to not attract trafic, since it's not an attraction.)
+                                    //"Z" = Utilitary things like localhost
+                                    //The ordering is already sorting the event in top of the list.
+                                    //You could also have checked if the thumbnail exist or not.
+                                    
+                            placeRecords[i].accessStatus
+                                //String (Possible values: FULL/LIFE/NOBODY 
+                                //This indicate if there are presence of people or not, and if the domain is full capacity.
+                                //This will be used to display "Life" indicator (green) or "Full" (red)
+                                
+                            placeRecords[i].name
+                                //String (This is the name of the Place. We might want a keyword filter based on this content)
+                                
+                            placeRecords[i].description
+                                //String (This is the description of the Place. We might want a keyword filter based on this content)
+                                //To display in a place detail tab?
+                                
+                            placeRecords[i].thumbnail
+                                String (This is the url of the place picture)
+                                
+                            placeRecords[i].maturity
+                                 String | "unrated", "adult", "mature", "teen", "everyone" (we might want a filter based on that)
+                                 
+                            placeRecords[i].address
+                                String (This is the hifi url of the place. To make a teleporter link, use the function teleport(placeID, address))
+                                
+                            placeRecords[i].current_attendance
+                                Number (The number of people currently in the Domain. domain.num_users)
+                                
+                            placeRecords[i].id
+                                String (This is the place ID, this can be used for any external storage)
+                                
+                            placeRecords[i].visibility
+                                String | 'open', 'friends', 'connections', 'private' 
+                                (for now only "open" are return by the api, so nothing to do with this. 
+                                Eventually, if we could have something to know if Annonymous are allowed, 
+                                we could disply but lock the place where anonymous are not welcome, if the connected user is anonnymous. 
+                                So they might see an interest to get an account.)
+                                
+                            placeRecords[i].capacity
+                                Number (Would be the max number of user allowed in the targetted domain.)
+
+                            placeRecords[i].tags
+                                String: Preformated list of tags
+                                
+                            placeRecords[i].managers
+                                String: Preformated list of owners
+                                
+                            placeRecords[i].domain
+                                String: Name of the domain where the place is.
+                                
+                            placeRecords[i].domainOrder
+                                String: (Just a sequence used to establish the "per Domain" list).
+                                
+                            placeRecords[i].metaverseServer
+                                String: Metaverse server identifier (base url)
+                                
+                            placeRecords[i].metaverseRegion
+                                String: metaverse server regionality: local, federation, external 
+                        
+                        */
+                        var searchedText = document.getElementById("search").value;
+                        if (searchedText !== "") {
+                            displaySearchFieldsFilter();
+                            document.getElementById("searchFiltersBar").style.display = "inline-block";
+                        } else {
+                            document.getElementById("searchFiltersBar").style.display = "none";
+                        }
+                        
+                        var lowerCasePlaceName = placeRecords[i].name.toLowerCase();
+                        var lowerCasePlaceDescription = placeRecords[i].description.toLowerCase();
+                        var lowerCasePlaceManagers = placeRecords[i].managers.toLowerCase();
+                        var lowerCasePlaceTags = placeRecords[i].tags.toLowerCase();
+                        if ((localFilter && placeRecords[i].metaverseRegion === "local") || 
+                            (federationFilter && placeRecords[i].metaverseRegion === "federation") || 
+                            (externalFilter && placeRecords[i].metaverseRegion === "external")) {
+                            if ((lifeOnlyFilter && placeRecords[i].accessStatus !== "NOBODY") || !lifeOnlyFilter) { 
+                                if ( maturityFilter.indexOf(placeRecords[i].maturity) !== -1){
+                                    if ((lowerCasePlaceName.indexOf(searchedText.toLowerCase()) !== -1 && seachedFieldsFilter.indexOf("name") !== -1) ||
+                                        (lowerCasePlaceDescription.indexOf(searchedText.toLowerCase()) !== -1 && seachedFieldsFilter.indexOf("description") !== -1) ||
+                                        (lowerCasePlaceManagers.indexOf(searchedText.toLowerCase()) !== -1 && seachedFieldsFilter.indexOf("owners") !== -1) ||
+                                        (lowerCasePlaceTags.indexOf(searchedText.toLowerCase()) !== -1 && seachedFieldsFilter.indexOf("tags") !== -1) ) { 
+                                        
+                                        if (currentListFormat === "DOMAINS" && currentDomain !== placeRecords[i].domain) {
+                                            
+                                            var capacity = "?";
+                                            if (placeRecords[i].capacity !== 0) {
+                                                capacity = placeRecords[i].capacity;
+                                            }
+                                            
+                                            //display Domain section
+                                            formatedList = formatedList + "<div id='domainEntry' class='domainEntry'>";
+                                            formatedList = formatedList + "<table class='domainTable'>";
+                                            formatedList = formatedList + "<tr>";
+                                            formatedList = formatedList + "<td width='5%'>&nbsp;</td>";
+                                            formatedList = formatedList + "<td width='70%' valign='top' class='domainTitle'>" + placeRecords[i].domain + "</td>";
+                                            formatedList = formatedList + "<td width='25%' align='right' valign='top'><font class='domain-nbrUser " + placeRecords[i].accessStatus + "'><font class='domain-nbrUser_small'>USERS:</font> " + placeRecords[i].current_attendance + "</font>";
+                                            formatedList = formatedList + "<font class='domain-capacity'><br>CAPACITY: " + capacity + "</font></td>";
+                                            formatedList = formatedList + "</tr>";
+                                            formatedList = formatedList + "</table>";
+                                            formatedList = formatedList + "</div>";
+
+                                            currentDomain = placeRecords[i].domain;
+                                        }
+                                        
+                                        var moreStyle = "";
+                                        if (placeRecords[i].category === "A") {
+                                            moreStyle = " style='background-image: url(" + placeRecords[i].thumbnail + "); background-repeat: no-repeat; background-position: 50% 50%; background-size: cover;'";
+                                        } else if (placeRecords[i].category === "Z") {
+                                            moreStyle = " style='background-color: #364a6e;'";
+                                        } else if (placeRecords[i].category === "U") { //TO REMOVE ONCE BEACONS GET REMOVED
+                                            moreStyle = " style='background-color: #38130f;'";
+                                        }
+                                        
+                                        var shortenedDescription = placeRecords[i].description.substr(0, 55);
+                                        if (shortenedDescription.slice(-1) !== ".") {
+                                            shortenedDescription = shortenedDescription + "...";
+                                        }
+                                        
+                                        var placeUrl = "hifi://" + placeRecords[i].name;
+                                        if (placeRecords[i].category === "U") {  //TO REMOVE ONCE BEACONS GET REMOVED
+                                            placeUrl = placeRecords[i].address;
+                                        } else if (placeRecords[i].metaverseRegion !== "local") {
+                                            placeUrl = "hifi://" + placeRecords[i].address;
+                                        }
+                                        
+                                        //Add the place to the list
+                                        
+                                        formatedList = formatedList + "<div class = 'placeEntry' id='place-" + placeRecords[i].id + "'" + moreStyle + "><div class = 'blur'>";
+                                        formatedList = formatedList + "<table class='placeTable'>";
+                                        formatedList = formatedList + "    <tr valign = 'top'>";
+                                        formatedList = formatedList + "        <td width='2%'></td>";                                
+                                        formatedList = formatedList + "        <td align='left' width='75%' onclick='teleport(" + '"' + placeRecords[i].id + '"' + ", " + '"' + placeUrl + '"' + "); return false;'><a class= 'placeTitle' href='javascript:void(0)' onclick='teleport(" + '"' + placeRecords[i].id + '"' + ", " + '"' + placeRecords[i].address + '"' + "); return false;'>" + placeRecords[i].name + "</a></td>";
+                                        if (placeRecords[i].category !== "Z") {
+                                            formatedList = formatedList + "        <td align='right' ><span style='padding: 0%; cursor: pointer;' onclick='openDetail(" + '"' + placeRecords[i].id + '"' + ")'><img src='icons/info.png' width='26' height='26' draggable='false'></span></td>";
+                                        }
+                                        formatedList = formatedList + "    </tr>";
+                                        formatedList = formatedList + "</table>";
+                                        if (placeRecords[i].category !== "Z") {
+                                            formatedList = formatedList + "<table class='placeTable'>";
+                                            formatedList = formatedList + "    <tr>";
+                                            formatedList = formatedList + "        <td width='2%'></td>";
+                                            formatedList = formatedList + "        <td align='left' width='88%' class='place-entry-description' onclick='teleport(" + '"' + placeRecords[i].id + '"' + ", " + '"' + placeUrl + '"' + "); return false;'>" + shortenedDescription + "</td>";
+                                            formatedList = formatedList + "        <td align='right' class='presenceOfLife-" + placeRecords[i].accessStatus + "'>&#9603;</td>";
+                                            formatedList = formatedList + "    </tr>";
+                                            formatedList = formatedList + "</table>";
+                                        }
+                                        formatedList = formatedList + "</div></div>";
+
+                                        counter++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    document.getElementById("list_content").innerHTML = formatedList;
+                    
+                    var placeInfo = " places";
+                    if (counter <= 1) {
+                        placeInfo = " place";
+                    }
+                    document.getElementById("listInfo").innerHTML = counter + placeInfo + " of " + placeRecords.length + ".";
+                }
+            }
+            
+            function loadMore() {
+                loadRecordsUpTo = loadRecordsUpTo + NUMBER_OF_RECORDS_PER_LOAD;
+                generateContent();
+            }
+            
+            function teleport(placeID, address) {
+                var teleportOrder = {
+                    "channel": channel,
+                    "action": "TELEPORT",
+                    "placeID": placeID,
+                    "address": address
+                    };
+                EventBridge.emitWebEvent(JSON.stringify(teleportOrder));
+                
+            }
+            
+            function goHome() {
+                var message = {
+                    "channel": channel,
+                    "action": "GO_HOME"
+                    };
+                EventBridge.emitWebEvent(JSON.stringify(message));            
+            }
+            
+            function goBack() {
+                var message = {
+                    "channel": channel,
+                    "action": "GO_BACK"
+                    };
+                EventBridge.emitWebEvent(JSON.stringify(message));             
+            }
+            
+            function goForward() {
+                var message = {
+                    "channel": channel,
+                    "action": "GO_FORWARD"
+                    };
+                EventBridge.emitWebEvent(JSON.stringify(message));             
+            }
+
+            function pinMetaverse(metaverseIndex, pinned) {
+                var message = {
+                    "channel": channel,
+                    "action": "PIN_META",
+                    "metaverseIndex": metaverseIndex,
+                    "value": pinned
+                    };
+                EventBridge.emitWebEvent(JSON.stringify(message));
+                sleepFor(210);                
+                reload();                
+            }
+
+            function fetchMetaverse(metaverseIndex, fetch) {
+                var message = {
+                    "channel": channel,
+                    "action": "FETCH_META",
+                    "metaverseIndex": metaverseIndex,
+                    "value": fetch
+                    };
+                EventBridge.emitWebEvent(JSON.stringify(message));
+                sleepFor(210);                
+                reload();                
+            }
+            
+            function filterLifeOnly() {
+                if (lifeOnlyFilter) {
+                    lifeOnlyFilter = false;
+                    document.getElementById("presenceOfLife").className = "filterLifeOff";
+                } else {
+                    lifeOnlyFilter = true;
+                    document.getElementById("presenceOfLife").className = "lifeFilterOn";
+                }
+                loadRecordsUpTo = NUMBER_OF_RECORDS_PER_LOAD;
+                generateContent();
+            }
+
+            function filterRegion(region) {
+                if (region === "local") {
+                    if (localFilter) {
+                        localFilter = false;
+                        document.getElementById("localPlacesFilter").className = "filterRegionOff";
+                    } else {
+                        localFilter = true;
+                        document.getElementById("localPlacesFilter").className = "localFilterOn";
+                    }                
+                }
+                if (region === "federation") {
+                    if (federationFilter) {
+                        federationFilter = false;
+                        document.getElementById("fedPlacesFilter").className = "filterRegionOff";
+                    } else {
+                        federationFilter = true;
+                        document.getElementById("fedPlacesFilter").className = "federationFilterOn";
+                    }                
+                }
+                if (region === "external") {
+                    if (externalFilter) {
+                        externalFilter = false;
+                        document.getElementById("extPlacesFilter").className = "filterRegionOff";
+                    } else {
+                        externalFilter = true;
+                        document.getElementById("extPlacesFilter").className = "externalFilterOn";
+                    }                
+                }                
+
+                loadRecordsUpTo = NUMBER_OF_RECORDS_PER_LOAD;
+                generateContent();
+            }
+            
+            function filterMaturity(targeted) {
+                if (maturityFilter.indexOf(targeted) === -1) {
+                    maturityFilter.push(targeted);
+                } else {
+                    maturityFilter = arrayRemove(maturityFilter, targeted);
+                }
+                loadRecordsUpTo = NUMBER_OF_RECORDS_PER_LOAD;
+                displayMaturityFilter();
+                generateContent();            
+            }
+
+            function filterSearchField(targeted) {
+                if (seachedFieldsFilter.indexOf(targeted) === -1) {
+                    seachedFieldsFilter.push(targeted);
+                } else {
+                    seachedFieldsFilter = arrayRemove(seachedFieldsFilter, targeted);
+                }
+                loadRecordsUpTo = NUMBER_OF_RECORDS_PER_LOAD;
+                displaySearchFieldsFilter();
+                generateContent();            
+            }
+            
+            function arrayRemove(arr, value) {
+                return arr.filter(function(ele){
+                    return ele != value;
+                });
+            }
+
+            function displayMaturityFilter() {
+                if (maturityFilter.indexOf("adult") === -1) {
+                    document.getElementById("maturityAdult").className = "filterOff";
+                } else {
+                    document.getElementById("maturityAdult").className = "adultFilterOn";
+                }
+
+                if (maturityFilter.indexOf("mature") === -1) {
+                    document.getElementById("maturityMature").className = "filterOff";
+                } else {
+                    document.getElementById("maturityMature").className = "matureFilterOn";
+                } 
+                
+                if (maturityFilter.indexOf("teen") === -1) {
+                    document.getElementById("maturityTeen").className = "filterOff";
+                } else {
+                    document.getElementById("maturityTeen").className = "teenFilterOn";
+                }
+
+                if (maturityFilter.indexOf("everyone") === -1) {
+                    document.getElementById("maturityEveryone").className = "filterOff";
+                } else {
+                    document.getElementById("maturityEveryone").className = "everyoneFilterOn";
+                }                
+
+                if (maturityFilter.indexOf("unrated") === -1) {
+                    document.getElementById("maturityUnrated").className = "filterOff";
+                } else {
+                    document.getElementById("maturityUnrated").className = "unratedFilterOn";
+                }                
+            }
+
+            function displaySearchFieldsFilter() {
+                if (seachedFieldsFilter.indexOf("name") === -1) {
+                    document.getElementById("searchFilterName").className = "fieldsSearchFilterOff";
+                } else {
+                    document.getElementById("searchFilterName").className = "fieldsSearchFilterOn";
+                }
+
+                if (seachedFieldsFilter.indexOf("description") === -1) {
+                    document.getElementById("searchFilterDesc").className = "fieldsSearchFilterOff";
+                } else {
+                    document.getElementById("searchFilterDesc").className = "fieldsSearchFilterOn";
+                }
+                
+                if (seachedFieldsFilter.indexOf("owners") === -1) {
+                    document.getElementById("searchFilterOwners").className = "fieldsSearchFilterOff";
+                } else {
+                    document.getElementById("searchFilterOwners").className = "fieldsSearchFilterOn";
+                }
+                
+                if (seachedFieldsFilter.indexOf("tags") === -1) {
+                    document.getElementById("searchFilterTags").className = "fieldsSearchFilterOff";
+                } else {
+                    document.getElementById("searchFilterTags").className = "fieldsSearchFilterOn";
+                }
+
+            }
+            
+            function filterSearch() {
+                document.getElementById("clearBtn").style.display = "block";
+                loadRecordsUpTo = NUMBER_OF_RECORDS_PER_LOAD;
+                generateContent();
+            }
+            
+            function teleportUsingAddressBarValue(url) {
+                var finalizedUrl = url;
+                if (url.substr(0, 7).toLocaleLowerCase() !== "http://" && 
+                    url.substr(0, 8).toLocaleLowerCase() !== "https://" && 
+                    url.substr(0, 7).toLocaleLowerCase() !== "hifi://") {
+                        finalizedUrl = "hifi://" + url;
+                    }
+                teleport("", finalizedUrl);
+            }
+
+            function clearSearch() {
+                document.getElementById("search").value = "";
+                document.getElementById("clearBtn").style.display = "none";
+                loadRecordsUpTo = NUMBER_OF_RECORDS_PER_LOAD;
+                generateContent();
+            }
+            
+            function displayTab(tab) {
+                currentListFormat = tab;
+                if (tab === "PLACES") {
+                    document.getElementById("listFormatPlaces").disabled = true;
+                    document.getElementById("listFormatDomains").disabled = false;
+                    document.getElementById("listFormatMetaverse").disabled = false;
+                } else if (tab === "DOMAINS") {
+                    document.getElementById("listFormatPlaces").disabled = false;
+                    document.getElementById("listFormatDomains").disabled = true;
+                    document.getElementById("listFormatMetaverse").disabled = false;
+                } else if (tab === "REGIONS") {
+                    document.getElementById("listFormatPlaces").disabled = false;
+                    document.getElementById("listFormatDomains").disabled = false;
+                    document.getElementById("listFormatMetaverse").disabled = true;
+                }
+            
+                loadRecordsUpTo = NUMBER_OF_RECORDS_PER_LOAD;
+                generateContent();
+            }
+            
+
+            function openDetail(placeId) {
+                for (var k=0; k < placeList.length; k++) {
+                    if (placeList[k].id === placeId) {
+                        var placeDetail = placeList[k];
+                        break;
+                    }
+                }
+
+                document.getElementById("placeDetail-image").src = "";
+                if (placeDetail.thumbnail === "") {
+                    document.getElementById("placeDetail-image").src = "icons/placeholder_" + placeDetail.metaverseRegion + ".jpg";
+                } else {
+                    document.getElementById("placeDetail-image").src = placeDetail.thumbnail;
+                }
+                document.getElementById("placeDetail-placeName").innerHTML = placeDetail.name;
+                document.getElementById("placeDetail-managers").innerHTML = "By <br>&nbsp;&nbsp;&nbsp;&nbsp;" + placeDetail.managers;
+                document.getElementById("placeDetail-description").innerHTML = placeDetail.description;
+                
+                var placeUrl = "hifi://" + placeDetail.name;
+                if (placeDetail.category === "U") {  //TO REMOVE ONCE BEACONS GET REMOVED
+                    placeUrl = placeDetail.address;
+                } else if (placeDetail.metaverseRegion !== "local") {
+                    placeUrl = "hifi://" + placeDetail.address;
+                }                
+                document.getElementById("placeDetail-visitBtn-container").innerHTML = "<button id='placeDetail-visitBtn' onclick='teleport(" + '"' + placeDetail.id + '"' + ", " + '"' + placeUrl + '"' + "); return false;'>Visit</button>";
+                document.getElementById("placeDetail-maturity").innerHTML = placeDetail.maturity.toUpperCase();
+                document.getElementById("placeDetail-maturity").className = placeDetail.maturity + "FilterOn placeMaturity";
+                document.getElementById("placeDetail-domain").innerHTML = placeDetail.domain.toUpperCase();
+                document.getElementById("placeDetail-users").innerHTML = "<font class='" + placeDetail.accessStatus + "'>" + placeDetail.current_attendance + "</font>";
+                var capacity = "UNDEFINED";
+                if (placeDetail.capacity !== 0) {
+                    capacity = placeDetail.capacity;
+                }
+                document.getElementById("placeDetail-capacity").innerHTML = "CAPACITY: <b>" + capacity + "</b>";
+                document.getElementById("placeDetail-metaverse").innerHTML = "<font class='region-" + placeDetail.metaverseRegion.toUpperCase() + "'>" + placeDetail.metaverseServer + "</font>";
+                document.getElementById("placeDetail-region").innerHTML = "<font class='region-" + placeDetail.metaverseRegion.toUpperCase() + "'>" + placeDetail.metaverseRegion.toUpperCase() + "</font>";
+  
+                document.getElementById("placeDetail").style.width = "100%";
+            }
+
+            function closeDetail() {
+                document.getElementById("placeDetail").style.width = "0%";
+            }
+
+            function sleepFor( milliseconds ){
+                var now = new Date().getTime();
+                while(new Date().getTime() < now + milliseconds){ /* do nothing */ } 
+            }                      
+
+            displayMaturityFilter();
+            document.getElementById("clearBtn").style.display = "none";
+            document.getElementById("searchFiltersBar").style.display = "none";
+        </script>            
+    </body>
+</html>

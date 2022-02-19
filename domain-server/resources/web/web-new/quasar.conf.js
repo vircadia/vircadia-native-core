@@ -147,9 +147,9 @@ module.exports = configure(function (ctx) {
             },
 
             manifest: {
-                name: "Vircadia Domain Dashboard",
-                short_name: "Vircadia Domain Dashboard",
-                description: "The Domain dashboard for Vircadia virtual worlds.",
+                name: "Overte Domain Dashboard",
+                short_name: "Overte Domain Dashboard",
+                description: "The Domain dashboard for Overte virtual worlds.",
                 display: "standalone",
                 orientation: "portrait",
                 background_color: "#ffffff",

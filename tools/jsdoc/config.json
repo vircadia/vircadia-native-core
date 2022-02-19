@@ -7,9 +7,9 @@
     },
     "docdash": {
         "meta": {
-            "title": "Vircadia API Docs",
-            "description": "API documentation for Vircadia.",
-            "keyword": "api, docs, vircadia, documentation"
+            "title": "Overte API Docs",
+            "description": "API documentation for Overte.",
+            "keyword": "api, docs, overte, documentation"
         },
         "search": [true],
         "collapse": [true],

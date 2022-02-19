@@ -25,7 +25,7 @@
     <div class="col-md-12">
       <span class='step-description'>
         <a target='_blank' href='https://docs.vircadia.com/create-and-explore/start-working-in-your-sandbox/place-names'>Place names</a> are similar to web addresses. Users who want to visit your domain can
-        enter its Place Name in Vircadia's Interface. You can choose a Place Name for your domain.</br>
+        enter its Place Name in Overte's Interface. You can choose a Place Name for your domain.</br>
         Your domain may also be reachable by <b>IP address</b>.
       </span>
     </div>
@@ -56,7 +56,7 @@
 <div class="wizard-step col-md-9 col-centered" style="display: none;">
   <h4 class="step-title"></h4>
   <div class="row">
-    <p id="permissions-description" class="col-md-12 step-info"><b>Localhost</b> has been granted administrator privileges to this domain. (Localhost is any</br>user on the same machine as the Vircadia server)</p>
+    <p id="permissions-description" class="col-md-12 step-info"><b>Localhost</b> has been granted administrator privileges to this domain. (Localhost is any</br>user on the same machine as the Overte server)</p>
   </div>
   <div id="admin-row" class="row">
     <p class="col-md-6">
@@ -231,7 +231,7 @@
 
   <div class="row">
     <div class="col-xs-10 col-xs-offset-1">
-      <p id="main-description" class="step-info">You have successfully setup and configured your Vircadia domain.</p>
+      <p id="main-description" class="step-info">You have successfully setup and configured your Overte domain.</p>
     </div>
   </div>
 
