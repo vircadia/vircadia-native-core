@@ -4,6 +4,7 @@
 //
 //  Created by Brad Hefta-Gaub on 12/14/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2022 Overte e.V.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -14,6 +15,7 @@
 #include <chrono>
 #include <thread>
 
+#include "QtCompatibility.h"
 #include <QtCore/QCoreApplication>
 #include <QtCore/QEventLoop>
 #include <QtCore/QFileInfo>
@@ -187,11 +189,8 @@ void inputControllerFromScriptValue(const QScriptValue &object, controller::Inpu
 //
 // Extract the url portion of a url that has been encoded with encodeEntityIdIntoEntityUrl(...)
 QString extractUrlFromEntityUrl(const QString& url) {
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-    auto parts = url.split(' ', QString::SkipEmptyParts);
-#else
-    auto parts = url.split(' ', Qt::SkipEmptyParts);
-#endif
+    auto parts = url.split(' ', QTCOMPAT_SKIP_EMPTY_PARTS);
+
     if (parts.length() > 0) {
         return parts[0];
     } else {
@@ -2390,11 +2389,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         bool passList = false;  // assume unsafe
         QString whitelistPrefix = "[WHITELIST ENTITY SCRIPTS]";
         QList<QString> safeURLPrefixes = { "file:///", "atp:", "cache:" };
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-        safeURLPrefixes += qEnvironmentVariable("EXTRA_WHITELIST").trimmed().split(QRegExp("\\s*,\\s*"), QString::SkipEmptyParts);
-#else
-        safeURLPrefixes += qEnvironmentVariable("EXTRA_WHITELIST").trimmed().split(QRegExp("\\s*,\\s*"), Qt::SkipEmptyParts);
-#endif
+        safeURLPrefixes += qEnvironmentVariable("EXTRA_WHITELIST").trimmed().split(QRegExp("\\s*,\\s*"), QTCOMPAT_SKIP_EMPTY_PARTS);
 
         // Entity Script Whitelist toggle check.
         Setting::Handle<bool> whitelistEnabled {"private/whitelistEnabled", false };
@@ -2405,11 +2400,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
 
         // Pull SAFEURLS from the Interface.JSON settings.
         QVariant raw = Setting::Handle<QVariant>("private/settingsSafeURLS").get();
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-        QStringList settingsSafeURLS = raw.toString().trimmed().split(QRegExp("\\s*[,\r\n]+\\s*"), QString::SkipEmptyParts);
-#else
-        QStringList settingsSafeURLS = raw.toString().trimmed().split(QRegExp("\\s*[,\r\n]+\\s*"), Qt::SkipEmptyParts);
-#endif
+        QStringList settingsSafeURLS = raw.toString().trimmed().split(QRegExp("\\s*[,\r\n]+\\s*"), QTCOMPAT_SKIP_EMPTY_PARTS);
         safeURLPrefixes += settingsSafeURLS;
         // END Pull SAFEURLS from the Interface.JSON settings.
 

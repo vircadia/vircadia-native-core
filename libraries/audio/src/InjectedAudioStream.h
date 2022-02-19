@@ -28,12 +28,7 @@ public:
     virtual const QUuid& getStreamIdentifier() const override { return _streamIdentifier; }
 
 private:
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-    InjectedAudioStream(const InjectedAudioStream&);
-    InjectedAudioStream& operator= (const InjectedAudioStream&);
-#else
     Q_DISABLE_COPY(InjectedAudioStream)
-#endif
 
     AudioStreamStats getAudioStreamStats() const override;
     int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) override;

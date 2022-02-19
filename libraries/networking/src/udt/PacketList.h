@@ -85,12 +85,7 @@ private:
     friend class SendQueue;
     friend class Socket;
 
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-    PacketList(const PacketList& other) = delete;
-    PacketList& operator=(const PacketList& other) = delete;
-#else
     Q_DISABLE_COPY(PacketList)
-#endif
 
     // Takes the first packet of the list and returns it.
     template<typename T> std::unique_ptr<T> takeFront();

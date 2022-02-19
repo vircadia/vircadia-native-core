@@ -4,6 +4,7 @@
 //
 //  Created by Stojce Slavkovski on 12/23/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2022 Overte e.V.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -14,6 +15,7 @@
 
 #include <mutex>
 
+#include "../QtCompatibility.h"
 #include <QtCore/QDateTime>
 #include <QtCore/QDir>
 #include <QtCore/QFileInfo>
@@ -67,15 +69,9 @@ QString FileUtils::readFile(const QString& filename) {
     return result;
 }
 
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-QStringList FileUtils::readLines(const QString& filename, QString::SplitBehavior splitBehavior) {
-    return readFile(filename).split(QRegularExpression("[\\r\\n]"), QString::SkipEmptyParts);
+QStringList FileUtils::readLines(const QString& filename, QTCOMPAT_SPLIT_BEHAVIOR splitBehavior) {
+    return readFile(filename).split(QRegularExpression("[\\r\\n]"), QTCOMPAT_SKIP_EMPTY_PARTS);
 }
-#else
-QStringList FileUtils::readLines(const QString& filename, Qt::SplitBehavior splitBehavior) {
-    return readFile(filename).split(QRegularExpression("[\\r\\n]"), Qt::SkipEmptyParts);
-}
-#endif
 
 void FileUtils::locateFile(const QString& filePath) {
 

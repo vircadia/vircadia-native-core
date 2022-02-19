@@ -141,11 +141,7 @@ public:
     }
 
 private:
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-    MenuUserData(const MenuUserData&);
-#else
     Q_DISABLE_COPY(MenuUserData);
-#endif
 
     QMetaObject::Connection _shutdownConnection;
     QMetaObject::Connection _changedConnection;

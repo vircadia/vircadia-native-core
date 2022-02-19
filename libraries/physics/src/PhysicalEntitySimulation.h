@@ -4,6 +4,7 @@
 //
 //  Created by Andrew Meadows 2015.04.27
 //  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2022 Overte e.V.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -15,6 +16,8 @@
 #include <stdint.h>
 #include <map>
 #include <set>
+
+#include "QtCompatibility.h"
 
 #include <btBulletDynamicsCommon.h>
 #include <BulletCollision/CollisionDispatch/btGhostObject.h>
@@ -129,11 +132,7 @@ private:
 
     QList<EntityDynamicPointer> _dynamicsToAdd;
     QSet<QUuid> _dynamicsToRemove;
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-    QMutex _dynamicsMutex { QMutex::Recursive };
-#else
-    QRecursiveMutex _dynamicsMutex;
-#endif
+    QTCOMPAT_DECLARE_RECURSIVE_MUTEX(_dynamicsMutex);
 
     workload::SpacePointer _space;
     uint64_t _nextBidExpiry;

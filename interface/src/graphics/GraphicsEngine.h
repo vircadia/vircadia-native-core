@@ -3,6 +3,7 @@
 //
 //  Created by Sam Gateau on 29/6/2018.
 //  Copyright 2018 High Fidelity, Inc.
+//  Copyright 2022 Overte e.V.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -12,6 +13,7 @@
 
 #include <gl/OffscreenGLCanvas.h>
 #include <gl/GLWidget.h>
+#include "QtCompatibility.h"
 #include <qmutex.h>
 
 #include <render/Engine.h>
@@ -68,12 +70,7 @@ private:
     void render_runRenderFrame(RenderArgs* renderArgs);
 
 protected:
-
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-    mutable QMutex _renderArgsMutex{ QMutex::Recursive };
-#else
-    mutable QRecursiveMutex _renderArgsMutex;
-#endif
+    mutable QTCOMPAT_DECLARE_RECURSIVE_MUTEX(_renderArgsMutex);
     AppRenderArgs _appRenderArgs;
 
     RateCounter<500> _renderLoopCounter;

@@ -4,6 +4,7 @@
 //
 //  Created by Brad Hefta-Gaub on 8/12/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2022 Overte e.V.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -13,6 +14,8 @@
 #define hifi_OctreeEditPacketSender_h
 
 #include <unordered_map>
+
+#include "QtCompatibility.h"
 
 #include <PacketSender.h>
 #include <udt/PacketHeaders.h>
@@ -93,11 +96,7 @@ protected:
     int _maxPendingMessages;
     bool _releaseQueuedMessagesPending;
     QMutex _pendingPacketsLock;
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-    QMutex _packetsQueueLock{ QMutex::Recursive };
-#else
-    QRecursiveMutex _packetsQueueLock; // don't let different threads release the queue while another thread is writing to it
-#endif
+    QTCOMPAT_DECLARE_RECURSIVE_MUTEX(_packetsQueueLock); // don't let different threads release the queue while another thread is writing to it
     std::list<EditMessagePair> _preServerEdits; // these will get packed into other larger packets
     std::list<std::unique_ptr<NLPacket>> _preServerSingleMessagePackets; // these will go out as is
 

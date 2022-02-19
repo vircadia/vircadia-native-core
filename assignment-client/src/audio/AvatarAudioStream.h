@@ -23,12 +23,7 @@ public:
     AvatarAudioStream(bool isStereo, int numStaticJitterFrames = -1);
 
 private:
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-    AvatarAudioStream(const AvatarAudioStream&);
-    AvatarAudioStream& operator= (const AvatarAudioStream&);
-#else
     Q_DISABLE_COPY(AvatarAudioStream)
-#endif
 
     int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) override;
 };

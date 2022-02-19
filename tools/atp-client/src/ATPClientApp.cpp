@@ -4,6 +4,7 @@
 //
 //  Created by Seth Alves on 2017-3-15
 //  Copyright 2017 High Fidelity, Inc.
+//  Copyright 2022 Overte e.V.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -11,6 +12,7 @@
 
 #include "ATPClientApp.h"
 
+#include "QtCompatibility.h"
 #include <QDataStream>
 #include <QTextStream>
 #include <QThread>
@@ -59,11 +61,7 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
     parser.addOption(listenPortOption);
 
     if (!parser.parse(QCoreApplication::arguments())) {
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-        qCritical() << parser.errorText() << endl;
-#else
-        qCritical() << parser.errorText() << Qt::endl;
-#endif
+        qCritical() << parser.errorText() << QTCOMPAT_ENDL;
         parser.showHelp();
         Q_UNREACHABLE();
     }

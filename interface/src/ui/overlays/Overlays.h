@@ -4,6 +4,7 @@
 //
 //  Modified by Zander Otavka on 7/15/15
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2022 Overte e.V.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -18,6 +19,7 @@
 #ifndef hifi_Overlays_h
 #define hifi_Overlays_h
 
+#include "QtCompatibility.h"
 #include <QMouseEvent>
 #include <QReadWriteLock>
 #include <QScriptValue>
@@ -746,11 +748,7 @@ signals:
 private:
     void cleanupOverlaysToDelete();
 
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-    mutable QMutex _mutex { QMutex::Recursive };
-#else
-    mutable QRecursiveMutex _mutex;
-#endif
+    mutable QTCOMPAT_DECLARE_RECURSIVE_MUTEX(_mutex);
     QMap<QUuid, Overlay::Pointer> _overlays;
     QList<Overlay::Pointer> _overlaysToDelete;
 

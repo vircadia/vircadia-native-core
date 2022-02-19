@@ -184,12 +184,7 @@ protected:
     QString _lastPlayedState;
 
 private:
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-    AnimRandomSwitch(const AnimRandomSwitch&) = delete;
-    AnimRandomSwitch& operator=(const AnimRandomSwitch&) = delete;
-#else
     Q_DISABLE_COPY(AnimRandomSwitch)
-#endif
 };
 
 #endif // hifi_AnimRandomSwitch_h

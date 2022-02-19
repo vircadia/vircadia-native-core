@@ -4,6 +4,7 @@
 //
 //  Created by Clément Brisset on 12/10/14.
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2022 Overte e.V.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -12,6 +13,7 @@
 #ifndef hifi_DependencyManager_h
 #define hifi_DependencyManager_h
 
+#include "QtCompatibility.h"
 #include <QtGlobal>
 #include <QDebug>
 #include <QHash>
@@ -89,11 +91,7 @@ private:
     QHash<size_t, QSharedPointer<Dependency>> _instanceHash;
     QHash<size_t, size_t> _inheritanceHash;
 
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-    mutable QMutex _instanceHashMutex { QMutex::Recursive };
-#else
-    mutable QRecursiveMutex _instanceHashMutex;
-#endif
+    mutable QTCOMPAT_DECLARE_RECURSIVE_MUTEX(_instanceHashMutex);
     mutable QMutex _inheritanceHashMutex;
 
     bool _exiting { false };

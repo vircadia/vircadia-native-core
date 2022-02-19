@@ -4,6 +4,7 @@
 //
 //  Created by Andrzej Kapolka on 10/18/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2022 Overte e.V.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -11,6 +12,7 @@
 
 #include "Model.h"
 
+#include "QtCompatibility.h"
 #include <QMetaType>
 #include <QRunnable>
 #include <QThreadPool>
@@ -1637,11 +1639,8 @@ std::set<unsigned int> Model::getMeshIDsFromMaterialID(QString parentMaterialNam
         };
 
         if (parentMaterialName.length() > 2 && parentMaterialName.startsWith("[") && parentMaterialName.endsWith("]")) {
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-            QStringList list = parentMaterialName.split(",", QString::SkipEmptyParts);
-#else
-            QStringList list = parentMaterialName.split(",", Qt::SkipEmptyParts);
-#endif
+            QStringList list = parentMaterialName.split(",", QTCOMPAT_SKIP_EMPTY_PARTS);
+
             for (int i = 0; i < list.length(); i++) {
                 auto& target = list[i];
                 if (i == 0) {

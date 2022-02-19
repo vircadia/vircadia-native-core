@@ -5,6 +5,7 @@
 //  Created by Clement on 7/21/15.
 //  Copyright 2015 High Fidelity, Inc.
 //  Copyright 2021 Vircadia contributors.
+//  Copyright 2022 Overte e.V.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -21,6 +22,7 @@
 #include <mutex>
 #include <unordered_map>
 
+#include "QtCompatibility.h"
 #include <QtCore/QObject>
 #include <QtCore/QReadWriteLock>
 
@@ -90,12 +92,7 @@ private slots:
     void run();
 
 private:
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-    SendQueue(SendQueue& other) = delete;
-    SendQueue(SendQueue&& other) = delete;
-#else
     Q_DISABLE_COPY_MOVE(SendQueue)
-#endif
     SendQueue(Socket* socket, SockAddr dest, SequenceNumber currentSequenceNumber,
               MessageNumber currentMessageNumber, bool hasReceivedHandshakeACK);
 

@@ -2,6 +2,7 @@
 //  Created by Bradley Austin Davis Arnold on 2015/06/13
 //  Copyright 2015 High Fidelity, Inc.
 //  Copyright 2020 Vircadia contributors.
+//  Copyright 2022 Overte e.V.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -13,6 +14,7 @@
 #include <atomic>
 #include <cstdint>
 
+#include "QtCompatibility.h"
 #include <QtCore/QObject>
 #include <QtCore/QMutex>
 #include <QtCore/QPropertyAnimation>
@@ -161,11 +163,7 @@ private:
     // application specific position, when it's in desktop mode, the reticle position will simply move
     // the system mouse.
     glm::vec2 _reticlePositionInHMD { 0.0f, 0.0f };
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-    mutable QMutex _reticleLock { QMutex::Recursive };
-#else
-    mutable QRecursiveMutex _reticleLock;
-#endif
+    mutable QTCOMPAT_DECLARE_RECURSIVE_MUTEX(_reticleLock);
 
     QPointF _lastKnownRealMouse;
     bool _ignoreMouseMove { false };

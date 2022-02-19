@@ -64,12 +64,7 @@ protected:
     SequenceNumber _sendCurrSeqNum; // current maximum seq num sent out
 
 private:
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-    CongestionControl(const CongestionControl& other) = delete;
-    CongestionControl& operator=(const CongestionControl& other) = delete;
-#else
     Q_DISABLE_COPY(CongestionControl);
-#endif
 };
 
 

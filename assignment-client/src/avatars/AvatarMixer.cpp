@@ -5,6 +5,7 @@
 //  Created by Stephen Birarda on 9/5/13.
 //  Copyright 2013 High Fidelity, Inc.
 //  Copyright 2021 Vircadia contributors.
+//  Copyright 2022 Overte e.V.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -1062,11 +1063,7 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
 
     static const QString AVATAR_WHITELIST_OPTION = "avatar_whitelist";
     _slaveSharedData.skeletonURLWhitelist = avatarMixerGroupObject[AVATAR_WHITELIST_OPTION]
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-        .toString().split(',', QString::KeepEmptyParts);
-#else
-        .toString().split(',', Qt::KeepEmptyParts);
-#endif
+        .toString().split(',', QTCOMPAT_KEEP_EMPTY_PARTS);
 
     static const QString REPLACEMENT_AVATAR_OPTION = "replacement_avatar";
     _slaveSharedData.skeletonReplacementURL = avatarMixerGroupObject[REPLACEMENT_AVATAR_OPTION]

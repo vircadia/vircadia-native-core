@@ -4,6 +4,7 @@
 //
 //  Created by Simon Walton on 3/19/2018.
 //  Copyright 2018 High Fidelity, Inc.
+//  Copyright 2022 Overte e.V.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -14,6 +15,7 @@
 
 #include <vector>
 #include <memory>
+#include "QtCompatibility.h"
 #include <QtCore/QMutex>
 
 class QUuid;
@@ -39,11 +41,7 @@ public:
     HMACHash result();
 
 private:
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-    QMutex _lock { QMutex::Recursive };
-#else
-    QRecursiveMutex _lock;
-#endif
+    QTCOMPAT_DECLARE_RECURSIVE_MUTEX(_lock);
     struct hmac_ctx_st* _hmacContext;
     AuthMethod _authMethod;
 };

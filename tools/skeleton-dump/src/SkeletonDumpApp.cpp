@@ -4,12 +4,14 @@
 //
 //  Created by Anthony Thibault on 11/4/16.
 //  Copyright 2016 High Fidelity, Inc.
+//  Copyright 2022 Overte e.V.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 #include "SkeletonDumpApp.h"
+#include "QtCompatibility.h"
 #include <QCommandLineParser>
 #include <QFile>
 #include <FBXSerializer.h>
@@ -29,11 +31,7 @@ SkeletonDumpApp::SkeletonDumpApp(int argc, char* argv[]) : QCoreApplication(argc
     parser.addOption(inputFilenameOption);
 
     if (!parser.parse(QCoreApplication::arguments())) {
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-        qCritical() << parser.errorText() << endl;
-#else
-        qCritical() << parser.errorText() << Qt::endl;
-#endif
+        qCritical() << parser.errorText() << QTCOMPAT_ENDL;
         parser.showHelp();
         _returnCode = 1;
         return;

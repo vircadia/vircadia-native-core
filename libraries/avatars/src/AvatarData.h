@@ -1887,12 +1887,7 @@ protected:
     virtual void clearAvatarGrabData(const QUuid& grabID);
 
 private:
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-    AvatarData(const AvatarData&);
-    AvatarData& operator= (const AvatarData&);
-#else
     Q_DISABLE_COPY(AvatarData)
-#endif
 
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);
     static QUrl _defaultFullAvatarModelUrl;
