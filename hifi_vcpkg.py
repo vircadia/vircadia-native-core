@@ -218,7 +218,15 @@ endif()
         actualCommands.extend(commands)
         print("Running command")
         print(actualCommands)
-        hifi_utils.executeSubprocess(actualCommands, folder=self.path, env=self.buildEnv)
+        try:
+            hifi_utils.executeSubprocess(actualCommands, folder=self.path, env=self.buildEnv)
+        except RuntimeError:
+            print("hifi_scribe standard output:")
+            with open(os.path.join(self.path, "buildtrees\hifi-scribe\config-x64-windows-release-out.log"), 'r') as fin:
+                print(fin.read())
+            print("hifi_scribe error output:")
+            with open(os.path.join(self.path, "buildtrees\hifi-scribe\config-x64-windows-release-err.log"), 'r') as fin:
+                print(fin.read())
 
     def copyTripletForBuildType(self, triplet):
         print('Copying triplet ' + triplet + ' to have build type ' + self.vcpkgBuildType)
