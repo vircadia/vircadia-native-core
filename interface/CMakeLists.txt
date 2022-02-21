@@ -223,7 +223,7 @@ link_hifi_libraries(
   ui-plugins display-plugins input-plugins vircadia-sdk
   # Platform specific GL libraries
   ${PLATFORM_GL_BACKEND}
-  # Plaform specific input & display plugin libraries
+  # Platform specific input & display plugin libraries
   ${PLATFORM_PLUGIN_LIBRARIES}
   shaders
 )
