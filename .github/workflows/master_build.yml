@@ -11,8 +11,7 @@ env:
   BUILD_NUMBER: ${{ github.run_number }}
   CI_BUILD: Github
   GIT_COMMIT: ${{ github.sha }}
-  # VCPKG did not build well on OSX disabling HIFI_VCPKG_BOOTSTRAP, which invokes a download to a working version of vcpkg
-  # HIFI_VCPKG_BOOTSTRAP: true
+  HIFI_VCPKG_BOOTSTRAP: true
   RELEASE_TYPE: PRODUCTION
   RELEASE_NUMBER: ${{ github.run_number }}
   STABLE_BUILD: 0
