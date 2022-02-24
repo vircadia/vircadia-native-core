@@ -123,10 +123,18 @@ def main():
             # qtInstallPath is None when we're doing a system Qt build
             print("cmake path: " + qtInstallPath)
 
-            with hifi_singleton.Singleton(qt.lockFile) as lock:
-                with timer('Qt'):
-                    qt.installQt()
-                    qt.writeConfig()
+            try:
+                with hifi_singleton.Singleton(qt.lockFile) as lock:
+                    with timer('Qt'):
+                        qt.installQt()
+                        qt.writeConfig()
+            except PermissionError:
+                lockDir, lockName = os.path.split(qt.lockFile)
+                with hifi_singleton.Singleton(lockName) as lock:
+                    with timer('Qt'):
+                        qt.installQt()
+                        qt.writeConfig()
+
         else:
             if (os.environ["VIRCADIA_USE_SYSTEM_QT"]):
                 print("System Qt selected")
