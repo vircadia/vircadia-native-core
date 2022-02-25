@@ -1,0 +1,40 @@
+From 658708e31eba3dadd884a9526b9995c9f3c8076b Mon Sep 17 00:00:00 2001
+From: Maki <mxmcube@gmail.com>
+Date: Sat, 11 Jul 2020 00:55:21 +0100
+Subject: [PATCH] Fixed compiling on arm64
+
+---
+ src/nvcore/Debug.cpp | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/src/nvcore/Debug.cpp b/src/nvcore/Debug.cpp
+index 9ab4525..e335f97 100644
+--- a/src/nvcore/Debug.cpp
++++ b/src/nvcore/Debug.cpp
+@@ -1008,6 +1008,13 @@ void debug::dumpInfo()
+ #endif
+ }
+ 
++static va_list getEmptyVAList(va_list list, ...)
++{
++    va_start(list, list);
++    va_end(list);
++    return list;
++}
++
+ /// Dump callstack using the specified handler.
+ void debug::dumpCallstack(MessageHandler *messageHandler, int callstackLevelsToSkip /*= 0*/)
+ {
+@@ -1020,8 +1027,11 @@ void debug::dumpCallstack(MessageHandler *messageHandler, int callstackLevelsToS
+         Array<const char *> lines;
+         writeStackTrace(trace, size, callstackLevelsToSkip + 1, lines);     // + 1 to skip the call to dumpCallstack
+ 
++        va_list empty;
++        empty = getEmptyVAList(empty);
++
+         for (uint i = 0; i < lines.count(); i++) {
+-            messageHandler->log(lines[i], NULL);
++            messageHandler->log(lines[i], empty);
+             delete lines[i];
+         }
+     }
