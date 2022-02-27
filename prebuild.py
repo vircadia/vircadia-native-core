@@ -100,6 +100,7 @@ def main():
 
     args = parse_args()
     nsis_urls = hifi_utils.readEnviromentVariableFromFile(args.build_root, 'EXTERNAL_NSIS_HIFI_PLUGINS_URLS').split(';')
+    nsis_sha512 = hifi_utils.readEnviromentVariableFromFile(args.build_root, 'EXTERNAL_NSIS_HIFI_PLUGINS_SHA512')
 
     if args.ci_build:
         logging.basicConfig(datefmt='%H:%M:%S', format='%(asctime)s %(guid)s %(message)s', level=logging.INFO)
@@ -111,7 +112,7 @@ def main():
     if 'Windows' == system and 'CI_BUILD' in os.environ and os.environ["CI_BUILD"] == "Github":
         logger.info("Downloading NSIS")
         with timer('NSIS'):
-            hifi_utils.downloadAndExtract(nsis_urls, "C:/Program Files (x86)")
+            hifi_utils.downloadAndExtract(nsis_urls, "C:/Program Files (x86)", nsis_sha512)
 
     qtInstallPath = None
     # If not android, install our Qt build
@@ -123,10 +124,18 @@ def main():
             # qtInstallPath is None when we're doing a system Qt build
             print("cmake path: " + qtInstallPath)
 
-            with hifi_singleton.Singleton(qt.lockFile) as lock:
-                with timer('Qt'):
-                    qt.installQt()
-                    qt.writeConfig()
+            try:
+                with hifi_singleton.Singleton(qt.lockFile) as lock:
+                    with timer('Qt'):
+                        qt.installQt()
+                        qt.writeConfig()
+            except PermissionError:
+                lockDir, lockName = os.path.split(qt.lockFile)
+                with hifi_singleton.Singleton(lockName) as lock:
+                    with timer('Qt'):
+                        qt.installQt()
+                        qt.writeConfig()
+
         else:
             if (os.environ["VIRCADIA_USE_SYSTEM_QT"]):
                 print("System Qt selected")

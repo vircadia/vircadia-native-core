@@ -134,8 +134,10 @@ endif()
 
         if 'Windows' == system:
             self.qtUrl = hifi_utils.readEnviromentVariableFromFile(self.args.build_root, 'EXTERNAL_QT_WIN_URLS').split(";")
+            self.qtSha512 = hifi_utils.readEnviromentVariableFromFile(self.args.build_root, 'EXTERNAL_QT_WIN_SHA512')
         elif 'Darwin' == system:
             self.qtUrl = hifi_utils.readEnviromentVariableFromFile(self.args.build_root, 'EXTERNAL_QT_MAC_URLS').split(";")
+            self.qtSha512 = hifi_utils.readEnviromentVariableFromFile(self.args.build_root, 'EXTERNAL_QT_MAC_SHA512')
         elif 'Linux' == system:
             import distro
             cpu_architecture = platform.machine()
@@ -149,6 +151,7 @@ endif()
                 if distro.id() == 'ubuntu' or distro.id() == 'linuxmint':
                     if (distro.id() == 'ubuntu' and u_major == 18) or distro.id() == 'linuxmint' and u_major == 19:
                         self.qtUrl = hifi_utils.readEnviromentVariableFromFile(self.args.build_root, 'EXTERNAL_QT_LINUX_URLS').split(";")
+                        self.qtSha512 = hifi_utils.readEnviromentVariableFromFile(self.args.build_root, 'EXTERNAL_QT_LINUX_SHA512')
                     elif (distro.id() == 'ubuntu' and u_major > 18) or (distro.id() == 'linuxmint' and u_major > 19):
                         self.__no_qt_package_error()
                     else:
@@ -166,6 +169,7 @@ endif()
 
                     if u_major == 18:
                         self.qtUrl = hifi_utils.readEnviromentVariableFromFile(self.args.build_root, 'EXTERNAL_QT_UBUNTU_AARCH64_URLS').split(";")
+                        self.qtSha512 = hifi_utils.readEnviromentVariableFromFile(self.args.build_root, 'EXTERNAL_QT_UBUNTU_AARCH64_SHA512')
                     elif u_major > 19:
                         self.__no_qt_package_error()
                     else:
@@ -179,6 +183,7 @@ endif()
 
                     if u_major == 10:
                         self.qtUrl = hifi_utils.readEnviromentVariableFromFile(self.args.build_root, 'EXTERNAL_QT_DEBIAN_AARCH64_URLS').split(";")
+                        self.qtSha512 = hifi_utils.readEnviromentVariableFromFile(self.args.build_root, 'EXTERNAL_QT_DEBIAN_AARCH64_SHA512')
                     elif u_major > 10:
                         self.__no_qt_package_error()
                     else:
@@ -213,7 +218,7 @@ endif()
     def installQt(self):
         if not os.path.isdir(self.fullPath):
             print("Fetching Qt from {} to {}".format(self.qtUrl, self.path))
-            hifi_utils.downloadAndExtract(self.qtUrl, self.path)
+            hifi_utils.downloadAndExtract(self.qtUrl, self.path, self.qtSha512)
         else:
             print ('Qt has already been downloaded')
 
