@@ -34,5 +34,22 @@ set_property(GLOBAL APPEND
     PROPERTY CMAKE_CONFIGURE_DEPENDS
     "${VIRCADIA_SDK_GIT_ROOT}/.git/index")
 
+# check if Doxygen is installed
+find_package(Doxygen)
+if (DOXYGEN_FOUND)
+    set(DOXYGEN_PROJECT_NAME "Vircadia SDK")
+    set(DOXYGEN_PROJECT_VERSION ${VIRCADIA_SDK_VERSION_FULL})
+    set(DOXYGEN_GENERATE_MAN YES)
+    doxygen_add_docs(
+        vircadia-sdk-docs
+        COMMENT "Generate Vircadia SDK documentation."
+    )
+    unset(DOXYGEN_PROJECT_NAME)
+    unset(DOXYGEN_PROJECT_VERSION)
+    unset(DOXYGEN_GENERATE_MAN)
+else (DOXYGEN_FOUND)
+    message("Doxygen not found. Vircadia SDK documentation target will not be generatred.")
+endif (DOXYGEN_FOUND)
+
 setup_hifi_library()
 link_hifi_libraries(shared networking)
