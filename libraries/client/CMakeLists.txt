@@ -53,3 +53,5 @@ endif (DOXYGEN_FOUND)
 
 setup_hifi_library()
 link_hifi_libraries(shared networking)
+
+add_subdirectory(tests)
