@@ -154,6 +154,14 @@ jobs:
       shell: bash
       run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DVCPKG_BUILD_TYPE=release -DCLIENT_ONLY:BOOLEAN=$CLIENT_ONLY -DBYPASS_SIGNING:BOOLEAN=TRUE $CMAKE_EXTRA
 
+    - name: Build and run client API unit tests
+      if: matrix.build_type == 'full' || matrix.os == 'windows-latest'
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: |
+          cmake --build . --config $BUILD_TYPE --target vircadia-client-tests $CMAKE_BUILD_EXTRA
+          ctest
+
     - name: Build application
       working-directory: ${{runner.workspace}}/build
       shell: bash
