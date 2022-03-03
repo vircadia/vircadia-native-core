@@ -30,7 +30,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-latest, macOS-10.15, ubuntu-18.04]
+        os: [windows-2019, macOS-10.15, ubuntu-18.04]
         # build_type: [full, client]
         build_type: [full]
         include:
@@ -70,7 +70,7 @@ jobs:
           echo "APP_TARGET_NAME=Vircadia" >> $GITHUB_ENV
         fi
         # Windows build variables
-        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+        if [ "${{ matrix.os }}" = "windows-2019" ]; then
           echo "PYTHON_EXEC=python" >> $GITHUB_ENV
           echo "ZIP_COMMAND=7z" >> $GITHUB_ENV
           echo "ZIP_ARGS=a" >> $GITHUB_ENV
