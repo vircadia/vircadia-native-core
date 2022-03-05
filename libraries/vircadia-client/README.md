@@ -12,4 +12,4 @@ To build the unit tests (which will also build the library):
 ```
 cmake --build . --target vircadia-client-tests
 ```
-The tests can be run with `ctest`, or directly by executing `build/libraries/client/tests/vircadia-client-tests` for more detailed output.
+The tests can be run with `ctest`, or directly by executing `build/libraries/vircadia-client/tests/vircadia-client-tests` for more detailed output.
