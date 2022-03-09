@@ -12,7 +12,7 @@
 #include <thread>
 #include <string>
 
-#include <CPUIdent.h>
+#include "../../CPUIdent.h"
 
 #include <QtCore/QtGlobal>
 
@@ -54,7 +54,7 @@ void WINInstance::enumerateGpusAndDisplays() {
             value << uint32_t(((version.LowPart & 0xFFFF0000) >> 16) & 0x0000FFFF);
             value << ".";
             value << uint32_t((version.LowPart) & 0x0000FFFF);
-           
+
             return value.str();
         }
     } convertDriverVersionToString;
@@ -80,10 +80,10 @@ void WINInstance::enumerateGpusAndDisplays() {
             // Found an adapter, get descriptor
             DXGI_ADAPTER_DESC1 adapterDesc;
             pAdapter->GetDesc1(&adapterDesc);
-            
+
             // Only describe gpu if it is a hardware adapter
             if (!(adapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)) {
- 
+
                 LARGE_INTEGER version;
                 hr = pAdapter->CheckInterfaceSupport(__uuidof(IDXGIDevice), &version);
 
@@ -163,13 +163,13 @@ void WINInstance::enumerateGpusAndDisplays() {
                     //Average the ppiH and V for the simple ppi
                     display[keys::display::ppi] = std::round(0.5f * (dpiX + dpiY));
                     display[keys::display::ppiDesktop] = std::round(0.5f * (dpiXScaled + dpiYScaled));
-                
+
                     // refreshrate
                     display[keys::display::modeRefreshrate] = devMode.dmDisplayFrequency;;
-                
+
                     // Master display ?
                     display[keys::display::isMaster] = (bool) (monitorInfo.dwFlags & MONITORINFOF_PRIMARY);
- 
+
                     // Add the display index to the list of displays of the gpu
                     displayIndices.push_back((int) _displays.size());
 
@@ -177,7 +177,7 @@ void WINInstance::enumerateGpusAndDisplays() {
                     display[keys::display::gpu] = (int) _gpus.size();
 
                     // WIN specific
-                    
+
 
                     // One more display desc
                     _displays.push_back(display);

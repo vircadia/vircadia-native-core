@@ -15,4 +15,8 @@ if (APPLE)
 
 elseif(WIN32)
     target_link_libraries(${TARGET_NAME} Iphlpapi.lib)
+elseif(UNIX)
+  find_library(OpenGL OpenGL)
+
+  target_link_libraries(${TARGET_NAME} ${OpenGL})
 endif()
