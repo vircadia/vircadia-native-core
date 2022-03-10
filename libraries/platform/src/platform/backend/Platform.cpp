@@ -30,7 +30,7 @@ namespace platform { namespace keys {
      * @property {string} vendor - The CPU vendor (e.g., <code>"Intel"</code> or <code>"AMD"</code>).
      * @property {string} model - The CPU model.
      * @property {number} numCores - The number of logical cores.
-     * @property {boolean} isMaster - <code>true</code> if the CPU is the "master" or primary CPU, <code>false</code> or 
+     * @property {boolean} isMaster - <code>true</code> if the CPU is the "master" or primary CPU, <code>false</code> or
      *     <code>undefined</code> if it isn't.
      */
     namespace cpu {
@@ -51,7 +51,7 @@ namespace platform { namespace keys {
      * @property {string} model - The GPU model.
      * @property {string} driver - The GPU driver version.
      * @property {number} videoMemory - The size of the GPU's video memory, in MB.
-     * @property {number[]} displays - The index numbers of the displays currently being driven by the GPU. An empty array if 
+     * @property {number[]} displays - The index numbers of the displays currently being driven by the GPU. An empty array if
      *     the GPU is currently not driving any displays.
      * @property {boolean} isMaster - <code>true</code> if the GPU is the "master" or primary GPU, <code>false</code> or
      *     <code>undefined</code> if it isn't.
@@ -68,7 +68,7 @@ namespace platform { namespace keys {
         const char*  displays = "displays";
         const char*  isMaster = "isMaster";
     }
-    
+
     /*@jsdoc
      * Information on a graphics API.
      * @typedef {object} PlatformInfo.GraphicsAPIDescription
@@ -85,7 +85,7 @@ namespace platform { namespace keys {
     /*@jsdoc
      * Information on a Vulkan graphics API.
      * @typedef {object} PlatformInfo.VulkanAPIDescription
-     * @property {string} 
+     * @property {string}
      * @property {string} driverVersion - The driver version.
      * @property {string} apiVersion - The API version.
      * @property {string} deviceType - The device type.
@@ -272,6 +272,10 @@ using namespace platform;
 Instance *_instance;
 
 void platform::create() {
+    if (_instance) {
+        return;
+    }
+
 #if defined(Q_OS_WIN)
     _instance =new WINInstance();
 #elif defined(Q_OS_MAC)
@@ -338,4 +342,16 @@ json platform::getComputer() {
 
 json platform::getAll() {
     return _instance->getAll();
+}
+
+json platform::getDescription() {
+    auto all = _instance->getAll();
+    json desc{};
+    desc[platform::keys::COMPUTER] = all[platform::keys::COMPUTER];
+    desc[platform::keys::MEMORY] = all[platform::keys::MEMORY];
+    desc[platform::keys::CPUS] = all[platform::keys::CPUS];
+    desc[platform::keys::GPUS] = all[platform::keys::GPUS];
+    desc[platform::keys::DISPLAYS] = all[platform::keys::DISPLAYS];
+    desc[platform::keys::NICS] = all[platform::keys::NICS];
+    return desc;
 }

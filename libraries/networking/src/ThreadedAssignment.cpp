@@ -20,7 +20,6 @@
 #include <LogHandler.h>
 #include <shared/QtHelpers.h>
 
-#include <platform/Platform.h>
 #include "NetworkLogging.h"
 
 ThreadedAssignment::ThreadedAssignment(ReceivedMessage& message) :
@@ -43,15 +42,10 @@ ThreadedAssignment::ThreadedAssignment(ReceivedMessage& message) :
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::receivedDomainServerList, this, &ThreadedAssignment::clearQueuedCheckIns);
 
-    platform::create();
-    if (!platform::enumeratePlatform()) {
-        qCDebug(networking) << "Failed to enumerate platform.";
-    }
 }
 
 ThreadedAssignment::~ThreadedAssignment() {
     stop();
-    platform::destroy();
 }
 
 void ThreadedAssignment::setFinished(bool isFinished) {

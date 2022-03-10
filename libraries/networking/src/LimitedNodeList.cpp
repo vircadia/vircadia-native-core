@@ -41,7 +41,7 @@
 
 #if defined(Q_OS_WIN)
 #include <winsock.h>
-#else 
+#else
 #include <arpa/inet.h>
 #endif
 
@@ -50,26 +50,26 @@ static Setting::Handle<quint16> LIMITED_NODELIST_LOCAL_PORT("LimitedNodeList.Loc
 using namespace std::chrono_literals;
 static const std::chrono::milliseconds CONNECTION_RATE_INTERVAL_MS = 1s;
 
-LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
+LimitedNodeList::LimitedNodeList(Ports ports) :
     _nodeSocket(this, true),
     _packetReceiver(new PacketReceiver(this))
 {
     qRegisterMetaType<ConnectionStep>("ConnectionStep");
-    auto port = (socketListenPort != INVALID_PORT) ? socketListenPort : LIMITED_NODELIST_LOCAL_PORT.get();
+    auto port = (ports.socketListen != INVALID_PORT) ? ports.socketListen : LIMITED_NODELIST_LOCAL_PORT.get();
     _nodeSocket.bind(SocketType::UDP, QHostAddress::AnyIPv4, port);
     quint16 assignedPort = _nodeSocket.localPort(SocketType::UDP);
-    if (socketListenPort != INVALID_PORT && socketListenPort != 0 && socketListenPort != assignedPort) {
-        qCCritical(networking) << "PAGE: NodeList is unable to assign requested UDP port of" << socketListenPort;
+    if (ports.socketListen != INVALID_PORT && ports.socketListen != 0 && ports.socketListen != assignedPort) {
+        qCCritical(networking) << "PAGE: NodeList is unable to assign requested UDP port of" << ports.socketListen;
     }
     qCDebug(networking) << "NodeList UDP socket is listening on" << assignedPort;
 
-    if (dtlsListenPort != INVALID_PORT) {
+    if (ports.dtlsListen != INVALID_PORT) {
         // only create the DTLS socket during constructor if a custom port is passed
         _dtlsSocket = new QUdpSocket(this);
 
-        _dtlsSocket->bind(QHostAddress::AnyIPv4, dtlsListenPort);
-        if (dtlsListenPort != 0 && _dtlsSocket->localPort() != dtlsListenPort) {
-            qCDebug(networking) << "NodeList is unable to assign requested DTLS port of" << dtlsListenPort;
+        _dtlsSocket->bind(QHostAddress::AnyIPv4, ports.dtlsListen);
+        if (ports.dtlsListen != 0 && _dtlsSocket->localPort() != ports.dtlsListen) {
+            qCDebug(networking) << "NodeList is unable to assign requested DTLS port of" << ports.dtlsListen;
         }
         qCDebug(networking) << "NodeList DTLS socket is listening on" << _dtlsSocket->localPort();
     }
@@ -505,7 +505,7 @@ qint64 LimitedNodeList::sendUnreliableUnorderedPacketList(NLPacketList& packetLi
         }
         return bytesSent;
     } else {
-        qCDebug(networking) << "LimitedNodeList::sendUnreliableUnorderedPacketList called without active socket for node" 
+        qCDebug(networking) << "LimitedNodeList::sendUnreliableUnorderedPacketList called without active socket for node"
             << destinationNode << " - not sending.";
         return ERROR_SENDING_PACKET_BYTES;
     }

@@ -32,6 +32,7 @@
 #include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
 #include <ShutdownEventListener.h>
+#include <platform/Platform.h>
 
 #include <Trace.h>
 #include <StatTracker.h>
@@ -59,8 +60,14 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
 
     auto addressManager = DependencyManager::set<AddressManager>();
 
+
+    platform::create();
+    platform::enumeratePlatform();
+
     // create a NodeList as an unassigned client, must be after addressManager
-    auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned, listenPort);
+    auto nodeList = DependencyManager::set<NodeList>(NodeList::Params{NodeType::Unassigned, {listenPort}, platform::getDescription()});
+
+    platform::destroy();
 
     nodeList->startThread();
     // set the logging target to the the CHILD_TARGET_NAME
@@ -120,7 +127,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
 
     // did we get an assignment-client monitor port?
     if (assignmentMonitorPort > 0) {
-        _assignmentClientMonitorSocket = SockAddr(SocketType::UDP, DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME, 
+        _assignmentClientMonitorSocket = SockAddr(SocketType::UDP, DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME,
             assignmentMonitorPort);
         _assignmentClientMonitorSocket.setObjectName("AssignmentClientMonitor");
 

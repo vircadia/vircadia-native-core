@@ -1,6 +1,6 @@
 set(TARGET_NAME networking)
 setup_hifi_library(Network WebSockets)
-link_hifi_libraries(shared platform)
+link_hifi_libraries(shared)
 
 target_openssl()
 target_tbb()

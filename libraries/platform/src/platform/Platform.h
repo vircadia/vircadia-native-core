@@ -14,7 +14,7 @@
 
 namespace platform {
     using json = nlohmann::json;
-    
+
 void create();
 void destroy();
 bool enumeratePlatform();
@@ -36,6 +36,8 @@ json getMemory();
 json getComputer();
 
 json getAll();
+
+json getDescription();
 
 }  // namespace platform
 

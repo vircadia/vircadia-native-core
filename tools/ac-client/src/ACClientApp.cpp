@@ -23,6 +23,7 @@
 #include <AddressManager.h>
 #include <DependencyManager.h>
 #include <SettingHandle.h>
+#include <platform/Platform.h>
 
 ACClientApp::ACClientApp(int argc, char* argv[]) :
     QCoreApplication(argc, argv)
@@ -71,7 +72,7 @@ ACClientApp::ACClientApp(int argc, char* argv[]) :
         const_cast<QLoggingCategory*>(&shared())->setEnabled(QtInfoMsg, false);
         const_cast<QLoggingCategory*>(&shared())->setEnabled(QtWarningMsg, false);
     }
-    
+
 
     QString domainServerAddress = "127.0.0.1:40103";
     if (parser.isSet(domainAddressOption)) {
@@ -103,7 +104,11 @@ ACClientApp::ACClientApp(int argc, char* argv[]) :
 
     DependencyManager::set<AccountManager>(false, [&]{ return QString("Mozilla/5.0 (HighFidelityACClient)"); });
     DependencyManager::set<AddressManager>();
-    DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
+
+    platform::create();
+    platform::enumeratePlatform();
+    DependencyManager::set<NodeList>(NodeList::Params{NodeType::Agent, {listenPort}, platform::getDescription()});
+    platform::destroy();
 
     auto accountManager = DependencyManager::get<AccountManager>();
     accountManager->setIsAgent(true);
