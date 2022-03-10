@@ -72,7 +72,8 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
     // create a NodeList so we can receive stats from children
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     auto addressManager = DependencyManager::set<AddressManager>();
-    auto nodeList = DependencyManager::set<LimitedNodeList>(LimitedNodeList::Ports{listenPort});
+    auto nodeList = DependencyManager::set<NodeList>(NodeList::Params{NodeType::Unassigned, {listenPort}});
+
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::AssignmentClientStatus,
