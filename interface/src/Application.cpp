@@ -1716,8 +1716,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             properties["os_win_version"] = QSysInfo::windowsVersion();
         }
 
-        ProcessorInfo procInfo;
-        if (getProcessorInfo(procInfo)) {
+        platform::ProcessorInfo procInfo;
+        if (platform::getProcessorInfo(procInfo)) {
             properties["processor_core_count"] = procInfo.numProcessorCores;
             properties["logical_processor_count"] = procInfo.numLogicalProcessors;
             properties["processor_l1_cache_count"] = procInfo.numProcessorCachesL1;
@@ -2210,8 +2210,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(sendStatsTimer, &QTimer::timeout, this, [this]() {
 
         QJsonObject properties = {};
-        MemoryInfo memInfo;
-        if (getMemoryInfo(memInfo)) {
+        platform::MemoryInfo memInfo;
+        if (platform::getMemoryInfo(memInfo)) {
             properties["system_memory_total"] = static_cast<qint64>(memInfo.totalMemoryBytes);
             properties["system_memory_used"] = static_cast<qint64>(memInfo.usedMemoryBytes);
             properties["process_memory_used"] = static_cast<qint64>(memInfo.processUsedMemoryBytes);

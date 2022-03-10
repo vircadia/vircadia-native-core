@@ -10,7 +10,10 @@
 #define hifi_Platform_h
 
 
+#include <QLoggingCategory>
 #include <nlohmann/json.hpp>
+
+Q_DECLARE_LOGGING_CATEGORY(platform_log)
 
 namespace platform {
     using json = nlohmann::json;
@@ -38,6 +41,29 @@ json getComputer();
 json getAll();
 
 json getDescription();
+
+void printSystemInformation();
+
+struct MemoryInfo {
+    uint64_t totalMemoryBytes;
+    uint64_t availMemoryBytes;
+    uint64_t usedMemoryBytes;
+    uint64_t processUsedMemoryBytes;
+    uint64_t processPeakUsedMemoryBytes;
+};
+
+bool getMemoryInfo(MemoryInfo& info);
+
+struct ProcessorInfo {
+    int32_t numPhysicalProcessorPackages;
+    int32_t numProcessorCores;
+    int32_t numLogicalProcessors;
+    int32_t numProcessorCachesL1;
+    int32_t numProcessorCachesL2;
+    int32_t numProcessorCachesL3;
+};
+
+bool getProcessorInfo(ProcessorInfo& info);
 
 }  // namespace platform
 

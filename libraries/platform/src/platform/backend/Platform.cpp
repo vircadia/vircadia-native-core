@@ -10,6 +10,29 @@
 #include "../Platform.h"
 #include "../PlatformKeys.h"
 
+#ifdef Q_OS_WIN
+#include <windows.h>
+#include "../../CPUIdent.h"
+#include <Psapi.h>
+
+#if _MSC_VER >= 1900
+#pragma comment(lib, "legacy_stdio_definitions.lib")
+FILE _iob[] = {*stdin, *stdout, *stderr};
+extern "C" FILE * __cdecl __iob_func(void) {
+    return _iob;
+}
+#endif
+
+#endif
+
+#include <QtCore/QDebug>
+#include <QtCore/QOperatingSystemVersion>
+#include <QSysInfo>
+#include <QProcessEnvironment>
+#include <QStringList>
+
+Q_LOGGING_CATEGORY(platform_log, "platform")
+
 /*@jsdoc
  * Information on the computer platform as a whole.
  * @typedef {object} PlatformInfo.PlatformDescription
@@ -355,3 +378,249 @@ json platform::getDescription() {
     desc[platform::keys::NICS] = all[platform::keys::NICS];
     return desc;
 }
+
+void platform::printSystemInformation() {
+    // Write system information to log
+    qCDebug(platform_log) << "Build Information";
+    qCDebug(platform_log).noquote() << "\tBuild ABI: " << QSysInfo::buildAbi();
+    qCDebug(platform_log).noquote() << "\tBuild CPU Architecture: " << QSysInfo::buildCpuArchitecture();
+
+    qCDebug(platform_log).noquote() << "System Information";
+    qCDebug(platform_log).noquote() << "\tProduct Name: " << QSysInfo::prettyProductName();
+    qCDebug(platform_log).noquote() << "\tCPU Architecture: " << QSysInfo::currentCpuArchitecture();
+    qCDebug(platform_log).noquote() << "\tKernel Type: " << QSysInfo::kernelType();
+    qCDebug(platform_log).noquote() << "\tKernel Version: " << QSysInfo::kernelVersion();
+
+    qCDebug(platform_log) << "\tOS Version: " << QOperatingSystemVersion::current();
+
+#ifdef Q_OS_WIN
+    SYSTEM_INFO si;
+    GetNativeSystemInfo(&si);
+
+    qCDebug(platform_log) << "SYSTEM_INFO";
+    qCDebug(platform_log).noquote() << "\tOEM ID: " << si.dwOemId;
+    qCDebug(platform_log).noquote() << "\tProcessor Architecture: " << si.wProcessorArchitecture;
+    qCDebug(platform_log).noquote() << "\tProcessor Type: " << si.dwProcessorType;
+    qCDebug(platform_log).noquote() << "\tProcessor Level: " << si.wProcessorLevel;
+    qCDebug(platform_log).noquote() << "\tProcessor Revision: "
+                       << QString("0x%1").arg(si.wProcessorRevision, 4, 16, QChar('0'));
+    qCDebug(platform_log).noquote() << "\tNumber of Processors: " << si.dwNumberOfProcessors;
+    qCDebug(platform_log).noquote() << "\tPage size: " << si.dwPageSize << " Bytes";
+    qCDebug(platform_log).noquote() << "\tMin Application Address: "
+                       << QString("0x%1").arg(qulonglong(si.lpMinimumApplicationAddress), 16, 16, QChar('0'));
+    qCDebug(platform_log).noquote() << "\tMax Application Address: "
+                       << QString("0x%1").arg(qulonglong(si.lpMaximumApplicationAddress), 16, 16, QChar('0'));
+
+    const double BYTES_TO_MEGABYTE = 1.0 / (1024 * 1024);
+
+    qCDebug(platform_log) << "MEMORYSTATUSEX";
+    MEMORYSTATUSEX ms;
+    ms.dwLength = sizeof(ms);
+    if (GlobalMemoryStatusEx(&ms)) {
+        qCDebug(platform_log).noquote()
+            << QString("\tCurrent System Memory Usage: %1%").arg(ms.dwMemoryLoad);
+        qCDebug(platform_log).noquote()
+            << QString("\tAvail Physical Memory: %1 MB").arg(ms.ullAvailPhys * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qCDebug(platform_log).noquote()
+            << QString("\tTotal Physical Memory: %1 MB").arg(ms.ullTotalPhys * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qCDebug(platform_log).noquote()
+            << QString("\tAvail in Page File:    %1 MB").arg(ms.ullAvailPageFile * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qCDebug(platform_log).noquote()
+            << QString("\tTotal in Page File:    %1 MB").arg(ms.ullTotalPageFile * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qCDebug(platform_log).noquote()
+            << QString("\tAvail Virtual Memory:  %1 MB").arg(ms.ullAvailVirtual * BYTES_TO_MEGABYTE, 20, 'f', 2);
+        qCDebug(platform_log).noquote()
+            << QString("\tTotal Virtual Memory:  %1 MB").arg(ms.ullTotalVirtual * BYTES_TO_MEGABYTE, 20, 'f', 2);
+    } else {
+        qCDebug(platform_log) << "\tFailed to retrieve memory status: " << GetLastError();
+    }
+
+    qCDebug(platform_log) << "CPUID";
+
+    qCDebug(platform_log) << "\tCPU Vendor: " << CPUIdent::Vendor().c_str();
+    qCDebug(platform_log) << "\tCPU Brand:  " << CPUIdent::Brand().c_str();
+
+    for (auto& feature : CPUIdent::getAllFeatures()) {
+        qCDebug(platform_log).nospace().noquote() << "\t[" << (feature.supported ? "x" : " ") << "] " << feature.name.c_str();
+    }
+#endif
+
+    qCDebug(platform_log) << "Environment Variables";
+    // List of env variables to include in the log. For privacy reasons we don't send all env variables.
+    const QStringList envWhitelist = {
+        "QTWEBENGINE_REMOTE_DEBUGGING"
+    };
+    auto envVariables = QProcessEnvironment::systemEnvironment();
+    for (auto& env : envWhitelist)
+    {
+        qCDebug(platform_log).noquote().nospace() << "\t" <<
+            (envVariables.contains(env) ? " = " + envVariables.value(env) : " NOT FOUND");
+    }
+}
+
+bool platform::getMemoryInfo(MemoryInfo& info) {
+#ifdef Q_OS_WIN
+    MEMORYSTATUSEX ms;
+    ms.dwLength = sizeof(ms);
+    if (!GlobalMemoryStatusEx(&ms)) {
+        return false;
+    }
+
+    info.totalMemoryBytes = ms.ullTotalPhys;
+    info.availMemoryBytes = ms.ullAvailPhys;
+    info.usedMemoryBytes = ms.ullTotalPhys - ms.ullAvailPhys;
+
+
+    PROCESS_MEMORY_COUNTERS_EX pmc;
+    if (!GetProcessMemoryInfo(GetCurrentProcess(), reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&pmc), sizeof(pmc))) {
+        return false;
+    }
+    info.processUsedMemoryBytes = pmc.PrivateUsage;
+    info.processPeakUsedMemoryBytes = pmc.PeakPagefileUsage;
+
+    return true;
+#endif
+
+    return false;
+}
+
+// Largely taken from: https://msdn.microsoft.com/en-us/library/windows/desktop/ms683194(v=vs.85).aspx
+
+#ifdef Q_OS_WIN
+using LPFN_GLPI = BOOL(WINAPI*)(
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION,
+    PDWORD);
+
+DWORD CountSetBits(ULONG_PTR bitMask)
+{
+    DWORD LSHIFT = sizeof(ULONG_PTR) * 8 - 1;
+    DWORD bitSetCount = 0;
+    ULONG_PTR bitTest = (ULONG_PTR)1 << LSHIFT;
+    DWORD i;
+
+    for (i = 0; i <= LSHIFT; ++i) {
+        bitSetCount += ((bitMask & bitTest) ? 1 : 0);
+        bitTest /= 2;
+    }
+
+    return bitSetCount;
+}
+#endif
+
+bool platform::getProcessorInfo(ProcessorInfo& info) {
+
+#ifdef Q_OS_WIN
+    LPFN_GLPI glpi;
+    bool done = false;
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION buffer = NULL;
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION ptr = NULL;
+    DWORD returnLength = 0;
+    DWORD logicalProcessorCount = 0;
+    DWORD numaNodeCount = 0;
+    DWORD processorCoreCount = 0;
+    DWORD processorL1CacheCount = 0;
+    DWORD processorL2CacheCount = 0;
+    DWORD processorL3CacheCount = 0;
+    DWORD processorPackageCount = 0;
+    DWORD byteOffset = 0;
+    PCACHE_DESCRIPTOR Cache;
+
+    glpi = (LPFN_GLPI)GetProcAddress(
+        GetModuleHandle(TEXT("kernel32")),
+        "GetLogicalProcessorInformation");
+    if (nullptr == glpi) {
+        qCDebug(platform_log) << "GetLogicalProcessorInformation is not supported.";
+        return false;
+    }
+
+    while (!done) {
+        DWORD rc = glpi(buffer, &returnLength);
+
+        if (FALSE == rc) {
+            if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+                if (buffer) {
+                    free(buffer);
+                }
+
+                buffer = (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION)malloc(
+                    returnLength);
+
+                if (NULL == buffer) {
+                    qCDebug(platform_log) << "Error: Allocation failure";
+                    return false;
+                }
+            } else {
+                qCDebug(platform_log) << "Error " << GetLastError();
+                return false;
+            }
+        } else {
+            done = true;
+        }
+    }
+
+    ptr = buffer;
+
+    while (byteOffset + sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION) <= returnLength) {
+        switch (ptr->Relationship) {
+        case RelationNumaNode:
+            // Non-NUMA systems report a single record of this type.
+            numaNodeCount++;
+            break;
+
+        case RelationProcessorCore:
+            processorCoreCount++;
+
+            // A hyperthreaded core supplies more than one logical processor.
+            logicalProcessorCount += CountSetBits(ptr->ProcessorMask);
+            break;
+
+        case RelationCache:
+            // Cache data is in ptr->Cache, one CACHE_DESCRIPTOR structure for each cache.
+            Cache = &ptr->Cache;
+            if (Cache->Level == 1) {
+                processorL1CacheCount++;
+            } else if (Cache->Level == 2) {
+                processorL2CacheCount++;
+            } else if (Cache->Level == 3) {
+                processorL3CacheCount++;
+            }
+            break;
+
+        case RelationProcessorPackage:
+            // Logical processors share a physical package.
+            processorPackageCount++;
+            break;
+
+        default:
+            qCDebug(platform_log) << "\nError: Unsupported LOGICAL_PROCESSOR_RELATIONSHIP value.\n";
+            break;
+        }
+        byteOffset += sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
+        ptr++;
+    }
+
+    qCDebug(platform_log) << "GetLogicalProcessorInformation results:";
+    qCDebug(platform_log) << "Number of NUMA nodes:" << numaNodeCount;
+    qCDebug(platform_log) << "Number of physical processor packages:" << processorPackageCount;
+    qCDebug(platform_log) << "Number of processor cores:" << processorCoreCount;
+    qCDebug(platform_log) << "Number of logical processors:" << logicalProcessorCount;
+    qCDebug(platform_log) << "Number of processor L1/L2/L3 caches:"
+        << processorL1CacheCount
+        << "/" << processorL2CacheCount
+        << "/" << processorL3CacheCount;
+
+    info.numPhysicalProcessorPackages = processorPackageCount;
+    info.numProcessorCores = processorCoreCount;
+    info.numLogicalProcessors = logicalProcessorCount;
+    info.numProcessorCachesL1 = processorL1CacheCount;
+    info.numProcessorCachesL2 = processorL2CacheCount;
+    info.numProcessorCachesL3 = processorL3CacheCount;
+
+    free(buffer);
+
+    return true;
+#endif
+
+    return false;
+}
+

@@ -23,6 +23,7 @@
 #include <SharedUtil.h>
 #include <NetworkAccessManager.h>
 #include <gl/GLHelpers.h>
+#include <platform/Platform.h>
 
 #include "AddressManager.h"
 #include "Application.h"
@@ -45,7 +46,7 @@ int main(int argc, const char* argv[]) {
     auto format = getDefaultOpenGLSurfaceFormat();
     // Deal with some weirdness in the chromium context sharing on Mac.
     // The primary share context needs to be 3.2, so that the Chromium will
-    // succeed in it's creation of it's command stub contexts.  
+    // succeed in it's creation of it's command stub contexts.
     format.setVersion(3, 2);
     // This appears to resolve the issues with corrupted fonts on OSX.  No
     // idea why.
@@ -54,8 +55,8 @@ int main(int argc, const char* argv[]) {
     QSurfaceFormat::setDefaultFormat(format);
 #endif
 
-#if defined(Q_OS_WIN) 
-    // Check the minimum version of 
+#if defined(Q_OS_WIN)
+    // Check the minimum version of
     if (gl::getAvailableVersion() < gl::getRequiredVersion()) {
         MessageBoxA(nullptr, "Interface requires OpenGL 4.1 or higher", "Unsupported", MB_OK);
         return -1;
@@ -170,7 +171,7 @@ int main(int argc, const char* argv[]) {
         }
     }
 
-    // Early check for --traceFile argument 
+    // Early check for --traceFile argument
     auto tracer = DependencyManager::set<tracing::Tracer>();
     const char * traceFile = nullptr;
     const QString traceFileFlag("--traceFile");
@@ -187,7 +188,7 @@ int main(int argc, const char* argv[]) {
     if (traceFile != nullptr) {
         tracer->startTracing();
     }
-   
+
     PROFILE_SYNC_BEGIN(startup, "main startup", "");
 
 #ifdef Q_OS_LINUX
@@ -195,8 +196,8 @@ int main(int argc, const char* argv[]) {
 #endif
 
 #if defined(USE_GLES) && defined(Q_OS_WIN)
-    // When using GLES on Windows, we can't create normal GL context in Qt, so 
-    // we force Qt to use angle.  This will cause the QML to be unable to be used 
+    // When using GLES on Windows, we can't create normal GL context in Qt, so
+    // we force Qt to use angle.  This will cause the QML to be unable to be used
     // in the output window, so QML should be disabled.
     qputenv("QT_ANGLE_PLATFORM", "d3d11");
     QCoreApplication::setAttribute(Qt::AA_UseOpenGLES);
@@ -419,7 +420,7 @@ int main(int argc, const char* argv[]) {
         QObject::connect(&server, &QLocalServer::newConnection,
                          &app, &Application::handleLocalServerConnection, Qt::DirectConnection);
 
-        printSystemInformation();
+        platform::printSystemInformation();
 
         auto appPointer = dynamic_cast<Application*>(&app);
         if (appPointer) {
