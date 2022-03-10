@@ -108,9 +108,10 @@ endif()
                 self.prebuiltArchive = self.readVar('EXTERNAL_VCPKG_MAC_URLS').split(';')
         elif 'Linux' == system and 'aarch64' == machine:
             self.exe = os.path.join(self.path, 'vcpkg')
-            self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '-disableMetrics' ]
+            self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '-disableMetrics', '-useSystemBinaries' ]
             self.vcpkgUrl = self.readVar('EXTERNAL_VCPKG_LINUX_AARCH64_URLS').split(';')
             self.hostTriplet = 'arm64-linux'
+            self.bootstrapEnv['VCPKG_FORCE_SYSTEM_BINARIES'] = 1
         else:
             self.exe = os.path.join(self.path, 'vcpkg')
             self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '-disableMetrics' ]
@@ -195,7 +196,7 @@ endif()
             downloadVcpkg = True
 
         if downloadVcpkg:
-            if "HIFI_VCPKG_BOOTSTRAP" in os.environ and 'aarch64' != platform.machine():
+            if "HIFI_VCPKG_BOOTSTRAP" in os.environ):
                 print("Cloning vcpkg from github to {}".format(self.path))
                 hifi_utils.executeSubprocess(['git', 'clone', 'https://github.com/microsoft/vcpkg', self.path])
                 print("Bootstrapping vcpkg")
