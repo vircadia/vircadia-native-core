@@ -19,5 +19,5 @@ The tests can be run with `ctest`, or directly by executing `build/libraries/vir
 
 To build the documentation (requires doxygen):
 ```
-cmake --build . --target vircadia-client-tests
+cmake --build . --target vircadia-client-docs
 ```
