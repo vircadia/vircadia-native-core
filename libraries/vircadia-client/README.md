@@ -8,8 +8,16 @@ The library is build as a dependency of the interface, but if you are just worki
 ```
 cmake --build . --target vircadia-client
 ```
-To build the unit tests (which will also build the library):
+
+
+To build the unit tests:
 ```
 cmake --build . --target vircadia-client-tests
 ```
 The tests can be run with `ctest`, or directly by executing `build/libraries/vircadia-client/tests/vircadia-client-tests` for more detailed output.
+
+
+To build the documentation (requires doxygen):
+```
+cmake --build . --target vircadia-client-tests
+```
