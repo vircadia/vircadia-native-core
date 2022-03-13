@@ -1,6 +1,6 @@
 //
 //  RegisteredMetaTypes.cpp
-//  libraries/shared/src
+//  libraries/shared-gui/src
 //
 //  Created by Stephen Birarda on 10/3/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -872,7 +872,7 @@ QVector<float> qVectorFloatFromScriptValue(const QScriptValue& array) {
             newVector << array.property(i).toNumber();
         }
     }
-    
+
     return newVector;
 }
 
@@ -894,7 +894,7 @@ void qVectorQUuidFromScriptValue(const QScriptValue& array, QVector<QUuid>& vect
 
 QVector<QUuid> qVectorQUuidFromScriptValue(const QScriptValue& array) {
     if (!array.isArray()) {
-        return QVector<QUuid>(); 
+        return QVector<QUuid>();
     }
     QVector<QUuid> newVector;
     int length = array.property("length").toInteger();
@@ -927,7 +927,7 @@ QScriptValue qVectorIntToScriptValue(QScriptEngine* engine, const QVector<uint32
 
 void qVectorFloatFromScriptValue(const QScriptValue& array, QVector<float>& vector) {
     int length = array.property("length").toInteger();
-    
+
     for (int i = 0; i < length; i++) {
         vector << array.property(i).toVariant().toFloat();
     }
@@ -1085,7 +1085,7 @@ QScriptValue qColorToScriptValue(QScriptEngine* engine, const QColor& color) {
 }
 
 /*@jsdoc
- * An axis-aligned cube, defined as the bottom right near (minimum axes values) corner of the cube plus the dimension of its 
+ * An axis-aligned cube, defined as the bottom right near (minimum axes values) corner of the cube plus the dimension of its
  * sides.
  * @typedef {object} AACube
  * @property {number} x - X coordinate of the brn corner of the cube.
@@ -1116,10 +1116,10 @@ void aaCubeFromScriptValue(const QScriptValue &object, AACube& aaCube) {
 void qColorFromScriptValue(const QScriptValue& object, QColor& color) {
     if (object.isNumber()) {
         color.setRgb(object.toUInt32());
-    
+
     } else if (object.isString()) {
         color.setNamedColor(object.toString());
-            
+
     } else {
         QScriptValue alphaValue = object.property("alpha");
         color.setRgb(object.property("red").toInt32(), object.property("green").toInt32(), object.property("blue").toInt32(),
@@ -1252,8 +1252,8 @@ AnimationDetails::AnimationDetails(QString role, QUrl url, float fps, float prio
  * The details of an animation that is playing.
  * @typedef {object} Avatar.AnimationDetails
  * @property {string} role - <em>Not used.</em>
- * @property {string} url - The URL to the animation file. Animation files need to be in glTF or FBX format but only need to 
- *     contain the avatar skeleton and animation data. glTF models may be in JSON or binary format (".gltf" or ".glb" URLs 
+ * @property {string} url - The URL to the animation file. Animation files need to be in glTF or FBX format but only need to
+ *     contain the avatar skeleton and animation data. glTF models may be in JSON or binary format (".gltf" or ".glb" URLs
  *     respectively).
  *     <p><strong>Warning:</strong> glTF animations currently do not always animate correctly.</p>
  * @property {number} fps - The frames per second(FPS) rate for the animation playback. 30 FPS is normal speed.

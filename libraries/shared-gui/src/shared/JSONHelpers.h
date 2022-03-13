@@ -10,7 +10,7 @@
 #ifndef hifi_Shared_JSONHelpers_h
 #define hifi_Shared_JSONHelpers_h
 
-#include "../GLMHelpers.h"
+#include "gui/GLMHelpers.h"
 
 QJsonValue toJsonValue(const quat& q);
 QJsonValue toJsonValue(const vec3& v);

@@ -19,7 +19,6 @@ class FileUtils {
 public:
     static const QStringList& getFileSelectors();
     static QString selectFile(const QString& fileName);
-    static void locateFile(const QString& fileName);
     static bool exists(const QString& fileName);
     static bool isRelative(const QString& fileName);
     static QString standardPath(QString subfolder);

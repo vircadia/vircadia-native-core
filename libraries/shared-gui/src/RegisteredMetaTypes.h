@@ -1,6 +1,6 @@
 //
 //  RegisteredMetaTypes.h
-//  libraries/shared/src
+//  libraries/shared-gui/src
 //
 //  Created by Stephen Birarda on 10/3/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -102,7 +102,7 @@ glm::vec2 vec2FromVariant(const QVariant& object);
 * @property {number} x - X-coordinate of the vector. Synonyms: <code>r</code>, <code>red</code>.
 * @property {number} y - Y-coordinate of the vector. Synonyms: <code>g</code>, <code>green</code>.
 * @property {number} z - Z-coordinate of the vector. Synonyms: <code>b</code>, <code>blue</code>.
-* @example <caption>Vec3 values can be set in multiple ways and modified with their aliases, but still stringify in the same 
+* @example <caption>Vec3 values can be set in multiple ways and modified with their aliases, but still stringify in the same
 *     way.</caption>
 * Entities.editEntity(<id>, { position: { x: 1, y: 2, z: 3 }});                 // { x: 1, y: 2, z: 3 }
 * Entities.editEntity(<id>, { position: { r: 4, g: 5, b: 6 }});                 // { x: 4, y: 5, z: 6 }
@@ -263,7 +263,7 @@ public:
 };
 
 /*@jsdoc
- * A vector with a starting point. It is used, for example, when finding entities or avatars that lie under a mouse click or 
+ * A vector with a starting point. It is used, for example, when finding entities or avatars that lie under a mouse click or
  * intersect a laser beam.
  *
  * @typedef {object} PickRay
@@ -299,7 +299,7 @@ void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay);
  * The tip of a stylus.
  *
  * @typedef {object} StylusTip
- * @property {number} side - The hand that the stylus is attached to: <code>0</code> for left hand, <code>1</code> for the 
+ * @property {number} side - The hand that the stylus is attached to: <code>0</code> for left hand, <code>1</code> for the
  *     right hand, <code>-1</code> for invalid.
  * @property {Vec3} tipOffset - The position of the stylus tip relative to the body of the stylus.
  * @property {Vec3} position - The position of the stylus tip.
@@ -343,11 +343,11 @@ public:
 * avatars that intersect a parabolic beam.
 *
 * @typedef {object} PickParabola
-* @property {Vec3} origin - The starting position of the parabola, i.e., the initial position of a virtual projectile whose 
+* @property {Vec3} origin - The starting position of the parabola, i.e., the initial position of a virtual projectile whose
 *     trajectory defines the parabola.
-* @property {Vec3} velocity - The starting velocity of the parabola in m/s, i.e., the initial speed of a virtual projectile 
+* @property {Vec3} velocity - The starting velocity of the parabola in m/s, i.e., the initial speed of a virtual projectile
 *     whose trajectory defines the parabola.
-* @property {Vec3} acceleration - The acceleration that the parabola experiences in m/s<sup>2</sup>, i.e., the acceleration of 
+* @property {Vec3} acceleration - The acceleration that the parabola experiences in m/s<sup>2</sup>, i.e., the acceleration of
 *     a virtual projectile whose trajectory defines the parabola, both magnitude and direction.
 */
 class PickParabola : public MathPick {
@@ -431,9 +431,9 @@ public:
     /*@jsdoc
      * A volume for checking collisions in the physics simulation.
      * @typedef {object} CollisionRegion
-     * @property {Shape} shape - The collision region's shape and size. Dimensions are in world coordinates, but scale with the 
+     * @property {Shape} shape - The collision region's shape and size. Dimensions are in world coordinates, but scale with the
      *     parent if defined.
-     * @property {boolean} loaded - <code>true</code> if the <code>shape</code> has no model, or has a model and it is loaded, 
+     * @property {boolean} loaded - <code>true</code> if the <code>shape</code> has no model, or has a model and it is loaded,
      *     <code>false</code> if otherwise.
      * @property {Vec3} position - The position of the collision region, relative to the parent if defined.
      * @property {Quat} orientation - The orientation of the collision region, relative to the parent if defined.
@@ -648,7 +648,7 @@ QScriptValue collisionToScriptValue(QScriptEngine* engine, const Collision& coll
 void collisionFromScriptValue(const QScriptValue &object, Collision& collision);
 
 /*@jsdoc
- * UUIDs (Universally Unique IDentifiers) are used to uniquely identify entities, avatars, and the like. They are represented 
+ * UUIDs (Universally Unique IDentifiers) are used to uniquely identify entities, avatars, and the like. They are represented
  * in JavaScript as strings in the format, <code>"{nnnnnnnn-nnnn-nnnn-nnnn-nnnnnnnnnnnn}"</code>, where the "n"s are
  * hexadecimal digits.
  * @typedef {string} Uuid
@@ -709,7 +709,7 @@ class MeshProxy : public QObject {
 
 public:
     virtual MeshPointer getMeshPointer() const = 0;
-    
+
     /*@jsdoc
      * Gets the number of vertices in the mesh.
      * @function MeshProxy#getNumVertices

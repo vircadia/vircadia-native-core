@@ -16,6 +16,7 @@
 
 #include <QtCore/QObject>
 #include <QtScript/QScriptValue>
+#include <QStandardItem>
 
 #include <AssetClient.h>
 #include <QSortFilterProxyModel>

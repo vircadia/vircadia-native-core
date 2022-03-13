@@ -44,7 +44,7 @@ public:
 
     virtual void addMessage(const QString&) = 0;
     virtual QString getLogData() = 0;
-    virtual void locateLog() = 0;
+    virtual QString getLogLocation() = 0;
     virtual void sync() {}
 
 signals:

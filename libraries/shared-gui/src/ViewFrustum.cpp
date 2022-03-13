@@ -1,6 +1,6 @@
 //
 //  ViewFrustum.cpp
-//  libraries/shared/src
+//  libraries/shared-gui/src
 //
 //  Created by Brad Hefta-Gaub on 04/11/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -530,9 +530,9 @@ bool ViewFrustum::getProjectedRect(const AABox& box, glm::vec2& bottomLeft, glm:
     const int VERTEX_COUNT = 8;
     const int EDGE_COUNT = 12;
     // In theory, after clipping a box with a plane, only 4 new vertices at max
-    // should be created but due to potential imprecisions (edge almost parallel to 
+    // should be created but due to potential imprecisions (edge almost parallel to
     // near plane for instance) there might be more
-    const int MAX_VERTEX_COUNT = VERTEX_COUNT + 4 + 2; 
+    const int MAX_VERTEX_COUNT = VERTEX_COUNT + 4 + 2;
 
     std::array<glm::vec3, MAX_VERTEX_COUNT> vertices;
     std::array<Edge, EDGE_COUNT> boxEdges{ {
@@ -671,10 +671,10 @@ glm::mat4 ViewFrustum::evalProjectionMatrixRange(float rangeNear, float rangeFar
     assert(rangeFar > rangeNear);
 
     // recreate a projection matrix for only a range of depth of this frustum.
-   
+
     // take the current projection
     glm::mat4 rangeProj = _projection;
-    
+
     float A = -(rangeFar + rangeNear) / (rangeFar - rangeNear);
     float B = -2.0f * rangeFar*rangeNear / ((rangeFar - rangeNear));
 
@@ -709,7 +709,7 @@ void ViewFrustum::getTransformedSidePlanes(const Transform& transform, ::Plane p
     transform.getInverseTransposeMatrix(normalTransform);
     getSidePlanes(planes);
     for (auto i = 0; i < 4; i++) {
-        // We assume the transform doesn't have a non uniform scale component to apply the 
+        // We assume the transform doesn't have a non uniform scale component to apply the
         // transform to the normal without using the correct transpose of inverse.
         auto transformedNormal = normalTransform * Transform::Vec4(planes[i].getNormal(), 0.0f);
         auto planePoint = transform.transform(planes[i].getPoint());
@@ -721,7 +721,7 @@ void ViewFrustum::getTransformedSidePlanes(const Transform& transform, ::Plane p
 void ViewFrustum::getUniformlyTransformedSidePlanes(const Transform& transform, ::Plane planes[4]) const {
     getSidePlanes(planes);
     for (auto i = 0; i < 4; i++) {
-        // We assume the transform doesn't have a non uniform scale component to apply the 
+        // We assume the transform doesn't have a non uniform scale component to apply the
         // transform to the normal without using the correct transpose of inverse.
         auto planeNormal = transform.transformDirection(planes[i].getNormal());
         auto planePoint = transform.transform(planes[i].getPoint());

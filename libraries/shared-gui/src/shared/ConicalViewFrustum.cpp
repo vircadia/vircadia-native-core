@@ -12,7 +12,7 @@
 #include "ConicalViewFrustum.h"
 
 
-#include "../NumericalConstants.h"
+#include <NumericalConstants.h>
 #include "../ViewFrustum.h"
 #include <glm/gtc/type_ptr.hpp>
 

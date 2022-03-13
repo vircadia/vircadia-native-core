@@ -12,8 +12,6 @@
 
 #include "AddressManager.h"
 
-#include <QGuiApplication>
-#include <QClipboard>
 #include <QDebug>
 #include <QJsonDocument>
 #include <QRegExp>
@@ -937,24 +935,6 @@ void AddressManager::refreshPreviousLookup() {
     } else {
         handleUrl(currentAddress(), LookupTrigger::AttemptedRefresh);
     }
-}
-
-void AddressManager::copyAddress() {
-    if (QThread::currentThread() != qApp->thread()) {
-        QMetaObject::invokeMethod(qApp, "copyToClipboard", Q_ARG(QString, currentShareableAddress().toString()));
-        return;
-    }
-    // assume that the address is being copied because the user wants a shareable address
-    QGuiApplication::clipboard()->setText(currentShareableAddress().toString());
-}
-
-void AddressManager::copyPath() {
-    if (QThread::currentThread() != qApp->thread()) {
-        QMetaObject::invokeMethod(qApp, "copyToClipboard", Q_ARG(QString, currentPath()));
-        return;
-    }
-
-    QGuiApplication::clipboard()->setText(currentPath());
 }
 
 QString AddressManager::getDomainID() const {

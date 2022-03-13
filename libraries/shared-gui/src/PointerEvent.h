@@ -1,6 +1,6 @@
 //
 //  PointerEvent.h
-//  script-engine/src
+//  libraries/shared-gui/src
 //
 //  Created by Anthony Thibault on 2016-8-11.
 //  Copyright 2016 High Fidelity, Inc.

@@ -10,6 +10,8 @@
 
 #include <unordered_map>
 
+#include <QVector3D>
+
 #include "Pick.h"
 
 typedef struct PickCacheKey {

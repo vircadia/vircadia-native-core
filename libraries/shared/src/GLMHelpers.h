@@ -42,8 +42,10 @@ using glm::quat;
 #endif
 
 #include <QtCore/QByteArray>
-#include <QtGui/QMatrix4x4>
-#include <QtGui/QColor>
+#include <QSize>
+#include <QPoint>
+#include <QRect>
+#include <QDataStream>
 
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
@@ -178,12 +180,10 @@ uvec2 toGlm(const QSize& size);
 ivec2 toGlm(const QPoint& pt);
 vec2 toGlm(const QPointF& pt);
 vec3 toGlm(const glm::u8vec3& color);
-vec4 toGlm(const QColor& color);
 ivec4 toGlm(const QRect& rect);
 vec4 toGlm(const glm::u8vec3& color, float alpha);
 
 QSize fromGlm(const glm::ivec2 & v);
-QMatrix4x4 fromGlm(const glm::mat4 & m);
 
 QRectF glmToRect(const glm::vec2 & pos, const glm::vec2 & size);
 

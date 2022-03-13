@@ -5,6 +5,7 @@ endif ()
 setup_hifi_library(Network Multimedia ${PLATFORM_QT_COMPONENTS})
 link_hifi_libraries(audio plugins)
 include_hifi_library_headers(shared)
+include_hifi_library_headers(shared-gui)
 include_hifi_library_headers(networking)
 
 if (ANDROID)
