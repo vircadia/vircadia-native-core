@@ -8,7 +8,7 @@
 
 set(TARGET_NAME hifiOsc)
 setup_hifi_plugin(Qml)
-link_hifi_libraries(shared controllers ui plugins input-plugins display-plugins)
+link_hifi_libraries(shared shared-gui controllers ui plugins input-plugins display-plugins)
 target_liblo()
 
 

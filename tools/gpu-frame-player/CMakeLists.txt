@@ -16,8 +16,8 @@ endif()
 
 # link in the shared libraries
 link_hifi_libraries(
-    shared ktx shaders gpu
-#    vk gpu-vk 
+    shared shared-gui ktx shaders gpu
+#    vk gpu-vk
     gl ${PLATFORM_GL_BACKEND}
 )
 

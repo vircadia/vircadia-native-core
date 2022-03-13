@@ -2,7 +2,7 @@ set(TARGET_NAME ktx-tool)
 
 setup_hifi_project(Quick Gui Concurrent)
 
-link_hifi_libraries(shared networking image gl shaders gpu ktx)
+link_hifi_libraries(shared shared-gui networking image gl shaders gpu ktx)
 
 target_gli()
 

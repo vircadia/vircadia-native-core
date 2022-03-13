@@ -7,10 +7,10 @@
 #
 
 if (WIN32)
-    
+
     set(TARGET_NAME hifiNeuron)
     setup_hifi_plugin(Qml)
-    link_hifi_libraries(shared controllers qml ui plugins input-plugins)
+    link_hifi_libraries(shared shared-gui controllers qml ui plugins input-plugins)
     target_neuron()
 
 endif()
