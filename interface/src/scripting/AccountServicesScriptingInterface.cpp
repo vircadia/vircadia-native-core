@@ -72,6 +72,11 @@ void AccountServicesScriptingInterface::logOut() {
     return accountManager->logout();
 }
 
+void AccountServicesScriptingInterface::updateAuthURLFromMetaverseServerURL() {
+    auto accountManager = DependencyManager::get<AccountManager>();
+    return accountManager->updateAuthURLFromMetaverseServerURL();
+}
+
 void AccountServicesScriptingInterface::loggedOut() {
     emit AccountServicesScriptingInterface::disconnected(QString("logout"));
 }

@@ -31,15 +31,7 @@ endif()
 file(REMOVE_RECURSE "${CMAKE_CURRENT_BINARY_DIR}/_env")
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/_env")
 
-# Base URL for externally downloaded files
-set(EXTERNAL_BUILD_ASSETS "https://athena-public.s3.amazonaws.com")
-
-if( DEFINED ENV{EXTERNAL_BUILD_ASSETS} )
-    set(EXTERNAL_BUILD_ASSETS "$ENV{EXTERNAL_BUILD_ASSETS}")
-endif()
-
-file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/_env/EXTERNAL_BUILD_ASSETS.txt" "${EXTERNAL_BUILD_ASSETS}")
-MESSAGE(STATUS "EXTERNAL_BUILD_ASSETS: ${EXTERNAL_BUILD_ASSETS}")
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/ExternalAssetsConfig.cmake")
 
 # read USE_GLES enviroment variable and sets it as GLES option
 # TODO still gets overwritten by "use GLES on linux aarch64"

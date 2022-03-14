@@ -576,7 +576,7 @@
 
                                 <q-card-actions vertical align="right">
                                     <q-btn
-                                        @click="$refs.stepper.next()"
+                                        @click="savePerformanceSettings"
                                         class="q-mb-md"
                                         size="md"
                                         outline
@@ -914,6 +914,40 @@ export default defineComponent({
             this.mainWizardStep++;
         },
 
+        async savePerformanceSettings () {
+            const settingsToCommit = {
+                "audio_threading": {
+                    "auto_threads": this.performanceMode
+                },
+                "avatar_mixer": {
+                    "auto_threads": this.performanceMode
+                }
+            };
+
+            const committed = await this.commitSettings(settingsToCommit);
+
+            if (committed === true) {
+                Log.info(Log.types.DOMAIN, "Successfully saved performance mode setting.");
+                this.$q.notify({
+                    type: "positive",
+                    textColor: "white",
+                    icon: "cloud_done",
+                    message: "Successfully saved performance mode setting."
+                });
+            } else {
+                Log.error(Log.types.DOMAIN, "Failed to save performance mode setting.");
+                this.$q.notify({
+                    type: "negative",
+                    textColor: "white",
+                    icon: "warning",
+                    message: "Failed to save performance mode setting."
+                });
+            }
+
+            // We move forward anyway, the user can come back if it fails or if they want to change it.
+            this.mainWizardStep++;
+        },
+
         async onAdminStepSubmit () {
             const settingsToCommit = {
                 "security": {
@@ -1065,37 +1099,6 @@ export default defineComponent({
                 Log.info(Log.types.DOMAIN, "Successfully committed steps completed to Domain server settings.");
             } else {
                 Log.error(Log.types.DOMAIN, "Failed to commit steps completed to Domain server settings.");
-            }
-        },
-
-        async performanceMode () {
-            const settingsToCommit = {
-                "audio_threading": {
-                    "auto_threads": this.performanceMode
-                },
-                "avatar_mixer": {
-                    "auto_threads": this.performanceMode
-                }
-            };
-
-            const committed = await this.commitSettings(settingsToCommit);
-
-            if (committed === true) {
-                Log.info(Log.types.DOMAIN, "Successfully saved performance mode setting.");
-                this.$q.notify({
-                    type: "positive",
-                    textColor: "white",
-                    icon: "cloud_done",
-                    message: "Successfully saved performance mode setting."
-                });
-            } else {
-                Log.error(Log.types.DOMAIN, "Failed to save performance mode setting.");
-                this.$q.notify({
-                    type: "negative",
-                    textColor: "white",
-                    icon: "warning",
-                    message: "Failed to save performance mode setting."
-                });
             }
         },
 

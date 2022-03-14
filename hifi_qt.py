@@ -53,7 +53,6 @@ endif()
         self.args = args
         self.configFilePath = os.path.join(args.build_root, 'qt.cmake')
         self.version = os.getenv('VIRCADIA_USE_QT_VERSION', '5.15.2')
-        self.assets_url = hifi_utils.readEnviromentVariableFromFile(args.build_root, 'EXTERNAL_BUILD_ASSETS')
 
         # OS dependent information
         system = platform.system()
@@ -134,19 +133,25 @@ endif()
             return
 
         if 'Windows' == system:
-            self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.15.2-windows.tar.gz'
+            self.qtUrl = hifi_utils.readEnviromentVariableFromFile(self.args.build_root, 'EXTERNAL_QT_WIN_URLS').split(";")
+            self.qtSha512 = hifi_utils.readEnviromentVariableFromFile(self.args.build_root, 'EXTERNAL_QT_WIN_SHA512')
         elif 'Darwin' == system:
-            self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.15.2-macos.tar.gz'
+            self.qtUrl = hifi_utils.readEnviromentVariableFromFile(self.args.build_root, 'EXTERNAL_QT_MAC_URLS').split(";")
+            self.qtSha512 = hifi_utils.readEnviromentVariableFromFile(self.args.build_root, 'EXTERNAL_QT_MAC_SHA512')
         elif 'Linux' == system:
             import distro
             cpu_architecture = platform.machine()
 
             if 'x86_64' == cpu_architecture:
-                u_major = int( distro.major_version() )
-                u_minor = int( distro.minor_version() )
+                try:
+                    u_major = int( distro.major_version() )
+                except ValueError:
+                    u_major = 0
+
                 if distro.id() == 'ubuntu' or distro.id() == 'linuxmint':
                     if (distro.id() == 'ubuntu' and u_major == 18) or distro.id() == 'linuxmint' and u_major == 19:
-                        self.qtUrl = self.assets_url + '/dependencies/vcpkg/qt5-install-5.15.2-ubuntu-18.04-amd64.tar.xz'
+                        self.qtUrl = hifi_utils.readEnviromentVariableFromFile(self.args.build_root, 'EXTERNAL_QT_LINUX_URLS').split(";")
+                        self.qtSha512 = hifi_utils.readEnviromentVariableFromFile(self.args.build_root, 'EXTERNAL_QT_LINUX_SHA512')
                     elif (distro.id() == 'ubuntu' and u_major > 18) or (distro.id() == 'linuxmint' and u_major > 19):
                         self.__no_qt_package_error()
                     else:
@@ -157,21 +162,28 @@ endif()
 
             elif 'aarch64' == cpu_architecture:
                 if distro.id() == 'ubuntu':
-                    u_major = int( distro.major_version() )
-                    u_minor = int( distro.minor_version() )
+                    try:
+                        u_major = int( distro.major_version() )
+                    except ValueError:
+                        u_major = 0
 
                     if u_major == 18:
-                        self.qtUrl = 'http://motofckr9k.ddns.net/vircadia_packages/qt5-install-5.15.2-ubuntu-18.04-aarch64_test.tar.xz'
+                        self.qtUrl = hifi_utils.readEnviromentVariableFromFile(self.args.build_root, 'EXTERNAL_QT_UBUNTU_AARCH64_URLS').split(";")
+                        self.qtSha512 = hifi_utils.readEnviromentVariableFromFile(self.args.build_root, 'EXTERNAL_QT_UBUNTU_AARCH64_SHA512')
                     elif u_major > 19:
                         self.__no_qt_package_error()
                     else:
                         self.__unsupported_error()
 
                 elif distro.id() == 'debian':
-                    u_major = int( distro.major_version() )
+                    try:
+                        u_major = int( distro.major_version() )
+                    except ValueError:
+                        u_major = 0
 
                     if u_major == 10:
-                        self.qtUrl = 'https://data.moto9000.moe/vircadia_packages/qt5-install-5.15.2-debian-10-aarch64.tar.xz'
+                        self.qtUrl = hifi_utils.readEnviromentVariableFromFile(self.args.build_root, 'EXTERNAL_QT_DEBIAN_AARCH64_URLS').split(";")
+                        self.qtSha512 = hifi_utils.readEnviromentVariableFromFile(self.args.build_root, 'EXTERNAL_QT_DEBIAN_AARCH64_SHA512')
                     elif u_major > 10:
                         self.__no_qt_package_error()
                     else:
@@ -205,9 +217,8 @@ endif()
 
     def installQt(self):
         if not os.path.isdir(self.fullPath):
-            print ('Downloading Qt from AWS')
-            print('Extracting ' + self.qtUrl + ' to ' + self.path)
-            hifi_utils.downloadAndExtract(self.qtUrl, self.path)
+            print("Fetching Qt from {} to {}".format(self.qtUrl, self.path))
+            hifi_utils.downloadAndExtract(self.qtUrl, self.path, self.qtSha512)
         else:
             print ('Qt has already been downloaded')
 

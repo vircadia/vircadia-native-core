@@ -4,6 +4,7 @@
 //
 //  Created by Brad Hefta-Gaub on 12/6/13.
 //  Copyright 2013 High Fidelity, Inc.
+//  Copyright 2022 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -816,6 +817,7 @@ void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityS
     connect(this, &EntityTreeRenderer::collisionWithEntity, entityScriptingInterface, &EntityScriptingInterface::collisionWithEntity);
 
     connect(DependencyManager::get<SceneScriptingInterface>().data(), &SceneScriptingInterface::shouldRenderEntitiesChanged, this, &EntityTreeRenderer::updateEntityRenderStatus, Qt::QueuedConnection);
+    connect(DependencyManager::get<SceneScriptingInterface>().data(), &SceneScriptingInterface::shouldRenderModelEntityPlaceholdersChanged, this, &EntityTreeRenderer::updateRenderModelEntityPlaceholders, Qt::QueuedConnection);
 }
 
 static glm::vec2 projectOntoEntityXYPlane(EntityItemPointer entity, const PickRay& pickRay, const RayToEntityIntersectionResult& rayPickResult) {
@@ -1271,6 +1273,10 @@ void EntityTreeRenderer::updateEntityRenderStatus(bool shouldRenderEntities) {
             deletingEntity(entityID);
         }
     }
+}
+
+void EntityTreeRenderer::updateRenderModelEntityPlaceholders(bool shouldRenderModelEntityPlaceholders) {
+    _shouldRenderModelEntityPlaceholders = shouldRenderModelEntityPlaceholders;
 }
 
 void EntityTreeRenderer::updateZone(const EntityItemID& id) {

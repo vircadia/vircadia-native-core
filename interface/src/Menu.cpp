@@ -36,6 +36,7 @@
 #include <MenuItemProperties.h>
 #include <ui/types/FileTypeProfile.h>
 #include <ui/types/HFWebEngineProfile.h>
+#include <SceneScriptingInterface.h>
 
 #include "Application.h"
 #include "AccountManager.h"
@@ -515,6 +516,11 @@ Menu::Menu() {
         addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::HighlightTransitions, 0, false,
             drawStatusConfig, SLOT(setShowFade(bool)));
     }
+
+    action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::GreenBoxesForMissingModels, 0, true);
+    connect(action, &QAction::triggered, [&](bool checked) {
+        DependencyManager::get<SceneScriptingInterface>()->setShouldRenderModelEntityPlaceholders(checked);
+    });
 
     // Developer > Assets >>>
     // Menu item is not currently needed but code should be kept in case it proves useful again at some stage.

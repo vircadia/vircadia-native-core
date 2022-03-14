@@ -3,6 +3,7 @@
 //
 //  Created by Stephen Birarda on 7 Dec 2016
 //  Copyright 2016 High Fidelity, Inc.
+//  Copyright 2022 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -68,6 +69,11 @@ Item {
     }
 
     function signup() {
+
+        MetaverseSettings.setBaseUrl(metaverseServerField.text.trim());
+        metaverseServerField.text = MetaverseSettings.getBaseUrl();
+        AccountServices.updateAuthURLFromMetaverseServerURL();
+
         loginDialog.signup(emailField.text, usernameField.text, passwordField.text);
     }
 
@@ -82,6 +88,10 @@ Item {
         root.text = "";
         root.isPassword = false;
         loginContainer.visible = true;
+
+        var metaverseServer = MetaverseSettings.getBaseUrl();
+        console.log("Saved metaverse server:", metaverseServer);
+        metaverseServerField.text = metaverseServer;
     }
 
     Item {
@@ -300,6 +310,126 @@ Item {
                     }
                 }
             }
+            HifiControlsUit.TextField {
+                id: metaverseServerField
+                width: root.bannerWidth
+                height: signUpBody.textFieldHeight
+                font.pixelSize: signUpBody.textFieldFontSize
+                styleRenderType: Text.QtRendering
+                visible: !linkAccountBody.linkSteam && !linkAccountBody.linkOculus && !linkAccountBody.isLoggingInToDomain
+                enabled: unlockMetaverseMouseArea.unlocked
+                anchors {
+                    top: passwordField.bottom
+                    topMargin: 1.5 * hifi.dimensions.contentSpacing.y
+                }
+                placeholderText: "Metaverse Server (optional)"
+                activeFocusOnPress: true
+                Keys.onPressed: {
+                    switch (event.key) {
+                        case Qt.Key_Tab:
+                            event.accepted = true;
+                            displayNameField.focus = true;
+                            break;
+                        case Qt.Key_Backtab:
+                            event.accepted = true;
+                            passwordField.focus = true;
+                            break;
+                        case Qt.Key_Enter:
+                        case Qt.Key_Return:
+                            event.accepted = true;
+                            var url = metaverseServerField.text;
+                            if (url === "") {
+                                console.log("Setting metaverse server URL to", url);
+                            } else {
+                                console.log("Resetting metaverse server URL");
+                            }
+                            if (AccountServices.isLoggedIn()){
+                                AccountServices.logOut();
+                            }
+                            MetaverseSettings.setBaseUrl(url.trim());
+                            metaverseServerField.text = MetaverseSettings.getBaseUrl();
+                            AccountServices.updateAuthURLFromMetaverseServerURL();
+                            signUpBody.signup();
+                            break;
+                    }
+                }
+                onFocusChanged: {
+                    root.text = "";
+                    if (focus) {
+                        root.isPassword = false;
+                    } else {
+                        var url = metaverseServerField.text;
+                        if (url !== MetaverseSettings.getBaseUrl()){
+                            if (url === "") {
+                                console.log("Setting metaverse server URL to", url);
+                            } else {
+                                console.log("Resetting metaverse server URL");
+                            }
+                            if (AccountServices.isLoggedIn()){
+                                AccountServices.logOut();
+                            }
+                            MetaverseSettings.setBaseUrl(url.trim());
+                            metaverseServerField.text = MetaverseSettings.getBaseUrl();
+                            AccountServices.updateAuthURLFromMetaverseServerURL();
+                        }
+                    }
+                }
+            }
+
+            Item {
+                id: unlockMetaverseContainer
+                z: 10
+                // width + image's rightMargin
+                width: unlockMetaverseIcon.width + 8
+                height: metaverseServerField.height
+                anchors {
+                    right: metaverseServerField.right
+                    top: metaverseServerField.top
+                }
+
+                Image {
+                    id: unlockMetaverseIcon
+                    width: metaverseServerField.height * passwordImageRatio
+                    height: metaverseServerField.height * passwordImageRatio
+                    anchors {
+                        right: parent.right
+                        rightMargin: 8
+                        top: parent.top
+                        topMargin: 6
+                        bottom: parent.bottom
+                        bottomMargin: 5
+                    }
+                    source: unlockMetaverseMouseArea.unlocked ?  "../../images/unlock.svg" : "../../images/lock.svg"
+                    MouseArea {
+                        id: unlockMetaverseMouseArea
+                        anchors.fill: parent
+                        acceptedButtons: Qt.LeftButton
+                        property bool unlocked: false
+                        onClicked: {
+                            unlocked = !unlocked;
+                        }
+                    }
+                }
+            }
+
+            Keys.onPressed: {
+                switch (event.key) {
+                    case Qt.Key_Tab:
+                        event.accepted = true;
+                        metaverseServerField.focus = true;
+                        break;
+                    case Qt.Key_Backtab:
+                        event.accepted = true;
+                        emailField.focus = true;
+                        break;
+                    case Qt.Key_Enter:
+                    case Qt.Key_Return:
+                        event.accepted = true;
+                        linkAccountBody.login();
+                        break;
+                }
+            }
+
             HifiControlsUit.CheckBox {
                 id: keepMeLoggedInCheckbox
                 checked: Settings.getValue("keepMeLoggedIn", false);
@@ -309,9 +439,9 @@ Item {
                 labelFontSize: 18;
                 color: hifi.colors.white;
                 anchors {
-                    top: passwordField.bottom;
+                    top: metaverseServerField.bottom;
                     topMargin: hifi.dimensions.contentSpacing.y;
-                    left: passwordField.left;
+                    left: metaverseServerField.left;
                 }
                 onCheckedChanged: {
                     Settings.setValue("keepMeLoggedIn", checked);
@@ -455,7 +585,7 @@ Item {
     }
     Connections {
         target: loginDialog
-        onHandleSignupCompleted: {
+        function onHandleSignupCompleted(needConfirmation) {
             console.log("Sign Up Completed");
 
             if (signUpBody.loginDialogPoppedUp) {
@@ -465,10 +595,16 @@ Item {
                 UserActivityLogger.logAction("encourageLoginDialog", data);
             }
 
-            loginDialog.login(usernameField.text, passwordField.text);
-            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": false, "linkSteam": false });
+            if (needConfirmation) {
+                Window.alert("You need to confirm your email before you can log in.");
+                bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
+            } else {
+                loginDialog.login(usernameField.text, passwordField.text);
+                bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": false, "linkSteam": false });
+            }
+
         }
-        onHandleSignupFailed: {
+        function onHandleSignupFailed(errorString) {
             console.log("Sign Up Failed")
 
             if (signUpBody.loginDialogPoppedUp) {
@@ -495,14 +631,14 @@ Item {
                 errorContainer.anchors.left = usernameField.left;
             }
         }
-        onFocusEnabled: {
+        function onFocusEnabled() {
             if (!signUpBody.lostFocus) {
                 Qt.callLater(function() {
                     emailField.forceActiveFocus();
                 });
             }
         }
-        onFocusDisabled: {
+        function onFocusDisabled() {
             signUpBody.lostFocus = !root.isTablet && !root.isOverlay;
             if (signUpBody.lostFocus) {
                 Qt.callLater(function() {

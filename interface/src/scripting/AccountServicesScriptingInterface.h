@@ -192,6 +192,12 @@ public slots:
      * @function AccountServices.logOut
      */
     void logOut();
+
+    /*@jsdoc
+     * Updates Metaverse Server URL in AccountManager. It's called by Login window after Metaverse Server URL is changed.
+     * @function AccountServices.updateAuthURLFromMetaverseServerURL
+     */
+    void updateAuthURLFromMetaverseServerURL();
     
 private slots:
     void loggedOut();

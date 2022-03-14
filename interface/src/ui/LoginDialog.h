@@ -44,7 +44,7 @@ signals:
     void handleCreateCompleted();
     void handleCreateFailed(QString error);
 
-    void handleSignupCompleted();
+    void handleSignupCompleted(bool needConfirmation);
     void handleSignupFailed(QString errorString);
 
     // occurs upon dismissing the encouraging log in.

@@ -114,10 +114,10 @@ public slots:
      * @function Window.prompt
      * @param {string} message - The question to display.
      * @param {string} defaultText - The default answer text.
-     * @returns {string} The text that the user entered if they select "OK", otherwise "".
+     * @returns {string} The text that the user entered if they select "OK", otherwise null.
      * @example <caption>Ask the user a question requiring a text answer.</caption>
      * var answer = Window.prompt("Question", "answer");
-     * if (answer === "") {
+     * if (answer === null) {
      *     print("User canceled");
      * } else {
      *     print("User answer: " + answer);

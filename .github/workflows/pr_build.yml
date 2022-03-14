@@ -9,8 +9,7 @@ env:
   BUILD_TYPE: Release
   CI_BUILD: Github
   GIT_COMMIT: ${{ github.sha }}
-  # VCPKG did not build well on OSX disabling HIFI_VCPKG_BOOTSTRAP, which invokes a download to a working version of vcpkg
-  # HIFI_VCPKG_BOOTSTRAP: true
+  HIFI_VCPKG_BOOTSTRAP: true
   RELEASE_TYPE: PR
   RELEASE_NUMBER: ${{ github.event.number }}
   VERSION_CODE: ${{ github.event.number }}
@@ -36,7 +35,7 @@ jobs:
     strategy:
         matrix:
           include:
-            - os: windows-latest
+            - os: windows-2019
               build_type: full
             - os: macOS-10.15
               build_type: full
@@ -96,7 +95,7 @@ jobs:
           echo "APP_TARGET_NAME=Vircadia" >> $GITHUB_ENV
         fi
         # Windows build variables
-        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+        if [ "${{ matrix.os }}" = "windows-2019" ]; then
           echo "PYTHON_EXEC=python" >> $GITHUB_ENV
           echo "INSTALLER_EXT=exe" >> $GITHUB_ENV
           if [ "${{ matrix.build_type }}" = "full" ]; then
@@ -227,7 +226,7 @@ jobs:
       run: cmake --build . --config $BUILD_TYPE --target assignment-client $CMAKE_BUILD_EXTRA
 
     - name: Build Console
-      if: matrix.build_type == 'full' || matrix.os == 'windows-latest'
+      if: matrix.build_type == 'full' || matrix.os == 'windows-2019'
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target packaged-server-console $CMAKE_BUILD_EXTRA
@@ -293,7 +292,7 @@ jobs:
         df -h
 
     - name: Output Installer Logs
-      if: failure() && matrix.os == 'windows-latest'
+      if: failure() && matrix.os == 'windows-2019'
       shell: bash
       working-directory: ${{runner.workspace}}/build
       run: cat ./_CPack_Packages/win64/NSIS/NSISOutput.log

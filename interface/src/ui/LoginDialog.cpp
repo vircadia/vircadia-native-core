@@ -4,7 +4,7 @@
 //
 //  Created by Bradley Austin Davis on 2015/04/14
 //  Copyright 2015 High Fidelity, Inc.
-//  Copyright 2020 Vircadia contributors.
+//  Copyright 2020, 2022 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -372,8 +372,58 @@ void LoginDialog::signup(const QString& email, const QString& username, const QS
                                 QJsonDocument(payload).toJson());
 }
 
+
+const QString RESPONSE_DATA_KEY = "data";
+
 void LoginDialog::signupCompleted(QNetworkReply* reply) {
-    emit handleSignupCompleted();
+    auto response = reply->readAll();
+    QJsonParseError error{};
+    const auto jsonDoc = QJsonDocument::fromJson(response, &error);
+
+    static const QString RESPONSE_STATUS_KEY = "status";
+    static const QString JSON_RESPONSE_ERROR = "There was an error communicating with the Metaverse server. Please try again later.";
+
+    if (jsonDoc.isNull()) {
+        qWarning() << "Metaverse server sign up failed parsing response as JSON: " << error.errorString();
+        emit handleSignupFailed(JSON_RESPONSE_ERROR);
+        return;
+    }
+
+    if (!jsonDoc.isObject()) {
+        qWarning() << "Metaverse server sign up response is not a JSON object: " << response;
+        emit handleSignupFailed(JSON_RESPONSE_ERROR);
+        return;
+    }
+
+    const auto json = jsonDoc.object();
+
+    const auto status = json[RESPONSE_STATUS_KEY];
+    if (status != "success") {
+        const auto error = json["error"];
+        if (error.isString()) {
+            emit handleSignupFailed("Error: " + error.toString());
+        } else {
+            emit handleSignupFailed(JSON_RESPONSE_ERROR);
+            qWarning() << "Metaverse server sign up unrecognized failure response: " << response;
+        }
+        return;
+    }
+
+    const auto data = json[RESPONSE_DATA_KEY];
+    if (!data.isObject()) {
+        qWarning() << "Metaverse server sign up response data is not a JSON object: " << response;
+        emit handleSignupFailed(JSON_RESPONSE_ERROR);
+        return;
+    }
+
+    const auto needConfirmation = data["accountWaitingVerification"];
+    if (!needConfirmation.isBool()) {
+        qWarning() << "Metaverse server sign up response data.accountWaitingVerification is not a boolean value: " << response;
+        emit handleSignupFailed(JSON_RESPONSE_ERROR);
+        return;
+    }
+
+    emit handleSignupCompleted(needConfirmation.toBool());
 }
 
 bool LoginDialog::getLoginDialogPoppedUp() const {
@@ -393,8 +443,6 @@ QString errorStringFromAPIObject(const QJsonValue& apiObject) {
 void LoginDialog::signupFailed(QNetworkReply* reply) {
     // parse the returned JSON to see what the problem was
     auto jsonResponse = QJsonDocument::fromJson(reply->readAll());
-
-    static const QString RESPONSE_DATA_KEY = "data";
 
     auto dataJsonValue = jsonResponse.object()[RESPONSE_DATA_KEY];
 

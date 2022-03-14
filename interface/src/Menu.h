@@ -232,6 +232,7 @@ namespace MenuOption {
     const QString ComputeBlendshapes = "Compute Blendshapes";
     const QString HighlightTransitions = "Highlight Transitions";
     const QString MaterialProceduralShaders = "Enable Procedural Materials";
+    const QString GreenBoxesForMissingModels = "Green Boxes For Missing Models";
 }
 
 #endif // hifi_Menu_h

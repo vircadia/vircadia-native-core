@@ -4,6 +4,7 @@
 //
 //  Created by Sam Gateau on 2/24/15.
 //  Copyright 2014 High Fidelity, Inc.
+//  Copyright 2022 Vircadia contributors.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -22,5 +23,12 @@ void SceneScriptingInterface::setShouldRenderEntities(bool shouldRenderEntities)
     if (shouldRenderEntities != _shouldRenderEntities) {
         _shouldRenderEntities = shouldRenderEntities;
         emit shouldRenderEntitiesChanged(_shouldRenderEntities);
+    }
+}
+
+void SceneScriptingInterface::setShouldRenderModelEntityPlaceholders(bool shouldRenderModelEntityPlaceholders) {
+    if (shouldRenderModelEntityPlaceholders != _shouldRenderModelEntityPlaceholders) {
+        _shouldRenderModelEntityPlaceholders = shouldRenderModelEntityPlaceholders;
+        emit shouldRenderModelEntityPlaceholdersChanged(_shouldRenderModelEntityPlaceholders);
     }
 }

@@ -56,10 +56,12 @@ $(document).ready(function(){
 
         // we need to ask the API what a shareable name for this domain is
         getShareName(function(success, shareName) {
-          if (success) {
-            var shareLink = "https://hifi.place/" + shareName;
-            $('#visit-domain-link').attr("href", shareLink).show();
-          }
+          // disabled temporarily until an alternative is available
+          // see https://github.com/vircadia/vircadia/issues/1591
+          // if (success) {
+          //   var shareLink = "https://hifi.place/" + shareName;
+          //   $('#visit-domain-link').attr("href", shareLink).show();
+          // }
         });
       } else if (accessTokenIsSet()) {
         $('#' + Settings.GET_TEMPORARY_NAME_BTN_ID).show();

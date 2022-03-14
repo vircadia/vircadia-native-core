@@ -12,6 +12,7 @@ vcpkg_from_github(
         fix-arm64-headers.patch
         disable-hidapi-for-uwp.patch
         fix-space-in-path.patch
+        fix-build-against-wayland-1_20.patch
 )
 
 string(COMPARE EQUAL "${VCPKG_LIBRARY_LINKAGE}" "static" SDL_STATIC)

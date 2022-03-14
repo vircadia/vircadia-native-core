@@ -1,29 +1,32 @@
 include(vcpkg_common_functions)
 vcpkg_check_linkage(ONLY_STATIC_LIBRARY)
 
-file(READ "${VCPKG_ROOT_DIR}/_env/EXTERNAL_BUILD_ASSETS.txt" EXTERNAL_BUILD_ASSETS)
+file(READ "${VCPKG_ROOT_DIR}/_env/EXTERNAL_GLAD32ES_URLS.txt" EXTERNAL_GLAD32ES_URLS)
+file(READ "${VCPKG_ROOT_DIR}/_env/EXTERNAL_GLAD32ES_SHA512.txt" EXTERNAL_GLAD32ES_SHA512)
+file(READ "${VCPKG_ROOT_DIR}/_env/EXTERNAL_GLAD45_URLS.txt" EXTERNAL_GLAD45_URLS)
+file(READ "${VCPKG_ROOT_DIR}/_env/EXTERNAL_GLAD45_SHA512.txt" EXTERNAL_GLAD45_SHA512)
 file(READ "${VCPKG_ROOT_DIR}/_env/USE_GLES.txt" USE_GLES)
 
 # GitHub Actions Android builds fail with `FILENAME` set while desktop builds with GLES fail without a set `FILENAME`.
 if (ANDROID)
     vcpkg_download_distfile(
         SOURCE_ARCHIVE
-        URLS ${EXTERNAL_BUILD_ASSETS}/dependencies/glad/glad32es.zip
-        SHA512 2e02ac633eed8f2ba2adbf96ea85d08998f48dd2e9ec9a88ec3c25f48eaf1405371d258066327c783772fcb3793bdb82bd7375fdabb2ba5e2ce0835468b17f65
+        URLS ${EXTERNAL_GLAD32ES_URLS}
+        SHA512 ${EXTERNAL_GLAD32ES_SHA512}
     )
 elseif (USE_GLES)
     vcpkg_download_distfile(
         SOURCE_ARCHIVE
-        URLS ${EXTERNAL_BUILD_ASSETS}/dependencies/glad/glad32es.zip
-        SHA512 2e02ac633eed8f2ba2adbf96ea85d08998f48dd2e9ec9a88ec3c25f48eaf1405371d258066327c783772fcb3793bdb82bd7375fdabb2ba5e2ce0835468b17f65
+        URLS ${EXTERNAL_GLAD32ES_URLS}
+        SHA512 ${EXTERNAL_GLAD32ES_SHA512}
         FILENAME glad32es.zip
     )
 else()
     # else Linux desktop
     vcpkg_download_distfile(
         SOURCE_ARCHIVE
-        URLS ${EXTERNAL_BUILD_ASSETS}/dependencies/glad/glad45.zip
-        SHA512 653a7b873f9fbc52e0ab95006cc3143bc7b6f62c6e032bc994e87669273468f37978525c9af5efe36f924cb4acd221eb664ad9af0ce4bf711b4f1be724c0065e
+        URLS ${EXTERNAL_GLAD45_URLS}
+        SHA512 ${EXTERNAL_GLAD45_SHA512}
         FILENAME glad45.zip
     )
 endif()
