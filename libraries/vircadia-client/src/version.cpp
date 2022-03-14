@@ -17,9 +17,9 @@
 VIRCADIA_CLIENT_DYN_API
 const vircadia_client_version_data* vircadia_client_version() {
     static const vircadia_client_version_data data {
+        VIRCADIA_CLIENT_VERSION_YEAR,
         VIRCADIA_CLIENT_VERSION_MAJOR,
         VIRCADIA_CLIENT_VERSION_MINOR,
-        VIRCADIA_CLIENT_VERSION_TWEAK,
         STRINGIFY(VIRCADIA_CLIENT_GIT_COMMIT_SHA_SHORT),
         STRINGIFY(VIRCADIA_CLIENT_VERSION),
         STRINGIFY(VIRCADIA_CLIENT_VERSION_FULL)

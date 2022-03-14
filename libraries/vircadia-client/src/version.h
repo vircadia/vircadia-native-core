@@ -19,35 +19,33 @@
 /// @brief Defines the layout of version information returned by vircadia_client_version().
 struct vircadia_client_version_data {
 
+    /// @brief The year of the release.
+    ///
+    /// Updated with the first release of the year, either minor or major.
+    int year;
+
     /// @brief The major version number.
     ///
-    /// Increments on compatibility breaking changes.
+    /// Increments with API breaking changes.
     int major;
 
     /// @brief The minor version number.
     ///
-    /// Increments on backwards compatible API addition or major implementation changes.
+    /// Increments with backward compatible API changes/additions, bug fixes and implementation changes.
     int minor;
-
-    /// @brief The tweak version number.
-    ///
-    /// Increments on bug fixes and minor implementation changes.
-    int tweak;
 
     /// @brief Short VCS identifier.
     const char* commit;
 
     /// @brief Formatted version number string.
     ///
-    /// Contains vircadia_client_version_data::major, vircadia_client_version_data::minor,
-    /// and vircadia_client_version_data::tweak.
+    /// Contains vircadia_client_version_data::major and vircadia_client_version_data::minor
     const char* number;
-
 
     /// @brief Formatted version string.
     ///
-    /// Contains vircadia_client_version_data::major, vircadia_client_version_data::minor,
-    /// vircadia_client_version_data::tweak, and vircadia_client_version_data::commit.
+    /// Contains vircadia_client_version_data::year, vircadia_client_version_data::major,
+    /// vircadia_client_version_data::minor, and vircadia_client_version_data::commit.
     const char* full;
 };
 
