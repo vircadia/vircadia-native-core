@@ -205,7 +205,13 @@ void watchParentProcess(int parentPID);
 
 bool processIsRunning(int64_t pid);
 
-void setupHifiApplication(QString applicationName);
+void setupHifiApplication(QString appName, QString orgName, QString orgDomain, QString appVersion);
+
+template <typename AppInfo>
+void setupHifiApplication(QString appName, const AppInfo& info) {
+    setupHifiApplication(appName, info.organizationName,
+        info.organizationDomain, info.version);
+}
 
 #ifdef Q_OS_WIN
 void* createProcessGroup();

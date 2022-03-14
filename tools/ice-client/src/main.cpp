@@ -13,6 +13,7 @@
 #include <string>
 #include <vector>
 
+#include <BuildInfo.h>
 #include <SharedUtil.h>
 
 #include "ICEClientApp.h"
@@ -20,7 +21,7 @@
 using namespace std;
 
 int main(int argc, char * argv[]) {
-    setupHifiApplication("ICE Client");
+    setupHifiApplication("ICE Client", BuildInfo::APPLICATION_INFO);
 
     ICEClientApp app(argc, argv);
     return app.exec();

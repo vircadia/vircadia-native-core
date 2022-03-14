@@ -50,4 +50,10 @@ namespace BuildInfo {
     const QString BUILD_TYPE_STRING = "dev";
 #endif
 
+    const struct {
+        const QString organizationName = MODIFIED_ORGANIZATION;
+        const QString organizationDomain = ORGANIZATION_DOMAIN;
+        const QString version = VERSION;
+    } APPLICATION_INFO;
+
 }

@@ -15,11 +15,12 @@
 #include <QDebug>
 
 #include <SharedUtil.h>
+#include <BuildInfo.h>
 
 #include "SkeletonDumpApp.h"
 
 int main(int argc, char * argv[]) {
-    setupHifiApplication("Skeleton Dump App");
+    setupHifiApplication("Skeleton Dump App", BuildInfo::APPLICATION_INFO);
 
     SkeletonDumpApp app(argc, argv);
     return app.getReturnCode();

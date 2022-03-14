@@ -16,7 +16,7 @@
 #include <SharedUtil.h>
 
 int main (int argc, char** argv) {
-    setupHifiApplication("Oven");
+    setupHifiApplication("Oven", BuildInfo::APPLICATION_INFO);
 
     // figure out if we're launching our GUI application or just the simple command line interface
     if (argc > 1) {

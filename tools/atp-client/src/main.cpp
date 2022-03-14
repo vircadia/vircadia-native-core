@@ -20,8 +20,8 @@
 using namespace std;
 
 int main(int argc, char * argv[]) {
-    setupHifiApplication("ATP Client");
-    
+    setupHifiApplication("ATP Client", BuildInfo::APPLICATION_INFO);
+
     Setting::init();
 
     ATPClientApp app(argc, argv);

@@ -23,7 +23,7 @@
 #include "DomainServer.h"
 
 int main(int argc, char* argv[]) {
-    setupHifiApplication(BuildInfo::DOMAIN_SERVER_NAME);
+    setupHifiApplication(BuildInfo::DOMAIN_SERVER_NAME, BuildInfo::APPLICATION_INFO);
 
     DomainServer::parseCommandLine(argc, argv);
 

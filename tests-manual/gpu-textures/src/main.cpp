@@ -37,6 +37,8 @@
 #include <QtQuick/QQuickView>
 #include <QtQml/QQmlContext>
 
+#include <BuildInfo.h>
+
 #include <gpu/Context.h>
 #include <gpu/Batch.h>
 #include <gpu/Stream.h>
@@ -158,7 +160,7 @@ class MyTestWindow : public TestWindow {
 };
 
 int main(int argc, char** argv) {
-    setupHifiApplication("GPU Test");
+    setupHifiApplication("GPU Test", BuildInfo::APPLICATION_INFO);
     qputenv("HIFI_DEBUG_OPENGL", QByteArray("1"));
     QApplication app(argc, argv);
     MyTestWindow window;

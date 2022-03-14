@@ -12,6 +12,10 @@
 
 #include <QtTest/QtTest>
 
+#if 0
+#include <BuildInfo.h>
+#endif
+
 #include <ktx/KTX.h>
 #include <gpu/Texture.h>
 #include <image/Image.h>
@@ -151,7 +155,7 @@ static const QString TEST_FOLDER { "H:/ktx_cacheold" };
 static const QString EXTENSIONS { "*.ktx" };
 
 int mainTemp(int, char**) {
-    setupHifiApplication("KTX Tests");
+    setupHifiApplication("KTX Tests", BuildInfo::APPLICATION_INFO);
 
     auto fileInfoList = QDir { TEST_FOLDER }.entryInfoList(QStringList  { EXTENSIONS });
     for (auto fileInfo : fileInfoList) {

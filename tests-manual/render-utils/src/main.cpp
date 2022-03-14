@@ -17,6 +17,8 @@
 #include <gl/QOpenGLContextWrapper.h>
 #include <gl/GLHelpers.h>
 
+#include <BuildInfo.h>
+
 #include <QDir>
 #include <QElapsedTimer>
 #include <QGuiApplication>
@@ -170,7 +172,7 @@ hifi.gpu=true
 )V0G0N";
 
 int main(int argc, char** argv) {
-    setupHifiApplication("Render Utils Test");
+    setupHifiApplication("Render Utils Test", BuildInfo::APPLICATION_INFO);
 
     QGuiApplication app(argc, argv);
     QLoggingCategory::setFilterRules(LOG_FILTER_RULES);

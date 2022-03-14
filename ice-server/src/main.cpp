@@ -11,13 +11,14 @@
 
 #include <QtCore/QCoreApplication>
 
+#include <BuildInfo.h>
 #include <SharedUtil.h>
 
 #include "IceServer.h"
 
 int main(int argc, char* argv[]) {
-    setupHifiApplication("Ice Server");
-    
+    setupHifiApplication("Ice Server", BuildInfo::APPLICATION_INFO);
+
     IceServer iceServer(argc, argv);
     return iceServer.exec();
 }
