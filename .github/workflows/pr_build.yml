@@ -207,6 +207,14 @@ jobs:
         path: ${{ runner.workspace }}/cmake-logs-${{ matrix.os }}-${{ github.event.number }}.tar.xz
         if-no-files-found: error
 
+    - name: Build and run client API Unit tests
+      if: matrix.build_type == 'full' || matrix.os == 'windows-latest'
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: |
+          cmake --build . --config $BUILD_TYPE --target vircadia-client-tests $CMAKE_BUILD_EXTRA
+          ctest
+
     - name: Build Application
       if: matrix.build_type == 'full' || matrix.build_type == 'client'
       working-directory: ${{runner.workspace}}/build

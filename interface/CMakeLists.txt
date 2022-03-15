@@ -220,10 +220,10 @@ link_hifi_libraries(
   audio audio-client animation script-engine physics
   render-utils entities-renderer avatars-renderer ui qml auto-updater midi
   controllers plugins image platform
-  ui-plugins display-plugins input-plugins
+  ui-plugins display-plugins input-plugins vircadia-client
   # Platform specific GL libraries
   ${PLATFORM_GL_BACKEND}
-  # Plaform specific input & display plugin libraries
+  # Platform specific input & display plugin libraries
   ${PLATFORM_PLUGIN_LIBRARIES}
   shaders
 )

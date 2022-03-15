@@ -391,6 +391,8 @@ setup_externals_binary_dir()
 
 option(USE_NSIGHT "Attempt to find the nSight libraries" 1)
 
+enable_testing()
+
 # FIXME hack to work on the proper Android toolchain
 if (ANDROID)
   add_subdirectory(android/apps/${HIFI_ANDROID_APP})
@@ -441,7 +443,6 @@ if (BUILD_TESTS)
   # Turn on testing so that add_test works
   # MUST be in the root cmake file for ctest to work
   include(CTest)
-  enable_testing()
   add_subdirectory(tests)
   if (BUILD_MANUAL_TESTS)
     add_subdirectory(tests-manual)

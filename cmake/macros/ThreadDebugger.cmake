@@ -1,5 +1,5 @@
 #
-#  MemoryDebugger.cmake
+#  ThreadDebugger.cmake
 #
 #  Copyright 2021 Vircadia Contributors
 #

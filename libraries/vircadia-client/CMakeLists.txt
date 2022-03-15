@@ -1,0 +1,57 @@
+set(TARGET_NAME vircadia-client)
+
+find_package(Git QUIET REQUIRED)
+
+execute_process(
+    COMMAND "${GIT_EXECUTABLE}" rev-parse --short HEAD
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    OUTPUT_VARIABLE VIRCADIA_CLIENT_GIT_COMMIT_SHA_SHORT
+    ERROR_QUIET
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+execute_process(
+    COMMAND "${GIT_EXECUTABLE}" rev-parse --show-toplevel
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    OUTPUT_VARIABLE VIRCADIA_CLIENT_GIT_ROOT
+    ERROR_QUIET
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+set(VIRCADIA_CLIENT_VERSION_YEAR 2022)
+set(VIRCADIA_CLIENT_VERSION_MAJOR 0)
+set(VIRCADIA_CLIENT_VERSION_MINOR 1)
+set(VIRCADIA_CLIENT_VERSION "${VIRCADIA_CLIENT_VERSION_MAJOR}.${VIRCADIA_CLIENT_VERSION_MINOR}")
+set(VIRCADIA_CLIENT_VERSION_FULL "v${VIRCADIA_CLIENT_VERSION_YEAR}.${VIRCADIA_CLIENT_VERSION}-git.${VIRCADIA_CLIENT_GIT_COMMIT_SHA_SHORT}")
+
+add_compile_definitions(VIRCADIA_CLIENT_GIT_COMMIT_SHA_SHORT=${VIRCADIA_CLIENT_GIT_COMMIT_SHA_SHORT})
+add_compile_definitions(VIRCADIA_CLIENT_VERSION_YEAR=${VIRCADIA_CLIENT_VERSION_YEAR})
+add_compile_definitions(VIRCADIA_CLIENT_VERSION_MAJOR=${VIRCADIA_CLIENT_VERSION_MAJOR})
+add_compile_definitions(VIRCADIA_CLIENT_VERSION_MINOR=${VIRCADIA_CLIENT_VERSION_MINOR})
+add_compile_definitions(VIRCADIA_CLIENT_VERSION=${VIRCADIA_CLIENT_VERSION})
+add_compile_definitions(VIRCADIA_CLIENT_VERSION_FULL=${VIRCADIA_CLIENT_VERSION_FULL})
+add_compile_definitions(VIRCADIA_CLIENT_DLL_EXPORT)
+
+set_property(GLOBAL APPEND
+    PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${VIRCADIA_CLIENT_GIT_ROOT}/.git/index")
+
+# check if Doxygen is installed
+find_package(Doxygen)
+if (DOXYGEN_FOUND)
+    set(DOXYGEN_PROJECT_NAME "Vircadia Client API")
+    set(DOXYGEN_PROJECT_VERSION ${VIRCADIA_CLIENT_VERSION_FULL})
+    set(DOXYGEN_GENERATE_MAN YES)
+    doxygen_add_docs(
+        vircadia-client-docs
+        COMMENT "Generate Vircadia Client API documentation."
+    )
+    unset(DOXYGEN_PROJECT_NAME)
+    unset(DOXYGEN_PROJECT_VERSION)
+    unset(DOXYGEN_GENERATE_MAN)
+else (DOXYGEN_FOUND)
+    message("Doxygen not found. Vircadia Client API documentation target will not be generatred.")
+endif (DOXYGEN_FOUND)
+
+setup_hifi_library()
+link_hifi_libraries(shared networking)
+
+add_subdirectory(tests)
