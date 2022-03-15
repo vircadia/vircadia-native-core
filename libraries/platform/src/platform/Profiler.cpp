@@ -10,9 +10,10 @@
 //
 #include "Profiler.h"
 
+#include <qglobal.h>
+
 #include "Platform.h"
 #include "PlatformKeys.h"
-#include <qglobal.h>
 
 using namespace platform;
 
@@ -39,7 +40,7 @@ Profiler::Tier Profiler::profilePlatform() {
         return platformTier;
     }
 
-    // Default answer is 
+    // Default answer is
     return Profiler::Tier::LOW;
 }
 
@@ -65,7 +66,7 @@ bool filterOnComputerMACOS(const platform::json& computer, Profiler::Tier& tier)
     auto gpu = platform::getGPU(platform::getMasterGPU());
     if (gpu.count(keys::gpu::vendor)) {
         std::string gpuVendor = gpu[keys::gpu::vendor].get<std::string>();
-        
+
         // intel integrated graphics
         if (gpuVendor.find(keys::gpu::vendor_Intel) != std::string::npos) {
             // go LOW because Intel GPU
@@ -119,7 +120,7 @@ bool filterOnProcessors(const platform::json& computer, const platform::json& cp
                 tier = Profiler::Tier::LOW;
                 return true;
             }
-            
+
             // go high because GPU
             tier = Profiler::Tier::HIGH;
             return true;

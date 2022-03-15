@@ -7,10 +7,12 @@
 //
 
 #include "AndroidPlatform.h"
-#include "../PlatformKeys.h"
-#include "../../GPUIdent.h"
+
 #include <QSysInfo>
 #include <QtCore/QtGlobal>
+
+#include "../PlatformKeys.h"
+#include "../../GPUIdent.h"
 
 using namespace platform;
 

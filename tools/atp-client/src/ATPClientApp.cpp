@@ -145,7 +145,7 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
 
     platform::create();
     platform::enumeratePlatform();
-    DependencyManager::set<NodeList>(NodeList::Params{NodeType::Agent, {_listenPort}, platform::getDescription()});
+    DependencyManager::set<NodeList>(NodeList::Params{ NodeType::Agent, { _listenPort }, platform::getDescription() });
     platform::destroy();
 
     auto accountManager = DependencyManager::get<AccountManager>();

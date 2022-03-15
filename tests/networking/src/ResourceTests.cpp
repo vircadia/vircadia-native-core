@@ -26,7 +26,7 @@ void ResourceTests::initTestCase() {
     //DependencyManager::set<AddressManager>();
     DependencyManager::set<StatTracker>();
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
-    DependencyManager::set<NodeList>(NodeList::Params{NodeType::Agent});
+    DependencyManager::set<NodeList>(NodeList::Params{ NodeType::Agent });
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<ResourceManager>();
     const qint64 MAXIMUM_CACHE_SIZE = 1024 * 1024 * 1024; // 1GB

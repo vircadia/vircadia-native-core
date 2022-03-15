@@ -153,7 +153,7 @@ int main(int argc, char** argv) {
         qDebug() << duration;
 
     }
-    DependencyManager::set<NodeList>(NodeList::Params{NodeType::Unassigned});
+    DependencyManager::set<NodeList>(NodeList::Params{ NodeType::Unassigned });
 
     QFile file(getTestResourceDir() + "packet.bin");
     if (!file.open(QIODevice::ReadOnly)) return -1;

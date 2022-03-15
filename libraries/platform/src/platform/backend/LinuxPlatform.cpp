@@ -7,16 +7,16 @@
 //
 
 #include "LinuxPlatform.h"
-#include "../PlatformKeys.h"
 
 #include <thread>
 #include <string>
-#include "../../CPUIdent.h"
 
 #include <QtCore/QtGlobal>
-
-#include "../../GPUIdent.h"
 #include <QSysInfo>
+
+#include "../PlatformKeys.h"
+#include "../../CPUIdent.h"
+#include "../../GPUIdent.h"
 
 using namespace platform;
 

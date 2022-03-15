@@ -107,7 +107,7 @@ ACClientApp::ACClientApp(int argc, char* argv[]) :
 
     platform::create();
     platform::enumeratePlatform();
-    DependencyManager::set<NodeList>(NodeList::Params{NodeType::Agent, {listenPort}, platform::getDescription()});
+    DependencyManager::set<NodeList>(NodeList::Params{ NodeType::Agent, { listenPort }, platform::getDescription() });
     platform::destroy();
 
     auto accountManager = DependencyManager::get<AccountManager>();
