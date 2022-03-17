@@ -85,7 +85,7 @@
 #include <EntityScriptClient.h>
 #include <EntityScriptServerLogClient.h>
 #include <EntityScriptingInterface.h>
-#include "ui/overlays/ContextOverlayInterface.h"
+#include <ui/overlays/ContextOverlayInterface.h>
 #include <ErrorDialog.h>
 #include <FileScriptingInterface.h>
 #include <Finally.h>
@@ -165,7 +165,7 @@
 #include <StencilMaskPass.h>
 #include <procedural/ProceduralMaterialCache.h>
 #include <procedural/ReferenceMaterial.h>
-#include "recording/ClipCache.h"
+#include <platform/Platform.h>
 
 #include "AudioClient.h"
 #include "audio/AudioScope.h"
@@ -730,6 +730,10 @@ const QString TEST_QUIT_WHEN_FINISHED_OPTION{ "quitWhenFinished" };
 const QString TEST_RESULTS_LOCATION_COMMAND{ "--testResultsLocation" };
 
 bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
+
+    platform::create();
+    platform::enumeratePlatform();
+
     const char** constArgv = const_cast<const char**>(argv);
 
     qInstallMessageHandler(messageHandler);
@@ -866,7 +870,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<recording::Deck>();
     DependencyManager::set<recording::Recorder>();
     DependencyManager::set<AddressManager>();
-    DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
+    DependencyManager::set<NodeList>(NodeList::Params{ NodeType::Agent, { listenPort }, platform::getDescription() });
     DependencyManager::set<recording::ClipCache>();
     DependencyManager::set<GeometryCache>();
     DependencyManager::set<ModelFormatRegistry>(); // ModelFormatRegistry must be defined before ModelCache. See the ModelCache constructor.
@@ -1711,8 +1715,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             properties["os_win_version"] = QSysInfo::windowsVersion();
         }
 
-        ProcessorInfo procInfo;
-        if (getProcessorInfo(procInfo)) {
+        platform::ProcessorInfo procInfo;
+        if (platform::getProcessorInfo(procInfo)) {
             properties["processor_core_count"] = procInfo.numProcessorCores;
             properties["logical_processor_count"] = procInfo.numLogicalProcessors;
             properties["processor_l1_cache_count"] = procInfo.numProcessorCachesL1;
@@ -2205,8 +2209,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(sendStatsTimer, &QTimer::timeout, this, [this]() {
 
         QJsonObject properties = {};
-        MemoryInfo memInfo;
-        if (getMemoryInfo(memInfo)) {
+        platform::MemoryInfo memInfo;
+        if (platform::getMemoryInfo(memInfo)) {
             properties["system_memory_total"] = static_cast<qint64>(memInfo.totalMemoryBytes);
             properties["system_memory_used"] = static_cast<qint64>(memInfo.usedMemoryBytes);
             properties["process_memory_used"] = static_cast<qint64>(memInfo.processUsedMemoryBytes);
@@ -3042,6 +3046,8 @@ Application::~Application() {
     // We want to postpone this utill the last possible moment.
     //QCoreApplication::processEvents();
 #endif
+
+    platform::destroy();
 }
 
 void Application::initializeGL() {

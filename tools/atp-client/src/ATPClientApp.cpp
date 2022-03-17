@@ -27,6 +27,7 @@
 #include <SettingHandle.h>
 #include <AssetUpload.h>
 #include <StatTracker.h>
+#include <platform/Platform.h>
 
 #define HIGH_FIDELITY_ATP_CLIENT_USER_AGENT "Mozilla/5.0 (HighFidelityATPClient)"
 #define TIMEOUT_MILLISECONDS 8000
@@ -141,7 +142,11 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
     DependencyManager::set<StatTracker>();
     DependencyManager::set<AccountManager>(false, [&]{ return QString(HIGH_FIDELITY_ATP_CLIENT_USER_AGENT); });
     DependencyManager::set<AddressManager>();
-    DependencyManager::set<NodeList>(NodeType::Agent, _listenPort);
+
+    platform::create();
+    platform::enumeratePlatform();
+    DependencyManager::set<NodeList>(NodeList::Params{ NodeType::Agent, { _listenPort }, platform::getDescription() });
+    platform::destroy();
 
     auto accountManager = DependencyManager::get<AccountManager>();
     accountManager->setIsAgent(true);

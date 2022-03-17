@@ -279,7 +279,7 @@ public:
         DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
         //DependencyManager::registerInheritance<SpatialParentFinder, ParentFinder>();
         DependencyManager::set<AddressManager>();
-        DependencyManager::set<NodeList>(NodeType::Agent);
+        DependencyManager::set<NodeList>(NodeList::Params{ NodeType::Agent });
         DependencyManager::set<ResourceCacheSharedItems>();
         DependencyManager::set<TextureCache>();
         DependencyManager::set<FramebufferCache>();

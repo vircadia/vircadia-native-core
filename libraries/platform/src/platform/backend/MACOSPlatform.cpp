@@ -7,28 +7,28 @@
 //
 
 #include "MACOSPlatform.h"
-#include "../PlatformKeys.h"
-
-#include <thread>
-#include <string>
-#include <CPUIdent.h>
 
 #include <QtCore/QtGlobal>
 
+#include <thread>
+#include <string>
 #ifdef Q_OS_MAC
-#include <unistd.h>
-#include <cpuid.h>
-#include <sys/sysctl.h>
-
 #include <sstream>
 #include <regex>
 
+#include <unistd.h>
+#include <cpuid.h>
+#include <sys/sysctl.h>
 #include <CoreFoundation/CoreFoundation.h>
 #include <ApplicationServices/ApplicationServices.h>
+#include <OpenGL/OpenGL.h>
+
 #include <QSysInfo>
 #include <QString>
-#include <OpenGL/OpenGL.h>
 #endif
+
+#include "../PlatformKeys.h"
+#include "../../CPUIdent.h"
 
 using namespace platform;
 
@@ -65,56 +65,56 @@ void MACOSInstance::enumerateGpusAndDisplays() {
             const auto MM_TO_IN = 0.0393701f;
             auto displaySizeWidthInches = displaySize.width * MM_TO_IN;
             auto displaySizeHeightInches = displaySize.height * MM_TO_IN;
-            
+
             auto displayBounds = CGDisplayBounds(displayID);
             auto displayMaster =CGDisplayIsMain(displayID);
-            
+
             auto displayUnit =CGDisplayUnitNumber(displayID);
             auto displayModel =CGDisplayModelNumber(displayID);
             auto displayVendor = CGDisplayVendorNumber(displayID);
             auto displaySerial = CGDisplaySerialNumber(displayID);
-            
+
             auto displayMode = CGDisplayCopyDisplayMode(displayID);
             auto displayModeWidth = CGDisplayModeGetPixelWidth(displayMode);
             auto displayModeHeight = CGDisplayModeGetPixelHeight(displayMode);
             auto displayRefreshrate = CGDisplayModeGetRefreshRate(displayMode);
-            
+
             auto ppiH = displayModeWidth / displaySizeWidthInches;
             auto ppiV = displayModeHeight / displaySizeHeightInches;
-            
+
             auto ppiHScaled = displayBounds.size.width / displaySizeWidthInches;
             auto ppiVScaled = displayBounds.size.height / displaySizeHeightInches;
-            
+
             auto glmask = CGDisplayIDToOpenGLDisplayMask(displayID);
             // Metal device ID is the recommended new way but requires objective c
             // auto displayDevice = CGDirectDisplayCopyCurrentMetalDevice(displayID);
-            
+
             CGDisplayModeRelease(displayMode);
-            
+
             json display = {};
-            
+
             // Rect region of the desktop in desktop units
             display[keys::display::boundsLeft] = displayBounds.origin.x;
             display[keys::display::boundsRight] = displayBounds.origin.x + displayBounds.size.width;
             display[keys::display::boundsTop] = displayBounds.origin.y;
             display[keys::display::boundsBottom] = displayBounds.origin.y + displayBounds.size.height;
-            
+
             // PPI & resolution
             display[keys::display::physicalWidth] = displaySizeWidthInches;
             display[keys::display::physicalHeight] = displaySizeHeightInches;
             display[keys::display::modeWidth] = displayModeWidth;
             display[keys::display::modeHeight] = displayModeHeight;
-            
+
             //Average the ppiH and V for the simple ppi
             display[keys::display::ppi] = std::round(0.5f * (ppiH + ppiV));
             display[keys::display::ppiDesktop] = std::round(0.5f * (ppiHScaled + ppiVScaled));
-            
+
             // refreshrate
             display[keys::display::modeRefreshrate] = displayRefreshrate;
-            
+
             // Master display ?
             display[keys::display::isMaster] = (displayMaster ? true : false);
-            
+
             // Macos specific
             display["macos_unit"] = displayUnit;
             display["macos_vendor"] = displayVendor;
@@ -122,11 +122,11 @@ void MACOSInstance::enumerateGpusAndDisplays() {
             display["macos_serial"] = displaySerial;
             display["macos_glmask"] = glmask;
             displayMasks.push_back(glmask);
-            
+
             _displays.push_back(display);
         }
     }
-    
+
     // Collect Renderer info as exposed by the CGL layers
     GLuint cglDisplayMask = -1; // Iterate over all of them.
     CGLRendererInfoObj rendererInfo;
@@ -135,7 +135,7 @@ void MACOSInstance::enumerateGpusAndDisplays() {
     if (rendererInfoCount <= 0 || 0 != error) {
         return;
     }
-    
+
     // Iterate over all of the renderers and use the figure for the one with the most VRAM,
     // on the assumption that this is the one that will actually be used.
     for (GLint i = 0; i < rendererInfoCount; i++) {
@@ -145,17 +145,17 @@ void MACOSInstance::enumerateGpusAndDisplays() {
             int accelerated{0};
             int displayMask{0};
         } desc;
-        
+
         CGLDescribeRenderer(rendererInfo, i, kCGLRPRendererID, &desc.rendererID);
         CGLDescribeRenderer(rendererInfo, i, kCGLRPVideoMemoryMegabytes, &desc.deviceVRAM);
         CGLDescribeRenderer(rendererInfo, i, kCGLRPDisplayMask, &desc.displayMask);
         CGLDescribeRenderer(rendererInfo, i, kCGLRPAccelerated, &desc.accelerated);
-        
+
         // If this renderer is not hw accelerated then just skip it in the enumeration
         if (!desc.accelerated) {
             continue;
         }
-        
+
         // From the rendererID identify the vendorID
         // https://github.com/apitrace/apitrace/blob/master/retrace/glws_cocoa.mm
         GLint vendorID = desc.rendererID & kCGLRendererIDMatchingMask & ~0xfff;
@@ -163,7 +163,7 @@ void MACOSInstance::enumerateGpusAndDisplays() {
         const GLint VENDOR_ID_AMD { 0x00021000 };
         const GLint VENDOR_ID_NVIDIA { 0x00022000 };
         const GLint VENDOR_ID_INTEL { 0x00024000 };
-        
+
         const char* vendorName;
         switch (vendorID) {
             case VENDOR_ID_SOFTWARE:
@@ -183,7 +183,7 @@ void MACOSInstance::enumerateGpusAndDisplays() {
                 vendorName = keys::UNKNOWN;
                 break;
         }
-        
+
         //once we reach this point, the renderer is legit
         // Start defining the gpu json
         json gpu = {};
@@ -191,7 +191,7 @@ void MACOSInstance::enumerateGpusAndDisplays() {
         gpu[keys::gpu::videoMemory] = desc.deviceVRAM;
         gpu["macos_rendererID"] = desc.rendererID;
         gpu["macos_displayMask"] = desc.displayMask;
-        
+
         std::vector<int> displayIndices;
         for (int d = 0; d < (int) displayMasks.size(); d++) {
             if (desc.displayMask & displayMasks[d]) {
@@ -200,13 +200,13 @@ void MACOSInstance::enumerateGpusAndDisplays() {
             }
         }
         gpu[keys::gpu::displays] = displayIndices;
-        
+
         _gpus.push_back(gpu);
     }
-    
+
     CGLDestroyRendererInfo(rendererInfo);
-    
-    
+
+
     {   //get gpu information from the system profiler that we don't know how to retreive otherwise
         struct ChipsetModelDesc {
             std::string model;
@@ -223,16 +223,16 @@ void MACOSInstance::enumerateGpusAndDisplays() {
             hostStream.write(buf, bytesRead);
         }
         std::string gpuArrayDesc = hostStream.str();
-    
+
         // Find the Chipset model first
         const std::regex chipsetModelToken("(Chipset Model: )(.*)");
         std::smatch found;
-    
+
         while (std::regex_search(gpuArrayDesc, found, chipsetModelToken)) {
             ChipsetModelDesc desc;
 
             desc.model = found.str(2);
-            
+
             // Find the end of the gpu block
             gpuArrayDesc = found.suffix();
             std::string gpuDesc = gpuArrayDesc;
@@ -240,10 +240,10 @@ void MACOSInstance::enumerateGpusAndDisplays() {
             if (std::regex_search(gpuArrayDesc, found, endGpuToken)) {
                 gpuDesc = found.prefix();
             }
-            
+
             // Find the vendor
             desc.vendor = findGPUVendorInDescription(desc.model);
-            
+
             // Find the memory amount in MB
             const std::regex memoryToken("(VRAM .*: )(.*)");
             if (std::regex_search(gpuDesc, found, memoryToken)) {
@@ -260,23 +260,23 @@ void MACOSInstance::enumerateGpusAndDisplays() {
                     desc.videoMemory = std::stoi(memAmountUnit);
                 }
             }
-            
+
             // Find the Device ID
             const std::regex deviceIDToken("(Device ID: )(.*)");
             if (std::regex_search(gpuDesc, found, deviceIDToken)) {
                 desc.deviceID = std::stoi(found.str(2), 0, 16);
             }
-            
+
             chipsetDescs.push_back(desc);
         }
-        
+
         // GO through the detected gpus in order and complete missing information from ChipsetModelDescs
         // assuming the order is the same and checking that the vendor and memory amount match as a simple check
         auto numDescs = (int) std::min(chipsetDescs.size(),_gpus.size());
         for (int i = 0; i < numDescs; ++i) {
             const auto& chipset = chipsetDescs[i];
             auto& gpu = _gpus[i];
-            
+
             if (   (chipset.vendor.find( gpu[keys::gpu::vendor]) != std::string::npos)
                 && (chipset.videoMemory == gpu[keys::gpu::videoMemory]) ) {
                 gpu[keys::gpu::model] = chipset.model;
@@ -284,7 +284,7 @@ void MACOSInstance::enumerateGpusAndDisplays() {
             }
         }
     }
-    
+
 #endif
 }
 
@@ -310,7 +310,7 @@ void MACOSInstance::enumerateComputer(){
     sysctlbyname("hw.model",NULL, &len, NULL, 0);
     char* model = (char *) malloc(sizeof(char)*len+1);
     sysctlbyname("hw.model", model, &len, NULL,0);
-    
+
     _computer[keys::computer::model]=std::string(model);
 
     free(model);

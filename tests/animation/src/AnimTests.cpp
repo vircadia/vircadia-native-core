@@ -32,7 +32,7 @@ void AnimTests::initTestCase() {
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::set<AccountManager>();
     DependencyManager::set<AddressManager>();
-    DependencyManager::set<NodeList>(NodeType::Agent);
+    DependencyManager::set<NodeList>(NodeList::Params{ NodeType::Agent });
     DependencyManager::set<ResourceManager>();
     DependencyManager::set<AnimationCache>();
     DependencyManager::set<ResourceRequestObserver>();

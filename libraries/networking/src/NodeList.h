@@ -30,6 +30,8 @@
 #include <QtNetwork/QHostAddress>
 #include <QtNetwork/QUdpSocket>
 
+#include <nlohmann/json.hpp>
+
 #include <DependencyManager.h>
 #include <SettingHandle.h>
 
@@ -54,6 +56,7 @@ class NodeList : public LimitedNodeList {
     SINGLETON_DEPENDENCY
 
 public:
+
     void startThread();
     NodeType_t getOwnerType() const { return _ownerType.load(); }
     void setOwnerType(NodeType_t ownerType) { _ownerType.store(ownerType); }
@@ -104,6 +107,12 @@ public:
     virtual QUuid getDomainUUID() const override { return _domainHandler.getUUID(); }
     virtual Node::LocalID getDomainLocalID() const override { return _domainHandler.getLocalID(); }
     virtual SockAddr getDomainSockAddr() const override { return _domainHandler.getSockAddr(); }
+
+    struct Params {
+        char ownerType;
+        LimitedNodeList::Ports ports = {};
+        nlohmann::json platformInfo = {};
+    };
 
 public slots:
     void reset(QString reason, bool skipDomainHandlerReset = false);
@@ -157,10 +166,11 @@ private slots:
 
 private:
     Q_DISABLE_COPY(NodeList)
-    NodeList() : LimitedNodeList(INVALID_PORT, INVALID_PORT) { 
+    NodeList() : LimitedNodeList({}) {
         assert(false);  // Not implemented, needed for DependencyManager templates compile
     }
-    NodeList(char ownerType, int socketListenPort = INVALID_PORT, int dtlsListenPort = INVALID_PORT);
+
+    explicit NodeList(Params params);
 
     void processDomainServerAuthRequest(const QByteArray& packet);
     void requestAuthForDomainServer();
@@ -208,6 +218,8 @@ private:
 #endif
 
     bool _hasDomainAccountManager { false };
+
+    const nlohmann::json _platformInfo;
 };
 
 #endif // hifi_NodeList_h

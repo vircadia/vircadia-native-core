@@ -354,6 +354,11 @@ public:
         NodeType::EntityScriptServer
     };
 
+    struct Ports {
+        int socketListen = INVALID_PORT;
+        int dtlsListen = INVALID_PORT;
+    };
+
 public slots:
     void reset(QString reason);
     void eraseAllNodes(QString reason);
@@ -417,7 +422,7 @@ protected:
         QUuid connectionSecretUUID;
     };
 
-    LimitedNodeList(int socketListenPort = INVALID_PORT, int dtlsListenPort = INVALID_PORT);
+    explicit LimitedNodeList(Ports);
     LimitedNodeList(LimitedNodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
     void operator=(LimitedNodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
 

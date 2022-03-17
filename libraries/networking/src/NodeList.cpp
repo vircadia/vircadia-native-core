@@ -27,8 +27,6 @@
 #include <ThreadHelpers.h>
 #include <LogHandler.h>
 #include <UUID.h>
-#include <platform/Platform.h>
-#include <platform/PlatformKeys.h>
 
 #include "AccountManager.h"
 #include "AddressManager.h"
@@ -49,13 +47,14 @@ using namespace std::chrono;
 const int KEEPALIVE_PING_INTERVAL_MS = 1000;
 const int MAX_SYSTEM_INFO_SIZE = 1000;
 
-NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) :
-    LimitedNodeList(socketListenPort, dtlsListenPort),
-    _ownerType(newOwnerType),
+NodeList::NodeList(Params params) :
+    LimitedNodeList(params.ports),
+    _ownerType(params.ownerType),
     _nodeTypesOfInterest(),
     _domainHandler(this),
     _assignmentServerSocket(),
-    _keepAlivePingTimer(this)
+    _keepAlivePingTimer(this),
+    _platformInfo(std::move(params.platformInfo))
 {
     setCustomDeleter([](Dependency* dependency){
         static_cast<NodeList*>(dependency)->deleteLater();
@@ -456,17 +455,7 @@ void NodeList::sendDomainServerCheckIn() {
             // now add the machine fingerprint
             packetStream << FingerprintUtils::getMachineFingerprint();
 
-            platform::json all = platform::getAll();
-            platform::json desc;
-            // only pull out those items that will fit within a packet
-            desc[platform::keys::COMPUTER] = all[platform::keys::COMPUTER];
-            desc[platform::keys::MEMORY] = all[platform::keys::MEMORY];
-            desc[platform::keys::CPUS] = all[platform::keys::CPUS];
-            desc[platform::keys::GPUS] = all[platform::keys::GPUS];
-            desc[platform::keys::DISPLAYS] = all[platform::keys::DISPLAYS];
-            desc[platform::keys::NICS] = all[platform::keys::NICS];
-
-            QByteArray systemInfo(desc.dump().c_str());
+            QByteArray systemInfo(_platformInfo.dump().c_str());
             QByteArray compressedSystemInfo = qCompress(systemInfo);
 
             if (compressedSystemInfo.size() > MAX_SYSTEM_INFO_SIZE) {
@@ -496,7 +485,7 @@ void NodeList::sendDomainServerCheckIn() {
 
         // pack our data to send to the domain-server including
         // the hostname information (so the domain-server can see which place name we came in on)
-        packetStream << _ownerType.load() << publicSockAddr.getType() << publicSockAddr << localSockAddr.getType() 
+        packetStream << _ownerType.load() << publicSockAddr.getType() << publicSockAddr << localSockAddr.getType()
             << localSockAddr << _nodeTypesOfInterest.values();
         packetStream << DependencyManager::get<AddressManager>()->getPlaceName();
 

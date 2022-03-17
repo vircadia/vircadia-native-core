@@ -7,16 +7,16 @@
 //
 
 #include "LinuxPlatform.h"
-#include "../PlatformKeys.h"
 
 #include <thread>
 #include <string>
-#include <CPUIdent.h>
 
 #include <QtCore/QtGlobal>
-
-#include <GPUIdent.h>
 #include <QSysInfo>
+
+#include "../PlatformKeys.h"
+#include "../../CPUIdent.h"
+#include "../../GPUIdent.h"
 
 using namespace platform;
 
@@ -50,7 +50,7 @@ void LinuxInstance::enumerateMemory() {
 }
 
 void LinuxInstance::enumerateComputer(){
-    
+
     _computer[keys::computer::OS] = keys::computer::OS_LINUX;
     _computer[keys::computer::vendor] = "";
     _computer[keys::computer::model] = "";

@@ -780,7 +780,7 @@ void DomainServer::setupNodeListAndAssignments() {
     // check for scripts the user wants to persist from their domain-server config
     populateStaticScriptedAssignmentsFromSettings();
 
-    auto nodeList = DependencyManager::set<LimitedNodeList>(domainServerPort, domainServerDTLSPort);
+    auto nodeList = DependencyManager::set<LimitedNodeList>(LimitedNodeList::Ports{ domainServerPort, domainServerDTLSPort });
 
     // no matter the local port, save it to shared mem so that local assignment clients can ask what it is
     nodeList->putLocalPortIntoSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this,
@@ -910,7 +910,7 @@ void DomainServer::setUpWebRTCSignalingServer() {
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
     // Route inbound WebRTC signaling messages received from user clients.
-    connect(_webrtcSignalingServer.get(), &WebRTCSignalingServer::messageReceived, 
+    connect(_webrtcSignalingServer.get(), &WebRTCSignalingServer::messageReceived,
         this, &DomainServer::routeWebRTCSignalingMessage);
 
     // Route domain server signaling messages.
@@ -922,9 +922,9 @@ void DomainServer::setUpWebRTCSignalingServer() {
     // Forward signaling messages received from assignment clients to user client.
     PacketReceiver& packetReceiver = limitedNodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::WebRTCSignaling,
-        PacketReceiver::makeUnsourcedListenerReference<DomainServer>(this, 
+        PacketReceiver::makeUnsourcedListenerReference<DomainServer>(this,
             &DomainServer::forwardAssignmentClientSignalingMessageToUserClient));
-    connect(this, &DomainServer::webrtcSignalingMessageForUserClient, 
+    connect(this, &DomainServer::webrtcSignalingMessageForUserClient,
         _webrtcSignalingServer.get(), &WebRTCSignalingServer::sendMessage);
 }
 

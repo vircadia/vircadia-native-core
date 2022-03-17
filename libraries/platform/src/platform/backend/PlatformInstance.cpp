@@ -8,9 +8,11 @@
 
 
 #include "PlatformInstance.h"
+
 #include <QNetworkInterface>
 
 #include <gl/GLHelpers.h>
+
 #include "../PlatformKeys.h"
 #include "../Profiler.h"
 
@@ -40,7 +42,7 @@ bool Instance::enumeratePlatform() {
     enumerateGpusAndDisplays();
     enumerateNics();
     enumerateGraphicsApis();
-    
+
     // eval the master index for each platform scopes
     updateMasterIndices();
 
@@ -55,7 +57,7 @@ void Instance::updateMasterIndices() {
     {
         if (!_cpus.empty()) {
             _masterCPU = 0;
-            _cpus[0][keys::cpu::isMaster] = true; 
+            _cpus[0][keys::cpu::isMaster] = true;
         } else {
             _masterCPU = NOT_FOUND;
         }
@@ -90,7 +92,7 @@ void Instance::updateMasterIndices() {
             // FInd the GPU index of the master display
             if (display.count(keys::display::gpu)) {
                 _masterGPU = display[keys::display::gpu];
-                _gpus[_masterGPU][keys::gpu::isMaster] = true; 
+                _gpus[_masterGPU][keys::gpu::isMaster] = true;
             }
         }
         // NO master GPU found from master display, bummer, return the first one or NOT_FOUND if no display
@@ -99,7 +101,7 @@ void Instance::updateMasterIndices() {
                 _masterGPU = 0;
                 _gpus[0][keys::gpu::isMaster] = true;
             }
-        }        
+        }
     }
 }
 

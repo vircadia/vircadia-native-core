@@ -48,8 +48,8 @@ QVariant getGlobalInstance(const char* propertyName);
 void setGlobalInstance(const char* propertyName, const QVariant& variant);
 
 // Provides efficient access to a named global type.  By storing the value
-// in the QApplication by name we can implement the singleton pattern and 
-// have the single instance function across DLL boundaries.  
+// in the QApplication by name we can implement the singleton pattern and
+// have the single instance function across DLL boundaries.
 template <typename T, typename... Args>
 T* globalInstance(const char* propertyName, Args&&... args) {
     static T* resultInstance { nullptr };
@@ -60,7 +60,7 @@ T* globalInstance(const char* propertyName, Args&&... args) {
             if (variant.isNull()) {
                 std::unique_ptr<T>& instancePtr = globalInstancePointer<T>();
                 if (!instancePtr.get()) {
-                    // Since we're building the object, store it in a shared_ptr so it's 
+                    // Since we're building the object, store it in a shared_ptr so it's
                     // destroyed by the destructor of the static instancePtr
                     instancePtr = std::unique_ptr<T>(new T(std::forward<Args>(args)...));
                 }
@@ -195,28 +195,6 @@ uint qHash(const std::shared_ptr<T>& ptr, uint seed = 0)
 
 void disableQtBearerPoll();
 
-void printSystemInformation();
-
-struct MemoryInfo {
-    uint64_t totalMemoryBytes;
-    uint64_t availMemoryBytes;
-    uint64_t usedMemoryBytes;
-    uint64_t processUsedMemoryBytes;
-    uint64_t processPeakUsedMemoryBytes;
-};
-
-bool getMemoryInfo(MemoryInfo& info);
-
-struct ProcessorInfo {
-    int32_t numPhysicalProcessorPackages;
-    int32_t numProcessorCores;
-    int32_t numLogicalProcessors;
-    int32_t numProcessorCachesL1;
-    int32_t numProcessorCachesL2;
-    int32_t numProcessorCachesL3;
-};
-
-bool getProcessorInfo(ProcessorInfo& info);
 
 const QString& getInterfaceSharedMemoryName();
 
