@@ -85,7 +85,7 @@
 #include <EntityScriptClient.h>
 #include <EntityScriptServerLogClient.h>
 #include <EntityScriptingInterface.h>
-#include "ui/overlays/ContextOverlayInterface.h"
+#include <ui/overlays/ContextOverlayInterface.h>
 #include <ErrorDialog.h>
 #include <FileScriptingInterface.h>
 #include <Finally.h>
@@ -165,7 +165,6 @@
 #include <StencilMaskPass.h>
 #include <procedural/ProceduralMaterialCache.h>
 #include <procedural/ReferenceMaterial.h>
-#include "recording/ClipCache.h"
 #include <platform/Platform.h>
 
 #include "AudioClient.h"
@@ -871,7 +870,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<recording::Deck>();
     DependencyManager::set<recording::Recorder>();
     DependencyManager::set<AddressManager>();
-    DependencyManager::set<NodeList>(NodeList::Params{NodeType::Agent, {listenPort}, platform::getDescription()});
+    DependencyManager::set<NodeList>(NodeList::Params{ NodeType::Agent, { listenPort }, platform::getDescription() });
     DependencyManager::set<recording::ClipCache>();
     DependencyManager::set<GeometryCache>();
     DependencyManager::set<ModelFormatRegistry>(); // ModelFormatRegistry must be defined before ModelCache. See the ModelCache constructor.

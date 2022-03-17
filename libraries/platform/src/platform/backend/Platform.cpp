@@ -8,13 +8,10 @@
 
 
 #include "../Platform.h"
-#include "../PlatformKeys.h"
 
 #ifdef Q_OS_WIN
 #include <windows.h>
-#include "../../CPUIdent.h"
 #include <Psapi.h>
-
 #endif
 
 #include <QtCore/QDebug>
@@ -22,6 +19,11 @@
 #include <QSysInfo>
 #include <QProcessEnvironment>
 #include <QStringList>
+
+#include "../PlatformKeys.h"
+#ifdef Q_OS_WIN
+#include "../../CPUIdent.h"
+#endif
 
 Q_LOGGING_CATEGORY(platform_log, "platform")
 
@@ -303,8 +305,9 @@ void platform::create() {
 }
 
 void platform::destroy() {
-    if(_instance)
+    if (_instance) {
         delete _instance;
+    }
 }
 
 bool platform::enumeratePlatform() {
@@ -443,8 +446,7 @@ void platform::printSystemInformation() {
         "QTWEBENGINE_REMOTE_DEBUGGING"
     };
     auto envVariables = QProcessEnvironment::systemEnvironment();
-    for (auto& env : envWhitelist)
-    {
+    for (auto& env : envWhitelist) {
         qCDebug(platform_log).noquote().nospace() << "\t" <<
             (envVariables.contains(env) ? " = " + envVariables.value(env) : " NOT FOUND");
     }
@@ -483,8 +485,7 @@ using LPFN_GLPI = BOOL(WINAPI*)(
     PSYSTEM_LOGICAL_PROCESSOR_INFORMATION,
     PDWORD);
 
-DWORD CountSetBits(ULONG_PTR bitMask)
-{
+DWORD CountSetBits(ULONG_PTR bitMask) {
     DWORD LSHIFT = sizeof(ULONG_PTR) * 8 - 1;
     DWORD bitSetCount = 0;
     ULONG_PTR bitTest = (ULONG_PTR)1 << LSHIFT;
@@ -520,7 +521,7 @@ bool platform::getProcessorInfo(ProcessorInfo& info) {
     glpi = (LPFN_GLPI)GetProcAddress(
         GetModuleHandle(TEXT("kernel32")),
         "GetLogicalProcessorInformation");
-    if (nullptr == glpi) {
+    if (glpi == nullptr) {
         qCDebug(platform_log) << "GetLogicalProcessorInformation is not supported.";
         return false;
     }
@@ -528,7 +529,7 @@ bool platform::getProcessorInfo(ProcessorInfo& info) {
     while (!done) {
         DWORD rc = glpi(buffer, &returnLength);
 
-        if (FALSE == rc) {
+        if (rc == FALSE) {
             if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
                 if (buffer) {
                     free(buffer);
@@ -537,7 +538,7 @@ bool platform::getProcessorInfo(ProcessorInfo& info) {
                 buffer = (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION)malloc(
                     returnLength);
 
-                if (NULL == buffer) {
+                if (buffer == NULL) {
                     qCDebug(platform_log) << "Error: Allocation failure";
                     return false;
                 }

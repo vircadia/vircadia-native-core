@@ -7,28 +7,28 @@
 //
 
 #include "MACOSPlatform.h"
-#include "../PlatformKeys.h"
-
-#include <thread>
-#include <string>
-#include "../../CPUIdent.h"
 
 #include <QtCore/QtGlobal>
 
+#include <thread>
+#include <string>
 #ifdef Q_OS_MAC
-#include <unistd.h>
-#include <cpuid.h>
-#include <sys/sysctl.h>
-
 #include <sstream>
 #include <regex>
 
+#include <unistd.h>
+#include <cpuid.h>
+#include <sys/sysctl.h>
 #include <CoreFoundation/CoreFoundation.h>
 #include <ApplicationServices/ApplicationServices.h>
+#include <OpenGL/OpenGL.h>
+
 #include <QSysInfo>
 #include <QString>
-#include <OpenGL/OpenGL.h>
 #endif
+
+#include "../PlatformKeys.h"
+#include "../../CPUIdent.h"
 
 using namespace platform;
 

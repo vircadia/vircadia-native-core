@@ -65,7 +65,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     platform::enumeratePlatform();
 
     // create a NodeList as an unassigned client, must be after addressManager
-    auto nodeList = DependencyManager::set<NodeList>(NodeList::Params{NodeType::Unassigned, {listenPort}, platform::getDescription()});
+    auto nodeList = DependencyManager::set<NodeList>(NodeList::Params{ NodeType::Unassigned, { listenPort }, platform::getDescription() });
 
     platform::destroy();
 

@@ -413,7 +413,7 @@ public:
         DependencyManager::set<tracing::Tracer>();
         DependencyManager::set<StatTracker>();
         DependencyManager::set<AddressManager>();
-        DependencyManager::set<NodeList>(NodeList::Params{NodeType::Agent});
+        DependencyManager::set<NodeList>(NodeList::Params{ NodeType::Agent });
         DependencyManager::set<DeferredLightingEffect>();
         DependencyManager::set<ResourceCacheSharedItems>();
         DependencyManager::set<TextureCache>();
