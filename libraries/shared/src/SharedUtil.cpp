@@ -93,7 +93,7 @@ static void commitGlobalInstances() {
 }
 
 // This call is necessary for global instances to work across DLL boundaries
-// Ideally, this founction would be called at the top of the main function.
+// Ideally, this function would be called at the top of the main function.
 // See description at the top of the file.
 void setupGlobalInstances() {
     qAddPreRoutine(commitGlobalInstances);
