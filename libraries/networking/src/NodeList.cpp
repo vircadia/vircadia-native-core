@@ -97,7 +97,6 @@ NodeList::NodeList(Params params) :
     // FIXME: Can remove this temporary work-around in version 2021.2.0. (New protocol version implies a domain server upgrade.)
     // Adjust our canRezAvatarEntities permissions on older domains that do not have this setting.
     // DomainServerList and DomainSettings packets can come in either order so need to adjust with both occurrences.
-    auto nodeList = DependencyManager::get<NodeList>();
     connect(&_domainHandler, &DomainHandler::settingsReceived, this, &NodeList::adjustCanRezAvatarEntitiesPerSettings);
 
     auto accountManager = DependencyManager::get<AccountManager>();
