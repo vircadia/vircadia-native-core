@@ -53,10 +53,12 @@ namespace vircadia { namespace client {
         Context(NodeList::Params nodeListParams, const char* userAgent, vircadia_client_info info) :
             argv(&argvData[0])
         {
+            auto qtInitialization = qtInitialized.get_future();
             appThraed = std::thread{ [
                 &app = this->app,
                 &argc = this->argc,
                 &argv = this->argv,
+                &qtInitialized = this->qtInitialized,
                 nodeListParams, userAgent, info
             ] () {
                 setupHifiApplication(info.name, info.organization, info.domain, info.version);
@@ -119,16 +121,24 @@ namespace vircadia { namespace client {
                     QThreadPool::globalInstance()->clear();
                     QThreadPool::globalInstance()->waitForDone();
 
-                    DependencyManager::destroy<NodeList>();
-                    DependencyManager::destroy<AddressManager>();
-                    DependencyManager::destroy<DomainAccountManager>();
-                    DependencyManager::destroy<AccountManager>();
+                    // TODO: these are still being used after this point, so need a better way to make sure all threads and pending operations have finished before destroying
+                    // DependencyManager::destroy<NodeList>();
+                    // DependencyManager::destroy<AddressManager>();
+                    // DependencyManager::destroy<DomainAccountManager>();
+                    // DependencyManager::destroy<AccountManager>();
+
                 });
 
                 app = &qtApp;
 
+                qtInitialized.set_value();
+
                 qtApp.exec();
+
+                app = nullptr;
             } };
+
+            qtInitialization.wait();
         }
 
         bool ready() {
@@ -136,8 +146,9 @@ namespace vircadia { namespace client {
         }
 
         ~Context() {
-            assert(ready());
-            QMetaObject::invokeMethod(app, "quit");
+            if (ready()) {
+                QMetaObject::invokeMethod(app, "quit");
+            }
             appThraed.join();
         }
 
@@ -175,6 +186,7 @@ namespace vircadia { namespace client {
         std::thread appThraed {};
         std::atomic<QCoreApplication*> app {};
         std::vector<NodeData> nodes {};
+        std::promise<void> qtInitialized {};
 
         int argc = 1;
         char argvData[18] = {"qt_is_such_a_joke"};
