@@ -1,6 +1,6 @@
 //
 //  SpatiallyNestable.cpp
-//  libraries/shared/src/
+//  libraries/shared-gui/src
 //
 //  Created by Seth Alves on 2015-10-18
 //  Copyright 2015 High Fidelity, Inc.

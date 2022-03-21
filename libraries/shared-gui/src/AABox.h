@@ -1,6 +1,6 @@
 //
 //  AABox.h
-//  libraries/octree/src
+//  libraries/shared-gui/src
 //
 //  Created by Brad Hefta-Gaub on 04/11/13.
 //  Copyright 2013 High Fidelity, Inc.

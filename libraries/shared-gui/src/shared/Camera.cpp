@@ -1,6 +1,6 @@
 //
 //  Camera.cpp
-//  interface/src
+//  libraries/shared-gui/src/shared
 //
 //  Copyright 2013 High Fidelity, Inc.
 //
