@@ -30,8 +30,6 @@
 #include <ScriptManager.h>
 #include <ScriptValue.h>
 
-Q_DECLARE_METATYPE(controller::InputController*)
-//static int inputControllerPointerId = qRegisterMetaType<controller::InputController*>();
 
 ScriptValue inputControllerToScriptValue(ScriptEngine* engine, controller::InputController* const& in) {
     return engine->newQObject(in, ScriptEngine::QtOwnership);
