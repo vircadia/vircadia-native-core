@@ -715,10 +715,6 @@ void ScriptManager::init() {
     scriptEngine->registerGlobalObject("StackTest", new StackTestScriptingInterface(this));
 #endif
 
-    scriptEngine->globalObject().setProperty("KALILA", "isWaifu");
-    scriptEngine->globalObject().setProperty("Kute", scriptEngine->newFunction([](ScriptContext* context, ScriptEngine* engine) -> ScriptValue {
-      return context->engine()->newValue(context->argument(0).toString().toLower() == "kalila" ? true : false);
-    }));
 }
 
 // registers a global object by name
