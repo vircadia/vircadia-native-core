@@ -158,7 +158,7 @@ void ScriptObjectQtProxy::investigate() {
     }
 
     // discover methods
-    startIdx = _wrapOptions & ScriptEngine::ExcludeSuperClassMethods ? metaObject->methodCount() : 0;
+    startIdx = (_wrapOptions & ScriptEngine::ExcludeSuperClassMethods) ? metaObject->methodOffset() : 0;
     num = metaObject->methodCount();
     QHash<QScriptString, int> methodNames;
     for (int idx = startIdx; idx < num; ++idx) {
