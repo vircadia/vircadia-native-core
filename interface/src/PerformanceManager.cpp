@@ -19,7 +19,11 @@
 
 PerformanceManager::PerformanceManager()
 {
-    setPerformancePreset((PerformancePreset) _performancePresetSetting.get());
+    static std::once_flag registry_flag;
+    std::call_once(registry_flag, [] {
+        qRegisterMetaType<PerformanceManager::PerformancePreset>("PerformanceManager::PerformancePreset");
+    });
+    setPerformancePreset((PerformancePreset)_performancePresetSetting.get());
 }
 
 void PerformanceManager::setupPerformancePresetSettings(bool evaluatePlatformTier) {
