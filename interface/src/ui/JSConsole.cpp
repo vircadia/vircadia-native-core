@@ -355,10 +355,9 @@ void JSConsole::executeCommand(const QString& command) {
         ScriptValue result;
         auto scriptManager = weakScriptManager.lock();
         if (scriptManager) {
-            BLOCKING_INVOKE_METHOD(scriptManager.get(), "evaluate",
-                Q_RETURN_ARG(ScriptValue, result),
-                Q_ARG(const QString&, command),
-                Q_ARG(const QString&, consoleFileName));
+            BLOCKING_INVOKE_METHOD(scriptManager.get(), [&scriptManager, &consoleFileName, &command, &result]() -> void {
+                result = scriptManager->evaluate(command, consoleFileName);
+            });
         }
         return result;
     });

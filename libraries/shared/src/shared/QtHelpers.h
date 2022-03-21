@@ -11,14 +11,21 @@
 #define hifi_Shared_QtHelpers_h
 
 #include <QtCore/QObject>
+#include <QtCore/QLoggingCategory>
+
+#include "../Profile.h"
 
 #if defined(Q_OS_WIN)
 // Enable event queue debugging
 #define DEBUG_EVENT_QUEUE
 #endif
 
+class QLoggingCategory;
+const QLoggingCategory& thread_safety();
+
 namespace hifi { namespace qt {
 void addBlockingForbiddenThread(const QString& name, QThread* thread = nullptr);
+QString isBlockingForbiddenThread(QThread* currentThread);
 
 bool blockingInvokeMethod(
     const char* function,
@@ -48,6 +55,43 @@ bool blockingInvokeMethod(
     QGenericArgument val7 = QGenericArgument(),
     QGenericArgument val8 = QGenericArgument(),
     QGenericArgument val9 = QGenericArgument());
+
+// handling unregistered functions
+template <typename Func, typename ReturnType>
+typename std::enable_if<!std::is_convertible<Func, const char*>::value, bool>::type
+blockingInvokeMethod(const char* callingFunction, QObject* context, Func function, ReturnType* retVal) {
+    auto currentThread = QThread::currentThread();
+    if (currentThread == qApp->thread()) {
+        qCWarning(thread_safety) << "BlockingQueuedConnection invoked on main thread from " << callingFunction;
+        return QMetaObject::invokeMethod(context, function, Qt::BlockingQueuedConnection, retVal);
+    }
+
+    QString forbiddenThread = isBlockingForbiddenThread(currentThread);
+    if (!forbiddenThread.isEmpty()) {
+        qCWarning(thread_safety) << "BlockingQueuedConnection invoked on forbidden thread " << forbiddenThread;
+    }
+
+    PROFILE_RANGE(app, callingFunction);
+    return QMetaObject::invokeMethod(context, function, Qt::BlockingQueuedConnection, retVal);
+}
+
+template <typename Func>
+typename std::enable_if<!std::is_convertible<Func, const char*>::value, bool>::type
+blockingInvokeMethod(const char* callingFunction, QObject* context, Func function) {
+    auto currentThread = QThread::currentThread();
+    if (currentThread == qApp->thread()) {
+        qCWarning(thread_safety) << "BlockingQueuedConnection invoked on main thread from " << callingFunction;
+        return QMetaObject::invokeMethod(context, function, Qt::BlockingQueuedConnection);
+    }
+
+    QString forbiddenThread = isBlockingForbiddenThread(currentThread);
+    if (!forbiddenThread.isEmpty()) {
+        qCWarning(thread_safety) << "BlockingQueuedConnection invoked on forbidden thread " << forbiddenThread;
+    }
+
+    PROFILE_RANGE(app, callingFunction);
+    return QMetaObject::invokeMethod(context, function, Qt::BlockingQueuedConnection);
+}
 
 // Inspecting of the qt event queue
 // requres access to private Qt datastructures
