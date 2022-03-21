@@ -41,6 +41,7 @@ private:  // implementation
     };
     struct MethodDef {
         QScriptString name;
+        int numMaxParms;
         QList<QMetaMethod> methods;
     };
     struct SignalDef {
@@ -137,8 +138,10 @@ private:  // storage
 
 class ScriptMethodQtProxy final : public QScriptClass {
 public:  // construction
-    inline ScriptMethodQtProxy(ScriptEngineQtScript* engine, QObject* object, QScriptValue lifetime, const QList<QMetaMethod>& metas) :
-        QScriptClass(engine), _engine(engine), _object(object), _objectLifetime(lifetime), _metas(metas) {}
+    inline ScriptMethodQtProxy(ScriptEngineQtScript* engine, QObject* object, QScriptValue lifetime,
+                               const QList<QMetaMethod>& metas, int numMaxParms) :
+        QScriptClass(engine),
+        _engine(engine), _object(object), _objectLifetime(lifetime), _metas(metas), _numMaxParms(numMaxParms) {}
 
 public:  // QScriptClass implementation
     virtual QString name() const override { return fullName(); }
@@ -149,6 +152,7 @@ private:
     QString fullName() const;
 
 private:  // storage
+    const int _numMaxParms;
     ScriptEngineQtScript* _engine;
     QPointer<QObject> _object;
     QScriptValue _objectLifetime;

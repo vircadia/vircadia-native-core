@@ -205,9 +205,11 @@ void ScriptObjectQtProxy::investigate() {
                 }
             }
         } else {
+            int parameterCount = method.parameterCount();
             if (nameLookup == methodNames.end()) {
                 MethodDef& methodDef = _methods.insert(idx, MethodDef()).value();
                 methodDef.name = name;
+                methodDef.numMaxParms = parameterCount;
                 methodDef.methods.append(method);
                 methodNames.insert(name, idx);
             } else {
@@ -215,6 +217,7 @@ void ScriptObjectQtProxy::investigate() {
                 MethodDefMap::iterator methodLookup = _methods.find(originalMethodId);
                 Q_ASSERT(methodLookup != _methods.end());
                 MethodDef& methodDef = methodLookup.value();
+                if(methodDef.numMaxParms < parameterCount) methodDef.numMaxParms = parameterCount;
                 methodDef.methods.append(method);
             }
         }
@@ -312,8 +315,9 @@ QScriptValue ScriptObjectQtProxy::property(const QScriptValue& object, const QSc
             int methodId = id & ~TYPE_MASK;
             MethodDefMap::const_iterator lookup = _methods.find(methodId);
             if (lookup == _methods.cend()) return QScriptValue();
+            const MethodDef& methodDef = lookup.value();
             return static_cast<QScriptEngine*>(_engine)->newObject(
-                new ScriptMethodQtProxy(_engine, qobject, object, lookup.value().methods));
+                new ScriptMethodQtProxy(_engine, qobject, object, methodDef.methods, methodDef.numMaxParms));
         }
         case SIGNAL_TYPE: {
             int signalId = id & ~TYPE_MASK;
@@ -430,8 +434,7 @@ QVariant ScriptMethodQtProxy::extension(Extension extension, const QVariant& arg
     }
 
     int scriptNumArgs = context->argumentCount();
-    Q_ASSERT(scriptNumArgs < 10);
-    int numArgs = std::min(scriptNumArgs, 10);
+    int numArgs = std::min(scriptNumArgs, _numMaxParms);
     
     const int scriptValueTypeId = qMetaTypeId<ScriptValue>();
 
