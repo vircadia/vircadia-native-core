@@ -12,6 +12,7 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QLoggingCategory>
+#include <QtCore/QThread>
 
 #include "../Profile.h"
 
