@@ -252,10 +252,6 @@ int vircadia_context_ready(int id) {
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_destroy_context(int id) {
-    if ( id < 0 || id >= static_cast<int>(contexts.size()) ) {
-        return -1;
-    }
-
     int ready = vircadia_context_ready(id);
     if (ready != 0) {
         return ready;
@@ -268,10 +264,6 @@ int vircadia_destroy_context(int id) {
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_connect(int id, const char* address) {
-    if ( id < 0 || id >= static_cast<int>(contexts.size()) ) {
-        return -1;
-    }
-
     int ready = vircadia_context_ready(id);
     if (ready != 0) {
         return ready;
@@ -284,10 +276,6 @@ int vircadia_connect(int id, const char* address) {
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_connection_status(int id) {
-    if ( id < 0 || id >= static_cast<int>(contexts.size()) ) {
-        return -1;
-    }
-
     int ready = vircadia_context_ready(id);
     if (ready != 0) {
         return ready;
@@ -300,10 +288,6 @@ int vircadia_connection_status(int id) {
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_update_nodes(int id) {
-    if ( id < 0 || id >= static_cast<int>(contexts.size()) ) {
-        return -1;
-    }
-
     int ready = vircadia_context_ready(id);
     if (ready != 0) {
         return ready;
@@ -316,10 +300,6 @@ int vircadia_update_nodes(int id) {
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_node_count(int id) {
-    if ( id < 0 || id >= static_cast<int>(contexts.size()) ) {
-        return -1;
-    }
-
     int ready = vircadia_context_ready(id);
     if (ready != 0) {
         return ready;
@@ -331,10 +311,6 @@ int vircadia_node_count(int id) {
 
 VIRCADIA_CLIENT_DYN_API
 const uint8_t* vircadia_node_uuid(int id, int index) {
-    if ( id < 0 || id >= static_cast<int>(contexts.size()) ) {
-        return nullptr;
-    }
-
     int ready = vircadia_context_ready(id);
     if (ready != 0) {
         return nullptr;
