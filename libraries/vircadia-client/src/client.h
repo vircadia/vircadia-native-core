@@ -77,13 +77,6 @@ vircadia_context_params vircadia_context_defaults();
 VIRCADIA_CLIENT_DYN_API
 int vircadia_create_context(vircadia_context_params);
 
-/// @brief Check if the client context is ready.
-///
-/// @param id The ID of the context to check.
-/// @return 0 if context is ready, negative error code otherwise.
-VIRCADIA_CLIENT_DYN_API
-int vircadia_context_ready(int id);
-
 /// @brief Destroy the client context.
 ///
 /// Note: currently only one context can be created.

@@ -22,15 +22,6 @@ TEST_CASE("Client API context creation and domain server connection APIs.", "[cl
     const int context = vircadia_create_context(vircadia_context_defaults());
     REQUIRE(context >= 0);
 
-    {
-        int attempts = 0;
-        while(vircadia_context_ready(context) < 0) {
-            REQUIRE(attempts++ < 10);
-            std::this_thread::sleep_for(10ms);
-        }
-    }
-
-
     vircadia_connect(context, "localhost");
 
     {

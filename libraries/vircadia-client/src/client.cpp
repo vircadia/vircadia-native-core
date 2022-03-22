@@ -240,7 +240,6 @@ int vircadia_create_context(vircadia_context_params params) {
     return index;
 }
 
-VIRCADIA_CLIENT_DYN_API
 int vircadia_context_ready(int id) {
     auto begin = std::begin(contexts);
     if ( id < 0 || id >= static_cast<int>(contexts.size()) ) {
