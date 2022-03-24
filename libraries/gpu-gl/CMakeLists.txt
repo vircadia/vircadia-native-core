@@ -1,6 +1,6 @@
 set(TARGET_NAME gpu-gl)
 setup_hifi_library(Concurrent)
-link_hifi_libraries(shared gl gpu gpu-gl-common shaders)
+link_hifi_libraries(shared shared-gui gl gpu gpu-gl-common shaders)
 if (UNIX AND NOT VIRCADIA_THREAD_DEBUGGING)
     target_link_libraries(${TARGET_NAME} pthread)
 endif(UNIX AND NOT VIRCADIA_THREAD_DEBUGGING)

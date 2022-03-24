@@ -1,6 +1,6 @@
 //
 //  ConicalViewFrustum.cpp
-//  libraries/shared/src/shared
+//  libraries/shared-gui/src/shared
 //
 //  Created by Clement Brisset 4/26/18
 //  Copyright 2017 High Fidelity, Inc.
@@ -12,7 +12,7 @@
 #include "ConicalViewFrustum.h"
 
 
-#include "../NumericalConstants.h"
+#include <NumericalConstants.h>
 #include "../ViewFrustum.h"
 #include <glm/gtc/type_ptr.hpp>
 

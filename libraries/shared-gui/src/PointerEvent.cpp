@@ -1,6 +1,6 @@
 //
 //  PointerEvent.cpp
-//  script-engine/src
+//  libraries/shared-gui/src
 //
 //  Created by Anthony Thibault on 2016-8-11.
 //  Copyright 2016 High Fidelity, Inc.
@@ -78,7 +78,7 @@ void PointerEvent::setButton(Button button) {
  * @property {Vec3} direction - The direction of the intersection ray.
  * @property {string} button - The name of the button pressed: <code>None</code>, <code>Primary</code>, <code>Secondary</code>,
  *    or <code>Tertiary</code>.
- * @property {boolean} isPrimaryButton - <code>true</code> if the button pressed was the primary button, otherwise 
+ * @property {boolean} isPrimaryButton - <code>true</code> if the button pressed was the primary button, otherwise
  *     <code>undefined</code>;
  * @property {boolean} isLeftButton - <code>true</code> if the button pressed was the primary button, otherwise
  *     <code>undefined</code>;
@@ -100,7 +100,7 @@ void PointerEvent::setButton(Button button) {
  *     pressed when the event was generated.
  */
 /*@jsdoc
- * <p>A KeyboardModifiers value is used to specify which modifier keys on the keyboard are pressed. The value is the sum 
+ * <p>A KeyboardModifiers value is used to specify which modifier keys on the keyboard are pressed. The value is the sum
  * (bitwise OR) of the relevant combination of values from the following table:</p>
  * <table>
  *   <thead>
@@ -110,12 +110,12 @@ void PointerEvent::setButton(Button button) {
  *     <tr><td>Shift</td><td><code>0x02000000</code></td><td><code>33554432</code></td>
  *         <td>A Shift key on the keyboard is pressed.</td></tr>
  *     <tr><td>Control</td><td><code>0x04000000</code></td><td><code>67108864</code></td>
- *         <td>A control key on the keyboard is pressed. On Windows the "control" key is the Ctrl key; on OSX it is the Command 
+ *         <td>A control key on the keyboard is pressed. On Windows the "control" key is the Ctrl key; on OSX it is the Command
  *         key.</td></tr>
  *     <tr><td>Alt</td><td><code>0x08000000</code></td><td><code>134217728</code></td>
  *         <td>An Alt key on the keyboard is pressed.</td></tr>
  *     <tr><td>Meta</td><td><code>0x10000000</code></td><td><code>268435456</code></td>
- *         <td>A meta key on the keyboard is pressed. On Windows the "meta" key is the Windows key; on OSX it is the Control 
+ *         <td>A meta key on the keyboard is pressed. On Windows the "meta" key is the Windows key; on OSX it is the Control
  *         (Splat) key.</td></tr>
  *     <tr><td>Keypad</td><td><code>0x20000000</code></td><td><code>536870912</code></td>
  *         <td>A keypad button is pressed.</td></tr>

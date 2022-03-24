@@ -1,6 +1,6 @@
 //
 //  ViewFrustum.h
-//  libraries/shared/src
+//  libraries/shared-gui/src
 //
 //  Created by Brad Hefta-Gaub on 04/11/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -179,7 +179,7 @@ private:
 
     // Used to project points
     glm::mat4 _ourModelViewProjectionMatrix;
-    
+
     template <typename TBOX>
     CubeProjectedPolygon computeProjectedPolygon(const TBOX& box) const;
 

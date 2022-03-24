@@ -18,6 +18,7 @@
 #include <QFileDialog>
 #include <QMenuBar>
 #include <QShortcut>
+#include <QClipboard>
 
 #include <thread>
 
@@ -230,12 +231,26 @@ Menu::Menu() {
 
     // Navigate > Copy Address
     auto addressManager = DependencyManager::get<AddressManager>();
-    addActionToQMenuAndActionHash(navigateMenu, MenuOption::CopyAddress, 0,
-        addressManager.data(), SLOT(copyAddress()));
+    auto addressCopyAction = addActionToQMenuAndActionHash(navigateMenu, MenuOption::CopyAddress);
+    connect(addressCopyAction, &QAction::triggered, [addressManager] {
+        if (QThread::currentThread() != qApp->thread()) {
+            QMetaObject::invokeMethod(qApp, "copyToClipboard", Q_ARG(QString, addressManager->currentShareableAddress().toString()));
+            return;
+        }
+        // assume that the address is being copied because the user wants a shareable address
+        QGuiApplication::clipboard()->setText(addressManager->currentShareableAddress().toString());
+    });
 
     // Navigate > Copy Path
-    addActionToQMenuAndActionHash(navigateMenu, MenuOption::CopyPath, 0,
-        addressManager.data(), SLOT(copyPath()));
+    auto pathCopyAction = addActionToQMenuAndActionHash(navigateMenu, MenuOption::CopyPath);
+    connect(pathCopyAction, &QAction::triggered, [addressManager] {
+        if (QThread::currentThread() != qApp->thread()) {
+            QMetaObject::invokeMethod(qApp, "copyToClipboard", Q_ARG(QString, addressManager->currentPath()));
+            return;
+        }
+
+        QGuiApplication::clipboard()->setText(addressManager->currentPath());
+    });
 
     // Navigate > Start-up Location
     MenuWrapper* startupLocationMenu = navigateMenu->addMenu(MenuOption::StartUpLocation);
@@ -366,7 +381,7 @@ Menu::Menu() {
     // Developer > Scripting > Verbose Logging
     addCheckableActionToQMenuAndActionHash(scriptingOptionsMenu, MenuOption::VerboseLogging, 0, false,
                                            qApp, SLOT(updateVerboseLogging()));
-                                           
+
    // Developer > Scripting > Enable Cachebusting of Script.require
    addCheckableActionToQMenuAndActionHash(scriptingOptionsMenu, MenuOption::CachebustRequire, 0, false,
                                           qApp, SLOT(setCachebustRequire()));

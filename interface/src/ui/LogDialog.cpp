@@ -16,6 +16,7 @@
 #include <QComboBox>
 #include <QPlainTextEdit>
 #include <QLabel>
+#include <QtGui/QDesktopServices>
 
 #include <shared/AbstractLoggerInterface.h>
 
@@ -167,7 +168,7 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : BaseLog
     }
     _extraDebuggingBox->show();
     connect(_extraDebuggingBox, &QCheckBox::stateChanged, this, &LogDialog::handleExtraDebuggingCheckbox);
-    
+
     _showSourceDebuggingBox = new QCheckBox("Show script sources", this);
     if (_logger->showSourceDebugging()) {
         _showSourceDebuggingBox->setCheckState(Qt::Checked);
@@ -224,8 +225,57 @@ void LogDialog::closeEvent(QCloseEvent* event) {
     _windowGeometry.set(geometry());
 }
 
+namespace details {
+
+void locateFile(const QString& filePath) {
+
+    // adapted from
+    // http://stackoverflow.com/questions/3490336/how-to-reveal-in-finder-or-show-in-explorer-with-qt
+    // and
+    // http://lynxline.com/show-in-finder-show-in-explorer/
+
+    QFileInfo fileInfo(filePath);
+    if (!fileInfo.exists()) {
+        return;
+    }
+
+    bool success = false;
+#ifdef Q_OS_MAC
+    QStringList args;
+    args << "-e";
+    args << "tell application \"Finder\"";
+    args << "-e";
+    args << "activate";
+    args << "-e";
+    args << "select POSIX file \"" + fileInfo.absoluteFilePath().toUtf8() + "\"";
+    args << "-e";
+    args << "end tell";
+    success = QProcess::startDetached("osascript", args);
+#endif
+
+#ifdef Q_OS_WIN
+
+    QStringList args;
+    // don't send `select` command switch if `filePath` is folder
+    if (!fileInfo.isDir()) {
+        args << "/select,";
+    }
+    args += QDir::toNativeSeparators(fileInfo.absoluteFilePath().toUtf8());
+    success = QProcess::startDetached("explorer", args);
+
+#endif
+
+    // fallback, open enclosing folder
+    if (!success) {
+        const QString folder = fileInfo.path();
+        QDesktopServices::openUrl(QUrl::fromLocalFile(folder));
+    }
+}
+
+}
+
 void LogDialog::handleRevealButton() {
-    _logger->locateLog();
+    details::locateFile(_logger->getLogLocation());
 }
 
 void LogDialog::handleAllLogsButton() {
@@ -342,7 +392,7 @@ void LogDialog::appendLogLine(QString logLine) {
                 _logTextBox->appendPlainText(logLine.trimmed());
                 _count++;
                 updateMessageCount();
-            } 
+            }
         } else if (logLine.contains(CRITICAL_TEXT, Qt::CaseSensitive)) {
             if (_logger->criticalPrint()) {
                 _logTextBox->appendPlainText(logLine.trimmed());

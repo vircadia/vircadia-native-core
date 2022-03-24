@@ -16,6 +16,7 @@
 #include <QObject>
 #include <QCompleter>
 #include <QtCore/QJsonArray>
+#include <QStandardItemModel>
 
 #include "ui_console.h"
 #include "ScriptEngine.h"

@@ -1,6 +1,6 @@
 //
 //  Camera.h
-//  interface/src
+//  libraries/shared-gui/src/shared
 //
 //  Copyright 2013 High Fidelity, Inc.
 //  Copyright 2020 Vircadia contributors.
@@ -12,7 +12,7 @@
 #ifndef hifi_Camera_h
 #define hifi_Camera_h
 
-#include "../GLMHelpers.h"
+#include "gui/GLMHelpers.h"
 #include "../RegisteredMetaTypes.h"
 #include "../ViewFrustum.h"
 
@@ -74,7 +74,7 @@ public slots:
      * @returns {Camera.Mode} The current camera mode.
      */
     QString getModeString() const;
-    
+
     /*@jsdoc
      * Sets the camera mode. You can also set the mode using the {@link Camera|Camera.mode} property.
      * @function Camera.setModeString
@@ -90,7 +90,7 @@ public slots:
     glm::vec3 getPosition() const { return _position; }
 
     /*@jsdoc
-     * Sets the camera position. You can also set the position using the {@link Camera|Camera.position} property. Only works if 
+     * Sets the camera position. You can also set the position using the {@link Camera|Camera.position} property. Only works if
      * the camera is in independent mode.
      * @function Camera.setPosition
      * @param {Vec3} position - The position to set the camera at.
@@ -98,7 +98,7 @@ public slots:
     void setPosition(const glm::vec3& position);
 
     /*@jsdoc
-     * Gets the current camera orientation. You can also get the orientation using the {@link Camera|Camera.orientation} 
+     * Gets the current camera orientation. You can also get the orientation using the {@link Camera|Camera.orientation}
      * property.
      * @function Camera.getOrientation
      * @returns {Quat} The current camera orientation.
@@ -145,8 +145,8 @@ public slots:
     void setSensitivity(float sensitivity) { _sensitivity = glm::max(0.0f, sensitivity); }
 
     /*@jsdoc
-     * Computes a {@link PickRay} based on the current camera configuration and the specified <code>x, y</code> position on the 
-     * screen. The {@link PickRay} can be used in functions such as {@link Entities.findRayIntersection} and 
+     * Computes a {@link PickRay} based on the current camera configuration and the specified <code>x, y</code> position on the
+     * screen. The {@link PickRay} can be used in functions such as {@link Entities.findRayIntersection} and
      * {@link Overlays.findRayIntersection}.
      * @function Camera.computePickRay
      * @param {number} x - X-coordinate on screen.
@@ -187,7 +187,7 @@ public slots:
     void lookAt(const glm::vec3& position);
 
     /*@jsdoc
-     * Sets the camera to continue looking at the specified <code>position</code> even while the camera moves. Only works if 
+     * Sets the camera to continue looking at the specified <code>position</code> even while the camera moves. Only works if
      * the camera is in independent mode.
      * @function Camera.keepLookingAt
      * @param {Vec3} position - The position to keep looking at.

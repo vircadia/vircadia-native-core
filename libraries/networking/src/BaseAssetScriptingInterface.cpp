@@ -22,8 +22,6 @@
 #include "MappingRequest.h"
 #include "NetworkLogging.h"
 
-#include <RegisteredMetaTypes.h>
-
 #include <shared/QtHelpers.h>
 #include "Gzip.h"
 
@@ -74,7 +72,7 @@ Promise BaseAssetScriptingInterface::queryCacheMeta(const QUrl& url) {
  * Data and information returned by {@link Assets.loadFromCache}.
  * @typedef {object} Assets.LoadFromCacheResult
  * @property {number} [byteLength] - The number of bytes in the retrieved data.
- * @property {string} [contentType] - The automatically detected MIME type of the content. 
+ * @property {string} [contentType] - The automatically detected MIME type of the content.
  * @property {ArrayBuffer} data - The data bytes.
  * @property {Assets.CacheItemMetaData} metadata - Information on the cache item.
  * @property {string|object|ArrayBuffer} [response] - The content of the response.

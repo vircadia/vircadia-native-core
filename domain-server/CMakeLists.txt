@@ -25,7 +25,7 @@ symlink_or_copy_directory_beside_target(${_SHOULD_SYMLINK_RESOURCES} "${CMAKE_CU
 # link the shared hifi libraries
 include_hifi_library_headers(gpu)
 include_hifi_library_headers(graphics)
-link_hifi_libraries(embedded-webserver networking shared avatars octree)
+link_hifi_libraries(embedded-webserver networking shared shared-gui avatars octree)
 
 target_zlib()
 target_quazip()

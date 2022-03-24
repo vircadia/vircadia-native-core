@@ -1,6 +1,6 @@
 set(TARGET_NAME display-plugins)
 setup_hifi_library(Gui)
-link_hifi_libraries(shared shaders plugins ui-plugins gl ui render-utils ${PLATFORM_GL_BACKEND})
+link_hifi_libraries(shared shared-gui shaders plugins ui-plugins gl ui render-utils ${PLATFORM_GL_BACKEND})
 include_hifi_library_headers(gpu)
 include_hifi_library_headers(material-networking)
 include_hifi_library_headers(model-networking)

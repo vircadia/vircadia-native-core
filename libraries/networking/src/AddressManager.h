@@ -113,8 +113,6 @@ const QString GET_PLACE = "/api/v1/places/%1";
  * @borrows location.canGoBack as canGoBack
  * @borrows location.refreshPreviousLookup as refreshPreviousLookup
  * @borrows location.storeCurrentAddress as storeCurrentAddress
- * @borrows location.copyAddress as copyAddress
- * @borrows location.copyPath as copyPath
  * @borrows location.lookupShareableNameForDomainID as lookupShareableNameForDomainID
  *
  * @borrows location.lookupResultsFinished as lookupResultsFinished
@@ -341,19 +339,6 @@ public slots:
      * @function location.storeCurrentAddress
      */
     void storeCurrentAddress();
-
-    /*@jsdoc
-     * Copies your current metaverse address (i.e., <code>location.href</code> property value) to the OS clipboard.
-     * @function location.copyAddress
-     */
-    void copyAddress();
-
-    /*@jsdoc
-     * Copies your current metaverse location and orientation (i.e., <code>location.pathname</code> property value) to the OS
-     * clipboard.
-     * @function location.copyPath
-     */
-    void copyPath();
 
     /*@jsdoc
      * Retrieves and remembers the place name for the given domain ID if the place name is not already known.

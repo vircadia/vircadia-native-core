@@ -464,16 +464,8 @@ vec4 toGlm(const glm::u8vec3& color, float alpha) {
     return vec4(glm::vec3(color) / MAX_COLOR, alpha);
 }
 
-glm::vec4 toGlm(const QColor& color) {
-    return glm::vec4(color.redF(), color.greenF(), color.blueF(), color.alphaF());
-}
-
 ivec4 toGlm(const QRect& rect) {
     return ivec4(rect.x(), rect.y(), rect.width(), rect.height());
-}
-
-QMatrix4x4 fromGlm(const glm::mat4 & m) {
-  return QMatrix4x4(&m[0][0]).transposed();
 }
 
 QSize fromGlm(const glm::ivec2 & v) {

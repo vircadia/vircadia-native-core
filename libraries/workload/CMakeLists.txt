@@ -1,3 +1,3 @@
 set(TARGET_NAME workload)
 setup_hifi_library()
-link_hifi_libraries(shared task)
+link_hifi_libraries(shared shared-gui task)

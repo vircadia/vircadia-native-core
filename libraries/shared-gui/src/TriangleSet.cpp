@@ -1,6 +1,6 @@
 //
 //  TriangleSet.cpp
-//  libraries/entities/src
+//  libraries/shared-gui/src
 //
 //  Created by Brad Hefta-Gaub on 3/2/2017.
 //  Copyright 2017 High Fidelity, Inc.

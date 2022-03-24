@@ -28,7 +28,7 @@ public:
     virtual void addMessage(const QString&) override;
     virtual void setSessionID(const QUuid&);
     virtual QString getLogData() override;
-    virtual void locateLog() override;
+    virtual QString getLogLocation() override;
     virtual void sync() override;
 
 signals:

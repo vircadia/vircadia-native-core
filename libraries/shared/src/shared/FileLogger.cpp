@@ -140,7 +140,7 @@ FileLogger::~FileLogger() {
 }
 
 void FileLogger::setSessionID(const QUuid& message) {
-    // This is for the output of log files. Once the application is first started, 
+    // This is for the output of log files. Once the application is first started,
     // this function runs and grabs the AccountManager Session ID and saves it here.
     SESSION_ID = message;
     }
@@ -150,8 +150,8 @@ void FileLogger::addMessage(const QString& message) {
     emit logReceived(message);
 }
 
-void FileLogger::locateLog() {
-    FileUtils::locateFile(_fileName);
+QString FileLogger::getLogLocation() {
+    return _fileName;
 }
 
 QString FileLogger::getLogData() {

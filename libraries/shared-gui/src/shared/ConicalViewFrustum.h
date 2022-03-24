@@ -1,6 +1,6 @@
 //
 //  ConicalViewFrustum.h
-//  libraries/shared/src/shared
+//  libraries/shared-gui/src/shared
 //
 //  Created by Clement Brisset 4/26/18
 //  Copyright 2017 High Fidelity, Inc.
