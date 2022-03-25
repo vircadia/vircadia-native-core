@@ -92,7 +92,11 @@ int vircadia_destroy_context(int id);
 /// vircadia_connection_status() to check if it was established.
 ///
 /// @param id The ID of the context to use.
-/// @param address The address to connect/jump to. TODO: clarify the format
+/// @param address The address to go to: a "hifi://" address, an IP
+/// address (e.g., "127.0.0.1" or "localhost"), a file:/// address, a
+/// domain name, a named path on a domain (starts with "/"), a position
+/// or position and orientation, or a user (starts with "@").
+///
 /// @return Negative code in case of an error, otherwise 0.
 VIRCADIA_CLIENT_DYN_API
 int vircadia_connect(int id, const char* address);
