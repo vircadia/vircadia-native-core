@@ -1,6 +1,6 @@
 //
 //  Extents.h
-//  libraries/shared/src
+//  libraries/shared-gui/src
 //
 //  Created by Andrzej Kapolka on 9/18/13.
 //  Moved to shared by Brad Hefta-Gaub on 9/11/14

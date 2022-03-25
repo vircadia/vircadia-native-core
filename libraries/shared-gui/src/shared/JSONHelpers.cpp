@@ -1,4 +1,7 @@
 //
+//  JSONHelpers.cpp
+//  libraries/shared-gui/src/shared
+//
 //  Created by Bradley Austin Davis on 2015/11/09
 //  Copyright 2013-2015 High Fidelity, Inc.
 //

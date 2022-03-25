@@ -1,6 +1,6 @@
 //
 //  Transform.h
-//  shared/src/gpu
+//  libraries/shared-gui/src
 //
 //  Created by Sam Gateau on 11/4/2014.
 //  Copyright 2014 High Fidelity, Inc.
