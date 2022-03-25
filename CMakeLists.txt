@@ -207,6 +207,7 @@ set_from_env(TIMESERVER_URL TIMESERVER_URL "http://timestamp.comodoca.com?td=sha
 
 set(HIFI_USE_OPTIMIZED_IK_OPTION OFF)
 set(BUILD_CLIENT_OPTION ON)
+set(BUILD_CLIENT_LIBRARY_OPTION ON)
 set(BUILD_SERVER_OPTION ON)
 set(BUILD_TESTS_OPTION OFF)
 set(BUILD_MANUAL_TESTS_OPTION ${BUILD_TESTS_OPTION})
@@ -227,6 +228,7 @@ endif()
 
 if (SERVER_ONLY)
   set(BUILD_CLIENT_OPTION OFF)
+  set(BUILD_CLIENT_LIBRARY_OPTION OFF)
   set(BUILD_TESTS_OPTION OFF)
 endif()
 
@@ -270,6 +272,7 @@ endif()
 
 option(HIFI_USE_OPTIMIZED_IK "Use optimized IK" ${HIFI_USE_OPTIMIZED_IK_OPTION})
 option(BUILD_CLIENT "Build client components" ${BUILD_CLIENT_OPTION})
+option(BUILD_CLIENT_LIBRARY "Build client library" ${BUILD_CLIENT_LIBRARY_OPTION})
 option(BUILD_SERVER "Build server components" ${BUILD_SERVER_OPTION})
 option(BUILD_TESTS "Build tests" ${BUILD_TESTS_OPTION})
 option(BUILD_MANUAL_TESTS "Build manual tests" ${BUILD_MANUAL_TESTS_OPTION})
@@ -307,6 +310,7 @@ endforeach()
 MESSAGE(STATUS "Use optimized IK:      " ${HIFI_USE_OPTIMIZED_IK})
 MESSAGE(STATUS "Build server:          " ${BUILD_SERVER})
 MESSAGE(STATUS "Build client:          " ${BUILD_CLIENT})
+MESSAGE(STATUS "Build client library:  " ${BUILD_CLIENT_LIBRARY})
 MESSAGE(STATUS "Build tests:           " ${BUILD_TESTS})
 MESSAGE(STATUS "Build tools:           " ${BUILD_TOOLS})
 MESSAGE(STATUS "Build installer:       " ${BUILD_INSTALLER})
@@ -430,6 +434,10 @@ if (BUILD_CLIENT)
   endif()
 
   option(USE_SIXENSE "Build Interface with sixense library/plugin" OFF)
+endif()
+
+if (BUILD_CLIENT_LIBRARY)
+    add_subdirectory(libraries/vircadia-client)
 endif()
 
 if (BUILD_CLIENT OR BUILD_SERVER)
