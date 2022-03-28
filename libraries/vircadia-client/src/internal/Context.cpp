@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include <array>
 
 #include <QCoreApplication>
 #include <QString>
@@ -24,7 +25,9 @@
 #include <DomainAccountManager.h>
 #include <AddressManager.h>
 
-namespace vircadia { namespace client {
+#include "Error.h"
+
+namespace vircadia::client {
 
     Context::Context(NodeList::Params nodeListParams, const char* userAgent, vircadia_client_info info) :
         argc(1),
@@ -162,4 +165,18 @@ namespace vircadia { namespace client {
         DependencyManager::get<AddressManager>()->handleLookupString(address, false);
     }
 
-}} // namespace vircadia::client
+    std::list<Context> contexts;
+
+    int vircadiaContextValid(int id) {
+        return indexValid(contexts, id, ErrorCode::CONTEXT_INVALID);
+    }
+
+    int vircadiaContextReady(int id) {
+        return chain(vircadiaContextValid(id), [&](auto) {
+            return std::next(std::begin(contexts), id)->ready()
+                ? 0
+                : toInt(ErrorCode::CONTEXT_LOSS);
+        });
+    }
+
+} // namespace vircadia::client

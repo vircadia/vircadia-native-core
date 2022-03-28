@@ -26,7 +26,7 @@
 class QCoreApplication;
 class QString;
 
-namespace vircadia { namespace client {
+namespace vircadia::client {
 
     /// @private
     struct NodeData {
@@ -64,6 +64,11 @@ namespace vircadia { namespace client {
         char* argv;
     };
 
-}} // namespace vircadia::client
+    extern std::list<Context> contexts;
+
+    int vircadiaContextValid(int id);
+    int vircadiaContextReady(int id);
+
+} // namespace vircadia::client
 
 #endif /* end of include guard */

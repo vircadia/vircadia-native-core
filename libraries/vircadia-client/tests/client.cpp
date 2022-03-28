@@ -10,6 +10,7 @@
 //
 
 #include "../src/client.h"
+#include "../src/error.h"
 
 #include <thread>
 #include <chrono>
@@ -53,18 +54,18 @@ TEST_CASE("Client API context creation and domain server connection APIs.", "[cl
     }
 
     const int secondContext = vircadia_create_context(vircadia_context_defaults());
-    REQUIRE(secondContext == -1);
+    REQUIRE(secondContext == vircadia_error_context_exists());
 
     const int secondDestroy = vircadia_destroy_context(secondContext);
-    REQUIRE(secondDestroy == -1);
+    REQUIRE(secondDestroy == vircadia_error_context_invalid());
 
     const int badDestroy = vircadia_destroy_context(context + 1);
-    REQUIRE(badDestroy == -1);
+    REQUIRE(badDestroy == vircadia_error_context_invalid());
 
     const int destroy = vircadia_destroy_context(context);
     REQUIRE(destroy == 0);
 
     const int doubleDestroy = vircadia_destroy_context(context);
-    REQUIRE(doubleDestroy == -1);
+    REQUIRE(doubleDestroy == vircadia_error_context_invalid());
 
 }

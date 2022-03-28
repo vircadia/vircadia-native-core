@@ -73,7 +73,9 @@ vircadia_context_params vircadia_context_defaults();
 /// Note: Currently only one context can be created.
 ///
 /// @param context_params The parameters of the context.
-/// @return The ID of the created context, or a negative error code.
+/// @return The ID of the created context, or a negative error code. \n
+/// Possible error codes: \n
+/// vircadia_error_context_exists() \n
 VIRCADIA_CLIENT_DYN_API
 int vircadia_create_context(vircadia_context_params);
 
@@ -82,7 +84,9 @@ int vircadia_create_context(vircadia_context_params);
 /// Note: currently only one context can be created.
 ///
 /// @param id The ID of the context to destroy.
-/// @return 0 on success, negative error code otherwise.
+/// @return 0 on success, negative error code otherwise. \n
+/// Possible error codes: \n
+/// vircadia_error_context_invalid() \n
 VIRCADIA_CLIENT_DYN_API
 int vircadia_destroy_context(int id);
 
@@ -97,21 +101,30 @@ int vircadia_destroy_context(int id);
 /// domain name, a named path on a domain (starts with "/"), a position
 /// or position and orientation, or a user (starts with "@").
 ///
-/// @return Negative code in case of an error, otherwise 0.
+/// @return Negative code in case of an error, otherwise 0. \n
+/// Possible error codes: \n
+/// vircadia_error_context_invalid() \n
+/// vircadia_error_context_loss() \n
 VIRCADIA_CLIENT_DYN_API
 int vircadia_connect(int id, const char* address);
 
 /// @brief Retrieve the connection status.
 ///
 /// @param id The ID of the context to use.
-/// @return 0 if not connected, 1 if connected, negative error code otherwise.
+/// @return 0 if not connected, 1 if connected, negative error code otherwise. \n
+/// Possible error codes: \n
+/// vircadia_error_context_invalid() \n
+/// vircadia_error_context_loss() \n
 VIRCADIA_CLIENT_DYN_API
 int vircadia_connection_status(int id);
 
 /// @brief Update the internal list of nodes.
 ///
 /// @param id The ID of the context to use.
-/// @return Negative code in case of an errors, otherwise 0.
+/// @return Negative code in case of an errors, otherwise 0. \n
+/// Possible error codes: \n
+/// vircadia_error_context_invalid() \n
+/// vircadia_error_context_loss() \n
 VIRCADIA_CLIENT_DYN_API
 int vircadia_update_nodes(int id);
 
@@ -120,7 +133,10 @@ int vircadia_update_nodes(int id);
 /// The count only changes with explicit call to vircadia_update_nodes().
 ///
 /// @param id The ID of the context to use.
-/// @return The count of connected nodes.
+/// @return The count of connected nodes, or a negative error code. \n
+/// Possible error codes: \n
+/// vircadia_error_context_invalid() \n
+/// vircadia_error_context_loss() \n
 VIRCADIA_CLIENT_DYN_API
 int vircadia_node_count(int id);
 

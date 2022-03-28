@@ -16,13 +16,8 @@
 #include <nlohmann/json.hpp>
 
 #include "version.h"
+#include "internal/Error.h"
 #include "internal/Context.h"
-
-namespace vircadia { namespace client
-{
-    std::list<Context> contexts;
-}} // namespace vircadia::client
-
 
 using namespace vircadia::client;
 
@@ -44,7 +39,7 @@ vircadia_context_params vircadia_context_defaults() {
 VIRCADIA_CLIENT_DYN_API
 int vircadia_create_context(vircadia_context_params params) {
     if (!contexts.empty()) {
-        return -1;
+        return toInt(ErrorCode::CONTEXT_EXISTS);
     }
 
     nlohmann::json platform_info{};
@@ -67,88 +62,53 @@ int vircadia_create_context(vircadia_context_params params) {
     return index;
 }
 
-int vircadia_context_ready(int id) {
-    auto begin = std::begin(contexts);
-    if ( id < 0 || id >= static_cast<int>(contexts.size()) ) {
-        return -1;
-    } else {
-        return std::next(begin, id)->ready() ? 0 : -2;
-    }
-}
-
 VIRCADIA_CLIENT_DYN_API
 int vircadia_destroy_context(int id) {
-    int ready = vircadia_context_ready(id);
-    if (ready != 0) {
-        return ready;
-    }
-
-    auto context = std::next(std::begin(contexts), id);
-    contexts.erase(context);
-    return 0;
+    return chain(vircadiaContextValid(id), [&](auto) {
+        contexts.erase(std::next(std::begin(contexts), id));
+        return 0;
+    });
 }
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_connect(int id, const char* address) {
-    int ready = vircadia_context_ready(id);
-    if (ready != 0) {
-        return ready;
-    }
-
-    auto context = std::next(std::begin(contexts), id);
-    context->connect(address);
-    return 0;
+    return chain(vircadiaContextReady(id), [&](auto) {
+        std::next(std::begin(contexts), id)->connect(address);
+        return 0;
+    });
 }
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_connection_status(int id) {
-    int ready = vircadia_context_ready(id);
-    if (ready != 0) {
-        return ready;
-    }
-
-    auto context = std::next(std::begin(contexts), id);
-
-    return context->isConnected() ? 1 : 0;
+    return chain(vircadiaContextReady(id), [&](auto) {
+        return std::next(std::begin(contexts), id)->isConnected()
+            ? 1
+            : 0;
+    });
 }
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_update_nodes(int id) {
-    int ready = vircadia_context_ready(id);
-    if (ready != 0) {
-        return ready;
-    }
-
-    auto context = std::next(std::begin(contexts), id);
-    context->updateNodes();
-    return 0;
+    return chain(vircadiaContextReady(id), [&](auto) {
+        std::next(std::begin(contexts), id)->updateNodes();
+        return 0;
+    });
 }
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_node_count(int id) {
-    int ready = vircadia_context_ready(id);
-    if (ready != 0) {
-        return ready;
-    }
-
-    auto context = std::next(std::begin(contexts), id);
-    return context->getNodes().size();
+    return chain(vircadiaContextReady(id), [&](auto) -> int {
+        return std::next(std::begin(contexts), id)->getNodes().size();
+    });
 }
 
 VIRCADIA_CLIENT_DYN_API
 const uint8_t* vircadia_node_uuid(int id, int index) {
-    int ready = vircadia_context_ready(id);
-    if (ready != 0) {
-        return nullptr;
-    }
+    return chain(vircadiaContextReady(id), [&](auto) {
+        const auto& nodes = std::next(std::begin(contexts), id)->getNodes();
+        return chain(indexValid(nodes, index, ErrorCode::NODE_INVALID), [&](auto) {
+            return std::next(std::begin(nodes), index)->uuid.data();
+        });
+    });
 
-    auto context = std::next(std::begin(contexts), id);
-    const auto& nodes = context->getNodes();
-
-    if ( index < 0 || id >= static_cast<int>(nodes.size()) ) {
-        return nullptr;
-    }
-
-    auto node = std::next(std::begin(nodes), index);
-    return node->uuid.data();
 }
