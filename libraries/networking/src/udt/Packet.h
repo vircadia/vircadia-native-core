@@ -23,26 +23,37 @@
 
 namespace udt {
 
+/// @addtogroup Networking
+/// @{
+
+
+/// @brief A Vircadia protocol message packet.
+/// @details
+/// ```
+///                          Message Packet Format
+///
+///      0                   1                   2                   3
+///      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+///     .               .               .               .               .
+///     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///     |C|R|M| O |               Sequence Number                       |
+///     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///     | P |                     Message Number                        |  Only if M = 1.
+///     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///     |                         Message Part Number                   |  Only if M = 1.
+///     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///     |                         Payload                               |
+///     | ...
+///
+///     C: Control bit = 0
+///     R: Reliable bit
+///     M: Message bit
+///     O: Obfuscation level
+///     P: Position bits
+/// ```
 class Packet : public BasePacket {
     Q_OBJECT
 public:
-    //                         Packet Header Format
-    //
-    //     0                   1                   2                   3
-    //     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    //    |C|R|M| O |               Sequence Number                       |
-    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    //    | P |                     Message Number                        |  Optional (only if M = 1)
-    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    //    |                         Message Part Number                   |  Optional (only if M = 1)
-    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    //
-    //    C: Control bit
-    //    R: Reliable bit
-    //    M: Message bit
-    //    O: Obfuscation level
-    //    P: Position bits
 
 
     // NOTE: The SequenceNumber is only actually 29 bits to leave room for a bit field
@@ -126,5 +137,7 @@ private:
 } // namespace udt
 
 Q_DECLARE_METATYPE(udt::Packet*);
+
+/// @}
 
 #endif // hifi_Packet_h

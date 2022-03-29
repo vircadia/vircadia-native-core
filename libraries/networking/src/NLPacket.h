@@ -19,24 +19,32 @@
 
 class HMACAuth;
 
+/// @addtogroup Networking
+/// @{
+
+
+/// @brief A Vircadia protocol nodelist packet content.
+/// @details
+/// ```
+///                          NLPacket Content
+///
+///      0                   1                   2                   3
+///      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+///     .               .               .               .               .
+///     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///     |  Packet Type  |    Version    | Local Node ID                 |  Local Node ID only if a sourced packet.
+///     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///     |                                                               |
+///     |                 MD5 Verification - 16 bytes                   |  Only if a verified packet.
+///     |                                                               |
+///     |                                                               |
+///     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///     |                         Payload                               |
+///     | ...
+/// ```
 class NLPacket : public udt::Packet {
     Q_OBJECT
 public:
-    //
-    //    NLPacket format:
-    //
-    //    |      BYTE     |      BYTE     |      BYTE     |      BYTE     |
-    //     0                   1                   2                   3
-    //     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    //    |  Packet Type  |    Version    | Local Node ID - sourced only  |
-    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    //    |                                                               |
-    //    |                 MD5 Verification - 16 bytes                   |
-    //    |                 (ONLY FOR VERIFIED PACKETS)                   |
-    //    |                                                               |
-    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    //
 
     using LocalID = NetworkLocalID;
     static const LocalID NULL_LOCAL_ID = 0;
@@ -107,5 +115,7 @@ protected:
     PacketVersion _version;
     mutable LocalID _sourceID;
 };
+
+/// @}
 
 #endif // hifi_NLPacket_h
