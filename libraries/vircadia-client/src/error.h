@@ -55,4 +55,17 @@ VIRCADIA_CLIENT_DYN_API int vircadia_error_node_invalid();
 /// @return -5
 VIRCADIA_CLIENT_DYN_API int vircadia_error_message_invalid();
 
+/// @brief Message type is invalid.
+///
+/// @return -6
+VIRCADIA_CLIENT_DYN_API int vircadia_error_message_type_invalid();
+
+/// @brief Handling of messages of specified type is disabled.
+///
+/// Use vircadia_enable_messages() to enable messages of specified
+/// type.
+///
+/// @return -7
+VIRCADIA_CLIENT_DYN_API int vircadia_error_message_type_disabled();
+
 #endif /* end of include guard */

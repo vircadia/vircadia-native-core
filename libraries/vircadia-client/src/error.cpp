@@ -24,3 +24,10 @@ VIRCADIA_CLIENT_DYN_API int vircadia_error_message_invalid() {
     return toInt(ErrorCode::MESSAGE_INVALID);
 }
 
+VIRCADIA_CLIENT_DYN_API int vircadia_error_message_type_invalid() {
+    return toInt(ErrorCode::MESSAGE_TYPE_INVALID);
+}
+
+VIRCADIA_CLIENT_DYN_API int vircadia_error_message_type_disabled() {
+    return toInt(ErrorCode::MESSAGE_TYPE_DISABLED);
+}

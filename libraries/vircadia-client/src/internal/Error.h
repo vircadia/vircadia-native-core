@@ -15,6 +15,7 @@
 #include <type_traits>
 #include <utility>
 #include <functional>
+#include <initializer_list>
 
 namespace vircadia::client {
 
@@ -26,7 +27,9 @@ enum class ErrorCode : int {
 
     NODE_INVALID,
 
-    MESSAGE_INVALID
+    MESSAGE_INVALID,
+    MESSAGE_TYPE_INVALID,
+    MESSAGE_TYPE_DISABLED
 
 };
 
@@ -51,6 +54,22 @@ auto chain(R result, F&& f) {
             return static_cast<ReturnType>(nullptr);
         } else {
             return result;
+        }
+    } else {
+        return std::invoke(std::forward<F>(f), result);
+    }
+};
+
+template <typename R, typename F>
+auto chain(std::initializer_list<R> result, F&& f) {
+    auto error = std::find_if(result.begin(), result.end(),
+        [](auto&& x) { return isError(x); } );
+    if (error != result.end()) {
+        using ReturnType = std::invoke_result_t<F, R>;
+        if constexpr (std::is_pointer_v<ReturnType>) {
+            return static_cast<ReturnType>(nullptr);
+        } else {
+            return *error;
         }
     } else {
         return std::invoke(std::forward<F>(f), result);

@@ -15,9 +15,11 @@
 #include <vector>
 #include <string>
 #include <array>
+#include <bitset>
 #include <thread>
 #include <atomic>
 #include <future>
+#include <mutex>
 
 #include <NodeList.h>
 
@@ -28,12 +30,43 @@ class QString;
 
 namespace vircadia::client {
 
+    using UUID = std::array<uint8_t, 16>;
+
     /// @private
     struct NodeData {
         uint8_t type;
         bool active;
         std::string address;
-        std::array<uint8_t, 16> uuid;
+        UUID uuid;
+    };
+
+    // @private
+    enum MessageTypeIndex : uint8_t {
+        MESSAGE_TYPE_TEXT_INDEX,
+        MESSAGE_TYPE_DATA_INDEX,
+    };
+
+    // @private
+    enum MessageType : uint8_t {
+        MESSAGE_TYPE_TEXT = 1ul << MESSAGE_TYPE_TEXT_INDEX,
+        MESSAGE_TYPE_DATA = 1ul << MESSAGE_TYPE_DATA_INDEX,
+        MESSAGE_TYPE_ANY = MESSAGE_TYPE_TEXT | MESSAGE_TYPE_DATA
+    };
+
+    /// @private
+    struct MessageData {
+        std::string channel;
+        std::string payload;
+        UUID sender;
+        bool localOnly;
+    };
+
+    /// @private
+    struct MessageParams {
+        QString channel;
+        QByteArray message;
+        QUuid senderUuid;
+        bool localOnly;
     };
 
     /// @private
@@ -42,22 +75,41 @@ namespace vircadia::client {
     public:
         Context(NodeList::Params nodeListParams, const char* userAgent, vircadia_client_info info);
 
-        bool ready();
+        bool ready() const;
 
         ~Context();
 
-        const std::vector<NodeData> getNodes();
+        const std::vector<NodeData>& getNodes() const;
         void updateNodes();
 
-        bool isConnected();
+        bool isConnected() const;
 
-        void connect(const QString& address);
+        void connect(const QString& address) const;
+
+        void enableMessages(std::bitset<8> type);
+        void updateMessages(std::bitset<8> type);
+        void clearMessages(std::bitset<8> type);
+        void subscribeMessages(QString channel) const;
+        void unsubscribeMessages(QString channel) const;
+        const std::vector<MessageData>& getMessages(std::bitset<8> type) const;
+        bool getMessagesEnabled(std::bitset<8> type) const;
+        void sendMessage(std::bitset<8> type, QString channel, QByteArray payload, bool localOnly);
 
     private:
         std::thread appThraed {};
         std::atomic<QCoreApplication*> app {};
         std::vector<NodeData> nodes {};
         std::promise<void> qtInitialized {};
+
+
+        struct MessagesContext {
+            bool enabled {false};
+            std::vector<MessageParams> messages {};
+            std::vector<MessageData> buffer {};
+            mutable std::mutex mutex {};
+        };
+
+        std::array<MessagesContext, 2> messageContexts;
 
         int argc;
         char argvData[18];
