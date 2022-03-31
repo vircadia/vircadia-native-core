@@ -11,8 +11,6 @@
 
 #include "client.h"
 
-#include <list>
-
 #include <nlohmann/json.hpp>
 
 #include "version.h"
@@ -68,47 +66,4 @@ int vircadia_destroy_context(int id) {
         contexts.erase(std::next(std::begin(contexts), id));
         return 0;
     });
-}
-
-VIRCADIA_CLIENT_DYN_API
-int vircadia_connect(int id, const char* address) {
-    return chain(vircadiaContextReady(id), [&](auto) {
-        std::next(std::begin(contexts), id)->connect(address);
-        return 0;
-    });
-}
-
-VIRCADIA_CLIENT_DYN_API
-int vircadia_connection_status(int id) {
-    return chain(vircadiaContextReady(id), [&](auto) {
-        return std::next(std::begin(contexts), id)->isConnected()
-            ? 1
-            : 0;
-    });
-}
-
-VIRCADIA_CLIENT_DYN_API
-int vircadia_update_nodes(int id) {
-    return chain(vircadiaContextReady(id), [&](auto) {
-        std::next(std::begin(contexts), id)->updateNodes();
-        return 0;
-    });
-}
-
-VIRCADIA_CLIENT_DYN_API
-int vircadia_node_count(int id) {
-    return chain(vircadiaContextReady(id), [&](auto) -> int {
-        return std::next(std::begin(contexts), id)->getNodes().size();
-    });
-}
-
-VIRCADIA_CLIENT_DYN_API
-const uint8_t* vircadia_node_uuid(int id, int index) {
-    return chain(vircadiaContextReady(id), [&](auto) {
-        const auto& nodes = std::next(std::begin(contexts), id)->getNodes();
-        return chain(indexValid(nodes, index, ErrorCode::NODE_INVALID), [&](auto) {
-            return std::next(std::begin(nodes), index)->uuid.data();
-        });
-    });
-
 }

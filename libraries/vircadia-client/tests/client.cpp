@@ -10,6 +10,7 @@
 //
 
 #include "../src/client.h"
+#include "../src/node_list.h"
 #include "../src/error.h"
 
 #include <thread>
