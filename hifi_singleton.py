@@ -37,6 +37,8 @@ class Singleton:
                     self.fh = open(self.path, 'x')
                     fcntl.lockf(self.fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 success = True
+            except PermissionError:
+                raise
             except EnvironmentError as err:
                 if self.fh is not None:
                     if self.windows:
@@ -46,7 +48,7 @@ class Singleton:
                     self.fh = None
                 # print is horked here so write directly to stdout.
                 with open(1, mode="w", closefd=False) as _stdout:
-                    _stdout.write("Couldn't aquire lock, retrying in 10 seconds\n")
+                    _stdout.write("Couldn't acquire lock, retrying in 10 seconds\n")
                     _stdout.flush()
                 time.sleep(10)
         return self

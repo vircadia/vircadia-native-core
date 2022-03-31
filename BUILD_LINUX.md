@@ -280,6 +280,11 @@ Clone this repository:
 git clone https://github.com/vircadia/vircadia.git
 ```
 
+Enter the repository folder:
+```bash
+cd vircadia
+```
+
 Then checkout the master branch with:
 ```bash
 git checkout master
@@ -301,7 +306,6 @@ sudo pacman -S qt5
 
 Create the build directory:
 ```bash
-cd vircadia
 mkdir build
 cd build
 ```
