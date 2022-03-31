@@ -23,7 +23,7 @@
 /// This function only initiates the connection, use
 /// vircadia_connection_status() to check if it was established.
 ///
-/// @param id The ID of the context to use (context.h).
+/// @param context_id The ID of the context to use (context.h).
 /// @param address The address to go to: a "hifi://" address, an IP
 /// address (e.g., "127.0.0.1" or "localhost"), a file:/// address, a
 /// domain name, a named path on a domain (starts with "/"), a position
@@ -34,41 +34,41 @@
 /// vircadia_error_context_invalid() \n
 /// vircadia_error_context_loss() \n
 VIRCADIA_CLIENT_DYN_API
-int vircadia_connect(int id, const char* address);
+int vircadia_connect(int context_id, const char* address);
 
 /// @brief Retrieve the connection status.
 ///
-/// @param id The ID of the context to use (context.h).
+/// @param context_id The ID of the context to use (context.h).
 /// @return 0 if not connected, 1 if connected, negative error code
 /// otherwise. \n
 /// Possible error codes: \n
 /// vircadia_error_context_invalid() \n
 /// vircadia_error_context_loss() \n
 VIRCADIA_CLIENT_DYN_API
-int vircadia_connection_status(int id);
+int vircadia_connection_status(int context_id);
 
 /// @brief Update the internal list of nodes.
 ///
-/// @param id The ID of the context to use (context.h).
+/// @param context_id The ID of the context to use (context.h).
 /// @return Negative code in case of an errors, otherwise 0. \n
 /// Possible error codes: \n
 /// vircadia_error_context_invalid() \n
 /// vircadia_error_context_loss() \n
 VIRCADIA_CLIENT_DYN_API
-int vircadia_update_nodes(int id);
+int vircadia_update_nodes(int context_id);
 
 /// @brief Retrieve the count of connected nodes.
 //
 /// The count only changes with explicit call to
 /// vircadia_update_nodes().
 ///
-/// @param id The ID of the context to use (context.h).
+/// @param context_id The ID of the context to use (context.h).
 /// @return The count of connected nodes, or a negative error code. \n
 /// Possible error codes: \n
 /// vircadia_error_context_invalid() \n
 /// vircadia_error_context_loss() \n
 VIRCADIA_CLIENT_DYN_API
-int vircadia_node_count(int id);
+int vircadia_node_count(int context_id);
 
 /// @brief Retrieve the node UUID by index.
 ///
@@ -76,10 +76,10 @@ int vircadia_node_count(int id);
 /// vircadia_update_nodes(), which may invalidate the pointer returned
 /// by this function.
 ///
-/// @param id The ID of the context to use (context.h).
+/// @param context_id The ID of the context to use (context.h).
 /// @param index The index of the node in the node list.
 /// @return Pointer to 16 byte UUID or null in case of an error.
 VIRCADIA_CLIENT_DYN_API
-const uint8_t* vircadia_node_uuid(int id, int index);
+const uint8_t* vircadia_node_uuid(int context_id, int index);
 
 #endif /* end of include guard */

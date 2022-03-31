@@ -77,7 +77,7 @@ vircadia_context_params vircadia_context_defaults();
 /// Possible error codes: \n
 /// vircadia_error_context_exists() \n
 VIRCADIA_CLIENT_DYN_API
-int vircadia_create_context(vircadia_context_params);
+int vircadia_create_context(vircadia_context_params context_params);
 
 /// @brief Destroy the client context.
 ///
