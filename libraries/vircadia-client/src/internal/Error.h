@@ -14,6 +14,7 @@
 
 #include <type_traits>
 #include <utility>
+#include <algorithm>
 #include <functional>
 #include <initializer_list>
 
