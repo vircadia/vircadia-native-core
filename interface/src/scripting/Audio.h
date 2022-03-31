@@ -367,7 +367,7 @@ signals:
 
     /*@jsdoc
      * Triggered when desktop audio input is muted or unmuted.
-     * @function Audio.mutedDesektopChanged
+     * @function Audio.mutedDesktopChanged
      * @param {boolean} isMuted - <code>true</code> if desktop audio input is muted, otherwise <code>false</code>.
      * @returns {Signal}
      * @example <caption>Report when desktop muting changes.</caption>
