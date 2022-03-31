@@ -1,5 +1,5 @@
 //
-//  client.h
+//  context.h
 //  libraries/client/src
 //
 //  Created by Nshan G. on 15 March 2022.
@@ -11,8 +11,8 @@
 
 /// @file
 
-#ifndef VIRCADIA_LIBRARIES_VIRCADIA_CLIENT_SRC_CLIENT_H
-#define VIRCADIA_LIBRARIES_VIRCADIA_CLIENT_SRC_CLIENT_H
+#ifndef LIBRARIES_VIRCADIA_CLIENT_SRC_CONTEXT_H
+#define LIBRARIES_VIRCADIA_CLIENT_SRC_CONTEXT_H
 
 #include <stdint.h>
 
