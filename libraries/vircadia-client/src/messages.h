@@ -18,7 +18,7 @@
 
 #include "common.h"
 
-/// @brief Enable handling of messages of specified type.
+/// @brief Enable handling of messages of specified types.
 ///
 /// Messages of specified type will be buffered as they come in, so you
 /// need to make sure to call vircadia_update_messages() followed by
@@ -26,7 +26,7 @@
 /// unbounded memory use.
 ///
 /// @param context_id - The id of the context (context.h).
-/// @param type - Any combination of the flag values defined in
+/// @param types - Any combination of the flags defined in
 /// message_types.h.
 ///
 /// @return 0 on success, or a negative error code. \n
@@ -35,13 +35,13 @@
 /// vircadia_error_context_loss() \n
 /// vircadia_error_message_type_invalid()
 VIRCADIA_CLIENT_DYN_API
-int vircadia_enable_messages(int context_id, uint8_t type);
+int vircadia_enable_messages(int context_id, uint8_t types);
 
 /// @brief Subscribes to receive messages on a specific channel.
 ///
-/// This means, for example, that if there are two Interface scripts
-/// that subscribe to different channels, both scripts will receive
-/// messages on both channels.
+/// This means, for example, that if there are two clients that
+/// subscribe to different channels, both will receive messages on both
+/// channels.
 ///
 /// @param context_id - The id of the context (context.h).
 /// @param channel - The channel to subscribe to.
@@ -65,10 +65,10 @@ int vircadia_messages_subscribe(int context_id, const char* channel);
 VIRCADIA_CLIENT_DYN_API
 int vircadia_messages_unsubscribe(int context_id, const char* channel);
 
-/// @brief Updates the list of messages.
+/// @brief Updates the list of messages of specified types.
 ///
 /// @param context_id - The id of the context (context.h).
-/// @param type - Any combination of the flag values defined in
+/// @param types - Any combination of the flags defined in
 /// message_types.h.
 ///
 /// @return 0 on success, or a negative error code. \n
@@ -78,27 +78,101 @@ int vircadia_messages_unsubscribe(int context_id, const char* channel);
 /// vircadia_error_message_type_invalid() \n
 /// vircadia_error_message_type_disabled()
 VIRCADIA_CLIENT_DYN_API
-int vircadia_update_messages(int context_id, uint8_t type);
+int vircadia_update_messages(int context_id, uint8_t types);
 
+/// @brief Returns the size of the message list of specific type.
+///
+/// @param context_id - The id of the context (context.h).
+/// @param type - Any single flag defined in message_types.h.
+///
+/// @return the count of messages on success, or a negative error code. \n
+/// Possible error codes: \n
+/// vircadia_error_context_invalid() \n
+/// vircadia_error_context_loss() \n
+/// vircadia_error_message_type_invalid() \n
+/// vircadia_error_message_type_disabled()
 VIRCADIA_CLIENT_DYN_API
 int vircadia_messages_count(int context_id, uint8_t type);
 
+/// @brief Get a specific message from the message list of specific type.
+///
+/// @param context_id - The id of the context (context.h).
+/// @param type - Any single flag defined in message_types.h.
+/// @param index - The index of the message in the list.
+///
+/// @return pointer to null terminated message string, or null in case
+/// of an error.
 VIRCADIA_CLIENT_DYN_API
 const char* vircadia_get_message(int context_id, uint8_t type, int index);
 
+/// @brief Get the channel of a specific message from the message list
+/// of specific type.
+///
+/// @param context_id - The id of the context (context.h).
+/// @param type - Any single flag defined in message_types.h.
+/// @param index - The index of the message in the list.
+///
+/// @return pointer to null terminated channel string, or null in case
+/// of an error.
 VIRCADIA_CLIENT_DYN_API
 const char* vircadia_get_message_channel(int context_id, uint8_t type, int index);
 
+/// @brief Check if the specific message from the message list of
+/// specific type is local only.
+///
+/// @param context_id - The id of the context (context.h).
+/// @param type - Any single flag defined in message_types.h.
+/// @param index - The index of the message in the list.
+///
+/// @return 1 - message is local only, 0 - message is not local only, or
+/// a negative error code \n
+/// Possible error codes: \n
+/// vircadia_error_context_invalid() \n
+/// vircadia_error_context_loss() \n
+/// vircadia_error_message_type_invalid() \n
+/// vircadia_error_message_type_disabled()
 VIRCADIA_CLIENT_DYN_API
 int vircadia_is_message_local_only(int context_id, uint8_t type, int index);
 
+/// @brief Get the UUID of the sender of a specific message from the
+/// message list of specific type.
+///
+/// @param context_id - The id of the context (context.h).
+/// @param type - Any single flag defined in message_types.h.
+/// @param index - The index of the message in the list.
+///
+/// @return pointer to 16 bytes of UUID, or null in case of an error.
 VIRCADIA_CLIENT_DYN_API
 const uint8_t* vircadia_get_message_sender(int context_id, uint8_t type, int index);
 
+/// @brief Clears the list of messages of specified types.
+///
+/// @param context_id - The id of the context (context.h).
+/// @param types - Any combination of the flags defined in
+/// message_types.h.
+///
+/// @return 0 on success, or a negative error code. \n
+/// Possible error codes: \n
+/// vircadia_error_context_invalid() \n
+/// vircadia_error_context_loss() \n
+/// vircadia_error_message_type_invalid() \n
+/// vircadia_error_message_type_disabled()
 VIRCADIA_CLIENT_DYN_API
-int vircadia_clear_messages(int context_id, uint8_t type);
+int vircadia_clear_messages(int context_id, uint8_t types);
 
+/// @brief Sends a message.
+///
+/// @param context_id - The id of the context (context.h).
+/// @param types - Any combination of the flags defined in
+/// message_types.h.
+///
+/// @return 0 on success, or a negative error code. \n
+/// Possible error codes: \n
+/// vircadia_error_context_invalid() \n
+/// vircadia_error_context_loss() \n
+/// vircadia_error_message_type_invalid() \n
+/// vircadia_error_message_type_disabled()
 VIRCADIA_CLIENT_DYN_API
-int vircadia_send_message(int context_id, uint8_t type, const char* channel, const char* payload, uint8_t localOnly);
+int vircadia_send_message(int context_id, uint8_t types, const char* channel, const char* payload, uint8_t localOnly);
 
 #endif /* end of include guard */
