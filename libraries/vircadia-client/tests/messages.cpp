@@ -16,6 +16,7 @@
 
 #include <thread>
 #include <chrono>
+#include <string>
 
 #include <catch2/catch.hpp>
 
@@ -44,11 +45,22 @@ TEST_CASE("Client API messaging functionality.", "[client-api-messaging]") {
             REQUIRE(count >= 0);
             for (int i = 0; i != count; ++i) {
                 auto message = vircadia_get_message(context, text_messages, i);
+                auto channel = vircadia_get_message_channel(context, text_messages, i);
+                auto sender = vircadia_get_message_sender(context, text_messages, i);
+                REQUIRE(vircadia_is_message_local_only(context, text_messages, i) == 0);
                 REQUIRE(message != nullptr);
-                if (message == test_message) {
+                REQUIRE(channel != nullptr);
+                REQUIRE(sender != nullptr);
+                if (message == test_message && channel == test_channel) {
                     message_received = true;
                 }
+                REQUIRE(vircadia_get_message(context, vircadia_data_messages(), i) == nullptr);
+                REQUIRE(vircadia_is_message_local_only(context, vircadia_data_messages(), i) == vircadia_error_message_type_disabled());
             }
+            REQUIRE(vircadia_messages_count(context, vircadia_data_messages()) == vircadia_error_message_type_disabled());
+
+            REQUIRE(vircadia_get_message(context, text_messages, count) == nullptr);
+            REQUIRE(vircadia_is_message_local_only(context, text_messages, count) == vircadia_error_message_invalid());
 
             if (!message_sent) {
                 REQUIRE(vircadia_send_message(context, text_messages, test_channel.c_str(), test_message.c_str(), false) == 0);
@@ -70,5 +82,9 @@ TEST_CASE("Client API messaging functionality.", "[client-api-messaging]") {
     }
 
     REQUIRE(vircadia_destroy_context(context) == 0);
+
+    REQUIRE(vircadia_enable_messages(context, text_messages) == vircadia_error_context_invalid());
+    REQUIRE(vircadia_messages_subscribe(context, test_channel.c_str()) == vircadia_error_context_invalid());
+    REQUIRE(vircadia_send_message(context, text_messages, test_channel.c_str(), test_message.c_str(), false) == vircadia_error_context_invalid());
 
 }
