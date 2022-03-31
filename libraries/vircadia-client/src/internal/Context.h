@@ -23,7 +23,7 @@
 
 #include <NodeList.h>
 
-#include "../client.h"
+#include "../context.h"
 
 class QCoreApplication;
 class QString;

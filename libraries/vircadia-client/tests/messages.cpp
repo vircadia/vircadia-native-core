@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "../src/client.h"
+#include "../src/context.h"
 #include "../src/node_list.h"
 #include "../src/messages.h"
 #include "../src/message_types.h"
