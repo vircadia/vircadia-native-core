@@ -22,16 +22,37 @@
 
 namespace udt {
     
+/// @addtogroup Networking
+/// @{
+
+
+/// @brief A Vircadia protocol control packet.
+/// @details
+/// ```
+///                         Control Packet Format
+///
+///     0                   1                   2                   3
+///     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+///    .               .               .               .               .
+///    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///    |C|             |     Type      |             Unused            |
+///    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///    |                         Control Data                          |  Not used if Type = HandshakeRequest.
+///    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+///
+///    C: Control bit = 1
+/// ```
 class ControlPacket : public BasePacket {
     Q_OBJECT
 public:
     using ControlBitAndType = uint32_t;
     
+    /// @brief The control packet type.
     enum Type : uint16_t {
-        ACK,
-        Handshake,
-        HandshakeACK,
-        HandshakeRequest
+        ACK,                ///< `0` - ACK
+        Handshake,          ///< `1` - Handshake
+        HandshakeACK,       ///< `2` - HandskakeACK
+        HandshakeRequest    ///< `3` - HandshakeRequest
     };
     
     static std::unique_ptr<ControlPacket> create(Type type, qint64 size = -1);
@@ -64,5 +85,7 @@ private:
     
 } // namespace udt
 
+
+/// @}
 
 #endif // hifi_ControlPacket_h
