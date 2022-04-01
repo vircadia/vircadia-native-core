@@ -152,12 +152,13 @@ int vircadia_clear_messages(int context_id, uint8_t type) {
 }
 
 VIRCADIA_CLIENT_DYN_API
-int vircadia_send_message(int context_id, uint8_t type, const char* channel, const char* payload, uint8_t localOnly) {
+int vircadia_send_message(int context_id, uint8_t type, const char* channel, const char* payload, uint8_t local) {
     return validateTypes(context_id, type, [&](auto& context) {
         if (channel == nullptr || payload == nullptr) {
             return 0; // or maybe return an error?
         }
-        context.sendMessage(type, channel, payload, localOnly);
+        // validate the `local` parameter to be 0 or 1?
+        context.sendMessage(type, channel, payload, local == 1 ? true : false);
         return 0;
     });
 }
