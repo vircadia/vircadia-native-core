@@ -123,6 +123,14 @@ const char* vircadia_get_message(int context_id, uint8_t type, int index) {
 }
 
 VIRCADIA_CLIENT_DYN_API
+int vircadia_get_message_size(int context_id, uint8_t type, int index) {
+    return validateMessageIndex(context_id, type, index, [&](auto& message) -> int {
+        return message.payload.size();
+    });
+}
+
+
+VIRCADIA_CLIENT_DYN_API
 const char* vircadia_get_message_channel(int context_id, uint8_t type, int index) {
     return validateMessageIndex(context_id, type, index, [&](auto& message) {
         return message.channel.c_str();

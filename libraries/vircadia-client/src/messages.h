@@ -94,16 +94,35 @@ int vircadia_update_messages(int context_id, uint8_t types);
 VIRCADIA_CLIENT_DYN_API
 int vircadia_messages_count(int context_id, uint8_t type);
 
-/// @brief Get a specific message from the message list of specific type.
+/// @brief Get a specific message from the message list of specific
+/// type.
 ///
 /// @param context_id - The id of the context (context.h).
 /// @param type - Any single flag defined in message_types.h.
 /// @param index - The index of the message in the list.
 ///
-/// @return pointer to null terminated message string, or null in case
-/// of an error.
+/// @return pointer to null terminated message data, or null in case of an
+/// error.
 VIRCADIA_CLIENT_DYN_API
 const char* vircadia_get_message(int context_id, uint8_t type, int index);
+
+/// @brief Get the size of a specific message from the message list of
+/// specific type.
+///
+/// @param context_id - The id of the context (context.h).
+/// @param type - Any single flag defined in message_types.h.
+/// @param index - The index of the message in the list.
+///
+/// @return the size of message returned by vircadia_get_message()
+/// excluding the null terminator, or a negative error code. \n
+/// Possible error codes: \n
+/// vircadia_error_context_invalid() \n
+/// vircadia_error_context_loss() \n
+/// vircadia_error_message_invalid() \n
+/// vircadia_error_message_type_invalid() \n
+/// vircadia_error_message_type_disabled()
+VIRCADIA_CLIENT_DYN_API
+int vircadia_get_message_size(int context_id, uint8_t type, int index);
 
 /// @brief Get the channel of a specific message from the message list
 /// of specific type.
@@ -129,6 +148,7 @@ const char* vircadia_get_message_channel(int context_id, uint8_t type, int index
 /// Possible error codes: \n
 /// vircadia_error_context_invalid() \n
 /// vircadia_error_context_loss() \n
+/// vircadia_error_message_invalid() \n
 /// vircadia_error_message_type_invalid() \n
 /// vircadia_error_message_type_disabled()
 VIRCADIA_CLIENT_DYN_API
