@@ -187,6 +187,8 @@ int vircadia_clear_messages(int context_id, uint8_t types);
 /// message_types.h.
 /// @param channel - the channel to send the message on.
 /// @param payload - the main body of the message.
+/// @param size - the size of main message body. If a -1 is passed the payload
+/// is assumed to be null terminated.
 /// @param local - whether to send the message as local only
 /// (1 - true, 0 - false).
 ///
@@ -197,6 +199,6 @@ int vircadia_clear_messages(int context_id, uint8_t types);
 /// vircadia_error_message_type_invalid() \n
 /// vircadia_error_message_type_disabled()
 VIRCADIA_CLIENT_DYN_API
-int vircadia_send_message(int context_id, uint8_t types, const char* channel, const char* payload, uint8_t local);
+int vircadia_send_message(int context_id, uint8_t types, const char* channel, const char* payload, int size, uint8_t local);
 
 #endif /* end of include guard */

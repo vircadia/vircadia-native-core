@@ -69,7 +69,7 @@ TEST_CASE("Client API messaging functionality.", "[client-api-messaging]") {
             REQUIRE(vircadia_is_message_local_only(context, text_messages, count) == vircadia_error_message_invalid());
 
             if (!message_sent) {
-                REQUIRE(vircadia_send_message(context, text_messages, test_channel.c_str(), test_message.c_str(), false) == 0);
+                REQUIRE(vircadia_send_message(context, text_messages, test_channel.c_str(), test_message.c_str(), -1, false) == 0);
                 message_sent = true;;
             }
 
@@ -91,6 +91,6 @@ TEST_CASE("Client API messaging functionality.", "[client-api-messaging]") {
 
     REQUIRE(vircadia_enable_messages(context, text_messages) == vircadia_error_context_invalid());
     REQUIRE(vircadia_messages_subscribe(context, test_channel.c_str()) == vircadia_error_context_invalid());
-    REQUIRE(vircadia_send_message(context, text_messages, test_channel.c_str(), test_message.c_str(), false) == vircadia_error_context_invalid());
+    REQUIRE(vircadia_send_message(context, text_messages, test_channel.c_str(), test_message.c_str(), -1, false) == vircadia_error_context_invalid());
 
 }

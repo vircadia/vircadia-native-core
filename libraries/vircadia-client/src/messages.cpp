@@ -160,13 +160,14 @@ int vircadia_clear_messages(int context_id, uint8_t type) {
 }
 
 VIRCADIA_CLIENT_DYN_API
-int vircadia_send_message(int context_id, uint8_t type, const char* channel, const char* payload, uint8_t local) {
+int vircadia_send_message(int context_id, uint8_t type, const char* channel, const char* payload, int size, uint8_t local) {
     return validateTypes(context_id, type, [&](auto& context) {
         if (channel == nullptr || payload == nullptr) {
             return 0; // or maybe return an error?
         }
         // validate the `local` parameter to be 0 or 1?
-        context.sendMessage(type, channel, payload, local == 1 ? true : false);
+        // validate size to be >= 0 or -1 for null terminated payload?
+        context.sendMessage(type, channel, QByteArray(payload, size), local == 1 ? true : false);
         return 0;
     });
 }
