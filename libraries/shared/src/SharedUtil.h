@@ -209,8 +209,7 @@ void setupHifiApplication(QString appName, QString orgName, QString orgDomain, Q
 
 template <typename AppInfo>
 void setupHifiApplication(QString appName, const AppInfo& info) {
-    setupHifiApplication(appName, info.organizationName,
-        info.organizationDomain, info.version);
+    setupHifiApplication(appName, info.organizationName, info.organizationDomain, info.version);
 }
 
 #ifdef Q_OS_WIN
