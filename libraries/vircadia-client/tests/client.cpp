@@ -1,6 +1,6 @@
 //
 //  client.cpp
-//  libraries/client/tests
+//  libraries/vircadia-client/tests
 //
 //  Created by Nshan G. on 17 Mar 2022.
 //  Copyright 2022 Vircadia contributors.

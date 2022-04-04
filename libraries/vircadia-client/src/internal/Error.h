@@ -1,6 +1,6 @@
 //
 //  Error.h
-//  libraries/client/src/internal
+//  libraries/vircadia-client/src/internal
 //
 //  Created by Nshan G. on 27 March 2022.
 //  Copyright 2022 Vircadia contributors.
@@ -79,7 +79,7 @@ auto chain(std::initializer_list<R> result, F&& f) {
 
 template <typename Container>
 int indexValid(const Container& container, int index, ErrorCode code) {
-    if ( index < 0 || index >= static_cast<int>(container.size()) ) {
+    if (index < 0 || index >= static_cast<int>(container.size())) {
         return toInt(code);
     } else {
         return 0;

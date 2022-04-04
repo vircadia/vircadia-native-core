@@ -1,6 +1,6 @@
 //
 //  message_types.h
-//  libraries/client/src
+//  libraries/vircadia-client/src
 //
 //  Created by Nshan G. on 29 March 2022.
 //  Copyright 2022 Vircadia contributors.

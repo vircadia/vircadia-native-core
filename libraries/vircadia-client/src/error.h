@@ -1,6 +1,6 @@
 //
 //  error.h
-//  libraries/client/src
+//  libraries/vircadia-client/src
 //
 //  Created by Nshan G. on 27 March 2022.
 //  Copyright 2022 Vircadia contributors.
