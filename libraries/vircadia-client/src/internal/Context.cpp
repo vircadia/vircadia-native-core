@@ -283,7 +283,7 @@ namespace vircadia::client {
         return *ret;
     }
 
-    bool Context::getMessagesEnabled(std::bitset<8> type) const {
+    bool Context::isMessagesEnabled(std::bitset<8> type) const {
         bool ret = true;
         forAllSet(type, messageContexts, [&](auto& messagesContext) {
             ret &= messagesContext.enabled;
@@ -305,12 +305,12 @@ namespace vircadia::client {
 
     std::list<Context> contexts;
 
-    int vircadiaContextValid(int id) {
-        return indexValid(contexts, id, ErrorCode::CONTEXT_INVALID);
+    int checkContextValid(int id) {
+        return checkIndexValid(contexts, id, ErrorCode::CONTEXT_INVALID);
     }
 
-    int vircadiaContextReady(int id) {
-        return chain(vircadiaContextValid(id), [&](auto) {
+    int checkContextReady(int id) {
+        return chain(checkContextValid(id), [&](auto) {
             return std::next(std::begin(contexts), id)->ready()
                 ? 0
                 : toInt(ErrorCode::CONTEXT_LOSS);

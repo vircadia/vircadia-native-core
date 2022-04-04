@@ -18,7 +18,7 @@ using namespace vircadia::client;
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_connect(int id, const char* address) {
-    return chain(vircadiaContextReady(id), [&](auto) {
+    return chain(checkContextReady(id), [&](auto) {
         std::next(std::begin(contexts), id)->connect(address);
         return 0;
     });
@@ -26,7 +26,7 @@ int vircadia_connect(int id, const char* address) {
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_connection_status(int id) {
-    return chain(vircadiaContextReady(id), [&](auto) {
+    return chain(checkContextReady(id), [&](auto) {
         return std::next(std::begin(contexts), id)->isConnected()
             ? 1
             : 0;
@@ -35,7 +35,7 @@ int vircadia_connection_status(int id) {
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_update_nodes(int id) {
-    return chain(vircadiaContextReady(id), [&](auto) {
+    return chain(checkContextReady(id), [&](auto) {
         std::next(std::begin(contexts), id)->updateNodes();
         return 0;
     });
@@ -43,16 +43,16 @@ int vircadia_update_nodes(int id) {
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_node_count(int id) {
-    return chain(vircadiaContextReady(id), [&](auto) -> int {
+    return chain(checkContextReady(id), [&](auto) -> int {
         return std::next(std::begin(contexts), id)->getNodes().size();
     });
 }
 
 VIRCADIA_CLIENT_DYN_API
 const uint8_t* vircadia_node_uuid(int id, int index) {
-    return chain(vircadiaContextReady(id), [&](auto) {
+    return chain(checkContextReady(id), [&](auto) {
         const auto& nodes = std::next(std::begin(contexts), id)->getNodes();
-        return chain(indexValid(nodes, index, ErrorCode::NODE_INVALID), [&](auto) {
+        return chain(checkIndexValid(nodes, index, ErrorCode::NODE_INVALID), [&](auto) {
             return std::next(std::begin(nodes), index)->uuid.data();
         });
     });

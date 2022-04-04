@@ -62,7 +62,7 @@ int vircadia_create_context(vircadia_context_params params) {
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_destroy_context(int id) {
-    return chain(vircadiaContextValid(id), [&](auto) {
+    return chain(checkContextValid(id), [&](auto) {
         contexts.erase(std::next(std::begin(contexts), id));
         return 0;
     });

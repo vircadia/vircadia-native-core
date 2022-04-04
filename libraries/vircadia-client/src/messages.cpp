@@ -29,7 +29,7 @@ int singularMessageType(uint8_t type) {
 }
 
 int messageTypesEnabled(const Context& context, uint8_t type) {
-    if (context.getMessagesEnabled(type)) {
+    if (context.isMessagesEnabled(type)) {
         return 0;
     } else {
         return toInt(ErrorCode::MESSAGE_TYPE_DISABLED);
@@ -39,7 +39,7 @@ int messageTypesEnabled(const Context& context, uint8_t type) {
 template <typename F>
 auto validateType(int context_id, uint8_t type, bool singular, F&& f) {
     return chain({
-        vircadiaContextReady(context_id),
+        checkContextReady(context_id),
         validMessageType(type),
         singular ? singularMessageType(type) : 0,
     }, [&](auto) {
@@ -63,7 +63,7 @@ auto validateSingleType(int context_id, uint8_t type, F&& f) {
 VIRCADIA_CLIENT_DYN_API
 int vircadia_enable_messages(int context_id, uint8_t type) {
     return chain({
-        vircadiaContextReady(context_id),
+        checkContextReady(context_id),
         validMessageType(type)
     }, [&](auto) {
 
@@ -75,7 +75,7 @@ int vircadia_enable_messages(int context_id, uint8_t type) {
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_messages_subscribe(int context_id, const char* channel) {
-    return chain(vircadiaContextReady(context_id), [&](auto) {
+    return chain(checkContextReady(context_id), [&](auto) {
         std::next(std::begin(contexts), context_id)->subscribeMessages(channel);
         return 0;
     });
@@ -83,7 +83,7 @@ int vircadia_messages_subscribe(int context_id, const char* channel) {
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_messages_unsubscribe(int context_id, const char* channel) {
-    return chain(vircadiaContextReady(context_id), [&](auto) {
+    return chain(checkContextReady(context_id), [&](auto) {
         std::next(std::begin(contexts), context_id)->unsubscribeMessages(channel);
         return 0;
     });
@@ -109,7 +109,7 @@ template <typename F>
 auto validateMessageIndex(int context_id, uint8_t type, int index, F&& f) {
     return validateSingleType(context_id, type, [&](auto& context) {
         const auto& messages = context.getMessages(type);
-        return chain(indexValid(messages, index, ErrorCode::MESSAGE_INVALID), [&](auto) {
+        return chain(checkIndexValid(messages, index, ErrorCode::MESSAGE_INVALID), [&](auto) {
             return std::invoke(std::forward<F>(f), messages[index]);
         });
     });

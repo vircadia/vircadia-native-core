@@ -92,7 +92,7 @@ namespace vircadia::client {
         void subscribeMessages(QString channel) const;
         void unsubscribeMessages(QString channel) const;
         const std::vector<MessageData>& getMessages(std::bitset<8> type) const;
-        bool getMessagesEnabled(std::bitset<8> type) const;
+        bool isMessagesEnabled(std::bitset<8> type) const;
         void sendMessage(std::bitset<8> type, QString channel, QByteArray payload, bool localOnly);
 
     private:
@@ -103,7 +103,7 @@ namespace vircadia::client {
 
 
         struct MessagesContext {
-            bool enabled {false};
+            bool enabled { false };
             std::vector<MessageParams> messages {};
             std::vector<MessageData> buffer {};
             mutable std::mutex mutex {};
@@ -118,8 +118,8 @@ namespace vircadia::client {
 
     extern std::list<Context> contexts;
 
-    int vircadiaContextValid(int id);
-    int vircadiaContextReady(int id);
+    int checkContextValid(int id);
+    int checkContextReady(int id);
 
 } // namespace vircadia::client
 

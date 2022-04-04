@@ -78,7 +78,7 @@ auto chain(std::initializer_list<R> result, F&& f) {
 };
 
 template <typename Container>
-int indexValid(const Container& container, int index, ErrorCode code) {
+int checkIndexValid(const Container& container, int index, ErrorCode code) {
     if (index < 0 || index >= static_cast<int>(container.size())) {
         return toInt(code);
     } else {
