@@ -1,6 +1,6 @@
 //
 //  Context.cpp
-//  libraries/client/src/internal
+//  libraries/vircadia-client/src/internal
 //
 //  Created by Nshan G. on 27 March 2022.
 //  Copyright 2022 Vircadia contributors.
@@ -32,7 +32,7 @@ namespace vircadia { namespace client {
         argv(&argvData[0])
     {
         auto qtInitialization = qtInitialized.get_future();
-        appThraed = std::thread{ [
+        appThread = std::thread{ [
             &app = this->app,
             &argc = this->argc,
             &argv = this->argv,
@@ -127,7 +127,7 @@ namespace vircadia { namespace client {
         if (ready()) {
             QMetaObject::invokeMethod(app, "quit");
         }
-        appThraed.join();
+        appThread.join();
     }
 
     const std::vector<NodeData> Context::getNodes() {
