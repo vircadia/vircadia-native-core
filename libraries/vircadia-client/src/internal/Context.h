@@ -1,6 +1,6 @@
 //
 //  Context.h
-//  libraries/client/src/internal
+//  libraries/vircadia-client/src/internal
 //
 //  Created by Nshan G. on 27 March 2022.
 //  Copyright 2022 Vircadia contributors.
@@ -96,7 +96,7 @@ namespace vircadia::client {
         void sendMessage(std::bitset<8> type, QString channel, QByteArray payload, bool localOnly);
 
     private:
-        std::thread appThraed {};
+        std::thread appThread {};
         std::atomic<QCoreApplication*> app {};
         std::vector<NodeData> nodes {};
         std::promise<void> qtInitialized {};
