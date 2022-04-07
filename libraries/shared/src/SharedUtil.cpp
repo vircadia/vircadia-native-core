@@ -58,8 +58,6 @@ extern "C" FILE * __cdecl __iob_func(void) {
 #include <QSysInfo>
 #include <QThread>
 
-#include <BuildInfo.h>
-
 #include "LogHandler.h"
 #include "NumericalConstants.h"
 #include "OctalCode.h"
@@ -95,7 +93,7 @@ static void commitGlobalInstances() {
 }
 
 // This call is necessary for global instances to work across DLL boundaries
-// Ideally, this founction would be called at the top of the main function.
+// Ideally, this function would be called at the top of the main function.
 // See description at the top of the file.
 void setupGlobalInstances() {
     qAddPreRoutine(commitGlobalInstances);
@@ -884,16 +882,16 @@ void watchParentProcess(int parentPID) {
 }
 #endif
 
-void setupHifiApplication(QString applicationName) {
+void setupHifiApplication(QString appName, QString orgName, QString orgDomain, QString appVersion) {
     disableQtBearerPoll(); // Fixes wifi ping spikes
 
     // Those calls are necessary to format the log correctly
     // and to direct the application to the correct location
     // for read/writes into AppData and other platform equivalents.
-    QCoreApplication::setApplicationName(applicationName);
-    QCoreApplication::setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
-    QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
-    QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
+    QCoreApplication::setApplicationName(appName);
+    QCoreApplication::setOrganizationName(orgName);
+    QCoreApplication::setOrganizationDomain(orgDomain);
+    QCoreApplication::setApplicationVersion(appVersion);
 
     // This ensures the global instances mechanism is correctly setup.
     // You can find more details as to why this is important in the SharedUtil.h/cpp files

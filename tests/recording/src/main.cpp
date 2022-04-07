@@ -30,6 +30,7 @@
 #include <recording/Clip.h>
 #include <recording/Frame.h>
 
+#include <BuildInfo.h>
 #include <SharedUtil.h>
 
 #include "Constants.h"
@@ -120,7 +121,7 @@ void testClipOrdering() {
 }
 
 int main(int, const char**) {
-    setupHifiApplication("Recording Test");
+    setupHifiApplication("Recording Test", BuildInfo::APPLICATION_INFO);
 
     testFrameTypeRegistration();
     testFilePersist();

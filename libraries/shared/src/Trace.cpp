@@ -26,8 +26,6 @@
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonDocument>
 
-#include <BuildInfo.h>
-
 #include "Gzip.h"
 #include "PortableHighResolutionClock.h"
 #include "SharedLogging.h"
@@ -223,8 +221,8 @@ void Tracer::traceEvent(const QLoggingCategory& category,
     }
 }
 
-void Tracer::traceEvent(const QLoggingCategory& category, 
-    const QString& name, EventType type, const QString& id, 
+void Tracer::traceEvent(const QLoggingCategory& category,
+    const QString& name, EventType type, const QString& id,
     const QVariantMap& args, const QVariantMap& extra) {
     if (!_enabled && type != Metadata) {
         return;
@@ -233,8 +231,8 @@ void Tracer::traceEvent(const QLoggingCategory& category,
     traceEvent(category, name, type, now(), id, args, extra);
 }
 
-void Tracer::traceEvent(const QLoggingCategory& category, 
-    const QString& name, EventType type, int64_t timestamp, const QString& id, 
+void Tracer::traceEvent(const QLoggingCategory& category,
+    const QString& name, EventType type, int64_t timestamp, const QString& id,
     const QVariantMap& args, const QVariantMap& extra) {
     if (!_enabled && type != Metadata) {
         return;

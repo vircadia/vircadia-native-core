@@ -213,7 +213,7 @@ jobs:
       shell: bash
       run: |
           cmake --build . --config $BUILD_TYPE --target vircadia-client-tests $CMAKE_BUILD_EXTRA
-          ctest
+          ctest --output-on-failure
 
     - name: Build Application
       if: matrix.build_type == 'full' || matrix.build_type == 'client'

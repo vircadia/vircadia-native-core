@@ -13,6 +13,7 @@
 #include <QtCore/QFileInfo>
 #include <QtAndroidExtras/QAndroidJniObject>
 
+#include <BuildInfo.h>
 #include <Trace.h>
 
 #include "PlayerWindow.h"
@@ -44,7 +45,7 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
 }
 
 int main(int argc, char** argv) {
-    setupHifiApplication("gpuFramePlayer");
+    setupHifiApplication("gpuFramePlayer", BuildInfo::APPLICATION_INFO);
     QGuiApplication app(argc, argv);
     auto oldMessageHandler = qInstallMessageHandler(messageHandler);
     DependencyManager::set<tracing::Tracer>();

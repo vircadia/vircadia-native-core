@@ -27,6 +27,8 @@
 #include <QtGui/QGuiApplication>
 #include <QtGui/QImage>
 
+#include <BuildInfo.h>
+
 #include <gpu/Context.h>
 #include <gpu/Batch.h>
 #include <gpu/Stream.h>
@@ -154,7 +156,7 @@ class MyTestWindow : public TestWindow {
 
 #ifdef INTERACTIVE
 
-#else 
+#else
         // TODO Capture the current rendered framebuffer and save
         // Increment the test ID
         ++_currentTestId;
@@ -192,7 +194,7 @@ void testSparseRectify() {
 }
 
 int main(int argc, char** argv) {
-    setupHifiApplication("GPU Test");
+    setupHifiApplication("GPU Test", BuildInfo::APPLICATION_INFO);
 
     testSparseRectify();
 

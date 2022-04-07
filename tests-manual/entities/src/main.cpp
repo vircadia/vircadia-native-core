@@ -16,6 +16,7 @@
 #include <QDir>
 #include <ByteCountCoding.h>
 
+#include <BuildInfo.h>
 #include <ShapeEntityItem.h>
 #include <EntityItemProperties.h>
 #include <Octree.h>
@@ -137,7 +138,7 @@ void testPropertyFlags() {
 }
 
 int main(int argc, char** argv) {
-    setupHifiApplication("Entities Test");
+    setupHifiApplication("Entities Test", BuildInfo::APPLICATION_INFO);
 
     QCoreApplication app(argc, argv);
     {

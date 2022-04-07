@@ -15,10 +15,10 @@
 #include "AssignmentClientApp.h"
 
 int main(int argc, char* argv[]) {
-    setupHifiApplication(BuildInfo::ASSIGNMENT_CLIENT_NAME);
+    setupHifiApplication(BuildInfo::ASSIGNMENT_CLIENT_NAME, BuildInfo::APPLICATION_INFO);
 
     AssignmentClientApp app(argc, argv);
-    
+
     int acReturn = app.exec();
     qDebug() << "assignment-client process" <<  app.applicationPid() << "exiting with status code" << acReturn;
 

@@ -34,6 +34,8 @@
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QApplication>
 
+#include <BuildInfo.h>
+
 #include <shared/ConicalViewFrustum.h>
 #include <shared/RateCounter.h>
 #include <shared/NetworkUtils.h>
@@ -1029,7 +1031,7 @@ hifi.gpu=true
 )V0G0N";
 
 int main(int argc, char** argv) {
-    setupHifiApplication("RenderPerf");
+    setupHifiApplication("RenderPerf", BuildInfo::APPLICATION_INFO);
 
     QApplication app(argc, argv);
     logger.reset(new FileLogger());

@@ -1,10 +1,24 @@
 ### Client API
 
-This is C++ library for Vircadia client->server communication used internally and wrapper C API for various language bindings.
+This is C/C++ library for Vircadia client->server communication.
+
+### Coding Style
+
+This library is meant to use by other projects in particular other language bindings, and it exposes a C API for that purpose. The C API interfaces adhere to common C coding naming conventions:
+- All words in names are separated by underscores (snake case).
+- File, variable, function and type names are all lower case.
+- Global constants (including enum values) and macros are all upper case.
+In other aspects they adheres to the [coding standard](https://github.com/namark/vircadia/blob/master/CODING_STANDARD.md).
+
+
+The `src/internal` folder contains the internal C++ implementation details and is not subject to these C style naming convention. The `.cpp` files that correspond to C API header files in the `src` folder make use of these internals and may contain a mixture of styles.
+
+
+The `tests` folder contains unit test for the C API that also adhere to the C naming conventions.
 
 ### Building
 
-The library is build as a dependency of the interface, but if you are just working on the API you can build it by itself with the following command in the build directory:
+To build the dynamic library.
 ```
 cmake --build . --target vircadia-client
 ```
@@ -14,7 +28,7 @@ To build the unit tests:
 ```
 cmake --build . --target vircadia-client-tests
 ```
-The tests can be run with `ctest`, or directly by executing `build/libraries/vircadia-client/tests/vircadia-client-tests` for more detailed output.
+The tests can be run with `ctest`.
 
 
 To build the documentation (requires doxygen):

@@ -20,8 +20,8 @@
 using namespace std;
 
 int main(int argc, char* argv[]) {
-    setupHifiApplication(BuildInfo::AC_CLIENT_SERVER_NAME);
-    
+    setupHifiApplication(BuildInfo::AC_CLIENT_SERVER_NAME, BuildInfo::APPLICATION_INFO);
+
     Setting::init();
 
     ACClientApp app(argc, argv);

@@ -39,6 +39,7 @@
 #include <quazip5/quazip.h>
 #include <quazip5/JlCompress.h>
 
+#include <BuildInfo.h>
 
 #include "GLIHelpers.h"
 #include <shared/RateCounter.h>
@@ -629,7 +630,7 @@ void unzipTestData(const QByteArray& zipData) {
 }
 
 int main(int argc, char** argv) {
-    setupHifiApplication("RenderPerf");
+    setupHifiApplication("RenderPerf", BuildInfo::APPLICATION_INFO);
 
     QApplication app(argc, argv);
     QLoggingCategory::setFilterRules(LOG_FILTER_RULES);

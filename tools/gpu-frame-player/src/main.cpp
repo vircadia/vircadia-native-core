@@ -9,6 +9,7 @@
 #include <QtWidgets/QApplication>
 #include <QtCore/QSharedPointer>
 
+#include <BuildInfo.h>
 #include <shared/FileLogger.h>
 #include "PlayerWindow.h"
 
@@ -19,12 +20,12 @@ QSharedPointer<FileLogger> logger;
 
 static const QString LAST_FRAME_FILE = "lastFrameFile";
 
-static void setup() { 
-    DependencyManager::set<tracing::Tracer>(); 
+static void setup() {
+    DependencyManager::set<tracing::Tracer>();
 }
 
 int main(int argc, char** argv) {
-    setupHifiApplication("gpuFramePlayer");
+    setupHifiApplication("gpuFramePlayer", BuildInfo::APPLICATION_INFO);
 
     QApplication app(argc, argv);
     logger.reset(new FileLogger());
