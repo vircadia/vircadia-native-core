@@ -33,6 +33,18 @@ NetworkSocket::NetworkSocket(QObject* parent) :
 #endif
 }
 
+NetworkSocket::~NetworkSocket() {
+    disconnect(&_udpSocket, &QUdpSocket::readyRead, this, &NetworkSocket::readyRead);
+    disconnect(&_udpSocket, &QAbstractSocket::stateChanged, this, &NetworkSocket::onUDPStateChanged);
+    disconnect(&_udpSocket, SIGNAL(error(QAbstractSocket::SocketError)),
+        this, SLOT(onUDPSocketError(QAbstractSocket::SocketError)));
+
+#if defined(WEBRTC_DATA_CHANNELS)
+    disconnect(&_webrtcSocket, &WebRTCSocket::readyRead, this, &NetworkSocket::readyRead);
+    disconnect(&_webrtcSocket, &WebRTCSocket::stateChanged, this, &NetworkSocket::onWebRTCStateChanged);
+    // WEBRTC TODO: Add similar for errorOccurred
+#endif
+}
 
 void NetworkSocket::setSocketOption(SocketType socketType, QAbstractSocket::SocketOption option, const QVariant& value) {
     switch (socketType) {
@@ -157,7 +169,7 @@ qint64 NetworkSocket::bytesToWrite(SocketType socketType, const SockAddr& addres
 
 
 bool NetworkSocket::hasPendingDatagrams() const {
-    return 
+    return
 #if defined(WEBRTC_DATA_CHANNELS)
         _webrtcSocket.hasPendingDatagrams() ||
 #endif

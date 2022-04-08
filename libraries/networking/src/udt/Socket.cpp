@@ -58,6 +58,15 @@ Socket::Socket(QObject* parent, bool shouldChangeSocketOptions) :
     _readyReadBackupTimer->start(READY_READ_BACKUP_CHECK_MSECS);
 }
 
+Socket::~Socket() {
+    disconnect(&_networkSocket, &NetworkSocket::readyRead, this, &Socket::readPendingDatagrams);
+
+    disconnect(&_networkSocket, &NetworkSocket::socketError, this, &Socket::handleSocketError);
+    disconnect(&_networkSocket, &NetworkSocket::stateChanged, this, &Socket::handleStateChanged);
+
+    disconnect(_readyReadBackupTimer, &QTimer::timeout, this, &Socket::checkForReadyReadBackup);
+}
+
 void Socket::bind(SocketType socketType, const QHostAddress& address, quint16 port) {
     _networkSocket.bind(socketType, address, port);
 
@@ -106,13 +115,13 @@ void Socket::setSystemBufferSizes(SocketType socketType) {
 
         if (i == 0) {
             bufferOpt = QAbstractSocket::SendBufferSizeSocketOption;
-            numBytes = socketType == SocketType::UDP 
+            numBytes = socketType == SocketType::UDP
                 ? udt::UDP_SEND_BUFFER_SIZE_BYTES : udt::WEBRTC_SEND_BUFFER_SIZE_BYTES;
             bufferTypeString = "send";
 
         } else {
             bufferOpt = QAbstractSocket::ReceiveBufferSizeSocketOption;
-            numBytes = socketType == SocketType::UDP 
+            numBytes = socketType == SocketType::UDP
                 ? udt::UDP_RECEIVE_BUFFER_SIZE_BYTES : udt::WEBRTC_RECEIVE_BUFFER_SIZE_BYTES;
             bufferTypeString = "receive";
         }

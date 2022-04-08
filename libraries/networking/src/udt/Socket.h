@@ -55,11 +55,12 @@ class Socket : public QObject {
 
 public:
     using StatsVector = std::vector<std::pair<SockAddr, ConnectionStats::Stats>>;
- 
+
     Socket(QObject* object = 0, bool shouldChangeSocketOptions = true);
-    
+    virtual ~Socket() override;
+
     quint16 localPort(SocketType socketType) const { return _networkSocket.localPort(socketType); }
-    
+
     // Simple functions writing to the socket with no processing
     qint64 writeBasePacket(const BasePacket& packet, const SockAddr& sockAddr);
     qint64 writePacket(const Packet& packet, const SockAddr& sockAddr);
@@ -67,7 +68,7 @@ public:
     qint64 writePacketList(std::unique_ptr<PacketList> packetList, const SockAddr& sockAddr);
     qint64 writeDatagram(const char* data, qint64 size, const SockAddr& sockAddr);
     qint64 writeDatagram(const QByteArray& datagram, const SockAddr& sockAddr);
-    
+
     void bind(SocketType socketType, const QHostAddress& address, quint16 port = 0);
     void rebind(SocketType socketType, quint16 port);
     void rebind(SocketType socketType);
@@ -78,16 +79,16 @@ public:
     void setMessageFailureHandler(MessageFailureHandler handler) { _messageFailureHandler = handler; }
     void setConnectionCreationFilterOperator(ConnectionCreationFilterOperator filterOperator)
         { _connectionCreationFilterOperator = filterOperator; }
-    
+
     void addUnfilteredHandler(const SockAddr& senderSockAddr, BasePacketHandler handler)
         { _unfilteredHandlers[senderSockAddr] = handler; }
-    
+
     void setCongestionControlFactory(std::unique_ptr<CongestionControlVirtualFactory> ccFactory);
     void setConnectionMaxBandwidth(int maxBandwidth);
 
     void messageReceived(std::unique_ptr<Packet> packet);
     void messageFailed(Connection* connection, Packet::MessageNumber messageNumber);
-    
+
     StatsVector sampleStatsForAllConnections();
 
 #if defined(WEBRTC_DATA_CHANNELS)
@@ -116,16 +117,16 @@ private slots:
 private:
     void setSystemBufferSizes(SocketType socketType);
     Connection* findOrCreateConnection(const SockAddr& sockAddr, bool filterCreation = false);
-   
+
     // privatized methods used by UDTTest - they are private since they must be called on the Socket thread
     ConnectionStats::Stats sampleStatsForConnection(const SockAddr& destination);
-    
+
     std::vector<SockAddr> getConnectionSockAddrs();
     void connectToSendSignal(const SockAddr& destinationAddr, QObject* receiver, const char* slot);
-    
+
     Q_INVOKABLE void writeReliablePacket(Packet* packet, const SockAddr& sockAddr);
     Q_INVOKABLE void writeReliablePacketList(PacketList* packetList, const SockAddr& sockAddr);
-    
+
     NetworkSocket _networkSocket;
     PacketFilterOperator _packetFilterOperator;
     PacketHandler _packetHandler;
@@ -151,10 +152,10 @@ private:
     int _lastPacketSizeRead { 0 };
     SequenceNumber _lastReceivedSequenceNumber;
     SockAddr _lastPacketSockAddr;
-    
+
     friend UDTTest;
 };
-    
+
 } // namespace udt
 
 #endif // hifi_Socket_h
