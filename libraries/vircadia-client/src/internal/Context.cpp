@@ -52,7 +52,6 @@ namespace vircadia::client {
             nodeListParams, userAgent, info
         ] () {
             setupHifiApplication(info.name, info.organization, info.domain, info.version);
-            Setting::init();
 
             QCoreApplication qtApp{argc, &argv};
 
@@ -112,12 +111,10 @@ namespace vircadia::client {
                 QThreadPool::globalInstance()->waitForDone();
 
                 DependencyManager::destroy<MessagesClient>();
-
-                // TODO: these are still being used after this point, so need a better way to make sure all threads and pending operations have finished before destroying
-                // DependencyManager::destroy<NodeList>();
-                // DependencyManager::destroy<AddressManager>();
-                // DependencyManager::destroy<DomainAccountManager>();
-                // DependencyManager::destroy<AccountManager>();
+                DependencyManager::destroy<NodeList>();
+                DependencyManager::destroy<AddressManager>();
+                DependencyManager::destroy<DomainAccountManager>();
+                DependencyManager::destroy<AccountManager>();
 
 
             });
