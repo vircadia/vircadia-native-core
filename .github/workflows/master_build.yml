@@ -160,7 +160,7 @@ jobs:
       shell: bash
       run: |
           cmake --build . --config $BUILD_TYPE --target vircadia-client-tests $CMAKE_BUILD_EXTRA
-          ctest --output-on-failure
+          ctest --output-on-failure $CMAKE_BUILD_EXTRA
 
     - name: Build application
       working-directory: ${{runner.workspace}}/build

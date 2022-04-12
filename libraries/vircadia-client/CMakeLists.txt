@@ -52,6 +52,9 @@ else (DOXYGEN_FOUND)
 endif (DOXYGEN_FOUND)
 
 setup_hifi_library()
+
+set_property(TARGET vircadia-client PROPERTY CXX_STANDARD 17)
+
 link_hifi_libraries(shared networking)
 
 add_subdirectory(tests)

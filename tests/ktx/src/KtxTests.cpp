@@ -13,6 +13,7 @@
 #include <QtTest/QtTest>
 
 #if 0
+// NOTE: this is only used in similarly disabled code at the bottom.
 #include <BuildInfo.h>
 #endif
 
