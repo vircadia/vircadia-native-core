@@ -48,13 +48,33 @@ int vircadia_node_count(int id) {
     });
 }
 
-VIRCADIA_CLIENT_DYN_API
-const uint8_t* vircadia_node_uuid(int id, int index) {
+template <typename F>
+auto validateNodeIndex(int id, int index, F&& f) {
     return chain(checkContextReady(id), [&](auto) {
         const auto& nodes = std::next(std::begin(contexts), id)->getNodes();
         return chain(checkIndexValid(nodes, index, ErrorCode::NODE_INVALID), [&](auto) {
-            return std::next(std::begin(nodes), index)->uuid.data();
+            return std::invoke(std::forward<F>(f), *std::next(std::begin(nodes), index));
         });
     });
+}
 
+VIRCADIA_CLIENT_DYN_API
+const uint8_t* vircadia_node_uuid(int id, int index) {
+    return validateNodeIndex(id, index, [&](auto& node) {
+        return node.uuid.data();
+    });
+}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_node_active(int id, int index) {
+    return validateNodeIndex(id, index, [&](auto& node) {
+        return node.active ? 1 : 0;
+    });
+}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_node_type(int context_id, int index) {
+    return validateNodeIndex(context_id, index, [&](auto& node) -> int {
+        return node.type;
+    });
 }

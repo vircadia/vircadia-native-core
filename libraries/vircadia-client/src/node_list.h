@@ -82,4 +82,35 @@ int vircadia_node_count(int context_id);
 VIRCADIA_CLIENT_DYN_API
 const uint8_t* vircadia_node_uuid(int context_id, int index);
 
+/// @brief Check if the specified node is activated.
+///
+/// The internal list of nodes only changes with an explicit call to
+/// vircadia_update_nodes().
+///
+/// @param context_id The ID of the context to use (context.h).
+/// @param index The index of the node in the node list.
+/// @return 0 - inactive, 1 - active, or a negative error code. \n
+/// Possible error codes: \n
+/// vircadia_error_context_invalid() \n
+/// vircadia_error_context_loss() \n
+/// vircadia_error_node_invalid()
+VIRCADIA_CLIENT_DYN_API
+int vircadia_node_active(int context_id, int index);
+
+/// @brief Get the type of the specified node.
+///
+/// The internal list of nodes only changes with an explicit call to
+/// vircadia_update_nodes().
+///
+/// @param context_id The ID of the context to use (context.h).
+/// @param index The index of the node in the node list.
+/// @return one of the values defined in node_types.h, or a negative
+/// error code. \n
+/// Possible error codes: \n
+/// vircadia_error_context_invalid() \n
+/// vircadia_error_context_loss() \n
+/// vircadia_error_node_invalid()
+VIRCADIA_CLIENT_DYN_API
+int vircadia_node_type(int context_id, int index);
+
 #endif /* end of include guard */
