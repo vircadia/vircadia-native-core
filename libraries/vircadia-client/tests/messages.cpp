@@ -11,6 +11,7 @@
 
 #include "../src/context.h"
 #include "../src/node_list.h"
+#include "../src/node_types.h"
 #include "../src/messages.h"
 #include "../src/message_types.h"
 #include "../src/error.h"
@@ -42,9 +43,19 @@ TEST_CASE("Client API messaging functionality.", "[client-api-messaging]") {
 
         bool message_received = false;
         bool message_sent = false;
+        bool message_mixer_active = false;
         for (int i = 0; i < 100; ++i) {
             int status = vircadia_connection_status(context);
             if (status == 1) {
+
+                REQUIRE(vircadia_update_nodes(context) == 0);
+                const int node_count = vircadia_node_count(context);
+                for (int i = 0; i < node_count; ++i) {
+                    if (vircadia_node_type(context, i) == vircadia_messages_mixer_node()) {
+                        message_mixer_active = vircadia_node_active(context, i);
+                    }
+                }
+
                 REQUIRE(vircadia_enable_messages(context, text_messages) == 0);
 
                 REQUIRE(vircadia_messages_subscribe(context, test_channel.c_str()) == 0);
@@ -75,7 +86,7 @@ TEST_CASE("Client API messaging functionality.", "[client-api-messaging]") {
                 REQUIRE(vircadia_get_message(context, text_messages, count) == nullptr);
                 REQUIRE(vircadia_is_message_local_only(context, text_messages, count) == vircadia_error_message_invalid());
 
-                if (!message_sent) {
+                if (!message_sent && message_mixer_active) {
                     REQUIRE(vircadia_send_message(context, text_messages, test_channel.c_str(), test_message.c_str(), -1, false) == 0);
                     message_sent = true;;
                 }
