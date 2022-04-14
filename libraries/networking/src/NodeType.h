@@ -15,6 +15,9 @@
 
 #pragma once
 
+#include <QtGlobal>
+#include <QChar>
+
 /// @file
 /// @brief NodeType
 

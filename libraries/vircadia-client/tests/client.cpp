@@ -17,6 +17,8 @@
 #include <chrono>
 #include <catch2/catch.hpp>
 
+#include "common.h"
+
 using namespace std::literals;
 
 TEST_CASE("Client API context creation and domain server connection APIs.", "[client-api-context]") {
@@ -27,6 +29,10 @@ TEST_CASE("Client API context creation and domain server connection APIs.", "[cl
     vircadia_connect(context, "localhost");
 
     {
+        auto cleanup = defer([context](){
+            REQUIRE(vircadia_destroy_context(context) == 0);
+        });
+
         for (int i = 0; i < 10; ++i) {
             int status = vircadia_connection_status(context);
             REQUIRE((status == 1 || status == 0));
@@ -52,19 +58,17 @@ TEST_CASE("Client API context creation and domain server connection APIs.", "[cl
             std::this_thread::sleep_for(1s);
 
         }
+
+        const int secondContext = vircadia_create_context(vircadia_context_defaults());
+        REQUIRE(secondContext == vircadia_error_context_exists());
+
+        const int secondDestroy = vircadia_destroy_context(secondContext);
+        REQUIRE(secondDestroy == vircadia_error_context_invalid());
+
+        const int badDestroy = vircadia_destroy_context(context + 1);
+        REQUIRE(badDestroy == vircadia_error_context_invalid());
+
     }
-
-    const int secondContext = vircadia_create_context(vircadia_context_defaults());
-    REQUIRE(secondContext == vircadia_error_context_exists());
-
-    const int secondDestroy = vircadia_destroy_context(secondContext);
-    REQUIRE(secondDestroy == vircadia_error_context_invalid());
-
-    const int badDestroy = vircadia_destroy_context(context + 1);
-    REQUIRE(badDestroy == vircadia_error_context_invalid());
-
-    const int destroy = vircadia_destroy_context(context);
-    REQUIRE(destroy == 0);
 
     const int doubleDestroy = vircadia_destroy_context(context);
     REQUIRE(doubleDestroy == vircadia_error_context_invalid());
