@@ -35,13 +35,14 @@ public:
     /// @param parent Qt parent object.
     NetworkSocket(QObject* parent);
 
+    virtual ~NetworkSocket() override;
 
     /// @brief Set the value of a UDP or WebRTC socket option.
     /// @param socketType The type of socket for which to set the option value.
     /// @param option The option to set the value of.
     /// @param value The option value.
     void setSocketOption(SocketType socketType, QAbstractSocket::SocketOption option, const QVariant& value);
-    
+
     /// @brief Gets the value of a UDP or WebRTC socket option.
     /// @param socketType The type of socket for which to get the option value.
     /// @param option The option to get the value of.
@@ -54,7 +55,7 @@ public:
     /// @param address The address to bind to.
     /// @param port The port to bind to.
     void bind(SocketType socketType, const QHostAddress& address, quint16 port = 0);
-    
+
     /// @brief Immediately closes and resets the socket.
     /// @param socketType The type of socket to close and reset.
     void abort(SocketType socketType);
@@ -89,11 +90,11 @@ public:
     /// @brief Gets whether there is a pending datagram waiting to be read.
     /// @return <code>true</code> if there is a datagram waiting to be read, <code>false</code> if there isn't.
     bool hasPendingDatagrams() const;
-    
+
     /// @brief Gets the size of the next pending datagram, alternating between socket types if both have datagrams to read.
     /// @return The size of the next pending datagram.
     qint64 pendingDatagramSize();
-    
+
     /// @brief Reads the next datagram per the most recent pendingDatagramSize call if made, otherwise alternating between
     /// socket types if both have datagrams to read.
     /// @param data The destination to write the data into.
@@ -102,7 +103,7 @@ public:
     /// @return The number of bytes if successfully read, otherwise <code>-1</code>.
     qint64 readDatagram(char* data, qint64 maxSize, SockAddr* sockAddr = nullptr);
 
-    
+
     /// @brief Gets the state of the UDP or WebRTC socket.
     /// @param socketType The type of socket for which to get the state.
     /// @return The socket state.
@@ -136,9 +137,9 @@ signals:
     /// @param socketState The socket's new state.
     void stateChanged(SocketType socketType, QAbstractSocket::SocketState socketState);
 
-    /// @brief 
-    /// @param socketType 
-    /// @param socketError 
+    /// @brief
+    /// @param socketType
+    /// @param socketError
     void socketError(SocketType socketType, QAbstractSocket::SocketError socketError);
 
 private slots:
