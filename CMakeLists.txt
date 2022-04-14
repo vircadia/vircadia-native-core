@@ -215,6 +215,11 @@ set(BUILD_TOOLS_OPTION ON)
 set(BUILD_INSTALLER_OPTION ON)
 set(DISABLE_QML_OPTION OFF)
 set(DOWNLOAD_SERVERLESS_CONTENT_OPTION OFF)
+set(ENABLE_WEBRTC_DATA_CHANNELS_OPTION OFF)
+
+if (WIN32 OR (UNIX AND NOT APPLE))
+    set(ENABLE_WEBRTC_DATA_CHANNELS_OPTION ON)
+endif()
 
 if (ANDROID OR UWP)
   set(BUILD_SERVER_OPTION OFF)
@@ -287,8 +292,13 @@ option(
   "Download and setup default serverless content beside Interface"
   ${DOWNLOAD_SERVERLESS_CONTENT_OPTION}
 )
+option(ENABLE_WEBRTC_DATA_CHANNELS "Use WebRTC for client-server connection in parallel with UDP" ${ENABLE_WEBRTC_DATA_CHANNELS_OPTION})
 
 set(PLATFORM_QT_GL OpenGL)
+
+if (ENABLE_WEBRTC_DATA_CHANNELS)
+  add_compile_definitions(WEBRTC_DATA_CHANNLES=1)
+endif()
 
 if (USE_KHR_ROBUSTNESS)
   add_definitions(-DUSE_KHR_ROBUSTNESS)
@@ -316,6 +326,7 @@ MESSAGE(STATUS "Build tools:           " ${BUILD_TOOLS})
 MESSAGE(STATUS "Build installer:       " ${BUILD_INSTALLER})
 MESSAGE(STATUS "GL ES:                 " ${USE_GLES})
 MESSAGE(STATUS "DL serverless content: " ${DOWNLOAD_SERVERLESS_CONTENT})
+MESSAGE(STATUS "WebRTC Data Channels:  " ${ENABLE_WEBRTC_DATA_CHANNELS})
 
 if (DISABLE_QML)
   MESSAGE(STATUS "QML disabled!")

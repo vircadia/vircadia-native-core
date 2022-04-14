@@ -5,7 +5,7 @@ link_hifi_libraries(shared)
 target_openssl()
 target_tbb()
 
-if (WIN32 OR (UNIX AND NOT APPLE))
+if(ENABLE_WEBRTC_DATA_CHANNELS)
     target_webrtc()
 endif ()
 
