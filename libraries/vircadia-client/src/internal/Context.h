@@ -93,7 +93,7 @@ namespace vircadia::client {
         void unsubscribeMessages(QString channel) const;
         const std::vector<MessageData>& getMessages(std::bitset<8> type) const;
         bool isMessagesEnabled(std::bitset<8> type) const;
-        void sendMessage(std::bitset<8> type, QString channel, QByteArray payload, bool localOnly);
+        int sendMessage(std::bitset<8> type, QString channel, QByteArray payload, bool localOnly);
 
     private:
         std::thread appThread {};

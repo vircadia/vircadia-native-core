@@ -68,4 +68,16 @@ VIRCADIA_CLIENT_DYN_API int vircadia_error_message_type_invalid();
 /// @return -7
 VIRCADIA_CLIENT_DYN_API int vircadia_error_message_type_disabled();
 
+/// @brief Writing network packet failed.
+///
+/// @return -8
+VIRCADIA_CLIENT_DYN_API int vircadia_error_packet_write();
+
+/// @brief Invalid function argument.
+///
+/// One or more arguments passed to the function were not in a required range.
+///
+/// @return -9
+VIRCADIA_CLIENT_DYN_API int vircadia_error_argument_invalid();
+
 #endif /* end of include guard */

@@ -163,11 +163,14 @@ VIRCADIA_CLIENT_DYN_API
 int vircadia_send_message(int context_id, uint8_t type, const char* channel, const char* payload, int size, uint8_t local) {
     return validateTypes(context_id, type, [&](auto& context) {
         if (channel == nullptr || payload == nullptr) {
-            return 0; // or maybe return an error?
+            return toInt(ErrorCode::ARGUMENT_INVALID);
         }
         // validate the `local` parameter to be 0 or 1?
         // validate size to be >= 0 or -1 for null terminated payload?
-        context.sendMessage(type, channel, QByteArray(payload, size), local == 1 ? true : false);
+        int sent = context.sendMessage(type, channel, QByteArray(payload, size), local == 1 ? true : false);
+        if (sent < 0) {
+            return toInt(ErrorCode::PACKET_WRITE);
+        }
         return 0;
     });
 }

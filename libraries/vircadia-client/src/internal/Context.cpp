@@ -288,16 +288,18 @@ namespace vircadia::client {
         return ret;
     }
 
-    void Context::sendMessage(std::bitset<8> type, QString channel, QByteArray payload, bool localOnly) {
+    int Context::sendMessage(std::bitset<8> type, QString channel, QByteArray payload, bool localOnly) {
         auto client = DependencyManager::get<MessagesClient>();
 
         if (type[MESSAGE_TYPE_TEXT_INDEX]) {
-            client->sendMessage(channel, QString::fromUtf8(payload), localOnly);
+            return client->sendMessage(channel, QString::fromUtf8(payload), localOnly);
         }
 
         if (type[MESSAGE_TYPE_DATA_INDEX]) {
-            client->sendData(channel, payload, localOnly);
+            return client->sendData(channel, payload, localOnly);
         }
+
+        return -1;
     }
 
     std::list<Context> contexts;
