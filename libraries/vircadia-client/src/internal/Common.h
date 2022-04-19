@@ -13,6 +13,7 @@
 #define LIBRARIES_VIRCADIA_CLIENT_SRC_INTERNAL_COMMON_H
 
 #include <array>
+#include <cstdint>
 
 class QUuid;
 
