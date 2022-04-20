@@ -7,6 +7,17 @@ else()
   cmake_minimum_required(VERSION 3.2)
 endif()
 
+set(STATIC_STDLIB_OPTION OFF)
+option(STATIC_STDLIB "Statically link the C++ standard libraries." ${STATIC_STDLIB_OPTION})
+if (STATIC_STDLIB)
+    if (WIN32)
+      cmake_policy(SET CMP0091 NEW)
+      set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    else()
+      set(CMAKE_SHARED_LINKER_FLAGS "-static-libstdc++ -static-libgcc")
+      set(CMAKE_EXE_LINKER_FLAGS "-static-libstdc++ -static-libgcc")
+    endif()
+endif()
 
 # Passing of variables to vcpkg
 #
@@ -216,7 +227,6 @@ set(BUILD_INSTALLER_OPTION ON)
 set(DISABLE_QML_OPTION OFF)
 set(DOWNLOAD_SERVERLESS_CONTENT_OPTION OFF)
 set(ENABLE_WEBRTC_DATA_CHANNELS_OPTION OFF)
-set(STATIC_STDLIB_OPTION OFF)
 
 if (WIN32 OR (UNIX AND NOT APPLE))
     set(ENABLE_WEBRTC_DATA_CHANNELS_OPTION ON)
@@ -294,22 +304,11 @@ option(
   ${DOWNLOAD_SERVERLESS_CONTENT_OPTION}
 )
 option(ENABLE_WEBRTC_DATA_CHANNELS "Use WebRTC for client-server connection in parallel with UDP" ${ENABLE_WEBRTC_DATA_CHANNELS_OPTION})
-option(STATIC_STDLIB "Statically link the C++ standard libraries." ${STATIC_STDLIB_OPTION})
 
 set(PLATFORM_QT_GL OpenGL)
 
 if (ENABLE_WEBRTC_DATA_CHANNELS)
   add_compile_definitions(WEBRTC_DATA_CHANNLES=1)
-endif()
-
-if (STATIC_STDLIB)
-    if (WIN32)
-      cmake_policy(SET CMP0091 NEW)
-      set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-    else()
-      set(CMAKE_SHARED_LINKER_FLAGS "-static-libstdc++ -static-libgcc")
-      set(CMAKE_EXE_LINKER_FLAGS "-static-libstdc++ -static-libgcc")
-    endif()
 endif()
 
 if (USE_KHR_ROBUSTNESS)
