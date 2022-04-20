@@ -5,70 +5,70 @@
         <meta charset="utf-8">
     </head>
     <body>
-        <a id="back-link" href="/"> Back to settings panel </a>
+        <a id="back-link" href="/">Back to settings panel</a>
 
         <h4>Automatic Management</h4>
 
         <div id="enable-container">
             <label>Enable</label>
-            <input id="enable" type="checkbox"/>
+            <input id="enable" type="checkbox" />
         </div>
 
         <div id="enable-content">
 
-        <div id="directory-container">
-            <label>CA directory</label>
-            <select id="directory-url-select">
-                <option value="https://acme-v02.api.letsencrypt.org/directory">Let's Encrypt v2 Production</option>
-                <option value="https://acme-staging-v02.api.letsencrypt.org/directory">Let's Encrypt v2 Staging</option>
-                <option value="https://acme.zerossl.com/v2/DV90">ZeroSSL ACME v2</option>
-                <option value="zerossl-rest-api">ZeroSSL REST</option>
-                <option value="custom">Custom URL</option>
-            </select>
-            <a href="" id="terms-of-service">Terms of Service</a>
-            <input id="directory-url" type="text"/>
-        </div>
-
-        <div id="auth-container">
-            <label>Authentication method</label>
-            <select id="auth-select">
-                <option value="account-key-only">Account Key</option>
-                <option class="eab-option zero-ssl-auth-option zero-ssl-auth-option-default" value="zero-ssl-email">ZeroSLL Email</option>
-                <option class="eab-option zero-ssl-auth-option" value="zero-ssl-api-key">ZeroSSL API Key</option>
-                <option class="eab-option" value="id-mac">ID and MAC key</option>
-            </select>
-            <input id="zero-ssl-auth-input" placeholder="ZeroSSL Email" type="text" />
-            <input id="eab-kid-input" placeholder="KID" type="text" />
-            <input id="eab-mac-input" placeholder="MAC" type="text" />
-        </div>
-
-        <div id="other-settings-container">
-            <label>Challenge completion method</label>
-            <select id="challenge-select">
-                <option value="server">HTTP Server</option>
-                <option value="files">Files</option>
-                <option value="manual">Manual</option>
-            </select>
-            <br />
-            <label>Account Key</label>
-            <input id="account-key-path" type="text" placeholder="<Application Data Path>/acme_account_key.pem" />
-            <input id="account-key-upload" type="file" />
-            <br />
-            <input id="account-key-reset" type="button" value="Reset Account Key" />
-        </div>
-        <br />
-
-        <div id="domains-container">
-            <label>Domains</label>
-            <div id="domain-inputs">
-                <div class="domain-input-container">
-                    <input type="text" class="domain-name-input" placeholder="Domain Name" />
-                    <input type="text" class="domain-dir-input" placeholder="Domain Directory" />
-                    <input type="button" class="remove-domain-button"  value="Remove" />
-                </div>
+            <div id="directory-container">
+                <label>CA directory</label>
+                <select id="directory-url-select">
+                    <option value="https://acme-v02.api.letsencrypt.org/directory">Let's Encrypt v2 Production</option>
+                    <option value="https://acme-staging-v02.api.letsencrypt.org/directory">Let's Encrypt v2 Staging</option>
+                    <option value="https://acme.zerossl.com/v2/DV90">ZeroSSL ACME v2</option>
+                    <option value="zerossl-rest-api">ZeroSSL REST</option>
+                    <option value="custom">Custom URL</option>
+                </select>
+                <a href="" id="terms-of-service">Terms of Service</a>
+                <input id="directory-url" type="text" />
             </div>
-            <input id="add-domain-button" type="button" value="Add Domain" />
-        </div>
+
+            <div id="auth-container">
+                <label>Authentication method</label>
+                <select id="auth-select">
+                    <option value="account-key-only">Account Key</option>
+                    <option class="eab-option zero-ssl-auth-option zero-ssl-auth-option-default" value="zero-ssl-email">ZeroSLL Email</option>
+                    <option class="eab-option zero-ssl-auth-option" value="zero-ssl-api-key">ZeroSSL API Key</option>
+                    <option class="eab-option" value="id-mac">ID and MAC key</option>
+                </select>
+                <input id="zero-ssl-auth-input" placeholder="ZeroSSL Email" type="text" />
+                <input id="eab-kid-input" placeholder="KID" type="text" />
+                <input id="eab-mac-input" placeholder="MAC" type="text" />
+            </div>
+
+            <div id="other-settings-container">
+                <label>Challenge completion method</label>
+                <select id="challenge-select">
+                    <option value="server">HTTP Server</option>
+                    <option value="files">Files</option>
+                    <option value="manual">Manual</option>
+                </select>
+                <br />
+                <label>Account Key</label>
+                <input id="account-key-path" type="text" placeholder="<Application Data Path>/acme_account_key.pem" />
+                <input id="account-key-upload" type="file" />
+                <br />
+                <input id="account-key-reset" type="button" value="Reset Account Key" />
+            </div>
+            <br />
+
+            <div id="domains-container">
+                <label>Domains</label>
+                <div id="domain-inputs">
+                    <div class="domain-input-container">
+                        <input type="text" class="domain-name-input" placeholder="Domain Name" />
+                        <input type="text" class="domain-dir-input" placeholder="Domain Directory" />
+                        <input type="button" class="remove-domain-button" value="Remove" />
+                    </div>
+                </div>
+                <input id="add-domain-button" type="button" value="Add Domain" />
+            </div>
 
         </div>
 
@@ -79,7 +79,7 @@
             <input id="cert-dir" type="text" placeholder="Application Data Path" />
             <br />
             <label>Certificate</label>
-            <input id="cert-name" type="text"/>
+            <input id="cert-name" type="text" />
             <input id="cert-upload" type="file" />
             <br />
             <label>Key</label>
@@ -93,8 +93,8 @@
             <input id="cert-reset" type="button" value="Reset Certificate" />
         </div>
 
-
         <hr />
+
         <div id="control-button-container">
             <input id="save-button" type="button" value="Save Settings" />
             <input id="restart-button" type="button" value="Restart Client" />
@@ -104,7 +104,7 @@
 
         <div>
             <label>Status<label>
-            <input id="status-view-enable" type="checkbox"/>
+            <input id="status-view-enable" type="checkbox" />
             <br />
             <textarea hidden=true disabled=true id="status-view" style="width:100%; height:250px;"></textarea>
         </div>

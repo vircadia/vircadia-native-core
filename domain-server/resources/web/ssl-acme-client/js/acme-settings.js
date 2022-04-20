@@ -43,7 +43,7 @@ const statusViewEnable = document.getElementById("status-view-enable");
 const statusView = document.getElementById("status-view");
 
 function updateStatusView() {
-    getStatus().then(json => {
+    getStatus().then((json) => {
         statusView.value = JSON.stringify(json, null, 1);
     });
 }
@@ -102,39 +102,41 @@ function updateStatus() {
 
 function updateDirectoryMeta() {
     showLoadingScreen(true);
-    getAcmeMeta(getDirectoryUrl()).then(meta => {
-        const zeroSSLSelected = directorySelect.selectedOptions[0].text === "ZeroSSL ACME v2";
-        const zeroSSLREST = directorySelect.value === "zerossl-rest-api";
-        for (const authOption of authSelect.options) {
-            const classes = Array.from(authOption.classList);
-            if (zeroSSLREST) {
-                authOption.disabled = authOption.value !== "zero-ssl-api-key";
-                authOption.selected = authOption.value === "zero-ssl-api-key";
-            } else {
-                authOption.disabled = false;
-                if (classes.includes("eab-option")) {
-                    authOption.disabled = !meta || !meta.externalAccountRequired;
-                }
+    getAcmeMeta(getDirectoryUrl())
+        .then((meta) => {
+            const zeroSSLSelected = directorySelect.selectedOptions[0].text === "ZeroSSL ACME v2";
+            const zeroSSLREST = directorySelect.value === "zerossl-rest-api";
+            for (const authOption of authSelect.options) {
+                const classes = Array.from(authOption.classList);
+                if (zeroSSLREST) {
+                    authOption.disabled = authOption.value !== "zero-ssl-api-key";
+                    authOption.selected = authOption.value === "zero-ssl-api-key";
+                } else {
+                    authOption.disabled = false;
+                    if (classes.includes("eab-option")) {
+                        authOption.disabled = !meta || !meta.externalAccountRequired;
+                    }
 
-                if (classes.includes("zero-ssl-auth-option")) {
-                    if (zeroSSLSelected) {
-                        if (classes.includes("zero-ssl-auth-option-default")) {
-                            authOption.selected = true;
+                    if (classes.includes("zero-ssl-auth-option")) {
+                        if (zeroSSLSelected) {
+                            if (classes.includes("zero-ssl-auth-option-default")) {
+                                authOption.selected = true;
+                            }
+                        } else {
+                            authOption.disabled = true;
                         }
-                    } else {
-                        authOption.disabled = true;
+                    }
+                    if (authOption.disabled && authOption.selected) {
+                        authOption.selected = false;
                     }
                 }
-                if (authOption.disabled && authOption.selected) {
-                    authOption.selected = false;
-                }
             }
-        }
-        termsOfServiceLink.href = meta && meta.termsOfService || "404.html";
-        update();
-    }).finally(() => {
-        showLoadingScreen(false);
-    });
+            termsOfServiceLink.href = meta && meta.termsOfService || "404.html";
+            update();
+        })
+        .finally(() => {
+            showLoadingScreen(false);
+        });
 }
 
 
@@ -162,7 +164,8 @@ function getEabFromZeroSSL() {
                     eabKidInput.value = "";
                     eabMacInput.value = "";
                 }
-            }).finally(() => {
+            })
+            .finally(() => {
                 showLoadingScreen(false);
                 update();
             });
@@ -266,9 +269,13 @@ function updateSettings() {
 }
 
 function uploadFiles() {
-    const arrayFromUpload = upload => {
-        const array = Array.from(upload.files).map(file =>
-            { return {file, endpoint: upload.id.replace("-upload","")}; })
+    const arrayFromUpload = (upload) => {
+        const array = Array.from(upload.files).map((file) => {
+            return {
+                file,
+                endpoint: upload.id.replace("-upload","")
+            };
+        });
         upload.value = upload.defaultValue;
         return array;
     };
@@ -291,7 +298,8 @@ function uploadFiles() {
 
 certResetButton.addEventListener("click", () => {
     showLoadingScreen(true);
-    deleteFile("cert").then(() => deleteFile("cert-key"))
+    deleteFile("cert")
+        .then(() => deleteFile("cert-key"))
         .finally(() => showLoadingScreen(false));
 });
 
@@ -310,28 +318,33 @@ restartButton.addEventListener("click", () => {
 
 saveButton.addEventListener("click", () => {
     showLoadingScreen(true);
-    postSettings({acme: {
-        directory_endpoint: getDirectoryUrl(),
-        eab_kid: eabKidInput.value,
-        eab_mac: eabMacInput.value,
-        challenge_handler_type: challengeSelect.value,
-        certificate_domains: getDomains(),
-        enable_client: enableCheckbox.checked,
-        certificate_directory: certDirInput.value,
-        certificate_filename: certNameInput.value,
-        certificate_key_filename: certKeyNameInput.value,
-        certificate_authority_filename: certCANameInput.value,
-        account_key_path: accountKeyPathInput.value,
-        zerossl_rest_api: directorySelect.value === "zerossl-rest-api",
-        zerossl_api_key: zeroSSlAuthInput.value
-    } }).then(() => {
-        return uploadFiles();
-    }).then(() => {
-        updateSettings();
-    }).finally(() => {
-        updateStatusView();
-        showLoadingScreen(false);
-    });
+    postSettings({
+        acme: {
+            directory_endpoint: getDirectoryUrl(),
+            eab_kid: eabKidInput.value,
+            eab_mac: eabMacInput.value,
+            challenge_handler_type: challengeSelect.value,
+            certificate_domains: getDomains(),
+            enable_client: enableCheckbox.checked,
+            certificate_directory: certDirInput.value,
+            certificate_filename: certNameInput.value,
+            certificate_key_filename: certKeyNameInput.value,
+            certificate_authority_filename: certCANameInput.value,
+            account_key_path: accountKeyPathInput.value,
+            zerossl_rest_api: directorySelect.value === "zerossl-rest-api",
+            zerossl_api_key: zeroSSlAuthInput.value
+        }
+    })
+        .then(() => {
+            return uploadFiles();
+        })
+        .then(() => {
+            updateSettings();
+        })
+        .finally(() => {
+            updateStatusView();
+            showLoadingScreen(false);
+        });
 });
 
 function setDirectoryUrl(url) {
@@ -340,7 +353,7 @@ function setDirectoryUrl(url) {
         directoryInput.value = "custom";
     } else {
         const option = Array.from(directorySelect.options)
-            .find(o => o.value === url);
+            .find((o) => o.value === url);
         if (option !== undefined) {
             directorySelect.value = option.value;
         } else {

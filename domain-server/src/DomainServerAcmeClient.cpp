@@ -137,7 +137,7 @@ private:
 class AcmeHttpChallengeManual : public AcmeChallengeHandler {
 public:
     void addChallenge(const std::string& domain, const std::string& location, const std::string& content) override {
-        qCDebug(acme_client) << "Please manually complete this http challenge:\n"
+        qCDebug(acme_client) << "Please manually complete this HTTP challenge:\n"
             << "Domain:" << domain.c_str() << '\n'
             << "Location:" << location.c_str() << '\n'
             << "Content:" << content.c_str() << '\n';
@@ -568,8 +568,7 @@ void DomainServerAcmeClient::generateCertificate(const CertificatePaths& certPat
     }
 
     std::string accountKey = "";
-    if (accountKeyFile.open(QFile::ReadOnly))
-    {
+    if (accountKeyFile.open(QFile::ReadOnly)) {
         accountKey = accountKeyFile.readAll().toStdString();
         accountKeyFile.close();
     } else {

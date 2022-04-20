@@ -166,7 +166,7 @@
         {
             "name": "zerossl_api_key",
             "label": "ZeroSSL API Key",
-            "help": "API key to use for ZeroSSL REST API requests",
+            "help": "API key to use for ZeroSSL REST API requests.",
             "advanced": true
         },
         {
