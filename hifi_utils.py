@@ -80,7 +80,8 @@ def executeSubprocess(processArgs, folder=None, env=None):
         os.chdir(restoreDir)
 
 
-def hashFile(file, hasher = hashlib.sha512()):
+def hashFile(file, hasherType = hashlib.sha512):
+    hasher = hasherType()
     with open(file, "rb") as f:
         for chunk in iter(lambda: f.read(4096), b""):
             hasher.update(chunk)
@@ -99,7 +100,7 @@ def hashFolder(folder):
     filenames = recursiveFileList(folder)
     return hashFiles(filenames)
 
-def downloadFile(urls, hash=None, hasher=hashlib.sha512(), retries=3):
+def downloadFile(urls, hash=None, hasher=hashlib.sha512, retries=3):
     for url in urls:
         for i in range(retries):
             tempFileName = None
@@ -125,6 +126,7 @@ def downloadFile(urls, hash=None, hasher=hashlib.sha512(), retries=3):
             # Verify the hash
             if hash is not None and hash != downloadHash:
                 print("Try {}: Downloaded file {} hash {} does not match expected hash {} for url {}".format(i + 1, tempFileName, downloadHash, hash, url))
+                print("File stats: ", os.stat(tempFileName))
                 os.remove(tempFileName)
                 continue
             return tempFileName
@@ -132,7 +134,7 @@ def downloadFile(urls, hash=None, hasher=hashlib.sha512(), retries=3):
     raise RuntimeError("Failed to download file from any of {}".format(urls))
 
 
-def downloadAndExtract(urls, destPath, hash=None, hasher=hashlib.sha512()):
+def downloadAndExtract(urls, destPath, hash=None, hasher=hashlib.sha512):
     tempFileName = downloadFile(urls, hash, hasher)
     try:
         with zipfile.ZipFile(tempFileName) as zip:

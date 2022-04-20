@@ -237,7 +237,7 @@ void AvatarDoctor::startDiagnosing() {
                     jointValues << jointVariant.toString();
                 }
 
-                const auto& uniqueJointValues = jointValues.toSet();
+                const auto& uniqueJointValues = QSet<QString>(jointValues.begin(), jointValues.end());
                 for (const auto& jointName: uniqueJointValues) {
                     if (jointValues.count(jointName) > 1) {
                         addError(tr("%1 is mapped multiple times.").arg(jointName), "mapped-multiple-times");

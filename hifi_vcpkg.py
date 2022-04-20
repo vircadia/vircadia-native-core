@@ -94,27 +94,33 @@ endif()
             self.exe = os.path.join(self.path, 'vcpkg.exe')
             self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.bat'), '-disableMetrics' ]
             self.vcpkgUrl = self.readVar('EXTERNAL_VCPKG_WIN_CLIENT_URLS').split(';')
+            self.vcpkgSha512 = self.readVar('EXTERNAL_VCPKG_WIN_CLIENT_SHA512')
             self.hostTriplet = 'x64-windows'
             if usePrebuilt:
                 self.prebuiltArchive = self.readVar('EXTERNAL_VCPKG_WIN_URLS').split(';')
+                self.prebuiltArchiveSha512 = self.readVar('EXTERNAL_VCPKG_WIN_SHA512')
         elif 'Darwin' == system:
             self.exe = os.path.join(self.path, 'vcpkg')
             self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '--allowAppleClang', '-disableMetrics' ]
             self.vcpkgUrl = self.readVar('EXTERNAL_VCPKG_MAC_CLIENT_URLS').split(';')
+            self.vcpkgSha512 = self.readVar('EXTERNAL_VCPKG_MAC_CLIENT_SHA512')
             self.hostTriplet = 'x64-osx'
             # Potential fix for a vcpkg build issue on OSX (see https://github.com/microsoft/vcpkg/issues/9029)
             self.bootstrapEnv['CXXFLAGS'] = '-D_CTERMID_H_'
             if usePrebuilt:
                 self.prebuiltArchive = self.readVar('EXTERNAL_VCPKG_MAC_URLS').split(';')
+                self.prebuiltArchiveSha512 = self.readVar('EXTERNAL_VCPKG_MAC_SHA512')
         elif 'Linux' == system and 'aarch64' == machine:
             self.exe = os.path.join(self.path, 'vcpkg')
             self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '-disableMetrics' ]
             self.vcpkgUrl = self.readVar('EXTERNAL_VCPKG_LINUX_AARCH64_URLS').split(';')
+            self.vcpkgSha512 = self.readVar('EXTERNAL_VCPKG_LINUX_AARCH64_SHA512')
             self.hostTriplet = 'arm64-linux'
         else:
             self.exe = os.path.join(self.path, 'vcpkg')
             self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '-disableMetrics' ]
             self.vcpkgUrl = self.readVar('EXTERNAL_VCPKG_LINUX_CLIENT_URLS').split(';')
+            self.vcpkgSha512 = self.readVar('EXTERNAL_VCPKG_LINUX_CLIENT_SHA512')
             self.hostTriplet = 'x64-linux'
 
         if self.args.android:
@@ -202,7 +208,7 @@ endif()
                 hifi_utils.executeSubprocess(self.bootstrapCmds, folder=self.path, env=self.bootstrapEnv)
             else:
                 print("Fetching vcpkg from {} to {}".format(self.vcpkgUrl, self.path))
-                hifi_utils.downloadAndExtract(self.vcpkgUrl, self.path)
+                hifi_utils.downloadAndExtract(self.vcpkgUrl, self.path, self.vcpkgSha512)
 
         print("Replacing port files")
         portsPath = os.path.join(self.path, 'ports')
@@ -237,7 +243,7 @@ endif()
         if self.prebuiltArchive:
             if not os.path.isfile(self.prebuildTagFile):
                 print('Extracting ' + self.prebuiltArchive + ' to ' + self.path)
-                hifi_utils.downloadAndExtract(self.prebuiltArchive, self.path)
+                hifi_utils.downloadAndExtract(self.prebuiltArchive, self.path, self.prebuiltArchiveSha512)
                 self.writePrebuildTag()
             return
 
@@ -283,9 +289,8 @@ endif()
             dest = os.path.join(self.path, 'installed')
             url = self.readVar('EXTERNAL_VCPKG_ANDROID_URLS').split(';')
             # FIXME I don't know why the hash check frequently fails here.  If you examine the file later it has the right hash
-            #hash = self.readVar(('EXTERNAL_VCPKG_ANDROID_SHA512')
-            #hifi_utils.downloadAndExtract(url, dest, hash)
-            hifi_utils.downloadAndExtract(url, dest)
+            hash = self.readVar('EXTERNAL_VCPKG_ANDROID_SHA512')
+            hifi_utils.downloadAndExtract(url, dest, hash)
 
         print("Installing additional android archives")
         androidPackages = hifi_android.getPlatformPackages()
