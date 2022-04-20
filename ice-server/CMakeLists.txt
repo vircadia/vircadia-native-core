@@ -3,6 +3,12 @@ set(TARGET_NAME ice-server)
 # setup the project and link required Qt modules
 setup_hifi_project(Network)
 
+if(UNIX)
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+    find_package(Threads REQUIRED)
+    target_link_libraries(${TARGET_NAME} Threads::Threads)
+endif()
+
 # link the shared hifi libraries
 link_hifi_libraries(embedded-webserver networking shared)
 package_libraries_for_deployment()
