@@ -308,7 +308,7 @@ option(ENABLE_WEBRTC_DATA_CHANNELS "Use WebRTC for client-server connection in p
 set(PLATFORM_QT_GL OpenGL)
 
 if (ENABLE_WEBRTC_DATA_CHANNELS)
-  add_compile_definitions(WEBRTC_DATA_CHANNLES=1)
+  add_compile_definitions(WEBRTC_DATA_CHANNELS=1)
 endif()
 
 if (USE_KHR_ROBUSTNESS)
