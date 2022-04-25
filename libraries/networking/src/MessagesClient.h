@@ -62,7 +62,8 @@ public:
      *     <p>If <code>true</code> then: if sent from an Interface or client entity script it is received by all Interface and
      *     client entity scripts; if sent from a server entity script it is received by all entity server scripts; and if sent
      *     from an assignment client script it is received only by that same assignment client script.</p>
-     * @returns The size of sent data, or a negative error code.
+     * @returns {number} Returns -1 if there's not a network connection, 0 if scheduled to send on the network, or the number
+     * of bytes sent if sent local-only.
      * @example <caption>Send and receive a message.</caption>
      * // Receiving script.
      * var channelName = "com.vircadia.example.messages-example";
@@ -97,7 +98,8 @@ public:
      * @function Messages.sendLocalMessage
      * @param {string} channel - The channel to send the message on.
      * @param {string} message - The message to send.
-     * @returns The size of sent data, or a negative error code.
+     * @returns {number} Returns -1 if there's not a network connection, 0 if scheduled to send on the network, or the number
+     * of bytes sent if sent local-only.
      */
     Q_INVOKABLE qint64 sendLocalMessage(QString channel, QString message);
 
@@ -112,7 +114,8 @@ public:
      *     <p>If <code>true</code> then: if sent from an Interface or client entity script it is received by all Interface and
      *     client entity scripts; if sent from a server entity script it is received by all entity server scripts; and if sent
      *     from an assignment client script it is received only by that same assignment client script.</p>
-     * @returns The size of sent data, or a negative error code.
+     * @returns {number} Returns -1 if there's not a network connection, 0 if scheduled to send on the network, or the number
+     * of bytes sent if sent local-only.
      * @example <caption>Send and receive data.</caption>
      * // Receiving script.
      * var channelName = "com.vircadia.example.messages-example";
