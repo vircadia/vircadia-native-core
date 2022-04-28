@@ -518,7 +518,7 @@ class AvatarData : public QObject, public SpatiallyNestable {
      *     mixer rather than Interface clients. The result is unique among all avatars present in the domain at the time.
      * @property {boolean} lookAtSnappingEnabled=true - <code>true</code> if the avatar's eyes snap to look at another avatar's
      *     eyes when the other avatar is in the line of sight and also has <code>lookAtSnappingEnabled == true</code>.
-     * @property {string} skeletonModelURL - The avatar's FST file.
+     * @property {string} skeletonModelURL - The URL of avatar's FST, glTF, or FBX model file.
      * @property {AttachmentData[]} attachmentData - Information on the avatar's attachments.
      *     <p class="important">Deprecated: This property is deprecated and will be removed. Use avatar entities instead.</p>
      * @property {string[]} jointNames - The list of joints in the current avatar model. <em>Read-only.</em>
@@ -1247,7 +1247,7 @@ public:
     /*@jsdoc
      * Sets the avatar's skeleton model.
      * @function Avatar.setSkeletonModelURL
-     * @param {string} url - The avatar's FST file.
+     * @param {string} url - The URL of avatar's FST, glTF, or FBX model file.
      */
     Q_INVOKABLE virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
