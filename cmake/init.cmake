@@ -40,8 +40,11 @@ foreach(CUSTOM_MACRO ${HIFI_CUSTOM_MACROS})
 endforeach()
 unset(HIFI_CUSTOM_MACROS)
 
+
+set(BUILD_SHARED_LIBS_OPTION OFF)
+
 if (ANDROID)
-    set(BUILD_SHARED_LIBS ON)
+    set(BUILD_SHARED_LIBS_OPTION ON)
     set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE BOTH)
 
     string(REGEX REPLACE "\\\\" "/" ANDROID_NDK ${ANDROID_NDK})
@@ -70,5 +73,7 @@ if (UNIX)
   # and crashes on exit, and perhaps loss of global state on plugin loads.
   #
   # This will need to be looked at closely before Linux can have a static build.
-  set(BUILD_SHARED_LIBS ON)
+  set(BUILD_SHARED_LIBS_OPTION ON)
 endif ()
+
+option(BUILD_SHARED_LIBS "Shared linkage for internal libraries." ${BUILD_SHARED_LIBS_OPTION})

@@ -51,10 +51,30 @@ else (DOXYGEN_FOUND)
     message("Doxygen not found. Vircadia Client API documentation target will not be generatred.")
 endif (DOXYGEN_FOUND)
 
+set(${TARGET_NAME}_SHARED ON)
+
 setup_hifi_library()
 
-set_property(TARGET vircadia-client PROPERTY CXX_STANDARD 17)
+set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 17)
+if(UNIX)
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+    find_package(Threads REQUIRED)
+    target_link_libraries(${TARGET_NAME} Threads::Threads)
+endif()
 
 link_hifi_libraries(shared networking)
 
 add_subdirectory(tests)
+
+install(TARGETS ${TARGET_NAME} TYPE LIBRARY)
+install(FILES
+    src/client.h
+    src/common.h
+    src/context.h
+    src/error.h
+    src/messages.h
+    src/message_types.h
+    src/node_list.h
+    src/node_types.h
+    src/version.h
+    TYPE INCLUDE)

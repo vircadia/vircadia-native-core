@@ -182,22 +182,27 @@ int vircadia_clear_messages(int context_id, uint8_t types);
 
 /// @brief Sends a message.
 ///
+/// The message mixer node needs to present and active in the node list
+/// (node_list.h), unless the local parameter is specified.
+///
 /// @param context_id - The id of the context (context.h).
 /// @param types - Any combination of the flags defined in
 /// message_types.h.
-/// @param channel - the channel to send the message on.
-/// @param payload - the main body of the message.
-/// @param size - the size of main message body. If a -1 is passed the payload
+/// @param channel - The channel to send the message on. Must not be null.
+/// @param payload - The main body of the message. Must not be null.
+/// @param size - The size of main message body. If a -1 is passed the payload
 /// is assumed to be null terminated.
-/// @param local - whether to send the message as local only
-/// (1 - true, 0 - false).
+/// @param local - Whether to send the message locally just for this client
+/// (1 - locally only, 0 - over the network).
 ///
 /// @return 0 on success, or a negative error code. \n
 /// Possible error codes: \n
+/// vircadia_error_argument_invalid() \n
 /// vircadia_error_context_invalid() \n
 /// vircadia_error_context_loss() \n
 /// vircadia_error_message_type_invalid() \n
-/// vircadia_error_message_type_disabled()
+/// vircadia_error_message_type_disabled() \n
+/// vircadia_error_packet_write()
 VIRCADIA_CLIENT_DYN_API
 int vircadia_send_message(int context_id, uint8_t types, const char* channel, const char* payload, int size, uint8_t local);
 

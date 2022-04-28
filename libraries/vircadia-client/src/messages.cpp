@@ -29,7 +29,7 @@ int singularMessageType(uint8_t type) {
 }
 
 int messageTypesEnabled(const Context& context, uint8_t type) {
-    if (context.isMessagesEnabled(type)) {
+    if (context.messages().isEnabled(type)) {
         return 0;
     } else {
         return toInt(ErrorCode::MESSAGE_TYPE_DISABLED);
@@ -67,7 +67,7 @@ int vircadia_enable_messages(int context_id, uint8_t type) {
         validMessageType(type)
     }, [&](auto) {
 
-        std::next(std::begin(contexts), context_id)->enableMessages(type);
+        std::next(std::begin(contexts), context_id)->messages().enable(type);
 
         return 0;
     });
@@ -76,7 +76,7 @@ int vircadia_enable_messages(int context_id, uint8_t type) {
 VIRCADIA_CLIENT_DYN_API
 int vircadia_messages_subscribe(int context_id, const char* channel) {
     return chain(checkContextReady(context_id), [&](auto) {
-        std::next(std::begin(contexts), context_id)->subscribeMessages(channel);
+        std::next(std::begin(contexts), context_id)->messages().subscribe(channel);
         return 0;
     });
 }
@@ -84,7 +84,7 @@ int vircadia_messages_subscribe(int context_id, const char* channel) {
 VIRCADIA_CLIENT_DYN_API
 int vircadia_messages_unsubscribe(int context_id, const char* channel) {
     return chain(checkContextReady(context_id), [&](auto) {
-        std::next(std::begin(contexts), context_id)->unsubscribeMessages(channel);
+        std::next(std::begin(contexts), context_id)->messages().unsubscribe(channel);
         return 0;
     });
 }
@@ -92,7 +92,7 @@ int vircadia_messages_unsubscribe(int context_id, const char* channel) {
 VIRCADIA_CLIENT_DYN_API
 int vircadia_update_messages(int context_id, uint8_t type) {
     return validateTypes(context_id, type, [&](auto& context) {
-        context.updateMessages(type);
+        context.messages().update(type);
         return 0;
     });
 }
@@ -100,7 +100,7 @@ int vircadia_update_messages(int context_id, uint8_t type) {
 VIRCADIA_CLIENT_DYN_API
 int vircadia_messages_count(int context_id, uint8_t type) {
     return validateSingleType(context_id, type, [&](auto& context) -> int {
-        return context.getMessages(type).size();
+        return context.messages().get(type).size();
     });
 }
 
@@ -108,7 +108,7 @@ int vircadia_messages_count(int context_id, uint8_t type) {
 template <typename F>
 auto validateMessageIndex(int context_id, uint8_t type, int index, F&& f) {
     return validateSingleType(context_id, type, [&](auto& context) {
-        const auto& messages = context.getMessages(type);
+        const auto& messages = context.messages().get(type);
         return chain(checkIndexValid(messages, index, ErrorCode::MESSAGE_INVALID), [&](auto) {
             return std::invoke(std::forward<F>(f), messages[index]);
         });
@@ -154,7 +154,7 @@ const uint8_t* vircadia_get_message_sender(int context_id, uint8_t type, int ind
 VIRCADIA_CLIENT_DYN_API
 int vircadia_clear_messages(int context_id, uint8_t type) {
     return validateTypes(context_id, type, [&](auto& context) {
-        context.clearMessages(type);
+        context.messages().clear(type);
         return 0;
     });
 }
@@ -163,11 +163,14 @@ VIRCADIA_CLIENT_DYN_API
 int vircadia_send_message(int context_id, uint8_t type, const char* channel, const char* payload, int size, uint8_t local) {
     return validateTypes(context_id, type, [&](auto& context) {
         if (channel == nullptr || payload == nullptr) {
-            return 0; // or maybe return an error?
+            return toInt(ErrorCode::ARGUMENT_INVALID);
         }
         // validate the `local` parameter to be 0 or 1?
         // validate size to be >= 0 or -1 for null terminated payload?
-        context.sendMessage(type, channel, QByteArray(payload, size), local == 1 ? true : false);
+        int sent = context.messages().send(type, channel, QByteArray(payload, size), local == 1 ? true : false);
+        if (sent < 0) {
+            return toInt(ErrorCode::PACKET_WRITE);
+        }
         return 0;
     });
 }

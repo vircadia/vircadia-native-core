@@ -7,6 +7,17 @@ else()
   cmake_minimum_required(VERSION 3.2)
 endif()
 
+set(STATIC_STDLIB_OPTION OFF)
+option(STATIC_STDLIB "Statically link the C++ standard libraries." ${STATIC_STDLIB_OPTION})
+if (STATIC_STDLIB)
+    if (WIN32)
+      cmake_policy(SET CMP0091 NEW)
+      set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    else()
+      set(CMAKE_SHARED_LINKER_FLAGS "-static-libstdc++ -static-libgcc")
+      set(CMAKE_EXE_LINKER_FLAGS "-static-libstdc++ -static-libgcc")
+    endif()
+endif()
 
 # Passing of variables to vcpkg
 #
@@ -215,6 +226,11 @@ set(BUILD_TOOLS_OPTION ON)
 set(BUILD_INSTALLER_OPTION ON)
 set(DISABLE_QML_OPTION OFF)
 set(DOWNLOAD_SERVERLESS_CONTENT_OPTION OFF)
+set(ENABLE_WEBRTC_DATA_CHANNELS_OPTION OFF)
+
+if (WIN32 OR (UNIX AND NOT APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64"))
+    set(ENABLE_WEBRTC_DATA_CHANNELS_OPTION ON)
+endif()
 
 if (ANDROID OR UWP)
   set(BUILD_SERVER_OPTION OFF)
@@ -287,8 +303,13 @@ option(
   "Download and setup default serverless content beside Interface"
   ${DOWNLOAD_SERVERLESS_CONTENT_OPTION}
 )
+option(ENABLE_WEBRTC_DATA_CHANNELS "Use WebRTC for client-server connection in parallel with UDP" ${ENABLE_WEBRTC_DATA_CHANNELS_OPTION})
 
 set(PLATFORM_QT_GL OpenGL)
+
+if (ENABLE_WEBRTC_DATA_CHANNELS)
+  add_compile_definitions(WEBRTC_DATA_CHANNELS=1)
+endif()
 
 if (USE_KHR_ROBUSTNESS)
   add_definitions(-DUSE_KHR_ROBUSTNESS)
@@ -316,6 +337,9 @@ MESSAGE(STATUS "Build tools:           " ${BUILD_TOOLS})
 MESSAGE(STATUS "Build installer:       " ${BUILD_INSTALLER})
 MESSAGE(STATUS "GL ES:                 " ${USE_GLES})
 MESSAGE(STATUS "DL serverless content: " ${DOWNLOAD_SERVERLESS_CONTENT})
+MESSAGE(STATUS "WebRTC Data Channels:  " ${ENABLE_WEBRTC_DATA_CHANNELS})
+MESSAGE(STATUS "Static standard libraries: " ${STATIC_STDLIB})
+MESSAGE(STATUS "Shared internal libraries: " ${BUILD_SHARED_LIBS})
 
 if (DISABLE_QML)
   MESSAGE(STATUS "QML disabled!")
