@@ -1,0 +1,29 @@
+From 71a2f79c6db18ed3818dfb1195d269ada9401aca Mon Sep 17 00:00:00 2001
+From: namark <nshan.nnnn@gmail.com>
+Date: Tue, 3 May 2022 08:58:18 +0400
+Subject: [PATCH] Commented out the emit member function since it's a keyword
+ in Qt -_-
+
+---
+ include/oneapi/tbb/profiling.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/include/oneapi/tbb/profiling.h b/include/oneapi/tbb/profiling.h
+index 3bd2a426..50aeb688 100644
+--- a/include/oneapi/tbb/profiling.h
++++ b/include/oneapi/tbb/profiling.h
+@@ -226,9 +226,9 @@ public:
+ struct event {
+     event(const std::string &) { }
+
+-    void emit() { }
++    // void emit() { }
+
+-    static void emit(const std::string &) { }
++    // static void emit(const std::string &) { }
+ };
+ #endif // TBB_USE_PROFILING_TOOLS && !(TBB_USE_PROFILING_TOOLS == 2)
+ } // namespace d1
+--
+2.25.1
+

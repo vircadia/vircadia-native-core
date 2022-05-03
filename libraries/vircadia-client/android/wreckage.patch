@@ -1,0 +1,497 @@
+From e868ad04735adb9396ddf72cd4cf5caf61b80bf5 Mon Sep 17 00:00:00 2001
+From: namark <nshan.nnnn@gmail.com>
+Date: Tue, 3 May 2022 20:53:38 +0400
+Subject: [PATCH] Ugly hacks to cross compile native client library for
+ android.
+
+---
+ CMakeLists.txt                                |   2 +-
+ android/apps/dummy/CMakeLists.txt             |   4 +
+ .../dummy/src/main/res/values/strings.xml     |   3 +
+ cmake/compiler.cmake                          |   6 +-
+ cmake/macros/TargetOpenSSL.cmake              |   4 +-
+ cmake/macros/TargetTBB.cmake                  |  16 +-
+ hifi_vcpkg.py                                 |   2 +-
+ libraries/networking/src/AccountManager.cpp   |   2 +-
+ libraries/shared/CMakeLists.txt               |   4 +-
+ libraries/shared/src/Gzip.cpp                 | 266 +++++++++---------
+ libraries/shared/src/SharedUtil.cpp           |   4 +-
+ libraries/shared/src/shared/FileLogger.cpp    |   1 -
+ libraries/vircadia-client/CMakeLists.txt      |   4 +-
+ 13 files changed, 159 insertions(+), 159 deletions(-)
+ create mode 100644 android/apps/dummy/CMakeLists.txt
+ create mode 100644 android/apps/dummy/src/main/res/values/strings.xml
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index e923a89316..bb9e5310eb 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -167,7 +167,7 @@ endif()
+ include("${CMAKE_BINARY_DIR}/vcpkg.cmake")
+ 
+ if (HIFI_ANDROID)
+-  set(QT_CMAKE_PREFIX_PATH "$ENV{HIFI_ANDROID_PRECOMPILED}/qt/lib/cmake")
++  set(QT_CMAKE_PREFIX_PATH "/home/namark/dev/qt-android-install/lib/cmake")
+ else()
+   if ("$ENV{VIRCADIA_USE_SYSTEM_QT}" STREQUAL "")
+      if(NOT EXISTS "${CMAKE_BINARY_DIR}/qt.cmake")
+diff --git a/android/apps/dummy/CMakeLists.txt b/android/apps/dummy/CMakeLists.txt
+new file mode 100644
+index 0000000000..a9a34116f4
+--- /dev/null
++++ b/android/apps/dummy/CMakeLists.txt
+@@ -0,0 +1,4 @@
++set(TARGET_NAME dummy)
++setup_hifi_library(AndroidExtras)
++link_hifi_libraries(vircadia-client)
++target_link_libraries(${TARGET_NAME} android log m)
+diff --git a/android/apps/dummy/src/main/res/values/strings.xml b/android/apps/dummy/src/main/res/values/strings.xml
+new file mode 100644
+index 0000000000..8bf550f74e
+--- /dev/null
++++ b/android/apps/dummy/src/main/res/values/strings.xml
+@@ -0,0 +1,3 @@
++<resources>
++    <string name="app_name" translatable="false">GPU Frame Player</string>
++</resources>
+diff --git a/cmake/compiler.cmake b/cmake/compiler.cmake
+index 5108253403..9d82a937f2 100644
+--- a/cmake/compiler.cmake
++++ b/cmake/compiler.cmake
+@@ -2,9 +2,9 @@ set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
+ set(CMAKE_CXX_STANDARD 14)
+ set(CMAKE_CXX_STANDARD_REQUIRED ON)
+ 
+-if (NOT "${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
+-  message( FATAL_ERROR "Only 64 bit builds supported." )
+-endif()
++# if (NOT "${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
++#   message( FATAL_ERROR "Only 64 bit builds supported." )
++# endif()
+ 
+ if (USE_CCACHE OR "$ENV{USE_CCACHE}")
+   configure_ccache()
+diff --git a/cmake/macros/TargetOpenSSL.cmake b/cmake/macros/TargetOpenSSL.cmake
+index faf5116a25..6e1d9f303e 100644
+--- a/cmake/macros/TargetOpenSSL.cmake
++++ b/cmake/macros/TargetOpenSSL.cmake
+@@ -7,7 +7,9 @@
+ #
+ macro(TARGET_OPENSSL)
+     if (ANDROID)
+-        set(OPENSSL_INSTALL_DIR ${HIFI_ANDROID_PRECOMPILED}/openssl)
++        # set(OPENSSL_INSTALL_DIR ${HIFI_ANDROID_PRECOMPILED}/openssl)
++        set(OPENSSL_INSTALL_DIR /home/namark/dev/openssl_install)
++        # set(OPENSSL_INSTALL_DIR /home/namark/dev/openssl_install64)
+         set(OPENSSL_INCLUDE_DIR "${OPENSSL_INSTALL_DIR}/include" CACHE STRING INTERNAL)
+         set(OPENSSL_LIBRARIES "${OPENSSL_INSTALL_DIR}/lib/libcrypto.a;${OPENSSL_INSTALL_DIR}/lib/libssl.a" CACHE STRING INTERNAL)
+     else()
+diff --git a/cmake/macros/TargetTBB.cmake b/cmake/macros/TargetTBB.cmake
+index 087f3f3242..156d4e4021 100644
+--- a/cmake/macros/TargetTBB.cmake
++++ b/cmake/macros/TargetTBB.cmake
+@@ -7,18 +7,8 @@
+ #
+ macro(TARGET_TBB)
+ 
+-if (ANDROID)
+-    set(TBB_INSTALL_DIR ${HIFI_ANDROID_PRECOMPILED}/tbb)
+-    set(TBB_INCLUDE_DIRS ${TBB_INSTALL_DIR}/include CACHE FILEPATH "TBB includes location")
+-    set(TBB_LIBRARY ${TBB_INSTALL_DIR}/lib/release/libtbb.so CACHE FILEPATH "TBB library location")
+-    set(TBB_MALLOC_LIBRARY ${TBB_INSTALL_DIR}/lib/release/libtbbmalloc.so CACHE FILEPATH "TBB malloc library location")
+-    set(TBB_LIBRARIES ${TBB_LIBRARY} ${TBB_MALLOC_LIBRARY})
+-    target_include_directories(${TARGET_NAME} SYSTEM PUBLIC ${TBB_INCLUDE_DIRS})
+-    target_link_libraries(${TARGET_NAME} ${TBB_LIBRARIES})
+-else()
+-   	# using VCPKG for TBB
+-    find_package(TBB CONFIG REQUIRED)
+-    target_link_libraries(${TARGET_NAME} TBB::tbb)
+-endif()
++# using VCPKG for TBB
++find_package(TBB CONFIG REQUIRED)
++target_link_libraries(${TARGET_NAME} TBB::tbb)
+ 
+ endmacro()
+diff --git a/hifi_vcpkg.py b/hifi_vcpkg.py
+index df14f05799..daff91e9b0 100644
+--- a/hifi_vcpkg.py
++++ b/hifi_vcpkg.py
+@@ -302,7 +302,7 @@ endif()
+             url = hifi_android.getPackageUrl(package)
+             zipFile = package['file'].endswith('.zip')
+             print("Android archive {}".format(package['file']))
+-            hifi_utils.downloadAndExtract(url, dest, isZip=zipFile, hash=package['checksum'], hasher=hashlib.md5())
++            hifi_utils.downloadAndExtract([url], dest, hash=package['checksum'], hasher=hashlib.md5)
+ 
+     def writeTag(self):
+         if self.noClean:
+diff --git a/libraries/networking/src/AccountManager.cpp b/libraries/networking/src/AccountManager.cpp
+index ce449a66c3..63bf824800 100644
+--- a/libraries/networking/src/AccountManager.cpp
++++ b/libraries/networking/src/AccountManager.cpp
+@@ -965,7 +965,7 @@ void AccountManager::generateNewKeypair(bool isUserKeypair, const QUuid& domainI
+     }
+ 
+     // Ensure openssl/Qt config is set up.
+-    QSslConfiguration::defaultConfiguration();
++    // QSslConfiguration::defaultConfiguration();
+ 
+     // make sure we don't already have an outbound keypair generation request
+     if (!_isWaitingForKeypairResponse) {
+diff --git a/libraries/shared/CMakeLists.txt b/libraries/shared/CMakeLists.txt
+index af4a4d611c..cca43dbeb3 100644
+--- a/libraries/shared/CMakeLists.txt
++++ b/libraries/shared/CMakeLists.txt
+@@ -21,7 +21,7 @@ if (APPLE)
+     target_link_libraries(${TARGET_NAME} ${FRAMEWORK_IOKIT} ${CORE_FOUNDATION} ${OpenGL})
+ endif()
+ 
+-target_zlib()
+-target_nsight()
++# target_zlib()
++# target_nsight()
+ target_json()
+ 
+diff --git a/libraries/shared/src/Gzip.cpp b/libraries/shared/src/Gzip.cpp
+index 06b499b88a..6b6e5f3e48 100644
+--- a/libraries/shared/src/Gzip.cpp
++++ b/libraries/shared/src/Gzip.cpp
+@@ -11,145 +11,147 @@
+ 
+ #include "Gzip.h"
+ 
+-#include <zlib.h>
++// #include <zlib.h>
+ 
+ const int GZIP_WINDOWS_BIT = 31;
+ const int GZIP_CHUNK_SIZE = 4096;
+ const int DEFAULT_MEM_LEVEL = 8;
+ 
+ bool gunzip(QByteArray source, QByteArray &destination) {
+-    destination.clear();
+-    if (source.length() == 0) {
+-        return true;
+-    }
+-
+-    z_stream strm;
+-    strm.zalloc = Z_NULL;
+-    strm.zfree = Z_NULL;
+-    strm.opaque = Z_NULL;
+-    strm.avail_in = 0;
+-    strm.next_in = Z_NULL;
+-
+-    int status = inflateInit2(&strm, GZIP_WINDOWS_BIT);
+-
+-    if (status != Z_OK) {
+-        return false;
+-    }
+-
+-    char *sourceData = source.data();
+-    int sourceDataLength = source.length();
+-
+-    for (;;) {
+-        int chunkSize = qMin(GZIP_CHUNK_SIZE, sourceDataLength);
+-        if (chunkSize <= 0) {
+-            break;
+-        }
+-
+-        strm.next_in = (unsigned char*)sourceData;
+-        strm.avail_in = chunkSize;
+-        sourceData += chunkSize;
+-        sourceDataLength -= chunkSize;
+-
+-        for (;;) {
+-            char out[GZIP_CHUNK_SIZE];
+-
+-            strm.next_out = (unsigned char*)out;
+-            strm.avail_out = GZIP_CHUNK_SIZE;
+-
+-            status = inflate(&strm, Z_NO_FLUSH);
+-
+-            switch (status) {
+-                case Z_NEED_DICT:
+-                    status = Z_DATA_ERROR;
+-                    // FALLTHRU
+-                case Z_DATA_ERROR:
+-                case Z_MEM_ERROR:
+-                case Z_STREAM_ERROR:
+-                    inflateEnd(&strm);
+-                    return false;
+-            }
+-
+-            int available = (GZIP_CHUNK_SIZE - strm.avail_out);
+-            if (available > 0) {
+-                destination.append((char*)out, available);
+-            }
+-
+-            if (strm.avail_out != 0) {
+-                break;
+-            }
+-        }
+-
+-        if (status == Z_STREAM_END) {
+-            break;
+-        }
+-    }
+-
+-    inflateEnd(&strm);
+-    return status == Z_STREAM_END;
++    return false;
++    // destination.clear();
++    // if (source.length() == 0) {
++    //     return true;
++    // }
++    //
++    // z_stream strm;
++    // strm.zalloc = Z_NULL;
++    // strm.zfree = Z_NULL;
++    // strm.opaque = Z_NULL;
++    // strm.avail_in = 0;
++    // strm.next_in = Z_NULL;
++    //
++    // int status = inflateInit2(&strm, GZIP_WINDOWS_BIT);
++    //
++    // if (status != Z_OK) {
++    //     return false;
++    // }
++    //
++    // char *sourceData = source.data();
++    // int sourceDataLength = source.length();
++    //
++    // for (;;) {
++    //     int chunkSize = qMin(GZIP_CHUNK_SIZE, sourceDataLength);
++    //     if (chunkSize <= 0) {
++    //         break;
++    //     }
++    //
++    //     strm.next_in = (unsigned char*)sourceData;
++    //     strm.avail_in = chunkSize;
++    //     sourceData += chunkSize;
++    //     sourceDataLength -= chunkSize;
++    //
++    //     for (;;) {
++    //         char out[GZIP_CHUNK_SIZE];
++    //
++    //         strm.next_out = (unsigned char*)out;
++    //         strm.avail_out = GZIP_CHUNK_SIZE;
++    //
++    //         status = inflate(&strm, Z_NO_FLUSH);
++    //
++    //         switch (status) {
++    //             case Z_NEED_DICT:
++    //                 status = Z_DATA_ERROR;
++    //                 // FALLTHRU
++    //             case Z_DATA_ERROR:
++    //             case Z_MEM_ERROR:
++    //             case Z_STREAM_ERROR:
++    //                 inflateEnd(&strm);
++    //                 return false;
++    //         }
++    //
++    //         int available = (GZIP_CHUNK_SIZE - strm.avail_out);
++    //         if (available > 0) {
++    //             destination.append((char*)out, available);
++    //         }
++    //
++    //         if (strm.avail_out != 0) {
++    //             break;
++    //         }
++    //     }
++    //
++    //     if (status == Z_STREAM_END) {
++    //         break;
++    //     }
++    // }
++    //
++    // inflateEnd(&strm);
++    // return status == Z_STREAM_END;
+ }
+ 
+ bool gzip(QByteArray source, QByteArray &destination, int compressionLevel) {
+-    destination.clear();
+-    if (source.length() == 0) {
+-        return true;
+-    }
+-
+-    int flushOrFinish = 0;
+-    z_stream strm;
+-    strm.zalloc = Z_NULL;
+-    strm.zfree = Z_NULL;
+-    strm.opaque = Z_NULL;
+-    strm.next_in = Z_NULL;
+-    strm.avail_in = 0;
+-
+-    int status = deflateInit2(&strm,
+-                              qMax(Z_DEFAULT_COMPRESSION, qMin(9, compressionLevel)),
+-                              Z_DEFLATED,
+-                              GZIP_WINDOWS_BIT,
+-                              DEFAULT_MEM_LEVEL,
+-                              Z_DEFAULT_STRATEGY);
+-    if (status != Z_OK) {
+-        return false;
+-    }
+-    char *sourceData = source.data();
+-    int sourceDataLength = source.length();
+-
+-    for (;;) {
+-        int chunkSize = qMin(GZIP_CHUNK_SIZE, sourceDataLength);
+-        strm.next_in = (unsigned char*)sourceData;
+-        strm.avail_in = chunkSize;
+-        sourceData += chunkSize;
+-        sourceDataLength -= chunkSize;
+-
+-        if (sourceDataLength <= 0) {
+-            flushOrFinish = Z_FINISH;
+-        } else {
+-            flushOrFinish = Z_NO_FLUSH;
+-        }
+-
+-        for (;;) {
+-            char out[GZIP_CHUNK_SIZE];
+-            strm.next_out = (unsigned char*)out;
+-            strm.avail_out = GZIP_CHUNK_SIZE;
+-            status = deflate(&strm, flushOrFinish);
+-            if (status == Z_STREAM_ERROR) {
+-                deflateEnd(&strm);
+-                return false;
+-            }
+-            int available = (GZIP_CHUNK_SIZE - strm.avail_out);
+-            if (available > 0) {
+-                destination.append((char*)out, available);
+-            }
+-            if (strm.avail_out != 0) {
+-                break;
+-            }
+-        }
+-
+-        if (flushOrFinish == Z_FINISH) {
+-            break;
+-        }
+-    }
+-
+-    deflateEnd(&strm);
+-    return status == Z_STREAM_END;
++    return false;
++    // destination.clear();
++    // if (source.length() == 0) {
++    //     return true;
++    // }
++    //
++    // int flushOrFinish = 0;
++    // z_stream strm;
++    // strm.zalloc = Z_NULL;
++    // strm.zfree = Z_NULL;
++    // strm.opaque = Z_NULL;
++    // strm.next_in = Z_NULL;
++    // strm.avail_in = 0;
++    //
++    // int status = deflateInit2(&strm,
++    //                           qMax(Z_DEFAULT_COMPRESSION, qMin(9, compressionLevel)),
++    //                           Z_DEFLATED,
++    //                           GZIP_WINDOWS_BIT,
++    //                           DEFAULT_MEM_LEVEL,
++    //                           Z_DEFAULT_STRATEGY);
++    // if (status != Z_OK) {
++    //     return false;
++    // }
++    // char *sourceData = source.data();
++    // int sourceDataLength = source.length();
++    //
++    // for (;;) {
++    //     int chunkSize = qMin(GZIP_CHUNK_SIZE, sourceDataLength);
++    //     strm.next_in = (unsigned char*)sourceData;
++    //     strm.avail_in = chunkSize;
++    //     sourceData += chunkSize;
++    //     sourceDataLength -= chunkSize;
++    //
++    //     if (sourceDataLength <= 0) {
++    //         flushOrFinish = Z_FINISH;
++    //     } else {
++    //         flushOrFinish = Z_NO_FLUSH;
++    //     }
++    //
++    //     for (;;) {
++    //         char out[GZIP_CHUNK_SIZE];
++    //         strm.next_out = (unsigned char*)out;
++    //         strm.avail_out = GZIP_CHUNK_SIZE;
++    //         status = deflate(&strm, flushOrFinish);
++    //         if (status == Z_STREAM_ERROR) {
++    //             deflateEnd(&strm);
++    //             return false;
++    //         }
++    //         int available = (GZIP_CHUNK_SIZE - strm.avail_out);
++    //         if (available > 0) {
++    //             destination.append((char*)out, available);
++    //         }
++    //         if (strm.avail_out != 0) {
++    //             break;
++    //         }
++    //     }
++    //
++    //     if (flushOrFinish == Z_FINISH) {
++    //         break;
++    //     }
++    // }
++    //
++    // deflateEnd(&strm);
++    // return status == Z_STREAM_END;
+ }
+diff --git a/libraries/shared/src/SharedUtil.cpp b/libraries/shared/src/SharedUtil.cpp
+index e9576a4477..e75ff5666e 100644
+--- a/libraries/shared/src/SharedUtil.cpp
++++ b/libraries/shared/src/SharedUtil.cpp
+@@ -897,7 +897,7 @@ void setupHifiApplication(QString appName, QString orgName, QString orgDomain, Q
+     // You can find more details as to why this is important in the SharedUtil.h/cpp files
+     setupGlobalInstances();
+ 
+-#ifndef WIN32
++#ifdef WIN32
+     // Windows tends to hold onto log lines until it has a sizeable buffer
+     // This makes the log feel unresponsive and trap useful log data in the log buffer
+     // when a crash occurs.
+@@ -906,7 +906,7 @@ void setupHifiApplication(QString appName, QString orgName, QString orgDomain, Q
+ #endif
+ 
+     // Install the standard hifi message handler so we get consistant log formatting
+-    qInstallMessageHandler(LogHandler::verboseMessageHandler);
++    // qInstallMessageHandler(LogHandler::verboseMessageHandler);
+ }
+ 
+ #ifdef Q_OS_WIN
+diff --git a/libraries/shared/src/shared/FileLogger.cpp b/libraries/shared/src/shared/FileLogger.cpp
+index 8797f15371..06577e7620 100644
+--- a/libraries/shared/src/shared/FileLogger.cpp
++++ b/libraries/shared/src/shared/FileLogger.cpp
+@@ -13,7 +13,6 @@
+ 
+ #include <QtCore/QDateTime>
+ #include <QtCore/QDir>
+-#include <QtGui/QDesktopServices>
+ 
+ #include "FileUtils.h"
+ #include "NetworkUtils.h"
+diff --git a/libraries/vircadia-client/CMakeLists.txt b/libraries/vircadia-client/CMakeLists.txt
+index 3443e4c90e..c0cc8def26 100644
+--- a/libraries/vircadia-client/CMakeLists.txt
++++ b/libraries/vircadia-client/CMakeLists.txt
+@@ -53,7 +53,7 @@ endif (DOXYGEN_FOUND)
+ 
+ set(${TARGET_NAME}_SHARED ON)
+ 
+-setup_hifi_library()
++setup_hifi_library(AndroidExtras)
+ 
+ set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 17)
+ if(UNIX)
+@@ -64,7 +64,7 @@ endif()
+ 
+ link_hifi_libraries(shared networking)
+ 
+-add_subdirectory(tests)
++# add_subdirectory(tests)
+ 
+ install(TARGETS ${TARGET_NAME} TYPE LIBRARY)
+ install(FILES
+-- 
+2.25.1
+

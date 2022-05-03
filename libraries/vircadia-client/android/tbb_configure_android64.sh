@@ -1,0 +1,1 @@
+cmake .. -DCMAKE_SYSTEM_NAME=Android -DCMAKE_TOOLCHAIN_FILE=/home/namark/dev/android/ndk-bundle/build/cmake/android.toolchain.cmake -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-28 -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX:PATH=tbb_install -DTBB_TEST=OFF

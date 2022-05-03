@@ -36,6 +36,8 @@ To build the documentation (requires doxygen):
 cmake --build . --target vircadia-client-docs
 ```
 
+[Android build instructions](BUILD_ANDROID.md).
+
 ### Packaging
 
 Several build options can be set to minimize dependencies of the library and simplify packaging.
