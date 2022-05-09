@@ -62,7 +62,7 @@ if(UNIX)
     target_link_libraries(${TARGET_NAME} Threads::Threads)
 endif()
 
-link_hifi_libraries(shared networking)
+link_hifi_libraries(shared networking avatars-core)
 
 add_subdirectory(tests)
 
