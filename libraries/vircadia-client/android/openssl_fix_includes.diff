@@ -1,0 +1,147 @@
+diff -pur ./crypto/ec/curve448/arch_32/f_impl.c ../openssl-OpenSSL_1_1_1n_mod/crypto/ec/curve448/arch_32/f_impl.c
+--- ./crypto/ec/curve448/arch_32/f_impl.c	2022-03-15 18:37:47.000000000 +0400
++++ ../openssl-OpenSSL_1_1_1n_mod/crypto/ec/curve448/arch_32/f_impl.c	2022-04-29 13:50:22.181547658 +0400
+@@ -10,7 +10,7 @@
+  * Originally written by Mike Hamburg
+  */
+
+-#include "field.h"
++#include "../field.h"
+
+ void gf_mul(gf_s * RESTRICT cs, const gf as, const gf bs)
+ {
+diff -pur ./crypto/ec/curve448/field.h ../openssl-OpenSSL_1_1_1n_mod/crypto/ec/curve448/field.h
+--- ./crypto/ec/curve448/field.h	2022-03-15 18:37:47.000000000 +0400
++++ ../openssl-OpenSSL_1_1_1n_mod/crypto/ec/curve448/field.h	2022-04-29 13:52:00.478654043 +0400
+@@ -66,7 +66,7 @@ void gf_serialize(uint8_t serial[SER_BYT
+ mask_t gf_deserialize(gf x, const uint8_t serial[SER_BYTES], int with_hibit,
+                       uint8_t hi_nmask);
+
+-# include "f_impl.h"            /* Bring in the inline implementations */
++# include "arch_32/f_impl.h"            /* Bring in the inline implementations */
+
+ # define LIMBPERM(i) (i)
+ # define LIMB_MASK(i) (((1)<<LIMB_PLACE_VALUE(i))-1)
+diff -pur ./crypto/ec/curve448/word.h ../openssl-OpenSSL_1_1_1n_mod/crypto/ec/curve448/word.h
+--- ./crypto/ec/curve448/word.h	2022-03-15 18:37:47.000000000 +0400
++++ ../openssl-OpenSSL_1_1_1n_mod/crypto/ec/curve448/word.h	2022-04-29 13:51:22.818228566 +0400
+@@ -17,7 +17,7 @@
+ # include <assert.h>
+ # include <stdlib.h>
+ # include <openssl/e_os2.h>
+-# include "arch_intrinsics.h"
++# include "arch_32/arch_intrinsics.h"
+ # include "curve448utils.h"
+
+ # if (ARCH_WORD_BITS == 64)
+diff -pur ./crypto/evp/e_aes.c ../openssl-OpenSSL_1_1_1n_mod/crypto/evp/e_aes.c
+--- ./crypto/evp/e_aes.c	2022-03-15 18:37:47.000000000 +0400
++++ ../openssl-OpenSSL_1_1_1n_mod/crypto/evp/e_aes.c	2022-04-29 13:59:59.320185090 +0400
+@@ -15,7 +15,7 @@
+ #include <assert.h>
+ #include <openssl/aes.h>
+ #include "crypto/evp.h"
+-#include "modes_local.h"
++#include "../modes/modes_local.h"
+ #include <openssl/rand.h>
+ #include "evp_local.h"
+
+@@ -393,7 +393,7 @@ static int aesni_xts_init_key(EVP_CIPHER
+
+         /*
+          * Verify that the two keys are different.
+-         *
++         *
+          * This addresses Rogaway's vulnerability.
+          * See comment in aes_xts_init_key() below.
+          */
+@@ -813,7 +813,7 @@ static int aes_t4_xts_init_key(EVP_CIPHE
+
+         /*
+          * Verify that the two keys are different.
+-         *
++         *
+          * This addresses Rogaway's vulnerability.
+          * See comment in aes_xts_init_key() below.
+          */
+@@ -2544,7 +2544,7 @@ const EVP_CIPHER *EVP_aes_##keylen##_##m
+ #endif
+
+ #if defined(OPENSSL_CPUID_OBJ) && (defined(__arm__) || defined(__arm) || defined(__aarch64__))
+-# include "arm_arch.h"
++# include "../arm_arch.h"
+ # if __ARM_MAX_ARCH__>=7
+ #  if defined(BSAES_ASM)
+ #   define BSAES_CAPABLE (OPENSSL_armcap_P & ARMV7_NEON)
+diff -pur ./crypto/evp/e_aes_cbc_hmac_sha1.c ../openssl-OpenSSL_1_1_1n_mod/crypto/evp/e_aes_cbc_hmac_sha1.c
+--- ./crypto/evp/e_aes_cbc_hmac_sha1.c	2022-03-15 18:37:47.000000000 +0400
++++ ../openssl-OpenSSL_1_1_1n_mod/crypto/evp/e_aes_cbc_hmac_sha1.c	2022-04-29 13:55:25.572999739 +0400
+@@ -17,7 +17,7 @@
+ #include <openssl/aes.h>
+ #include <openssl/sha.h>
+ #include <openssl/rand.h>
+-#include "modes_local.h"
++#include "../modes/modes_local.h"
+ #include "crypto/evp.h"
+ #include "internal/constant_time.h"
+
+diff -pur ./crypto/evp/e_aes_cbc_hmac_sha256.c ../openssl-OpenSSL_1_1_1n_mod/crypto/evp/e_aes_cbc_hmac_sha256.c
+--- ./crypto/evp/e_aes_cbc_hmac_sha256.c	2022-03-15 18:37:47.000000000 +0400
++++ ../openssl-OpenSSL_1_1_1n_mod/crypto/evp/e_aes_cbc_hmac_sha256.c	2022-04-29 13:56:24.989686717 +0400
+@@ -18,7 +18,7 @@
+ #include <openssl/aes.h>
+ #include <openssl/sha.h>
+ #include <openssl/rand.h>
+-#include "modes_local.h"
++#include "../modes/modes_local.h"
+ #include "internal/constant_time.h"
+ #include "crypto/evp.h"
+
+diff -pur ./crypto/evp/e_aria.c ../openssl-OpenSSL_1_1_1n_mod/crypto/evp/e_aria.c
+--- ./crypto/evp/e_aria.c	2022-03-15 18:37:47.000000000 +0400
++++ ../openssl-OpenSSL_1_1_1n_mod/crypto/evp/e_aria.c	2022-04-29 13:57:51.122687273 +0400
+@@ -16,7 +16,7 @@
+ # include <openssl/rand_drbg.h>
+ # include "crypto/aria.h"
+ # include "crypto/evp.h"
+-# include "modes_local.h"
++# include "../modes/modes_local.h"
+ # include "evp_local.h"
+
+ /* ARIA subkey Structure */
+diff -pur ./crypto/evp/e_camellia.c ../openssl-OpenSSL_1_1_1n_mod/crypto/evp/e_camellia.c
+--- ./crypto/evp/e_camellia.c	2022-03-15 18:37:47.000000000 +0400
++++ ../openssl-OpenSSL_1_1_1n_mod/crypto/evp/e_camellia.c	2022-04-29 13:58:32.423168781 +0400
+@@ -18,7 +18,7 @@ NON_EMPTY_TRANSLATION_UNIT
+ # include <assert.h>
+ # include <openssl/camellia.h>
+ # include "crypto/evp.h"
+-# include "modes_local.h"
++# include "../modes/modes_local.h"
+
+ static int camellia_init_key(EVP_CIPHER_CTX *ctx, const unsigned char *key,
+                              const unsigned char *iv, int enc);
+diff -pur ./crypto/modes/gcm128.c ../openssl-OpenSSL_1_1_1n_mod/crypto/modes/gcm128.c
+--- ./crypto/modes/gcm128.c	2022-03-15 18:37:47.000000000 +0400
++++ ../openssl-OpenSSL_1_1_1n_mod/crypto/modes/gcm128.c	2022-04-29 14:00:29.840542973 +0400
+@@ -670,7 +670,7 @@ void gcm_ghash_4bit_x86(u64 Xi[2], const
+                         size_t len);
+ #  endif
+ # elif defined(__arm__) || defined(__arm) || defined(__aarch64__)
+-#  include "arm_arch.h"
++#  include "../arm_arch.h"
+ #  if __ARM_MAX_ARCH__>=7
+ #   define GHASH_ASM_ARM
+ #   define GCM_FUNCREF_4BIT
+diff -pur ./crypto/rand/drbg_ctr.c ../openssl-OpenSSL_1_1_1n_mod/crypto/rand/drbg_ctr.c
+--- ./crypto/rand/drbg_ctr.c	2022-03-15 18:37:47.000000000 +0400
++++ ../openssl-OpenSSL_1_1_1n_mod/crypto/rand/drbg_ctr.c	2022-04-29 14:01:10.905025184 +0400
+@@ -12,7 +12,7 @@
+ #include <openssl/crypto.h>
+ #include <openssl/err.h>
+ #include <openssl/rand.h>
+-#include "modes_local.h"
++#include "../modes/modes_local.h"
+ #include "internal/thread_once.h"
+ #include "rand_local.h"
+
