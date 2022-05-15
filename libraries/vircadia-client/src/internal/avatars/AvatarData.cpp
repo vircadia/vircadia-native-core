@@ -13,6 +13,28 @@
 
 #include <AvatarDataStream.hpp>
 
-AvatarData::AvatarData() {
-    AvatarDataStream<AvatarData>::initClientTraitsHandler();
-}
+namespace vircadia::client
+{
+
+    Avatar::Avatar() {
+        AvatarDataStream<Avatar>::initClientTraitsHandler();
+    }
+
+    const QUuid& Avatar::getSessionUUID() const {
+        return data.sessionUUID;
+    }
+
+    void Avatar::setSessionUUID(const QUuid& uuid) {
+        data.sessionUUID = uuid;
+    }
+
+    AvatarDataPacket::Identity Avatar::getIdentityDataOut() const {
+        return std::get<AvatarData::IdentityIndex>(data.properties);
+    }
+
+    bool Avatar::getIdentityDataChanged() { return true; /* FIXME */ }
+
+
+} // namespace vircadia::client
+
+template class AvatarDataStream<vircadia::client::Avatar>;

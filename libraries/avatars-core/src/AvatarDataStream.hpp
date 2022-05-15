@@ -38,6 +38,7 @@
 #include <Profile.h>
 #include <VariantMapToScriptValue.h>
 #include <BitVectorHelpers.h>
+#include <NumericalConstants.h>
 
 #include "AvatarLogging.h"
 #include "AvatarTraits.h"
@@ -1880,7 +1881,7 @@ void AvatarDataStream<Derived>::processAvatarIdentity(QDataStream& packetStream,
             << (udt::SequenceNumber::Type) incomingSequenceNumber;
     }
 
-    Identity identity;
+    AvatarDataPacket::Identity identity;
 
     packetStream
         >> identity.attachmentData
@@ -2178,15 +2179,17 @@ QByteArray AvatarDataStream<Derived>::identityByteArray(bool setIsReplicated) co
     QDataStream identityStream(&identityData, QIODevice::Append);
     using namespace AvatarDataPacket;
 
-    bool isReplicated{};
-    bool lookAtSnappingEnabled{};
-    bool isCertifyFailed{};
+    // FIXME: CRTP set id
     QUuid id{};
-    QVector<AttachmentData> attachmentData{};
-    QString displayName{};
-    QString sessionDisplayName{};
+    AvatarDataPacket::Identity identity = derived().getIdentityDataOut();
 
-    //FIXME: CRTP
+    //FIXME: CRTP to libraries/avatars/AvatarData
+    // bool isReplicated{};
+    // bool lookAtSnappingEnabled{};
+    // bool isCertifyFailed{};
+    // QVector<AttachmentData> attachmentData{};
+    // QString displayName{};
+    // QString sessionDisplayName{};
     // isReplicated = _isReplicated;
     // lookAtSnappingEnabled = _lookAtSnappingEnabled;
     // isCertifyFailed = isCertifyFailed();
@@ -2194,27 +2197,26 @@ QByteArray AvatarDataStream<Derived>::identityByteArray(bool setIsReplicated) co
     // attachmentData = _attachmentData;
     // displayName = _displayName;
     // sessionDisplayName = getSessionDisplayNameForTransport(); // depends on _sessionDisplayName
+    // IdentityFlags identityFlags = IdentityFlag::none;
+    // if (isReplicated || setIsReplicated) {
+    //     identityFlags.setFlag(IdentityFlag::isReplicated);
+    // }
+    // if (lookAtSnappingEnabled) {
+    //     identityFlags.setFlag(IdentityFlag::lookAtSnapping);
+    // }
+    //
+    // if (isCertifyFailed) {
+    //     identityFlags.setFlag(IdentityFlag::verificationFailed);
+    // }
 
     // when mixers send identity packets to agents, they simply forward along the last incoming sequence number they received
     // whereas agents send a fresh outgoing sequence number when identity data has changed
-    IdentityFlags identityFlags = IdentityFlag::none;
-    if (isReplicated || setIsReplicated) {
-        identityFlags.setFlag(IdentityFlag::isReplicated);
-    }
-    if (lookAtSnappingEnabled) {
-        identityFlags.setFlag(IdentityFlag::lookAtSnapping);
-    }
-
-    if (isCertifyFailed) {
-        identityFlags.setFlag(IdentityFlag::verificationFailed);
-    }
-
     identityStream << id
         << (udt::SequenceNumber::Type) _identitySequenceNumber
-        << attachmentData
-        << displayName
-        << sessionDisplayName
-        << identityFlags;
+        << identity.attachmentData
+        << identity.displayName
+        << identity.sessionDisplayName
+        << identity.identityFlags;
 
     return identityData;
 }
@@ -2281,6 +2283,42 @@ int AvatarDataStream<Derived>::sendAvatarDataPacket(AvatarDataDetail dataDetail,
     doneEncoding(dataDetail == CullSmallData, sendStatus);
 
     return sendAvatarDataPacket(data);
+}
+
+template <typename Derived>
+int AvatarDataStream<Derived>::sendAllPackets(AvatarDataDetail dataDetail, AvatarDataPacket::SendStatus& sendStatus) {
+    using namespace std::chrono;
+    auto now = Clock::now();
+
+    int MAX_DATA_RATE_MBPS = 3;
+    int maxDataRateBytesPerSeconds = MAX_DATA_RATE_MBPS * BYTES_PER_KILOBYTE * KILO_PER_MEGA / BITS_IN_BYTE;
+    int maxDataRateBytesPerMilliseconds = maxDataRateBytesPerSeconds / MSECS_PER_SECOND;
+
+    auto bytesSent = 0;
+
+    if (now > _nextTraitsSendWindow) {
+        if (derived().getIdentityDataChanged()) {
+            bytesSent += sendIdentityPacket();
+        }
+
+        if (_clientTraitsHandler) {
+            bytesSent += _clientTraitsHandler->sendChangedTraitsToMixer();
+        }
+
+        // Compute the next send window based on how much data we sent and what
+        // data rate we're trying to max at.
+        milliseconds timeUntilNextSend { bytesSent / maxDataRateBytesPerMilliseconds };
+        _nextTraitsSendWindow += timeUntilNextSend;
+
+        // Don't let the next send window lag behind if we're not sending a lot of data.
+        if (_nextTraitsSendWindow < now) {
+            _nextTraitsSendWindow = now;
+        }
+    }
+
+    bytesSent += sendAvatarDataPacket(dataDetail, sendStatus);
+
+    return bytesSent;
 }
 
 // FIXME: CRTP move to derived

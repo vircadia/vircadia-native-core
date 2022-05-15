@@ -176,6 +176,8 @@ namespace AvatarSkeletonTrait {
     };
 }
 
+class AttachmentData;
+
 namespace AvatarDataPacket {
 
     // NOTE: every time avatar data is sent from mixer to client, it also includes the GUIID for the session
@@ -374,6 +376,23 @@ namespace AvatarDataPacket {
     enum class IdentityFlag: quint32 {none, isReplicated = 0x1, lookAtSnapping = 0x2, verificationFailed = 0x4};
     Q_DECLARE_FLAGS(IdentityFlags, IdentityFlag)
 
+    struct Identity {
+        QVector<AttachmentData> attachmentData;
+        QString displayName;
+        QString sessionDisplayName;
+        IdentityFlags identityFlags;
+
+        bool operator==(const Identity& other) const {
+            return attachmentData == other.attachmentData &&
+                displayName == other.displayName &&
+                sessionDisplayName == other.sessionDisplayName &&
+                identityFlags == other.identityFlags;
+        }
+        bool operator!=(const Identity& other) const {
+            return !(*this == other);
+        }
+    };
+
     struct SendStatus {
         HasFlags itemFlags { 0 };
         bool sendUUID { false };
@@ -439,8 +458,6 @@ enum KillAvatarReason : uint8_t {
 Q_DECLARE_METATYPE(KillAvatarReason);
 
 class QDataStream;
-
-class AttachmentData;
 
 class AvatarDataRate {
 public:
@@ -570,15 +587,6 @@ public:
 
     QList<QUuid> getAvatarEntityIDs() const;
 
-    struct Identity {
-        QVector<AttachmentData> attachmentData;
-        QString displayName;
-        QString sessionDisplayName;
-        bool isReplicated;
-        bool lookAtSnappingEnabled;
-        AvatarDataPacket::IdentityFlags identityFlags;
-    };
-
     // identityChanged returns true if identity has changed, false otherwise.
     // identityChanged returns true if identity has changed, false otherwise. Similarly for displayNameChanged and skeletonModelUrlChange.
     void processAvatarIdentity(QDataStream& packetStream, bool& identityChanged, bool& displayNameChanged);
@@ -650,35 +658,11 @@ public:
     void sendSkeletonData() const;
     QVector<JointData> getJointData() const;
 
-    /*@jsdoc
-     * Triggered when the avatar's <code>lookAtSnappingEnabled</code> property value changes.
-     * @function Avatar.lookAtSnappingChanged
-     * @param {boolean} enabled - <code>true</code> if look-at snapping is enabled, <code>false</code> if not.
-     * @returns {Signal}
-     * @example <caption>Report when your look-at snapping setting changes.</caption>
-     * MyAvatar.lookAtSnappingChanged.connect(function () {
-     *     print("Avatar look-at snapping changed to: " + MyAvatar.lookAtSnappingEnabled);
-     * });
-     *
-     * // Note: If using from the Avatar API, replace "MyAvatar" with "Avatar".
-     */
-    void lookAtSnappingChanged(bool enabled);
+    int sendAllPackets(AvatarDataDetail, AvatarDataPacket::SendStatus&);
 
-    /*@jsdoc
-     * Triggered when the avatar's <code>sessionUUID</code> property value changes.
-     * @function Avatar.sessionUUIDChanged
-     * @returns {Signal}
-     * @example <caption>Report when your avatar's session UUID changes.</caption>
-     * MyAvatar.sessionUUIDChanged.connect(function () {
-     *     print("Avatar session UUID changed to: " + MyAvatar.sessionUUID);
-     * });
-     *
-     * // Note: If using from the Avatar API, replace "MyAvatar" with "Avatar".
-     */
-    void sessionUUIDChanged();
+    int sendAvatarDataPacket(AvatarDataDetail, AvatarDataPacket::SendStatus&);
 
     int sendAvatarDataPacket(const QByteArray&);
-    int sendAvatarDataPacket(AvatarDataDetail, AvatarDataPacket::SendStatus&);
 
     /*@jsdoc
      * @function Avatar.sendAvatarDataPacket
@@ -703,6 +687,9 @@ public:
     void resetLastSent() { _lastToByteArray = 0; }
 
 protected:
+    using Clock = std::chrono::system_clock;
+    using TimePoint = Clock::time_point;
+
     void insertRemovedEntityID(const QUuid entityID);
 
     float getDistanceBasedMinRotationDOT(glm::vec3 viewerPosition) const;
@@ -845,6 +832,8 @@ protected:
 private:
     Derived& derived();
     const Derived& derived() const;
+
+    TimePoint _nextTraitsSendWindow;
 
 };
 

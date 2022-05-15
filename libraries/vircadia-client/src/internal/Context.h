@@ -24,6 +24,7 @@
 #include "../context.h"
 #include "Common.h"
 #include "Messages.h"
+#include "Avatars.h"
 
 class QCoreApplication;
 
@@ -57,6 +58,9 @@ namespace vircadia::client {
         Messages& messages();
         const Messages& messages() const;
 
+        Avatars& avatars();
+        const Avatars& avatars() const;
+
     private:
         std::thread appThread {};
         std::atomic<QCoreApplication*> app {};
@@ -68,6 +72,7 @@ namespace vircadia::client {
         char* argv;
 
         Messages messages_;
+        Avatars avatars_;
     };
 
     extern std::list<Context> contexts;

@@ -25,6 +25,7 @@
 #include <DomainAccountManager.h>
 #include <AddressManager.h>
 
+#include "avatars/AvatarManager.h"
 #include "Error.h"
 
 namespace vircadia::client {
@@ -33,7 +34,8 @@ namespace vircadia::client {
         argc(1),
         argvData("qt_is_such_a_joke"),
         argv(&argvData[0]),
-        messages_()
+        messages_(),
+        avatars_()
     {
         auto qtInitialization = qtInitialized.get_future();
         appThread = std::thread{ [ this, nodeListParams, userAgent, info ] () {
@@ -79,10 +81,20 @@ namespace vircadia::client {
 
             // TODO: account manager login
 
-            QObject::connect(&qtApp, &QCoreApplication::aboutToQuit, [this](){
+            QTimer updateTimer;
+            QObject::connect(&updateTimer, &QTimer::timeout, [this]() {
+                if (avatars_.isEnabled()) {
+                    avatars_.updateManager();
+                }
+            });
+            updateTimer.start();
+
+            QObject::connect(&qtApp, &QCoreApplication::aboutToQuit, [this, &updateTimer](){
                 DependencyManager::prepareToExit();
 
                 {
+                    updateTimer.stop();
+
                     auto nodeList = DependencyManager::get<NodeList>();
 
                     // send the domain a disconnect packet, force stoppage of domain-server check-ins
@@ -97,6 +109,7 @@ namespace vircadia::client {
                 QThreadPool::globalInstance()->waitForDone();
 
                 messages_.destroy();
+                avatars_.destroy();
                 DependencyManager::destroy<NodeList>();
                 DependencyManager::destroy<AddressManager>();
                 DependencyManager::destroy<DomainAccountManager>();
@@ -164,6 +177,14 @@ namespace vircadia::client {
 
     const Messages& Context::messages() const {
         return messages_;
+    }
+
+    Avatars& Context::avatars() {
+        return avatars_;
+    }
+
+    const Avatars& Context::avatars() const {
+        return avatars_;
     }
 
     std::list<Context> contexts;
