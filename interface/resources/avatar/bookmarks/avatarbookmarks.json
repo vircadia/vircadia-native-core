@@ -5,8 +5,8 @@
         "avatarEntites": [
         ],
         "avatarScale": 1,
-        "avatarUrl": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Woody/mannequin.fst",
-        "avatarIcon": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Woody/img/icon.png",
+        "avatarUrl": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/woody/mannequin.fst",
+        "avatarIcon": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/woody/img/icon.png",
         "version": 3
     },
     "Amrita": {
@@ -36,7 +36,7 @@
         ],
         "avatarScale": 1,
         "avatarUrl": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Emily/fbx/Emily.fst",
-        "avatarIcon": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Emily/img/icon.png",
+        "avatarIcon": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Emily/img/icon.PNG",
         "version": 3
     },
     "Cedric": {
