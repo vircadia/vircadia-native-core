@@ -2,7 +2,7 @@
 //  AvatarPacketHandler.h
 //  libraries/avatars-core/src
 //
-//  Created by Nshan G. Meadows on 11 May 2022.
+//  Created by Nshan G. on 11 May 2022.
 //  Copyright 2014 High Fidelity, Inc.
 //  Copyright 2022 Vircadia contributors.
 //
