@@ -14,7 +14,7 @@
 
 #include "NumericalConstants.h"
 
-int calcBitVectorSize(int numBits) {
+inline int calcBitVectorSize(int numBits) {
     return ((numBits - 1) >> 3) + 1;
 }
 
