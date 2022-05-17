@@ -84,7 +84,11 @@ namespace vircadia::client {
             QTimer updateTimer;
             QObject::connect(&updateTimer, &QTimer::timeout, [this]() {
                 if (avatars_.isEnabled()) {
-                    avatars_.updateManager();
+                    auto nodeList = DependencyManager::get<NodeList>();
+                    auto avatarMixer = nodeList->soloNodeOfType(NodeType::AvatarMixer);
+                    if (avatarMixer && avatarMixer->getActiveSocket()) {
+                        avatars_.updateManager();
+                    }
                 }
             });
             updateTimer.start();
