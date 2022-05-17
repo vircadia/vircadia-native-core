@@ -32,8 +32,26 @@ namespace vircadia::client
         return std::get<AvatarData::IdentityIndex>(data.properties);
     }
 
-    bool Avatar::getIdentityDataChanged() { return true; /* FIXME */ }
+    bool Avatar::getIdentityDataChanged() {
+        return data.changes.test(AvatarData::IdentityIndex);
+    }
 
+    void Avatar::onIdentityDataSent() {
+        data.changes.reset(AvatarData::IdentityIndex);
+    }
+
+    AvatarDataPacket::AvatarGlobalPosition Avatar::getGlobalPositionOut() const {
+        auto position = data.getProperty<AvatarData::GlobalPositionIndex>();
+        return {{position.x, position.y, position.z}};
+    }
+
+    void Avatar::setGlobalPositionIn(const AvatarDataPacket::AvatarGlobalPosition& position) {
+        data.setProperty<AvatarData::GlobalPositionIndex>({
+            position.globalPosition[0],
+            position.globalPosition[1],
+            position.globalPosition[2]
+        });
+    }
 
 } // namespace vircadia::client
 

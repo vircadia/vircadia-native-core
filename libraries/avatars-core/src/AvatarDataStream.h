@@ -202,6 +202,7 @@ namespace AvatarDataPacket {
     const HasFlags PACKET_HAS_JOINT_DATA               = 1U << 12;
     const HasFlags PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS = 1U << 13;
     const HasFlags PACKET_HAS_GRAB_JOINTS              = 1U << 14;
+    const HasFlags ALL_HAS_FLAGS                       = (1U << 15) - 1;
     const size_t AVATAR_HAS_FLAGS_SIZE = 2;
 
     using SixByteQuat = uint8_t[6];
@@ -621,8 +622,6 @@ public:
     int getAverageBytesReceivedPerSecond() const;
     int getReceiveRate() const;
 
-    glm::vec3 getClientGlobalPosition() const { return _globalPosition; }
-
     AvatarEntityMap getAvatarEntityData() const;
 
     AvatarEntityMap getAvatarEntityDataNonDefault() const;
@@ -712,18 +711,6 @@ protected:
     QUrl _skeletonModelURL;
 
     SimpleMovingAverage _averageBytesReceived;
-
-    // _globalPosition is sent along with localPosition + parent because the avatar-mixer doesn't know
-    // where Entities are located.  This is currently only used by the mixer to decide how often to send
-    // updates about one avatar to another.
-    glm::vec3 _globalPosition { 0, 0, 0 };
-    glm::vec3 _serverPosition { 0, 0, 0 };
-
-    quint64 _globalPositionChanged { 0 };
-    quint64 _avatarBoundingBoxChanged { 0 };
-    quint64 _sensorToWorldMatrixChanged { 0 };
-    quint64 _additionalFlagsChanged { 0 };
-    quint64 _parentChanged { 0 };
 
     quint64  _lastToByteArray { 0 }; // tracks the last time we did a toByteArray
 

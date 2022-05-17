@@ -81,7 +81,8 @@ const Derived& AvatarDataStream<Derived>::derived() const {
 
 template <typename Derived>
 float AvatarDataStream<Derived>::getDistanceBasedMinRotationDOT(glm::vec3 viewerPosition) const {
-    auto distance = glm::distance(_globalPosition, viewerPosition);
+    auto pos = derived().getGlobalPositionOut();
+    auto distance = glm::distance(glm::vec3(pos.globalPosition[0], pos.globalPosition[1], pos.globalPosition[2]), viewerPosition);
     float result = ROTATION_CHANGE_179D; // assume worst
     if (distance < AVATAR_DISTANCE_LEVEL_1) {
         result = AVATAR_MIN_ROTATION_DOT;
@@ -313,9 +314,10 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
     unsigned char * packetFlagsLocation = destinationBuffer;
     destinationBuffer += sizeof(wantedFlags);
 
-    IF_AVATAR_SPACE(PACKET_HAS_AVATAR_GLOBAL_POSITION, sizeof _globalPosition) {
+    IF_AVATAR_SPACE(PACKET_HAS_AVATAR_GLOBAL_POSITION, sizeof( AvatarDataPacket::AvatarGlobalPosition)) {
         auto startSection = destinationBuffer;
-        AVATAR_MEMCPY(_globalPosition);
+        AvatarDataPacket::AvatarGlobalPosition globalPosition = derived().getGlobalPositionOut();
+        AVATAR_MEMCPY(globalPosition);
 
         int numBytes = destinationBuffer - startSection;
 
@@ -443,9 +445,9 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
         // hasScriptedBlendshapes = _headData->_hasScriptedBlendshapes || _headData->_hasInputDrivenBlendshapes
         // headHasProceduralEyeMovement = _headData->getProceduralAnimationFlag(HeadData::SaccadeProceduralEyeJointAnimation) &&
         //     !_headData->getSuppressProceduralAnimationFlag(HeadData::SaccadeProceduralEyeJointAnimation);
-        // headHasProceduralEyeMovement = _headData->getProceduralAnimationFlag(HeadData::AudioProceduralBlendshapeAnimation) &&
+        // headHasAudioEnabledFaceMovement = _headData->getProceduralAnimationFlag(HeadData::AudioProceduralBlendshapeAnimation) &&
         //     !_headData->getSuppressProceduralAnimationFlag(HeadData::AudioProceduralBlendshapeAnimation)
-        // headHasProceduralEyeMovement = _headData->getProceduralAnimationFlag(HeadData::LidAdjustmentProceduralBlendshapeAnimation) &&
+        // headHasProceduralEyeFaceMovement = _headData->getProceduralAnimationFlag(HeadData::LidAdjustmentProceduralBlendshapeAnimation) &&
         //     !_headData->getSuppressProceduralAnimationFlag(HeadData::LidAdjustmentProceduralBlendshapeAnimation);
         // headHasProceduralBlinkFaceMovement = _headData->getProceduralAnimationFlag(HeadData::BlinkProceduralBlendshapeAnimation) &&
         //     !_headData->getSuppressProceduralAnimationFlag(HeadData::BlinkProceduralBlendshapeAnimation);
@@ -477,12 +479,12 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
         }
 
         // audio face movement
-        if (headHasProceduralEyeMovement) {
+        if (headHasAudioEnabledFaceMovement) {
             setAtBit16(flags, AUDIO_ENABLED_FACE_MOVEMENT);
         }
 
         // procedural eye face movement
-        if (headHasProceduralEyeMovement) {
+        if (headHasProceduralEyeFaceMovement) {
             setAtBit16(flags, PROCEDURAL_EYE_FACE_MOVEMENT);
         }
 
@@ -940,7 +942,8 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
     bool hasJointDefaultPoseFlags = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS);
     bool hasGrabJoints            = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_GRAB_JOINTS);
 
-    quint64 now = usecTimestampNow();
+    // FIXME: CRTP will be needed in derived
+    // quint64 now = usecTimestampNow();
 
     if (hasAvatarGlobalPosition) {
         auto startSection = sourceBuffer;
@@ -951,40 +954,40 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
 
         auto data = reinterpret_cast<const AvatarDataPacket::AvatarGlobalPosition*>(sourceBuffer);
 
-        glm::vec3 offset = glm::vec3(0.0f, 0.0f, 0.0f);
+        derived().setGlobalPositionIn(*data);
 
-        if (_replicaIndex > 0) {
-            const float SPACE_BETWEEN_AVATARS = 2.0f;
-            const int AVATARS_PER_ROW = 3;
-            int row = _replicaIndex % AVATARS_PER_ROW;
-            int col = floor(_replicaIndex / AVATARS_PER_ROW);
-            offset = glm::vec3(row * SPACE_BETWEEN_AVATARS, 0.0f, col * SPACE_BETWEEN_AVATARS);
-        }
+        // FIXME: CRTP move to derived.setGlobalPositionIn;
+        // glm::vec3 offset = glm::vec3(0.0f, 0.0f, 0.0f);
+        // if (_replicaIndex > 0) {
+        //     const float SPACE_BETWEEN_AVATARS = 2.0f;
+        //     const int AVATARS_PER_ROW = 3;
+        //     int row = _replicaIndex % AVATARS_PER_ROW;
+        //     int col = floor(_replicaIndex / AVATARS_PER_ROW);
+        //     offset = glm::vec3(row * SPACE_BETWEEN_AVATARS, 0.0f, col * SPACE_BETWEEN_AVATARS);
+        // }
+        // _serverPosition = glm::vec3(data->globalPosition[0], data->globalPosition[1], data->globalPosition[2]) + offset;
+        // if (_isClientAvatar) {
+        //     auto oneStepDistance = glm::length(_globalPosition - _serverPosition);
+        //     if (oneStepDistance <= AVATAR_TRANSIT_MIN_TRIGGER_DISTANCE || oneStepDistance >= AVATAR_TRANSIT_MAX_TRIGGER_DISTANCE) {
+        //         _globalPosition = _serverPosition;
+        //         // if we don't have a parent, make sure to also set our local position
+        //         if (parentID.isNull()) {
+        //             setLocalPosition(_serverPosition);
+        //         }
+        //     }
+        //     if (_globalPosition != _serverPosition) {
+        //         _globalPositionChanged = now;
+        //     }
+        // } else {
+        //     if (_globalPosition != _serverPosition) {
+        //         _globalPosition = _serverPosition;
+        //         _globalPositionChanged = now;
+        //     }
+        //     if (parentID.isNull()) {
+        //         setLocalPosition(_serverPosition);
+        //     }
+        // }
 
-        _serverPosition = glm::vec3(data->globalPosition[0], data->globalPosition[1], data->globalPosition[2]) + offset;
-        if (_isClientAvatar) {
-            auto oneStepDistance = glm::length(_globalPosition - _serverPosition);
-            if (oneStepDistance <= AVATAR_TRANSIT_MIN_TRIGGER_DISTANCE || oneStepDistance >= AVATAR_TRANSIT_MAX_TRIGGER_DISTANCE) {
-                _globalPosition = _serverPosition;
-                // if we don't have a parent, make sure to also set our local position
-                if (parentID.isNull()) {
-                    // FIXME: CRTP
-                    // setLocalPosition(_serverPosition);
-                }
-            }
-            if (_globalPosition != _serverPosition) {
-                _globalPositionChanged = now;
-            }
-        } else {
-            if (_globalPosition != _serverPosition) {
-                _globalPosition = _serverPosition;
-                _globalPositionChanged = now;
-            }
-            if (parentID.isNull()) {
-                // FIXME: CRTP
-                // setLocalPosition(_serverPosition);
-            }
-        }
         sourceBuffer += sizeof(AvatarDataPacket::AvatarGlobalPosition);
         int numBytesRead = sourceBuffer - startSection;
         _globalPositionRate.increment(numBytesRead);
@@ -1003,16 +1006,15 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
         auto newOffset = glm::vec3(data->boundOriginOffset[0], data->boundOriginOffset[1], data->boundOriginOffset[2]);
 
 
-        if (_globalBoundingBoxDimensions != newDimensions) {
-            _globalBoundingBoxDimensions = newDimensions;
-            _avatarBoundingBoxChanged = now;
-        }
-        if (_globalBoundingBoxOffset != newOffset) {
-            _globalBoundingBoxOffset = newOffset;
-            _avatarBoundingBoxChanged = now;
-        }
-
         // FIXME: CRTP
+        // if (_globalBoundingBoxDimensions != newDimensions) {
+        //     _globalBoundingBoxDimensions = newDimensions;
+        //     _avatarBoundingBoxChanged = now;
+        // }
+        // if (_globalBoundingBoxOffset != newOffset) {
+        //     _globalBoundingBoxOffset = newOffset;
+        //     _avatarBoundingBoxChanged = now;
+        // }
         // _defaultBubbleBox = computeBubbleBox();
 
         sourceBuffer += sizeof(AvatarDataPacket::AvatarBoundingBox);
@@ -2357,12 +2359,7 @@ template <typename Derived>
 int AvatarDataStream<Derived>::sendIdentityPacket() {
     auto nodeList = DependencyManager::get<NodeList>();
 
-    bool identityDataChanged = false;
-
-    // FIXME: CRTP
-    // identityDataChanged = _identityDataChanged;
-
-    if (identityDataChanged) {
+    if (derived().getIdentityDataChanged()) {
         // if the identity data has changed, push the sequence number forwards
         ++_identitySequenceNumber;
     }
@@ -2378,7 +2375,8 @@ int AvatarDataStream<Derived>::sendIdentityPacket() {
             nodeList->sendPacketList(std::move(packetList), *node);
     });
 
-    // FIXME: CRTP
+    derived().onIdentityDataSent();
+    // FIXME: CRTP move to derived
     // _identityDataChanged = false;
     return identityData.size();
 }

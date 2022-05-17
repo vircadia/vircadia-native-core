@@ -26,20 +26,35 @@ namespace vircadia::client
     void AvatarManager::update() {
         std::scoped_lock lock(myAvatarMutex);
         AvatarDataPacket::SendStatus status;
-        myAvatar.sendAllPackets(Avatar::SendAllData, status);
+        status.itemFlags = myAvatar.data.changes.to_ullong();
+        status.itemFlags &= AvatarDataPacket::ALL_HAS_FLAGS;
+        do {
+            myAvatar.sendAllPackets(Avatar::CullSmallData, status);
+        } while (!status);
+        // FIXME: if packet sending fails do not reset changes
+        myAvatar.data.changes.reset();
     }
 
     void AvatarManager::updateData() {
 
         {
             std::scoped_lock lock(avatarsMutex);
-            // write avatar data and epitaphs out
+            // FIXME: write avatar data and epitaphs out
         }
 
         {
             std::scoped_lock lock(myAvatarMutex);
+            auto previousChanges = myAvatar.data.changes;
             myAvatar.data = myAvatarDataIn;
-            // TODO: clear changes
+            myAvatar.data.changes |= previousChanges;
+
+            {
+                constexpr auto index = AvatarData::SkeletonModelURLIndex;
+                if (myAvatarDataIn.changes.test(index)) {
+                    myAvatar.setSkeletonModelURL(QString(myAvatarDataIn.getProperty<index>().c_str()));
+                }
+            }
+            myAvatarDataIn.changes.reset();
         }
 
     }

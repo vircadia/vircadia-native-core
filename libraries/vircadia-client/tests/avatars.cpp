@@ -28,40 +28,45 @@ using namespace std::literals;
 
 TEST_CASE("Client API avatar functionality.", "[client-api-avatars]") {
 
+    const auto avatarURLs = std::array{
+        "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Kim/fbx/Kim.fst",
+        "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Mason/fbx/Mason.fst",
+        "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Mike/fbx/Mike.fst",
+        "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Sean/fbx/Sean.fst",
+        "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Summer/fbx/Summer.fst",
+        "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Tanya/fbx/Tanya.fst"
+    };
+
+    unsigned randomIndex = std::chrono::steady_clock::now().time_since_epoch().count() % avatarURLs.size();
+
+
     const int context = vircadia_create_context(vircadia_context_defaults());
     vircadia_connect(context, "localhost");
 
-    REQUIRE(vircadia_enable_avatars(context) == 0);
-    REQUIRE(vircadia_set_my_avatar_display_name(context, "Client Unit Test Avatar") == 0);
+    vircadia_vector global_position {0,0,0};
 
     {
         auto cleanup = defer([context](){
             REQUIRE(vircadia_destroy_context(context) == 0);
         });
 
-        bool avatar_mixer_active = false;
+        REQUIRE(vircadia_set_my_avatar_display_name(context, "Client Unit Test Avatar") == vircadia_error_avatars_disabled());
+        REQUIRE(vircadia_update_avatars(context) == vircadia_error_avatars_disabled());
+
+        REQUIRE(vircadia_enable_avatars(context) == 0);
+        REQUIRE(vircadia_set_my_avatar_display_name(context, "Client Unit Test Avatar") == 0);
+        REQUIRE(vircadia_set_my_avatar_skeleton_model_url(context, avatarURLs[randomIndex]) == 0);
+
         for (int i = 0; i < 100; ++i) {
-            int status = vircadia_connection_status(context);
-            if (status == 1) {
 
-                REQUIRE(vircadia_update_nodes(context) == 0);
-                const int node_count = vircadia_node_count(context);
-                for (int i = 0; i < node_count; ++i) {
-                    if (vircadia_node_type(context, i) == vircadia_avatar_mixer_node()) {
-                        avatar_mixer_active = vircadia_node_active(context, i);
-                    }
-                }
-
-
-                if (avatar_mixer_active) {
-                    REQUIRE(vircadia_update_avatars(context) == 0);
-                }
-
-            }
+            REQUIRE(vircadia_update_avatars(context) == 0);
+            REQUIRE(vircadia_set_my_avatar_global_position(context, global_position) == 0);
+            global_position.x += 0.1f;
+            global_position.y += 0.1f;
+            global_position.z += 0.1f;
 
             std::this_thread::sleep_for(100ms);
         }
-
     }
 
 }

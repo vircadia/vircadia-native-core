@@ -80,4 +80,11 @@ VIRCADIA_CLIENT_DYN_API int vircadia_error_packet_write();
 /// @return -9
 VIRCADIA_CLIENT_DYN_API int vircadia_error_argument_invalid();
 
+/// @brief Handling of avatars is disabled.
+///
+/// Call vircadia_enable_avatars() first.
+///
+/// @return -10
+VIRCADIA_CLIENT_DYN_API int vircadia_error_avatars_disabled();
+
 #endif /* end of include guard */

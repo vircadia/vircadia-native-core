@@ -34,7 +34,9 @@ enum class ErrorCode : int {
 
     PACKET_WRITE,
 
-    ARGUMENT_INVALID
+    ARGUMENT_INVALID,
+
+    AVATARS_DISABLED
 
 };
 

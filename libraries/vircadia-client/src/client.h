@@ -21,5 +21,6 @@
 #include "node_list.h"
 #include "messages.h"
 #include "message_types.h"
+#include "avatars.h"
 
 #endif /* end of include guard */

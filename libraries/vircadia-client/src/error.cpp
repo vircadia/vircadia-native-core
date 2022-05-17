@@ -50,3 +50,7 @@ VIRCADIA_CLIENT_DYN_API int vircadia_error_packet_write() {
 VIRCADIA_CLIENT_DYN_API int vircadia_error_argument_invalid() {
     return toInt(ErrorCode::ARGUMENT_INVALID);
 }
+
+VIRCADIA_CLIENT_DYN_API int vircadia_error_avatars_disabled() {
+    return toInt(ErrorCode::AVATARS_DISABLED);
+}

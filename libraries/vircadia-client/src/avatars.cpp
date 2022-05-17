@@ -27,10 +27,17 @@ int vircadia_enable_avatars(int context_id) {
     });
 }
 
+int checkAvatarsEnabled(int id) {
+    return chain(checkContextReady(id), [&](auto) {
+        return std::next(std::begin(contexts), id)->avatars().isEnabled()
+            ? 0
+            : toInt(ErrorCode::AVATARS_DISABLED);
+    });
+}
+
 VIRCADIA_CLIENT_DYN_API
 int vircadia_update_avatars(int context_id) {
-    return chain(checkContextReady(context_id), [&](auto) {
-        // TODO: check is enabled
+    return chain(checkAvatarsEnabled(context_id), [&](auto) {
         std::next(std::begin(contexts), context_id)->avatars().update();
         return 0;
     });
@@ -38,13 +45,73 @@ int vircadia_update_avatars(int context_id) {
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_display_name(int context_id, const char* display_name) {
-    return chain(checkContextReady(context_id), [&](auto) {
-        // TODO: check is enabled
-        // TODO: only change display name
-        AvatarDataPacket::Identity identity{};
+    return chain(checkAvatarsEnabled(context_id), [&](auto) {
+        auto& avatar = std::next(std::begin(contexts), context_id)->avatars().myAvatar();
+        constexpr auto index = AvatarData::IdentityIndex;
+        auto identity = avatar.getProperty<index>();
         identity.displayName = display_name;
-        std::next(std::begin(contexts), context_id)->avatars().myAvatar().setProperty<AvatarData::IdentityIndex>(identity);
+        avatar.setProperty<index>(identity);
         return 0;
     });
 }
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_skeleton_model_url(int context_id, const char* skeleton_model_url) {
+    return chain(checkAvatarsEnabled(context_id), [&](auto) {
+        std::next(std::begin(contexts), context_id)->avatars().myAvatar()
+            .setProperty<AvatarData::SkeletonModelURLIndex>(skeleton_model_url);
+        return 0;
+    });
+}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_global_position(int context_id, vircadia_vector position) {
+    return chain(checkAvatarsEnabled(context_id), [&](auto) {
+        std::next(std::begin(contexts), context_id)->avatars().myAvatar()
+            .setProperty<AvatarData::GlobalPositionIndex>(position);
+        return 0;
+    });
+}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_bounding_box(int context_id, vircadia_bounds bounding_box) {}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_orientation(int context_id, vircadia_quaternion orientation) {}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_scale(int context_id, float scale) {}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_look_at(int context_id, vircadia_vector position) {}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_audio_loudness(int context_id, float loudness) {}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_sensor_to_world(int context_id, vircadia_transform transform) {}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_additional_flags(int context_id, vircadia_avatar_additional_flags flags) {}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_parent_info(int context_id, vircadia_avatar_parent_info flags) {}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_local_position(int context_id, vircadia_vector position) {}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_hand_controllers(int context_id, vircadia_avatar_hand_controllers controllers) {}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_face_tracker_info(int context_id, vircadia_avatar_face_tracker_info info) {}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_joint_data(int context_id, vircadia_vantage* data, int size) {}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_joint_flags(int context_id, vircadia_joint_flags* data, int size) {}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_grab_joints(int context_id, vircadia_joint_flags* data, int size) {}
 
