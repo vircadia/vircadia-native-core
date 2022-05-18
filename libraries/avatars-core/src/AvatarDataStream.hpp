@@ -223,7 +223,6 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
 
     bool cullSmallChanges = (dataDetail == CullSmallData);
     bool sendAll = (dataDetail == SendAllData);
-    bool sendMinimum = (dataDetail == MinimumData);
 
     // Leading flags, to indicate how much data is actually included in the packet...
     AvatarDataPacket::HasFlags wantedFlags = 0;
@@ -327,10 +326,14 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
         }
     }
 
-    IF_AVATAR_SPACE(PACKET_HAS_AVATAR_BOUNDING_BOX, sizeof _globalBoundingBoxDimensions + sizeof _globalBoundingBoxOffset) {
+    IF_AVATAR_SPACE(PACKET_HAS_AVATAR_BOUNDING_BOX, sizeof(AvatarDataPacket::AvatarBoundingBox)) {
         auto startSection = destinationBuffer;
-        AVATAR_MEMCPY(_globalBoundingBoxDimensions);
-        AVATAR_MEMCPY(_globalBoundingBoxOffset);
+        AvatarDataPacket::AvatarBoundingBox bounds = derived().getBoundingBoxOut();
+
+        // FIXME: CRTP
+        // AVATAR_MEMCPY(_globalBoundingBoxDimensions);
+        // AVATAR_MEMCPY(_globalBoundingBoxOffset);
+        AVATAR_MEMCPY(bounds);
 
         int numBytes = destinationBuffer - startSection;
         if (outboundDataRateOut) {
@@ -341,9 +344,11 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
     IF_AVATAR_SPACE(PACKET_HAS_AVATAR_ORIENTATION, sizeof(AvatarDataPacket::SixByteQuat)) {
         auto startSection = destinationBuffer;
         glm::quat localOrientation {};
-        // FIXME: CRTP
-        // localOrientation = getOrientationOutbound();
-        destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, localOrientation);
+
+        destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, derived().getOrientationOut());
+        // FIXME: CRTP Derived::getOrientationOut should
+        // return getOrientationOutbound();
+        // which is virtual
 
         int numBytes = destinationBuffer - startSection;
         if (outboundDataRateOut) {
@@ -354,7 +359,7 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
     IF_AVATAR_SPACE(PACKET_HAS_AVATAR_SCALE, sizeof(AvatarDataPacket::AvatarScale)) {
         auto startSection = destinationBuffer;
         auto data = reinterpret_cast<AvatarDataPacket::AvatarScale*>(destinationBuffer);
-        float scale = 0;
+        float scale = derived().getScaleOut();
         // FIXME: CRTP
         // scale = getDomainLimitedScale();
         packFloatRatioToTwoByte((uint8_t*)(&data->scale), scale);
@@ -1003,11 +1008,11 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
         }
 
         auto data = reinterpret_cast<const AvatarDataPacket::AvatarBoundingBox*>(sourceBuffer);
-        auto newDimensions = glm::vec3(data->avatarDimensions[0], data->avatarDimensions[1], data->avatarDimensions[2]);
-        auto newOffset = glm::vec3(data->boundOriginOffset[0], data->boundOriginOffset[1], data->boundOriginOffset[2]);
 
-
+        derived().setBoundingBoxIn(*data);
         // FIXME: CRTP
+        // auto newDimensions = glm::vec3(data->avatarDimensions[0], data->avatarDimensions[1], data->avatarDimensions[2]);
+        // auto newOffset = glm::vec3(data->boundOriginOffset[0], data->boundOriginOffset[1], data->boundOriginOffset[2]);
         // if (_globalBoundingBoxDimensions != newDimensions) {
         //     _globalBoundingBoxDimensions = newDimensions;
         //     _avatarBoundingBoxChanged = now;
@@ -1031,15 +1036,15 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
         }
         glm::quat newOrientation;
         sourceBuffer += unpackOrientationQuatFromSixBytes(sourceBuffer, newOrientation);
-        glm::quat currentOrientation {};
-        // FIXME: CRTP
-        // currentOrientation = getLocalOrientation();
 
-        if (currentOrientation != newOrientation) {
-            _hasNewJointData = true;
-            // FIXME: CRTP
-            // setLocalOrientation(newOrientation);
-        }
+        derived().setOrientationIn(newOrientation);
+        // FIXME: CRTP
+        // glm::quat currentOrientation = getLocalOrientation();
+        // if (currentOrientation != newOrientation) {
+        //     _hasNewJointData = true;
+        //     setLocalOrientation(newOrientation);
+        // }
+
         int numBytesRead = sourceBuffer - startSection;
         _avatarOrientationRate.increment(numBytesRead);
         _avatarOrientationUpdateRate.increment();
@@ -1056,12 +1061,14 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
         float scale;
         unpackFloatRatioFromTwoByte((uint8_t*)&data->scale, scale);
         if (isNaN(scale)) {
+            derived().onParseError("Discard avatar data packet: scale NaN.");
             // FIXME: CRTP
             // if (shouldLogError(now)) {
             //     qCWarning(avatars) << "Discard avatar data packet: scale NaN, uuid " << getSessionUUID();
             // }
             return buffer.size();
         }
+        derived().setScaleIn(scale);
         // FIXME: CRTP
         // setTargetScale(scale);
         sourceBuffer += sizeof(AvatarDataPacket::AvatarScale);

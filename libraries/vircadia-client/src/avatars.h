@@ -126,7 +126,7 @@ VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_additional_flags(int context_id, vircadia_avatar_additional_flags flags);
 
 VIRCADIA_CLIENT_DYN_API
-int vircadia_set_my_avatar_parent_info(int context_id, vircadia_avatar_parent_info flags);
+int vircadia_set_my_avatar_parent_info(int context_id, vircadia_avatar_parent_info info);
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_local_position(int context_id, vircadia_vector position);
@@ -138,12 +138,12 @@ VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_face_tracker_info(int context_id, vircadia_avatar_face_tracker_info info);
 
 VIRCADIA_CLIENT_DYN_API
-int vircadia_set_my_avatar_joint_data(int context_id, vircadia_vantage* data, int size);
+int vircadia_set_my_avatar_joint_data(int context_id, vircadia_vantage* joints, int size);
 
 VIRCADIA_CLIENT_DYN_API
-int vircadia_set_my_avatar_joint_flags(int context_id, vircadia_joint_flags* data, int size);
+int vircadia_set_my_avatar_joint_flags(int context_id, vircadia_joint_flags* joints, int size);
 
 VIRCADIA_CLIENT_DYN_API
-int vircadia_set_my_avatar_grab_joints(int context_id, vircadia_joint_flags* data, int size);
+int vircadia_set_my_avatar_grab_joints(int context_id, vircadia_far_grab_joints joints);
 
 #endif /* end of include guard */

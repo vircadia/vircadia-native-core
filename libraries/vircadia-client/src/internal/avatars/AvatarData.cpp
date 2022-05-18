@@ -54,6 +54,67 @@ namespace vircadia::client
         });
     }
 
+    AvatarDataPacket::AvatarBoundingBox Avatar::getBoundingBoxOut() const {
+        auto bounds = data.getProperty<AvatarData::BoundingBoxIndex>();
+        data.getProperty<3>();
+        return {
+            {
+                bounds.dimensions.x,
+                bounds.dimensions.y,
+                bounds.dimensions.z
+            },
+            {
+                bounds.offset.x,
+                bounds.offset.y,
+                bounds.offset.z
+            }
+        };
+    }
+
+    void Avatar::setBoundingBoxIn(const AvatarDataPacket::AvatarBoundingBox& bounds) {
+        data.setProperty<AvatarData::BoundingBoxIndex>({
+            {
+                bounds.avatarDimensions[0],
+                bounds.avatarDimensions[1],
+                bounds.avatarDimensions[2]
+            },
+            {
+                bounds.boundOriginOffset[0],
+                bounds.boundOriginOffset[1],
+                bounds.boundOriginOffset[2]
+            }
+        });
+    }
+
+    glm::quat Avatar::getOrientationOut() const {
+        auto orientation = data.getProperty<AvatarData::OrientationIndex>();
+        return {
+            orientation.w,
+            orientation.x,
+            orientation.y,
+            orientation.z
+        };
+    }
+
+    void Avatar::setOrientationIn(glm::quat orientation) {
+        data.setProperty<AvatarData::OrientationIndex>({
+            orientation.x,
+            orientation.y,
+            orientation.z,
+            orientation.w
+        });
+    }
+
+    float Avatar::getScaleOut() const {
+        return data.getProperty<AvatarData::ScaleIndex>();
+    }
+
+    void Avatar::setScaleIn(float scale) {
+        data.setProperty<AvatarData::ScaleIndex>(scale);
+    }
+
+    void Avatar::onParseError(std::string) {}
+
 } // namespace vircadia::client
 
 template class AvatarDataStream<vircadia::client::Avatar>;

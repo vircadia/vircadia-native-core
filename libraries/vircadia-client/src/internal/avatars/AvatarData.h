@@ -133,7 +133,7 @@ namespace vircadia::client
             SensorToWorldMatrixIndex,
             AdditionalFlagsIndex,
             ParentInfoIndex,
-            LocalPosition,
+            LocalPositionIndex,
             HandControllersIndex,
             FaceTrackerInfoIndex,
             JointDataIndex,
@@ -168,11 +168,11 @@ namespace vircadia::client
         Properties properties;
         std::bitset<std::tuple_size_v<Properties>> changes;
 
-        template <size_t Index>
-        bool setProperty(const std::tuple_element_t<Index, Properties>& value) {
+        template <PropertyIndex Index>
+        bool setProperty(std::tuple_element_t<Index, Properties> value) {
             auto& current = std::get<Index>(properties);
             if (current != value) {
-                current = value;
+                current = std::move(value);
                 changes.set(Index);
                 return true;
             }
@@ -201,6 +201,17 @@ namespace vircadia::client
 
             AvatarDataPacket::AvatarGlobalPosition getGlobalPositionOut() const;
             void setGlobalPositionIn(const AvatarDataPacket::AvatarGlobalPosition&);
+
+            AvatarDataPacket::AvatarBoundingBox getBoundingBoxOut() const;
+            void setBoundingBoxIn(const AvatarDataPacket::AvatarBoundingBox&);
+
+            glm::quat getOrientationOut() const;
+            void setOrientationIn(glm::quat);
+
+            float getScaleOut() const;
+            void setScaleIn(float);
+
+            void onParseError(std::string message);
 
             AvatarData data;
     };

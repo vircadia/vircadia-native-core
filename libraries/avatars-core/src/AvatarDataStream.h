@@ -754,9 +754,6 @@ protected:
     // Some rate data for outgoing data
     AvatarDataRate _outboundDataRate;
 
-    glm::vec3 _globalBoundingBoxDimensions;
-    glm::vec3 _globalBoundingBoxOffset;
-
     mutable ReadWriteLockable _avatarEntitiesLock;
     AvatarEntityIDs _avatarEntityRemoved; // recently removed AvatarEntity ids
     PackedAvatarEntityMap _packedAvatarEntityData;
