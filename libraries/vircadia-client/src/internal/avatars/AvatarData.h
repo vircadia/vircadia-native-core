@@ -153,7 +153,7 @@ namespace vircadia::client
             vircadia_vector,                   // look at position
             float,                             // audio loudness
             vircadia_transform,                // sensor to world matrix
-            vircadia_avatar_additional_flags,   // additional flags
+            vircadia_avatar_additional_flags,  // additional flags
             vircadia_avatar_parent_info,       // parent info
             vircadia_vector,                   // local position
             vircadia_avatar_hand_controllers,  // hand controllers

@@ -29,7 +29,7 @@ using namespace std::literals;
 
 TEST_CASE("Client API avatar functionality.", "[client-api-avatars]") {
 
-    const auto avatarURLs = std::array{
+    const auto avatarURLs = array{
         "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Kim/fbx/Kim.fst",
         "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Mason/fbx/Mason.fst",
         "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Mike/fbx/Mike.fst",
