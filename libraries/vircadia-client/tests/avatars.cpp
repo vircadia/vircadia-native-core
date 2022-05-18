@@ -30,12 +30,12 @@ using namespace std::literals;
 TEST_CASE("Client API avatar functionality.", "[client-api-avatars]") {
 
     const auto avatarURLs = std::array{
-        "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Kim/fbx/Kim.fst"s,
-        "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Mason/fbx/Mason.fst"s,
-        "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Mike/fbx/Mike.fst"s,
-        "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Sean/fbx/Sean.fst"s,
-        "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Summer/fbx/Summer.fst"s,
-        "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Tanya/fbx/Tanya.fst"s
+        "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Kim/fbx/Kim.fst",
+        "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Mason/fbx/Mason.fst",
+        "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Mike/fbx/Mike.fst",
+        "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Sean/fbx/Sean.fst",
+        "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Summer/fbx/Summer.fst",
+        "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Tanya/fbx/Tanya.fst"
     };
 
     unsigned randomIndex = std::chrono::steady_clock::now().time_since_epoch().count() % avatarURLs.size();
@@ -55,7 +55,7 @@ TEST_CASE("Client API avatar functionality.", "[client-api-avatars]") {
 
         REQUIRE(vircadia_enable_avatars(context) == 0);
         REQUIRE(vircadia_set_my_avatar_display_name(context, "Client Unit Test Avatar") == 0);
-        REQUIRE(vircadia_set_my_avatar_skeleton_model_url(context, avatarURLs[randomIndex].c_str()) == 0);
+        REQUIRE(vircadia_set_my_avatar_skeleton_model_url(context, avatarURLs[randomIndex]) == 0);
 
         for (int i = 0; i < 100; ++i) {
 
