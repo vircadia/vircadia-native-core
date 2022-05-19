@@ -113,7 +113,106 @@ namespace vircadia::client
         data.setProperty<AvatarData::ScaleIndex>(scale);
     }
 
-    void Avatar::onParseError(std::string) {}
+    AvatarDataPacket::LookAtPosition Avatar::getLookAtPositionOut() const {
+        auto& position = data.getProperty<AvatarData::LookAtPositionIndex>();
+        return { position.x, position.y, position.z };
+    }
+
+    void Avatar::setLookAtPositionIn(const AvatarDataPacket::LookAtPosition& position) {
+        data.setProperty<AvatarData::LookAtPositionIndex>({
+            position.lookAtPosition[0],
+            position.lookAtPosition[1],
+            position.lookAtPosition[2]
+        });
+    }
+
+    float Avatar::getAudioLoudnessOut() const {
+        return data.getProperty<AvatarData::AudioLoudnessIndex>();
+    }
+
+    void Avatar::setAudioLoudnessIn(float loudness) {
+        data.setProperty<AvatarData::AudioLoudnessIndex>(loudness);
+    }
+
+    Avatar::Transform Avatar::getSensorToWorldMatrixOut() const {
+        auto transform = data.getProperty<AvatarData::SensorToWorldMatrixIndex>();
+        auto position = transform.vantage.position;
+        auto rotation = transform.vantage.rotation;
+        auto scale = transform.scale;
+        return {
+            {position.x, position.y, position.z},
+            {rotation.w, rotation.x, rotation.y, rotation.z},
+            {scale, scale, scale},
+        };
+    }
+
+    void Avatar::setSensorToWorldMatrixIn(Transform transform) {
+        auto position = transform.translation;
+        auto rotation = transform.rotation;
+        auto scale = transform.scale;
+        data.setProperty<AvatarData::SensorToWorldMatrixIndex>({
+            {
+                {position.x, position.y, position.z},
+                {rotation.x, rotation.y, rotation.z, rotation.w}
+            },
+            {scale.x}
+        });
+    }
+
+    Avatar::AdditionalFlags Avatar::getAdditionalFlagsOut() const {
+        auto flags = data.getProperty<AvatarData::AdditionalFlagsIndex>();
+        return {
+            KeyState(flags.key_state),
+            flags.hand_state,
+            bool(flags.has_head_scripted_blendshapes),
+            bool(flags.has_procedural_eye_movement),
+            bool(flags.has_audio_face_movement),
+            bool(flags.has_procedural_eye_face_movement),
+            bool(flags.has_procedural_blink_face_movement),
+            bool(flags.collides_with_avatars),
+            bool(flags.has_priority)
+        };
+    };
+
+    void Avatar::setAdditionalFlagsIn(vircadia_avatar_additional_flags flags) {
+        data.setProperty<AvatarData::AdditionalFlagsIndex>(flags);
+    }
+
+    Avatar::ParentInfo Avatar::getParentInfoOut() const {
+        auto parent = data.getProperty<AvatarData::ParentInfoIndex>();
+        UUID id;
+        std::copy_n(parent.uuid, id.size(), id.data());
+        return { id, parent.joint_index};
+    }
+
+    void Avatar::setParentInfoIn(const uint8_t* uuid, uint16_t jointIndex) {
+        vircadia_avatar_parent_info info{};
+        std::copy_n(uuid, UUID{}.size(), info.uuid);
+        info.joint_index = jointIndex;
+        data.setProperty<AvatarData::ParentInfoIndex>(info);
+    }
+
+    AvatarDataPacket::AvatarLocalPosition Avatar::getLocalPositionOut() const {
+        auto position = data.getProperty<AvatarData::LocalPositionIndex>();
+        return {{position.x, position.y, position.z}};
+    }
+
+    void Avatar::setLocalPositionIn(const AvatarDataPacket::AvatarLocalPosition& position) {
+        data.setProperty<AvatarData::LocalPositionIndex>({
+            position.localPosition[0],
+            position.localPosition[1],
+            position.localPosition[2]
+        });
+    }
+
+
+    void Avatar::onParseError(std::string) {
+        //TODO keep a log of last N errors
+    }
+
+    void Avatar::onPacketTooSmallError(std::string, int, int) {
+        //TODO keep a log of last N errors
+    }
 
 } // namespace vircadia::client
 

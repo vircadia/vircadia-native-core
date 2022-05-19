@@ -283,7 +283,7 @@ namespace AvatarDataPacket {
 
     // only present if HAS_REFERENTIAL flag is set in AvatarInfo.flags
     PACKED_BEGIN struct ParentInfo {
-        uint8_t parentUUID[16];       // rfc 4122 encoded
+        uint8_t parentUUID[NUM_BYTES_RFC4122_UUID ];       // rfc 4122 encoded
         uint16_t parentJointIndex;
     } PACKED_END;
     const size_t PARENT_INFO_SIZE = 18;
@@ -514,29 +514,8 @@ public:
     void doneEncoding(bool cullSmallChanges, const AvatarDataPacket::SendStatus& sendStatus);
     void doneEncoding(bool cullSmallChanges);
 
-    /// \param packet byte array of data
-    /// \param offset number of bytes into packet where data starts
-    /// \return number of bytes parsed
     int parseDataFromBuffer(const QByteArray& buffer);
 
-    float getAudioLoudness() const { return _audioLoudness; }
-    void setAudioLoudness(float audioLoudness) {
-        if (audioLoudness != _audioLoudness) {
-            _audioLoudnessChanged = usecTimestampNow();
-        }
-        _audioLoudness = audioLoudness;
-    }
-    bool audioLoudnessChangedSince(quint64 time) const { return _audioLoudnessChanged >= time; }
-
-    float getAudioAverageLoudness() const { return _audioAverageLoudness; }
-    void setAudioAverageLoudness(float audioAverageLoudness) { _audioAverageLoudness = audioAverageLoudness; }
-
-    /*@jsdoc
-     * Gets the current height of the avatar.
-     * This height is only an estimate and might be incorrect for avatars that are missing standard joints.
-     * @function Avatar.getHeight
-     * @returns {number} The height of the avatar.
-     */
     float getHeight() const;
 
     float getUnscaledHeight() const;
@@ -767,10 +746,6 @@ protected:
     std::vector<AvatarSkeletonTrait::UnpackedJointData> _avatarSkeletonData;
 
     int getFauxJointIndex(const QString& name) const;
-
-    float _audioLoudness { 0.0f };
-    quint64 _audioLoudnessChanged { 0 };
-    float _audioAverageLoudness { 0.0f };
 
     udt::SequenceNumber _identitySequenceNumber { 0 };
     bool _hasProcessedFirstIdentity { false };

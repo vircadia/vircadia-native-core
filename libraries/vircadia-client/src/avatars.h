@@ -89,6 +89,14 @@ struct vircadia_joint_flags {
     uint8_t rotation_is_default;
 };
 
+struct vircadia_avatar_attachment {
+    const char* model_url;
+    const char* jount_name;
+    vircadia_vantage vantage;
+    float scale;
+    uint8_t isSoft;
+};
+
 VIRCADIA_CLIENT_DYN_API
 int vircadia_enable_avatars(int context_id);
 
@@ -97,6 +105,21 @@ int vircadia_update_avatars(int context_id);
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_display_name(int context_id, const char* display_name);
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_is_replicated(int context_id, uint8_t is_replicated);
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_look_at_snapping(int context_id, uint8_t look_at_snapping_enabled);
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_verification(int context_id, uint8_t verification_failed);
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_attachments(int context_id, vircadia_avatar_attachment* attachments, int size);
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_session_display_name(int context_id, const char* session_display_name);
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_skeleton_model_url(int context_id, const char* skeleton_model_url);

@@ -209,12 +209,8 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
 
         QByteArray avatarDataByteArray;
         if (sendStatus.sendUUID) {
-            const char* id = nullptr;
-            // FIXME: CRTP
-            // auto convertedId = getSessionUUID().toRfc4122();
-            // id = convertedId.data();
-            //
-            avatarDataByteArray.append(id, NUM_BYTES_RFC4122_UUID);
+            auto convertedId = derived().getSessionUUID().toRfc4122();
+            avatarDataByteArray.append(convertedId.data(), NUM_BYTES_RFC4122_UUID);
         }
 
         avatarDataByteArray.append((char*) &sendStatus.itemFlags, sizeof sendStatus.itemFlags);
@@ -302,12 +298,8 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
         && (includedFlags |= AvatarDataPacket::flag))
 
     if (sendStatus.sendUUID) {
-        const char* id = nullptr;
-        // FIXME: CRTP
-        // auto convertedId = getSessionUUID().toRfc4122();
-        // id = convertedId.data();
-        //
-        memcpy(destinationBuffer, id, NUM_BYTES_RFC4122_UUID);
+        auto convertedId = derived().getSessionUUID().toRfc4122();
+        memcpy(destinationBuffer, convertedId.data(), NUM_BYTES_RFC4122_UUID);
         destinationBuffer += NUM_BYTES_RFC4122_UUID;
     }
 
@@ -373,7 +365,7 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
 
 
     IF_AVATAR_SPACE(PACKET_HAS_LOOK_AT_POSITION, sizeof(AvatarDataPacket::LookAtPosition) ) {
-        AvatarDataPacket::LookAtPosition lookAtPosition{};
+        AvatarDataPacket::LookAtPosition lookAtPosition = derived().getLookAtPositionOut();
 
         // TODO: CRTP
         // lookAtPosition.LookAtPosition[0] = _headData->getLookAtPosition().x;
@@ -391,7 +383,8 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
     IF_AVATAR_SPACE(PACKET_HAS_AUDIO_LOUDNESS, sizeof(AvatarDataPacket::AudioLoudness)) {
         auto startSection = destinationBuffer;
         auto data = reinterpret_cast<AvatarDataPacket::AudioLoudness*>(destinationBuffer);
-        data->audioLoudness = packFloatGainToByte(getAudioLoudness() / AUDIO_LOUDNESS_SCALE);
+        // FIXME: CRTP return gerAudioLoudness from Derived::getAudioLoudnessOut
+        data->audioLoudness = packFloatGainToByte(derived().getAudioLoudnessOut() / AUDIO_LOUDNESS_SCALE);
         destinationBuffer += sizeof(AvatarDataPacket::AudioLoudness);
 
         int numBytes = destinationBuffer - startSection;
@@ -405,21 +398,19 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
 
         auto data = reinterpret_cast<AvatarDataPacket::SensorToWorldMatrix*>(destinationBuffer);
 
-        glm::vec3 scale{};
-        glm::quat rotation{};
-        glm::vec3 translation{};
+        auto matrix = derived().getSensorToWorldMatrixOut();
 
-        // FIXME: CRTP;
+        // FIXME: CRTP
         // glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
         // rotation = glmExtractRotation(sensorToWorldMatrix);
         // scale = extractScale(sensorToWorldMatrix);
         // translation = sensorToWorldMatrix[3];
 
-        data->sensorToWorldTrans[0] = translation[0];
-        data->sensorToWorldTrans[1] = translation[1];
-        data->sensorToWorldTrans[2] = translation[2];
-        packOrientationQuatToSixBytes(data->sensorToWorldQuat, rotation);
-        packFloatScalarToSignedTwoByteFixed((uint8_t*)&data->sensorToWorldScale, scale.x, SENSOR_TO_WORLD_SCALE_RADIX);
+        data->sensorToWorldTrans[0] = matrix.translation[0];
+        data->sensorToWorldTrans[1] = matrix.translation[1];
+        data->sensorToWorldTrans[2] = matrix.translation[2];
+        packOrientationQuatToSixBytes(data->sensorToWorldQuat, matrix.rotation);
+        packFloatScalarToSignedTwoByteFixed((uint8_t*)&data->sensorToWorldScale, matrix.scale.x, SENSOR_TO_WORLD_SCALE_RADIX);
 
         destinationBuffer += sizeof(AvatarDataPacket::SensorToWorldMatrix);
 
@@ -435,20 +426,21 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
 
         uint16_t flags { 0 };
 
-        KeyState keyState {};
-        char handState = 0;
-        bool headHasScriptedBlendshapes = false;
-        bool headHasProceduralEyeMovement = false;
-        bool headHasAudioEnabledFaceMovement = false;
-        bool headHasProceduralEyeFaceMovement = false;
-        bool headHasProceduralBlinkFaceMovement = false;
-        bool collideWithOtherAvatars = false;
-        bool hasPriority = false;
+        auto [
+            keyState,
+            handState,
+            headHasScriptedBlendshapes,
+            headHasProceduralEyeMovement,
+            headHasAudioEnabledFaceMovement,
+            headHasProceduralEyeFaceMovement,
+            headHasProceduralBlinkFaceMovement, collideWithOtherAvatars,
+            hasPriority
+        ] = derived().getAdditionalFlagsOut();
 
         // FIXME: CRTP
         // keyState = _keyState;
         // handState = _handState;
-        // hasScriptedBlendshapes = _headData->_hasScriptedBlendshapes || _headData->_hasInputDrivenBlendshapes
+        // headHasScriptedBlendshapes = _headData->_hasScriptedBlendshapes || _headData->_hasInputDrivenBlendshapes
         // headHasProceduralEyeMovement = _headData->getProceduralAnimationFlag(HeadData::SaccadeProceduralEyeJointAnimation) &&
         //     !_headData->getSuppressProceduralAnimationFlag(HeadData::SaccadeProceduralEyeJointAnimation);
         // headHasAudioEnabledFaceMovement = _headData->getProceduralAnimationFlag(HeadData::AudioProceduralBlendshapeAnimation) &&
@@ -521,10 +513,13 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
     IF_AVATAR_SPACE(PACKET_HAS_PARENT_INFO, sizeof(AvatarDataPacket::ParentInfo)) {
         auto startSection = destinationBuffer;
         auto parentInfo = reinterpret_cast<AvatarDataPacket::ParentInfo*>(destinationBuffer);
-        QByteArray referentialAsBytes = parentID.toRfc4122();
-        memcpy(parentInfo->parentUUID, referentialAsBytes.data(), referentialAsBytes.size());
+
+        auto [parentUUID, parentJointIndex] = derived().getParentInfoOut();
         // FIXME: CRTP
-        // parentInfo->parentJointIndex = getParentJointIndex();
+        // parentUUID = parentID.toRfc4122();
+        // parentJointIndex = getParentJointIndex();
+        memcpy(parentInfo->parentUUID, parentUUID.data(), parentUUID.size());
+        parentInfo->parentJointIndex = parentJointIndex;
         destinationBuffer += sizeof(AvatarDataPacket::ParentInfo);
 
         int numBytes = destinationBuffer - startSection;
@@ -535,7 +530,7 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
 
     IF_AVATAR_SPACE(PACKET_HAS_AVATAR_LOCAL_POSITION, AvatarDataPacket::AVATAR_LOCAL_POSITION_SIZE) {
         auto startSection = destinationBuffer;
-        const glm::vec3 localPosition {};
+        AvatarDataPacket::AvatarLocalPosition  localPosition = derived().getLocalPositionOut();
         // FIXME: CRTP
         // localPosition = getLocalPosition();
         AVATAR_MEMCPY(localPosition);
@@ -902,8 +897,6 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
     // lazily allocate memory for HeadData in case we're not an Avatar instance
     // lazyInitHeadData();
 
-    QUuid parentID;
-
     // FIXME: CRTP
     // parentID = getParentID();
 
@@ -915,6 +908,7 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
 
     auto packetReadCheck = [&](const char* name, int sizeToRead) {
         if ((endPosition - sourceBuffer) < (int)sizeToRead) {
+            derived().onPacketTooSmallError(name, sizeToRead, endPosition - sourceBuffer);
             // FIXME: CRTP
             // if (shouldLogError(now)) {
             //     qCWarning(avatars) << "Avatar data packet too small, attempting to read " <<
@@ -1085,15 +1079,17 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
         }
 
         auto data = reinterpret_cast<const AvatarDataPacket::LookAtPosition*>(sourceBuffer);
-        glm::vec3 lookAt = glm::vec3(data->lookAtPosition[0], data->lookAtPosition[1], data->lookAtPosition[2]);
-        if (isNaN(lookAt)) {
+        if (std::any_of(+data->lookAtPosition, data->lookAtPosition + 3, (bool(*)(float))isNaN)) {
+            derived().onParseError("Discard avatar data packet: lookAtPosition is NaN");
             // FIXME: CRTP
             // if (shouldLogError(now)) {
             //     qCWarning(avatars) << "Discard avatar data packet: lookAtPosition is NaN, uuid " << getSessionUUID();
             // }
             return buffer.size();
         }
+        derived().setLookAtPositionIn(*data);
         // FIXME: CRTP
+        // glm::vec3 lookAt = glm::vec3(data->lookAtPosition[0], data->lookAtPosition[1], data->lookAtPosition[2]);
         // _headData->setLookAtPosition(lookAt);
         sourceBuffer += sizeof(AvatarDataPacket::LookAtPosition);
         int numBytesRead = sourceBuffer - startSection;
@@ -1114,13 +1110,16 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += sizeof(AvatarDataPacket::AudioLoudness);
 
         if (isNaN(audioLoudness)) {
+            derived().onParseError("Discard avatar data packet: audioLoudness is NaN");
             // FIXME: CRTP
             // if (shouldLogError(now)) {
             //     qCWarning(avatars) << "Discard avatar data packet: audioLoudness is NaN, uuid " << getSessionUUID();
             // }
             return buffer.size();
         }
-        setAudioLoudness(audioLoudness);
+        // FIXME: CRTP
+        // setAudioLoudness(audioLoudness);
+        derived().setAudioLoudnessIn(audioLoudness);
         int numBytesRead = sourceBuffer - startSection;
         _audioLoudnessRate.increment(numBytesRead);
         _audioLoudnessUpdateRate.increment();
@@ -1143,9 +1142,13 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
         unpackFloatScalarFromSignedTwoByteFixed((int16_t*)&srcSensorToWorldScale, &sensorToWorldScale, SENSOR_TO_WORLD_SCALE_RADIX);
         glm::vec3 sensorToWorldTrans(data->sensorToWorldTrans[0], data->sensorToWorldTrans[1], data->sensorToWorldTrans[2]);
 
+        derived().setSensorToWorldMatrixIn({
+            sensorToWorldTrans,
+            sensorToWorldQuat,
+            glm::vec3(sensorToWorldScale)
+        });
         // FIXME: CRTP
         // glm::mat4 sensorToWorldMatrix = createMatFromScaleQuatAndPos(glm::vec3(sensorToWorldScale), sensorToWorldQuat, sensorToWorldTrans);
-        //
         // if (_sensorToWorldMatrixCache.get() != sensorToWorldMatrix) {
         //     _sensorToWorldMatrixCache.set(sensorToWorldMatrix);
         //     _sensorToWorldMatrixChanged = now;
@@ -1191,23 +1194,35 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
         auto newCollideWithOtherAvatars = oneAtBit16(bitItems, COLLIDE_WITH_OTHER_AVATARS);
         auto newHasPriority = oneAtBit16(bitItems, HAS_HERO_PRIORITY);
 
-        KeyState keyState {};
+        derived().setAdditionalFlagsIn({
+            newKeyState,
+            static_cast<uint8_t>(newHandState),
+            newHasScriptedBlendshapes,
+            newHasProceduralEyeMovement,
+            newHasAudioEnabledFaceMovement,
+            newHasProceduralEyeFaceMovement,
+            newHasProceduralBlinkFaceMovement,
+            newCollideWithOtherAvatars,
+            newHasPriority
+        });
+
         // FIXME: CRTP
+        // KeyState keyState {};
         // keyState = _keyState;
 
-        char handState {};
         // FIXME: CRTP
+        // char handState {};
         // handState = _handState;
 
-        bool headDataHasScriptedBlendshaped = false;
-        bool headDataHasProceduralEyeMovement = false;
-        bool headDataHasAudioEnabledFaceMovement = false;
-        bool headDataHasProceduralEyeFaceMovement = false;
-        bool headDataHasProceduralBlinkFaceMovement = false;
-        bool collideWithOtherAvatars = false;
-        bool hasPriority = false;
-
         //FIXME: CRTP
+        // bool headDataHasScriptedBlendshaped = false;
+        // bool headDataHasProceduralEyeMovement = false;
+        // bool headDataHasAudioEnabledFaceMovement = false;
+        // bool headDataHasProceduralEyeFaceMovement = false;
+        // bool headDataHasProceduralBlinkFaceMovement = false;
+        // bool collideWithOtherAvatars = false;
+        // bool hasPriority = false;
+
         // headDataHasScriptedBlendshaped = _headData->getHasScriptedBlendshapes();
         // headDataHasProceduralEyeMovement = _headData->getProceduralAnimationFlag(HeadData::SaccadeProceduralEyeJointAnimation);
         // headDataHasAudioEnabledFaceMovement = _headData->getProceduralAnimationFlag(HeadData::AudioProceduralBlendshapeAnimation);
@@ -1216,19 +1231,19 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
         // collideWithOtherAvatars = _collideWithOtherAvatars;
         // hasPriority = getHasPriority();
 
-        bool keyStateChanged = (keyState != newKeyState);
-        bool handStateChanged = (handState != newHandState);
-        bool faceStateChanged = (headDataHasScriptedBlendshaped != newHasScriptedBlendshapes);
+        // bool keyStateChanged = (keyState != newKeyState);
+        // bool handStateChanged = (handState != newHandState);
+        // bool faceStateChanged = (headDataHasScriptedBlendshaped != newHasScriptedBlendshapes);
 
-        bool eyeStateChanged = (headDataHasProceduralEyeMovement != newHasProceduralEyeMovement);
-        bool audioEnableFaceMovementChanged = (headDataHasAudioEnabledFaceMovement != newHasAudioEnabledFaceMovement);
-        bool proceduralEyeFaceMovementChanged = (headDataHasProceduralEyeFaceMovement != newHasProceduralEyeFaceMovement);
-        bool proceduralBlinkFaceMovementChanged = (headDataHasProceduralBlinkFaceMovement != newHasProceduralBlinkFaceMovement);
-        bool collideWithOtherAvatarsChanged = (collideWithOtherAvatars != newCollideWithOtherAvatars);
-        bool hasPriorityChanged = (hasPriority != newHasPriority);
-        bool somethingChanged = keyStateChanged || handStateChanged || faceStateChanged || eyeStateChanged || audioEnableFaceMovementChanged ||
-                                proceduralEyeFaceMovementChanged ||
-                                proceduralBlinkFaceMovementChanged || collideWithOtherAvatarsChanged || hasPriorityChanged;
+        // bool eyeStateChanged = (headDataHasProceduralEyeMovement != newHasProceduralEyeMovement);
+        // bool audioEnableFaceMovementChanged = (headDataHasAudioEnabledFaceMovement != newHasAudioEnabledFaceMovement);
+        // bool proceduralEyeFaceMovementChanged = (headDataHasProceduralEyeFaceMovement != newHasProceduralEyeFaceMovement);
+        // bool proceduralBlinkFaceMovementChanged = (headDataHasProceduralBlinkFaceMovement != newHasProceduralBlinkFaceMovement);
+        // bool collideWithOtherAvatarsChanged = (collideWithOtherAvatars != newCollideWithOtherAvatars);
+        // bool hasPriorityChanged = (hasPriority != newHasPriority);
+        // bool somethingChanged = keyStateChanged || handStateChanged || faceStateChanged || eyeStateChanged || audioEnableFaceMovementChanged ||
+        //                         proceduralEyeFaceMovementChanged ||
+        //                         proceduralBlinkFaceMovementChanged || collideWithOtherAvatarsChanged || hasPriorityChanged;
 
         // FIXME: CRTP
         // _keyState = newKeyState;
@@ -1270,11 +1285,10 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
         auto parentInfo = reinterpret_cast<const AvatarDataPacket::ParentInfo*>(sourceBuffer);
         sourceBuffer += sizeof(AvatarDataPacket::ParentInfo);
 
-        QByteArray byteArray((const char*)parentInfo->parentUUID, NUM_BYTES_RFC4122_UUID);
-
-        auto newParentID = QUuid::fromRfc4122(byteArray);
-
+        derived().setParentInfoIn(parentInfo->parentUUID, parentInfo->parentJointIndex);
         // FIXME: CRTP
+        // QByteArray byteArray((const char*)parentInfo->parentUUID, NUM_BYTES_RFC4122_UUID);
+        // auto newParentID = QUuid::fromRfc4122(byteArray);
         // if ((getParentID() != newParentID) || (getParentJointIndex() != parentInfo->parentJointIndex)) {
         //     SpatiallyNestable::setParentID(newParentID);
         //     SpatiallyNestable::setParentJointIndex(parentInfo->parentJointIndex);
@@ -1294,20 +1308,23 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
         }
 
         auto data = reinterpret_cast<const AvatarDataPacket::AvatarLocalPosition*>(sourceBuffer);
-        glm::vec3 position = glm::vec3(data->localPosition[0], data->localPosition[1], data->localPosition[2]);
-        if (isNaN(position)) {
+
+        if (std::any_of(+data->localPosition, data->localPosition + 3, (bool(*)(float))isNaN)) {
+            derived().onParseError("Discard avatar data packet: position NaN.");
             // FIXME: CRTP
             // if (shouldLogError(now)) {
             //     qCWarning(avatars) << "Discard avatar data packet: position NaN, uuid " << getSessionUUID();
             // }
             return buffer.size();
         }
-        if (parentID.isNull()) {
-            qCWarning(avatars) << "received localPosition for avatar with no parent";
-        } else {
-            // FIXME: CRTP
-            // setLocalPosition(position);
-        }
+        derived().setLocalPositionIn(*data);
+        // FIXME: CRTP
+        // glm::vec3 position = glm::vec3(data->localPosition[0], data->localPosition[1], data->localPosition[2]);
+        // if (parentID.isNull()) {
+        //     qCWarning(avatars) << "received localPosition for avatar with no parent";
+        // } else {
+        //     setLocalPosition(position);
+        // }
         sourceBuffer += sizeof(AvatarDataPacket::AvatarLocalPosition);
         int numBytesRead = sourceBuffer - startSection;
         _localPositionRate.increment(numBytesRead);
@@ -2189,8 +2206,7 @@ QByteArray AvatarDataStream<Derived>::identityByteArray(bool setIsReplicated) co
     QDataStream identityStream(&identityData, QIODevice::Append);
     using namespace AvatarDataPacket;
 
-    // FIXME: CRTP set id
-    QUuid id{};
+    QUuid id = derived().getSessionUUID();
     AvatarDataPacket::Identity identity = derived().getIdentityDataOut();
 
     //FIXME: CRTP to libraries/avatars/AvatarData
@@ -2200,10 +2216,10 @@ QByteArray AvatarDataStream<Derived>::identityByteArray(bool setIsReplicated) co
     // QVector<AttachmentData> attachmentData{};
     // QString displayName{};
     // QString sessionDisplayName{};
+    //
     // isReplicated = _isReplicated;
     // lookAtSnappingEnabled = _lookAtSnappingEnabled;
     // isCertifyFailed = isCertifyFailed();
-    // id = getSessionUUID();
     // attachmentData = _attachmentData;
     // displayName = _displayName;
     // sessionDisplayName = getSessionDisplayNameForTransport(); // depends on _sessionDisplayName

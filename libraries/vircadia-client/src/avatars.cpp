@@ -68,6 +68,31 @@ int vircadia_set_my_avatar_display_name(int context_id, const char* display_name
 }
 
 VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_is_replicated(int context_id, uint8_t is_replicated) {
+    return 0; // FIXME
+}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_look_at_snapping(int context_id, uint8_t look_at_snapping_enabled) {
+    return 0; // FIXME
+}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_verification(int context_id, uint8_t verification_failed) {
+    return 0; // FIXME
+}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_attachments(int context_id, vircadia_avatar_attachment* attachments, int size) {
+    return 0; // FIXME
+}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_session_display_name(int context_id, const char* session_display_name) {
+    return 0; // FIXME
+}
+
+VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_skeleton_model_url(int context_id, const char* skeleton_model_url) {
     return setProperty<AvatarData::SkeletonModelURLIndex>(context_id, skeleton_model_url);
 }

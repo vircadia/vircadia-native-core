@@ -21,6 +21,7 @@
 
 #include <AvatarDataStream.h>
 
+#include "../Common.h"
 #include "../../avatars.h"
 
 namespace vircadia::client
@@ -211,7 +212,38 @@ namespace vircadia::client
             float getScaleOut() const;
             void setScaleIn(float);
 
+            AvatarDataPacket::LookAtPosition getLookAtPositionOut() const;
+            void setLookAtPositionIn(const AvatarDataPacket::LookAtPosition&);
+
+            float getAudioLoudnessOut() const;
+            void setAudioLoudnessIn(float);
+
+            struct Transform {
+                glm::vec3 translation;
+                glm::quat rotation;
+                glm::vec3 scale;
+            };
+
+            Transform getSensorToWorldMatrixOut() const;
+            void setSensorToWorldMatrixIn(Transform);
+
+            using AdditionalFlags = std::tuple<
+                KeyState, uint8_t, bool, bool, bool, bool, bool, bool, bool
+            >;
+
+            AdditionalFlags getAdditionalFlagsOut() const;
+            void setAdditionalFlagsIn(vircadia_avatar_additional_flags);
+
+            using ParentInfo = std::tuple<UUID, uint16_t>;
+
+            ParentInfo getParentInfoOut() const;
+            void setParentInfoIn(const uint8_t* uuid, uint16_t jointIndex);
+
             void onParseError(std::string message);
+            void onPacketTooSmallError(std::string name, int sizeToRead, int sizeLeft);
+
+            AvatarDataPacket::AvatarLocalPosition getLocalPositionOut() const;
+            void setLocalPositionIn(const AvatarDataPacket::AvatarLocalPosition&);
 
             AvatarData data;
     };
