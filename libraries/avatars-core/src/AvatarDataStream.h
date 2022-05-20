@@ -443,7 +443,7 @@ const float AVATAR_TRANSIT_FRAMES_PER_SECOND = 30.0f;
 const float AVATAR_PRE_TRANSIT_FRAME_COUNT = 10.0f;
 const float AVATAR_POST_TRANSIT_FRAME_COUNT = 27.0f;
 
-enum KeyState {
+enum KeyState : uint8_t {
     NO_KEY_DOWN = 0,
     INSERT_KEY_DOWN,
     DELETE_KEY_DOWN
@@ -516,10 +516,6 @@ public:
 
     int parseDataFromBuffer(const QByteArray& buffer);
 
-    float getHeight() const;
-
-    float getUnscaledHeight() const;
-
     const QVector<JointData>& getRawJointData() const { return _jointData; }
 
     void setJointData(int index, const glm::quat& rotation, const glm::vec3& translation);
@@ -538,10 +534,6 @@ public:
 
     void clearJointData(const QString& name);
 
-    QVector<glm::quat> getJointRotations() const;
-
-    QVector<glm::vec3> getJointTranslations() const;
-
     void setJointRotations(const QVector<glm::quat>& jointRotations);
 
     void setJointTranslations(const QVector<glm::vec3>& jointTranslations);
@@ -549,12 +541,6 @@ public:
     void clearJointsData();
 
     int getJointIndex(const QString& name) const;
-
-    QStringList getJointNames() const;
-
-    QVariantList getAttachmentsVariant() const;
-
-    void setAttachmentsVariant(const QVariantList& variant);
 
     void storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& payload);
 
@@ -587,17 +573,6 @@ public:
     QUrl getWireSafeSkeletonModelURL() const;
 
     void setSkeletonModelURL(const QUrl& skeletonModelURL);
-
-    void setAttachmentData(const QVector<AttachmentData>& attachmentData);
-
-    void attach(const QString& modelURL, const QString& jointName = QString(),
-                                    const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(),
-                                    float scale = 1.0f, bool isSoft = false,
-                                    bool allowDuplicates = false, bool useSaved = true);
-
-    void detachOne(const QString& modelURL, const QString& jointName = QString());
-
-    void detachAll(const QString& modelURL, const QString& jointName = QString());
 
     int getAverageBytesReceivedPerSecond() const;
     int getReceiveRate() const;

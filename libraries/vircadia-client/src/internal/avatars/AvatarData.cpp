@@ -155,7 +155,7 @@ namespace vircadia::client
                 {position.x, position.y, position.z},
                 {rotation.x, rotation.y, rotation.z, rotation.w}
             },
-            {scale.x}
+            scale.x
         });
     }
 

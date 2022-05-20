@@ -581,7 +581,8 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
         // faceTrackerInfo->averageLoudness = _headData->_averageLoudness;
         // faceTrackerInfo->browAudioLift = _headData->_browAudioLift;
 
-        faceTrackerInfo->numBlendshapeCoefficients = headDataBlendhapeCoefficientsSize;
+        assert(headDataBlendhapeCoefficientsSize <= std::numeric_limits<uint8_t>::max());
+        faceTrackerInfo->numBlendshapeCoefficients = static_cast<uint8_t>(headDataBlendhapeCoefficientsSize);
         destinationBuffer += sizeof(AvatarDataPacket::FaceTrackerInfo);
 
         auto blendshapeDataSize = headDataBlendhapeCoefficientsSize * sizeof(float);
@@ -1546,7 +1547,7 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
 
         _jointData.resize(numJoints);
 
-        size_t bitVectorSize = calcBitVectorSize(numJoints);
+        int bitVectorSize = calcBitVectorSize(numJoints);
 
         if (!packetReadCheck("JointDefaultPoseFlagsRotationFlags", bitVectorSize)) {
             return buffer.size();
@@ -1812,16 +1813,6 @@ void AvatarDataStream<Derived>::setJointRotations(const QVector<glm::quat>& join
 }
 
 template <typename Derived>
-QVector<glm::vec3> AvatarDataStream<Derived>::getJointTranslations() const {
-    QReadLocker readLock(&_jointDataLock);
-    QVector<glm::vec3> jointTranslations(_jointData.size());
-    for (int i = 0; i < _jointData.size(); ++i) {
-        jointTranslations[i] = _jointData[i].translation;
-    }
-    return jointTranslations;
-}
-
-template <typename Derived>
 void AvatarDataStream<Derived>::setJointTranslations(const QVector<glm::vec3>& jointTranslations) {
     QWriteLocker writeLock(&_jointDataLock);
     auto size = jointTranslations.size();
@@ -1883,11 +1874,6 @@ template <typename Derived>
 int AvatarDataStream<Derived>::getJointIndex(const QString& name) const {
     int result = getFauxJointIndex(name);
     return result;
-}
-
-template <typename Derived>
-QStringList AvatarDataStream<Derived>::getJointNames() const {
-    return QStringList();
 }
 
 template <typename Derived>

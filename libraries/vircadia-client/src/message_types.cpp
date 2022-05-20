@@ -12,7 +12,7 @@
 
 #include "message_types.h"
 
-#include "internal/Context.h"
+#include "internal/Messages.h"
 
 using namespace vircadia::client;
 
