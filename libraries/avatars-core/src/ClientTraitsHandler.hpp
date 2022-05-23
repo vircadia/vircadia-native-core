@@ -23,46 +23,41 @@
 
 #include "AvatarTraits.hpp"
 
-template <typename AvatarDataStream>
-ClientTraitsHandler<AvatarDataStream>::ClientTraitsHandler(AvatarDataStream* owningAvatar) :
+template <typename Derived, typename AvatarPtr>
+ClientTraitsHandler<Derived, AvatarPtr>::ClientTraitsHandler(AvatarPtr owningAvatar) :
     _owningAvatar(owningAvatar)
 {
-    //FIXME: CRTP
-    // auto nodeList = DependencyManager::get<NodeList>();
-    // QObject::connect(nodeList.data(), &NodeList::nodeAdded, this, [this](SharedNodePointer addedNode) {
-    //     if (addedNode->getType() == NodeType::AvatarMixer) {
-    //         resetForNewMixer();
-    //     }
-    // });
+    auto nodeList = DependencyManager::get<NodeList>();
+    derived().connect(nodeList.data(), &NodeList::nodeAdded,
+        &derived(), [this](auto mixer){ resetForNewMixer(mixer); });
 
-    //FIXME: CRTP
-    // nodeList->getPacketReceiver().registerListener(PacketType::SetAvatarTraits,
-    //     PacketReceiver::makeSourcedListenerReference<ClientTraitsHandler>(this, &ClientTraitsHandler::processTraitOverride));
+    nodeList->getPacketReceiver().registerListener(PacketType::SetAvatarTraits,
+        PacketReceiver::makeSourcedListenerReference<Derived>(&derived(), &ClientTraitsHandler::processTraitOverride));
 }
 
-template <typename AvatarDataStream>
-void ClientTraitsHandler<AvatarDataStream>::markTraitUpdated(AvatarTraits::TraitType updatedTrait) {
+template <typename Derived, typename AvatarPtr>
+void ClientTraitsHandler<Derived, AvatarPtr>::markTraitUpdated(AvatarTraits::TraitType updatedTrait) {
     Lock lock(_traitLock);
     _traitStatuses[updatedTrait] = Updated;
     _hasChangedTraits = true;
 }
 
-template <typename AvatarDataStream>
-void ClientTraitsHandler<AvatarDataStream>::markInstancedTraitUpdated(AvatarTraits::TraitType traitType, QUuid updatedInstanceID) {
+template <typename Derived, typename AvatarPtr>
+void ClientTraitsHandler<Derived, AvatarPtr>::markInstancedTraitUpdated(AvatarTraits::TraitType traitType, QUuid updatedInstanceID) {
     Lock lock(_traitLock);
     _traitStatuses.instanceInsert(traitType, updatedInstanceID, Updated);
     _hasChangedTraits = true;
 }
 
-template <typename AvatarDataStream>
-void ClientTraitsHandler<AvatarDataStream>::markInstancedTraitDeleted(AvatarTraits::TraitType traitType, QUuid deleteInstanceID) {
+template <typename Derived, typename AvatarPtr>
+void ClientTraitsHandler<Derived, AvatarPtr>::markInstancedTraitDeleted(AvatarTraits::TraitType traitType, QUuid deleteInstanceID) {
     Lock lock(_traitLock);
     _traitStatuses.instanceInsert(traitType, deleteInstanceID, Deleted);
     _hasChangedTraits = true;
 }
 
-template <typename AvatarDataStream>
-void ClientTraitsHandler<AvatarDataStream>::resetForNewMixer(SharedNodePointer mixerNode) {
+template <typename Derived, typename AvatarPtr>
+void ClientTraitsHandler<Derived, AvatarPtr>::resetForNewMixer(SharedNodePointer mixerNode) {
     if (mixerNode->getType() != NodeType::AvatarMixer) {
         return;
     }
@@ -82,8 +77,8 @@ void ClientTraitsHandler<AvatarDataStream>::resetForNewMixer(SharedNodePointer m
     _owningAvatar->prepareResetTraitInstances();
 }
 
-template <typename AvatarDataStream>
-int ClientTraitsHandler<AvatarDataStream>::sendChangedTraitsToMixer() {
+template <typename Derived, typename AvatarPtr>
+int ClientTraitsHandler<Derived, AvatarPtr>::sendChangedTraitsToMixer() {
     std::unique_lock<Mutex> lock(_traitLock);
     int bytesWritten = 0;
 
@@ -161,8 +156,8 @@ int ClientTraitsHandler<AvatarDataStream>::sendChangedTraitsToMixer() {
     return bytesWritten;
 }
 
-template <typename AvatarDataStream>
-void ClientTraitsHandler<AvatarDataStream>::processTraitOverride(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+template <typename Derived, typename AvatarPtr>
+void ClientTraitsHandler<Derived, AvatarPtr>::processTraitOverride(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     if (sendingNode->getType() == NodeType::AvatarMixer) {
         Lock lock(_traitLock);
 
@@ -213,6 +208,16 @@ void ClientTraitsHandler<AvatarDataStream>::processTraitOverride(QSharedPointer<
             }
         }
     }
+}
+
+template <typename Derived, typename AvatarPtr>
+Derived& ClientTraitsHandler<Derived, AvatarPtr>::derived() {
+    return *static_cast<Derived*>(this);
+}
+
+template <typename Derived, typename AvatarPtr>
+const Derived& ClientTraitsHandler<Derived, AvatarPtr>::derived() const {
+    return *static_cast<const Derived*>(this);
 }
 
 #endif /* end of include guard */

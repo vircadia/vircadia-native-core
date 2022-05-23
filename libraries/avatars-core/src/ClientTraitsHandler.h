@@ -22,11 +22,11 @@
 
 #include "AssociatedTraitValues.h"
 
-template <typename AvatarDataStream>
+template <typename Derived, typename AvatarPtr>
 class ClientTraitsHandler {
 
 public:
-    ClientTraitsHandler(AvatarDataStream* owningAvatar);
+    ClientTraitsHandler(AvatarPtr owningAvatar);
 
     int sendChangedTraitsToMixer();
 
@@ -50,7 +50,7 @@ private:
         Deleted
     };
 
-    AvatarDataStream* const _owningAvatar;
+    const AvatarPtr _owningAvatar;
 
     Mutex _traitLock;
     AvatarTraits::AssociatedTraitValues<ClientTraitStatus, Unchanged> _traitStatuses;
@@ -60,6 +60,9 @@ private:
 
     bool _shouldPerformInitialSend { false };
     bool _hasChangedTraits { false };
+
+    Derived& derived();
+    const Derived& derived() const;
 };
 
 #endif /* end of include guard */

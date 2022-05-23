@@ -1,6 +1,6 @@
 //
 //  AvatarManager.h
-//  libraries/vircadia-client/src/avatars
+//  libraries/vircadia-client/src/internal/avatars
 //
 //  Created by Nshan G. on 11 May 2022.
 //  Copyright 2022 Vircadia contributors.

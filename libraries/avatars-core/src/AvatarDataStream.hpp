@@ -65,12 +65,6 @@ template <typename Derived>
 AvatarDataStream<Derived>::~AvatarDataStream() {}
 
 template <typename Derived>
-void AvatarDataStream<Derived>::initClientTraitsHandler()
-{
-    _clientTraitsHandler.reset(new ClientTraitsHandler<Derived>(&derived()));
-}
-
-template <typename Derived>
 Derived& AvatarDataStream<Derived>::derived() {
     return *static_cast<Derived*>(this);
 }
@@ -265,17 +259,29 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
         // parentID = getParentID();
     }
 
-    size_t headDataBlendhapeCoefficientsSize = 0;
-    const float* headDataBlendhapeCoefficients = nullptr;
+    auto [
+        leftEyeBlink,
+        rightEyeBlink,
+        averageLoudness,
+        browAudioLift,
+        headDataBlendhapeCoefficientsSize,
+        headDataBlendhapeCoefficients
+    ] = derived().getFaceTrackerInfoOut();
 
     // FIXME: CRTP
+    // leftEyeBlink = _headData->_leftEyeBlink;
+    // rightEyeBlink = _headData->_rightEyeBlink;
+    // averageLoudness = _headData->_averageLoudness;
+    // browAudioLift = _headData->_browAudioLift;
     // headDataBlendhapeCoefficientsSize = _headData->getBlendshapeCoefficients().size();
     // headDataBlendhapeCoefficients = _headData->getBlendshapeCoefficients().data();
 
+    const int jointDataSize = derived().getJointDataSizeOut();
+
     const size_t byteArraySize = AvatarDataPacket::MAX_CONSTANT_HEADER_SIZE + NUM_BYTES_RFC4122_UUID +
         AvatarDataPacket::maxFaceTrackerInfoSize(headDataBlendhapeCoefficientsSize) +
-        AvatarDataPacket::maxJointDataSize(_jointData.size()) +
-        AvatarDataPacket::maxJointDefaultPoseFlagsSize(_jointData.size()) +
+        AvatarDataPacket::maxJointDataSize(jointDataSize) +
+        AvatarDataPacket::maxJointDefaultPoseFlagsSize(jointDataSize) +
         AvatarDataPacket::FAR_GRAB_JOINTS_SIZE;
 
     if (maxDataSize == 0) {
@@ -544,11 +550,7 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
     IF_AVATAR_SPACE(PACKET_HAS_HAND_CONTROLLERS, AvatarDataPacket::HAND_CONTROLLERS_SIZE) {
         auto startSection = destinationBuffer;
 
-
-        glm::quat leftRotation {};
-        glm::vec3 leftTranslation {};
-        glm::quat rightRotation {};
-        glm::vec3 rightTranslation {};
+        auto handControllers = derived().getHandControllersOut();
 
         // FIXME: CRTP
         // Transform controllerLeftHandTransform = Transform(getControllerLeftHandMatrix());
@@ -558,10 +560,10 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
         // rightRotation = controllerRightHandTransform.getRotation();
         // rightTranslation = controllerRightHandTransform.getTranslation();
 
-        destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, leftRotation);
-        destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, leftTranslation, HAND_CONTROLLER_COMPRESSION_RADIX);
-        destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, rightRotation);
-        destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, rightTranslation, HAND_CONTROLLER_COMPRESSION_RADIX);
+        destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, handControllers.left.orientation);
+        destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, handControllers.left.position, HAND_CONTROLLER_COMPRESSION_RADIX);
+        destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, handControllers.right.orientation);
+        destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, handControllers.right.position, HAND_CONTROLLER_COMPRESSION_RADIX);
 
         int numBytes = destinationBuffer - startSection;
         if (outboundDataRateOut) {
@@ -575,11 +577,10 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
         // note: we don't use the blink and average loudness, we just use the numBlendShapes and
         // compute the procedural info on the client side.
 
-        // FIXME: CRTP
-        // faceTrackerInfo->leftEyeBlink = _headData->_leftEyeBlink;
-        // faceTrackerInfo->rightEyeBlink = _headData->_rightEyeBlink;
-        // faceTrackerInfo->averageLoudness = _headData->_averageLoudness;
-        // faceTrackerInfo->browAudioLift = _headData->_browAudioLift;
+        faceTrackerInfo->leftEyeBlink = leftEyeBlink;
+        faceTrackerInfo->rightEyeBlink = rightEyeBlink;
+        faceTrackerInfo->averageLoudness = averageLoudness;
+        faceTrackerInfo->browAudioLift = browAudioLift;
 
         assert(headDataBlendhapeCoefficientsSize <= std::numeric_limits<uint8_t>::max());
         faceTrackerInfo->numBlendshapeCoefficients = static_cast<uint8_t>(headDataBlendhapeCoefficientsSize);
@@ -595,137 +596,140 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
         }
     }
 
-    QVector<JointData> jointData;
-    if (wantedFlags & (AvatarDataPacket::PACKET_HAS_JOINT_DATA | AvatarDataPacket::PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS)) {
-        QReadLocker readLock(&_jointDataLock);
-        jointData = _jointData;
-    }
-    const int numJoints = jointData.size();
+    const bool packetHasJointData = wantedFlags & (AvatarDataPacket::PACKET_HAS_JOINT_DATA | AvatarDataPacket::PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS);
+    const int numJoints = packetHasJointData ? jointDataSize : 0;
+
     assert(numJoints <= 255);
     const int jointBitVectorSize = calcBitVectorSize(numJoints);
 
     // include jointData if there is room for the most minimal section. i.e. no translations or rotations.
     IF_AVATAR_SPACE(PACKET_HAS_JOINT_DATA, AvatarDataPacket::minJointDataSize(numJoints)) {
-        // Minimum space required for another rotation joint -
-        // size of joint + following translation bit-vector + translation scale:
-        const ptrdiff_t minSizeForJoint = sizeof(AvatarDataPacket::SixByteQuat) + jointBitVectorSize + sizeof(float);
-
         auto startSection = destinationBuffer;
+        {
+            // FIXME: CRTP
+            // QReadLocker readLock(&_jointDataLock);
 
-        // compute maxTranslationDimension before we send any joint data.
-        float maxTranslationDimension = 0.001f;
-        for (int i = sendStatus.translationsSent; i < numJoints; ++i) {
-            const JointData& data = jointData[i];
-            if (!data.translationIsDefaultPose) {
-                maxTranslationDimension = glm::max(fabsf(data.translation.x), maxTranslationDimension);
-                maxTranslationDimension = glm::max(fabsf(data.translation.y), maxTranslationDimension);
-                maxTranslationDimension = glm::max(fabsf(data.translation.z), maxTranslationDimension);
-            }
-        }
+            // Minimum space required for another rotation joint -
+            // size of joint + following translation bit-vector + translation scale:
+            const ptrdiff_t minSizeForJoint = sizeof(AvatarDataPacket::SixByteQuat) + jointBitVectorSize + sizeof(float);
 
-        // joint rotation data
-        *destinationBuffer++ = (uint8_t)numJoints;
 
-        unsigned char* validityPosition = destinationBuffer;
-        memset(validityPosition, 0, jointBitVectorSize);
-
-#ifdef WANT_DEBUG
-        int rotationSentCount = 0;
-        unsigned char* beforeRotations = destinationBuffer;
-#endif
-
-        destinationBuffer += jointBitVectorSize; // Move pointer past the validity bytes
-
-        // sentJointDataOut and lastSentJointData might be the same vector
-        if (sentJointDataOut) {
-            sentJointDataOut->resize(numJoints); // Make sure the destination is resized before using it
-        }
-        const JointData *const joints = jointData.data();
-        JointData *const sentJoints = sentJointDataOut ? sentJointDataOut->data() : nullptr;
-
-        float minRotationDOT = (distanceAdjust && cullSmallChanges) ? getDistanceBasedMinRotationDOT(viewerPosition) : AVATAR_MIN_ROTATION_DOT;
-
-        int i = sendStatus.rotationsSent;
-        for (; i < numJoints; ++i) {
-            const JointData& data = joints[i];
-            const JointData& last = lastSentJointData[i];
-
-            if (packetEnd - destinationBuffer >= minSizeForJoint) {
-                if (!data.rotationIsDefaultPose) {
-                    // The dot product for larger rotations is a lower number,
-                    // so if the dot() is less than the value, then the rotation is a larger angle of rotation
-                    if (sendAll || last.rotationIsDefaultPose || (!cullSmallChanges && last.rotation != data.rotation)
-                        || (cullSmallChanges && fabsf(glm::dot(last.rotation, data.rotation)) < minRotationDOT)) {
-                        validityPosition[i / BITS_IN_BYTE] |= 1 << (i % BITS_IN_BYTE);
-#ifdef WANT_DEBUG
-                        rotationSentCount++;
-#endif
-                        destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, data.rotation);
-
-                        if (sentJoints) {
-                            sentJoints[i].rotation = data.rotation;
-                        }
-                    }
-                }
-            } else {
-                break;
-            }
-
-            if (sentJoints) {
-                sentJoints[i].rotationIsDefaultPose = data.rotationIsDefaultPose;
-            }
-
-        }
-        sendStatus.rotationsSent = i;
-
-        // joint translation data
-        validityPosition = destinationBuffer;
-
-#ifdef WANT_DEBUG
-        int translationSentCount = 0;
-        unsigned char* beforeTranslations = destinationBuffer;
-#endif
-
-        memset(destinationBuffer, 0, jointBitVectorSize);
-        destinationBuffer += jointBitVectorSize; // Move pointer past the validity bytes
-
-        // write maxTranslationDimension
-        AVATAR_MEMCPY(maxTranslationDimension);
-
-        float minTranslation = (distanceAdjust && cullSmallChanges) ? getDistanceBasedMinTranslationDistance(viewerPosition) : AVATAR_MIN_TRANSLATION;
-
-        i = sendStatus.translationsSent;
-        for (; i < numJoints; ++i) {
-            const JointData& data = joints[i];
-            const JointData& last = lastSentJointData[i];
-
-            // Note minSizeForJoint is conservative since there isn't a following bit-vector + scale.
-            if (packetEnd - destinationBuffer >= minSizeForJoint) {
+            // compute maxTranslationDimension before we send any joint data.
+            float maxTranslationDimension = 0.001f;
+            for (int i = sendStatus.translationsSent; i < numJoints; ++i) {
+                const JointData& data = derived().getJointDataOut(i);
+                // FIXME: CRTP
+                // const JointData& data = _jointData[i];
                 if (!data.translationIsDefaultPose) {
-                    if (sendAll || last.translationIsDefaultPose || (!cullSmallChanges && last.translation != data.translation)
-                        || (cullSmallChanges && glm::distance(data.translation, lastSentJointData[i].translation) > minTranslation)) {
-                        validityPosition[i / BITS_IN_BYTE] |= 1 << (i % BITS_IN_BYTE);
-#ifdef WANT_DEBUG
-                        translationSentCount++;
-#endif
-                        destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, data.translation / maxTranslationDimension,
-                                                                               TRANSLATION_COMPRESSION_RADIX);
+                    maxTranslationDimension = glm::max(fabsf(data.translation.x), maxTranslationDimension);
+                    maxTranslationDimension = glm::max(fabsf(data.translation.y), maxTranslationDimension);
+                    maxTranslationDimension = glm::max(fabsf(data.translation.z), maxTranslationDimension);
+                }
+            }
 
-                        if (sentJoints) {
-                            sentJoints[i].translation = data.translation;
+            // joint rotation data
+            *destinationBuffer++ = (uint8_t)numJoints;
+
+            unsigned char* validityPosition = destinationBuffer;
+            memset(validityPosition, 0, jointBitVectorSize);
+
+#ifdef WANT_DEBUG
+            int rotationSentCount = 0;
+            unsigned char* beforeRotations = destinationBuffer;
+#endif
+
+            destinationBuffer += jointBitVectorSize; // Move pointer past the validity bytes
+
+            // sentJointDataOut and lastSentJointData might be the same vector
+            if (sentJointDataOut) {
+                sentJointDataOut->resize(numJoints); // Make sure the destination is resized before using it
+            }
+            JointData *const sentJoints = sentJointDataOut ? sentJointDataOut->data() : nullptr;
+
+            float minRotationDOT = (distanceAdjust && cullSmallChanges) ? getDistanceBasedMinRotationDOT(viewerPosition) : AVATAR_MIN_ROTATION_DOT;
+
+            int i = sendStatus.rotationsSent;
+            for (; i < numJoints; ++i) {
+                const JointData& data = derived().getJointDataOut(i);
+                const JointData& last = lastSentJointData[i];
+
+                if (packetEnd - destinationBuffer >= minSizeForJoint) {
+                    if (!data.rotationIsDefaultPose) {
+                        // The dot product for larger rotations is a lower number,
+                        // so if the dot() is less than the value, then the rotation is a larger angle of rotation
+                        if (sendAll || last.rotationIsDefaultPose || (!cullSmallChanges && last.rotation != data.rotation)
+                            || (cullSmallChanges && fabsf(glm::dot(last.rotation, data.rotation)) < minRotationDOT)) {
+                            validityPosition[i / BITS_IN_BYTE] |= 1 << (i % BITS_IN_BYTE);
+#ifdef WANT_DEBUG
+                            rotationSentCount++;
+#endif
+                            destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, data.rotation);
+
+                            if (sentJoints) {
+                                sentJoints[i].rotation = data.rotation;
+                            }
                         }
                     }
+                } else {
+                    break;
                 }
-            } else {
-                break;
-            }
 
-            if (sentJoints) {
-                sentJoints[i].translationIsDefaultPose = data.translationIsDefaultPose;
-            }
+                if (sentJoints) {
+                    sentJoints[i].rotationIsDefaultPose = data.rotationIsDefaultPose;
+                }
 
+            }
+            sendStatus.rotationsSent = i;
+
+            // joint translation data
+            validityPosition = destinationBuffer;
+
+#ifdef WANT_DEBUG
+            int translationSentCount = 0;
+            unsigned char* beforeTranslations = destinationBuffer;
+#endif
+
+            memset(destinationBuffer, 0, jointBitVectorSize);
+            destinationBuffer += jointBitVectorSize; // Move pointer past the validity bytes
+
+            // write maxTranslationDimension
+            AVATAR_MEMCPY(maxTranslationDimension);
+
+            float minTranslation = (distanceAdjust && cullSmallChanges) ? getDistanceBasedMinTranslationDistance(viewerPosition) : AVATAR_MIN_TRANSLATION;
+
+            i = sendStatus.translationsSent;
+            for (; i < numJoints; ++i) {
+                const JointData& data = derived().getJointDataOut(i);
+                const JointData& last = lastSentJointData[i];
+
+                // Note minSizeForJoint is conservative since there isn't a following bit-vector + scale.
+                if (packetEnd - destinationBuffer >= minSizeForJoint) {
+                    if (!data.translationIsDefaultPose) {
+                        if (sendAll || last.translationIsDefaultPose || (!cullSmallChanges && last.translation != data.translation)
+                            || (cullSmallChanges && glm::distance(data.translation, lastSentJointData[i].translation) > minTranslation)) {
+                            validityPosition[i / BITS_IN_BYTE] |= 1 << (i % BITS_IN_BYTE);
+#ifdef WANT_DEBUG
+                            translationSentCount++;
+#endif
+                            destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, data.translation / maxTranslationDimension,
+                                                                                   TRANSLATION_COMPRESSION_RADIX);
+
+                            if (sentJoints) {
+                                sentJoints[i].translation = data.translation;
+                            }
+                        }
+                    }
+                } else {
+                    break;
+                }
+
+                if (sentJoints) {
+                    sentJoints[i].translationIsDefaultPose = data.translationIsDefaultPose;
+                }
+
+            }
+            sendStatus.translationsSent = i;
         }
-        sendStatus.translationsSent = i;
 
         IF_AVATAR_SPACE(PACKET_HAS_GRAB_JOINTS, sizeof (AvatarDataPacket::FarGrabJoints)) {
 
@@ -792,17 +796,20 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
     IF_AVATAR_SPACE(PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS, 1 + 2 * jointBitVectorSize) {
         auto startSection = destinationBuffer;
 
+        // FIXME: CRTP
+        // QReadLocker readLock(&_jointDataLock);
+
         // write numJoints
         *destinationBuffer++ = (uint8_t)numJoints;
 
         // write rotationIsDefaultPose bits
         destinationBuffer += writeBitVector(destinationBuffer, numJoints, [&](int i) {
-            return jointData[i].rotationIsDefaultPose;
+            return derived().getJointDataOut(i).rotationIsDefaultPose;
         });
 
         // write translationIsDefaultPose bits
         destinationBuffer += writeBitVector(destinationBuffer, numJoints, [&](int i) {
-            return jointData[i].translationIsDefaultPose;
+            return derived().getJointDataOut(i).translationIsDefaultPose;
         });
 
         if (outboundDataRateOut) {
@@ -830,7 +837,8 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
 
 template <typename Derived>
 void AvatarDataStream<Derived>::doneEncoding(bool cullSmallChanges) {
-    AvatarDataPacket::SendStatus SendStatus { 0, false, _jointData.size(), _jointData.size() };
+    const auto jointDataSize = derived().getJointDataSizeOut();
+    AvatarDataPacket::SendStatus SendStatus { 0, false, jointDataSize, jointDataSize };
     doneEncoding(cullSmallChanges, SendStatus);
 }
 
@@ -838,13 +846,17 @@ void AvatarDataStream<Derived>::doneEncoding(bool cullSmallChanges) {
 template <typename Derived>
 void AvatarDataStream<Derived>::doneEncoding(bool cullSmallChanges, const AvatarDataPacket::SendStatus& sendStatus) {
     // The server has sent some joint-data to other nodes.  Update _lastSentJointData.
-    QReadLocker readLock(&_jointDataLock);
-    if (_jointData.size() > _lastSentJointData.size()) {
-        _lastSentJointData.resize(_jointData.size());
+    const auto jointDataSize = derived().getJointDataSizeOut();
+
+    // FIXME: CRTP
+    // QReadLocker readLock(&_jointDataLock);
+
+    if (jointDataSize > _lastSentJointData.size()) {
+        _lastSentJointData.resize(jointDataSize);
     }
 
     for (int i = 0; i < sendStatus.rotationsSent; ++i) {
-        const JointData& data = _jointData[ i ];
+        const JointData& data = derived().getJointDataOut(i);
         if (_lastSentJointData[i].rotation != data.rotation) {
             if (!cullSmallChanges ||
                 fabsf(glm::dot(data.rotation, _lastSentJointData[i].rotation)) <= AVATAR_MIN_ROTATION_DOT) {
@@ -856,7 +868,7 @@ void AvatarDataStream<Derived>::doneEncoding(bool cullSmallChanges, const Avatar
     }
 
     for (int i = 0; i < sendStatus.translationsSent; ++i) {
-        const JointData& data = _jointData[ i ];
+        const JointData& data = derived().getJointDataOut(i);
         if (_lastSentJointData[i].translation != data.translation) {
             if (!cullSmallChanges ||
                 glm::distance(data.translation, _lastSentJointData[i].translation) > AVATAR_MIN_TRANSLATION) {
@@ -868,11 +880,6 @@ void AvatarDataStream<Derived>::doneEncoding(bool cullSmallChanges, const Avatar
     }
 
 }
-
-struct HandControllerVantage {
-    glm::vec3 position;
-    glm::quat orientation;
-};
 
 // FIXME: CRTP move to base
 // void setMatrixCache(ThreadSafeValueCache<glm::mat4>& matrixCache, const HandControllerVantage& vantage) {
@@ -957,7 +964,7 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
 
         derived().setGlobalPositionIn(*data);
 
-        // FIXME: CRTP move to derived.setGlobalPositionIn;
+        // FIXME: CRTP move to Derived::setGlobalPositionIn;
         // glm::vec3 offset = glm::vec3(0.0f, 0.0f, 0.0f);
         // if (_replicaIndex > 0) {
         //     const float SPACE_BETWEEN_AVATARS = 2.0f;
@@ -1335,8 +1342,11 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
     if (hasHandControllers) {
         auto startSection = sourceBuffer;
 
-        auto leftVantage = unpackHandController(sourceBuffer);
-        auto rightVantage = unpackHandController(sourceBuffer);
+
+        derived().setHandControllersIn({
+            unpackHandController(sourceBuffer),
+            unpackHandController(sourceBuffer)
+        });
 
         // FIXME: CRTP
         // setMatrixCache(_controllerLeftHandMatrixCache, leftVantage);
@@ -1359,18 +1369,30 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
         }
 
         auto faceTrackerInfo = reinterpret_cast<const AvatarDataPacket::FaceTrackerInfo*>(sourceBuffer);
-        int numCoefficients = faceTrackerInfo->numBlendshapeCoefficients;
-        const int coefficientsSize = sizeof(float) * numCoefficients;
         sourceBuffer += sizeof(AvatarDataPacket::FaceTrackerInfo);
+
+        const int coefficientsSize = sizeof(float) * faceTrackerInfo->numBlendshapeCoefficients;
 
         if (!packetReadCheck("FaceTrackerCoefficients", coefficientsSize)) {
             return buffer.size();
         }
 
+        derived().setFaceTrackerInfoIn({
+            faceTrackerInfo->leftEyeBlink,
+            faceTrackerInfo->rightEyeBlink,
+            faceTrackerInfo->averageLoudness,
+            faceTrackerInfo->browAudioLift,
+            faceTrackerInfo->numBlendshapeCoefficients,
+            sourceBuffer
+        });
+
         // TODO: CRTP
+        // int numCoefficients = faceTrackerInfo->numBlendshapeCoefficients;
+        // const int coefficientsSize = sizeof(float) * numCoefficients;
         // _headData->_blendshapeCoefficients.resize(std::min(numCoefficients, (int)Blendshapes::BlendshapeCount));  // make sure there's room for the copy!
         //only copy the blendshapes to headData, not the procedural face info
         // memcpy(_headData->_blendshapeCoefficients.data(), sourceBuffer, coefficientsSize);
+
         sourceBuffer += coefficientsSize;
 
         int numBytesRead = sourceBuffer - startSection;
@@ -1411,84 +1433,89 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
             }
         }
 
-        // each joint rotation is stored in 6 bytes.
-        QWriteLocker writeLock(&_jointDataLock);
-        _jointData.resize(numJoints);
+        {
+            // FIXME: CRTP
+            // QWriteLocker writeLock(&_jointDataLock);
+            derived().setJointDataSizeIn(numJoints);
 
-        const int COMPRESSED_QUATERNION_SIZE = 6;
-        if (!packetReadCheck("JointRotations", numValidJointRotations * COMPRESSED_QUATERNION_SIZE)) {
-            return buffer.size();
-        }
-
-        for (int i = 0; i < numJoints; i++) {
-            JointData& data = _jointData[i];
-            if (validRotations[i]) {
-                sourceBuffer += unpackOrientationQuatFromSixBytes(sourceBuffer, data.rotation);
-                _hasNewJointData = true;
-                data.rotationIsDefaultPose = false;
+            // each joint rotation is stored in 6 bytes.
+            const int COMPRESSED_QUATERNION_SIZE = 6;
+            if (!packetReadCheck("JointRotations", numValidJointRotations * COMPRESSED_QUATERNION_SIZE)) {
+                return buffer.size();
             }
-        }
 
-        if (!packetReadCheck("JointTranslationValidityBits", bytesOfValidity)) {
-            return buffer.size();
-        }
-
-        // get translation validity bits -- these indicate which translations were packed
-        int numValidJointTranslations = 0;
-        QVector<bool> validTranslations;
-        validTranslations.resize(numJoints);
-        { // translation validity bits
-            unsigned char validity = 0;
-            int validityBit = 0;
             for (int i = 0; i < numJoints; i++) {
-                if (validityBit == 0) {
-                    validity = *sourceBuffer++;
+                glm::quat rotation{};
+                if (validRotations[i]) {
+                    sourceBuffer += unpackOrientationQuatFromSixBytes(sourceBuffer, rotation);
+                    _hasNewJointData = true;
+                    derived().setJointDataRotationIn(i, rotation);
+                    derived().setJointDataRotationDefaultIn(i, false);
                 }
-                bool valid = (bool)(validity & (1 << validityBit));
-                if (valid) {
-                    ++numValidJointTranslations;
+            }
+
+            if (!packetReadCheck("JointTranslationValidityBits", bytesOfValidity)) {
+                return buffer.size();
+            }
+
+            // get translation validity bits -- these indicate which translations were packed
+            int numValidJointTranslations = 0;
+            QVector<bool> validTranslations;
+            validTranslations.resize(numJoints);
+            { // translation validity bits
+                unsigned char validity = 0;
+                int validityBit = 0;
+                for (int i = 0; i < numJoints; i++) {
+                    if (validityBit == 0) {
+                        validity = *sourceBuffer++;
+                    }
+                    bool valid = (bool)(validity & (1 << validityBit));
+                    if (valid) {
+                        ++numValidJointTranslations;
+                    }
+                    validTranslations[i] = valid;
+                    validityBit = (validityBit + 1) % BITS_IN_BYTE;
                 }
-                validTranslations[i] = valid;
-                validityBit = (validityBit + 1) % BITS_IN_BYTE;
+            } // 1 + bytesOfValidity bytes
+
+            // read maxTranslationDimension
+            float maxTranslationDimension;
+
+            if (!packetReadCheck("JointMaxTranslationDimension", sizeof(float))) {
+                return buffer.size();
             }
-        } // 1 + bytesOfValidity bytes
 
-        // read maxTranslationDimension
-        float maxTranslationDimension;
+            memcpy(&maxTranslationDimension, sourceBuffer, sizeof(float));
+            sourceBuffer += sizeof(float);
 
-        if (!packetReadCheck("JointMaxTranslationDimension", sizeof(float))) {
-            return buffer.size();
-        }
-
-        memcpy(&maxTranslationDimension, sourceBuffer, sizeof(float));
-        sourceBuffer += sizeof(float);
-
-        // each joint translation component is stored in 6 bytes.
-        const int COMPRESSED_TRANSLATION_SIZE = 6;
-        if (!packetReadCheck("JointTranslation", numValidJointTranslations * COMPRESSED_TRANSLATION_SIZE)) {
-            return buffer.size();
-        }
-
-        for (int i = 0; i < numJoints; i++) {
-            JointData& data = _jointData[i];
-            if (validTranslations[i]) {
-                sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
-                data.translation *= maxTranslationDimension;
-                _hasNewJointData = true;
-                data.translationIsDefaultPose = false;
+            // each joint translation component is stored in 6 bytes.
+            const int COMPRESSED_TRANSLATION_SIZE = 6;
+            if (!packetReadCheck("JointTranslation", numValidJointTranslations * COMPRESSED_TRANSLATION_SIZE)) {
+                return buffer.size();
             }
-        }
+
+            for (int i = 0; i < numJoints; i++) {
+                glm::vec3 translation{};
+                if (validTranslations[i]) {
+                    sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, translation, TRANSLATION_COMPRESSION_RADIX);
+                    translation *= maxTranslationDimension;
+                    derived().setJointDataPositionIn(i, translation);
+                    derived().setJointDataPositionDefaultIn(i, false);
+                    _hasNewJointData = true;
+                }
+            }
 
 #ifdef WANT_DEBUG
-        if (numValidJointRotations > 15) {
-            qCDebug(avatars) << "RECEIVING -- rotations:" << numValidJointRotations
-                << "translations:" << numValidJointTranslations
-                << "size:" << (int)(sourceBuffer - startPosition);
-        }
+            if (numValidJointRotations > 15) {
+                qCDebug(avatars) << "RECEIVING -- rotations:" << numValidJointRotations
+                    << "translations:" << numValidJointTranslations
+                    << "size:" << (int)(sourceBuffer - startPosition);
+            }
 #endif
-        int numBytesRead = sourceBuffer - startSection;
-        _jointDataRate.increment(numBytesRead);
-        _jointDataUpdateRate.increment();
+            int numBytesRead = sourceBuffer - startSection;
+            _jointDataRate.increment(numBytesRead);
+            _jointDataUpdateRate.increment();
+        }
 
         if (hasGrabJoints) {
             auto startSection = sourceBuffer;
@@ -1537,7 +1564,8 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
     if (hasJointDefaultPoseFlags) {
         auto startSection = sourceBuffer;
 
-        QWriteLocker writeLock(&_jointDataLock);
+        // FIXME: CRTP
+        // QWriteLocker writeLock(&_jointDataLock);
 
         if (!packetReadCheck("JointDefaultPoseFlagsNumJoints", sizeof(uint8_t))) {
             return buffer.size();
@@ -1545,7 +1573,7 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
 
         int numJoints = (int)*sourceBuffer++;
 
-        _jointData.resize(numJoints);
+        derived().setJointDataSizeIn(numJoints);
 
         int bitVectorSize = calcBitVectorSize(numJoints);
 
@@ -1554,14 +1582,14 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
         }
 
         sourceBuffer += readBitVector(sourceBuffer, numJoints, [&](int i, bool value) {
-            _jointData[i].rotationIsDefaultPose = value;
+            derived().setJointDataRotationDefaultIn(i, value);
         });
 
         if (!packetReadCheck("JointDefaultPoseFlagsTranslationFlags", bitVectorSize)) {
             return buffer.size();
         }
         sourceBuffer += readBitVector(sourceBuffer, numJoints, [&](int i, bool value) {
-            _jointData[i].translationIsDefaultPose = value;
+            derived().setJointDataPositionDefaultIn(i, value);
         });
 
         int numBytesRead = sourceBuffer - startSection;
@@ -1679,6 +1707,15 @@ float AvatarDataStream<Derived>::getUpdateRate(const QString& rateName) const {
 }
 
 template <typename Derived>
+QVector<JointData> AvatarDataStream<Derived>::getLastSentJointData() {
+    // FIXME: CRTP
+    // QReadLocker readLock(&_jointDataLock);
+    // _lastSentJointData.resize(_jointData.size());
+    _lastSentJointData.resize(derived().getJointDataSizeOut());
+    return _lastSentJointData;
+}
+
+template <typename Derived>
 int AvatarDataStream<Derived>::getAverageBytesReceivedPerSecond() const {
     return lrint(_averageBytesReceived.getAverageSampleValuePerSecond());
 }
@@ -1686,152 +1723,6 @@ int AvatarDataStream<Derived>::getAverageBytesReceivedPerSecond() const {
 template <typename Derived>
 int AvatarDataStream<Derived>::getReceiveRate() const {
     return lrint(1.0f / _averageBytesReceived.getEventDeltaAverage());
-}
-
-template <typename Derived>
-void AvatarDataStream<Derived>::setJointData(int index, const glm::quat& rotation, const glm::vec3& translation) {
-    if (index < 0 || index >= LOWEST_PSEUDO_JOINT_INDEX) {
-        return;
-    }
-    QWriteLocker writeLock(&_jointDataLock);
-    if (_jointData.size() <= index) {
-        _jointData.resize(index + 1);
-    }
-    JointData& data = _jointData[index];
-    data.rotation = rotation;
-    data.rotationIsDefaultPose = false;
-    data.translation = translation;
-    data.translationIsDefaultPose = false;
-}
-
-template <typename Derived>
-QVector<JointData> AvatarDataStream<Derived>::getJointData() const {
-    QVector<JointData> jointData;
-    QReadLocker readLock(&_jointDataLock);
-    jointData = _jointData;
-    return jointData;
-}
-
-template <typename Derived>
-void AvatarDataStream<Derived>::clearJointData(int index) {
-    if (index < 0 || index >= LOWEST_PSEUDO_JOINT_INDEX) {
-        return;
-    }
-    QWriteLocker writeLock(&_jointDataLock);
-    // FIXME: I don't understand how this "clears" the joint data at index
-    if (_jointData.size() <= index) {
-        _jointData.resize(index + 1);
-    }
-    _jointData[index] = {};
-}
-
-template <typename Derived>
-void AvatarDataStream<Derived>::setJointData(const QString& name, const glm::quat& rotation, const glm::vec3& translation) {
-    // Can't do this, not thread safe
-    // setJointData(getJointIndex(name), rotation, translation);
-
-    writeLockWithNamedJointIndex(name, [&](int index) {
-        auto& jointData = _jointData[index];
-        jointData.rotation = rotation;
-        jointData.translation = translation;
-        jointData.rotationIsDefaultPose = false;
-        jointData.translationIsDefaultPose = false;
-    });
-}
-
-template <typename Derived>
-void AvatarDataStream<Derived>::setJointRotation(const QString& name, const glm::quat& rotation) {
-    // Can't do this, not thread safe
-    // setJointRotation(getJointIndex(name), rotation);
-    writeLockWithNamedJointIndex(name, [&](int index) {
-        auto& data = _jointData[index];
-        data.rotation = rotation;
-        data.rotationIsDefaultPose = false;
-    });
-}
-
-template <typename Derived>
-void AvatarDataStream<Derived>::setJointTranslation(const QString& name, const glm::vec3& translation) {
-    // Can't do this, not thread safe
-    // setJointTranslation(getJointIndex(name), translation);
-    writeLockWithNamedJointIndex(name, [&](int index) {
-        auto& data = _jointData[index];
-        data.translation = translation;
-        data.translationIsDefaultPose = false;
-    });
-}
-
-template <typename Derived>
-void AvatarDataStream<Derived>::setJointRotation(int index, const glm::quat& rotation) {
-    if (index < 0 || index >= LOWEST_PSEUDO_JOINT_INDEX) {
-        return;
-    }
-    QWriteLocker writeLock(&_jointDataLock);
-    if (_jointData.size() <= index) {
-        _jointData.resize(index + 1);
-    }
-    JointData& data = _jointData[index];
-    data.rotation = rotation;
-    data.rotationIsDefaultPose = false;
-}
-
-template <typename Derived>
-void AvatarDataStream<Derived>::setJointTranslation(int index, const glm::vec3& translation) {
-    if (index < 0 || index >= LOWEST_PSEUDO_JOINT_INDEX) {
-        return;
-    }
-    QWriteLocker writeLock(&_jointDataLock);
-    if (_jointData.size() <= index) {
-        _jointData.resize(index + 1);
-    }
-    JointData& data = _jointData[index];
-    data.translation = translation;
-    data.translationIsDefaultPose = false;
-}
-
-template <typename Derived>
-void AvatarDataStream<Derived>::clearJointData(const QString& name) {
-    // Can't do this, not thread safe
-    // clearJointData(getJointIndex(name));
-    writeLockWithNamedJointIndex(name, [&](int index) {
-        _jointData[index] = {};
-    });
-}
-
-template <typename Derived>
-void AvatarDataStream<Derived>::setJointRotations(const QVector<glm::quat>& jointRotations) {
-    QWriteLocker writeLock(&_jointDataLock);
-    auto size = jointRotations.size();
-    if (_jointData.size() < size) {
-        _jointData.resize(size);
-    }
-    for (int i = 0; i < size; ++i) {
-        auto& data = _jointData[i];
-        data.rotation = jointRotations[i];
-        data.rotationIsDefaultPose = false;
-    }
-}
-
-template <typename Derived>
-void AvatarDataStream<Derived>::setJointTranslations(const QVector<glm::vec3>& jointTranslations) {
-    QWriteLocker writeLock(&_jointDataLock);
-    auto size = jointTranslations.size();
-    if (_jointData.size() < size) {
-        _jointData.resize(size);
-    }
-    for (int i = 0; i < size; ++i) {
-        auto& data = _jointData[i];
-        data.translation = jointTranslations[i];
-        data.translationIsDefaultPose = false;
-    }
-}
-
-template <typename Derived>
-void AvatarDataStream<Derived>::clearJointsData() {
-    QWriteLocker writeLock(&_jointDataLock);
-    QVector<JointData> newJointData;
-    newJointData.resize(_jointData.size());
-    _jointData.swap(newJointData);
 }
 
 template <typename Derived>
@@ -2078,16 +1969,18 @@ void AvatarDataStream<Derived>::unpackSkeletonData(const QByteArray& data) {
         QStringRef subString(&table, joints[i].stringStart, joints[i].stringLength);
         joints[i].jointName = subString.toString();
     }
-    if (_clientTraitsHandler) {
-        _clientTraitsHandler->markTraitUpdated(AvatarTraits::SkeletonData);
+    if (derived().getClientTraitsHandler()) {
+        derived().getClientTraitsHandler()->markTraitUpdated(AvatarTraits::SkeletonData);
     }
     setSkeletonData(joints);
 }
 
 template <typename Derived>
 void AvatarDataStream<Derived>::unpackSkeletonModelURL(const QByteArray& data) {
-    auto skeletonModelURL = QUrl::fromEncoded(data);
-    setSkeletonModelURL(skeletonModelURL);
+    derived().setSkeletonModelURLIn(data);
+    // FIXME: CRTP
+    // auto skeletonModelURL = QUrl::fromEncoded(data);
+    // setSkeletonModelURL(skeletonModelURL);
 }
 
 template <typename Derived>
@@ -2174,13 +2067,13 @@ void AvatarDataStream<Derived>::processDeletedTraitInstance(AvatarTraits::TraitT
 
 template <typename Derived>
 void AvatarDataStream<Derived>::prepareResetTraitInstances() {
-    if (_clientTraitsHandler) {
+    if (derived().getClientTraitsHandler()) {
         _avatarEntitiesLock.withReadLock([this]{
             foreach (auto entityID, _packedAvatarEntityData.keys()) {
-                _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
+                derived().getClientTraitsHandler()->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
             }
             foreach (auto grabID, _avatarGrabData.keys()) {
-                _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::Grab, grabID);
+                derived().getClientTraitsHandler()->markInstancedTraitUpdated(AvatarTraits::Grab, grabID);
             }
         });
     }
@@ -2249,8 +2142,8 @@ void AvatarDataStream<Derived>::setSkeletonModelURL(const QUrl& skeletonModelURL
     }
 
     _skeletonModelURL = expanded;
-    if (_clientTraitsHandler) {
-        _clientTraitsHandler->markTraitUpdated(AvatarTraits::SkeletonModelURL);
+    if (derived().getClientTraitsHandler()) {
+        derived().getClientTraitsHandler()->markTraitUpdated(AvatarTraits::SkeletonModelURL);
     }
 
     // FIXME: CRTP
@@ -2313,8 +2206,8 @@ int AvatarDataStream<Derived>::sendAllPackets(AvatarDataDetail dataDetail, Avata
             bytesSent += sendIdentityPacket();
         }
 
-        if (_clientTraitsHandler) {
-            bytesSent += _clientTraitsHandler->sendChangedTraitsToMixer();
+        if (derived().getClientTraitsHandler()) {
+            bytesSent += derived().getClientTraitsHandler()->sendChangedTraitsToMixer();
         }
 
         // Compute the next send window based on how much data we sent and what
@@ -2425,10 +2318,10 @@ void AvatarDataStream<Derived>::storeAvatarEntityDataPayload(const QUuid& entity
     if (changed) {
         _avatarEntityDataChanged = true;
 
-        if (_clientTraitsHandler) {
+        if (derived().getClientTraitsHandler()) {
             // we have a client traits handler, so we need to mark this instanced trait as changed
             // so that changes will be sent next frame
-            _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
+            derived().getClientTraitsHandler()->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
         }
     }
 }
@@ -2452,10 +2345,10 @@ void AvatarDataStream<Derived>::clearAvatarEntityInternal(const QUuid& entityID)
         removedEntity = _packedAvatarEntityData.remove(entityID);
     });
     insertRemovedEntityID(entityID);
-    if (removedEntity && _clientTraitsHandler) {
+    if (removedEntity && derived().getClientTraitsHandler()) {
         // we have a client traits handler, so we need to mark this removed instance trait as deleted
         // so that changes are sent next frame
-        _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, entityID);
+        derived().getClientTraitsHandler()->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, entityID);
     }
 }
 
@@ -2535,9 +2428,9 @@ std::vector<AvatarSkeletonTrait::UnpackedJointData> AvatarDataStream<Derived>::g
 }
 
 template <typename Derived>
-void AvatarDataStream<Derived>::sendSkeletonData() const{
-    if (_clientTraitsHandler) {
-        _clientTraitsHandler->markTraitUpdated(AvatarTraits::SkeletonData);
+void AvatarDataStream<Derived>::sendSkeletonData() {
+    if (derived().getClientTraitsHandler()) {
+        derived().getClientTraitsHandler()->markTraitUpdated(AvatarTraits::SkeletonData);
     }
 }
 

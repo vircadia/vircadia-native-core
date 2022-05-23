@@ -1,6 +1,6 @@
 //
 //  AvatarData.cpp
-//  libraries/vircadia-client/src/avatars
+//  libraries/vircadia-client/src/internal/avatars
 //
 //  Created by Nshan G. on 9 May 2022.
 //  Copyright 2022 Vircadia contributors.
@@ -17,9 +17,9 @@
 namespace vircadia::client
 {
 
-    Avatar::Avatar() {
-        AvatarDataStream<Avatar>::initClientTraitsHandler();
-    }
+    Avatar::Avatar() :
+        clientTraitsHandler(new ClientTraitsHandler(this))
+    {}
 
     const QUuid& Avatar::getSessionUUID() const {
         return data.sessionUUID;
@@ -72,8 +72,7 @@ namespace vircadia::client
     }
 
     void Avatar::setBoundingBoxIn(const AvatarDataPacket::AvatarBoundingBox& bounds) {
-        data.setProperty<AvatarData::BoundingBoxIndex>({
-            {
+        data.setProperty<AvatarData::BoundingBoxIndex>({ {
                 bounds.avatarDimensions[0],
                 bounds.avatarDimensions[1],
                 bounds.avatarDimensions[2]
@@ -205,6 +204,161 @@ namespace vircadia::client
         });
     }
 
+    Avatar::HandControllers Avatar::getHandControllersOut() const {
+        auto controllers = data.getProperty<AvatarData::HandControllersIndex>();
+        return {
+            {
+                {
+                    controllers.left.position.x,
+                    controllers.left.position.y,
+                    controllers.left.position.z
+                },
+                {
+                    controllers.left.rotation.w,
+                    controllers.left.rotation.x,
+                    controllers.left.rotation.y,
+                    controllers.left.rotation.z
+                }
+            },
+            {
+                {
+                    controllers.right.position.x,
+                    controllers.right.position.y,
+                    controllers.right.position.z
+                },
+                {
+                    controllers.right.rotation.w,
+                    controllers.right.rotation.x,
+                    controllers.right.rotation.y,
+                    controllers.right.rotation.z
+                }
+            },
+        };
+    }
+
+    void Avatar::setHandControllersIn(const HandControllers& controllers) {
+        data.setProperty<AvatarData::HandControllersIndex>({
+            {
+                {
+                    controllers.left.position.x,
+                    controllers.left.position.y,
+                    controllers.left.position.z
+                },
+                {
+                    controllers.left.orientation.x,
+                    controllers.left.orientation.y,
+                    controllers.left.orientation.z,
+                    controllers.left.orientation.w
+                },
+            },
+            {
+                {
+                    controllers.left.position.x,
+                    controllers.left.position.y,
+                    controllers.left.position.z
+                },
+                {
+                    controllers.left.orientation.x,
+                    controllers.left.orientation.y,
+                    controllers.left.orientation.z,
+                    controllers.left.orientation.w
+                },
+            }
+        });
+    }
+
+    Avatar::FaceTrackerInfo Avatar::getFaceTrackerInfoOut() const {
+        auto& info = data.getProperty<AvatarData::FaceTrackerInfoIndex>();
+        return {
+            info.left_eye_blink,
+            info.right_eye_blink,
+            info.average_loundness,
+            info.brow_audio_lift,
+            info.blendshape_coefficients_size,
+            reinterpret_cast<const uint8_t*>(info.blendshape_coefficients)
+        };
+    }
+
+    void Avatar::setFaceTrackerInfoIn(const FaceTrackerInfo& info)
+    {
+        auto [
+            left_eye_blink,
+            right_eye_blink,
+            average_loundness,
+            brow_audio_lift,
+            blendshape_coefficients_size,
+            blendshape_coefficients
+        ] = info;
+        vircadia_avatar_face_tracker_info setInfo{};
+        setInfo.left_eye_blink = left_eye_blink;
+        setInfo.right_eye_blink = right_eye_blink;
+        setInfo.average_loundness = average_loundness;
+        setInfo.brow_audio_lift = brow_audio_lift;
+        setInfo.blendshape_coefficients_size = blendshape_coefficients_size;
+        std::memcpy(setInfo.blendshape_coefficients, blendshape_coefficients, blendshape_coefficients_size * sizeof(float));
+        data.setProperty<AvatarData::FaceTrackerInfoIndex>(setInfo);
+    }
+
+    int Avatar::getJointDataSizeOut() const {
+        return data.getProperty<AvatarData::JointDataIndex>().size();
+    }
+
+    JointData Avatar::getJointDataOut(int index) const {
+        const auto& joint = data.getProperty<AvatarData::JointDataIndex>()[index];
+        const auto& flags = data.getProperty<AvatarData::JointDefaultPoseFlagsIndex>()[index];
+        return {
+            {
+                joint.rotation.w,
+                joint.rotation.x,
+                joint.rotation.y,
+                joint.rotation.z
+            },
+            {
+                joint.position.x,
+                joint.position.y,
+                joint.position.z
+            },
+            bool(flags.rotation_is_default),
+            bool(flags.translation_is_default)
+        };
+    }
+
+    void Avatar::setJointDataSizeIn(int size) {
+        data.resizeProperty<AvatarData::JointDataIndex>(size);
+        data.resizeProperty<AvatarData::JointDefaultPoseFlagsIndex>(size);
+    }
+
+    void Avatar::setJointDataPositionIn(int index, glm::vec3 position) {
+        auto joint = data.getProperty<AvatarData::JointDataIndex>()[index];
+        joint.position = vircadia_vector {
+            position.x, position.y, position.z
+        };
+        data.setProperty<AvatarData::JointDataIndex>(joint, index);
+    }
+
+    void Avatar::setJointDataRotationIn(int index, glm::quat rotation) {
+        auto joint = data.getProperty<AvatarData::JointDataIndex>()[index];
+        joint.rotation = vircadia_quaternion {
+            rotation.x, rotation.y, rotation.z, rotation.w
+        };
+        data.setProperty<AvatarData::JointDataIndex>(joint, index);
+    }
+
+    void Avatar::setJointDataPositionDefaultIn(int index, bool isDefault) {
+        auto flags = data.getProperty<AvatarData::JointDefaultPoseFlagsIndex>()[index];
+        flags.translation_is_default = isDefault;
+        data.setProperty<AvatarData::JointDefaultPoseFlagsIndex>(flags, index);
+    }
+
+    void Avatar::setJointDataRotationDefaultIn(int index, bool isDefault) {
+        auto flags = data.getProperty<AvatarData::JointDefaultPoseFlagsIndex>()[index];
+        flags.rotation_is_default = isDefault;
+        data.setProperty<AvatarData::JointDefaultPoseFlagsIndex>(flags, index);
+    }
+
+    void Avatar::setSkeletonModelURLIn(const QByteArray& encodedURL) {
+        data.setProperty<AvatarData::SkeletonModelURLIndex>(encodedURL.toStdString());
+    }
 
     void Avatar::onParseError(std::string) {
         //TODO keep a log of last N errors
@@ -212,6 +366,14 @@ namespace vircadia::client
 
     void Avatar::onPacketTooSmallError(std::string, int, int) {
         //TODO keep a log of last N errors
+    }
+
+    ClientTraitsHandler* Avatar::getClientTraitsHandler() {
+        return clientTraitsHandler.get();
+    }
+
+    const ClientTraitsHandler* Avatar::getClientTraitsHandler() const {
+        return clientTraitsHandler.get();
     }
 
 } // namespace vircadia::client

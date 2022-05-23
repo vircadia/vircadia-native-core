@@ -489,7 +489,6 @@ public:
 
     AvatarDataStream();
     ~AvatarDataStream();
-    void initClientTraitsHandler();
 
     typedef enum {
         NoData,
@@ -515,30 +514,6 @@ public:
     void doneEncoding(bool cullSmallChanges);
 
     int parseDataFromBuffer(const QByteArray& buffer);
-
-    const QVector<JointData>& getRawJointData() const { return _jointData; }
-
-    void setJointData(int index, const glm::quat& rotation, const glm::vec3& translation);
-
-    void setJointRotation(int index, const glm::quat& rotation);
-
-    void setJointTranslation(int index, const glm::vec3& translation);
-
-    void clearJointData(int index);
-
-    void setJointData(const QString& name, const glm::quat& rotation, const glm::vec3& translation);
-
-    void setJointRotation(const QString& name, const glm::quat& rotation);
-
-    void setJointTranslation(const QString& name, const glm::vec3& translation);
-
-    void clearJointData(const QString& name);
-
-    void setJointRotations(const QVector<glm::quat>& jointRotations);
-
-    void setJointTranslations(const QVector<glm::vec3>& jointTranslations);
-
-    void clearJointsData();
 
     int getJointIndex(const QString& name) const;
 
@@ -590,13 +565,7 @@ public:
 
     float getUpdateRate(const QString& rateName = QString("")) const;
 
-    int getJointCount() const { return _jointData.size(); }
-
-    QVector<JointData> getLastSentJointData() {
-        QReadLocker readLock(&_jointDataLock);
-        _lastSentJointData.resize(_jointData.size());
-        return _lastSentJointData;
-    }
+    QVector<JointData> getLastSentJointData();
 
     void pushIdentitySequenceNumber() { ++_identitySequenceNumber; };
     bool hasProcessedFirstIdentity() const { return _hasProcessedFirstIdentity; }
@@ -609,8 +578,7 @@ public:
     void setIsClientAvatar(bool isClientAvatar) { _isClientAvatar = isClientAvatar; }
     void setSkeletonData(const std::vector<AvatarSkeletonTrait::UnpackedJointData>& skeletonData);
     std::vector<AvatarSkeletonTrait::UnpackedJointData> getSkeletonData() const;
-    void sendSkeletonData() const;
-    QVector<JointData> getJointData() const;
+    void sendSkeletonData();
 
     int sendAllPackets(AvatarDataDetail, AvatarDataPacket::SendStatus&);
 
@@ -657,9 +625,7 @@ protected:
     void unpackSkeletonModelURL(const QByteArray& data);
     void unpackSkeletonData(const QByteArray& data);
 
-    QVector<JointData> _jointData; ///< the state of the skeleton joints
     QVector<JointData> _lastSentJointData; ///< the state of the skeleton joints last time we transmitted
-    mutable QReadWriteLock _jointDataLock;
 
     bool _hasNewJointData { true }; // set in here, cleared in Avatar
 
@@ -728,39 +694,6 @@ protected:
     bool _isNewAvatar { true };
     bool _isClientAvatar { false };
 
-    // null unless MyAvatar or ScriptableAvatar sending traits data to mixer
-    // FIXME: CRTP to use a QObject class derived from ClientTraitsHandler<Derived> with LaterDeleter
-    // std::unique_ptr<ClientTraitsHandler<Derived>, LaterDeleter> _clientTraitsHandler;
-    std::unique_ptr<ClientTraitsHandler<Derived>> _clientTraitsHandler;
-
-    template <typename T, typename F>
-    T readLockWithNamedJointIndex(const QString& name, const T& defaultValue, F f) const {
-        QReadLocker readLock(&_jointDataLock);
-        int index = getJointIndex(name);
-        if (index == -1) {
-            return defaultValue;
-        }
-        return f(index);
-    }
-
-    template <typename T, typename F>
-    T readLockWithNamedJointIndex(const QString& name, F f) const {
-        return readLockWithNamedJointIndex(name, T(), f);
-    }
-
-    template <typename F>
-    void writeLockWithNamedJointIndex(const QString& name, F f) {
-        QWriteLocker writeLock(&_jointDataLock);
-        int index = getJointIndex(name);
-        if (index == -1) {
-            return;
-        }
-        if (_jointData.size() <= index) {
-            _jointData.resize(index + 1);
-        }
-        f(index);
-    }
-
     bool updateAvatarGrabData(const QUuid& grabID, const QByteArray& grabData);
     void clearAvatarGrabData(const QUuid& grabID);
 
@@ -794,6 +727,11 @@ QDataStream& operator>>(QDataStream& in, AttachmentData& attachment);
 
 Q_DECLARE_METATYPE(AttachmentData)
 Q_DECLARE_METATYPE(QVector<AttachmentData>)
+
+struct HandControllerVantage {
+    glm::vec3 position;
+    glm::quat orientation;
+};
 
 // faux joint indexes (-1 means invalid)
 const int NO_JOINT_INDEX = 65535; // -1

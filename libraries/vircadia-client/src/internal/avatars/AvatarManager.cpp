@@ -1,6 +1,6 @@
 //
 //  AvatarManager.cpp
-//  libraries/vircadia-client/src/avatars
+//  libraries/vircadia-client/src/internal/avatars
 //
 //  Created by Nshan G. on 9 May 2022.
 //  Copyright 2022 Vircadia contributors.
@@ -41,6 +41,7 @@ namespace vircadia::client
         {
             std::scoped_lock lock(avatarsMutex);
             // FIXME: write avatar data and epitaphs out
+            // clear changes in source data
         }
 
         {
@@ -52,7 +53,7 @@ namespace vircadia::client
             {
                 constexpr auto index = AvatarData::SkeletonModelURLIndex;
                 if (myAvatarDataIn.changes.test(index)) {
-                    myAvatar.setSkeletonModelURL(QString(myAvatarDataIn.getProperty<index>().c_str()));
+                    myAvatar.setSkeletonModelURL(QUrl::fromEncoded(myAvatarDataIn.getProperty<index>().c_str()));
                 }
             }
             myAvatarDataIn.changes.reset();

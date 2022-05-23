@@ -1,6 +1,6 @@
 //
 //  AvatarData.h
-//  libraries/vircadia-client/src/avatars
+//  libraries/vircadia-client/src/internal/avatars
 //
 //  Created by Nshan G. on 9 May 2022.
 //  Copyright 2022 Vircadia contributors.
@@ -23,9 +23,12 @@
 
 #include "../Common.h"
 #include "../../avatars.h"
+#include "ClientTraitsHandler.h"
 
 namespace vircadia::client
 {
+    template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+    template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
     inline bool operator==(const vircadia_vector& a, const vircadia_vector& b) {
         return a.x == b.x && a.y == b.y && a.z == b.z;
@@ -169,15 +172,64 @@ namespace vircadia::client
         Properties properties;
         std::bitset<std::tuple_size_v<Properties>> changes;
 
-        template <PropertyIndex Index>
-        bool setProperty(std::tuple_element_t<Index, Properties> value) {
-            auto& current = std::get<Index>(properties);
+        template <size_t Index, typename Accessor, typename Value =
+            std::remove_reference_t<
+                std::invoke_result_t<Accessor, Properties>>>
+        bool setProperty(Accessor&& accessor, Value value) {
+            const auto& current = accessor(std::get<Index>(properties));
             if (current != value) {
-                current = std::move(value);
+                accessor(std::get<Index>(properties), std::move(value));
                 changes.set(Index);
+
+                // NOTE: grab joint data is hard coded in packet
+                // handling code to be sent and received together
+                // with joint data only... not sure why though,
+                // when something like joint default pose flags
+                // are handled completely separately
+                if (Index == AvatarData::GrabJointsIndex) {
+                    changes.set(AvatarData::JointDataIndex);
+                }
+
                 return true;
             }
             return false;
+        }
+
+        template <PropertyIndex Index>
+        bool setProperty(std::tuple_element_t<Index, Properties> value) {
+            auto noopAccessor = overloaded {
+                [](auto& x) -> decltype(auto) {
+                    return (x);
+                },
+                [](auto& x, auto&& v){
+                    x = std::forward<decltype(v)>(v);
+                }
+            };
+            return setProperty<Index>(noopAccessor, value);
+        }
+
+        template <PropertyIndex Index, typename Value>
+        bool setProperty(Value value, int element) {
+            return setProperty<Index>( overloaded {
+                [element](auto& x) -> decltype(auto) {
+                    return (x[element]);
+                },
+                [element](auto& x, auto&& v){
+                    x[element] = std::forward<decltype(v)>(v);
+                },
+            }, value);
+        }
+
+        template <PropertyIndex Index>
+        bool resizeProperty(size_t size) {
+            return setProperty<Index>( overloaded {
+                [](auto&& x){
+                    return x.size();
+                },
+                [](auto& x, size_t size){
+                    x.resize(size);
+                },
+            }, size);
         }
 
         template <size_t Index>
@@ -190,62 +242,96 @@ namespace vircadia::client
     /// @private
     class Avatar : public QObject, public AvatarDataStream<Avatar> {
         Q_OBJECT
-        public:
-            Avatar();
+    public:
+        Avatar();
 
-            const QUuid& getSessionUUID() const;
-            void setSessionUUID(const QUuid& uuid);
+        const QUuid& getSessionUUID() const;
+        void setSessionUUID(const QUuid& uuid);
 
-            AvatarDataPacket::Identity getIdentityDataOut() const;
-            bool getIdentityDataChanged();
-            void onIdentityDataSent();
+        AvatarDataPacket::Identity getIdentityDataOut() const;
+        bool getIdentityDataChanged();
+        void onIdentityDataSent();
 
-            AvatarDataPacket::AvatarGlobalPosition getGlobalPositionOut() const;
-            void setGlobalPositionIn(const AvatarDataPacket::AvatarGlobalPosition&);
+        // TODO: these in/out functions should be private
 
-            AvatarDataPacket::AvatarBoundingBox getBoundingBoxOut() const;
-            void setBoundingBoxIn(const AvatarDataPacket::AvatarBoundingBox&);
+        AvatarDataPacket::AvatarGlobalPosition getGlobalPositionOut() const;
+        void setGlobalPositionIn(const AvatarDataPacket::AvatarGlobalPosition&);
 
-            glm::quat getOrientationOut() const;
-            void setOrientationIn(glm::quat);
+        AvatarDataPacket::AvatarBoundingBox getBoundingBoxOut() const;
+        void setBoundingBoxIn(const AvatarDataPacket::AvatarBoundingBox&);
 
-            float getScaleOut() const;
-            void setScaleIn(float);
+        glm::quat getOrientationOut() const;
+        void setOrientationIn(glm::quat);
 
-            AvatarDataPacket::LookAtPosition getLookAtPositionOut() const;
-            void setLookAtPositionIn(const AvatarDataPacket::LookAtPosition&);
+        float getScaleOut() const;
+        void setScaleIn(float);
 
-            float getAudioLoudnessOut() const;
-            void setAudioLoudnessIn(float);
+        AvatarDataPacket::LookAtPosition getLookAtPositionOut() const;
+        void setLookAtPositionIn(const AvatarDataPacket::LookAtPosition&);
 
-            struct Transform {
-                glm::vec3 translation;
-                glm::quat rotation;
-                glm::vec3 scale;
-            };
+        float getAudioLoudnessOut() const;
+        void setAudioLoudnessIn(float);
 
-            Transform getSensorToWorldMatrixOut() const;
-            void setSensorToWorldMatrixIn(Transform);
+        struct Transform {
+            glm::vec3 translation;
+            glm::quat rotation;
+            glm::vec3 scale;
+        };
 
-            using AdditionalFlags = std::tuple<
-                KeyState, uint8_t, bool, bool, bool, bool, bool, bool, bool
-            >;
+        Transform getSensorToWorldMatrixOut() const;
+        void setSensorToWorldMatrixIn(Transform);
 
-            AdditionalFlags getAdditionalFlagsOut() const;
-            void setAdditionalFlagsIn(vircadia_avatar_additional_flags);
+        using AdditionalFlags = std::tuple<
+            KeyState, uint8_t, bool, bool, bool, bool, bool, bool, bool
+        >;
 
-            using ParentInfo = std::tuple<UUID, uint16_t>;
+        AdditionalFlags getAdditionalFlagsOut() const;
+        void setAdditionalFlagsIn(vircadia_avatar_additional_flags);
 
-            ParentInfo getParentInfoOut() const;
-            void setParentInfoIn(const uint8_t* uuid, uint16_t jointIndex);
+        using ParentInfo = std::tuple<UUID, uint16_t>;
 
-            void onParseError(std::string message);
-            void onPacketTooSmallError(std::string name, int sizeToRead, int sizeLeft);
+        ParentInfo getParentInfoOut() const;
+        void setParentInfoIn(const uint8_t* uuid, uint16_t jointIndex);
 
-            AvatarDataPacket::AvatarLocalPosition getLocalPositionOut() const;
-            void setLocalPositionIn(const AvatarDataPacket::AvatarLocalPosition&);
+        void onParseError(std::string message);
+        void onPacketTooSmallError(std::string name, int sizeToRead, int sizeLeft);
 
-            AvatarData data;
+        AvatarDataPacket::AvatarLocalPosition getLocalPositionOut() const;
+        void setLocalPositionIn(const AvatarDataPacket::AvatarLocalPosition&);
+
+        struct HandControllers {
+            HandControllerVantage left;
+            HandControllerVantage right;
+        };
+
+        HandControllers getHandControllersOut() const;
+        void setHandControllersIn(const HandControllers&);
+
+        using FaceTrackerInfo = std::tuple<float, float, float, float, uint8_t, const uint8_t*>;
+
+        FaceTrackerInfo getFaceTrackerInfoOut() const;
+        void setFaceTrackerInfoIn(const FaceTrackerInfo&);
+
+        int getJointDataSizeOut() const;
+        JointData getJointDataOut(int index) const;
+        void setJointDataSizeIn(int size);
+        void setJointDataPositionIn(int index, glm::vec3);
+        void setJointDataRotationIn(int index, glm::quat);
+        void setJointDataPositionDefaultIn(int index, bool);
+        void setJointDataRotationDefaultIn(int index, bool);
+
+        void setSkeletonModelURLIn(const QByteArray& encodedURL);
+
+        AvatarData data;
+
+    protected:
+        ClientTraitsHandler* getClientTraitsHandler();
+        const ClientTraitsHandler* getClientTraitsHandler() const;
+
+        friend class AvatarDataStream<Avatar>;
+
+    private:
+        std::unique_ptr<ClientTraitsHandler, LaterDeleter> clientTraitsHandler;
     };
 
 } // namespace vircadia::client
