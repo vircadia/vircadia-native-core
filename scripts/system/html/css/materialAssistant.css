@@ -1,0 +1,215 @@
+/*
+//  materialAssistant.css
+//
+//  Created by Alezia Kurdis on May 17th, 2022.
+//  Copyright 2022 Vircadia contributors.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+*/
+
+#uiMaterialAssistant {
+    position: fixed;
+    display: none;
+    width: 100%;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    border: 0px;
+    padding: 0px;
+    background-color: #404040;
+    z-index: 2;
+    border-collapse: collapse;
+    overflow-y: scroll;
+}
+
+#uiMaterialAssistant-headerContainer {
+    width: 98%;
+    text-align: right;
+    padding: 6px;
+    display: flex;
+}
+
+#uiMaterialAssistant-closeButton {
+    font-family: Raleway-Bold;
+    font-size: 18px;
+    text-align: center;
+    border: 0px;
+    padding: 6px;
+    color: #FFFFFF;
+}
+
+#uiMaterialAssistant-sidewalk {
+    width: 100%;
+    background-image: url("img/sidewalk.png"); 
+    background-repeat: repeat;
+}
+
+#uiMaterialAssistant-formContainer {
+    background-color: #404040;
+    width: 90%;
+    padding: 2px;
+}
+
+div.uiMaterialAssistant-group{
+    background-color: #2E2E2E;
+    border: 2px solid #aaaaaa;
+    padding: 5px;
+    margin: 0px 0px 6px 0px;
+    font-family: Raleway-SemiBold;  
+    text-decoration: none; 
+    font-size: 13px; 
+    color:#ffffff;   
+}
+
+font.uiMaterialAssistant-Explain{
+    background-color: #2E2E2E;
+    font-family: Raleway-Regular;   
+    text-decoration: Italic; 
+    font-size: 10px; 
+    color:#8ad5ff;                
+}
+
+font.uiMaterialAssistant-label{
+    background-color: #2E2E2E;
+    font-family: Raleway-SemiBold;  
+    text-decoration: none; 
+    font-size: 12px; 
+    color:#D2D2D2;                
+}
+
+font.uiMaterialAssistant-title{
+    background-color: #404040;
+    font-family: Raleway-Bold;
+    font-size: 18px; 
+    text-decoration: none; 
+    color:#F2F2F2;                
+}
+
+input[type=range].uiMaterialAssistant-slider {
+  margin: 10px 0;
+  width: 100%;
+  background-color: #2E2E2E;
+}
+input[type=range].uiMaterialAssistant-slider:focus {
+  outline: none;
+}
+input[type=range].uiMaterialAssistant-slider::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 6px;
+  cursor: pointer;
+  animate: 0.2s;
+  box-shadow: 0px 0px 0px #000000;
+  background: #ffffff;
+  border-radius: 0px;
+  border: 0px solid #000000;
+}
+input[type=range].uiMaterialAssistant-slider:disabled::-webkit-slider-runnable-track {
+  background: #555555;
+  border: 0px solid #333333;
+}
+input[type=range].uiMaterialAssistant-slider::-webkit-slider-thumb {
+  box-shadow: 1px 1px 1px #000000;
+  border: 1px solid #000000;
+  height: 22px;
+  width: 12px;
+  border-radius: 10px;
+  background: #FFFFFF;
+  cursor: pointer;
+  -webkit-appearance: none;
+  margin-top: -8.5px;
+}
+input[type=range].uiMaterialAssistant-slider:disabled::-webkit-slider-thumb {
+  box-shadow: 1px 1px 1px #000000;
+  border: 1px solid #333333;
+  height: 22px;
+  width: 12px;
+  border-radius: 10px;
+  background: #555555;
+}
+input[type=range].uiMaterialAssistant-slider:focus::-webkit-slider-runnable-track {
+  background: #ffffff;
+}
+
+input[type=text].uiMaterialAssistant-input {
+    background-color: #ffffff;
+    border: 1px solid #000000;
+    font-family: FiraSans-SemiBold;
+    font-size: 14px;
+    width: auto;
+    height: auto;
+    padding: 3px;
+    margin: 3px 0px 3px 0px;
+    color: #000000;
+}
+input[type=text].uiMaterialAssistant-input:disabled {
+    background-color: #555555;
+    color: #888888;
+}
+input[type=radio].uiMaterialAssistant-radio {
+    width: 16px;
+    height: 16px;
+    margin: 2px;
+    padding: 3px;
+}
+
+input[type=radio].uiMaterialAssistant-radio:focus {
+    outline: none;
+}
+
+input[type=checkbox].uiMaterialAssistant-checkbox {
+    width: 16px;
+    height: 16px;
+    margin: 2px;
+    padding: 3px;
+    display: block;
+    text-align: left;
+}
+
+input[type=checkbox].uiMaterialAssistant-checkbox:focus {
+    outline: none;
+}
+
+button.uiMaterialAssistant-active {
+    width: 12px;
+    height: 12px;
+    margin: 0px;
+    padding: 0px;
+    border: 1px solid #000000;
+    background-color: #00FF00;
+}
+
+button.uiMaterialAssistant-active:hover {
+    background-color: #33FF33;
+    border: 1px solid #ffffff;
+}
+
+button.uiMaterialAssistant-active:focus {
+    outline: none;
+}
+
+button.uiMaterialAssistant-inactive {
+    width: 12px;
+    height: 12px;
+    margin: 0px;
+    padding: 0px;
+    border: 1px solid #000000;
+    background-color: #555555;
+}
+
+button.uiMaterialAssistant-inactive:hover {
+    background-color: #777777;
+    border: 1px solid #ffffff;
+}
+
+button.uiMaterialAssistant-inactive:focus {
+    outline: none;
+}
+
+div.uiMaterialAssistant-color-picker {
+    background-color: #000000;
+    border: 1px solid #AAAAAA;
+    width: 120px;
+    height: 30px;
+}
