@@ -877,9 +877,10 @@ const GROUPS = [
             {
                 label: "Material Data",
                 type: "textarea",
-                buttons: [ { id: "clear", label: "Clear Material Data", className: "red", onClick: clearMaterialData }, 
+                buttons: [ { id: "clear", label: "Clear Material", className: "red", onClick: clearMaterialData }, 
                            { id: "edit", label: "Edit as JSON", className: "blue", onClick: newJSONMaterialEditor },
-                           { id: "save", label: "Save Material Data", className: "black", onClick: saveMaterialData } ],
+                           { id: "save", label: "Save Material", className: "black", onClick: saveMaterialData },
+                           { id: "materialAssistant", label: "s", className: "glyph black", onClick: openMaterialAssistant }],
                 propertyID: "materialData",
             },
             {
@@ -3478,6 +3479,21 @@ function saveMaterialData() {
     saveJSONMaterialData(true);
 }
 
+function openMaterialAssistant() {
+    if (materialEditor === null) {
+        loadDataInMaUi({});
+    } else {
+        loadDataInMaUi(materialEditor.getText());
+    }
+    $('#uiMaterialAssistant').show();
+    $('#properties-list').hide();
+}
+
+function closeMaterialAssistant() {
+    $('#uiMaterialAssistant').hide();
+    $('#properties-list').show();
+}
+
 /**
  * @param {boolean} noUpdate - don't update the UI, but do send a property update.
  * @param {Set.<string>} [entityIDsToUpdate] - Entity IDs to update materialData for.
@@ -3509,6 +3525,15 @@ function setMaterialDataFromEditor(noUpdate, entityIDsToUpdate) {
     } else {
         updateProperty('materialData', text, false);
     }
+    
+    var matJson = JSON.parse(text);
+    var unsupportedModelCheck = text.indexOf("hifi_shader_simple"); 
+    if ( getPropertyInputElement("materialURL").value === "materialData" && unsupportedModelCheck === -1 &&
+            (matJson.materials === undefined || matJson.materials.length <= 1 || typeof matJson.materials === "object")) {
+        showMaterialAssistantButton();
+    } else {
+        hideMaterialAssistantButton();
+    }    
 }
 
 let materialEditor = null;
@@ -3565,6 +3590,14 @@ function hideMaterialDataTextArea() {
 
 function hideMaterialDataSaved() {
     $('#property-materialData-saved').hide();
+}
+
+function showMaterialAssistantButton() {
+    $('#property-materialData-button-materialAssistant').show();
+}
+
+function hideMaterialAssistantButton() {
+    $('#property-materialData-button-materialAssistant').hide();
 }
 
 function setMaterialEditorJSON(json) {
@@ -4043,6 +4076,7 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
     const multipleSelections = currentSelections.length > 1;
     const hasSelectedEntityChanged = !areSetsEqual(selectedEntityIDs, previouslySelectedEntityIDs);
 
+    closeMaterialAssistant();
     requestZoneList();
     
     if (selections.length === 0) {
@@ -4361,7 +4395,7 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
             showSaveMaterialDataButton();
             hideMaterialDataTextArea();
             hideNewJSONMaterialEditorButton();
-            hideMaterialDataSaved();
+            hideMaterialDataSaved();           
         } else {
             // normal text
             deleteJSONMaterialEditor();
@@ -4371,6 +4405,14 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
             showNewJSONMaterialEditorButton();
             hideSaveMaterialDataButton();
             hideMaterialDataSaved();
+        }
+
+        var unsupportedModelCheck = JSON.stringify(materialJson).indexOf("hifi_shader_simple");
+        if (getPropertyInputElement("materialURL").value === "materialData" && unsupportedModelCheck === -1 &&
+                (materialJson.materials === undefined || materialJson.materials.length <= 1 || typeof materialJson.materials === "object")) {
+            showMaterialAssistantButton();
+        } else {
+            hideMaterialAssistantButton();
         }
 
         if (hasSelectedEntityChanged && selections.length === 1 && entityTypes[0] === "Material") {
