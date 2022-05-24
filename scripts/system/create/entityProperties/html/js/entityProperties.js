@@ -3527,8 +3527,9 @@ function setMaterialDataFromEditor(noUpdate, entityIDsToUpdate) {
     }
     
     var matJson = JSON.parse(text);
-    var unsupportedModelCheck = text.indexOf("hifi_shader_simple"); 
-    if ( getPropertyInputElement("materialURL").value === "materialData" && unsupportedModelCheck === -1 &&
+    if ( getPropertyInputElement("materialURL").value === "materialData" && text.indexOf("hifi_shader_simple") === -1 &&
+            text.indexOf("glossMap") === -1 && text.indexOf("specularMap") === -1 && text.indexOf("bumpMap") === -1 && 
+            text.indexOf("lightMap") === -1 && text.indexOf("texCoordTransform0") === -1 && text.indexOf("texCoordTransform1") === -1 &&
             (matJson.materials === undefined || matJson.materials.length <= 1 || typeof matJson.materials === "object")) {
         showMaterialAssistantButton();
     } else {
@@ -4407,8 +4408,10 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
             hideMaterialDataSaved();
         }
 
-        var unsupportedModelCheck = JSON.stringify(materialJson).indexOf("hifi_shader_simple");
-        if (getPropertyInputElement("materialURL").value === "materialData" && unsupportedModelCheck === -1 &&
+        var materialDataText = JSON.stringify(materialJson);
+        if (getPropertyInputElement("materialURL").value === "materialData" && materialDataText.indexOf("hifi_shader_simple") === -1 &&
+                materialDataText.indexOf("glossMap") === -1 && materialDataText.indexOf("specularMap") === -1 && materialDataText.indexOf("bumpMap") === -1 && 
+                materialDataText.indexOf("lightMap") === -1  && materialDataText.indexOf("texCoordTransform0") === -1 && materialDataText.indexOf("texCoordTransform1") === -1 &&
                 (materialJson.materials === undefined || materialJson.materials.length <= 1 || typeof materialJson.materials === "object")) {
             showMaterialAssistantButton();
         } else {
