@@ -3526,15 +3526,7 @@ function setMaterialDataFromEditor(noUpdate, entityIDsToUpdate) {
         updateProperty('materialData', text, false);
     }
     
-    var matJson = JSON.parse(text);
-    if ( getPropertyInputElement("materialURL").value === "materialData" && text.indexOf("hifi_shader_simple") === -1 &&
-            text.indexOf("glossMap") === -1 && text.indexOf("specularMap") === -1 && text.indexOf("bumpMap") === -1 && 
-            text.indexOf("lightMap") === -1 && text.indexOf("texCoordTransform0") === -1 && text.indexOf("texCoordTransform1") === -1 &&
-            (matJson.materials === undefined || matJson.materials.length <= 1 || typeof matJson.materials === "object")) {
-        showMaterialAssistantButton();
-    } else {
-        hideMaterialAssistantButton();
-    }    
+    maGetMaterialDataAssistantAvailability(text);
 }
 
 let materialEditor = null;
@@ -4396,7 +4388,7 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
             showSaveMaterialDataButton();
             hideMaterialDataTextArea();
             hideNewJSONMaterialEditorButton();
-            hideMaterialDataSaved();           
+            hideMaterialDataSaved();
         } else {
             // normal text
             deleteJSONMaterialEditor();
@@ -4408,15 +4400,7 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
             hideMaterialDataSaved();
         }
 
-        var materialDataText = JSON.stringify(materialJson);
-        if (getPropertyInputElement("materialURL").value === "materialData" && materialDataText.indexOf("hifi_shader_simple") === -1 &&
-                materialDataText.indexOf("glossMap") === -1 && materialDataText.indexOf("specularMap") === -1 && materialDataText.indexOf("bumpMap") === -1 && 
-                materialDataText.indexOf("lightMap") === -1  && materialDataText.indexOf("texCoordTransform0") === -1 && materialDataText.indexOf("texCoordTransform1") === -1 &&
-                (materialJson.materials === undefined || materialJson.materials.length <= 1 || typeof materialJson.materials === "object")) {
-            showMaterialAssistantButton();
-        } else {
-            hideMaterialAssistantButton();
-        }
+        maGetMaterialDataAssistantAvailability(materialJson);
 
         if (hasSelectedEntityChanged && selections.length === 1 && entityTypes[0] === "Material") {
             requestMaterialTarget();

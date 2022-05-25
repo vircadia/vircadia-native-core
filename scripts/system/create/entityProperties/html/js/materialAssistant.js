@@ -391,14 +391,16 @@ function initiateMaUi() {
 }
 
 function loadDataInMaUi(materialDataPropertyValue) {
-    var entityMaterialData,materialDefinition;
+    var entityMaterialData, materialDefinition;
     try {
         entityMaterialData = JSON.parse(materialDataPropertyValue);
     }
     catch(e) {
-        entityMaterialData = {};
+        entityMaterialData = {
+                "materials":{}
+            };
     }
-    
+
     if (entityMaterialData.materials.length === undefined) {
         materialDefinition = entityMaterialData.materials;
     } else {
@@ -574,7 +576,7 @@ function loadDataInMaUi(materialDataPropertyValue) {
     } else {
         maMaterialData.opacityMapMode = "OPACITY_MAP_OPAQUE";
     }
-    switch(maMaterialData.opacityMapMode) {
+    switch (maMaterialData.opacityMapMode) {
         case "OPACITY_MAP_OPAQUE":
             maOpacityMapModeDont.checked = true;
             break;
@@ -583,7 +585,10 @@ function loadDataInMaUi(materialDataPropertyValue) {
             break;
         case "OPACITY_MAP_BLEND":
             maOpacityMapModeBlend.checked = true;
-    }     
+            break;
+        default:
+            alert("ERROR: opacityMapMode = '" + maMaterialData.opacityMapMode + "'. Something has been broken in the code.");
+    }
 
     if (materialDefinition.opacityCutoff !== undefined) {
         maMaterialData.opacityCutoff = materialDefinition.opacityCutoff;
@@ -691,12 +696,12 @@ function loadDataInMaUi(materialDataPropertyValue) {
     maOcclusionMap.value = maMaterialData.occlusionMap;
     
     //CULL FACE MODE
-     if (materialDefinition.cullFaceMode !== undefined) {
+    if (materialDefinition.cullFaceMode !== undefined) {
         maMaterialData.cullFaceMode = materialDefinition.cullFaceMode;
     } else {
         maMaterialData.cullFaceMode = "CULL_BACK";
     }
-    switch(maMaterialData.cullFaceMode) {
+    switch (maMaterialData.cullFaceMode) {
         case "CULL_BACK":
             maCullFaceModeBack.checked = true;
             break;
@@ -705,8 +710,10 @@ function loadDataInMaUi(materialDataPropertyValue) {
             break;
         case "CULL_NONE":
             maCullFaceModeNone.checked = true;
-    }        
-   
+            break;
+        default:
+            alert("ERROR: cullFaceMode = '" + maMaterialData.cullFaceMode + "'. Something has been broken in the code.");
+    }
 }
 
 function maGenerateJsonAndSave() {
@@ -761,7 +768,7 @@ function maGenerateJsonAndSave() {
 
     //OPACITY
     if (maMaterialData.opacityIsActive) {
-        switch(maMaterialData.opacityMapMode) {
+        switch (maMaterialData.opacityMapMode) {
             case "OPACITY_MAP_OPAQUE":
                 newMaterial.opacity = maMaterialData.opacity;
                 break;
@@ -773,6 +780,9 @@ function maGenerateJsonAndSave() {
             case "OPACITY_MAP_BLEND":
                 newMaterial.opacityMapMode = maMaterialData.opacityMapMode;
                 newMaterial.opacityMap = maMaterialData.albedoMap;
+                break;
+            default:
+                alert("ERROR: opacityMapMode = '" + maMaterialData.opacityMapMode + "'. Something has been broken in the code.");
         }
     } else {
         defaultFallthrough = true;
@@ -886,5 +896,28 @@ function maGetRGB(colorArray){
         return "#000000";
     } else {
         return "rgb(" + Math.floor(colorArray[0] * 255) + ", " + Math.floor(colorArray[1] * 255) + ", " + Math.floor(colorArray[2] * 255) + ")";
+    }
+}
+
+/**
+ * @param {string or object} materialData - json of the materialData as a string or as an object.
+ */
+function maGetMaterialDataAssistantAvailability(materialData) {
+    var materialDataJson, materialDataString;
+    if (typeof materialData === "string") {
+        materialDataJson = JSON.parse(materialData);
+        materialDataString = materialData;
+    } else {
+        materialDataJson = materialData;
+        materialDataString = JSON.stringify(materialData);
+    }
+    if (getPropertyInputElement("materialURL").value === "materialData" && materialDataString.indexOf("hifi_shader_simple") === -1 &&
+            materialDataString.indexOf("glossMap") === -1 && materialDataString.indexOf("specularMap") === -1 && 
+            materialDataString.indexOf("bumpMap") === -1 && materialDataString.indexOf("lightMap") === -1 && 
+            materialDataString.indexOf("texCoordTransform0") === -1 && materialDataString.indexOf("texCoordTransform1") === -1 &&
+            (materialDataJson.materials === undefined || materialDataJson.materials.length <= 1 || typeof materialDataJson.materials === "object")) {
+        showMaterialAssistantButton();
+    } else {
+        hideMaterialAssistantButton();
     }
 }
