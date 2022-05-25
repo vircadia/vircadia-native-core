@@ -1,6 +1,6 @@
 //
 //  Grab.h
-//  libraries/avatars/src
+//  libraries/shared/src
 //
 //  Created by Seth Alves on 2018-9-1.
 //  Copyright 2018 High Fidelity, Inc.
