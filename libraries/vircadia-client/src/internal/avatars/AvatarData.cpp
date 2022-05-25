@@ -33,12 +33,39 @@ namespace vircadia::client
         return std::get<AvatarData::IdentityIndex>(data.properties);
     }
 
-    bool Avatar::getIdentityDataChanged() {
+    void Avatar::setIdentityDataIn(AvatarDataPacket::Identity identity) {
+        data.setProperty<AvatarData::IdentityIndex>(std::move(identity));
+    }
+
+    bool Avatar::getIdentityDataChanged() const {
         return data.changes.test(AvatarData::IdentityIndex);
     }
 
     void Avatar::onIdentityDataSent() {
         data.changes.reset(AvatarData::IdentityIndex);
+    }
+
+    bool Avatar::getSkeletonModelURLChanged() const {
+        return data.changes.test(AvatarData::IdentityIndex);
+    }
+
+    bool Avatar::getSkeletonDataChanged() const {
+        return data.changes.test(AvatarData::IdentityIndex);
+    }
+
+    bool Avatar::getGrabDataChanged() const {
+        return data.changes.test(AvatarData::IdentityIndex);
+    }
+
+    bool Avatar::getEntityDataChanged() const {
+        return data.changes.test(AvatarData::IdentityIndex);
+    }
+
+    void Avatar::onClientTraitsSent() {
+        data.changes.reset(AvatarData::SkeletonModelURLIndex);
+        data.changes.reset(AvatarData::SkeletonDataIndex);
+        data.changes.reset(AvatarData::GrabDataIndex);
+        data.changes.reset(AvatarData::EntityDataIndex);
     }
 
     AvatarDataPacket::AvatarGlobalPosition Avatar::getGlobalPositionOut() const {
@@ -356,8 +383,103 @@ namespace vircadia::client
         data.setProperty<AvatarData::JointDefaultPoseFlagsIndex>(flags, index);
     }
 
+    AvatarDataPacket::FarGrabJoints Avatar::getFarGrabJointsOut() const {
+        auto joints = data.getProperty<AvatarData::GrabJointsIndex>();
+        return {
+            {
+                joints.left.position.x,
+                joints.left.position.y,
+                joints.left.position.z
+            },
+            {
+                joints.left.rotation.w,
+                joints.left.rotation.x,
+                joints.left.rotation.y,
+                joints.left.rotation.z
+            },
+            {
+                joints.right.position.x,
+                joints.right.position.y,
+                joints.right.position.z
+            },
+            {
+                joints.right.rotation.w,
+                joints.right.rotation.x,
+                joints.right.rotation.y,
+                joints.right.rotation.z
+            },
+            {
+                joints.mouse.position.x,
+                joints.mouse.position.y,
+                joints.mouse.position.z
+            },
+            {
+                joints.mouse.rotation.w,
+                joints.mouse.rotation.x,
+                joints.mouse.rotation.y,
+                joints.mouse.rotation.z
+            }
+        };
+    }
+
+    void Avatar::setFarGrabJointsIn(const AvatarDataPacket::FarGrabJoints& joints)  {
+        data.setProperty<AvatarData::GrabJointsIndex>({
+            {
+                {
+                    joints.leftFarGrabPosition[0],
+                    joints.leftFarGrabPosition[1],
+                    joints.leftFarGrabPosition[2],
+                },
+                {
+                    joints.leftFarGrabRotation[3],
+                    joints.leftFarGrabRotation[0],
+                    joints.leftFarGrabRotation[1],
+                    joints.leftFarGrabRotation[2],
+                },
+            },
+            {
+                {
+                    joints.rightFarGrabPosition[0],
+                    joints.rightFarGrabPosition[1],
+                    joints.rightFarGrabPosition[2],
+                },
+                {
+                    joints.rightFarGrabRotation[3],
+                    joints.rightFarGrabRotation[0],
+                    joints.rightFarGrabRotation[1],
+                    joints.rightFarGrabRotation[2],
+                },
+            },
+            {
+                {
+                    joints.mouseFarGrabPosition[0],
+                    joints.mouseFarGrabPosition[1],
+                    joints.mouseFarGrabPosition[2],
+                },
+                {
+                    joints.mouseFarGrabRotation[3],
+                    joints.mouseFarGrabRotation[0],
+                    joints.mouseFarGrabRotation[1],
+                    joints.mouseFarGrabRotation[2],
+                }
+            },
+        });
+    }
+
+    const char* Avatar::getSkeletonModelURLOut() const {
+        return data.getProperty<AvatarData::SkeletonModelURLIndex>().c_str();
+    }
+
     void Avatar::setSkeletonModelURLIn(const QByteArray& encodedURL) {
         data.setProperty<AvatarData::SkeletonModelURLIndex>(encodedURL.toStdString());
+    }
+
+    const std::vector<AvatarSkeletonTrait::UnpackedJointData>& Avatar::getSkeletonDataOut() const {
+        return data.getProperty<AvatarData::SkeletonDataIndex>();
+    }
+
+    void Avatar::setSkeletonDataIn(std::vector<AvatarSkeletonTrait::UnpackedJointData> skeletonData) {
+        data.setProperty<AvatarData::SkeletonDataIndex>(std::move(skeletonData));
     }
 
     void Avatar::onParseError(std::string) {
@@ -367,6 +489,8 @@ namespace vircadia::client
     void Avatar::onPacketTooSmallError(std::string, int, int) {
         //TODO keep a log of last N errors
     }
+
+    void Avatar::onGrabRemoved(QUuid) {};
 
     ClientTraitsHandler* Avatar::getClientTraitsHandler() {
         return clientTraitsHandler.get();

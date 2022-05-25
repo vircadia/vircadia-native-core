@@ -94,6 +94,73 @@ float AvatarDataStream<Derived>::getDistanceBasedMinRotationDOT(glm::vec3 viewer
 }
 
 template <typename Derived>
+QUuid AvatarDataStream<Derived>::grab(const QUuid& targetID, int parentJointIndex,
+                           glm::vec3 positionalOffset, glm::quat rotationalOffset) {
+    auto grabID = QUuid::createUuid();
+    // create a temporary grab object to get grabData
+
+    QString hand = "none";
+    if (parentJointIndex == CONTROLLER_RIGHTHAND_INDEX ||
+        parentJointIndex == CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX ||
+        parentJointIndex == FARGRAB_RIGHTHAND_INDEX ||
+        parentJointIndex == derived().getJointIndex("RightHand")) {
+        hand = "right";
+    } else if (parentJointIndex == CONTROLLER_LEFTHAND_INDEX ||
+               parentJointIndex == CAMERA_RELATIVE_CONTROLLER_LEFTHAND_INDEX ||
+               parentJointIndex == FARGRAB_LEFTHAND_INDEX ||
+               parentJointIndex == derived().getJointIndex("LeftHand")) {
+        hand = "left";
+    }
+
+    Grab tmpGrab(DependencyManager::get<NodeList>()->getSessionUUID(),
+                 targetID, parentJointIndex, hand, positionalOffset, rotationalOffset);
+    QByteArray grabData = tmpGrab.toByteArray();
+    bool dataChanged = updateAvatarGrabData(grabID, grabData);
+
+    if (dataChanged && derived().getClientTraitsHandler()) {
+        // indicate that the changed data should be sent to the mixer
+        derived().getClientTraitsHandler()->markInstancedTraitUpdated(AvatarTraits::Grab, grabID);
+    }
+
+    return grabID;
+}
+
+template <typename Derived>
+void AvatarDataStream<Derived>::releaseGrab(const QUuid& grabID) {
+    bool tellHandler { false };
+
+    _avatarGrabsLock.withWriteLock([&] {
+
+        std::map<QUuid, GrabPointer>::iterator itr;
+        itr = _avatarGrabs.find(grabID);
+        if (itr != _avatarGrabs.end()) {
+            GrabPointer grab = itr->second;
+            if (grab) {
+                grab->setReleased(true);
+                // FIXME: CRTP
+                // bool success;
+                // SpatiallyNestablePointer target = SpatiallyNestable::findByID(grab->getTargetID(), success);
+                // if (target && success) {
+                //     target->disableGrab(grab);
+                // }
+            }
+        }
+
+        if (_avatarGrabData.remove(grabID)) {
+            derived().onGrabRemoved(grabID);
+            // FIXE: CRTP
+            // _grabsToDelete.push_back(grabID);
+            tellHandler = true;
+        }
+    });
+
+    if (tellHandler && derived().getClientTraitsHandler()) {
+        // indicate the deletion of the data to the mixer
+        derived().getClientTraitsHandler()->markInstancedTraitDeleted(AvatarTraits::Grab, grabID);
+    }
+}
+
+template <typename Derived>
 float AvatarDataStream<Derived>::getDistanceBasedMinTranslationDistance(glm::vec3 viewerPosition) const {
     return AVATAR_MIN_TRANSLATION; // Eventually make this distance sensitive as well
 }
@@ -733,7 +800,7 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
 
         IF_AVATAR_SPACE(PACKET_HAS_GRAB_JOINTS, sizeof (AvatarDataPacket::FarGrabJoints)) {
 
-            AvatarDataPacket::FarGrabJoints farGrabJoints{};
+            AvatarDataPacket::FarGrabJoints farGrabJoints = derived().getFarGrabJointsOut();
 
             // the far-grab joints may range further than 3 meters, so we can't use packFloatVec3ToSignedTwoByteFixed etc
             auto startSection = destinationBuffer;
@@ -1527,29 +1594,31 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
             AvatarDataPacket::FarGrabJoints farGrabJoints;
             memcpy(&farGrabJoints, sourceBuffer, sizeof(farGrabJoints)); // to avoid misaligned floats
 
-            glm::vec3 leftFarGrabPosition = glm::vec3(farGrabJoints.leftFarGrabPosition[0],
-                                                      farGrabJoints.leftFarGrabPosition[1],
-                                                      farGrabJoints.leftFarGrabPosition[2]);
-            glm::quat leftFarGrabRotation = glm::quat(farGrabJoints.leftFarGrabRotation[0],
-                                                      farGrabJoints.leftFarGrabRotation[1],
-                                                      farGrabJoints.leftFarGrabRotation[2],
-                                                      farGrabJoints.leftFarGrabRotation[3]);
-            glm::vec3 rightFarGrabPosition = glm::vec3(farGrabJoints.rightFarGrabPosition[0],
-                                                       farGrabJoints.rightFarGrabPosition[1],
-                                                       farGrabJoints.rightFarGrabPosition[2]);
-            glm::quat rightFarGrabRotation = glm::quat(farGrabJoints.rightFarGrabRotation[0],
-                                                       farGrabJoints.rightFarGrabRotation[1],
-                                                       farGrabJoints.rightFarGrabRotation[2],
-                                                       farGrabJoints.rightFarGrabRotation[3]);
-            glm::vec3 mouseFarGrabPosition = glm::vec3(farGrabJoints.mouseFarGrabPosition[0],
-                                                       farGrabJoints.mouseFarGrabPosition[1],
-                                                       farGrabJoints.mouseFarGrabPosition[2]);
-            glm::quat mouseFarGrabRotation = glm::quat(farGrabJoints.mouseFarGrabRotation[0],
-                                                       farGrabJoints.mouseFarGrabRotation[1],
-                                                       farGrabJoints.mouseFarGrabRotation[2],
-                                                       farGrabJoints.mouseFarGrabRotation[3]);
+            derived().setFarGrabJointsIn(farGrabJoints);
 
             // FIXME: CRTP
+            // glm::vec3 leftFarGrabPosition = glm::vec3(farGrabJoints.leftFarGrabPosition[0],
+            //                                           farGrabJoints.leftFarGrabPosition[1],
+            //                                           farGrabJoints.leftFarGrabPosition[2]);
+            // glm::quat leftFarGrabRotation = glm::quat(farGrabJoints.leftFarGrabRotation[0],
+            //                                           farGrabJoints.leftFarGrabRotation[1],
+            //                                           farGrabJoints.leftFarGrabRotation[2],
+            //                                           farGrabJoints.leftFarGrabRotation[3]);
+            // glm::vec3 rightFarGrabPosition = glm::vec3(farGrabJoints.rightFarGrabPosition[0],
+            //                                            farGrabJoints.rightFarGrabPosition[1],
+            //                                            farGrabJoints.rightFarGrabPosition[2]);
+            // glm::quat rightFarGrabRotation = glm::quat(farGrabJoints.rightFarGrabRotation[0],
+            //                                            farGrabJoints.rightFarGrabRotation[1],
+            //                                            farGrabJoints.rightFarGrabRotation[2],
+            //                                            farGrabJoints.rightFarGrabRotation[3]);
+            // glm::vec3 mouseFarGrabPosition = glm::vec3(farGrabJoints.mouseFarGrabPosition[0],
+            //                                            farGrabJoints.mouseFarGrabPosition[1],
+            //                                            farGrabJoints.mouseFarGrabPosition[2]);
+            // glm::quat mouseFarGrabRotation = glm::quat(farGrabJoints.mouseFarGrabRotation[0],
+            //                                            farGrabJoints.mouseFarGrabRotation[1],
+            //                                            farGrabJoints.mouseFarGrabRotation[2],
+            //                                            farGrabJoints.mouseFarGrabRotation[3]);
+            //
             // _farGrabLeftMatrixCache.set(createMatFromQuatAndPos(leftFarGrabRotation, leftFarGrabPosition));
             // _farGrabRightMatrixCache.set(createMatFromQuatAndPos(rightFarGrabRotation, rightFarGrabPosition));
             // _farGrabMouseMatrixCache.set(createMatFromQuatAndPos(mouseFarGrabRotation, mouseFarGrabPosition));
@@ -1794,68 +1863,62 @@ void AvatarDataStream<Derived>::processAvatarIdentity(QDataStream& packetStream,
         >> identity.identityFlags
         ;
 
+
     if (incomingSequenceNumber > _identitySequenceNumber) {
 
         // set the store identity sequence number to match the incoming identity
         _identitySequenceNumber = incomingSequenceNumber;
 
-        QString displayName{};
-        bool isReplicated{};
-        bool lookAtSnappingEnabled{};
-        bool verificationFailed{};
-        QVector<AttachmentData> attachmentData;
+        auto current = derived().getIdentityDataOut();
+        identityChanged = identity != current;
+        displayNameChanged = identity.displayName != current.displayName;
+
+        derived().setIdentityDataIn(std::move(identity));
 
         // FIXME: CRTP
+        // QString displayName{};
+        // bool isReplicated{};
+        // bool lookAtSnappingEnabled{};
+        // bool verificationFailed{};
+        // QVector<AttachmentData> attachmentData;
+        //
         // displayName = _displayName;
         // isReplicated = _isReplicated;
         // lookAtSnappingEnabled = _lookAtSnappingEnabled;
         // verificationFailed = _verificationFailed;
         // attachmentData = _attachmentData;
-
-        if (identity.displayName != displayName) {
-            // FIXME: CRTP
-            // _displayName = identity.displayName;
-            identityChanged = true;
-            displayNameChanged = true;
-        }
-
-        // FIXME: CRTP
+        //
+        // if (identity.displayName != displayName) {
+        //     _displayName = identity.displayName;
+        // }
+        //
         // maybeUpdateSessionDisplayNameFromTransport(identity.sessionDisplayName);
-
-        bool flagValue;
-        flagValue = identity.identityFlags.testFlag(AvatarDataPacket::IdentityFlag::isReplicated);
-        if ( flagValue != isReplicated) {
-            // FIXME: CRTP
-            // _isReplicated = flagValue;
-            identityChanged = true;
-        }
-
-        flagValue = identity.identityFlags.testFlag(AvatarDataPacket::IdentityFlag::lookAtSnapping);
-        if ( flagValue != lookAtSnappingEnabled) {
-            // FIXME: CRTP
-            // setProperty("lookAtSnappingEnabled", flagValue);
-            identityChanged = true;
-        }
-
-        flagValue = identity.identityFlags.testFlag(AvatarDataPacket::IdentityFlag::verificationFailed);
-        if (flagValue != verificationFailed) {
-            // FIXME: CRTP
-            // _verificationFailed = flagValue;
-            // setSkeletonModelURL(_skeletonModelURL);
-            if (flagValue) {
-                QString sessionDisplayName {};
-                // FIXME: CRTP
-                // sessionDisplayName = getSessionDisplayName();
-                qCDebug(avatars) << "Avatar" << sessionDisplayName << "marked as VERIFY-FAILED";
-            }
-            identityChanged = true;
-        };
-
-        if (identity.attachmentData != attachmentData) {
-            // FIXME: CRTP
-            // setAttachmentData(identity.attachmentData);
-            identityChanged = true;
-        }
+        //
+        // bool flagValue;
+        // flagValue = identity.identityFlags.testFlag(AvatarDataPacket::IdentityFlag::isReplicated);
+        // if ( flagValue != isReplicated) {
+        //     _isReplicated = flagValue;
+        // }
+        //
+        // flagValue = identity.identityFlags.testFlag(AvatarDataPacket::IdentityFlag::lookAtSnapping);
+        // if ( flagValue != lookAtSnappingEnabled) {
+        //     setProperty("lookAtSnappingEnabled", flagValue);
+        // }
+        //
+        // flagValue = identity.identityFlags.testFlag(AvatarDataPacket::IdentityFlag::verificationFailed);
+        // if (flagValue != verificationFailed) {
+        //     _verificationFailed = flagValue;
+        //     setSkeletonModelURL(_skeletonModelURL);
+        //     if (flagValue) {
+        //         QString sessionDisplayName {};
+        //         sessionDisplayName = getSessionDisplayName();
+        //         qCDebug(avatars) << "Avatar" << sessionDisplayName << "marked as VERIFY-FAILED";
+        //     }
+        // };
+        //
+        // if (identity.attachmentData != attachmentData) {
+        //     setAttachmentData(identity.attachmentData);
+        // }
 
 #ifdef WANT_DEBUG
         qCDebug(avatars) << __FUNCTION__
@@ -1872,69 +1935,66 @@ void AvatarDataStream<Derived>::processAvatarIdentity(QDataStream& packetStream,
 }
 
 template <typename Derived>
-QUrl AvatarDataStream<Derived>::getWireSafeSkeletonModelURL() const {
-    if (_skeletonModelURL.scheme() != "file" && _skeletonModelURL.scheme() != "qrc") {
-        return _skeletonModelURL;
-    } else {
-        return QUrl();
-    }
-}
-
-template <typename Derived>
 QByteArray AvatarDataStream<Derived>::packSkeletonData() const {
     // Send an avatar trait packet with the skeleton data before the mesh is loaded
     int avatarDataSize = 0;
     QByteArray avatarDataByteArray;
-    _avatarSkeletonDataLock.withReadLock([&] {
-        // Add header
-        AvatarSkeletonTrait::Header header;
-        header.maxScaleDimension = 0.0f;
-        header.maxTranslationDimension = 0.0f;
-        header.numJoints = (uint8_t)_avatarSkeletonData.size();
-        header.stringTableLength = 0;
 
-        for (size_t i = 0; i < _avatarSkeletonData.size(); i++) {
-            header.stringTableLength += (uint16_t)_avatarSkeletonData[i].jointName.size();
-            auto& translation = _avatarSkeletonData[i].defaultTranslation;
-            header.maxTranslationDimension = std::max(header.maxTranslationDimension, std::max(std::max(translation.x, translation.y), translation.z));
-            header.maxScaleDimension = std::max(header.maxScaleDimension, _avatarSkeletonData[i].defaultScale);
-        }
+    // FIXME: CRTP
+    // _avatarSkeletonDataLock.withReadLock([&] {
 
-        const int byteArraySize = (int)sizeof(AvatarSkeletonTrait::Header) + (int)(header.numJoints * sizeof(AvatarSkeletonTrait::JointData)) + header.stringTableLength;
-        avatarDataByteArray = QByteArray(byteArraySize, 0);
-        unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(avatarDataByteArray.data());
-        const unsigned char* const startPosition = destinationBuffer;
+    auto&& avatarSkeletonData = derived().getSkeletonDataOut();
 
-        memcpy(destinationBuffer, &header, sizeof(header));
-        destinationBuffer += sizeof(AvatarSkeletonTrait::Header);
+    // Add header
+    AvatarSkeletonTrait::Header header;
+    header.maxScaleDimension = 0.0f;
+    header.maxTranslationDimension = 0.0f;
+    header.numJoints = (uint8_t)avatarSkeletonData.size();
+    header.stringTableLength = 0;
 
-        QString stringTable = "";
-        for (size_t i = 0; i < _avatarSkeletonData.size(); i++) {
-            AvatarSkeletonTrait::JointData jdata;
-            jdata.boneType = _avatarSkeletonData[i].boneType;
-            jdata.parentIndex = _avatarSkeletonData[i].parentIndex;
-            packFloatRatioToTwoByte((uint8_t*)(&jdata.defaultScale), _avatarSkeletonData[i].defaultScale / header.maxScaleDimension);
-            packOrientationQuatToSixBytes(jdata.defaultRotation, _avatarSkeletonData[i].defaultRotation);
-            packFloatVec3ToSignedTwoByteFixed(jdata.defaultTranslation, _avatarSkeletonData[i].defaultTranslation / header.maxTranslationDimension, TRANSLATION_COMPRESSION_RADIX);
-            jdata.jointIndex = (uint16_t)i;
-            jdata.stringStart = (uint16_t)_avatarSkeletonData[i].stringStart;
-            jdata.stringLength = (uint8_t)_avatarSkeletonData[i].stringLength;
-            stringTable += _avatarSkeletonData[i].jointName;
-            memcpy(destinationBuffer, &jdata, sizeof(AvatarSkeletonTrait::JointData));
-            destinationBuffer += sizeof(AvatarSkeletonTrait::JointData);
-        }
+    for (size_t i = 0; i < avatarSkeletonData.size(); i++) {
+        header.stringTableLength += (uint16_t)avatarSkeletonData[i].jointName.size();
+        auto& translation = avatarSkeletonData[i].defaultTranslation;
+        header.maxTranslationDimension = std::max(header.maxTranslationDimension, std::max(std::max(translation.x, translation.y), translation.z));
+        header.maxScaleDimension = std::max(header.maxScaleDimension, avatarSkeletonData[i].defaultScale);
+    }
 
-        memcpy(destinationBuffer, stringTable.toUtf8(), header.stringTableLength);
-        destinationBuffer += header.stringTableLength;
+    const int byteArraySize = (int)sizeof(AvatarSkeletonTrait::Header) + (int)(header.numJoints * sizeof(AvatarSkeletonTrait::JointData)) + header.stringTableLength;
+    avatarDataByteArray = QByteArray(byteArraySize, 0);
+    unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(avatarDataByteArray.data());
+    const unsigned char* const startPosition = destinationBuffer;
 
-        avatarDataSize = destinationBuffer - startPosition;
-    });
+    memcpy(destinationBuffer, &header, sizeof(header));
+    destinationBuffer += sizeof(AvatarSkeletonTrait::Header);
+
+    QString stringTable = "";
+    for (size_t i = 0; i < avatarSkeletonData.size(); i++) {
+        AvatarSkeletonTrait::JointData jdata;
+        jdata.boneType = avatarSkeletonData[i].boneType;
+        jdata.parentIndex = avatarSkeletonData[i].parentIndex;
+        packFloatRatioToTwoByte((uint8_t*)(&jdata.defaultScale), avatarSkeletonData[i].defaultScale / header.maxScaleDimension);
+        packOrientationQuatToSixBytes(jdata.defaultRotation, avatarSkeletonData[i].defaultRotation);
+        packFloatVec3ToSignedTwoByteFixed(jdata.defaultTranslation, avatarSkeletonData[i].defaultTranslation / header.maxTranslationDimension, TRANSLATION_COMPRESSION_RADIX);
+        jdata.jointIndex = (uint16_t)i;
+        jdata.stringStart = (uint16_t)avatarSkeletonData[i].stringStart;
+        jdata.stringLength = (uint8_t)avatarSkeletonData[i].stringLength;
+        stringTable += avatarSkeletonData[i].jointName;
+        memcpy(destinationBuffer, &jdata, sizeof(AvatarSkeletonTrait::JointData));
+        destinationBuffer += sizeof(AvatarSkeletonTrait::JointData);
+    }
+
+    memcpy(destinationBuffer, stringTable.toUtf8(), header.stringTableLength);
+    destinationBuffer += header.stringTableLength;
+
+    avatarDataSize = destinationBuffer - startPosition;
     return avatarDataByteArray.left(avatarDataSize);
 }
 
 template <typename Derived>
 QByteArray AvatarDataStream<Derived>::packSkeletonModelURL() const {
-    return getWireSafeSkeletonModelURL().toEncoded();
+    return derived().getSkeletonModelURLOut();
+    // FIXME: CRTP
+    // return getWireSafeSkeletonModelURL().toEncoded();
 }
 
 template <typename Derived>
@@ -1969,10 +2029,11 @@ void AvatarDataStream<Derived>::unpackSkeletonData(const QByteArray& data) {
         QStringRef subString(&table, joints[i].stringStart, joints[i].stringLength);
         joints[i].jointName = subString.toString();
     }
-    if (derived().getClientTraitsHandler()) {
-        derived().getClientTraitsHandler()->markTraitUpdated(AvatarTraits::SkeletonData);
-    }
-    setSkeletonData(joints);
+    derived().setSkeletonDataIn(std::move(joints));
+    // TODO: CRTP
+    // if (derived().getClientTraitsHandler()) {
+    //     derived().getClientTraitsHandler()->markTraitUpdated(AvatarTraits::SkeletonData);
+    // }
 }
 
 template <typename Derived>
@@ -2126,28 +2187,31 @@ QByteArray AvatarDataStream<Derived>::identityByteArray(bool setIsReplicated) co
     return identityData;
 }
 
+// CRTP: move to derived, the client traits handler code has been separated out
+// void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
+//     if (skeletonModelURL.isEmpty()) {
+//         qCDebug(avatars) << __FUNCTION__ << "caller called with empty URL.";
+//     }
+//
+//     const QUrl& defaultURL = AvatarData::defaultFullAvatarModelUrl();
+//
+//     const QUrl& expanded = skeletonModelURL.isEmpty() ? defaultURL : skeletonModelURL;
+//     if (expanded == _skeletonModelURL) {
+//         return;
+//     }
+//
+//     _skeletonModelURL = expanded;
+//
+//     sendSkeletonModelURL();
+//
+//     emit skeletonModelURLChanged
+// }
+
 template <typename Derived>
-void AvatarDataStream<Derived>::setSkeletonModelURL(const QUrl& skeletonModelURL) {
-    if (skeletonModelURL.isEmpty()) {
-        qCDebug(avatars) << __FUNCTION__ << "caller called with empty URL.";
-    }
-
-    const QUrl& defaultURL{};
-    // FIXME: CRTP
-    // defaultUrl = AvatarData::defaultFullAvatarModelUrl();
-
-    const QUrl& expanded = skeletonModelURL.isEmpty() ? defaultURL : skeletonModelURL;
-    if (expanded == _skeletonModelURL) {
-        return;
-    }
-
-    _skeletonModelURL = expanded;
+void AvatarDataStream<Derived>::sendSkeletonModelURL() {
     if (derived().getClientTraitsHandler()) {
         derived().getClientTraitsHandler()->markTraitUpdated(AvatarTraits::SkeletonModelURL);
     }
-
-    // FIXME: CRTP
-    // emit skeletonModelURLChanged
 }
 
 template <typename Derived>
@@ -2207,7 +2271,20 @@ int AvatarDataStream<Derived>::sendAllPackets(AvatarDataDetail dataDetail, Avata
         }
 
         if (derived().getClientTraitsHandler()) {
+
+            if (derived().getSkeletonModelURLChanged()) {
+                sendSkeletonModelURL();
+            }
+
+            if (derived().getSkeletonDataChanged()) {
+                sendSkeletonData();
+            }
+
+            // TODO: check for changes and send grab and entity data, these are instanced traits that requite removals to be sent explicitly
+
             bytesSent += derived().getClientTraitsHandler()->sendChangedTraitsToMixer();
+
+            derived().onClientTraitsSent();
         }
 
         // Compute the next send window based on how much data we sent and what
@@ -2409,22 +2486,6 @@ AvatarEntityIDs AvatarDataStream<Derived>::getAndClearRecentlyRemovedIDs() {
         _avatarEntityRemoved.clear();
     });
     return result;
-}
-
-template <typename Derived>
-void AvatarDataStream<Derived>::setSkeletonData(const std::vector<AvatarSkeletonTrait::UnpackedJointData>& skeletonData) {
-    _avatarSkeletonDataLock.withWriteLock([&] {
-        _avatarSkeletonData = skeletonData;
-    });
-}
-
-template <typename Derived>
-std::vector<AvatarSkeletonTrait::UnpackedJointData> AvatarDataStream<Derived>::getSkeletonData() const {
-    std::vector<AvatarSkeletonTrait::UnpackedJointData> skeletonData;
-    _avatarSkeletonDataLock.withReadLock([&] {
-        skeletonData = _avatarSkeletonData;
-    });
-    return skeletonData;
 }
 
 template <typename Derived>

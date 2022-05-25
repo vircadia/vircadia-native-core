@@ -91,10 +91,23 @@ struct vircadia_joint_flags {
 
 struct vircadia_avatar_attachment {
     const char* model_url;
-    const char* jount_name;
-    vircadia_vantage vantage;
-    float scale;
-    uint8_t isSoft;
+    const char* joint_name;
+    vircadia_transform transform;
+    uint8_t is_soft;
+};
+
+struct vircadia_avatar_bone {
+    uint8_t type;
+    vircadia_transform default_transform;
+    int index;
+    int parent_index;
+    const char* name;
+};
+
+struct vircadia_avatar_grab {
+    uint8_t target_id[16];
+    int joint_index;
+    vircadia_vantage offset;
 };
 
 VIRCADIA_CLIENT_DYN_API
@@ -123,6 +136,9 @@ int vircadia_set_my_avatar_session_display_name(int context_id, const char* sess
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_skeleton_model_url(int context_id, const char* skeleton_model_url);
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_skeleton_data(int context_id, vircadia_avatar_bone* data, int size);
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_global_position(int context_id, vircadia_vector position);
@@ -168,5 +184,11 @@ int vircadia_set_my_avatar_joint_flags(int context_id, vircadia_joint_flags* joi
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_grab_joints(int context_id, vircadia_far_grab_joints joints);
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_my_avatar_grab(int context_id, vircadia_avatar_grab grab);
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_my_avatar_release_grab(int context_id, const uint8_t* uuid);
 
 #endif /* end of include guard */

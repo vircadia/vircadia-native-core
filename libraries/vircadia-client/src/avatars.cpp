@@ -55,46 +55,122 @@ int setProperty(int context_id, T value) {
     });
 }
 
-VIRCADIA_CLIENT_DYN_API
-int vircadia_set_my_avatar_display_name(int context_id, const char* display_name) {
+template <typename F>
+int setIdentity(int context_id, F&& f) {
     return chain(checkAvatarsEnabled(context_id), [&](auto) {
         auto& avatar = std::next(std::begin(contexts), context_id)->avatars().myAvatar();
         constexpr auto index = AvatarData::IdentityIndex;
         auto identity = avatar.getProperty<index>();
-        identity.displayName = display_name;
+        f(identity);
         avatar.setProperty<index>(identity);
         return 0;
     });
 }
 
+int setIdentityFlag(int context_id, AvatarDataPacket::IdentityFlag flag) {
+    return setIdentity(context_id, [flag](auto& identity){
+        identity.identityFlags |= flag;
+    });
+}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_display_name(int context_id, const char* display_name) {
+    return setIdentity(context_id, [display_name](auto& identity){
+        identity.displayName = display_name;
+    });
+}
+
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_is_replicated(int context_id, uint8_t is_replicated) {
-    return 0; // FIXME
+    return setIdentityFlag(context_id,
+        AvatarDataPacket::IdentityFlag::isReplicated);
 }
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_look_at_snapping(int context_id, uint8_t look_at_snapping_enabled) {
-    return 0; // FIXME
+    return setIdentityFlag(context_id,
+        AvatarDataPacket::IdentityFlag::lookAtSnapping);
 }
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_verification(int context_id, uint8_t verification_failed) {
-    return 0; // FIXME
+    return setIdentityFlag(context_id,
+        AvatarDataPacket::IdentityFlag::verificationFailed);
 }
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_attachments(int context_id, vircadia_avatar_attachment* attachments, int size) {
-    return 0; // FIXME
+    return setIdentity(context_id, [&](auto& identity){
+        identity.attachmentData.clear();
+        for (int i = 0; i != size; ++i) {
+            identity.attachmentData.push_back({
+                QString(attachments[i].model_url),
+                attachments[i].joint_name,
+                {
+                    attachments[i].transform.vantage.position.x,
+                    attachments[i].transform.vantage.position.y,
+                    attachments[i].transform.vantage.position.z,
+                },
+                {
+                    attachments[i].transform.vantage.rotation.w,
+                    attachments[i].transform.vantage.rotation.x,
+                    attachments[i].transform.vantage.rotation.y,
+                    attachments[i].transform.vantage.rotation.z,
+                },
+                attachments[i].transform.scale,
+                bool(attachments[i].is_soft)
+            });
+        }
+    });
 }
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_session_display_name(int context_id, const char* session_display_name) {
-    return 0; // FIXME
+    return setIdentity(context_id, [session_display_name](auto& identity){
+        identity.sessionDisplayName = session_display_name;
+    });
 }
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_skeleton_model_url(int context_id, const char* skeleton_model_url) {
     return setProperty<AvatarData::SkeletonModelURLIndex>(context_id, skeleton_model_url);
+}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_my_avatar_skeleton_data(int context_id, vircadia_avatar_bone* data, int size) {
+    return chain(checkAvatarsEnabled(context_id), [&](auto) {
+        auto& avatar = std::next(std::begin(contexts), context_id)->avatars().myAvatar();
+        constexpr auto index = AvatarData::SkeletonDataIndex;
+        avatar.resizeProperty<index>(size);
+        int stringStart = 0;
+        for (int i = 0; i != size; ++i) {
+            AvatarSkeletonTrait::UnpackedJointData bone{};
+            bone.boneType = data[i].type;
+            bone.defaultTranslation = {
+                data[i].default_transform.vantage.position.x,
+                data[i].default_transform.vantage.position.y,
+                data[i].default_transform.vantage.position.z
+            };
+            bone.defaultRotation = {
+                data[i].default_transform.vantage.rotation.w,
+                data[i].default_transform.vantage.rotation.x,
+                data[i].default_transform.vantage.rotation.y,
+                data[i].default_transform.vantage.rotation.z
+            };
+            bone.defaultScale = data[i].default_transform.scale;
+            bone.jointIndex = data[i].index;
+            bone.parentIndex = data[i].parent_index;
+            bone.jointName = data[i].name;
+
+            // TODO: move this logic to AvatarDataStream
+            bone.stringStart = stringStart;
+            bone.stringLength = bone.jointName.size();
+            stringStart += bone.stringLength;
+
+            avatar.setProperty<index>(bone, i);
+        }
+        return 0;
+    });
 }
 
 VIRCADIA_CLIENT_DYN_API
@@ -172,3 +248,22 @@ int vircadia_set_my_avatar_grab_joints(int context_id, vircadia_far_grab_joints 
     return setProperty<AvatarData::GrabJointsIndex>(context_id, joints);
 }
 
+VIRCADIA_CLIENT_DYN_API
+int vircadia_my_avatar_grab(int context_id, vircadia_avatar_grab grab) {
+    return chain(checkAvatarsEnabled(context_id), [&](auto) {
+        std::next(std::begin(contexts), context_id)->avatars()
+            .myAvatar().grabs.added.push_back(grab);
+        return 0;
+    });
+}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_my_avatar_release_grab(int context_id, const uint8_t* uuid) {
+    return chain(checkAvatarsEnabled(context_id), [&](auto) {
+        UUID removed;
+        std::copy_n(uuid, removed.size(), removed.begin());
+        std::next(std::begin(contexts), context_id)->avatars()
+            .myAvatar().grabs.removed.push_back(removed);
+        return 0;
+    });
+}

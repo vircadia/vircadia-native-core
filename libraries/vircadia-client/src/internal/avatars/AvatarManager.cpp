@@ -26,6 +26,35 @@ namespace vircadia::client
 
     void AvatarManager::update() {
         std::scoped_lock lock(myAvatarMutex);
+
+        for(auto&& grabData : myAvatar.data.grabs.added) {
+            // TODO: define and use vector quaternion conversion functions
+            myAvatar.grab(
+                QUuid::fromRfc4122(QByteArray(
+                    reinterpret_cast<const char*>(grabData.target_id), NUM_BYTES_RFC4122_UUID)),
+                grabData.joint_index,
+                {
+                    grabData.offset.position.x,
+                    grabData.offset.position.y,
+                    grabData.offset.position.z
+                },
+                {
+                    grabData.offset.rotation.w,
+                    grabData.offset.rotation.x,
+                    grabData.offset.rotation.y,
+                    grabData.offset.rotation.z
+                }
+            );
+        }
+
+        for(auto&& uuid : myAvatar.data.grabs.removed) {
+            myAvatar.releaseGrab(QUuid::fromRfc4122(QByteArray(
+                reinterpret_cast<const char*>(uuid.data()), uuid.size())));
+        }
+
+        myAvatar.data.grabs.added.clear();
+        myAvatar.data.grabs.removed.clear();
+
         AvatarDataPacket::SendStatus status;
         status.itemFlags = myAvatar.data.changes.to_ullong();
         status.itemFlags &= AvatarDataPacket::ALL_HAS_FLAGS;
@@ -50,13 +79,9 @@ namespace vircadia::client
             myAvatar.data = myAvatarDataIn;
             myAvatar.data.changes |= previousChanges;
 
-            {
-                constexpr auto index = AvatarData::SkeletonModelURLIndex;
-                if (myAvatarDataIn.changes.test(index)) {
-                    myAvatar.setSkeletonModelURL(QUrl::fromEncoded(myAvatarDataIn.getProperty<index>().c_str()));
-                }
-            }
             myAvatarDataIn.changes.reset();
+            myAvatarDataIn.grabs.added.clear();
+            myAvatarDataIn.grabs.removed.clear();
         }
 
     }

@@ -49,6 +49,7 @@
 #include <shared/RateCounter.h>
 #include <shared/ReadWriteLockable.h>
 #include <udt/SequenceNumber.h>
+#include <Grab.h>
 
 #include "PathUtils.h"
 
@@ -175,6 +176,21 @@ namespace AvatarSkeletonTrait {
         int parentIndex;
         QString jointName;
     };
+
+    inline bool operator==(const AvatarSkeletonTrait::UnpackedJointData& a, const AvatarSkeletonTrait::UnpackedJointData& b) {
+        return a.stringStart == b.stringStart &&
+            a.stringLength == b.stringLength &&
+            a.defaultTranslation == b.defaultTranslation &&
+            a.defaultRotation == b.defaultRotation &&
+            a.defaultScale == b.defaultScale &&
+            a.jointIndex == b.jointIndex &&
+            a.parentIndex == b.parentIndex &&
+            a.jointName == b.jointName &&
+            a.boneType == b.boneType;
+    }
+    inline bool operator!=(const AvatarSkeletonTrait::UnpackedJointData& a, const AvatarSkeletonTrait::UnpackedJointData& b) {
+        return !(a == b);
+    }
 }
 
 class AttachmentData;
@@ -545,9 +561,7 @@ public:
 
     QByteArray identityByteArray(bool setIsReplicated = false) const;
 
-    QUrl getWireSafeSkeletonModelURL() const;
-
-    void setSkeletonModelURL(const QUrl& skeletonModelURL);
+    void sendSkeletonModelURL();
 
     int getAverageBytesReceivedPerSecond() const;
     int getReceiveRate() const;
@@ -576,8 +590,6 @@ public:
     void setIsNewAvatar(bool isNewAvatar) { _isNewAvatar = isNewAvatar; }
     bool getIsNewAvatar() { return _isNewAvatar; }
     void setIsClientAvatar(bool isClientAvatar) { _isClientAvatar = isClientAvatar; }
-    void setSkeletonData(const std::vector<AvatarSkeletonTrait::UnpackedJointData>& skeletonData);
-    std::vector<AvatarSkeletonTrait::UnpackedJointData> getSkeletonData() const;
     void sendSkeletonData();
 
     int sendAllPackets(AvatarDataDetail, AvatarDataPacket::SendStatus&);
@@ -595,18 +607,11 @@ public:
     // FIXME: CRTP move to derived
     // virtual int sendAvatarDataPacket(bool sendAll = false);
 
-    /*@jsdoc
-     * @function Avatar.sendIdentityPacket
-     * @returns {number}
-     * @deprecated This function is deprecated and will be removed.
-     */
     int sendIdentityPacket();
 
-    /*@jsdoc
-     * @function Avatar.resetLastSent
-     * @deprecated This function is deprecated and will be removed.
-     */
-    void resetLastSent() { _lastToByteArray = 0; }
+    QUuid grab(const QUuid& targetID, int parentJointIndex,
+                           glm::vec3 positionalOffset, glm::quat rotationalOffset);
+    void releaseGrab(const QUuid& grabID);
 
 protected:
     using Clock = std::chrono::system_clock;
@@ -632,8 +637,6 @@ protected:
     QUrl _skeletonModelURL;
 
     SimpleMovingAverage _averageBytesReceived;
-
-    quint64  _lastToByteArray { 0 }; // tracks the last time we did a toByteArray
 
     // Some rate data for incoming data in bytes
     RateCounter<> _parseBufferRate;
@@ -682,9 +685,8 @@ protected:
     mutable ReadWriteLockable _avatarGrabsLock;
     AvatarGrabDataMap _avatarGrabData;
     bool _avatarGrabDataChanged { false }; // by network
-
-    mutable ReadWriteLockable _avatarSkeletonDataLock;
-    std::vector<AvatarSkeletonTrait::UnpackedJointData> _avatarSkeletonData;
+    using MapOfGrabs = std::map<QUuid, GrabPointer>;
+    MapOfGrabs _avatarGrabs;
 
     int getFauxJointIndex(const QString& name) const;
 

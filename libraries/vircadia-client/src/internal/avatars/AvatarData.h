@@ -146,31 +146,44 @@ namespace vircadia::client
 
             IdentityIndex,
             SkeletonModelURLIndex,
+            SkeletonDataIndex,
+            GrabDataIndex,
+            EntityDataIndex
         };
 
         QUuid sessionUUID;
         using Properties = std::tuple<
-            vircadia_vector,                   // global position
-            vircadia_bounds,                   // bounding box
-            vircadia_quaternion,               // orientation
-            float,                             // scale
-            vircadia_vector,                   // look at position
-            float,                             // audio loudness
-            vircadia_transform,                // sensor to world matrix
-            vircadia_avatar_additional_flags,  // additional flags
-            vircadia_avatar_parent_info,       // parent info
-            vircadia_vector,                   // local position
-            vircadia_avatar_hand_controllers,  // hand controllers
-            vircadia_avatar_face_tracker_info, // face tracker info
-            std::vector<vircadia_vantage>,     // joint data
-            std::vector<vircadia_joint_flags>, // joint default pose flags
-            vircadia_far_grab_joints,          // grab joints
+            vircadia_vector,                    // global position
+            vircadia_bounds,                    // bounding box
+            vircadia_quaternion,                // orientation
+            float,                              // scale
+            vircadia_vector,                    // look at position
+            float,                              // audio loudness
+            vircadia_transform,                 // sensor to world matrix
+            vircadia_avatar_additional_flags,   // additional flags
+            vircadia_avatar_parent_info,        // parent info
+            vircadia_vector,                    // local position
+            vircadia_avatar_hand_controllers,   // hand controllers
+            vircadia_avatar_face_tracker_info,  // face tracker info
+            std::vector<vircadia_vantage>,      // joint data
+            std::vector<vircadia_joint_flags>,  // joint default pose flags
+            vircadia_far_grab_joints,           // grab joints
 
-            AvatarDataPacket::Identity,        // identity
-            std::string                        // skeleton model URL
+            AvatarDataPacket::Identity,         // identity
+            std::string,                        // skeleton model URL
+            std::vector<AvatarSkeletonTrait::   // skeleton data
+                UnpackedJointData>,
+            std::vector<std::pair<UUID, Grab>>, // grab data
+            std::vector<std::pair<              // entity data
+                UUID, std::vector<uint8_t>>>
         >;
         Properties properties;
         std::bitset<std::tuple_size_v<Properties>> changes;
+
+        struct {
+            std::vector<vircadia_avatar_grab> added;
+            std::vector<UUID> removed;
+        } grabs;
 
         template <size_t Index, typename Accessor, typename Value =
             std::remove_reference_t<
@@ -248,11 +261,18 @@ namespace vircadia::client
         const QUuid& getSessionUUID() const;
         void setSessionUUID(const QUuid& uuid);
 
+        // TODO: these in/out functions should be private
+
         AvatarDataPacket::Identity getIdentityDataOut() const;
-        bool getIdentityDataChanged();
+        void setIdentityDataIn(AvatarDataPacket::Identity identity);
+        bool getIdentityDataChanged() const;
         void onIdentityDataSent();
 
-        // TODO: these in/out functions should be private
+        bool getSkeletonModelURLChanged() const;
+        bool getSkeletonDataChanged() const;
+        bool getGrabDataChanged() const;
+        bool getEntityDataChanged() const;
+        void onClientTraitsSent();
 
         AvatarDataPacket::AvatarGlobalPosition getGlobalPositionOut() const;
         void setGlobalPositionIn(const AvatarDataPacket::AvatarGlobalPosition&);
@@ -320,7 +340,16 @@ namespace vircadia::client
         void setJointDataPositionDefaultIn(int index, bool);
         void setJointDataRotationDefaultIn(int index, bool);
 
+        AvatarDataPacket::FarGrabJoints getFarGrabJointsOut() const;
+        void setFarGrabJointsIn(const AvatarDataPacket::FarGrabJoints&) ;
+
         void setSkeletonModelURLIn(const QByteArray& encodedURL);
+        const char* getSkeletonModelURLOut() const;
+
+        const std::vector<AvatarSkeletonTrait::UnpackedJointData>& getSkeletonDataOut() const;
+        void setSkeletonDataIn(std::vector<AvatarSkeletonTrait::UnpackedJointData>);
+
+        void onGrabRemoved(QUuid);
 
         AvatarData data;
 
