@@ -42,7 +42,7 @@
 
 #uiMaterialAssistant-sidewalk {
     width: 100%;
-    background-image: url("img/sidewalk.png"); 
+    background-image: url("img/sidewalk.png");
     background-repeat: repeat;
 }
 
@@ -57,34 +57,34 @@ div.uiMaterialAssistant-group{
     border: 2px solid #aaaaaa;
     padding: 5px;
     margin: 0px 0px 6px 0px;
-    font-family: Raleway-SemiBold;  
-    text-decoration: none; 
-    font-size: 13px; 
-    color: #ffffff;   
+    font-family: Raleway-SemiBold;
+    text-decoration: none;
+    font-size: 13px;
+    color: #ffffff;
 }
 
 font.uiMaterialAssistant-Explain{
     background-color: #2E2E2E;
-    font-family: Raleway-Regular;   
-    text-decoration: Italic; 
-    font-size: 10px; 
-    color: #8ad5ff;                
+    font-family: Raleway-Regular;
+    text-decoration: Italic;
+    font-size: 10px;
+    color: #8ad5ff;
 }
 
 font.uiMaterialAssistant-label{
     background-color: #2E2E2E;
-    font-family: Raleway-SemiBold;  
-    text-decoration: none; 
-    font-size: 12px; 
-    color: #D2D2D2;                
+    font-family: Raleway-SemiBold;
+    text-decoration: none;
+    font-size: 12px;
+    color: #D2D2D2;
 }
 
 font.uiMaterialAssistant-title{
     background-color: #404040;
     font-family: Raleway-Bold;
-    font-size: 18px; 
-    text-decoration: none; 
-    color: #F2F2F2;                
+    font-size: 18px;
+    text-decoration: none;
+    color: #F2F2F2;
 }
 
 input[type=range].uiMaterialAssistant-slider {
