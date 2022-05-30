@@ -38,6 +38,7 @@ namespace vircadia::client {
         void destroy();
 
         AvatarData& myAvatar();
+        const std::vector<AvatarData>& all() const;
 
     private:
 

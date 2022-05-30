@@ -16,13 +16,16 @@
 #include <array>
 #include <cstdint>
 
+#include <UUID.h>
+
 class QUuid;
 
 namespace vircadia::client {
 
-    using UUID = std::array<uint8_t, 16>;
+    using UUID = std::array<uint8_t, NUM_BYTES_RFC4122_UUID>;
 
     UUID toUUIDArray(const QUuid& from);
+    QUuid qUuidfromBytes(const uint8_t* bytes);
 
 } // namespace vircadia::client
 

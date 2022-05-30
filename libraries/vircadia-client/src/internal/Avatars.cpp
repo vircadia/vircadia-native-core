@@ -53,4 +53,9 @@ namespace vircadia::client
         return manager->myAvatarDataIn;
     }
 
+    const std::vector<AvatarData>& Avatars::all() const {
+        assert(isEnabled());
+        return manager->avatarDataOut;
+    }
+
 } // namespace vircadia::client

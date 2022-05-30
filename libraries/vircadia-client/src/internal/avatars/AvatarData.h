@@ -24,9 +24,11 @@
 #include "../Common.h"
 #include "../../avatars.h"
 #include "ClientTraitsHandler.h"
+#include "GLMHelpers.h"
 
 namespace vircadia::client
 {
+    /// @private
     template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
     template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
@@ -124,8 +126,80 @@ namespace vircadia::client
         return !(a == b);
     }
 
+    inline bool operator==(const vircadia_avatar_grab& a, const vircadia_avatar_grab& b) {
+        return a.joint_index == b.joint_index &&
+            a.offset == b.offset &&
+            std::equal(a.target_id, a.target_id + NUM_BYTES_RFC4122_UUID, b.target_id);
+    }
+    inline bool operator!=(const vircadia_avatar_grab& a, const vircadia_avatar_grab& b) {
+        return !(a == b);
+    }
+
     /// @private
     struct AvatarData {
+
+        struct Attachment {
+            std::string modelURL;
+            std::string jointName;
+            vircadia_transform transform;
+            bool isSoft;
+
+            bool operator==(const Attachment& other) const {
+                return modelURL == other.modelURL &&
+                    jointName == other.jointName &&
+                    transform == other.transform &&
+                    isSoft == other.isSoft;
+            }
+            bool operator!=(const Attachment& other) const
+            { return !(*this == other); }
+        };
+
+        struct Identity {
+            std::vector<Attachment> attachments;
+            std::string displayName;
+            std::string sessionDisplayName;
+            AvatarDataPacket::IdentityFlags identityFlags;
+
+            bool operator==(const Identity& other) const {
+                return attachments == other.attachments &&
+                    displayName == other.displayName &&
+                    sessionDisplayName == other.sessionDisplayName &&
+                    identityFlags == other.identityFlags;
+            }
+            bool operator!=(const Identity& other) const
+            { return !(*this == other); }
+        };
+
+        struct Bone {
+            AvatarSkeletonTrait::BoneType type;
+            vircadia_transform defaultTransform;
+            int index;
+            int parentIndex;
+            std::string name;
+
+            bool operator==(const Bone& other) const {
+                return type == other.type &&
+                    defaultTransform == other.defaultTransform &&
+                    index == other.index &&
+                    parentIndex == other.parentIndex &&
+                    name == other.name;
+            }
+            bool operator!=(const Bone& other) const
+            { return !(*this == other); }
+
+            operator AvatarSkeletonTrait::UnpackedJointData() {
+                return {
+                    0,0,
+                    type,
+                    glmVec3From(defaultTransform.vantage.position),
+                    glmQuatFrom(defaultTransform.vantage.rotation),
+                    defaultTransform.scale,
+                    index,
+                    parentIndex,
+                    QString::fromUtf8(name.c_str())
+                };
+            }
+        };
 
         enum PropertyIndex : size_t {
             GlobalPositionIndex,
@@ -151,7 +225,8 @@ namespace vircadia::client
             EntityDataIndex
         };
 
-        QUuid sessionUUID;
+        UUID sessionUUID;
+
         using Properties = std::tuple<
             vircadia_vector,                    // global position
             vircadia_bounds,                    // bounding box
@@ -169,11 +244,11 @@ namespace vircadia::client
             std::vector<vircadia_joint_flags>,  // joint default pose flags
             vircadia_far_grab_joints,           // grab joints
 
-            AvatarDataPacket::Identity,         // identity
+            Identity,                           // identity
             std::string,                        // skeleton model URL
-            std::vector<AvatarSkeletonTrait::   // skeleton data
-                UnpackedJointData>,
-            std::vector<std::pair<UUID, Grab>>, // grab data
+            std::vector<Bone>,                  // skeleton data
+            std::vector<std::pair<              // grab data
+                UUID, vircadia_avatar_grab>>,
             std::vector<std::pair<              // entity data
                 UUID, std::vector<uint8_t>>>
         >;
@@ -185,9 +260,13 @@ namespace vircadia::client
             std::vector<UUID> removed;
         } grabs;
 
-        template <size_t Index, typename Accessor, typename Value =
-            std::remove_reference_t<
-                std::invoke_result_t<Accessor, Properties>>>
+        template <size_t Index, typename Accessor, typename Value,
+            typename Property = std::tuple_element_t<Index, Properties>,
+            std::enable_if_t<
+                std::is_invocable_v<Accessor, Property&> &&
+                std::is_invocable_v<Accessor, Property&, Value>
+            >* = nullptr
+        >
         bool setProperty(Accessor&& accessor, Value value) {
             const auto& current = accessor(std::get<Index>(properties));
             if (current != value) {
@@ -222,12 +301,12 @@ namespace vircadia::client
         }
 
         template <PropertyIndex Index, typename Value>
-        bool setProperty(Value value, int element) {
+        bool setProperty(int element, Value value) {
             return setProperty<Index>( overloaded {
                 [element](auto& x) -> decltype(auto) {
                     return (x[element]);
                 },
-                [element](auto& x, auto&& v){
+                [element](auto& x, auto&& v) {
                     x[element] = std::forward<decltype(v)>(v);
                 },
             }, value);
@@ -252,16 +331,18 @@ namespace vircadia::client
 
     };
 
+    class AvatarManager;
+
     /// @private
     class Avatar : public QObject, public AvatarDataStream<Avatar> {
         Q_OBJECT
     public:
         Avatar();
 
-        const QUuid& getSessionUUID() const;
+        QUuid getSessionUUID() const;
         void setSessionUUID(const QUuid& uuid);
 
-        // TODO: these in/out functions should be private
+    private:
 
         AvatarDataPacket::Identity getIdentityDataOut() const;
         void setIdentityDataIn(AvatarDataPacket::Identity identity);
@@ -346,21 +427,23 @@ namespace vircadia::client
         void setSkeletonModelURLIn(const QByteArray& encodedURL);
         const char* getSkeletonModelURLOut() const;
 
-        const std::vector<AvatarSkeletonTrait::UnpackedJointData>& getSkeletonDataOut() const;
+        std::vector<AvatarSkeletonTrait::UnpackedJointData> getSkeletonDataOut() const;
         void setSkeletonDataIn(std::vector<AvatarSkeletonTrait::UnpackedJointData>);
+
+        void setGrabDataIn();
 
         void onGrabRemoved(QUuid);
 
-        AvatarData data;
 
-    protected:
         ClientTraitsHandler* getClientTraitsHandler();
         const ClientTraitsHandler* getClientTraitsHandler() const;
 
-        friend class AvatarDataStream<Avatar>;
 
-    private:
+        AvatarData data;
         std::unique_ptr<ClientTraitsHandler, LaterDeleter> clientTraitsHandler;
+
+        friend class AvatarDataStream<Avatar>;
+        friend class AvatarManager;
     };
 
 } // namespace vircadia::client

@@ -25,4 +25,9 @@ namespace vircadia::client
         return to;
     }
 
+    QUuid qUuidfromBytes(const uint8_t* bytes) {
+        return QUuid::fromRfc4122(QByteArray(
+            reinterpret_cast<const char*>(bytes), NUM_BYTES_RFC4122_UUID));
+    }
+
 } // namespace vircadia::client

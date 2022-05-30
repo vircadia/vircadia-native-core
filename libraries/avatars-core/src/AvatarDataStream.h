@@ -233,15 +233,23 @@ namespace AvatarDataPacket {
     const size_t HEADER_SIZE = 2;
     static_assert(sizeof(Header) == HEADER_SIZE, "AvatarDataPacket::Header size doesn't match.");
 
+    PACKED_BEGIN struct Vec3 {
+        float data[3];          // vector coordinates
+    } PACKED_END;
+
+    PACKED_BEGIN struct Quat {
+        float data[4];          // quaternion components
+    } PACKED_END;
+
     PACKED_BEGIN struct AvatarGlobalPosition {
-        float globalPosition[3];          // avatar's position
+        Vec3 globalPosition;          // avatar's position
     } PACKED_END;
     const size_t AVATAR_GLOBAL_POSITION_SIZE = 12;
     static_assert(sizeof(AvatarGlobalPosition) == AVATAR_GLOBAL_POSITION_SIZE, "AvatarDataPacket::AvatarGlobalPosition size doesn't match.");
 
     PACKED_BEGIN struct AvatarBoundingBox {
-        float avatarDimensions[3];        // avatar's bounding box in world space units, but relative to the position.
-        float boundOriginOffset[3];       // offset from the position of the avatar to the origin of the bounding box
+        Vec3 avatarDimensions;        // avatar's bounding box in world space units, but relative to the position.
+        Vec3 boundOriginOffset;       // offset from the position of the avatar to the origin of the bounding box
     } PACKED_END;
     const size_t AVATAR_BOUNDING_BOX_SIZE = 24;
     static_assert(sizeof(AvatarBoundingBox) == AVATAR_BOUNDING_BOX_SIZE, "AvatarDataPacket::AvatarBoundingBox size doesn't match.");
@@ -259,7 +267,7 @@ namespace AvatarDataPacket {
     static_assert(sizeof(AvatarScale) == AVATAR_SCALE_SIZE, "AvatarDataPacket::AvatarScale size doesn't match.");
 
     PACKED_BEGIN struct LookAtPosition {
-        float lookAtPosition[3];          // world space position that eyes are focusing on.
+        Vec3 lookAtPosition;              // world space position that eyes are focusing on.
                                           // FIXME - unless the person has an eye tracker, this is simulated...
                                           //    a) maybe we can just have the client calculate this
                                           //    b) at distance this will be hard to discern and can likely be
@@ -308,7 +316,7 @@ namespace AvatarDataPacket {
     // will only ever be included if the avatar has a parent but can change independent of changes to parent info
     // and so we keep it a separate record
     PACKED_BEGIN struct AvatarLocalPosition {
-        float localPosition[3];           // parent frame translation of the avatar
+        Vec3 localPosition;           // parent frame translation of the avatar
     } PACKED_END;
 
     const size_t AVATAR_LOCAL_POSITION_SIZE = 12;
@@ -378,12 +386,12 @@ namespace AvatarDataPacket {
     size_t maxJointDefaultPoseFlagsSize(size_t numJoints);
 
     PACKED_BEGIN struct FarGrabJoints {
-        float leftFarGrabPosition[3]; // left controller far-grab joint position
-        float leftFarGrabRotation[4]; // left controller far-grab joint rotation
-        float rightFarGrabPosition[3]; // right controller far-grab joint position
-        float rightFarGrabRotation[4]; // right controller far-grab joint rotation
-        float mouseFarGrabPosition[3]; // mouse far-grab joint position
-        float mouseFarGrabRotation[4]; // mouse far-grab joint rotation
+        Vec3 leftFarGrabPosition; // left controller far-grab joint position
+        Quat leftFarGrabRotation; // left controller far-grab joint rotation
+        Vec3 rightFarGrabPosition; // right controller far-grab joint position
+        Quat rightFarGrabRotation; // right controller far-grab joint rotation
+        Vec3 mouseFarGrabPosition; // mouse far-grab joint position
+        Quat mouseFarGrabRotation; // mouse far-grab joint rotation
     } PACKED_END;
     const size_t FAR_GRAB_JOINTS_SIZE = 84;
     static_assert(sizeof(FarGrabJoints) == FAR_GRAB_JOINTS_SIZE, "AvatarDataPacket::FarGrabJoints size doesn't match.");
@@ -685,8 +693,6 @@ protected:
     mutable ReadWriteLockable _avatarGrabsLock;
     AvatarGrabDataMap _avatarGrabData;
     bool _avatarGrabDataChanged { false }; // by network
-    using MapOfGrabs = std::map<QUuid, GrabPointer>;
-    MapOfGrabs _avatarGrabs;
 
     int getFauxJointIndex(const QString& name) const;
 

@@ -26,6 +26,7 @@ namespace vircadia::client
 
     using ClientTraitsHandlerBase = ::ClientTraitsHandler<ClientTraitsHandler, Avatar*>;
 
+    /// @private
     class ClientTraitsHandler : public QObject, public ClientTraitsHandlerBase  {
         Q_OBJECT
     public:

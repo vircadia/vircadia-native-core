@@ -77,7 +77,7 @@ const Derived& AvatarDataStream<Derived>::derived() const {
 template <typename Derived>
 float AvatarDataStream<Derived>::getDistanceBasedMinRotationDOT(glm::vec3 viewerPosition) const {
     auto pos = derived().getGlobalPositionOut();
-    auto distance = glm::distance(glm::vec3(pos.globalPosition[0], pos.globalPosition[1], pos.globalPosition[2]), viewerPosition);
+    auto distance = glm::distance(glm::vec3(pos.globalPosition.data[0], pos.globalPosition.data[1], pos.globalPosition.data[2]), viewerPosition);
     float result = ROTATION_CHANGE_179D; // assume worst
     if (distance < AVATAR_DISTANCE_LEVEL_1) {
         result = AVATAR_MIN_ROTATION_DOT;
@@ -131,20 +131,20 @@ void AvatarDataStream<Derived>::releaseGrab(const QUuid& grabID) {
 
     _avatarGrabsLock.withWriteLock([&] {
 
-        std::map<QUuid, GrabPointer>::iterator itr;
-        itr = _avatarGrabs.find(grabID);
-        if (itr != _avatarGrabs.end()) {
-            GrabPointer grab = itr->second;
-            if (grab) {
-                grab->setReleased(true);
-                // FIXME: CRTP
-                // bool success;
-                // SpatiallyNestablePointer target = SpatiallyNestable::findByID(grab->getTargetID(), success);
-                // if (target && success) {
-                //     target->disableGrab(grab);
-                // }
-            }
-        }
+        // FIXME: CRTP
+        // std::map<QUuid, GrabPointer>::iterator itr;
+        // itr = _avatarGrabs.find(grabID);
+        // if (itr != _avatarGrabs.end()) {
+        //     GrabPointer grab = itr->second;
+        //     if (grab) {
+        //         grab->setReleased(true);
+        //         bool success;
+        //         SpatiallyNestablePointer target = SpatiallyNestable::findByID(grab->getTargetID(), success);
+        //         if (target && success) {
+        //             target->disableGrab(grab);
+        //         }
+        //     }
+        // }
 
         if (_avatarGrabData.remove(grabID)) {
             derived().onGrabRemoved(grabID);
@@ -1154,7 +1154,7 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
         }
 
         auto data = reinterpret_cast<const AvatarDataPacket::LookAtPosition*>(sourceBuffer);
-        if (std::any_of(+data->lookAtPosition, data->lookAtPosition + 3, (bool(*)(float))isNaN)) {
+        if (std::any_of(+data->lookAtPosition.data, data->lookAtPosition.data + 3, (bool(*)(float))isNaN)) {
             derived().onParseError("Discard avatar data packet: lookAtPosition is NaN");
             // FIXME: CRTP
             // if (shouldLogError(now)) {
@@ -1384,7 +1384,7 @@ int AvatarDataStream<Derived>::parseDataFromBuffer(const QByteArray& buffer) {
 
         auto data = reinterpret_cast<const AvatarDataPacket::AvatarLocalPosition*>(sourceBuffer);
 
-        if (std::any_of(+data->localPosition, data->localPosition + 3, (bool(*)(float))isNaN)) {
+        if (std::any_of(+data->localPosition.data, data->localPosition.data + 3, (bool(*)(float))isNaN)) {
             derived().onParseError("Discard avatar data packet: position NaN.");
             // FIXME: CRTP
             // if (shouldLogError(now)) {
@@ -2254,6 +2254,7 @@ int AvatarDataStream<Derived>::sendAvatarDataPacket(AvatarDataDetail dataDetail,
     return sendAvatarDataPacket(data);
 }
 
+// TODO: handle immediate packet sending failures (for example when mixer is not active)
 template <typename Derived>
 int AvatarDataStream<Derived>::sendAllPackets(AvatarDataDetail dataDetail, AvatarDataPacket::SendStatus& sendStatus) {
     using namespace std::chrono;
@@ -2279,8 +2280,6 @@ int AvatarDataStream<Derived>::sendAllPackets(AvatarDataDetail dataDetail, Avata
             if (derived().getSkeletonDataChanged()) {
                 sendSkeletonData();
             }
-
-            // TODO: check for changes and send grab and entity data, these are instanced traits that requite removals to be sent explicitly
 
             bytesSent += derived().getClientTraitsHandler()->sendChangedTraitsToMixer();
 

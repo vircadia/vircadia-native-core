@@ -16,6 +16,8 @@
 
 #include <AvatarPacketHandler.hpp>
 
+#include "GLMHelpers.h"
+
 namespace vircadia::client
 {
 
@@ -28,28 +30,16 @@ namespace vircadia::client
         std::scoped_lock lock(myAvatarMutex);
 
         for(auto&& grabData : myAvatar.data.grabs.added) {
-            // TODO: define and use vector quaternion conversion functions
             myAvatar.grab(
-                QUuid::fromRfc4122(QByteArray(
-                    reinterpret_cast<const char*>(grabData.target_id), NUM_BYTES_RFC4122_UUID)),
+                qUuidfromBytes(grabData.target_id),
                 grabData.joint_index,
-                {
-                    grabData.offset.position.x,
-                    grabData.offset.position.y,
-                    grabData.offset.position.z
-                },
-                {
-                    grabData.offset.rotation.w,
-                    grabData.offset.rotation.x,
-                    grabData.offset.rotation.y,
-                    grabData.offset.rotation.z
-                }
+                glmVec3From(grabData.offset.position),
+                glmQuatFrom(grabData.offset.rotation)
             );
         }
 
         for(auto&& uuid : myAvatar.data.grabs.removed) {
-            myAvatar.releaseGrab(QUuid::fromRfc4122(QByteArray(
-                reinterpret_cast<const char*>(uuid.data()), uuid.size())));
+            myAvatar.releaseGrab(qUuidfromBytes(uuid.data()));
         }
 
         myAvatar.data.grabs.added.clear();
@@ -61,16 +51,24 @@ namespace vircadia::client
         do {
             myAvatar.sendAllPackets(Avatar::CullSmallData, status);
         } while (!status);
-        // FIXME: if packet sending fails do not reset changes
-        myAvatar.data.changes.reset();
+        myAvatar.data.changes &= ~AvatarDataPacket::ALL_HAS_FLAGS;
     }
 
     void AvatarManager::updateData() {
 
         {
             std::scoped_lock lock(avatarsMutex);
-            // FIXME: write avatar data and epitaphs out
-            // clear changes in source data
+
+            avatarDataOut.resize(avatars.size());
+            std::transform(avatars.begin(), avatars.end(), avatarDataOut.begin(), [](auto& avatar){
+                avatar.second->setGrabDataIn();
+                auto data = avatar.second->data;
+                avatar.second->data.changes.reset();
+                return data;
+            });
+
+            epitaphsOut.resize(epitaphs.size());
+            std::copy(epitaphs.begin(), epitaphs.end(), epitaphsOut.begin());
         }
 
         {

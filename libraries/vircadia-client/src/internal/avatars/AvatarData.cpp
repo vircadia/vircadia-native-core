@@ -14,6 +14,11 @@
 
 #include <AvatarDataStream.hpp>
 
+#include "GLMHelpers.h"
+
+using vircadia::client::operator==;
+using vircadia::client::operator!=;
+
 namespace vircadia::client
 {
 
@@ -21,20 +26,56 @@ namespace vircadia::client
         clientTraitsHandler(new ClientTraitsHandler(this))
     {}
 
-    const QUuid& Avatar::getSessionUUID() const {
-        return data.sessionUUID;
+    QUuid Avatar::getSessionUUID() const {
+        return qUuidfromBytes(data.sessionUUID.data());
     }
 
     void Avatar::setSessionUUID(const QUuid& uuid) {
-        data.sessionUUID = uuid;
+        data.sessionUUID = toUUIDArray(uuid);
     }
 
     AvatarDataPacket::Identity Avatar::getIdentityDataOut() const {
-        return std::get<AvatarData::IdentityIndex>(data.properties);
+        auto identity = std::get<AvatarData::IdentityIndex>(data.properties);
+        QVector<AttachmentData> attachments;
+        std::transform(identity.attachments.begin(), identity.attachments.end(),
+            std::back_inserter(attachments), [](const auto& x){
+                return AttachmentData{
+                    QString(x.modelURL.c_str()),
+                    QString(x.jointName.c_str()),
+                    glmVec3From(x.transform.vantage.position),
+                    glmQuatFrom(x.transform.vantage.rotation),
+                    x.transform.scale,
+                    x.isSoft
+                };
+        });
+        return {
+            std::move(attachments),
+            QString(identity.displayName.c_str()),
+            QString(identity.sessionDisplayName.c_str()),
+            identity.identityFlags
+        };
     }
 
     void Avatar::setIdentityDataIn(AvatarDataPacket::Identity identity) {
-        data.setProperty<AvatarData::IdentityIndex>(std::move(identity));
+        std::vector<AvatarData::Attachment> attachments;
+        std::transform(identity.attachmentData.begin(), identity.attachmentData.end(),
+            std::back_inserter(attachments), [](const auto& x) {
+                return AvatarData::Attachment{
+                    x.modelURL.toString().toStdString(),
+                    x.jointName.toStdString(),
+                    vectorFrom(x.translation),
+                    quaternionFrom(x.rotation),
+                    x.scale,
+                    x.isSoft
+                };
+            }
+        );
+        data.setProperty<AvatarData::IdentityIndex>({
+            std::move(attachments),
+            identity.displayName.toStdString(),
+            identity.sessionDisplayName.toStdString(),
+            identity.identityFlags
+        });
     }
 
     bool Avatar::getIdentityDataChanged() const {
@@ -46,19 +87,19 @@ namespace vircadia::client
     }
 
     bool Avatar::getSkeletonModelURLChanged() const {
-        return data.changes.test(AvatarData::IdentityIndex);
+        return data.changes.test(AvatarData::SkeletonModelURLIndex);
     }
 
     bool Avatar::getSkeletonDataChanged() const {
-        return data.changes.test(AvatarData::IdentityIndex);
+        return data.changes.test(AvatarData::SkeletonDataIndex);
     }
 
     bool Avatar::getGrabDataChanged() const {
-        return data.changes.test(AvatarData::IdentityIndex);
+        return data.changes.test(AvatarData::GrabDataIndex);
     }
 
     bool Avatar::getEntityDataChanged() const {
-        return data.changes.test(AvatarData::IdentityIndex);
+        return data.changes.test(AvatarData::EntityDataIndex);
     }
 
     void Avatar::onClientTraitsSent() {
@@ -70,65 +111,38 @@ namespace vircadia::client
 
     AvatarDataPacket::AvatarGlobalPosition Avatar::getGlobalPositionOut() const {
         auto position = data.getProperty<AvatarData::GlobalPositionIndex>();
-        return {{position.x, position.y, position.z}};
+        AvatarDataPacket::AvatarGlobalPosition result;
+        serialize(position, result.globalPosition);
+        return result;
     }
 
     void Avatar::setGlobalPositionIn(const AvatarDataPacket::AvatarGlobalPosition& position) {
-        data.setProperty<AvatarData::GlobalPositionIndex>({
-            position.globalPosition[0],
-            position.globalPosition[1],
-            position.globalPosition[2]
-        });
+        data.setProperty<AvatarData::GlobalPositionIndex>(
+            vectorFrom(position.globalPosition));
     }
 
     AvatarDataPacket::AvatarBoundingBox Avatar::getBoundingBoxOut() const {
         auto bounds = data.getProperty<AvatarData::BoundingBoxIndex>();
-        data.getProperty<3>();
-        return {
-            {
-                bounds.dimensions.x,
-                bounds.dimensions.y,
-                bounds.dimensions.z
-            },
-            {
-                bounds.offset.x,
-                bounds.offset.y,
-                bounds.offset.z
-            }
-        };
+        AvatarDataPacket::AvatarBoundingBox result;
+        serialize(bounds.dimensions, result.avatarDimensions);
+        serialize(bounds.offset, result.boundOriginOffset);
+        return result;
     }
 
     void Avatar::setBoundingBoxIn(const AvatarDataPacket::AvatarBoundingBox& bounds) {
-        data.setProperty<AvatarData::BoundingBoxIndex>({ {
-                bounds.avatarDimensions[0],
-                bounds.avatarDimensions[1],
-                bounds.avatarDimensions[2]
-            },
-            {
-                bounds.boundOriginOffset[0],
-                bounds.boundOriginOffset[1],
-                bounds.boundOriginOffset[2]
-            }
+        data.setProperty<AvatarData::BoundingBoxIndex>({
+            vectorFrom(bounds.avatarDimensions),
+            vectorFrom(bounds.boundOriginOffset),
         });
     }
 
     glm::quat Avatar::getOrientationOut() const {
-        auto orientation = data.getProperty<AvatarData::OrientationIndex>();
-        return {
-            orientation.w,
-            orientation.x,
-            orientation.y,
-            orientation.z
-        };
+        return glmQuatFrom(data.getProperty<AvatarData::OrientationIndex>());
     }
 
     void Avatar::setOrientationIn(glm::quat orientation) {
-        data.setProperty<AvatarData::OrientationIndex>({
-            orientation.x,
-            orientation.y,
-            orientation.z,
-            orientation.w
-        });
+        data.setProperty<AvatarData::OrientationIndex>(
+            quaternionFrom(orientation));
     }
 
     float Avatar::getScaleOut() const {
@@ -141,14 +155,14 @@ namespace vircadia::client
 
     AvatarDataPacket::LookAtPosition Avatar::getLookAtPositionOut() const {
         auto& position = data.getProperty<AvatarData::LookAtPositionIndex>();
-        return { position.x, position.y, position.z };
+        AvatarDataPacket::LookAtPosition result;
+        serialize(position, result.lookAtPosition);
+        return result;
     }
 
     void Avatar::setLookAtPositionIn(const AvatarDataPacket::LookAtPosition& position) {
         data.setProperty<AvatarData::LookAtPositionIndex>({
-            position.lookAtPosition[0],
-            position.lookAtPosition[1],
-            position.lookAtPosition[2]
+            vectorFrom(position.lookAtPosition)
         });
     }
 
@@ -162,26 +176,20 @@ namespace vircadia::client
 
     Avatar::Transform Avatar::getSensorToWorldMatrixOut() const {
         auto transform = data.getProperty<AvatarData::SensorToWorldMatrixIndex>();
-        auto position = transform.vantage.position;
-        auto rotation = transform.vantage.rotation;
-        auto scale = transform.scale;
         return {
-            {position.x, position.y, position.z},
-            {rotation.w, rotation.x, rotation.y, rotation.z},
-            {scale, scale, scale},
+            glmVec3From(transform.vantage.position),
+            glmQuatFrom(transform.vantage.rotation),
+            glm::vec3(transform.scale)
         };
     }
 
     void Avatar::setSensorToWorldMatrixIn(Transform transform) {
-        auto position = transform.translation;
-        auto rotation = transform.rotation;
-        auto scale = transform.scale;
         data.setProperty<AvatarData::SensorToWorldMatrixIndex>({
             {
-                {position.x, position.y, position.z},
-                {rotation.x, rotation.y, rotation.z, rotation.w}
+                vectorFrom(transform.translation),
+                quaternionFrom(transform.rotation)
             },
-            scale.x
+            transform.scale.x
         });
     }
 
@@ -220,76 +228,39 @@ namespace vircadia::client
 
     AvatarDataPacket::AvatarLocalPosition Avatar::getLocalPositionOut() const {
         auto position = data.getProperty<AvatarData::LocalPositionIndex>();
-        return {{position.x, position.y, position.z}};
+        AvatarDataPacket::AvatarLocalPosition result;
+        serialize(position, result.localPosition);
+        return result;
     }
 
     void Avatar::setLocalPositionIn(const AvatarDataPacket::AvatarLocalPosition& position) {
-        data.setProperty<AvatarData::LocalPositionIndex>({
-            position.localPosition[0],
-            position.localPosition[1],
-            position.localPosition[2]
-        });
+        data.setProperty<AvatarData::LocalPositionIndex>(
+            vectorFrom(position.localPosition));
     }
 
     Avatar::HandControllers Avatar::getHandControllersOut() const {
         auto controllers = data.getProperty<AvatarData::HandControllersIndex>();
         return {
             {
-                {
-                    controllers.left.position.x,
-                    controllers.left.position.y,
-                    controllers.left.position.z
-                },
-                {
-                    controllers.left.rotation.w,
-                    controllers.left.rotation.x,
-                    controllers.left.rotation.y,
-                    controllers.left.rotation.z
-                }
+                glmVec3From(controllers.left.position),
+                glmQuatFrom(controllers.left.rotation),
             },
             {
-                {
-                    controllers.right.position.x,
-                    controllers.right.position.y,
-                    controllers.right.position.z
-                },
-                {
-                    controllers.right.rotation.w,
-                    controllers.right.rotation.x,
-                    controllers.right.rotation.y,
-                    controllers.right.rotation.z
-                }
-            },
+                glmVec3From(controllers.right.position),
+                glmQuatFrom(controllers.right.rotation),
+            }
         };
     }
 
     void Avatar::setHandControllersIn(const HandControllers& controllers) {
         data.setProperty<AvatarData::HandControllersIndex>({
             {
-                {
-                    controllers.left.position.x,
-                    controllers.left.position.y,
-                    controllers.left.position.z
-                },
-                {
-                    controllers.left.orientation.x,
-                    controllers.left.orientation.y,
-                    controllers.left.orientation.z,
-                    controllers.left.orientation.w
-                },
+                vectorFrom(controllers.left.position),
+                quaternionFrom(controllers.left.orientation)
             },
             {
-                {
-                    controllers.left.position.x,
-                    controllers.left.position.y,
-                    controllers.left.position.z
-                },
-                {
-                    controllers.left.orientation.x,
-                    controllers.left.orientation.y,
-                    controllers.left.orientation.z,
-                    controllers.left.orientation.w
-                },
+                vectorFrom(controllers.right.position),
+                quaternionFrom(controllers.right.orientation)
             }
         });
     }
@@ -334,17 +305,8 @@ namespace vircadia::client
         const auto& joint = data.getProperty<AvatarData::JointDataIndex>()[index];
         const auto& flags = data.getProperty<AvatarData::JointDefaultPoseFlagsIndex>()[index];
         return {
-            {
-                joint.rotation.w,
-                joint.rotation.x,
-                joint.rotation.y,
-                joint.rotation.z
-            },
-            {
-                joint.position.x,
-                joint.position.y,
-                joint.position.z
-            },
+            glmQuatFrom(joint.rotation),
+            glmVec3From(joint.position),
             bool(flags.rotation_is_default),
             bool(flags.translation_is_default)
         };
@@ -357,112 +319,54 @@ namespace vircadia::client
 
     void Avatar::setJointDataPositionIn(int index, glm::vec3 position) {
         auto joint = data.getProperty<AvatarData::JointDataIndex>()[index];
-        joint.position = vircadia_vector {
-            position.x, position.y, position.z
-        };
-        data.setProperty<AvatarData::JointDataIndex>(joint, index);
+        joint.position = vectorFrom(position);
+        data.setProperty<AvatarData::JointDataIndex>(index, joint);
     }
 
     void Avatar::setJointDataRotationIn(int index, glm::quat rotation) {
         auto joint = data.getProperty<AvatarData::JointDataIndex>()[index];
-        joint.rotation = vircadia_quaternion {
-            rotation.x, rotation.y, rotation.z, rotation.w
-        };
-        data.setProperty<AvatarData::JointDataIndex>(joint, index);
+        joint.rotation = quaternionFrom(rotation);
+        data.setProperty<AvatarData::JointDataIndex>(index, joint);
     }
 
     void Avatar::setJointDataPositionDefaultIn(int index, bool isDefault) {
         auto flags = data.getProperty<AvatarData::JointDefaultPoseFlagsIndex>()[index];
         flags.translation_is_default = isDefault;
-        data.setProperty<AvatarData::JointDefaultPoseFlagsIndex>(flags, index);
+        data.setProperty<AvatarData::JointDefaultPoseFlagsIndex>(index, flags);
     }
 
     void Avatar::setJointDataRotationDefaultIn(int index, bool isDefault) {
         auto flags = data.getProperty<AvatarData::JointDefaultPoseFlagsIndex>()[index];
         flags.rotation_is_default = isDefault;
-        data.setProperty<AvatarData::JointDefaultPoseFlagsIndex>(flags, index);
+        data.setProperty<AvatarData::JointDefaultPoseFlagsIndex>(index, flags);
     }
 
     AvatarDataPacket::FarGrabJoints Avatar::getFarGrabJointsOut() const {
         auto joints = data.getProperty<AvatarData::GrabJointsIndex>();
-        return {
-            {
-                joints.left.position.x,
-                joints.left.position.y,
-                joints.left.position.z
-            },
-            {
-                joints.left.rotation.w,
-                joints.left.rotation.x,
-                joints.left.rotation.y,
-                joints.left.rotation.z
-            },
-            {
-                joints.right.position.x,
-                joints.right.position.y,
-                joints.right.position.z
-            },
-            {
-                joints.right.rotation.w,
-                joints.right.rotation.x,
-                joints.right.rotation.y,
-                joints.right.rotation.z
-            },
-            {
-                joints.mouse.position.x,
-                joints.mouse.position.y,
-                joints.mouse.position.z
-            },
-            {
-                joints.mouse.rotation.w,
-                joints.mouse.rotation.x,
-                joints.mouse.rotation.y,
-                joints.mouse.rotation.z
-            }
-        };
+        AvatarDataPacket::FarGrabJoints result;
+        serialize(joints.left.position, result.leftFarGrabPosition);
+        serialize(joints.left.rotation, result.leftFarGrabRotation);
+        serialize(joints.right.position, result.rightFarGrabPosition);
+        serialize(joints.right.rotation, result.rightFarGrabRotation);
+        serialize(joints.mouse.position, result.mouseFarGrabPosition);
+        serialize(joints.mouse.rotation, result.mouseFarGrabRotation);
+        return result;
     }
 
     void Avatar::setFarGrabJointsIn(const AvatarDataPacket::FarGrabJoints& joints)  {
         data.setProperty<AvatarData::GrabJointsIndex>({
             {
-                {
-                    joints.leftFarGrabPosition[0],
-                    joints.leftFarGrabPosition[1],
-                    joints.leftFarGrabPosition[2],
-                },
-                {
-                    joints.leftFarGrabRotation[3],
-                    joints.leftFarGrabRotation[0],
-                    joints.leftFarGrabRotation[1],
-                    joints.leftFarGrabRotation[2],
-                },
+                vectorFrom(joints.leftFarGrabPosition),
+                quaternionFrom(joints.leftFarGrabRotation)
             },
             {
-                {
-                    joints.rightFarGrabPosition[0],
-                    joints.rightFarGrabPosition[1],
-                    joints.rightFarGrabPosition[2],
-                },
-                {
-                    joints.rightFarGrabRotation[3],
-                    joints.rightFarGrabRotation[0],
-                    joints.rightFarGrabRotation[1],
-                    joints.rightFarGrabRotation[2],
-                },
+                vectorFrom(joints.rightFarGrabPosition),
+                quaternionFrom(joints.rightFarGrabRotation)
             },
             {
-                {
-                    joints.mouseFarGrabPosition[0],
-                    joints.mouseFarGrabPosition[1],
-                    joints.mouseFarGrabPosition[2],
-                },
-                {
-                    joints.mouseFarGrabRotation[3],
-                    joints.mouseFarGrabRotation[0],
-                    joints.mouseFarGrabRotation[1],
-                    joints.mouseFarGrabRotation[2],
-                }
-            },
+                vectorFrom(joints.mouseFarGrabPosition),
+                quaternionFrom(joints.mouseFarGrabRotation)
+            }
         });
     }
 
@@ -474,12 +378,69 @@ namespace vircadia::client
         data.setProperty<AvatarData::SkeletonModelURLIndex>(encodedURL.toStdString());
     }
 
-    const std::vector<AvatarSkeletonTrait::UnpackedJointData>& Avatar::getSkeletonDataOut() const {
-        return data.getProperty<AvatarData::SkeletonDataIndex>();
+    std::vector<AvatarSkeletonTrait::UnpackedJointData> Avatar::getSkeletonDataOut() const {
+        auto bones = data.getProperty<AvatarData::SkeletonDataIndex>();
+        std::vector<AvatarSkeletonTrait::UnpackedJointData> result;
+        int stringStart = 0;
+        std::transform(bones.begin(), bones.end(), std::back_inserter(result), [&stringStart](auto& bone) {
+            AvatarSkeletonTrait::UnpackedJointData result{};
+            result.boneType = bone.type;
+            result.defaultTranslation = glmVec3From(bone.defaultTransform.vantage.position);
+            result.defaultRotation = glmQuatFrom(bone.defaultTransform.vantage.rotation);
+            result.defaultScale = bone.defaultTransform.scale;
+            result.jointIndex = bone.index;
+            result.parentIndex = bone.parentIndex;
+            result.jointName = QString(bone.name.c_str());
+
+            // TODO: this logic belongs in AvatarDataStream
+            result.stringStart = stringStart;
+            result.stringLength = result.jointName.size();
+            stringStart += result.stringLength;
+
+            return result;
+
+        });
+        return result;
     }
 
     void Avatar::setSkeletonDataIn(std::vector<AvatarSkeletonTrait::UnpackedJointData> skeletonData) {
-        data.setProperty<AvatarData::SkeletonDataIndex>(std::move(skeletonData));
+        constexpr auto index = AvatarData::SkeletonDataIndex;
+        data.resizeProperty<index>(skeletonData.size());
+        for (std::size_t i = 0; i != skeletonData.size(); ++i) {
+            data.setProperty<index>(i, AvatarData::Bone{
+                AvatarSkeletonTrait::BoneType(skeletonData[i].boneType),
+                {
+                    {
+                        vectorFrom(skeletonData[i].defaultTranslation),
+                        quaternionFrom(skeletonData[i].defaultRotation)
+                    },
+                    skeletonData[i].defaultScale
+                },
+                skeletonData[i].jointIndex,
+                skeletonData[i].parentIndex,
+                skeletonData[i].jointName.toStdString()
+            });
+        }
+    }
+
+    void Avatar::setGrabDataIn() {
+        data.resizeProperty<AvatarData::GrabDataIndex>(_avatarGrabData.size());
+        int i = 0;
+        for (auto begin = _avatarGrabData.begin(); begin != _avatarGrabData.end(); ++begin) {
+
+            Grab grab;
+            grab.fromByteArray(*begin);
+
+            vircadia_avatar_grab converted{};
+            auto targetID = toUUIDArray(grab.getTargetID());
+            std::copy_n(targetID.begin(), targetID.size(), converted.target_id);
+            converted.joint_index = grab.getParentJointIndex();
+            converted.offset.position = vectorFrom(grab.getPositionalOffset());
+            converted.offset.rotation = quaternionFrom(grab.getRotationalOffset());
+
+            data.setProperty<AvatarData::GrabDataIndex>(i++,
+                std::pair{ toUUIDArray(begin.key()), converted });
+        }
     }
 
     void Avatar::onParseError(std::string) {
