@@ -1,5 +1,5 @@
 import Log from "@Modules/debugging/log";
-import { doAPIGet, findErrorMsg } from "src/modules/utilities/apiHelpers";
+import { doAPIGet, doAPIDelete, findErrorMsg } from "src/modules/utilities/apiHelpers";
 
 export interface IpAddress {
     ip: string;
@@ -36,6 +36,16 @@ export const Nodes = {
 
         const nodes: Node[] = [];
         return nodes;
+    },
+
+    async killNode (nodeUuid: string) {
+        // fire off a delete for this node
+        await doAPIDelete("nodes/" + nodeUuid);
+    },
+
+    async killAllNodes () {
+        // fire off a delete for this node
+        await doAPIDelete("nodes/");
     }
 
 };

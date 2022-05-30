@@ -10,36 +10,26 @@
 
 <template>
     <div>
-        <h1>Test2</h1>
+        <NodesList></NodesList>
 
-        <div v-for="node in nodesList">
-            {{node.uuid}}
-        </div>
+        <AssignmentsList></AssignmentsList>
     </div>
 </template>
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import { Nodes, Node } from "@Modules/domain/nodes";
+import NodesList from "@Components/components/dashboard/nodes";
+import AssignmentsList from "@Components/components/dashboard/assignments";
 
 export default defineComponent({
     name: "Index",
 
-    data () {
-        return {
-            nodesList: [] as Node[]
-        };
+    components: {
+        NodesList,
+        AssignmentsList
     },
 
     methods: {
-        async loadNodesList (): Promise<void> {
-            const nodesResult = await Nodes.getNodes();
-            this.nodesList = nodesResult;
-        }
-    },
-
-    mounted: async function (): Promise<void> {
-        await this.loadNodesList();
     }
 });
 </script>

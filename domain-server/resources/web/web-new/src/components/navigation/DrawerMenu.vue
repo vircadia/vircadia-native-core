@@ -25,7 +25,8 @@ export default {
                 { icon: "mdi-script-text-outline", route: "/scripts", label: "Server Scripts" },
                 { icon: "mdi-cog-outline", route: "/advanced", label: "Advanced" },
                 { icon: "mdi-backup-restore", route: "/backup-restore", label: "Backup / Restore" },
-                { icon: "mdi-console", route: "/assignment", label: "Assignment" }
+                { icon: "mdi-console", route: "/assignment", label: "Assignment" },
+                { icon: "mdi-help-circle", route: "/help", label: "Help / Troubleshooting" }
             ]
         };
     }

@@ -51,3 +51,25 @@ export async function doAPIGet (pAPIUrl: string, pAPIBaseUrl?: string): Promise<
     }
     throw new Error(errorString);
 }
+
+export async function doAPIDelete (pAPIUrl: string, pAPIBaseUrl?: string) {
+    const accessUrl = buildUrl(pAPIUrl, pAPIBaseUrl);
+
+    let errorString = "";
+    try {
+        const response = await axios.delete(accessUrl);
+        if (response && response.status) {
+            if (response.status === 200) {
+                return;
+            }
+            errorString = `${response.statusText ?? "unspecified"}`;
+        } else {
+            errorString = `Poorly formed response to DELETE ${pAPIUrl}: ${JSON.stringify(response)}`;
+        }
+    } catch (err) {
+        const errMsg = findErrorMsg(err);
+        Log.error(Log.types.API, `Exception on DELETE ${pAPIUrl}: ${errMsg}`);
+        errorString = `Exception on DELETE ${pAPIUrl}: ${errMsg}`;
+    }
+    throw new Error(errorString);
+}
