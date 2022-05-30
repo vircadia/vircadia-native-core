@@ -6,6 +6,8 @@
 // Configuration for your app
 // https://v2.quasar.dev/quasar-cli/quasar-conf-js
 
+const path = require("path");
+
 /* eslint-env node */
 /* eslint-disable @typescript-eslint/no-var-requires */
 const { configure } = require("quasar/wrappers");
@@ -48,7 +50,8 @@ module.exports = configure(function (ctx) {
             // 'roboto-font-latin-ext', // this or either 'roboto-font', NEVER both!
 
             "roboto-font", // optional, you are not bound to it
-            "material-icons" // optional, you are not bound to it
+            "material-icons", // optional, you are not bound to it
+            "mdi-v5" // optional, you are not bound to it
         ],
 
         // Full list of options: https://v2.quasar.dev/quasar-cli/quasar-conf-js#Property%3A-build
@@ -73,8 +76,14 @@ module.exports = configure(function (ctx) {
 
             // https://v2.quasar.dev/quasar-cli/handling-webpack
             // "chain" is a webpack-chain object https://github.com/neutrinojs/webpack-chain
-            chainWebpack (/* chain */) {
-                //
+            chainWebpack (chain) {
+                // Path aliases to reduce number of dot-dot relative paths.
+                // Need to add here and in tsconfig.json
+                chain.resolve.alias
+                    .set("@Base", path.resolve(__dirname, "./src"))
+                    .set("@Components", path.resolve(__dirname, "./src/components"))
+                    .set("@Modules", path.resolve(__dirname, "./src/modules"))
+                    .set("@Store", path.resolve(__dirname, "./src/store"));
             }
         },
 

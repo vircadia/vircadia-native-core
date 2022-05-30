@@ -9,13 +9,37 @@
 -->
 
 <template>
-    <h1>Test</h1>
+    <div>
+        <h1>Test2</h1>
+
+        <div v-for="node in nodesList">
+            {{node.uuid}}
+        </div>
+    </div>
 </template>
 
 <script lang="ts">
 import { defineComponent } from "vue";
+import { Nodes, Node } from "@Modules/domain/nodes";
 
 export default defineComponent({
-    name: "Index"
+    name: "Index",
+
+    data () {
+        return {
+            nodesList: [] as Node[]
+        };
+    },
+
+    methods: {
+        async loadNodesList (): Promise<void> {
+            const nodesResult = await Nodes.getNodes();
+            this.nodesList = nodesResult;
+        }
+    },
+
+    mounted: async function (): Promise<void> {
+        await this.loadNodesList();
+    }
 });
 </script>

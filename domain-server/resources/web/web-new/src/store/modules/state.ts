@@ -1,10 +1,14 @@
 export interface MainState {
-    prop: boolean;
+    globalConsts: {
+        API_SERVER: string,
+    },
 }
 
 function state (): MainState {
     return {
-        prop: false
+        globalConsts: {
+            API_SERVER: "http://localhost:40100/" // this is for testing. Full build should just be "/"
+        }
     };
 }
 
