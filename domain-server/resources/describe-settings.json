@@ -129,6 +129,118 @@
       ]
     },
     {
+      "name": "acme",
+      "label": "SSL ACME Client",
+      "settings": [
+        {
+            "name": "enable_client",
+            "label": "Enable ACME client",
+            "help": "Enables ACME client that will manage the SSL certificates.",
+            "default": false,
+            "type": "checkbox",
+            "advanced": true
+        },
+        {
+            "name": "directory_endpoint",
+            "label": "ACME Directory Endpoint",
+            "help": "URL of the certificate issuer ACME directory endpoint.",
+            "default": "https://acme-v02.api.letsencrypt.org/directory",
+            "advanced": true
+        },
+        {
+            "name": "zerossl_rest_api",
+            "label": "ZeroSSL REST API",
+            "help": "Use ZeroSSL Rest API Instead of ACME protocol.",
+            "default": false,
+            "type": "checkbox",
+            "advanced": true
+        },
+        {
+            "name": "account_key_path",
+            "label": "Account Key",
+            "help": "Path to private key used to communicate with certificate issuer.",
+            "default": "",
+            "placeholder": "<Application Data Path>/acme_account_key.pem",
+            "advanced": true
+        },
+        {
+            "name": "zerossl_api_key",
+            "label": "ZeroSSL API Key",
+            "help": "API key to use for ZeroSSL REST API requests.",
+            "advanced": true
+        },
+        {
+            "name": "eab_kid",
+            "label": "External Account Binding KID",
+            "advanced": true
+        },
+        {
+            "name": "eab_mac",
+            "label": "External Account Binding MAC",
+            "advanced": true
+        },
+        {
+            "name": "certificate_directory",
+            "label": "Certificate Directory",
+            "help": "Certificate files will be stored in this directory.",
+            "default": "",
+            "placeholder": "Application Data Path",
+            "advanced": true
+        },
+        {
+            "name": "certificate_filename",
+            "label": "Certificate Filename",
+            "help": "Certificate will be stored with this filename in Certificate Directory.",
+            "default": "vircadia-cert.crt",
+            "advanced": true
+        },
+        {
+            "name": "certificate_key_filename",
+            "label": "Certificate Key Filename",
+            "help": "Certificate private key will be stored with this filename in Certificate Directory.",
+            "default": "vircadia-cert.key",
+            "advanced": true
+        },
+        {
+            "name": "certificate_authority_filename",
+            "label": "Certificate Authority Filename",
+            "help": "Trusted certificate authority list will be stored with this filename in Certificate Directory. If unspecified system default CAs will be used.",
+            "default": "",
+            "placeholder": "System Default",
+            "advanced": true
+        },
+        {
+            "name": "challenge_handler_type",
+            "label": "Type of HTTP challenge handler.",
+            "help": "This settings determines how the client will attempt to complete the server's HTTP challenges. Possible Values are: server - client will attempt to host the challenges on port 80, files - client will attempt to save challenges as files in the directories associated with specified domains, manual - client will wait for a few minutes for the challenges to be completed.",
+            "default": "server",
+            "advanced": true
+        },
+        {
+          "name": "certificate_domains",
+          "label": "Domains Names",
+          "type": "table",
+          "can_add_new_rows": true,
+          "help": "The domains names or IP addresses to generate the certificate for.",
+          "numbered": false,
+          "advanced": true,
+          "columns": [
+            {
+              "name": "domain",
+              "label": "Domain name or IP address",
+              "can_set": true
+            },
+            {
+              "name": "directory",
+              "label": "Domain root directory",
+              "placeholder": "Current directory",
+              "can_set": true
+            }
+          ]
+        }
+      ]
+    },
+    {
       "label": "Monitoring",
       "name": "monitoring",
       "restart": false,

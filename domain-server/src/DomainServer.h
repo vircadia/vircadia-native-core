@@ -41,6 +41,7 @@
 #include "PendingAssignedNodeData.h"
 #include "DomainServerExporter.h"
 
+#include <memory>
 #include <QLoggingCategory>
 
 Q_DECLARE_LOGGING_CATEGORY(domain_server)
@@ -59,6 +60,8 @@ enum ReplicationServerDirection {
     Upstream,
     Downstream
 };
+
+class DomainServerAcmeClient;
 
 class DomainServer : public QCoreApplication, public HTTPSRequestHandler {
     Q_OBJECT
@@ -289,6 +292,7 @@ private:
     QString _automaticNetworkingSetting;
 
     DomainServerSettingsManager _settingsManager;
+    std::unique_ptr<DomainServerAcmeClient> _acmeClient;
 
     SockAddr _iceServerSocket;
     std::unique_ptr<NLPacket> _iceServerHeartbeatPacket;
