@@ -140,7 +140,7 @@ const char AVATARDATA_FLAGS_MINIMUM = 0;
 using SmallFloat = uint16_t; // a compressed float with less precision, user defined radix
 
 namespace AvatarSkeletonTrait {
-    enum BoneType {
+    enum BoneType : uint8_t {
         SkeletonRoot = 0,
         SkeletonChild,
         NonSkeletonRoot,
@@ -573,12 +573,6 @@ public:
 
     int getAverageBytesReceivedPerSecond() const;
     int getReceiveRate() const;
-
-    AvatarEntityMap getAvatarEntityData() const;
-
-    AvatarEntityMap getAvatarEntityDataNonDefault() const;
-
-    void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
 
     void setAvatarEntityDataChanged(bool value) { _avatarEntityDataChanged = value; }
     AvatarEntityIDs getAndClearRecentlyRemovedIDs();

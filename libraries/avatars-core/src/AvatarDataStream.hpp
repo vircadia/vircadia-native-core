@@ -2449,27 +2449,6 @@ QList<QUuid> AvatarDataStream<Derived>::getAvatarEntityIDs() const {
 }
 
 template <typename Derived>
-AvatarEntityMap AvatarDataStream<Derived>::getAvatarEntityData() const {
-    // overridden where needed
-    // NOTE: the return value is expected to be a map of unfortunately-formatted-binary-blobs
-    return AvatarEntityMap();
-}
-
-template <typename Derived>
-AvatarEntityMap AvatarDataStream<Derived>::getAvatarEntityDataNonDefault() const {
-    // overridden where needed
-    // NOTE: the return value is expected to be a map of unfortunately-formatted-binary-blobs
-    return AvatarEntityMap();
-}
-
-template <typename Derived>
-void AvatarDataStream<Derived>::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
-    // overridden where needed
-    // avatarEntityData is expected to be a map of QByteArrays
-    // each QByteArray represents an EntityItemProperties object from JavaScript
-}
-
-template <typename Derived>
 void AvatarDataStream<Derived>::insertRemovedEntityID(const QUuid entityID) {
     _avatarEntitiesLock.withWriteLock([&] {
         _avatarEntityRemoved.insert(entityID);
