@@ -2,7 +2,6 @@
 <h3 align="center"><a href="https://vircadia.com/">Website</a> | <a href="https://discordapp.com/invite/Pvx2vke">Discord</a> | <a href="https://vircadia.com/download-vircadia/">Download</a></h3>
 <p align="center">
     <a href="https://vircadia.com/contribute"><img alt="GitHub contributors" src="https://img.shields.io/github/contributors/vircadia/vircadia"></a>
-    <a href="https://github.com/sponsors/digisomni"><img alt="GitHub sponsors" src="https://img.shields.io/github/sponsors/digisomni?style=flat&label=github%20sponsors"></a>
     <a href="https://github.com/vircadia/vircadia/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/vircadia/vircadia"></a>
     <a href="https://github.com/vircadia/vircadia/network"><img alt="GitHub forks" src="https://img.shields.io/github/forks/vircadia/vircadia"></a>
     <a href="https://www.apache.org/licenses/LICENSE-2.0"><img alt="Apache 2.0" src="https://img.shields.io/badge/license-Apache--2.0-%230A7BBB?style=flat"></a>
@@ -15,13 +14,12 @@
 
 ### What is this?
 
-Vircadia™ is a 3D social software project seeking to incrementally bring about a truly free and open metaverse.
+Vircadia™ is an open source metaverse project seeking to incrementally bring about a truly free and open metaverse.
 
 * Desktop and VR use
 * Hundreds of users simultaneously
 * Full-body avatars
-* FBX, glTF, and OBJ support
-* JavaScript scripting engine
+* Script with JavaScript & TypeScript (coming soon)
 * 16km³ world space in a server
 * Fully self-hosted
 * Apache 2.0
@@ -41,13 +39,11 @@ Vircadia™ is a 3D social software project seeking to incrementally bring about
 - [For Windows](https://github.com/vircadia/vircadia/blob/master/BUILD_WIN.md)
 - [For Mac](https://github.com/vircadia/vircadia/blob/master/BUILD_OSX.md)
 - [For Linux](https://github.com/vircadia/vircadia/blob/master/BUILD_LINUX.md)
-- [For Linux - Vircadia Builder](https://github.com/vircadia/vircadia-builder)
 
 #### How to build a Server
 
 - [For Windows](https://github.com/vircadia/vircadia/blob/master/BUILD_WIN.md)
 - [For Linux](https://github.com/vircadia/vircadia/blob/master/BUILD_LINUX.md)
-- [For Linux - Vircadia Builder](https://github.com/vircadia/vircadia-builder)
 
 #### How to generate an Installer
 
@@ -58,16 +54,17 @@ Vircadia™ is a 3D social software project seeking to incrementally bring about
 
 ### Boot to Metaverse: [The Goal](https://vircadia.com/vision/)
 
-Having a place to experience adventure, a place to relax with calm breath, that's a world to live in. An engine to support infinite combinations and possibilities of worlds without censorship and interruption, that's metaverse. Finding a way to make infinite realities our reality is the dream.
+Having a place to experience adventure, a place to relax with calm breath, that's a world to live in. An ecosystem to support an infinite combination of worlds without censorship and interruption is "metaverse". Finding a way to make infinite realities our reality is the dream.
 
 ### Boot to Metaverse: The Technicals
 
 Vircadia consists of many projects and codebases with its unifying structure's goal being a decentralized metaverse.
 
-- The Interface (Codename Athena) - You are here!
+- The Native Interface & Client API (Codename Athena) - You are here!
 - The Server (Codename Athena) - You are also here!
 - [The Web Interface (Codename Aether)](https://github.com/vircadia/vircadia-web/)
 - [The Web SDK (Codename Ananke)](https://github.com/vircadia/vircadia-web-sdk/)
+- [The Unity SDK (Codename Ourea)](https://github.com/vircadia/vircadia-unity-sdk/)
 - [The Metaverse Server (Codename Iamus)](https://github.com/vircadia/Iamus/)
 - [The Metaverse Server Dashboard (Codename Iamus)](https://github.com/vircadia/project-iamus-dashboard/)
 - [The Launcher (Codename Pantheon)](https://github.com/vircadia/pantheon-launcher/) - Currently Windows only.
@@ -93,8 +90,4 @@ Keep in mind that Vircadia consists of multiple smaller projects that might have
 
 #### Supporters of the Vircadia Project
 
-One (1) anonymous, three (3) total sponsors through GitHub. ❤️
-
-| [Daichi Shimabukuro](https://github.com/mshlomd) |
-| --- |
-| <p align="center">[<img src="https://avatars.githubusercontent.com/u/4787162?v=4" width="80" alt="Daichi Shimabukuro" />](https://github.com/mshlomd)</p>
+Vircadia is sponsored by many companies and organizations, some of which can be found [here](https://vircadia.com/#partners).
