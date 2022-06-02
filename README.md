@@ -20,7 +20,7 @@ Vircadia™ is an open source metaverse project seeking to incrementally bring a
 * Hundreds of users simultaneously
 * Full-body avatars
 * Script with JavaScript & TypeScript (coming soon)
-* 16km³ world space in a server
+* 4096km³ world space in a server
 * Fully self-hosted
 * Apache 2.0
 
