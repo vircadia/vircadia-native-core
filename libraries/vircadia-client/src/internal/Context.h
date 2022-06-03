@@ -62,10 +62,13 @@ namespace vircadia::client {
         Avatars& avatars();
         const Avatars& avatars() const;
 
+        const UUID& getSessionUUID() const;
+
     private:
         std::thread appThread {};
         std::atomic<QCoreApplication*> app {};
         std::vector<NodeData> nodes {};
+        UUID sessionUUID {};
         std::promise<void> qtInitialized {};
 
         int argc;

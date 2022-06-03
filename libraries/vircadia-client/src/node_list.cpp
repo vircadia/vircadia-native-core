@@ -79,3 +79,12 @@ int vircadia_node_type(int context_id, int index) {
         return node.type;
     });
 }
+
+VIRCADIA_CLIENT_DYN_API
+const uint8_t* vircadia_client_get_session_uuid(int id) {
+    return chain(checkContextReady(id), [&](auto) {
+        return std::next(std::begin(contexts), id)->getSessionUUID().data();
+    });
+}
+
+// TODO: APIs for permissions, kicking, muting

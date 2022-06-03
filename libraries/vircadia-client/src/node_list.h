@@ -114,4 +114,14 @@ int vircadia_node_active(int context_id, int index);
 VIRCADIA_CLIENT_DYN_API
 int vircadia_node_type(int context_id, int index);
 
+/// @brief Get the session UUID of the client node.
+///
+/// The session UUID only changes with an explicit call to
+/// vircadia_update_nodes().
+///
+/// @param context_id The ID of the context to use (context.h).
+/// @return Pointer to 16 byte UUID or null in case of an error.
+VIRCADIA_CLIENT_DYN_API
+const uint8_t* vircadia_client_get_session_uuid(int context_id);
+
 #endif /* end of include guard */

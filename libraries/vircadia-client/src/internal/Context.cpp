@@ -92,7 +92,7 @@ namespace vircadia::client {
                     }
                 }
             });
-            updateTimer.start();
+            updateTimer.start(16);
 
             QObject::connect(&qtApp, &QCoreApplication::aboutToQuit, [this, &updateTimer](){
                 DependencyManager::prepareToExit();
@@ -166,6 +166,8 @@ namespace vircadia::client {
                 return data;
             });
         });
+
+        sessionUUID = toUUIDArray(DependencyManager::get<NodeList>()->getSessionUUID());
     }
 
     bool Context::isConnected() const {
@@ -190,6 +192,10 @@ namespace vircadia::client {
 
     const Avatars& Context::avatars() const {
         return avatars_;
+    }
+
+    const UUID& Context::getSessionUUID() const {
+        return sessionUUID;
     }
 
     std::list<Context> contexts;
