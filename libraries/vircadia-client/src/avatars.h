@@ -126,6 +126,14 @@ struct vircadia_avatar_grab_result {
     int error;
 };
 
+struct vircadia_conical_view_frustum {
+    vircadia_vector position;
+    vircadia_vector direction;
+    float angle;
+    float radius;
+    float far_clip;
+};
+
 VIRCADIA_CLIENT_DYN_API
 int vircadia_enable_avatars(int context_id);
 
@@ -231,6 +239,11 @@ int vircadia_my_avatar_grab(int context_id, vircadia_avatar_grab grab);
 VIRCADIA_CLIENT_DYN_API
 int vircadia_my_avatar_release_grab(int context_id, const uint8_t* uuid);
 
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_avatar_view_count(int context_id, int view_count);
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_avatar_view(int context_id, int view_index, vircadia_conical_view_frustum view_frustum);
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_get_avatar_count(int context_id);

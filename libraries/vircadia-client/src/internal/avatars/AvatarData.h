@@ -226,6 +226,7 @@ namespace vircadia::client
         };
 
         UUID sessionUUID;
+        udt::SequenceNumber identitySequenceNumber { 0 };
 
         using Properties = std::tuple<
             vircadia_vector,                    // global position
@@ -334,19 +335,23 @@ namespace vircadia::client
     class AvatarManager;
 
     /// @private
-    class Avatar : public QObject, public AvatarDataStream<Avatar> {
-        Q_OBJECT
+    class Avatar : public AvatarDataStream<Avatar> {
+
     public:
-        Avatar();
 
         QUuid getSessionUUID() const;
         void setSessionUUID(const QUuid& uuid);
 
     private:
 
+        QUuid getSessionUUIDOut() const;
+
         AvatarDataPacket::Identity getIdentityDataOut() const;
         void setIdentityDataIn(AvatarDataPacket::Identity identity);
         bool getIdentityDataChanged() const;
+        udt::SequenceNumber getIdentitySequenceNumberOut() const;
+        void setIdentitySequenceNumberIn(udt::SequenceNumber);
+        void pushIdentitySequenceNumber();
         void onIdentityDataSent();
 
         bool getSkeletonModelURLChanged() const;
@@ -434,13 +439,13 @@ namespace vircadia::client
 
         void onGrabRemoved(QUuid);
 
-
         ClientTraitsHandler* getClientTraitsHandler();
         const ClientTraitsHandler* getClientTraitsHandler() const;
 
-
         AvatarData data;
         std::unique_ptr<ClientTraitsHandler, LaterDeleter> clientTraitsHandler;
+
+        QUuid nodeUUID{};
 
         friend class AvatarDataStream<Avatar>;
         friend class AvatarManager;

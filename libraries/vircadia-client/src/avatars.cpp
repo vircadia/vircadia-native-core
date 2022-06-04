@@ -390,6 +390,26 @@ int vircadia_my_avatar_release_grab(int context_id, const uint8_t* uuid) {
 }
 
 VIRCADIA_CLIENT_DYN_API
+int vircadia_set_avatar_view_count(int context_id, int view_count) {
+    return chain(checkAvatarsEnabled(context_id), [&](auto) {
+        std::next(std::begin(contexts), context_id)->
+            avatars().views().resize(view_count);
+        return 0;
+    });
+}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_avatar_view(int context_id, int view_index, vircadia_conical_view_frustum view_frustum) {
+    return chain(checkAvatarsEnabled(context_id), [&](auto) {
+        auto& views = std::next(std::begin(contexts), context_id)->avatars().views();
+        return chain(checkIndexValid(views, view_index, ErrorCode::AVATAR_VIEW_INVALID), [&](auto) {
+            views[view_index] = view_frustum;
+            return 0;
+        });
+    });
+}
+
+VIRCADIA_CLIENT_DYN_API
 int vircadia_get_avatar_count(int context_id) {
     return chain(checkAvatarsEnabled(context_id), [&](auto) -> int {
         return std::next(std::begin(contexts), context_id)

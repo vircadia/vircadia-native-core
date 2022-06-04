@@ -16,6 +16,8 @@
 
 #include "AvatarPacketHandler.h"
 
+#include <chrono>
+
 #include <QtCore/QDataStream>
 
 #include <NodeList.h>
@@ -71,6 +73,14 @@ AvatarPacketHandler<Derived, AvatarPtr>::AvatarPacketHandler() {
             derived().clearOtherAvatars();
         }
     });
+
+    derived().connect(nodeList.data(), &NodeList::nodeActivated, &derived(), [this](SharedNodePointer node){
+        if (node->getType() == NodeType::AvatarMixer) {
+            queryExpiry = std::chrono::steady_clock::now();
+            derived().onAvatarMixerActivated();
+        }
+    });
+
 }
 
 template <typename Derived, typename AvatarPtr>
@@ -323,7 +333,10 @@ void AvatarPacketHandler<Derived, AvatarPtr>::processKillAvatar(QSharedPointer<R
     message->readPrimitive(&reason);
     // remove any information about processed traits for this avatar
     // TODO: CRTP removeAvatar on derived returns nothing, this expects it to return the removed avatar (not replicas)
-    _processedTraitVersions.erase(derived().removeAvatar(sessionUUID, reason)->getSessionUUID());
+    auto removed = derived().removeAvatar(sessionUUID, reason);
+    if (removed) {
+        _processedTraitVersions.erase(removed->getSessionUUID());
+    }
 }
 
 // FIXME: move to Derived, some code was removed in comparison to what's there now
@@ -337,6 +350,7 @@ template <typename Derived, typename AvatarPtr>
 void AvatarPacketHandler<Derived, AvatarPtr>::sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID) {
     _lastOwnerSessionUUID = oldUUID;
 
+    derived().onSessionUUIDChanged(sessionUUID, oldUUID);
     // FIXME: CRTP
     // emit avatarSessionChangedEvent(sessionUUID, oldUUID);
 }
@@ -359,6 +373,47 @@ void AvatarPacketHandler<Derived, AvatarPtr>::clearOtherAvatars() {
     // for (auto& av : removedAvatars) {
     //     handleRemovedAvatar(av);
     // }
+}
+
+template <typename Derived, typename AvatarPtr>
+void AvatarPacketHandler<Derived, AvatarPtr>::query() {
+    bool viewIsDifferentEnough = false;
+    auto& views = derived().getViews();
+    auto& lastQueriedViews = derived().getLastQueriedViews();
+    if (views.size() == lastQueriedViews.size()) {
+        for (size_t i = 0; i < views.size(); ++i) {
+            if (!views[i].isVerySimilar(lastQueriedViews[i])) {
+                viewIsDifferentEnough = true;
+                break;
+            }
+        }
+    } else {
+        viewIsDifferentEnough = true;
+    }
+
+    // if it's been a while since our last query or the view has significantly changed then send a query, otherwise suppress it
+    static const std::chrono::seconds MIN_PERIOD_BETWEEN_QUERIES { 3 };
+    auto now = std::chrono::steady_clock::now();
+    if (now > queryExpiry || viewIsDifferentEnough) {
+        auto avatarPacket = NLPacket::create(PacketType::AvatarQuery);
+        auto destinationBuffer = reinterpret_cast<unsigned char*>(avatarPacket->getPayload());
+        unsigned char* bufferStart = destinationBuffer;
+
+        uint8_t numFrustums = (uint8_t)views.size();
+        memcpy(destinationBuffer, &numFrustums, sizeof(numFrustums));
+        destinationBuffer += sizeof(numFrustums);
+
+        for (const auto& view : views) {
+            destinationBuffer += view.serialize(destinationBuffer);
+        }
+
+        avatarPacket->setPayloadSize(destinationBuffer - bufferStart);
+
+        DependencyManager::get<NodeList>()->broadcastToNodes(std::move(avatarPacket), NodeSet() << NodeType::AvatarMixer);
+
+        lastQueriedViews = views;
+        queryExpiry = now + MIN_PERIOD_BETWEEN_QUERIES;
+    }
 }
 
 #endif /* end of include guard */

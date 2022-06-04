@@ -15,6 +15,7 @@
 #include <cassert>
 
 #include <AvatarPacketHandler.hpp>
+#include <ThreadHelpers.h>
 
 #include "GLMHelpers.h"
 
@@ -26,32 +27,81 @@ namespace vircadia::client
     AvatarPtr::AvatarPtr(std::shared_ptr<Avatar> ptr, std::unique_lock<std::mutex> lock) :
         std::shared_ptr<Avatar>(ptr), lock(std::move(lock)) {}
 
+    AvatarManager::AvatarManager() :
+        AvatarPacketHandler<AvatarManager, AvatarPtr>(),
+        myAvatar()
+    {
+        setCustomDeleter([](Dependency* dependency){
+            static_cast<AvatarManager*>(dependency)->deleteLater();
+        });
+        myAvatar.clientTraitsHandler.reset(new ClientTraitsHandler(&myAvatar));
+
+        moveToNewNamedThread(this, "Avatar Manager Thread");
+
+        // TODO: figure out if this is necessary for trait override packets
+        // moveToNewNamedThread(myAvatar.clientTraitsHandler.get(), "Avatar Client Traits Handler Thread");
+    }
+
+    template <typename T>
+    auto firstEquals(T value) {
+        return [value] (const auto& pair) { return pair.first == value; };
+    };
+
     void AvatarManager::update() {
-        std::scoped_lock lock(myAvatarMutex);
 
-        for(auto&& grabData : myAvatar.data.grabs.added) {
-            myAvatar.grab(
-                qUuidfromBytes(grabData.target_id),
-                grabData.joint_index,
-                glmVec3From(grabData.offset.position),
-                glmQuatFrom(grabData.offset.rotation)
-            );
+        udt::SequenceNumber identitySequenceNumber {};
+        QUuid myUUID {};
+        {
+            std::scoped_lock lock(myAvatarMutex);
+            identitySequenceNumber = myAvatar.data.identitySequenceNumber;
+            myUUID = myAvatar.nodeUUID;
         }
 
-        for(auto&& uuid : myAvatar.data.grabs.removed) {
-            myAvatar.releaseGrab(qUuidfromBytes(uuid.data()));
+        {
+            std::scoped_lock lock(avatarsMutex);
+            auto myAvatarReceived = std::find_if(avatars.begin(), avatars.end(), firstEquals(myUUID));
+
+            if (myAvatarReceived != avatars.end()) {
+                identitySequenceNumber = std::max(identitySequenceNumber, myAvatarReceived->second->data.identitySequenceNumber);
+            }
         }
 
-        myAvatar.data.grabs.added.clear();
-        myAvatar.data.grabs.removed.clear();
+        {
+            std::scoped_lock lock(myAvatarMutex);
 
-        AvatarDataPacket::SendStatus status;
-        status.itemFlags = myAvatar.data.changes.to_ullong();
-        status.itemFlags &= AvatarDataPacket::ALL_HAS_FLAGS;
-        do {
-            myAvatar.sendAllPackets(Avatar::CullSmallData, status);
-        } while (!status);
-        myAvatar.data.changes &= ~AvatarDataPacket::ALL_HAS_FLAGS;
+            myAvatar.data.identitySequenceNumber = identitySequenceNumber;
+
+            for(auto&& grabData : myAvatar.data.grabs.added) {
+                myAvatar.grab(
+                    qUuidfromBytes(grabData.target_id),
+                    grabData.joint_index,
+                    glmVec3From(grabData.offset.position),
+                    glmQuatFrom(grabData.offset.rotation)
+                );
+            }
+
+            for(auto&& uuid : myAvatar.data.grabs.removed) {
+                myAvatar.releaseGrab(qUuidfromBytes(uuid.data()));
+            }
+
+            myAvatar.data.grabs.added.clear();
+            myAvatar.data.grabs.removed.clear();
+
+            AvatarDataPacket::SendStatus status;
+            status.itemFlags = myAvatar.data.changes.to_ullong();
+            status.itemFlags &= AvatarDataPacket::ALL_HAS_FLAGS;
+            do {
+                myAvatar.sendAllPackets(Avatar::CullSmallData, status);
+            } while (!status);
+            myAvatar.data.changes &= ~AvatarDataPacket::ALL_HAS_FLAGS;
+
+            identitySequenceNumber = myAvatar.data.identitySequenceNumber;
+        }
+
+        {
+            std::scoped_lock lock(viewsMutex);
+            query();
+        }
     }
 
     void AvatarManager::updateData() {
@@ -74,12 +124,30 @@ namespace vircadia::client
         {
             std::scoped_lock lock(myAvatarMutex);
             auto previousChanges = myAvatar.data.changes;
+            auto identitySequenceNumber = myAvatar.data.identitySequenceNumber;
+
             myAvatar.data = myAvatarDataIn;
+
             myAvatar.data.changes |= previousChanges;
+            myAvatar.data.identitySequenceNumber = identitySequenceNumber;
 
             myAvatarDataIn.changes.reset();
             myAvatarDataIn.grabs.added.clear();
             myAvatarDataIn.grabs.removed.clear();
+        }
+
+        {
+            std::scoped_lock lock(viewsMutex);
+            views.resize(viewsIn.size());
+            std::transform(viewsIn.begin(), viewsIn.end(), views.begin(), [](const auto& view) {
+                return ConicalViewFrustumData {
+                    glmVec3From(view.position),
+                    glmVec3From(view.direction),
+                    view.angle,
+                    view.radius,
+                    view.far_clip
+                };
+            });
         }
 
     }
@@ -87,11 +155,6 @@ namespace vircadia::client
     const std::vector<AvatarData>& AvatarManager::getAvatarDataOut() const {
         return avatarDataOut;
     }
-
-    template <typename T>
-    auto firstEquals(T value) {
-        return [value] (const auto& pair) { return pair.first == value; };
-    };
 
     AvatarPtr AvatarManager::newOrExistingAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer, bool& isNew) {
         std::unique_lock lock(avatarsMutex);
@@ -111,11 +174,14 @@ namespace vircadia::client
 
     AvatarPtr AvatarManager::removeAvatar(const QUuid& sessionUUID, KillAvatarReason reason) {
         std::scoped_lock lock(avatarsMutex);
+
+        for(auto&& a : avatars) {
+            qDebug() << a.first;
+        }
+
         auto avatar = std::find_if(avatars.begin(), avatars.end(), firstEquals(sessionUUID));
 
-        assert(avatar != avatars.end());
-
-        if (avatar != avatars.end()) {
+        if (avatar == avatars.end()) {
             return AvatarPtr{};
         }
 
@@ -138,9 +204,33 @@ namespace vircadia::client
         epitaphs.clear();
     }
 
+    const std::vector<ConicalViewFrustumData>& AvatarManager::getViews() const {
+        return views;
+    }
+
+    std::vector<ConicalViewFrustumData>& AvatarManager::getLastQueriedViews() {
+        return lastQueriedViews;
+    }
+
     QUuid AvatarManager::mapIdentityUUID(const QUuid& uuid) { return uuid; }
     void AvatarManager::onAvatarIdentityReceived(const QUuid& identityUUID, const QByteArray& data) {}
     void AvatarManager::onAvatarDataReceived(const QUuid& sessionUUID, const QByteArray& data) {}
+
+    void AvatarManager::onAvatarMixerActivated() {
+        std::scoped_lock lock(myAvatarMutex);
+        myAvatar.data.changes.set(AvatarData::IdentityIndex);
+    }
+
+    void AvatarManager::onSessionUUIDChanged(const QUuid& uuid, const QUuid& old) {
+        std::scoped_lock lock(myAvatarMutex);
+        myAvatar.nodeUUID = uuid;
+
+        // NOTE: UUID is sent with identity packet but not entirely
+        // sure if this is proper. There is also a sendUUID option
+        // in AvatarDataPacket::SendStatus, to send it with a data
+        // packet.
+        myAvatar.data.changes.set(AvatarData::IdentityIndex);
+    }
 
 } // namespace vircadia::client
 

@@ -19,6 +19,7 @@
 
 #include <QObject>
 
+#include <shared/ConicalViewFrustumData.h>
 #include <AvatarPacketHandler.h>
 
 #include "AvatarData.h"
@@ -36,9 +37,11 @@ namespace vircadia::client
     };
 
     /// @private
-    class AvatarManager : public QObject, public AvatarPacketHandler<AvatarManager, AvatarPtr> {
+    class AvatarManager : public QObject, public Dependency, public AvatarPacketHandler<AvatarManager, AvatarPtr> {
         Q_OBJECT
     public:
+
+        AvatarManager();
 
         void update();
         void updateData();
@@ -47,24 +50,37 @@ namespace vircadia::client
         AvatarData myAvatarDataIn;
         std::vector<AvatarData> avatarDataOut;
         std::vector<std::pair<QUuid, KillAvatarReason>> epitaphsOut;
+        std::vector<vircadia_conical_view_frustum> viewsIn;
 
     private:
         friend class AvatarPacketHandler<AvatarManager, AvatarPtr>;
+
         QUuid mapIdentityUUID(const QUuid&);
         AvatarPtr newOrExistingAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer, bool& isNew);
         AvatarPtr removeAvatar(const QUuid& sessionUUID, KillAvatarReason);
         void clearOtherAvatars();
 
+        const std::vector<ConicalViewFrustumData>& getViews() const;
+        std::vector<ConicalViewFrustumData>& getLastQueriedViews();
+
         void onAvatarIdentityReceived(const QUuid& identityUUID, const QByteArray& data);
         void onAvatarDataReceived(const QUuid& sessionUUID, const QByteArray& data);
+        void onAvatarMixerActivated();
+        void onSessionUUIDChanged(const QUuid&, const QUuid& old);
+
 
         Avatar myAvatar;
         std::vector<std::pair<QUuid, AvatarPtr>> avatars;
         std::vector<std::pair<QUuid, KillAvatarReason>> epitaphs;
 
-
         mutable std::mutex myAvatarMutex;
         mutable std::mutex avatarsMutex;
+
+        std::vector<ConicalViewFrustumData> views;
+        std::vector<ConicalViewFrustumData> lastQueriedViews;
+
+        mutable std::mutex viewsMutex;
+
     };
 
 } // namespace vircadia::client

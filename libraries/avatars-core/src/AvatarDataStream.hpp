@@ -112,7 +112,7 @@ QUuid AvatarDataStream<Derived>::grab(const QUuid& targetID, int parentJointInde
         hand = "left";
     }
 
-    Grab tmpGrab(DependencyManager::get<NodeList>()->getSessionUUID(),
+    Grab tmpGrab(derived().getSessionUUIDOut(),
                  targetID, parentJointIndex, hand, positionalOffset, rotationalOffset);
     QByteArray grabData = tmpGrab.toByteArray();
     bool dataChanged = updateAvatarGrabData(grabID, grabData);
@@ -270,7 +270,7 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
 
         QByteArray avatarDataByteArray;
         if (sendStatus.sendUUID) {
-            auto convertedId = derived().getSessionUUID().toRfc4122();
+            auto convertedId = derived().getSessionUUIDOut().toRfc4122();
             avatarDataByteArray.append(convertedId.data(), NUM_BYTES_RFC4122_UUID);
         }
 
@@ -371,7 +371,7 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
         && (includedFlags |= AvatarDataPacket::flag))
 
     if (sendStatus.sendUUID) {
-        auto convertedId = derived().getSessionUUID().toRfc4122();
+        auto convertedId = derived().getSessionUUIDOut().toRfc4122();
         memcpy(destinationBuffer, convertedId.data(), NUM_BYTES_RFC4122_UUID);
         destinationBuffer += NUM_BYTES_RFC4122_UUID;
     }
@@ -731,7 +731,6 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
                             rotationSentCount++;
 #endif
                             destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, data.rotation);
-
                             if (sentJoints) {
                                 sentJoints[i].rotation = data.rotation;
                             }
@@ -1848,7 +1847,9 @@ void AvatarDataStream<Derived>::processAvatarIdentity(QDataStream& packetStream,
     udt::SequenceNumber incomingSequenceNumber(incomingSequenceNumberType);
 
     if (!_hasProcessedFirstIdentity) {
-        _identitySequenceNumber = incomingSequenceNumber - 1;
+        derived().setIdentitySequenceNumberIn(incomingSequenceNumber - 1);
+        // FIXME: CRTP
+        // _identitySequenceNumber = incomingSequenceNumber - 1;
         _hasProcessedFirstIdentity = true;
         qCDebug(avatars) << "Processing first identity packet for" << avatarSessionID << "-"
             << (udt::SequenceNumber::Type) incomingSequenceNumber;
@@ -1864,10 +1865,15 @@ void AvatarDataStream<Derived>::processAvatarIdentity(QDataStream& packetStream,
         ;
 
 
-    if (incomingSequenceNumber > _identitySequenceNumber) {
+    const auto currentIdentitySequenceNumber = derived().getIdentitySequenceNumberOut();
+    // FIXME: CRTP Derived::getIdentitySequenceNumberOut
+    // return _identitySequenceNumber;
+    if (incomingSequenceNumber > currentIdentitySequenceNumber) {
 
         // set the store identity sequence number to match the incoming identity
-        _identitySequenceNumber = incomingSequenceNumber;
+        derived().setIdentitySequenceNumberIn(incomingSequenceNumber);
+        // FIXME: CRTP
+        // _identitySequenceNumber = incomingSequenceNumber;
 
         auto current = derived().getIdentityDataOut();
         identityChanged = identity != current;
@@ -1928,7 +1934,7 @@ void AvatarDataStream<Derived>::processAvatarIdentity(QDataStream& packetStream,
     } else {
 
         qCDebug(avatars) << "Refusing to process identity for" << uuidStringWithoutCurlyBraces(avatarSessionID) << "since"
-            << (udt::SequenceNumber::Type) _identitySequenceNumber
+            << (udt::SequenceNumber::Type) derived().getIdentitySequenceNumberOut()
             << "is >=" << (udt::SequenceNumber::Type) incomingSequenceNumber;
 #endif
     }
@@ -2146,7 +2152,7 @@ QByteArray AvatarDataStream<Derived>::identityByteArray(bool setIsReplicated) co
     QDataStream identityStream(&identityData, QIODevice::Append);
     using namespace AvatarDataPacket;
 
-    QUuid id = derived().getSessionUUID();
+    QUuid id = derived().getSessionUUIDOut();
     AvatarDataPacket::Identity identity = derived().getIdentityDataOut();
 
     //FIXME: CRTP to libraries/avatars/AvatarData
@@ -2177,8 +2183,9 @@ QByteArray AvatarDataStream<Derived>::identityByteArray(bool setIsReplicated) co
 
     // when mixers send identity packets to agents, they simply forward along the last incoming sequence number they received
     // whereas agents send a fresh outgoing sequence number when identity data has changed
+
     identityStream << id
-        << (udt::SequenceNumber::Type) _identitySequenceNumber
+        << (udt::SequenceNumber::Type) derived().getIdentitySequenceNumberOut()
         << identity.attachmentData
         << identity.displayName
         << identity.sessionDisplayName
@@ -2340,7 +2347,9 @@ int AvatarDataStream<Derived>::sendIdentityPacket() {
 
     if (derived().getIdentityDataChanged()) {
         // if the identity data has changed, push the sequence number forwards
-        ++_identitySequenceNumber;
+        derived().pushIdentitySequenceNumber();
+        // FIXME: CRTP
+        // ++_identitySequenceNumber;
     }
     QByteArray identityData = identityByteArray();
 

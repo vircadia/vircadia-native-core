@@ -22,16 +22,16 @@ using vircadia::client::operator!=;
 namespace vircadia::client
 {
 
-    Avatar::Avatar() :
-        clientTraitsHandler(new ClientTraitsHandler(this))
-    {}
-
     QUuid Avatar::getSessionUUID() const {
         return qUuidfromBytes(data.sessionUUID.data());
     }
 
     void Avatar::setSessionUUID(const QUuid& uuid) {
         data.sessionUUID = toUUIDArray(uuid);
+    }
+
+    QUuid Avatar::getSessionUUIDOut() const {
+        return nodeUUID;
     }
 
     AvatarDataPacket::Identity Avatar::getIdentityDataOut() const {
@@ -80,6 +80,18 @@ namespace vircadia::client
 
     bool Avatar::getIdentityDataChanged() const {
         return data.changes.test(AvatarData::IdentityIndex);
+    }
+
+    udt::SequenceNumber Avatar::getIdentitySequenceNumberOut() const {
+        return data.identitySequenceNumber;
+    }
+
+    void Avatar::setIdentitySequenceNumberIn(udt::SequenceNumber number) {
+        data.identitySequenceNumber = number;
+    }
+
+    void Avatar::pushIdentitySequenceNumber() {
+        ++data.identitySequenceNumber;
     }
 
     void Avatar::onIdentityDataSent() {
@@ -302,8 +314,14 @@ namespace vircadia::client
     }
 
     JointData Avatar::getJointDataOut(int index) const {
-        const auto& joint = data.getProperty<AvatarData::JointDataIndex>()[index];
-        const auto& flags = data.getProperty<AvatarData::JointDefaultPoseFlagsIndex>()[index];
+        if (index < 0) {
+            return JointData{};
+        }
+
+        const auto& joints = data.getProperty<AvatarData::JointDataIndex>();
+        const auto& allFlags = data.getProperty<AvatarData::JointDefaultPoseFlagsIndex>();
+        const auto& joint = size_t(index) < joints.size() ? joints[index] : vircadia_vantage{};
+        const auto& flags = size_t(index) < allFlags.size() ? allFlags[index] : vircadia_joint_flags{};
         return {
             glmQuatFrom(joint.rotation),
             glmVec3From(joint.position),

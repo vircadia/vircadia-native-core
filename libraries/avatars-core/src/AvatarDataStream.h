@@ -583,7 +583,6 @@ public:
 
     QVector<JointData> getLastSentJointData();
 
-    void pushIdentitySequenceNumber() { ++_identitySequenceNumber; };
     bool hasProcessedFirstIdentity() const { return _hasProcessedFirstIdentity; }
 
     void setReplicaIndex(int replicaIndex) { _replicaIndex = replicaIndex; }
@@ -690,7 +689,6 @@ protected:
 
     int getFauxJointIndex(const QString& name) const;
 
-    udt::SequenceNumber _identitySequenceNumber { 0 };
     bool _hasProcessedFirstIdentity { false };
     int _replicaIndex { 0 };
     bool _isNewAvatar { true };

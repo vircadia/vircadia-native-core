@@ -17,6 +17,7 @@
 #include <memory>
 
 #include "Common.h"
+#include "../avatars.h"
 
 namespace vircadia::client {
 
@@ -31,7 +32,6 @@ namespace vircadia::client {
         void enable();
         void update();
         void updateManager();
-        const std::vector<AvatarData>& get() const;
         bool isEnabled() const;
         int set(const AvatarData&);
 
@@ -39,10 +39,7 @@ namespace vircadia::client {
 
         AvatarData& myAvatar();
         const std::vector<AvatarData>& all() const;
-
-    private:
-
-        std::unique_ptr<AvatarManager> manager;
+        std::vector<vircadia_conical_view_frustum>& views();
     };
 
 

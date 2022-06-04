@@ -21,41 +21,41 @@ namespace vircadia::client
 
     void Avatars::enable() {
         if (!isEnabled()) {
-            manager = std::make_unique<AvatarManager>();
+            DependencyManager::set<AvatarManager>();
         }
     }
 
     void Avatars::update() {
         assert(isEnabled());
-        manager->updateData();
+        DependencyManager::get<AvatarManager>()->updateData();
     }
 
     void Avatars::updateManager() {
         assert(isEnabled());
-        manager->update();
-    }
-
-    const std::vector<AvatarData>& Avatars::get() const {
-        assert(isEnabled());
-        return manager->getAvatarDataOut();
+        DependencyManager::get<AvatarManager>()->update();
     }
 
     bool Avatars::isEnabled() const {
-        return manager != nullptr;
+        return DependencyManager::isSet<AvatarManager>();
     }
 
     void Avatars::destroy() {
-        manager.reset();
+        DependencyManager::destroy<AvatarManager>();
     }
 
     AvatarData& Avatars::myAvatar() {
         assert(isEnabled());
-        return manager->myAvatarDataIn;
+        return DependencyManager::get<AvatarManager>()->myAvatarDataIn;
     }
 
     const std::vector<AvatarData>& Avatars::all() const {
         assert(isEnabled());
-        return manager->avatarDataOut;
+        return DependencyManager::get<AvatarManager>()->avatarDataOut;
+    }
+
+    std::vector<vircadia_conical_view_frustum>& Avatars::views() {
+        assert(isEnabled());
+        return DependencyManager::get<AvatarManager>()->viewsIn;
     }
 
 } // namespace vircadia::client
