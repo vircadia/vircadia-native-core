@@ -68,6 +68,7 @@ add_subdirectory(tests)
 
 install(TARGETS ${TARGET_NAME} TYPE LIBRARY)
 install(FILES
+    src/avatars.h
     src/client.h
     src/common.h
     src/context.h
