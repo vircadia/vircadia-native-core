@@ -106,7 +106,7 @@ float ConicalViewFrustum::getAngularSize(float distance, float radius) const {
 }
 
 int ConicalViewFrustum::serialize(unsigned char* destinationBuffer) const {
-    return _data.serialize(destinationBuffer)
+    return _data.serialize(destinationBuffer);
 }
 
 int ConicalViewFrustum::deserialize(const unsigned char* sourceBuffer) {

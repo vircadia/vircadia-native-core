@@ -34,11 +34,11 @@ public:
     void set(const ViewFrustum& viewFrustum);
     void calculate();
 
-    const glm::vec3& getPosition() const { return _position; }
-    const glm::vec3& getDirection() const { return _direction; }
-    float getAngle() const { return _angle; }
-    float getRadius() const { return _radius; }
-    float getFarClip() const { return _farClip; }
+    const glm::vec3& getPosition() const { return _data.position; }
+    const glm::vec3& getDirection() const { return _data.direction; }
+    float getAngle() const { return _data.angle; }
+    float getRadius() const { return _data.radius; }
+    float getFarClip() const { return _data.farClip; }
 
     bool isVerySimilar(const ConicalViewFrustum& other) const;
 
