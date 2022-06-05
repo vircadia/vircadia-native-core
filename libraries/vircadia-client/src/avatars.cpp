@@ -59,6 +59,9 @@ int setProperty(int context_id, T value) {
 template <AvatarData::PropertyIndex Index>
 int resizeProperty(int context_id, int size) {
     return chain(checkAvatarsEnabled(context_id), [&](auto) {
+        if (size < 0) {
+            return toInt(ErrorCode::ARGUMENT_INVALID);
+        }
         std::next(std::begin(contexts), context_id)->avatars().myAvatar()
             .resizeProperty<Index>(size);
         return 0;
@@ -67,7 +70,7 @@ int resizeProperty(int context_id, int size) {
 
 template <typename F>
 auto validateAvatarIndex(int context_id, int index, F&& f) {
-    return chain(checkContextReady(context_id), [&](auto) {
+    return chain(checkAvatarsEnabled(context_id), [&](auto) {
         const auto& avatars = std::next(std::begin(contexts), context_id)->avatars().all();
         return chain(checkIndexValid(avatars, index, ErrorCode::AVATAR_INVALID), [&](auto) {
             return std::invoke(std::forward<F>(f), *std::next(std::begin(avatars), index));
@@ -140,14 +143,22 @@ int setIdentity(int context_id, F&& f) {
     });
 }
 
-int setIdentityFlag(int context_id, AvatarDataPacket::IdentityFlag flag) {
-    return setIdentity(context_id, [flag](auto& identity){
-        identity.identityFlags |= flag;
+int setIdentityFlag(int context_id, AvatarDataPacket::IdentityFlags flag, uint8_t value) {
+    return setIdentity(context_id, [flag, value](auto& identity){
+        if (value) {
+            identity.identityFlags |= flag;
+        } else {
+            identity.identityFlags &= ~flag;
+        }
     });
 }
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_display_name(int context_id, const char* display_name) {
+    if (display_name == nullptr) {
+        return toInt(ErrorCode::ARGUMENT_INVALID);
+    }
+
     return setIdentity(context_id, [display_name](auto& identity){
         identity.displayName = display_name;
     });
@@ -156,25 +167,28 @@ int vircadia_set_my_avatar_display_name(int context_id, const char* display_name
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_is_replicated(int context_id, uint8_t is_replicated) {
     return setIdentityFlag(context_id,
-        AvatarDataPacket::IdentityFlag::isReplicated);
+        AvatarDataPacket::IdentityFlag::isReplicated, is_replicated);
 }
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_look_at_snapping(int context_id, uint8_t look_at_snapping_enabled) {
     return setIdentityFlag(context_id,
-        AvatarDataPacket::IdentityFlag::lookAtSnapping);
+        AvatarDataPacket::IdentityFlag::lookAtSnapping, look_at_snapping_enabled);
 }
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_verification(int context_id, uint8_t verification_failed) {
     return setIdentityFlag(context_id,
-        AvatarDataPacket::IdentityFlag::verificationFailed);
+        AvatarDataPacket::IdentityFlag::verificationFailed, verification_failed);
 }
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_attachment_count(int context_id, int attachment_count) {
     return chain(checkAvatarsEnabled(context_id), [&](auto) {
         auto& avatar = std::next(std::begin(contexts), context_id)->avatars().myAvatar();
+        if (attachment_count < 0) {
+            return toInt(ErrorCode::ARGUMENT_INVALID);
+        }
         avatar.setProperty<AvatarData::IdentityIndex>( overloaded {
             [](auto& identity) -> int {
                 return identity.attachments.size();
@@ -198,6 +212,9 @@ AvatarData::Attachment toAttachment(vircadia_avatar_attachment x) {
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_attachment(int context_id, int attachment_index, vircadia_avatar_attachment attachment) {
+    if (attachment.model_url == nullptr || attachment.joint_name == nullptr) {
+        return toInt(ErrorCode::AVATAR_INVALID);
+    }
     return chain(checkAvatarsEnabled(context_id), [&](auto) {
         auto& avatar = std::next(std::begin(contexts), context_id)->avatars().myAvatar();
         return chain(indexChecker<AvatarData::IdentityIndex, ErrorCode::AVATAR_ATTACHMENT_INVALID>{}(avatar, attachment_index), [&](auto) {
@@ -215,8 +232,11 @@ int vircadia_set_my_avatar_attachment(int context_id, int attachment_index, virc
 }
 
 VIRCADIA_CLIENT_DYN_API
-int vircadia_set_my_avatar_attachments(int context_id, vircadia_avatar_attachment* attachments, int size) {
+int vircadia_set_my_avatar_attachments(int context_id, const vircadia_avatar_attachment* attachments, int size) {
     return setIdentity(context_id, [&](auto& identity) {
+        if (size < 0 || (size != 0 && attachments == nullptr)) {
+            return toInt(ErrorCode::ARGUMENT_INVALID);
+        }
         identity.attachments.clear();
         for (int i = 0; i != size; ++i) {
             identity.attachments.push_back(toAttachment(attachments[i]));
@@ -235,6 +255,9 @@ int vircadia_set_my_avatar_session_display_name(int context_id, const char* sess
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_skeleton_model_url(int context_id, const char* skeleton_model_url) {
+    if (skeleton_model_url == nullptr) {
+        return toInt(ErrorCode::ARGUMENT_INVALID);
+    }
     return setProperty<AvatarData::SkeletonModelURLIndex>(context_id, skeleton_model_url);
 }
 
@@ -255,6 +278,9 @@ int vircadia_set_my_avatar_bone_count(int context_id, int bone_count) {
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_bone(int context_id, int bone_index, vircadia_avatar_bone bone) {
+    if (bone.name == nullptr) {
+        return toInt(ErrorCode::ARGUMENT_INVALID);
+    }
     return setProperty<AvatarData::SkeletonDataIndex>(
         context_id, bone_index, toBone(bone));
 }
@@ -264,6 +290,9 @@ int vircadia_set_my_avatar_skeleton_data(int context_id, vircadia_avatar_bone* d
     return chain(checkAvatarsEnabled(context_id), [&](auto) {
         auto& avatar = std::next(std::begin(contexts), context_id)->avatars().myAvatar();
         constexpr auto index = AvatarData::SkeletonDataIndex;
+        if (size < 0 || (size != 0 && data == nullptr)) {
+            return toInt(ErrorCode::ARGUMENT_INVALID);
+        }
         avatar.resizeProperty<index>(size);
         for (int i = 0; i != size; ++i) {
             avatar.setProperty<index>(i, toBone(data[i]));
@@ -345,6 +374,9 @@ int vircadia_set_my_avatar_joint(int context_id, int joint_index, vircadia_vanta
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_joint_data(int context_id, const vircadia_vantage* joints, int size) {
+    if (size < 0 || (size != 0 && joints == nullptr)) {
+        return toInt(ErrorCode::ARGUMENT_INVALID);
+    }
     return setProperty<AvatarData::JointDataIndex>(context_id, std::vector<vircadia_vantage>(joints, joints + size));
 }
 
@@ -361,6 +393,9 @@ int vircadia_set_my_avatar_joint_flags(int context_id, int joint_index, vircadia
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_all_joint_flags(int context_id, const vircadia_joint_flags* joints, int size) {
+    if (size < 0 || (size != 0 && joints == nullptr)) {
+        return toInt(ErrorCode::ARGUMENT_INVALID);
+    }
     return setProperty<AvatarData::JointDefaultPoseFlagsIndex>(context_id, std::vector<vircadia_joint_flags>(joints, joints + size));
 }
 
@@ -381,6 +416,9 @@ int vircadia_my_avatar_grab(int context_id, vircadia_avatar_grab grab) {
 VIRCADIA_CLIENT_DYN_API
 int vircadia_my_avatar_release_grab(int context_id, const uint8_t* uuid) {
     return chain(checkAvatarsEnabled(context_id), [&](auto) {
+        if (uuid == nullptr) {
+            return toInt(ErrorCode::ARGUMENT_INVALID);
+        }
         UUID removed;
         std::copy_n(uuid, removed.size(), removed.begin());
         std::next(std::begin(contexts), context_id)->avatars()
@@ -392,6 +430,9 @@ int vircadia_my_avatar_release_grab(int context_id, const uint8_t* uuid) {
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_avatar_view_count(int context_id, int view_count) {
     return chain(checkAvatarsEnabled(context_id), [&](auto) {
+        if (view_count < 0) {
+            return toInt(ErrorCode::ARGUMENT_INVALID);
+        }
         std::next(std::begin(contexts), context_id)->
             avatars().views().resize(view_count);
         return 0;
@@ -466,7 +507,9 @@ auto vircadia::client::makeError<vircadia_avatar_attachment_result>(int errorCod
 
 VIRCADIA_CLIENT_DYN_API
 vircadia_avatar_attachment_result vircadia_get_avatar_attachment(int context_id, int avatar_index, int attachment_index) {
-    constexpr auto propertyIndex = AvatarData::IdentityIndex;
+    // static, otherwise MSVC captures in lambda and looses constexpr
+    // https://stackoverflow.com/questions/55136414/constexpr-variable-captured-inside-lambda-loses-its-constexpr-ness
+    constexpr static auto propertyIndex = AvatarData::IdentityIndex;
     return validatePropertyIndex(context_id, avatar_index,
         attachment_index,
         indexChecker<propertyIndex, ErrorCode::AVATAR_ATTACHMENT_INVALID>{},
