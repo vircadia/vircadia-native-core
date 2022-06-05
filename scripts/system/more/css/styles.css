@@ -8,49 +8,71 @@
     See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 */
 
+@font-face {
+    font-family: FiraSans-SemiBold;
+    src: url(FiraSans-SemiBold.ttf);
+}
+
+@font-face {
+    font-family: FiraSans-Regular;
+    src: url(FiraSans-Regular.ttf);
+}
+
+html {
+    width: 100%;
+    height: 100%;
+}
+
 body {
-    background: #27343B;
-    font-family: 'Merriweather', sans-serif;
+    background-color: #000000;
+    font-family: FiraSans-SemiBold;
     font-size: 14px;
     color: #FFFFFF;
-    font-weight: 600;
     text-decoration: none;
     font-style: normal;
     font-variant: normal;
     text-transform: none;
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+table.item {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+tr.item {
+    vertical-align: top;
+}
+
+td.item {
+    vertical-align: top;
+    text-align: left;
+    padding: 3px;
 }
 
 font.mainTitle {
-    font-family: 'Quicksand', sans-serif;
+    font-family: FiraSans-SemiBold;
     font-size: 28px;
     color: #ffffff;
-    font-weight: 800;
     text-decoration: none;
     font-style: normal;
     font-variant: normal;
     text-transform: none;
-    text-shadow: 3px 3px 3px rgba(63,64,76,1);
-}
-
-p.mainDesc {
-    font-family: 'Merriweather', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-p a {
-    color: SteelBlue;
 }
 
 .appdesc a {
-    color: LightBlue;
+    color: #00bbff;
 }
 
 font.appname {
-    font-family: 'Merriweather', sans-serif;
+    font-family: FiraSans-SemiBold;
     font-size: 18px;
-    color: #CFB538;
-    font-weight: 800;
+    color: #ffffff;
     text-decoration: none;
     font-style: normal;
     font-variant: normal;
@@ -61,10 +83,9 @@ font.appname {
 }
 
 font.appdesc {
-    font-family: 'Merriweather', sans-serif;
-    font-size: 15px;
-    color: #ffffff;
-    font-weight: 500;
+    font-family: FiraSans-Regular;
+    font-size: 14px;
+    color: #dddddd;
     text-decoration: none;
     font-style: normal;
     font-variant: normal;
@@ -75,7 +96,7 @@ font.appdesc {
 }
 
 font.noresult {
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: FiraSans-Regular;
     font-size: 18px;
     color: #aaaaaa;
     font-weight: 500;
@@ -86,7 +107,7 @@ font.noresult {
 }
 
 font.caption {
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: FiraSans-Regular;
     font-size: 12px;
     color: #ffffff;
     font-weight: 600;
@@ -96,62 +117,47 @@ font.caption {
     text-transform: none;
 }
 
-font.pager {
-    font-family: 'Quicksand', sans-serif;
-    font-size: 14px;
-    color: #B2B5D9;
-    font-weight: 600;
-    text-decoration: none;
-    font-style: normal;
-    font-variant: normal;
-    text-transform: none;
-}
-
 div.iconContainer{
-    border-radius: 15px;
+    border-radius: 10px;
     background: #000000;
     padding: 5px;
     width: 70px;
     height: 70px;
     text-align: center;
-}
-
-table.item {
-    background: #3E415E;
-}
-
-td {
-    vertical-align: top;
-    padding: 5px;
+    border: 2px solid #ffffff;
 }
 
 button.install {
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: FiraSans-SemiBold;
     background-color: #008CBA;
     font-size: 16px;
     color: #ffffff;
-    font-weight: 600;
     border-radius: 6px;
     border: 2px solid #008CBA;
     transition-duration: 0.3s;
     float: right;
+    width: 130px;
 }
 
 button.install:hover {
-    background-color: #10afe3; 
+    background-color: #10afe3;
     border: 2px solid #10afe3;
 }
 
+button.install:focus {
+    outline: none;
+}
+
 button.uninstall {
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: FiraSans-SemiBold;
     background-color: #b34700;
     font-size: 16px;
     color: #ffffff;
-    font-weight: 600;
     border-radius: 6px;
     border: 2px solid #b34700;
     transition-duration: 0.3s;
     float: right;
+    width: 130px;
 }
 
 button.uninstall:hover {
@@ -159,32 +165,194 @@ button.uninstall:hover {
     border: 2px solid #e34c22;
 }
 
+button.uninstall:focus {
+    outline: none;
+}
+
 button.processing {
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: FiraSans-SemiBold;
     background-color: #b59207;
     font-size: 16px;
     color: #ffffff;
-    font-weight: 600;
     border-radius: 6px;
     border: 2px solid #b59207;
     transition-duration: 0.3s;
     float: right;
+    width: 130px;
 }
 
-div.searchbox {
-    border-radius: 6px;
-    background: #ffffff;
-    padding: 4px;
-    border: 0px;
-    vertical-align: middle;
+button.processing:focus {
+    outline: none;
 }
 
-input.searchtextbox{
-    font-family: Arial, Helvetica, sans-serif;
+#clear_search {
+    font-family: FiraSans-SemiBold;
+    font-size: 18px;
+    color: #999999;
+    display: none;
+}
+
+#searchtextbox{
+    font-family: FiraSans-Regular;
     font-size: 14px;
     color: #000000;
-    font-weight: 400;
+    width: 93%;
     text-decoration: none;
     border: 0px;
-    outline-color: #ffffff;
+    outline-color: #bdbdbd;
+    background-color: #bdbdbd;
+    margin: 3px;
+}
+
+#searchtextbox:focus {
+    outline: none;
+}
+
+#search_container {
+    width: 95%;
+    margin-top: 3px;
+    margin-bottom: 2px;
+    padding: 4px;
+    border: 0px;
+    border-radius: 6px;
+    background-color: #bdbdbd;
+    display: flex;
+}
+
+button.fieldsSearchFilterOn {
+    font-family: FiraSans-Regular;
+    background: #0085b5;
+    color: #4fd0ff;
+    font-size: 10px;
+    padding: 1px 4px 0px 4px;
+    border: solid #000000 1px;
+    text-decoration: none;
+    text-align: center;
+    margin: 3px;
+}
+
+button.fieldsSearchFilterOn:hover {
+    border: solid #4fd0ff 1px;
+}
+
+button.fieldsSearchFilterOn:focus {
+    outline: none;
+}
+
+button.fieldsSearchFilterOff {
+    font-family: FiraSans-Regular;
+    background: #333333;
+    color: #888888;
+    font-size: 10px;
+    padding: 1px 4px 0px 4px;
+    border: solid #000000 1px;
+    text-decoration: none;
+    text-align: center;
+    margin: 3px;
+}
+
+button.fieldsSearchFilterOff:hover {
+    border: solid #888888 1px;
+}
+
+button.fieldsSearchFilterOff:focus {
+    outline: none;
+}
+
+#header {
+    width: 100%;
+    height: 12%;
+    background-color: #404040;
+    padding: 8px;
+    margin: 0px;
+}
+
+#list {
+    width: 100%;
+    height: 80%;
+    overflow-y: scroll;
+    display: flex;
+    background-color: #111111;
+    background-image: url("sidewalk.png");
+    background-repeat: repeat;
+    background-attachment: local;
+}
+
+#footer {
+    font-family: FiraSans-Regular;
+    font-size: 12px;
+    width: 100%;
+    height: 8%;
+    background-color: #404040;
+    padding: 8px;
+    margin: 0px;
+}
+
+font.blue {
+    color: #00bbff;
+}
+
+#cards {
+    width: 87%;
+    text-align: left;
+    background-color: #111111;
+    background-image: none;
+}
+
+#sidewalk {
+    width: 13%;
+}
+
+::-webkit-scrollbar {
+    width: 20px;
+    height: 10px;
+}
+::-webkit-scrollbar-track {
+    background-color: #2e2e2e;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #696969;
+    border: 2px solid #2e2e2e;
+    border-radius: 8px;
+}
+
+div.list_background {
+    width: 100%;
+    min-height: 14px;
+    background-color: #111111;
+    text-align: center;
+}
+
+#load_more {
+    font-family: FiraSans-SemiBold;
+    background-color: #545454;
+    font-size: 16px;
+    color: #ffffff;
+    border-radius: 6px;
+    border: 2px solid #545454;
+    transition-duration: 0.3s;
+    width: 130px;
+    margin-top: 4px;
+    margin-bottom: 8px;
+}
+
+#load_more:hover {
+    background-color: #9c9c9c; 
+    border: 2px solid #9c9c9c;
+}
+
+#load_more:focus {
+    outline: none;
+}
+
+div.card {
+    width: 100%;
+    background-color: #303030;
+    border: 0px;
+    border-radius: 6px;
+    box-shadow: 3px 3px 5px rgba(0,0,0,0.8);
+    margin: 0px;
+    text-align: center;
+    padding: 8px;
 }
