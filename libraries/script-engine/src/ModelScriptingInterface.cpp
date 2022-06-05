@@ -60,19 +60,19 @@ QScriptValue ModelScriptingInterface::appendMeshes(MeshProxyList in) {
 
     // alloc the resulting mesh
     gpu::Resource::Size combinedVertexSize = totalVertexCount * sizeof(glm::vec3);
-    std::unique_ptr<unsigned char> combinedVertexData{ new unsigned char[combinedVertexSize] };
+    std::unique_ptr<unsigned char[]> combinedVertexData{ new unsigned char[combinedVertexSize] };
     unsigned char* combinedVertexDataCursor = combinedVertexData.get();
 
     gpu::Resource::Size combinedColorSize = totalColorCount * sizeof(glm::vec3);
-    std::unique_ptr<unsigned char> combinedColorData{ new unsigned char[combinedColorSize] };
+    std::unique_ptr<unsigned char[]> combinedColorData{ new unsigned char[combinedColorSize] };
     unsigned char* combinedColorDataCursor = combinedColorData.get();
 
     gpu::Resource::Size combinedNormalSize = totalNormalCount * sizeof(glm::vec3);
-    std::unique_ptr<unsigned char> combinedNormalData{ new unsigned char[combinedNormalSize] };
+    std::unique_ptr<unsigned char[]> combinedNormalData{ new unsigned char[combinedNormalSize] };
     unsigned char* combinedNormalDataCursor = combinedNormalData.get();
 
     gpu::Resource::Size combinedIndexSize = totalIndexCount * sizeof(uint32_t);
-    std::unique_ptr<unsigned char> combinedIndexData{ new unsigned char[combinedIndexSize] };
+    std::unique_ptr<unsigned char[]> combinedIndexData{ new unsigned char[combinedIndexSize] };
     unsigned char* combinedIndexDataCursor = combinedIndexData.get();
 
     uint32_t indexStartOffset { 0 };
