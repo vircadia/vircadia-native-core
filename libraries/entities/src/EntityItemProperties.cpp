@@ -3992,22 +3992,14 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
 }
 
 bool EntityItemProperties::encodeCloneEntityMessage(const EntityItemID& entityIDToClone, const EntityItemID& newEntityID, QByteArray& buffer) {
-    char* copyAt = buffer.data();
-    int outputLength = 0;
-
     if (buffer.size() < (int)(NUM_BYTES_RFC4122_UUID * 2)) {
         qCDebug(entities) << "ERROR - encodeCloneEntityMessage() called with buffer that is too small!";
         return false;
     }
 
-    memcpy(copyAt, entityIDToClone.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
-    copyAt += NUM_BYTES_RFC4122_UUID;
-    outputLength += NUM_BYTES_RFC4122_UUID;
-
-    memcpy(copyAt, newEntityID.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
-    outputLength += NUM_BYTES_RFC4122_UUID;
-
-    buffer.resize(outputLength);
+    buffer.resize(0);
+    buffer.append(entityIDToClone.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
+    buffer.append(newEntityID.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
 
     return true;
 }
