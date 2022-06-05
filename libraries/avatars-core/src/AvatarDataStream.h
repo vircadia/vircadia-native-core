@@ -553,7 +553,6 @@ public:
 
     QList<QUuid> getAvatarEntityIDs() const;
 
-    // identityChanged returns true if identity has changed, false otherwise.
     // identityChanged returns true if identity has changed, false otherwise. Similarly for displayNameChanged and skeletonModelUrlChange.
     void processAvatarIdentity(QDataStream& packetStream, bool& identityChanged, bool& displayNameChanged);
 
