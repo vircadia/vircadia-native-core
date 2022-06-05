@@ -122,7 +122,7 @@ QScriptClass::QueryFlags ArrayBufferClass::queryProperty(const QScriptValue& obj
         // if the property queried is byteLength, only handle read access
         return flags &= HandlesReadAccess;
     }
-    return 0; // No access
+    return QScriptClass::QueryFlags(); // No access
 }
 
 QScriptValue ArrayBufferClass::property(const QScriptValue& object,
