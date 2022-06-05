@@ -83,7 +83,7 @@ void SockAddr::swap(SockAddr& otherSockAddr) {
     swap(_socketType, otherSockAddr._socketType);
     swap(_address, otherSockAddr._address);
     swap(_port, otherSockAddr._port);
-    
+
     // Swap objects name
     auto temp = otherSockAddr.objectName();
     otherSockAddr.setObjectName(objectName());
@@ -135,8 +135,8 @@ bool SockAddr::hasPrivateAddress() const {
 QDebug operator<<(QDebug debug, const SockAddr& sockAddr) {
     debug.nospace()
         << (sockAddr._socketType != SocketType::Unknown
-            ? (SocketTypeToString::socketTypeToString(sockAddr._socketType) + " ").toLocal8Bit().constData() : "")
-        << sockAddr._address.toString().toLocal8Bit().constData() << ":" << sockAddr._port;
+            ? (SocketTypeToString::socketTypeToString(sockAddr._socketType) + " ") : QString(""))
+        << sockAddr._address.toString() << ":" << sockAddr._port;
     return debug.space();
 }
 
