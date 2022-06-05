@@ -17,6 +17,7 @@
 #include <DependencyManager.h>
 #include <GeometryUtil.h>
 #include <Rig.h>
+#include <algorithm>
 #include "Logging.h"
 
 #include "Avatar.h"
@@ -29,7 +30,7 @@ static void updateFakeCoefficients(float leftBlink, float rightBlink, float brow
     float jawOpen, float mouth2, float mouth3, float mouth4, QVector<float>& coefficients) {
 
     coefficients.resize(std::max((int)coefficients.size(), (int)Blendshapes::BlendshapeCount));
-    qFill(coefficients.begin(), coefficients.end(), 0.0f);
+    std::fill(coefficients.begin(), coefficients.end(), 0.0f);
     coefficients[(int)Blendshapes::EyeBlink_L] = leftBlink;
     coefficients[(int)Blendshapes::EyeBlink_R] = rightBlink;
     coefficients[(int)Blendshapes::BrowsU_C] = browUp;
