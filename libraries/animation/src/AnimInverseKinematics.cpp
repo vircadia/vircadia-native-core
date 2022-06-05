@@ -15,6 +15,7 @@
 #include <SharedUtil.h>
 #include <shared/NsightHelpers.h>
 #include <DebugDraw.h>
+#include <QElapsedTimer>
 #include "Rig.h"
 
 #include "ElbowConstraint.h"
@@ -27,7 +28,7 @@
 static const int MAX_TARGET_MARKERS = 30;
 static const float JOINT_CHAIN_INTERP_TIME = 0.5f;
 
-static QTime debounceJointWarningsClock;
+static QElapsedTimer debounceJointWarningsClock;
 static const int JOINT_WARNING_DEBOUNCE_TIME = 30000; // 30 seconds
 
 static void lookupJointInfo(const AnimInverseKinematics::JointChainInfo& jointChainInfo,
