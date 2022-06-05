@@ -97,7 +97,7 @@ void ResourceCacheSharedItems::removeRequest(QWeakPointer<Resource> resource) {
     for (int i = 0; i < _loadingRequests.size();) {
         auto request = _loadingRequests.at(i);
         // Clear our resource and any freed resources
-        if (!request || request.data() == resource.data()) {
+        if (!request || request.toStrongRef().data() == resource.toStrongRef().data()) {
             _loadingRequests.removeAt(i);
             continue;
         }

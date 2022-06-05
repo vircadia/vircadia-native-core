@@ -119,7 +119,7 @@ void GeometryReader::run() {
         QThread::currentThread()->setPriority(originalPriority);
     });
 
-    if (!_resource.data()) {
+    if (!_resource.toStrongRef().data()) {
         return;
     }
 
