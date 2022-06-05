@@ -18,6 +18,8 @@
 
 #include <cstdio>
 #include <cstring>
+#include <algorithm>
+#include <functional>
 #include <stdint.h>
 
 #include <QtCore/QDataStream>
@@ -321,10 +323,10 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
         }
     }
 
-    if (wantedFlags & (AvatarDataPacket::PACKET_HAS_ADDITIONAL_FLAGS | AvatarDataPacket::PACKET_HAS_PARENT_INFO)) {
-        // FIXME: CRTP
-        // parentID = getParentID();
-    }
+    auto [parentUUID, parentJointIndex] = derived().getParentInfoOut();
+    // FIXME: CRTP
+    // parentUUID = parentID.toRfc4122();
+    // parentJointIndex = getParentJointIndex();
 
     auto [
         leftEyeBlink,
@@ -544,8 +546,9 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
             setAtBit16(flags, HAS_PROCEDURAL_EYE_MOVEMENT);
         }
 
-        // referential state
-        if (!parentID.isNull()) {
+        bool parentIsNull = std::all_of(parentUUID.begin(), parentUUID.end(),
+            std::logical_not<>());
+        if (!parentIsNull) {
             setAtBit16(flags, HAS_REFERENTIAL);
         }
 
@@ -587,10 +590,6 @@ QByteArray AvatarDataStream<Derived>::toByteArray(AvatarDataPacket::HasFlags ite
         auto startSection = destinationBuffer;
         auto parentInfo = reinterpret_cast<AvatarDataPacket::ParentInfo*>(destinationBuffer);
 
-        auto [parentUUID, parentJointIndex] = derived().getParentInfoOut();
-        // FIXME: CRTP
-        // parentUUID = parentID.toRfc4122();
-        // parentJointIndex = getParentJointIndex();
         memcpy(parentInfo->parentUUID, parentUUID.data(), parentUUID.size());
         parentInfo->parentJointIndex = parentJointIndex;
         destinationBuffer += sizeof(AvatarDataPacket::ParentInfo);
