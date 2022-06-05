@@ -3977,24 +3977,16 @@ QVector<vec3> EntityItemProperties::unpackStrokeColors(const QByteArray& strokeC
 // edit packet sender...
 bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityItemID, QByteArray& buffer) {
 
-    char* copyAt = buffer.data();
     uint16_t numberOfIds = 1; // only one entity ID in this message
-
-    int outputLength = 0;
 
     if (buffer.size() < (int)(sizeof(numberOfIds) + NUM_BYTES_RFC4122_UUID)) {
         qCDebug(entities) << "ERROR - encodeEraseEntityMessage() called with buffer that is too small!";
         return false;
     }
 
-    memcpy(copyAt, &numberOfIds, sizeof(numberOfIds));
-    copyAt += sizeof(numberOfIds);
-    outputLength = sizeof(numberOfIds);
-
-    memcpy(copyAt, entityItemID.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
-    outputLength += NUM_BYTES_RFC4122_UUID;
-
-    buffer.resize(outputLength);
+    buffer.resize(0);
+    buffer.append(reinterpret_cast<char*>(&numberOfIds), sizeof(numberOfIds));
+    buffer.append(entityItemID.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
 
     return true;
 }
