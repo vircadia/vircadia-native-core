@@ -18,44 +18,18 @@
         <script src="jquery-3.5.1.min.js"></script>
         <script>
             //Defaults
-            var DEFAULT_PER_PAGE = 3;
-            var DEFAULT_OFFSET = 0;
-            
-            //Parameters
-            function findGetParameter(parameterName) {
-                var result = null,
-                    tmp = [];
-                var items = location.search.substr(1).split("&");
-                for (var index = 0; index < items.length; index++) {
-                    tmp = items[index].split("=");
-                    if (tmp[0] === parameterName) result = decodeURIComponent(tmp[1]);
-                }
-                return result;
-            }
-    
-            var offset = findGetParameter("offset");
-            if (offset === null) {
-                offset = DEFAULT_OFFSET;
-            }
-            offset = parseInt(offset);
-            
-            var perpage = findGetParameter("perpage");
-            if (perpage === null) {
-                perpage = DEFAULT_PER_PAGE;
-            }
-            perpage = parseInt(perpage);
-            
-            var search = findGetParameter("search");
-            if (search === null) {
-                search = "";
-            }
+            var NUMBER_OF_RECORDS_PER_LOAD = 20;
+            var loadRecordsUpTo = NUMBER_OF_RECORDS_PER_LOAD;
+
+            var seachedFieldsFilter = ["name"];
+            var previousSearch = "";
 
             //Paths
             var currentPath = window.location.protocol + "//" + window.location.host + window.location.pathname;
             var developmentMode = window.location.toString().split("?")[1];
             var rootPath;    
             var metadataScriptSrc = "https://cdn.vircadia.com/community-apps/applications/metadata.js";
-            
+
             if (developmentMode === "dev") { // Development mode loads locally, if not, load from repo.
                 console.info("Setting applications to local.")
                 rootPath = currentPath.replace("more/more.html", "applications/");
@@ -68,22 +42,68 @@
             }
 
             //Search
-            function doSearch(keyword) {
-                offset = 0;
-                search = keyword;
-                listBuilder(keyword, offset, perpage);
+            function doSearch() {
+                var keyword = document.getElementById("searchtextbox").value;
+                if (keyword === "") {
+                    document.getElementById("clear_search").style.display = "none";
+                    document.getElementById("searchFiltersBar").style.display = "none";
+                } else {
+                    if (document.getElementById("searchFiltersBar").style.display === "none") {
+                        seachedFieldsFilter = ["name"];
+                    }
+                    document.getElementById("clear_search").style.display = "block";
+                    document.getElementById("searchFiltersBar").style.display = "inline-block";
+                    displaySearchFieldsFilter();
+                }
+                if (previousSearch !== keyword) {
+                    loadRecordsUpTo = NUMBER_OF_RECORDS_PER_LOAD;
+                    document.getElementById("list").scrollTop = 0;
+                }
+                listBuilder(keyword, loadRecordsUpTo);
+                previousSearch = keyword;
             }
 
             function clearSearch() {
-                offset = 0;
-                document.searchbar.searchtextbox.value = "";
-                search = "";
-                listBuilder("", offset, perpage);
+                loadRecordsUpTo = NUMBER_OF_RECORDS_PER_LOAD;
+                document.getElementById("searchtextbox").value = "";
+                doSearch();
             }
-            
+
+            function filterSearchField(targeted) {
+                if (seachedFieldsFilter.indexOf(targeted) === -1) {
+                    seachedFieldsFilter.push(targeted);
+                } else {
+                    seachedFieldsFilter = arrayRemove(seachedFieldsFilter, targeted);
+                }
+                loadRecordsUpTo = NUMBER_OF_RECORDS_PER_LOAD;
+                displaySearchFieldsFilter();
+                doSearch();
+            }
+
+            function arrayRemove(arr, value) {
+                return arr.filter(function(ele){
+                    return ele != value;
+                });
+            }
+
+           function displaySearchFieldsFilter() {
+                if (seachedFieldsFilter.indexOf("name") === -1) {
+                    document.getElementById("searchFilterName").className = "fieldsSearchFilterOff";
+                } else {
+                    document.getElementById("searchFilterName").className = "fieldsSearchFilterOn";
+                }
+
+                if (seachedFieldsFilter.indexOf("description") === -1) {
+                    document.getElementById("searchFilterDesc").className = "fieldsSearchFilterOff";
+                } else {
+                    document.getElementById("searchFilterDesc").className = "fieldsSearchFilterOn";
+                }
+
+            }
+
             //Running scripts 
             var buttonList = [];
-            
+
             function requestRunningScriptData() {
                 var readyEvent = {
                     "action": "requestRunningScriptData"
@@ -133,60 +153,40 @@
                 EventBridge.emitWebEvent(JSON.stringify(readyEvent));
             }
         </script>
-        
-        <link href="https://fonts.googleapis.com/css?family=Merriweather|Quicksand:400,700&display=swap" rel="stylesheet">
         <link href="css/styles.css" rel="stylesheet">
-
     </head>
-    <body><form name = "searchbar" onsubmit="submitForm(event);">
-        <font class="mainTitle">Add more functionalities...</font><br>
-        <table style = "width:100%;">
-            <tr >
-                <td style = "vertical-align:middle; text-align:left;">
-                    <table>
-                        <tr>
-                            <td style = "vertical-align:middle; text-align:left;">
-                                <div class = "searchbox">
-                                    <input class = "searchtextbox" name = "searchtextbox" size = "26" maxlength="32" onkeypress="monitorEnter(event, this);"> <a href="#" onclick='clearSearch();'><img src="del-x-16.png"></a>
-                                </div>
-                            </td>
-                            <td style = "vertical-align:middle; text-align:left;">
-                                <a href = "#" onclick = 'doSearch(document.searchbar.searchtextbox.value);'><img src="search-32.png"></a>
-                            </td>
-                        </tr>
-                    </table>
-                </td>
-                <td style = "vertical-align:middle; text-align:right;">
-                    <div id = 'pager_top'  style = "vertical-align: middle;"></div>
-                </td>
-            </tr>
-        </table>
-        </form>
-        <div id = "data"></div>
-        <div style="width:98%; text-align:right;">
-            <div style = "vertical-align: middle;" id = 'pager_footer'></div>
+    <body>
+        <div id="header">
+            <font class="mainTitle">Add more functionalities...</font><br>
+            <div id="search_container">
+                <input id="searchtextbox" maxlength="40" placeholder = "Search..." onkeyup = "doSearch();">
+                <span id="clear_search" onclick='clearSearch();'>&#11199;</span>
+            </div>
+            <div id="searchFiltersBar">
+                <button title="Name" class='fieldsSearchFilterOn' id='searchFilterName' onClick = 'filterSearchField("name");'>NAME</button>&nbsp;
+                <button title="Description" class='fieldsSearchFilterOff' id='searchFilterDesc' onClick = 'filterSearchField("description");'>DESCRIPTION</button>
+            </div>
         </div>
-        <hr>
-        <p class="mainDesc">Want to contribute and add your own app?<br>
-        Read the <a href="https://cdn.vircadia.com/community-apps/web/index.html">guide</a>!</p>
-        <script>        
-             function monitorEnter(e) {
-                var code = (e.keyCode ? e.keyCode : e.which);
-                if (code == 13) { 
-                    doSearch(document.searchbar.searchtextbox.value);
-                }
-            } 
-            
-            function submitForm(event){
-                event.preventDefault();
-            } 
-            
-            document.searchbar.searchtextbox.value = search;
+        <div id="list">
+            <div id="cards"></div>
+            <div id="sidewalk"></div>
+        </div>
+        <div id="footer">
+            Want to contribute and add your own app?<br>
+            See this repository: <font class="blue">github.com/vircadia/community-apps</font>
+        </div>
+
+        <script>
+
             var pageContent = "";
-            
+
             function displayApp(item) {
-                pageContent = pageContent + "<a name = '" + window.btoa(item.directory) + "'><table class='item'><tr>";
-                pageContent = pageContent + "<td><div class='iconContainer'><img src='" + rootPath + item.icon + "' style='width:50px;'><br><font class = 'caption'>" + item.caption + "</font></div></td>";
+                pageContent = pageContent + "<div class='list_background'></div>";
+                pageContent = pageContent + "<div class='card'>";
+                pageContent = pageContent + "<a name = '" + window.btoa(item.directory) + "'><table class='item'><tr class='item'>";
+                pageContent = pageContent + "<td class='item' style='width: 76px;'><div class='iconContainer'>";
+                pageContent = pageContent + "<img src='" + rootPath + item.icon + "' style='width:50px;'><br>";
+                pageContent = pageContent + "<font class = 'caption'>" + item.caption + "</font></div></td>";
                 var btn = "";
                 var absoluteJsFile = rootPath + item.jsfile;
 
@@ -197,79 +197,69 @@
                     };
                 buttonList.push(btndata);
 
-                pageContent = pageContent + "<td><font class='appname'>" + item.name + "<br></font><font class = 'appdesc'>" + item.description + "<br></font><div id = '"+ window.btoa(item.directory) +"' align='right'>" + btn + "</div></td>";
-                pageContent = pageContent + "</tr></table><br>";                
+                pageContent = pageContent + "<td class='item'><div style='width: 100%; text-align: left; padding: 0px;'><font class='appname'>" + item.name + "<br></font>";
+                pageContent = pageContent + "<font class = 'appdesc'>" + item.description + "<br></font></div>";
+                pageContent = pageContent + "<div id = '" + window.btoa(item.directory) + "' align='right'>" + btn + "</div></td>";
+                pageContent = pageContent + "</tr></table>";
+                pageContent = pageContent + "</div>";
             }
-            
-            function listBuilder(searchKeyword, listOffset, listPerPage) {
+
+            function listBuilder(searchKeyword, upTo) {
                 buttonList = [];
-                var counterDir = -1;
                 var counterDisp = 0;
                 var index = 0;
                 var lowItem = "";
-                var needNext = false;
+                var lowDesc = "";
                 pageContent = "";
+                var loadMoreRequired = false;
                 
                 for (index = 0; index < metadata.applications.length; index++) {
                     lowItem = metadata.applications[index].name.toLowerCase();
-                    if (lowItem.indexOf(searchKeyword.toLowerCase()) !== -1 && metadata.applications[index].isActive == true) { 
-                        counterDir = counterDir + 1;
-                        if ((counterDir >= listOffset) && (counterDir < (listOffset + listPerPage))) {
-                            displayApp(metadata.applications[index]);
-                            counterDisp = counterDisp + 1;
-                        }
-                        if (counterDir >= (listOffset + listPerPage)) {
-                            needNext = true;
+                    lowDesc = metadata.applications[index].description.toLowerCase();
+                    var query;
+                    if (searchKeyword === "") {
+                        query = true;
+                    } else {
+                        query = ((seachedFieldsFilter.indexOf("name") !== -1 && lowItem.indexOf(searchKeyword.toLowerCase()) !== -1)||
+                            (seachedFieldsFilter.indexOf("description") !== -1 && lowDesc.indexOf(searchKeyword.toLowerCase()) !== -1));
+                    }
+
+                    if (query && metadata.applications[index].isActive == true) {
+
+                        displayApp(metadata.applications[index]);
+                        counterDisp = counterDisp + 1;
+
+                        if (counterDisp >= upTo) {
+                            loadMoreRequired = true;
                             break;
                         }
                     }
                 }
-               
-                var pagerPrevious = "<a href='#' onclick='pagetoPrevious();'><img src='minus-16.png'></a>";
-                if (listOffset <= 0) {
-                    pagerPrevious = "<img src='blank_minus-16.png'>";
-                }
-                
-                var pagerNext = "<a href='#' onclick='pagetoNext();'><img src='plus-16.png'></a>";
-                if (needNext == false) {
-                    pagerNext = "<img src='blank_plus-16.png'>";
-                }            
-                
-                var countA = listOffset + 1;
-                
-                var countB = listOffset + counterDisp;
-                
-                var pagerHtml = pagerPrevious + "<font class='pager'>&nbsp;&nbsp;" + countA + " - " + countB  + "&nbsp;&nbsp;</font>" + pagerNext; 
 
-                if (counterDisp > 0 ) {
-                    document.getElementById("pager_top").innerHTML = pagerHtml;
-                    document.getElementById("data").innerHTML = pageContent;
-                    document.getElementById("pager_footer").innerHTML = pagerHtml;
+                if (loadMoreRequired) {
+                    pageContent = pageContent + "<div class='list_background'><button id='load_more' onclick = 'loadMore();'>LOAD MORE...</button></div>";
                 } else {
-                    document.getElementById("data").innerHTML = "<hr><div align='center'><font class='noresult'><br><br><br><br>Sorry, no result found.<br><br><br><br><br><br></font></div><hr>";
+                    pageContent = pageContent + "<div class='list_background'></div>";
                 }
-                requestRunningScriptData();            
-            }
-            
-            //pager
-            function pagetoPrevious(){
-                offset = offset - perpage;
-                if (offset < 0) {
-                    offset = 0;
+                
+                if (counterDisp > 0 ) {
+                    document.getElementById("cards").innerHTML = pageContent;
+                } else {
+                    document.getElementById("cards").innerHTML = "<div align='center'><font class='noresult'><br><br><br><br>Sorry, no result found.<br><br><br><br><br><br></font></div>";
                 }
-                listBuilder(search, offset, perpage);           
+                requestRunningScriptData();
             }
-            
-            function pagetoNext(){
-                offset = offset + perpage;
-                listBuilder(search, offset, perpage);
-            }
-            
-            $.getScript(metadataScriptSrc, function(data, textStatus, jqxhr) {
 
-                listBuilder(search, offset, perpage);
+            $.getScript(metadataScriptSrc, function(data, textStatus, jqxhr) {
+                doSearch();
             });
 
+            function loadMore() {
+                loadRecordsUpTo = loadRecordsUpTo + NUMBER_OF_RECORDS_PER_LOAD;
+                doSearch();
+            }
+
+            document.getElementById("searchFiltersBar").style.display = "none";
         </script>
     </body>
 </html>
