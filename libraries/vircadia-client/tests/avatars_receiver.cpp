@@ -28,6 +28,8 @@
 
 #include "common.h"
 
+#include <iostream>
+
 bool operator<(vircadia_vector a, vircadia_vector b) {
     return a.x < b.x && a.y < b.y && a.z < b.z;
 }
@@ -100,20 +102,6 @@ TEST_CASE("Client API avatar functionality - receiver.", "[client-api-avatars-re
 
                 if (sender != nullptr) {
                     if (std::equal(uuid, uuid + 16, sender)) {
-                        const char* model = vircadia_get_avatar_skeleton_model_url(context, avatar);
-                        REQUIRE(model != nullptr);
-                        REQUIRE(std::any_of(avatar_urls.begin(), avatar_urls.end(),
-                            [model = std::string(model)](auto url) { return model == url; }));
-
-                        const auto bounding_box = vircadia_get_avatar_bounding_box(context, avatar);
-                        REQUIRE(bounding_box != nullptr);
-                        REQUIRE(bounding_box->dimensions.x == 1);
-                        REQUIRE(bounding_box->dimensions.y == 1);
-                        REQUIRE(bounding_box->dimensions.z == 1);
-                        REQUIRE(bounding_box->offset.x == 0);
-                        REQUIRE(bounding_box->offset.y == 0);
-                        REQUIRE(bounding_box->offset.z == 0);
-
                         const auto global_position = vircadia_get_avatar_global_position(context, avatar);
                         REQUIRE(global_position != nullptr);
                         if (!last_global_position) {
@@ -166,12 +154,31 @@ TEST_CASE("Client API avatar functionality - receiver.", "[client-api-avatars-re
                     bool is_me = std::equal(uuid, uuid + 16, session_uuid);
                     auto display_name_end = display_name + std::strlen(display_name);
                     bool starts_with_prefix = std::search(display_name, display_name_end,
-                        name_prefix.begin(), name_prefix.end()) != display_name_end;
+                        name_prefix.begin(), name_prefix.end()) == display_name;
                     if (!is_me && starts_with_prefix) {
-                        bool sending = std::search(display_name, display_name + std::strlen(display_name),
-                            send_string.begin(), send_string.end()) != display_name;
+                        bool sending = std::search(display_name, display_name_end,
+                            send_string.begin(), send_string.end()) != display_name_end;
                         if (sending) {
                             sender = uuid;
+
+                            const auto bounding_box = vircadia_get_avatar_bounding_box(context, avatar);
+                            REQUIRE(bounding_box != nullptr);
+                            REQUIRE(bounding_box->dimensions.x == 1);
+                            REQUIRE(bounding_box->dimensions.y == 1);
+                            REQUIRE(bounding_box->dimensions.z == 1);
+                            REQUIRE(bounding_box->offset.x == 0);
+                            REQUIRE(bounding_box->offset.y == 0);
+                            REQUIRE(bounding_box->offset.z == 0);
+
+                            const char* model = vircadia_get_avatar_skeleton_model_url(context, avatar);
+                            REQUIRE(model != nullptr);
+                            REQUIRE(std::any_of(avatar_urls.begin(), avatar_urls.end(),
+                                [model = std::string(model)](auto url) { return model == url; }));
+
+                            auto look_at_snapping_enabled = vircadia_get_avatar_look_at_snapping(context, avatar);
+                            REQUIRE(look_at_snapping_enabled >= 0);
+                            REQUIRE(look_at_snapping_enabled == 1);
+
                         }
                     }
                 }

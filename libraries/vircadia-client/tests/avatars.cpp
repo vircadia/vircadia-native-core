@@ -81,6 +81,7 @@ TEST_CASE("Client API avatar functionality - sender.", "[client-api-avatars-send
         REQUIRE(vircadia_set_my_avatar_display_name(context, name_prefix.c_str()) == 0);
         REQUIRE(vircadia_set_my_avatar_skeleton_model_url(context, avatar_urls[random]) == 0);
         REQUIRE(vircadia_set_my_avatar_bounding_box(context, bounding_box) == 0);
+        REQUIRE(vircadia_set_my_avatar_look_at_snapping(context, 1) == 0);
 
         const uint8_t* copying = nullptr;
         const uint8_t* receiver = nullptr;
@@ -113,6 +114,7 @@ TEST_CASE("Client API avatar functionality - sender.", "[client-api-avatars-send
                     name_prefix.begin(), name_prefix.end()) == display_name;
 
                 if (copying != nullptr) {
+                    // for manual testing, replicates another avatar
                     if (std::equal(copying, copying + 16, uuid)) {
                         auto joint_count = vircadia_get_avatar_joint_count(context, avatar);
                         REQUIRE(joint_count >= 0);
