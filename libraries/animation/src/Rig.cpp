@@ -2761,7 +2761,6 @@ void Rig::initFlow(bool isActive) {
 float Rig::getUnscaledEyeHeight() const {
     // Normally the model offset transform will contain the avatar scale factor, we explicitly remove it here.
     AnimPose modelOffsetWithoutAvatarScale(glm::vec3(1.0f), getModelOffsetPose().rot(), getModelOffsetPose().trans());
-    AnimPose geomToRigWithoutAvatarScale = modelOffsetWithoutAvatarScale * getGeometryOffsetPose();
 
     // Factor to scale distances in the geometry frame into the unscaled rig frame.
     float scaleFactor = GetScaleFactorGeometryToUnscaledRig();
