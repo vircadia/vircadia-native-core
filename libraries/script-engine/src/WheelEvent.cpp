@@ -27,25 +27,24 @@ WheelEvent::WheelEvent() :
     isMeta(false),
     isAlt(false)
 {
-    
+
 }
 
 WheelEvent::WheelEvent(const QWheelEvent& event) {
-    x = event.x();
-    y = event.y();
-    
-    delta = event.delta();
-    if (event.orientation() == Qt::Horizontal) {
+    x = event.position().x();
+    y = event.position().y();
+
+    if (event.angleDelta().x() != 0) {
         orientation = "HORIZONTAL";
     } else {
         orientation = "VERTICAL";
     }
-    
+
     // button pressed state
     isLeftButton = (event.buttons().testFlag(Qt::LeftButton));
     isRightButton = (event.buttons().testFlag(Qt::RightButton));
     isMiddleButton = (event.buttons().testFlag(Qt::MiddleButton));
-    
+
     // keyboard modifiers
     isShifted = event.modifiers().testFlag(Qt::ShiftModifier);
     isMeta = event.modifiers().testFlag(Qt::MetaModifier);
