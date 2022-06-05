@@ -1427,7 +1427,7 @@ bool NodeList::adjustCanRezAvatarEntitiesPermissions(const QJsonObject& domainSe
 
     const double CANREZAVATARENTITIES_INTRODUCED_VERSION = 2.5;
     auto version = domainSettingsObject.value("version");
-    if (version.isUndefined() || version.isDouble() && version.toDouble() < CANREZAVATARENTITIES_INTRODUCED_VERSION) {
+    if (version.isUndefined() || (version.isDouble() && version.toDouble() < CANREZAVATARENTITIES_INTRODUCED_VERSION)) {
         // On domains without the canRezAvatarEntities permission available, set it to the same as canConnectToDomain.
         if (permissions.can(NodePermissions::Permission::canConnectToDomain)) {
             if (!permissions.can(NodePermissions::Permission::canRezAvatarEntities)) {
