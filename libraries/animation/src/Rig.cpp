@@ -90,7 +90,7 @@ static const QString MAIN_STATE_MACHINE_RIGHT_HAND_POSITION("mainStateMachineRig
 
 
 /*@jsdoc
- * <p>An <code>AnimStateDictionary</code> object may have the following properties. It may also have other properties, set by 
+ * <p>An <code>AnimStateDictionary</code> object may have the following properties. It may also have other properties, set by
  * scripts.</p>
  * <p><strong>Warning:</strong> These properties are subject to change.
  * <table>
@@ -98,117 +98,117 @@ static const QString MAIN_STATE_MACHINE_RIGHT_HAND_POSITION("mainStateMachineRig
  *     <tr><th>Name</th><th>Type</th><th>Description</th>
  *   </thead>
  *   <tbody>
- *     <tr><td><code>userAnimNone</code></td><td>boolean</td><td><code>true</code> when no user overrideAnimation is 
+ *     <tr><td><code>userAnimNone</code></td><td>boolean</td><td><code>true</code> when no user overrideAnimation is
  *       playing.</td></tr>
- *     <tr><td><code>userAnimA</code></td><td>boolean</td><td><code>true</code> when a user overrideAnimation is 
+ *     <tr><td><code>userAnimA</code></td><td>boolean</td><td><code>true</code> when a user overrideAnimation is
  *       playing.</td></tr>
- *     <tr><td><code>userAnimB</code></td><td>boolean</td><td><code>true</code> when a user overrideAnimation is 
+ *     <tr><td><code>userAnimB</code></td><td>boolean</td><td><code>true</code> when a user overrideAnimation is
  *       playing.</td></tr>
  *
  *     <tr><td><code>sine</code></td><td>number</td><td>Oscillating sine wave.</td></tr>
- *     <tr><td><code>moveForwardSpeed</code></td><td>number</td><td>Controls the blend between the various forward walking 
+ *     <tr><td><code>moveForwardSpeed</code></td><td>number</td><td>Controls the blend between the various forward walking
  *       &amp; running animations.</td></tr>
- *     <tr><td><code>moveBackwardSpeed</code></td><td>number</td><td>Controls the blend between the various backward walking 
+ *     <tr><td><code>moveBackwardSpeed</code></td><td>number</td><td>Controls the blend between the various backward walking
  *       &amp; running animations.</td></tr>
- *     <tr><td><code>moveLateralSpeed</code></td><td>number</td><td>Controls the blend between the various sidestep walking 
+ *     <tr><td><code>moveLateralSpeed</code></td><td>number</td><td>Controls the blend between the various sidestep walking
  *       &amp; running animations.</td></tr>
  *
- *     <tr><td><code>isMovingForward</code></td><td>boolean</td><td><code>true</code> if the avatar is moving 
+ *     <tr><td><code>isMovingForward</code></td><td>boolean</td><td><code>true</code> if the avatar is moving
  *       forward.</td></tr>
- *     <tr><td><code>isMovingBackward</code></td><td>boolean</td><td><code>true</code> if the avatar is moving 
+ *     <tr><td><code>isMovingBackward</code></td><td>boolean</td><td><code>true</code> if the avatar is moving
  *       backward.</td></tr>
- *     <tr><td><code>isMovingRight</code></td><td>boolean</td><td><code>true</code> if the avatar is moving to the 
+ *     <tr><td><code>isMovingRight</code></td><td>boolean</td><td><code>true</code> if the avatar is moving to the
  *       right.</td></tr>
- *     <tr><td><code>isMovingLeft</code></td><td>boolean</td><td><code>true</code> if the avatar is moving to the 
+ *     <tr><td><code>isMovingLeft</code></td><td>boolean</td><td><code>true</code> if the avatar is moving to the
  *       left.</td></tr>
- *     <tr><td><code>isMovingRightHmd</code></td><td>boolean</td><td><code>true</code> if the avatar is moving to the right 
+ *     <tr><td><code>isMovingRightHmd</code></td><td>boolean</td><td><code>true</code> if the avatar is moving to the right
  *       while the user is in HMD mode.</td></tr>
- *     <tr><td><code>isMovingLeftHmd</code></td><td>boolean</td><td><code>true</code> if the avatar is moving to the left while 
+ *     <tr><td><code>isMovingLeftHmd</code></td><td>boolean</td><td><code>true</code> if the avatar is moving to the left while
  *       the user is in HMD mode.</td></tr>
  *     <tr><td><code>isNotMoving</code></td><td>boolean</td><td><code>true</code> if the avatar is stationary.</td></tr>
  *
- *     <tr><td><code>isTurningRight</code></td><td>boolean</td><td><code>true</code> if the avatar is turning 
+ *     <tr><td><code>isTurningRight</code></td><td>boolean</td><td><code>true</code> if the avatar is turning
  *       clockwise.</td></tr>
- *     <tr><td><code>isTurningLeft</code></td><td>boolean</td><td><code>true</code> if the avatar is turning 
+ *     <tr><td><code>isTurningLeft</code></td><td>boolean</td><td><code>true</code> if the avatar is turning
  *       counter-clockwise.</td></tr>
  *     <tr><td><code>isNotTurning</code></td><td>boolean</td><td><code>true</code> if the avatar is not turning.</td></tr>
  *     <tr><td><code>isFlying</code></td><td>boolean</td><td><code>true</code> if the avatar is flying.</td></tr>
  *     <tr><td><code>isNotFlying</code></td><td>boolean</td><td><code>true</code> if the avatar is not flying.</td></tr>
- *     <tr><td><code>isTakeoffStand</code></td><td>boolean</td><td><code>true</code> if the avatar is about to execute a 
+ *     <tr><td><code>isTakeoffStand</code></td><td>boolean</td><td><code>true</code> if the avatar is about to execute a
  *       standing jump.</td></tr>
- *     <tr><td><code>isTakeoffRun</code></td><td>boolean</td><td><code>true</code> if the avatar is about to execute a running 
+ *     <tr><td><code>isTakeoffRun</code></td><td>boolean</td><td><code>true</code> if the avatar is about to execute a running
  *       jump.</td></tr>
  *     <tr><td><code>isNotTakeoff</code></td><td>boolean</td><td><code>true</code> if the avatar is not jumping.</td></tr>
- *     <tr><td><code>isInAirStand</code></td><td>boolean</td><td><code>true</code> if the avatar is in the air after a standing 
+ *     <tr><td><code>isInAirStand</code></td><td>boolean</td><td><code>true</code> if the avatar is in the air after a standing
  *       jump.</td></tr>
- *     <tr><td><code>isInAirRun</code></td><td>boolean</td><td><code>true</code> if the avatar is in the air after a running 
+ *     <tr><td><code>isInAirRun</code></td><td>boolean</td><td><code>true</code> if the avatar is in the air after a running
  *       jump.</td></tr>
  *     <tr><td><code>isNotInAir</code></td><td>boolean</td><td><code>true</code> if the avatar on the ground.</td></tr>
  *
- *     <tr><td><code>inAirAlpha</code></td><td>number</td><td>Used to interpolate between the up, apex, and down in-air 
+ *     <tr><td><code>inAirAlpha</code></td><td>number</td><td>Used to interpolate between the up, apex, and down in-air
  *       animations.</td></tr>
- *     <tr><td><code>ikOverlayAlpha</code></td><td>number</td><td>The blend between upper body and spline IK versus the 
+ *     <tr><td><code>ikOverlayAlpha</code></td><td>number</td><td>The blend between upper body and spline IK versus the
  *       underlying animation</td></tr>
  *
- *     <tr><td><code>headPosition</code></td><td>{@link Vec3}</td><td>The desired position of the <code>Head</code> joint in 
+ *     <tr><td><code>headPosition</code></td><td>{@link Vec3}</td><td>The desired position of the <code>Head</code> joint in
  *       rig coordinates.</td></tr>
- *     <tr><td><code>headRotation</code></td><td>{@link Quat}</td><td>The desired orientation of the <code>Head</code> joint in 
+ *     <tr><td><code>headRotation</code></td><td>{@link Quat}</td><td>The desired orientation of the <code>Head</code> joint in
  *       rig coordinates.</td></tr>
- *     <tr><td><code>headType</code></td><td>{@link MyAvatar.IKTargetType|IKTargetType}</td><td>The type of IK used for the 
+ *     <tr><td><code>headType</code></td><td>{@link MyAvatar.IKTargetType|IKTargetType}</td><td>The type of IK used for the
  *       head.</td></tr>
- *     <tr><td><code>headWeight</code></td><td>number</td><td>How strongly the head chain blends with the other IK 
+ *     <tr><td><code>headWeight</code></td><td>number</td><td>How strongly the head chain blends with the other IK
  *       chains.</td></tr>
  *
- *     <tr><td><code>leftHandPosition</code></td><td>{@link Vec3}</td><td>The desired position of the <code>LeftHand</code> 
+ *     <tr><td><code>leftHandPosition</code></td><td>{@link Vec3}</td><td>The desired position of the <code>LeftHand</code>
  *       joint in rig coordinates.</td></tr>
- *     <tr><td><code>leftHandRotation</code></td><td>{@link Quat}</td><td>The desired orientation of the <code>LeftHand</code> 
+ *     <tr><td><code>leftHandRotation</code></td><td>{@link Quat}</td><td>The desired orientation of the <code>LeftHand</code>
  *       joint in rig coordinates.</td></tr>
- *     <tr><td><code>leftHandType</code></td><td>{@link MyAvatar.IKTargetType|IKTargetType}</td><td>The type of IK used for the 
+ *     <tr><td><code>leftHandType</code></td><td>{@link MyAvatar.IKTargetType|IKTargetType}</td><td>The type of IK used for the
  *       left arm.</td></tr>
- *     <tr><td><code>leftHandPoleVectorEnabled</code></td><td>boolean</td><td>When <code>true</code>, the elbow angle is 
- *       controlled by the <code>rightHandPoleVector</code> property value. Otherwise the elbow direction comes from the 
+ *     <tr><td><code>leftHandPoleVectorEnabled</code></td><td>boolean</td><td>When <code>true</code>, the elbow angle is
+ *       controlled by the <code>rightHandPoleVector</code> property value. Otherwise the elbow direction comes from the
  *       underlying animation.</td></tr>
- *     <tr><td><code>leftHandPoleReferenceVector</code></td><td>{@link Vec3}</td><td>The direction of the elbow in the local 
+ *     <tr><td><code>leftHandPoleReferenceVector</code></td><td>{@link Vec3}</td><td>The direction of the elbow in the local
  *       coordinate system of the elbow.</td></tr>
- *     <tr><td><code>leftHandPoleVector</code></td><td>{@link Vec3}</td><td>The direction the elbow should point in rig 
+ *     <tr><td><code>leftHandPoleVector</code></td><td>{@link Vec3}</td><td>The direction the elbow should point in rig
  *       coordinates.</td></tr>
  *
  *     <tr><td><code>rightHandPosition</code></td><td>{@link Vec3}</td><td>The desired position of the <code>RightHand</code>
  *       joint in rig coordinates.</td></tr>
- *     <tr><td><code>rightHandRotation</code></td><td>{@link Quat}</td><td>The desired orientation of the 
+ *     <tr><td><code>rightHandRotation</code></td><td>{@link Quat}</td><td>The desired orientation of the
  *       <code>RightHand</code> joint in rig coordinates.</td></tr>
- *     <tr><td><code>rightHandType</code></td><td>{@link MyAvatar.IKTargetType|IKTargetType}</td><td>The type of IK used for 
+ *     <tr><td><code>rightHandType</code></td><td>{@link MyAvatar.IKTargetType|IKTargetType}</td><td>The type of IK used for
  *       the right arm.</td></tr>
- *     <tr><td><code>rightHandPoleVectorEnabled</code></td><td>boolean</td><td>When <code>true</code>, the elbow angle is 
- *       controlled by the <code>rightHandPoleVector</code> property value. Otherwise the elbow direction comes from the 
+ *     <tr><td><code>rightHandPoleVectorEnabled</code></td><td>boolean</td><td>When <code>true</code>, the elbow angle is
+ *       controlled by the <code>rightHandPoleVector</code> property value. Otherwise the elbow direction comes from the
  *       underlying animation.</td></tr>
- *     <tr><td><code>rightHandPoleReferenceVector</code></td><td>{@link Vec3}</td><td>The direction of the elbow in the local 
+ *     <tr><td><code>rightHandPoleReferenceVector</code></td><td>{@link Vec3}</td><td>The direction of the elbow in the local
  *       coordinate system of the elbow.</td></tr>
- *     <tr><td><code>rightHandPoleVector</code></td><td>{@link Vec3}</td><td>The direction the elbow should point in rig 
+ *     <tr><td><code>rightHandPoleVector</code></td><td>{@link Vec3}</td><td>The direction the elbow should point in rig
  *       coordinates.</td></tr>
  *
- *     <tr><td><code>leftFootIKEnabled</code></td><td>boolean</td><td><code>true</code> if IK is enabled for the left 
+ *     <tr><td><code>leftFootIKEnabled</code></td><td>boolean</td><td><code>true</code> if IK is enabled for the left
  *       foot.</td></tr>
- *     <tr><td><code>rightFootIKEnabled</code></td><td>boolean</td><td><code>true</code> if IK is enabled for the right 
+ *     <tr><td><code>rightFootIKEnabled</code></td><td>boolean</td><td><code>true</code> if IK is enabled for the right
  *       foot.</td></tr>
  *
- *     <tr><td><code>leftFootIKPositionVar</code></td><td>string</td><td>The name of the source for the desired position  
+ *     <tr><td><code>leftFootIKPositionVar</code></td><td>string</td><td>The name of the source for the desired position
  *       of the <code>LeftFoot</code> joint. If not set, the foot rotation of the underlying animation will be used.</td></tr>
  *     <tr><td><code>leftFootIKRotationVar</code></td><td>string</td><td>The name of the source for the desired rotation
  *       of the <code>LeftFoot</code> joint. If not set, the foot rotation of the underlying animation will be used.</td></tr>
- *     <tr><td><code>leftFootPoleVectorEnabled</code></td><td>boolean</td><td>When <code>true</code>, the knee angle is 
- *       controlled by the <code>leftFootPoleVector</code> property value. Otherwise the knee direction comes from the 
+ *     <tr><td><code>leftFootPoleVectorEnabled</code></td><td>boolean</td><td>When <code>true</code>, the knee angle is
+ *       controlled by the <code>leftFootPoleVector</code> property value. Otherwise the knee direction comes from the
  *       underlying animation.</td></tr>
- *     <tr><td><code>leftFootPoleVector</code></td><td>{@link Vec3}</td><td>The direction the knee should face in rig 
+ *     <tr><td><code>leftFootPoleVector</code></td><td>{@link Vec3}</td><td>The direction the knee should face in rig
  *       coordinates.</td></tr>
- *     <tr><td><code>rightFootIKPositionVar</code></td><td>string</td><td>The name of the source for the desired position  
+ *     <tr><td><code>rightFootIKPositionVar</code></td><td>string</td><td>The name of the source for the desired position
  *       of the <code>RightFoot</code> joint. If not set, the foot rotation of the underlying animation will be used.</td></tr>
  *     <tr><td><code>rightFootIKRotationVar</code></td><td>string</td><td>The name of the source for the desired rotation
  *       of the <code>RightFoot</code> joint. If not set, the foot rotation of the underlying animation will be used.</td></tr>
- *     <tr><td><code>rightFootPoleVectorEnabled</code></td><td>boolean</td><td>When <code>true</code>, the knee angle is 
- *       controlled by the <code>rightFootPoleVector</code> property value. Otherwise the knee direction comes from the 
+ *     <tr><td><code>rightFootPoleVectorEnabled</code></td><td>boolean</td><td>When <code>true</code>, the knee angle is
+ *       controlled by the <code>rightFootPoleVector</code> property value. Otherwise the knee direction comes from the
  *       underlying animation.</td></tr>
- *     <tr><td><code>rightFootPoleVector</code></td><td>{@link Vec3}</td><td>The direction the knee should face in rig 
+ *     <tr><td><code>rightFootPoleVector</code></td><td>{@link Vec3}</td><td>The direction the knee should face in rig
  *       coordinates.</td></tr>
  *
  *     <tr><td><code>isTalking</code></td><td>boolean</td><td><code>true</code> if the avatar is talking.</td></tr>
@@ -216,60 +216,60 @@ static const QString MAIN_STATE_MACHINE_RIGHT_HAND_POSITION("mainStateMachineRig
  *
  *     <tr><td><code>solutionSource</code></td><td>{@link MyAvatar.AnimIKSolutionSource|AnimIKSolutionSource}</td>
  *       <td>Determines the initial conditions of the IK solver.</td></tr>
- *     <tr><td><code>defaultPoseOverlayAlpha</code></td><td>number</td><td>Controls the blend between the main animation state 
- *       machine and the default pose. Mostly used during full body tracking so that walking &amp; jumping animations do not 
+ *     <tr><td><code>defaultPoseOverlayAlpha</code></td><td>number</td><td>Controls the blend between the main animation state
+ *       machine and the default pose. Mostly used during full body tracking so that walking &amp; jumping animations do not
  *       affect the IK of the figure.</td></tr>
  *     <tr><td><code>defaultPoseOverlayBoneSet</code></td><td>{@link MyAvatar.AnimOverlayBoneSet|AnimOverlayBoneSet}</td>
  *       <td>Specifies which bones will be replace by the source overlay.</td></tr>
- *     <tr><td><code>hipsType</code></td><td>{@link MyAvatar.IKTargetType|IKTargetType}</td><td>The type of IK used for the 
+ *     <tr><td><code>hipsType</code></td><td>{@link MyAvatar.IKTargetType|IKTargetType}</td><td>The type of IK used for the
  *       hips.</td></tr>
- *     <tr><td><code>hipsPosition</code></td><td>{@link Vec3}</td><td>The desired position of <code>Hips</code> joint in rig 
+ *     <tr><td><code>hipsPosition</code></td><td>{@link Vec3}</td><td>The desired position of <code>Hips</code> joint in rig
  *       coordinates.</td></tr>
- *     <tr><td><code>hipsRotation</code></td><td>{@link Quat}</td><td>the desired orientation of the <code>Hips</code> joint in 
+ *     <tr><td><code>hipsRotation</code></td><td>{@link Quat}</td><td>the desired orientation of the <code>Hips</code> joint in
  *       rig coordinates.</td></tr>
- *     <tr><td><code>spine2Type</code></td><td>{@link MyAvatar.IKTargetType|IKTargetType}</td><td>The type of IK used for the 
+ *     <tr><td><code>spine2Type</code></td><td>{@link MyAvatar.IKTargetType|IKTargetType}</td><td>The type of IK used for the
  *       <code>Spine2</code> joint.</td></tr>
- *     <tr><td><code>spine2Position</code></td><td>{@link Vec3}</td><td>The desired position of the <code>Spine2</code> joint 
+ *     <tr><td><code>spine2Position</code></td><td>{@link Vec3}</td><td>The desired position of the <code>Spine2</code> joint
  *       in rig coordinates.</td></tr>
- *     <tr><td><code>spine2Rotation</code></td><td>{@link Quat}</td><td>The desired orientation of the <code>Spine2</code> 
+ *     <tr><td><code>spine2Rotation</code></td><td>{@link Quat}</td><td>The desired orientation of the <code>Spine2</code>
  *       joint in rig coordinates.</td></tr>
  *
  *     <tr><td><code>leftFootIKAlpha</code></td><td>number</td><td>Blends between full IK for the leg and the underlying
  *       animation.</td></tr>
  *     <tr><td><code>rightFootIKAlpha</code></td><td>number</td><td>Blends between full IK for the leg and the underlying
  *       animation.</td></tr>
- *     <tr><td><code>hipsWeight</code></td><td>number</td><td>How strongly the hips target blends with the IK solution for 
+ *     <tr><td><code>hipsWeight</code></td><td>number</td><td>How strongly the hips target blends with the IK solution for
  *       other IK chains.</td></tr>
- *     <tr><td><code>leftHandWeight</code></td><td>number</td><td>How strongly the left hand blends with IK solution of other 
+ *     <tr><td><code>leftHandWeight</code></td><td>number</td><td>How strongly the left hand blends with IK solution of other
  *        IK chains.</td></tr>
  *     <tr><td><code>rightHandWeight</code></td><td>number</td><td>How strongly the right hand blends with IK solution of other
  *       IK chains.</td></tr>
- *     <tr><td><code>spine2Weight</code></td><td>number</td><td>How strongly the spine2 chain blends with the rest of the IK 
+ *     <tr><td><code>spine2Weight</code></td><td>number</td><td>How strongly the spine2 chain blends with the rest of the IK
  *       solution.</td></tr>
  *
- *     <tr><td><code>leftHandOverlayAlpha</code></td><td>number</td><td>Used to blend in the animated hand gesture poses, such 
+ *     <tr><td><code>leftHandOverlayAlpha</code></td><td>number</td><td>Used to blend in the animated hand gesture poses, such
  *       as point and thumbs up.</td></tr>
- *     <tr><td><code>leftHandGraspAlpha</code></td><td>number</td><td>Used to blend between an open hand and a closed hand.  
+ *     <tr><td><code>leftHandGraspAlpha</code></td><td>number</td><td>Used to blend between an open hand and a closed hand.
  *       Usually changed as you squeeze the trigger of the hand controller.</td></tr>
- *     <tr><td><code>rightHandOverlayAlpha</code></td><td>number</td><td>Used to blend in the animated hand gesture poses, 
+ *     <tr><td><code>rightHandOverlayAlpha</code></td><td>number</td><td>Used to blend in the animated hand gesture poses,
  *       such as point and thumbs up.</td></tr>
- *     <tr><td><code>rightHandGraspAlpha</code></td><td>number</td><td>Used to blend between an open hand and a closed hand.  
+ *     <tr><td><code>rightHandGraspAlpha</code></td><td>number</td><td>Used to blend between an open hand and a closed hand.
  *       Usually changed as you squeeze the trigger of the hand controller.</td></tr>
  *     <tr><td><code>isLeftIndexPoint</code></td><td>boolean</td><td><code>true</code> if the left hand should be
  *       pointing.</td></tr>
- *     <tr><td><code>isLeftThumbRaise</code></td><td>boolean</td><td><code>true</code> if the left hand should be 
+ *     <tr><td><code>isLeftThumbRaise</code></td><td>boolean</td><td><code>true</code> if the left hand should be
  *       thumbs-up.</td></tr>
- *     <tr><td><code>isLeftIndexPointAndThumbRaise</code></td><td>boolean</td><td><code>true</code> if the left hand should be 
+ *     <tr><td><code>isLeftIndexPointAndThumbRaise</code></td><td>boolean</td><td><code>true</code> if the left hand should be
  *       pointing and thumbs-up.</td></tr>
- *     <tr><td><code>isLeftHandGrasp</code></td><td>boolean</td><td><code>true</code> if the left hand should be at rest, 
+ *     <tr><td><code>isLeftHandGrasp</code></td><td>boolean</td><td><code>true</code> if the left hand should be at rest,
  *       grasping the controller.</td></tr>
  *     <tr><td><code>isRightIndexPoint</code></td><td>boolean</td><td><code>true</code> if the right hand should be
  *       pointing.</td></tr>
- *     <tr><td><code>isRightThumbRaise</code></td><td>boolean</td><td><code>true</code> if the right hand should be 
+ *     <tr><td><code>isRightThumbRaise</code></td><td>boolean</td><td><code>true</code> if the right hand should be
  *       thumbs-up.</td></tr>
- *     <tr><td><code>isRightIndexPointAndThumbRaise</code></td><td>boolean</td><td><code>true</code> if the right hand should 
+ *     <tr><td><code>isRightIndexPointAndThumbRaise</code></td><td>boolean</td><td><code>true</code> if the right hand should
  *       be pointing and thumbs-up.</td></tr>
- *     <tr><td><code>isRightHandGrasp</code></td><td>boolean</td><td><code>true</code> if the right hand should be at rest, 
+ *     <tr><td><code>isRightHandGrasp</code></td><td>boolean</td><td><code>true</code> if the right hand should be at rest,
  *       grasping the controller.</td></tr>
  *
  *   </tbody>
@@ -521,7 +521,7 @@ void Rig::triggerNetworkRole(const QString& role) {
         _networkVars.set("postTransitAnim", true);
         _networkAnimState.clipNodeEnum = NetworkAnimState::PostTransit;
     }
-    
+
 }
 
 void Rig::restoreNetworkAnimation() {
@@ -640,10 +640,10 @@ void Rig::initJointStates(const HFMModel& hfmModel, const glm::mat4& modelOffset
 
     _internalPoseSet._overrideFlags.clear();
     _internalPoseSet._overrideFlags.resize(_animSkeleton->getNumJoints(), false);
-    
+
     _networkPoseSet._overridePoses.clear();
     _networkPoseSet._overridePoses = _animSkeleton->getRelativeDefaultPoses();
-    
+
     _networkPoseSet._overrideFlags.clear();
     _networkPoseSet._overrideFlags.resize(_animSkeleton->getNumJoints(), false);
 
@@ -1496,7 +1496,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                 _animVars.set("isInputLeft", false);
 
                 // directly reflects input
-                _animVars.set("isNotInput", true);  
+                _animVars.set("isNotInput", true);
 
                 // no input + speed drops to SLOW_SPEED_THRESHOLD
                 // (don't transition run->idle - slow to walk first)
@@ -1728,10 +1728,10 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
         _networkVars = networkTriggersOut;
         _lastContext = context;
     }
-    
+
     applyOverridePoses();
 
-    buildAbsoluteRigPoses(_internalPoseSet._relativePoses, _internalPoseSet._absolutePoses);    
+    buildAbsoluteRigPoses(_internalPoseSet._relativePoses, _internalPoseSet._absolutePoses);
     _internalFlow.update(deltaTime, _internalPoseSet._relativePoses, _internalPoseSet._absolutePoses, _internalPoseSet._overrideFlags);
 
     if (_sendNetworkNode) {
@@ -1747,7 +1747,7 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
     // copy internal poses to external poses
     {
         QWriteLocker writeLock(&_externalPoseSetLock);
-        
+
         _externalPoseSet = _internalPoseSet;
     }
 }
@@ -2503,7 +2503,7 @@ void Rig::initAnimGraph(const QUrl& url) {
                     triggerNetworkRole("postTransitAnim");
                 }
             }
-           
+
         });
         connect(_networkLoader.get(), &AnimNodeLoader::error, [networkUrl](int error, QString str) {
             qCritical(animation) << "Error loading: code = " << error << "str =" << str;

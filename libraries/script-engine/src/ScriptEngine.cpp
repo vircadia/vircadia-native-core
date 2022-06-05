@@ -139,7 +139,7 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine) {
             QString fileName = contextInfo.fileName();
             int lineNumber = contextInfo.lineNumber();
             QString functionName = contextInfo.functionName();
-    
+
             location = functionName;
             if (!fileName.isEmpty()) {
                 if (location.isEmpty()) {
@@ -155,10 +155,10 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine) {
         if (location.isEmpty()) {
             location = scriptEngine->getFilename();
         }
-    
+
         // give the script engine a chance to notify the system about this message
         scriptEngine->print(message);
-    
+
         // send the message to debug log
         qCDebug(scriptengine_script, "[%s] %s", qUtf8Printable(location), qUtf8Printable(message));
     } else {
@@ -366,20 +366,20 @@ void ScriptEngine::executeOnScriptThread(std::function<void()> function, const Q
 void ScriptEngine::waitTillDoneRunning(bool shutdown) {
     // Engine should be stopped already, but be defensive
     stop();
-    
+
     auto workerThread = thread();
-    
+
     if (workerThread == QThread::currentThread()) {
         qCWarning(scriptengine) << "ScriptEngine::waitTillDoneRunning called, but the script is on the same thread:" << getFilename();
         return;
     }
-    
+
     if (_isThreaded && workerThread) {
         // We should never be waiting (blocking) on our own thread
         assert(workerThread != QThread::currentThread());
 
 #if 0
-        // 26 Feb 2021 - Disabled this OSX-specific code because it causes OSX to crash on shutdown; without this code, OSX 
+        // 26 Feb 2021 - Disabled this OSX-specific code because it causes OSX to crash on shutdown; without this code, OSX
         // doesn't crash on shutdown. Qt 5.12.3 and Qt 5.15.2.
         //
         // On mac, don't call QCoreApplication::processEvents() here. This is to prevent
@@ -1042,7 +1042,7 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
         };
 
         /*@jsdoc
-         * <p>The name of an entity event. When the entity event occurs, any function that has been registered for that event 
+         * <p>The name of an entity event. When the entity event occurs, any function that has been registered for that event
          * via {@link Script.addEventHandler} is called with parameters per the entity event.</p>
          * <table>
          *   <thead>
@@ -1338,7 +1338,7 @@ void ScriptEngine::run() {
 
     emit finished(_fileNameString, qSharedPointerCast<ScriptEngine>(sharedFromThis()));
 
-    // Don't leave our local-file-access flag laying around, reset it to false when the scriptengine 
+    // Don't leave our local-file-access flag laying around, reset it to false when the scriptengine
     // thread is finished
     hifi::scripting::setLocalAccessSafeThread(false);
     _isRunning = false;
@@ -1852,7 +1852,7 @@ QScriptValue ScriptEngine::require(const QString& moduleId) {
     // modules get cached in `Script.require.cache` and (similar to Node.js) users can access it
     // to inspect particular entries and invalidate them by deleting the key:
     //   `delete Script.require.cache[Script.require.resolve(moduleId)];`
-    
+
     // Check to see if we should invalidate the cache based on a user setting.
     Setting::Handle<bool> getCachebustSetting {"cachebustScriptRequire", false };
 
@@ -2390,25 +2390,25 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
 
         // Entity Script Whitelist toggle check.
         Setting::Handle<bool> whitelistEnabled {"private/whitelistEnabled", false };
-                
+
         if (!whitelistEnabled.get()) {
             passList = true;
         }
-        
+
         // Pull SAFEURLS from the Interface.JSON settings.
         QVariant raw = Setting::Handle<QVariant>("private/settingsSafeURLS").get();
         QStringList settingsSafeURLS = raw.toString().trimmed().split(QRegExp("\\s*[,\r\n]+\\s*"), Qt::SkipEmptyParts);
         safeURLPrefixes += settingsSafeURLS;
         // END Pull SAFEURLS from the Interface.JSON settings.
-        
+
         // Get current domain whitelist bypass, in case an entire domain is whitelisted.
         QString currentDomain = DependencyManager::get<AddressManager>()->getDomainURL().host();
-        
+
         QString domainSafeIP = nodeList->getDomainHandler().getHostname();
         QString domainSafeURL = URL_SCHEME_VIRCADIA + "://" + currentDomain;
         for (const auto& str : safeURLPrefixes) {
             if (domainSafeURL.startsWith(str) || domainSafeIP.startsWith(str)) {
-                qCDebug(scriptengine) << whitelistPrefix << "Whitelist Bypassed, entire domain is whitelisted. Current Domain Host: " 
+                qCDebug(scriptengine) << whitelistPrefix << "Whitelist Bypassed, entire domain is whitelisted. Current Domain Host: "
                     << nodeList->getDomainHandler().getHostname()
                     << "Current Domain: " << currentDomain;
                 passList = true;

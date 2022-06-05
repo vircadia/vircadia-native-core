@@ -50,7 +50,7 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
             destinationBuffer += view.serialize(destinationBuffer);
         }
     }
-    
+
     // desired Max Octree PPS
     memcpy(destinationBuffer, &_maxQueryPPS, sizeof(_maxQueryPPS));
     destinationBuffer += sizeof(_maxQueryPPS);
@@ -95,7 +95,7 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
 
 // called on the other nodes - assigns it to my views of the others
 int OctreeQuery::parseData(ReceivedMessage& message) {
- 
+
     const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(message.getRawMessage());
     const unsigned char* sourceBuffer = startPosition;
 

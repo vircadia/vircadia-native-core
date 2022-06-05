@@ -20,7 +20,7 @@ QUrl const TextOverlay::URL(QString("hifi/overlays/TextOverlay.qml"));
 
 TextOverlay::TextOverlay() : QmlOverlay(URL) { }
 
-TextOverlay::TextOverlay(const TextOverlay* textOverlay) 
+TextOverlay::TextOverlay(const TextOverlay* textOverlay)
     : QmlOverlay(URL, textOverlay) {
 }
 

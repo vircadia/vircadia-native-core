@@ -35,7 +35,7 @@
 using namespace hifi::qml;
 using namespace hifi::qml::impl;
 
-QmlUrlValidator OffscreenSurface::validator = [](const QUrl& url) -> bool { 
+QmlUrlValidator OffscreenSurface::validator = [](const QUrl& url) -> bool {
     if (url.isRelative()) {
         return true;
     }

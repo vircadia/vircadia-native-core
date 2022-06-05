@@ -1414,7 +1414,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     <code>false</code> if the web entity's background should be transparent. The webpage must have CSS properties for transparency set
  *     on the <code>background-color</code> for this property to have an effect.
  * @property {string} userAgent - The user agent for the web entity to use when visiting web pages.
- *     Default value: <code>Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) 
+ *     Default value: <code>Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko)
  *     Chrome/69.0.3497.113 Mobile Safari/537.36</code>
  * @example <caption>Create a Web entity displaying at 1920 x 1080 resolution.</caption>
  * var METERS_TO_INCHES = 39.3701;

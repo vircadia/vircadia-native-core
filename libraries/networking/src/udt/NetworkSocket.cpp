@@ -157,7 +157,7 @@ qint64 NetworkSocket::bytesToWrite(SocketType socketType, const SockAddr& addres
 
 
 bool NetworkSocket::hasPendingDatagrams() const {
-    return 
+    return
 #if defined(WEBRTC_DATA_CHANNELS)
         _webrtcSocket.hasPendingDatagrams() ||
 #endif

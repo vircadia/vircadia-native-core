@@ -69,7 +69,7 @@ void DataServerAccountInfo::setAccessTokenFromJSON(const QJsonObject& jsonObject
 void DataServerAccountInfo::setUsername(const QString& username) {
     if (_username != username) {
         _username = username;
-        
+
         qCDebug(networking) << "Username changed to" << username;
     }
 }

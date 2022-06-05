@@ -258,6 +258,6 @@ void LogHandler::printRepeatedMessage(int messageID, LogMsgType type, const QMes
     } else {
         _repeatedMessageRecords[messageID].repeatString = message;
     }
- 
+
     ++_repeatedMessageRecords[messageID].repeatCount;
 }

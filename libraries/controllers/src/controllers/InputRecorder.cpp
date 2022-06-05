@@ -98,7 +98,7 @@ namespace controller {
         if (!QDir(SAVE_DIRECTORY).exists()) {
             QDir().mkdir(SAVE_DIRECTORY);
         }
-       
+
         QFile saveFile (fileName);
         if (!saveFile.open(QIODevice::WriteOnly)) {
             qWarning() << "could not open file: " << fileName;
@@ -112,7 +112,7 @@ namespace controller {
             qCritical("unable to gzip while saving to json.");
             return;
         }
-        
+
         saveFile.write(jsonDataForFile);
         saveFile.close();
     }
@@ -133,7 +133,7 @@ namespace controller {
             status = false;
             return object;
         }
-        
+
         QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData);
         object = jsonDoc.object();
         status = true;
@@ -217,12 +217,12 @@ namespace controller {
         QString filePath = urlPath.toLocalFile();
         QFileInfo info(filePath);
         QString extension = info.suffix();
-        
+
         if (extension != "gz") {
             qWarning() << "can not load file with exentsion of " << extension;
             return;
         }
-        
+
         bool success = false;
         QJsonObject data = openFile(filePath, success);
         auto keyValue = data.find("version");
@@ -250,15 +250,15 @@ namespace controller {
                 _poseStateList.push_back(_currentFramePoses);
                 _currentFramePoses.clear();
             }
-        } 
+        }
         _loading = false;
     }
-    
+
     void InputRecorder::stopRecording() {
         _recording = false;
         _framesRecorded = (int)_actionStateList.size();
     }
-    
+
     void InputRecorder::startPlayback() {
         _playback = true;
         _recording = false;

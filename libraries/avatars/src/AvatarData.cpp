@@ -471,7 +471,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     IF_AVATAR_SPACE(PACKET_HAS_AVATAR_GLOBAL_POSITION, sizeof _globalPosition) {
         auto startSection = destinationBuffer;
         AVATAR_MEMCPY(_globalPosition);
-        
+
         int numBytes = destinationBuffer - startSection;
 
         if (outboundDataRateOut) {
@@ -1200,7 +1200,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         auto newHasProceduralBlinkFaceMovement = oneAtBit16(bitItems, PROCEDURAL_BLINK_FACE_MOVEMENT);
 
         auto newCollideWithOtherAvatars = oneAtBit16(bitItems, COLLIDE_WITH_OTHER_AVATARS);
-        auto newHasPriority = oneAtBit16(bitItems, HAS_HERO_PRIORITY);        
+        auto newHasPriority = oneAtBit16(bitItems, HAS_HERO_PRIORITY);
 
         bool keyStateChanged = (_keyState != newKeyState);
         bool handStateChanged = (_handState != newHandState);
@@ -1212,7 +1212,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         bool proceduralBlinkFaceMovementChanged = (_headData->getProceduralAnimationFlag(HeadData::BlinkProceduralBlendshapeAnimation) != newHasProceduralBlinkFaceMovement);
         bool collideWithOtherAvatarsChanged = (_collideWithOtherAvatars != newCollideWithOtherAvatars);
         bool hasPriorityChanged = (getHasPriority() != newHasPriority);
-        bool somethingChanged = keyStateChanged || handStateChanged || faceStateChanged || eyeStateChanged || audioEnableFaceMovementChanged || 
+        bool somethingChanged = keyStateChanged || handStateChanged || faceStateChanged || eyeStateChanged || audioEnableFaceMovementChanged ||
                                 proceduralEyeFaceMovementChanged ||
                                 proceduralBlinkFaceMovementChanged || collideWithOtherAvatarsChanged || hasPriorityChanged;
 
@@ -1785,7 +1785,7 @@ glm::vec3 AvatarData::getJointTranslation(int index) const {
 }
 
 glm::vec3 AvatarData::getJointTranslation(const QString& name) const {
-    // Can't do this, because the lock needs to cover the entire set of logic.  In theory, the joints could change 
+    // Can't do this, because the lock needs to cover the entire set of logic.  In theory, the joints could change
     // on another thread in between the call to getJointIndex and getJointTranslation
     // return getJointTranslation(getJointIndex(name));
     return readLockWithNamedJointIndex<glm::vec3>(name, [this](int index) {
@@ -1865,7 +1865,7 @@ bool AvatarData::isJointDataValid(const QString& name) const {
     // return isJointDataValid(getJointIndex(name));
 
     return readLockWithNamedJointIndex<bool>(name, false, [&](int index) {
-        // This is technically superfluous....  the lambda is only called if index is a valid 
+        // This is technically superfluous....  the lambda is only called if index is a valid
         // offset for _jointData.  Nevertheless, it would be confusing to leave the lamdba as
         // `return true`
         return index < _jointData.size();
@@ -2144,7 +2144,7 @@ void AvatarData::unpackSkeletonData(const QByteArray& data) {
 
     const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(data.data());
     const unsigned char* sourceBuffer = startPosition;
-    
+
     auto header = reinterpret_cast<const AvatarSkeletonTrait::Header*>(sourceBuffer);
     sourceBuffer += sizeof(const AvatarSkeletonTrait::Header);
 
@@ -2157,7 +2157,7 @@ void AvatarData::unpackSkeletonData(const QByteArray& data) {
         uJointData.jointIndex = (int)i;
         uJointData.stringLength = (int)jointData->stringLength;
         uJointData.stringStart = (int)jointData->stringStart;
-        uJointData.parentIndex = ((uJointData.boneType == AvatarSkeletonTrait::BoneType::SkeletonRoot) || 
+        uJointData.parentIndex = ((uJointData.boneType == AvatarSkeletonTrait::BoneType::SkeletonRoot) ||
                                   (uJointData.boneType == AvatarSkeletonTrait::BoneType::NonSkeletonRoot)) ? -1 : (int)jointData->parentIndex;
         unpackOrientationQuatFromSixBytes(reinterpret_cast<const unsigned char*>(&jointData->defaultRotation), uJointData.defaultRotation);
         unpackFloatVec3FromSignedTwoByteFixed(reinterpret_cast<const unsigned char*>(&jointData->defaultTranslation), uJointData.defaultTranslation, TRANSLATION_COMPRESSION_RADIX);
@@ -2307,7 +2307,7 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     if (expanded == _skeletonModelURL) {
         return;
     }
-    
+
     _skeletonModelURL = expanded;
     if (_clientTraitsHandler) {
         _clientTraitsHandler->markTraitUpdated(AvatarTraits::SkeletonModelURL);
@@ -2935,14 +2935,14 @@ glm::vec3 AvatarData::getAbsoluteJointTranslationInObjectFrame(int index) const 
 /*@jsdoc
  * Information on an attachment worn by the avatar.
  * @typedef {object} AttachmentData
- * @property {string} modelUrl - The URL of the glTF, FBX, or OBJ model file. glTF models may be in JSON or binary format 
+ * @property {string} modelUrl - The URL of the glTF, FBX, or OBJ model file. glTF models may be in JSON or binary format
  *     (".gltf" or ".glb" URLs respectively).
  * @property {string} jointName - The name of the joint that the attachment is parented to.
  * @property {Vec3} translation - The offset from the joint that the attachment is positioned at.
  * @property {Vec3} rotation - The rotation applied to the model relative to the joint orientation.
  * @property {number} scale - The scale applied to the attachment model.
- * @property {boolean} soft - If <code>true</code> and the model has a skeleton, the bones of the attached model's skeleton are 
- *   rotated to fit the avatar's current pose. If <code>true</code>, the <code>translation</code>, <code>rotation</code>, and 
+ * @property {boolean} soft - If <code>true</code> and the model has a skeleton, the bones of the attached model's skeleton are
+ *   rotated to fit the avatar's current pose. If <code>true</code>, the <code>translation</code>, <code>rotation</code>, and
  *   <code>scale</code> parameters are ignored.
  */
 QVariant AttachmentData::toVariant() const {
@@ -3138,12 +3138,12 @@ glm::mat4 AvatarData::getControllerRightHandMatrix() const {
  * @property {boolean} intersects - <code>true</code> if an avatar is intersected, <code>false</code> if it isn't.
  * @property {string} avatarID - The ID of the avatar that is intersected.
  * @property {number} distance - The distance from the ray origin to the intersection.
- * @property {string} face - The name of the box face that is intersected; <code>"UNKNOWN_FACE"</code> if mesh was picked 
+ * @property {string} face - The name of the box face that is intersected; <code>"UNKNOWN_FACE"</code> if mesh was picked
  *     against.
  * @property {Vec3} intersection - The ray intersection point in world coordinates.
  * @property {Vec3} surfaceNormal - The surface normal at the intersection point.
  * @property {number} jointIndex - The index of the joint intersected.
- * @property {SubmeshIntersection} extraInfo - Extra information on the mesh intersected if mesh was picked against, 
+ * @property {SubmeshIntersection} extraInfo - Extra information on the mesh intersected if mesh was picked against,
  *     <code>{}</code> if it wasn't.
  */
 QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, const RayToAvatarIntersectionResult& value) {

@@ -738,7 +738,7 @@ QString formatSecTime(qint64 secs) {
 QString formatSecondsElapsed(float seconds) {
     QString result;
 
-    const float SECONDS_IN_DAY = 60.0f * 60.0f * 24.0f;        
+    const float SECONDS_IN_DAY = 60.0f * 60.0f * 24.0f;
     if (seconds > SECONDS_IN_DAY) {
         float days = floor(seconds / SECONDS_IN_DAY);
         float rest = seconds - (days * SECONDS_IN_DAY);
@@ -978,7 +978,7 @@ bool getProcessorInfo(ProcessorInfo& info) {
             break;
 
         case RelationCache:
-            // Cache data is in ptr->Cache, one CACHE_DESCRIPTOR structure for each cache. 
+            // Cache data is in ptr->Cache, one CACHE_DESCRIPTOR structure for each cache.
             Cache = &ptr->Cache;
             if (Cache->Level == 1) {
                 processorL1CacheCount++;

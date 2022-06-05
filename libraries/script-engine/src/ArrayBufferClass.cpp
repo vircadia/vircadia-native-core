@@ -33,11 +33,11 @@ QObject(scriptEngine),
 QScriptClass(scriptEngine) {
     qScriptRegisterMetaType<QByteArray>(engine(), toScriptValue, fromScriptValue);
     QScriptValue global = engine()->globalObject();
-    
+
     // Save string handles for quick lookup
     _name = engine()->toStringHandle(CLASS_NAME.toLatin1());
     _byteLength = engine()->toStringHandle(BYTE_LENGTH_PROPERTY_NAME.toLatin1());
-    
+
     // build prototype
     _proto = engine()->newQObject(new ArrayBufferPrototype(this),
                                 QScriptEngine::QtOwnership,
@@ -45,13 +45,13 @@ QScriptClass(scriptEngine) {
                                 QScriptEngine::ExcludeSuperClassMethods |
                                 QScriptEngine::ExcludeSuperClassProperties);
     _proto.setPrototype(global.property("Object").property("prototype"));
-    
+
     // Register constructor
     _ctor = engine()->newFunction(construct, _proto);
     _ctor.setData(engine()->toScriptValue(this));
-    
+
     engine()->globalObject().setProperty(name(), _ctor);
-    
+
     // Registering other array types
     // The script engine is there parent so it'll delete them with itself
     new DataViewClass(scriptEngine);
@@ -101,16 +101,16 @@ QScriptValue ArrayBufferClass::construct(QScriptContext* context, QScriptEngine*
     if (!arg.isValid() || !arg.isNumber()) {
         return QScriptValue();
     }
-    
+
     quint32 size = arg.toInt32();
     QScriptValue newObject = cls->newInstance(size);
-    
+
     if (context->isCalledAsConstructor()) {
         // if called with keyword new, replace this object.
         context->setThisObject(newObject);
         return engine->undefinedValue();
     }
-    
+
     return newObject;
 }
 

@@ -94,9 +94,9 @@ HMACAuth::HMACHash HMACAuth::result() {
     HMACHash hashValue(EVP_MAX_MD_SIZE);
     unsigned int hashLen;
     QMutexLocker lock(&_lock);
-    
+
     auto hmacResult = HMAC_Final(_hmacContext, &hashValue[0], &hashLen);
-    
+
     if (hmacResult) {
         hashValue.resize((size_t)hashLen);
     } else {

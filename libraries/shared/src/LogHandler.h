@@ -95,7 +95,7 @@ private:
     } while (false)
 
 #define HIFI_FDEBUG(message) HIFI_FCDEBUG((*QLoggingCategory::defaultCategory()), message)
-   
+
 #define HIFI_FCDEBUG_ID(category, messageID, message) \
     do { \
         if (category.isDebugEnabled()) { \

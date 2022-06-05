@@ -43,7 +43,7 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
             _defaultPluginName = displayPlugin->getName();
             continue;
         }
-        
+
         if (displayPlugin->isHmd()) {
             // Not all HMD's have corresponding screens
             if (displayPlugin->getHmdScreen() >= 0) {
@@ -90,7 +90,7 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
     connect(_switchModeButton, &QPushButton::clicked, [this]{
         toggleHMDMode();
     });
-    
+
     // when the application is about to quit, leave HDM mode
     connect(qApp, &Application::beforeAboutToQuit, [this]{
         // FIXME this is ineffective because it doesn't trigger the menu to
@@ -211,7 +211,7 @@ void HMDToolsDialog::screenCountChanged(int newCount) {
     if (qApp->isHMDMode() && _hmdScreenNumber != hmdScreenNumber) {
         qDebug() << "HMD Display changed WHILE IN HMD MODE";
         leaveHMDMode();
-        
+
         // if there is a new best HDM screen then go back into HDM mode after done leaving
         if (hmdScreenNumber >= 0) {
             qDebug() << "Trying to go back into HMD Mode";
@@ -254,7 +254,7 @@ void HMDWindowWatcher::windowGeometryChanged(int arg) {
 }
 
 void HMDWindowWatcher::windowScreenChanged(QScreen* screen) {
-    // if we have more than one screen, and a known hmdScreen then try to 
+    // if we have more than one screen, and a known hmdScreen then try to
     // keep our dialog off of the hmdScreen
     if (QApplication::desktop()->screenCount() > 1) {
         int hmdScreenNumber = _hmdTools->_hmdScreenNumber;
@@ -263,10 +263,10 @@ void HMDWindowWatcher::windowScreenChanged(QScreen* screen) {
             QScreen* hmdScreen = QGuiApplication::screens()[hmdScreenNumber];
             if (screen == hmdScreen) {
                 qDebug() << "HMD Tools: Whoa! What are you doing? You don't want to move me to the HMD Screen!";
-        
+
                 // try to pick a better screen
                 QScreen* betterScreen = NULL;
-        
+
                 QScreen* lastApplicationScreen = _hmdTools->getLastApplicationScreen();
                 QWindow* appWindow = qApp->getWindow()->windowHandle();
                 QScreen* appScreen = appWindow->screen();

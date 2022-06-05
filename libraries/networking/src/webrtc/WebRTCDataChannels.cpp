@@ -394,8 +394,8 @@ qint64 WDCConnection::getBufferedAmount() const {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WDCConnection::getBufferedAmount()";
 #endif
-    return _dataChannel && _dataChannel->state() != DataChannelInterface::kClosing 
-            && _dataChannel->state() != DataChannelInterface::kClosed 
+    return _dataChannel && _dataChannel->state() != DataChannelInterface::kClosing
+            && _dataChannel->state() != DataChannelInterface::kClosed
         ? _dataChannel->buffered_amount() : 0;
 }
 
@@ -407,7 +407,7 @@ bool WDCConnection::sendDataMessage(const DataBuffer& buffer) {
         qCDebug(networking_webrtc) << "No data channel to send on";
     }
 #endif
-    if (!_dataChannel || _dataChannel->state() == DataChannelInterface::kClosing 
+    if (!_dataChannel || _dataChannel->state() == DataChannelInterface::kClosing
             || _dataChannel->state() == DataChannelInterface::kClosed) {
         // Data channel may have been closed while message to send was being prepared.
         return false;
@@ -625,7 +625,7 @@ void WebRTCDataChannels::closePeerConnection(WDCConnection* connection) {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WebRTCDataChannels::closePeerConnection()";
 #endif
-    // Use Qt's signals/slots mechanism to close the peer connection on its own call stack, separate from the DataChannel 
+    // Use Qt's signals/slots mechanism to close the peer connection on its own call stack, separate from the DataChannel
     // callback that initiated the peer connection.
     // https://bugs.chromium.org/p/webrtc/issues/detail?id=3721
     emit closePeerConnectionSoon(connection);

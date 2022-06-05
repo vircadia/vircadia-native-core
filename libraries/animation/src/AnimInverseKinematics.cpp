@@ -269,7 +269,7 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
                 break;
             }
         }
-        
+
         // on last iteration, interpolate jointChains, if necessary
         if (numLoops == MAX_IK_LOOPS) {
             for (size_t i = 0; i < _prevJointChainInfoVec.size(); i++) {
@@ -357,7 +357,7 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
         bool needsInterpolation = _prevJointChainInfoVec[chainIndex].timer > 0.0f;
         float alpha = needsInterpolation ? getInterpolationAlpha(_prevJointChainInfoVec[chainIndex].timer) : 0.0f;
         // update rotationOnly targets that don't lie on the ik chain of other ik targets.
-        if (parentIndex != AnimSkeleton::INVALID_JOINT_INDEX && !_rotationAccumulators[tipIndex].isDirty() && 
+        if (parentIndex != AnimSkeleton::INVALID_JOINT_INDEX && !_rotationAccumulators[tipIndex].isDirty() &&
             (target.getType() == IKTarget::Type::RotationOnly || target.getType() == IKTarget::Type::Unknown)) {
             if (target.getType() == IKTarget::Type::RotationOnly) {
                 const glm::quat& targetRotation = target.getRotation();
