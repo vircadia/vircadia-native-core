@@ -5738,7 +5738,8 @@ void MyAvatar::FollowHelper::deactivate() {
 }
 
 void MyAvatar::FollowHelper::deactivate(CharacterController::FollowType type) {
-    assert(static_cast<int>(type) >= 0 && type < CharacterController::FollowType::Count);
+    int int_type = static_cast<int>(type);
+    assert(int_type >= 0 && int_type < static_cast<int>(CharacterController::FollowType::Count));
     _timeRemaining[(int)type] = 0.0f;
 }
 
@@ -5746,14 +5747,16 @@ void MyAvatar::FollowHelper::deactivate(CharacterController::FollowType type) {
 // eg. activate(FollowType::Rotation, true) snaps the FollowHelper's rotation immediately
 // to the rotation of its _followDesiredBodyTransform.
 void MyAvatar::FollowHelper::activate(CharacterController::FollowType type, const bool snapFollow) {
-    assert(static_cast<int>(type) >= 0 && type < CharacterController::FollowType::Count);
+    int int_type = static_cast<int>(type);
+    assert(int_type >= 0 && int_type < static_cast<int>(CharacterController::FollowType::Count));
 
     // TODO: Perhaps, the follow time should be proportional to the displacement.
     _timeRemaining[(int)type] = snapFollow ? CharacterController::FOLLOW_TIME_IMMEDIATE_SNAP : FOLLOW_TIME;
 }
 
 bool MyAvatar::FollowHelper::isActive(CharacterController::FollowType type) const {
-    assert(static_cast<int>(type) >= 0 && type < CharacterController::FollowType::Count);
+    int int_type = static_cast<int>(type);
+    assert(int_type >= 0 && int_type < static_cast<int>(CharacterController::FollowType::Count));
     return _timeRemaining[(int)type] > 0.0f;
 }
 
