@@ -508,8 +508,8 @@ void WebRTCDataChannels::onSignalingMessage(const QJsonObject& message) {
     auto data = message.value("data").isObject() ? message.value("data").toObject() : QJsonObject();
     auto from = message.value("from").toString();
     auto to = NodeType::fromChar(message.value("to").toString().at(0));
-    if (!DATA_CHANNEL_ID_REGEX.match(from).hasMatch() || to == NodeType::Unassigned 
-            || !data.contains("description") && !data.contains("candidate")) {
+    if (!DATA_CHANNEL_ID_REGEX.match(from).hasMatch() || to == NodeType::Unassigned
+            || (!data.contains("description") && !data.contains("candidate"))) {
         qCWarning(networking_webrtc) << "Invalid or unexpected signaling message:"
             << QJsonDocument(message).toJson(QJsonDocument::Compact).left(MAX_DEBUG_DETAIL_LENGTH);
         return;

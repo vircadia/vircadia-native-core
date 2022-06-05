@@ -193,7 +193,7 @@ qint64 NetworkSocket::readDatagram(char* data, qint64 maxSize, SockAddr* sockAdd
 #if defined(WEBRTC_DATA_CHANNELS)
     // Read per preceding pendingDatagramSize() if any, otherwise alternate socket types.
     if (_pendingDatagramSizeSocketType == SocketType::UDP
-        || _pendingDatagramSizeSocketType == SocketType::Unknown && _lastSocketTypeRead == SocketType::WebRTC) {
+        || (_pendingDatagramSizeSocketType == SocketType::Unknown && _lastSocketTypeRead == SocketType::WebRTC)) {
         _lastSocketTypeRead = SocketType::UDP;
         _pendingDatagramSizeSocketType = SocketType::Unknown;
         if (sockAddr) {
