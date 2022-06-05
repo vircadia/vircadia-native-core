@@ -3918,8 +3918,6 @@ glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 rig
 
 // Calculate the world-space motor velocity for the avatar.
 glm::vec3 MyAvatar::calculateScaledDirection() {
-    CharacterController::State state = _characterController.getState();
-
     // compute action input
     // Determine if we're head or controller relative...
     glm::vec3 forward, right;
