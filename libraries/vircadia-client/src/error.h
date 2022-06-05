@@ -88,4 +88,53 @@ VIRCADIA_CLIENT_DYN_API int vircadia_error_argument_invalid();
 /// @return -10
 VIRCADIA_CLIENT_DYN_API int vircadia_error_avatars_disabled();
 
+/// @brief Avatar index is invalid.
+///
+/// Specified avatar index was out of range.
+///
+/// @return -11
+VIRCADIA_CLIENT_DYN_API int vircadia_error_avatar_invalid();
+
+/// @brief Avatar attachment index is invalid.
+///
+/// Specified avatar attachment index was out of range.
+///
+/// @return -12
+VIRCADIA_CLIENT_DYN_API int vircadia_error_avatar_attachment_invalid();
+
+/// @brief Avatar joint index is invalid.
+///
+/// Specified avatar joint index was out of range.
+///
+/// @return -13
+VIRCADIA_CLIENT_DYN_API int vircadia_error_avatar_joint_invalid();
+
+/// @brief Avatar skeleton bone/joint index is invalid.
+///
+/// Specified avatar skeleton bone/joint index was out of range.
+///
+/// @return -14
+VIRCADIA_CLIENT_DYN_API int vircadia_error_avatar_bone_invalid();
+
+/// @brief Avatar grab index is invalid.
+///
+/// Specified avatar grab index was out of range.
+///
+/// @return -15
+VIRCADIA_CLIENT_DYN_API int vircadia_error_avatar_grab_invalid();
+
+/// @brief Avatar entity index is invalid.
+///
+/// Specified avatar entity index was out of range.
+///
+/// @return -16
+VIRCADIA_CLIENT_DYN_API int vircadia_error_avatar_entity_invalid();
+
+/// @brief Avatar view index is invalid.
+///
+/// Specified avatar view index was out of range.
+///
+/// @return -17
+VIRCADIA_CLIENT_DYN_API int vircadia_error_avatar_view_invalid();
+
 #endif /* end of include guard */

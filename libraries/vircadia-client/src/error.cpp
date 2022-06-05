@@ -55,3 +55,32 @@ VIRCADIA_CLIENT_DYN_API int vircadia_error_argument_invalid() {
 VIRCADIA_CLIENT_DYN_API int vircadia_error_avatars_disabled() {
     return toInt(ErrorCode::AVATARS_DISABLED);
 }
+
+VIRCADIA_CLIENT_DYN_API int vircadia_error_avatar_invalid() {
+    return toInt(ErrorCode::AVATAR_INVALID);
+}
+
+VIRCADIA_CLIENT_DYN_API int vircadia_error_avatar_attachment_invalid() {
+    return toInt(ErrorCode::AVATAR_ATTACHMENT_INVALID);
+}
+
+VIRCADIA_CLIENT_DYN_API int vircadia_error_avatar_joint_invalid() {
+    return toInt(ErrorCode::AVATAR_JOINT_INVALID);
+}
+
+VIRCADIA_CLIENT_DYN_API int vircadia_error_avatar_bone_invalid() {
+    return toInt(ErrorCode::AVATAR_BONE_INVALID);
+}
+
+VIRCADIA_CLIENT_DYN_API int vircadia_error_avatar_grab_invalid() {
+    return toInt(ErrorCode::AVATAR_GRAB_INVALID);
+}
+
+VIRCADIA_CLIENT_DYN_API int vircadia_error_avatar_entity_invalid() {
+    return toInt(ErrorCode::AVATAR_ENTITY_INVALID);
+}
+
+VIRCADIA_CLIENT_DYN_API int vircadia_error_avatar_view_invalid() {
+    return toInt(ErrorCode::AVATAR_VIEW_INVALID);
+}
+
