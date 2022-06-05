@@ -22,6 +22,7 @@
 #include <NodeList.h>
 #include <OffscreenUi.h>
 #include <UserActivityLogger.h>
+#include "WarningsSuppression.h"
 
 static const int AUTO_REFRESH_INTERVAL = 1000;
 
@@ -167,7 +168,11 @@ void AssetMappingsScriptingInterface::getAllMappings(QJSValue callback) {
 
     connect(request, &GetAllMappingsRequest::finished, this, [callback](GetAllMappingsRequest* request) mutable {
         auto mappings = request->getMappings();
+
+        OVERTE_IGNORE_DEPRECATED_BEGIN
+        // Still using QScriptEngine
         auto map = callback.engine()->newObject();
+        OVERTE_IGNORE_DEPRECATED_END
 
         for (auto& kv : mappings ) {
             map.setProperty(kv.first, kv.second.hash);

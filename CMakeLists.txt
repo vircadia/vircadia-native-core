@@ -125,6 +125,40 @@ if( NOT WIN32 )
     message($ENV{CXXFLAGS})
 endif()
 
+# OVERTE_WARNINGS
+#
+# Here we add the ability to whitelist warnings we've determined we can't fix, or are safe to
+# ignore for one reason or another. The way of doing so is compiler-specific, so we deal with
+# the detection of that in cmake, and just pass it down to the code from here.
+#
+# We can also treat warnings as errors. Without the whitelist this will almost certainly lead
+# to a build failure.
+
+if(NOT DEFINED OVERTE_WARNINGS_WHITELIST)
+    set(OVERTE_WARNINGS_WHITELIST true CACHE BOOL "Whitelist some warnings we can't currently fix")
+endif()
+
+if(NOT DEFINED OVERTE_WARNINGS_AS_ERRORS)
+    #message("Enabling warnings as errors")
+    set(OVERTE_WARNINGS_AS_ERRORS false CACHE BOOL "Count warnings as errors")
+endif()
+
+if(OVERTE_WARNINGS_WHITELIST)
+    if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+        message("GCC compiler detected, suppressing some unsolvable warnings.")
+        add_compile_definitions(OVERTE_WARNINGS_WHITELIST_GCC)
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        message("Clang compiler detected, suppressing some unsolvable warnings.")
+        add_compile_definitions(OVERTE_WARNINGS_WHITELIST_GLANG)
+    else()
+        message("We don't know yet how to whitelist warnings for ${CMAKE_CXX_COMPILER_ID}")
+    endif()
+endif()
+
+if(OVERTE_WARNINGS_AS_ERRORS)
+    set(ENV{CXXFLAGS "$ENV{CXXFLAGS} -Werror"})
+    set(ENV{CFLAGS "$ENV{CXXFLAGS} -Werror"})
+endif()
 
 
 if (HIFI_ANDROID)

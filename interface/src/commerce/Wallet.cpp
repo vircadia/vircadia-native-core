@@ -40,7 +40,12 @@
 #include "Ledger.h"
 #include "ui/SecurityImageProvider.h"
 #include "scripting/HMDScriptingInterface.h"
+#include "WarningsSuppression.h"
 
+OVERTE_IGNORE_DEPRECATED_BEGIN;
+// We're ignoring deprecated warnings in this entire file, since it's pretty much
+// entirely obsolete anyway, and probably safe to remove. But until that decision
+// is taken, we'll get the OpenSSL annoyances out of the way.
 namespace {
     const char* KEY_FILE = "hifikey";
     const char* INSTRUCTIONS_FILE = "backup_instructions.html";
@@ -950,3 +955,5 @@ void Wallet::getWalletStatus() {
         return;
     }
 }
+
+OVERTE_IGNORE_DEPRECATED_END

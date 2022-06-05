@@ -22,6 +22,7 @@
 #include <UUID.h>
 
 #include "NetworkLogging.h"
+#include "WarningsSuppression.h"
 
 #ifdef __clang__
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
@@ -120,6 +121,9 @@ QByteArray DataServerAccountInfo::getUsernameSignature(const QUuid& connectionTo
 }
 
 QByteArray DataServerAccountInfo::signPlaintext(const QByteArray& plaintext) {
+    OVERTE_IGNORE_DEPRECATED_BEGIN
+    // Deprecated OpenSSL API code -- this should be fixed eventually.
+
     if (!_privateKey.isEmpty()) {
         const char* privateKeyData = _privateKey.constData();
         RSA* rsaPrivateKey = d2i_RSAPrivateKey(NULL,
@@ -149,6 +153,7 @@ QByteArray DataServerAccountInfo::signPlaintext(const QByteArray& plaintext) {
         }
     }
     return QByteArray();
+    OVERTE_IGNORE_DEPRECATED_END
 }
 
 QDataStream& operator<<(QDataStream &out, const DataServerAccountInfo& info) {

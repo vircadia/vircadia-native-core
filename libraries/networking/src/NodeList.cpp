@@ -43,6 +43,7 @@
 #include "SharedUtil.h"
 #include <Trace.h>
 #include <ModerationFlags.h>
+#include "WarningsSuppression.h"
 
 using namespace std::chrono;
 
@@ -187,7 +188,11 @@ qint64 NodeList::sendStats(QJsonObject statsObject, SockAddr destination) {
     auto statsPacketList = NLPacketList::create(PacketType::NodeJsonStats, QByteArray(), true, true);
 
     QJsonDocument jsonDocument(statsObject);
+
+    OVERTE_IGNORE_DEPRECATED_BEGIN
+    // Can't use CBOR yet, will break protocol.
     statsPacketList->write(jsonDocument.toBinaryData());
+    OVERTE_IGNORE_DEPRECATED_END
 
     sendPacketList(std::move(statsPacketList), destination);
     return 0;

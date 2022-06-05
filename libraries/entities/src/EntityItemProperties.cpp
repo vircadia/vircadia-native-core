@@ -35,6 +35,7 @@
 #include "EntityItem.h"
 #include "ModelEntityItem.h"
 #include "PolyLineEntityItem.h"
+#include "WarningsSuppression.h"
 
 AnimationPropertyGroup EntityItemProperties::_staticAnimation;
 SkyboxPropertyGroup EntityItemProperties::_staticSkybox;
@@ -5097,6 +5098,9 @@ QByteArray EntityItemProperties::getStaticCertificateHash() const {
 // I also don't like the nested-if style, but for this step I'm deliberately preserving the similarity.
 bool EntityItemProperties::verifySignature(const QString& publicKey, const QByteArray& digestByteArray, const QByteArray& signatureByteArray) {
 
+    OVERTE_IGNORE_DEPRECATED_BEGIN
+    // We're not really verifying these anymore
+
     if (digestByteArray.isEmpty()) {
         return false;
     }
@@ -5167,6 +5171,8 @@ bool EntityItemProperties::verifySignature(const QString& publicKey, const QByte
         qCWarning(entities) << "Failed to verify signature! key" << publicKey << " EC PEM error:" << error_str;
         return false;
     }
+
+    OVERTE_IGNORE_DEPRECATED_END
 }
 
 bool EntityItemProperties::verifyStaticCertificateProperties() {
@@ -5202,7 +5208,9 @@ void EntityItemProperties::convertToCloneProperties(const EntityItemID& entityID
 bool EntityItemProperties::blobToProperties(QScriptEngine& scriptEngine, const QByteArray& blob, EntityItemProperties& properties) {
     // DANGER: this method is NOT efficient.
     // begin recipe for converting unfortunately-formatted-binary-blob to EntityItemProperties
+    OVERTE_IGNORE_DEPRECATED_BEGIN
     QJsonDocument jsonProperties = QJsonDocument::fromBinaryData(blob);
+    OVERTE_IGNORE_DEPRECATED_END
     if (jsonProperties.isEmpty() || jsonProperties.isNull() || !jsonProperties.isObject() || jsonProperties.object().isEmpty()) {
         qCDebug(entities) << "bad avatarEntityData json" << QString(blob.toHex());
         return false;
@@ -5232,7 +5240,9 @@ void EntityItemProperties::propertiesToBlob(QScriptEngine& scriptEngine, const Q
         }
     }
     jsonProperties = QJsonDocument(jsonObject);
+    OVERTE_IGNORE_DEPRECATED_BEGIN
     blob = jsonProperties.toBinaryData();
+    OVERTE_IGNORE_DEPRECATED_END
     // end recipe
 }
 
