@@ -18,8 +18,8 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import NodesList from "@Components/components/dashboard/nodes";
-import AssignmentsList from "@Components/components/dashboard/assignments";
+import NodesList from "@Components/dashboard/Nodes";
+import AssignmentsList from "@Components/dashboard/Assignments";
 
 export default defineComponent({
     name: "Index",

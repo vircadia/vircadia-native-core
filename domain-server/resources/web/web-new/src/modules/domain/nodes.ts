@@ -1,25 +1,6 @@
 import Log from "@Modules/debugging/log";
 import { doAPIGet, doAPIDelete, findErrorMsg } from "src/modules/utilities/apiHelpers";
-
-export interface IpAddress {
-    ip: string;
-    port: number;
-}
-
-export interface Node {
-    local: IpAddress;
-    pool: string;
-    public: IpAddress;
-    type: string;
-    uptime: string;
-    username: string;
-    uuid: string;
-    version: string;
-}
-
-export interface GetNodesResp {
-    "nodes": Node[],
-}
+import { GetNodesResp, Node } from "./interfaces/nodes";
 
 export const Nodes = {
 
