@@ -78,7 +78,7 @@ void AtpReply::handleRequestFinish() {
     setHeader(QNetworkRequest::ContentLengthHeader, QVariant(_content.size()));
 
     if (error() != NoError) {
-        emit error(error());
+        emit errorOccurred(error());
     }
 
     setFinished(true);
