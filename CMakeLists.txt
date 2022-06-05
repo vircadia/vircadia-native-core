@@ -139,7 +139,6 @@ if(NOT DEFINED OVERTE_WARNINGS_WHITELIST)
 endif()
 
 if(NOT DEFINED OVERTE_WARNINGS_AS_ERRORS)
-    #message("Enabling warnings as errors")
     set(OVERTE_WARNINGS_AS_ERRORS false CACHE BOOL "Count warnings as errors")
 endif()
 
