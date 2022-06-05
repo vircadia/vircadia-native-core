@@ -183,19 +183,23 @@ void outputBits(unsigned char byte, QDebug* continuedDebug) {
     }
 
     QString resultString;
+    QTextStream qts (&resultString);
+
+    qts << "[ ";
+    qts << qSetFieldWidth(3) << byte << qSetFieldWidth(0);
+    qts << qSetPadChar('0');
 
     if (isalnum(byte)) {
-        resultString.sprintf("[ %d (%c): ", byte, byte);
+        qts << " (" << QString(byte) << ")   : ";
     } else {
-        resultString.sprintf("[ %d (0x%x): ", byte, byte);
+        qts << " (0x" << Qt::hex << qSetFieldWidth(2) << byte << qSetFieldWidth(0) << "): ";
     }
-    debug << qPrintable(resultString);
-    
-    for (int i = 0; i < 8; i++) {
-        resultString.sprintf("%d", byte >> (7 - i) & 1);
-        debug << qPrintable(resultString);
-    }
-    debug << " ]";
+
+    qts << Qt::bin << qSetFieldWidth(8) << byte << qSetFieldWidth(0);
+    qts << " ]";
+
+    debug.noquote();
+    debug << resultString;
 }
 
 int numberOfOnes(unsigned char byte) {
