@@ -16,7 +16,7 @@
 #include <QObject>
 #include <QString>
 #include <QRegExp>
-#include <QMutex>
+#include <QRecursiveMutex>
 #include <vector>
 #include <memory>
 
@@ -79,7 +79,7 @@ private:
         QString repeatString;
     };
     std::vector<RepeatedMessageRecord> _repeatedMessageRecords;
-    static QMutex _mutex;
+    static QRecursiveMutex _mutex;
 };
 
 #define HIFI_FCDEBUG(category, message) \

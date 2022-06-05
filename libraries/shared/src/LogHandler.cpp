@@ -28,8 +28,9 @@
 #include <QtCore/QMutexLocker>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
+#include <QRecursiveMutex>
 
-QMutex LogHandler::_mutex(QMutex::Recursive);
+QRecursiveMutex LogHandler::_mutex;
 
 LogHandler& LogHandler::getInstance() {
     static LogHandler staticInstance;
@@ -148,7 +149,7 @@ void LogHandler::flushRepeatedMessages() {
     for (int m = 0; m < (int)_repeatedMessageRecords.size(); ++m) {
         int repeatCount = _repeatedMessageRecords[m].repeatCount;
         if (repeatCount > 1) {
-            QString repeatLogMessage = QString().setNum(repeatCount) + " repeated log entries - Last entry: \"" 
+            QString repeatLogMessage = QString().setNum(repeatCount) + " repeated log entries - Last entry: \""
                     + _repeatedMessageRecords[m].repeatString + "\"";
             printMessage(LogSuppressed, QMessageLogContext(), repeatLogMessage);
             _repeatedMessageRecords[m].repeatCount = 0;
