@@ -166,12 +166,12 @@ namespace controller {
         QJsonObject data;
         data["frameCount"] = _framesRecorded;
         data["version"] = "0.0";
-        
+
         QJsonArray actionArrayList;
         QJsonArray poseArrayList;
-        for(const ActionStates actionState: _actionStateList) {
+        for(const ActionStates& actionState: _actionStateList) {
             QJsonArray actionArray;
-            for (const auto action: actionState) {
+            for (const auto& action: actionState) {
                 QJsonObject actionJson;
                 actionJson["name"] = action.first;
                 actionJson["value"] = action.second;
@@ -180,9 +180,9 @@ namespace controller {
             actionArrayList.append(actionArray);
         }
 
-        for (const PoseStates poseState: _poseStateList) {
+        for (const PoseStates& poseState: _poseStateList) {
             QJsonArray poseArray;
-            for (const auto pose: poseState) {
+            for (const auto& pose: poseState) {
                 QJsonObject poseJson;
                 poseJson["name"] = pose.first;
                 poseJson["pose"] = poseToJsonObject(pose.second);
