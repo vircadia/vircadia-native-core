@@ -443,10 +443,13 @@ void OctreeElement::printDebugDetails(const char* label) const {
     }
 
     QString resultString;
-    resultString.sprintf("%s - Voxel at corner=(%f,%f,%f) size=%f\n isLeaf=%s isDirty=%s shouldRender=%s\n children=", label,
-                         (double)_cube.getCorner().x, (double)_cube.getCorner().y, (double)_cube.getCorner().z,
-                         (double)_cube.getScale(),
-                         debug::valueOf(isLeaf()), debug::valueOf(isDirty()), debug::valueOf(getShouldRender()));
+    qCDebug(octree).noquote() << label
+                              << QString(" - Voxel at corner=(%1,%2,%3)").arg((double)_cube.getCorner().x, (double)_cube.getCorner().y, (double)_cube.getCorner().z)
+                              << "size=" << (double)_cube.getScale()
+                              << " isLeaf=" << debug::valueOf(isLeaf())
+                              << " isDirty=" << debug::valueOf(isDirty())
+                              << " shouldRender=" << debug::valueOf(getShouldRender());
+
     qCDebug(octree).nospace() << resultString;
 }
 
