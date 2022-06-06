@@ -21,7 +21,7 @@ private:
     void beginFrame();
     void endFrame();
     void renderFrame(const std::function<void(gpu::Batch&)>& = [](gpu::Batch&) {});
-    std::vector<gpu::TexturePointer> loadTestTextures() const;
+    std::vector<std::pair<gpu::TexturePointer, glm::ivec2>> loadTestTextures() const;
 
 
 private slots:

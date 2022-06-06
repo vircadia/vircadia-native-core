@@ -38,11 +38,11 @@ std::string vertexShaderSource = R"SHADER(
 layout(location = 0) out vec2 outTexCoord0;
 
 const vec4 VERTICES[] = vec4[](
-    vec4(-1.0, -1.0, 0.0, 1.0), 
-    vec4( 1.0, -1.0, 0.0, 1.0),    
+    vec4(-1.0, -1.0, 0.0, 1.0),
+    vec4( 1.0, -1.0, 0.0, 1.0),
     vec4(-1.0,  1.0, 0.0, 1.0),
     vec4( 1.0,  1.0, 0.0, 1.0)
-);   
+);
 
 void main() {
     outTexCoord0 = VERTICES[gl_VertexID].xy;
@@ -110,8 +110,8 @@ void TextureTest::initTestCase() {
 
     _canvas.makeCurrent();
     {
-        auto VS = gpu::Shader::createVertex(vertexShaderSource);
-        auto PS = gpu::Shader::createPixel(fragmentShaderSource);
+        auto VS = gpu::Shader::createVertex(shader::Source::generate(vertexShaderSource));
+        auto PS = gpu::Shader::createPixel(shader::Source::generate(fragmentShaderSource));
         auto program = gpu::Shader::createProgram(VS, PS);
         // If the pipeline did not exist, make it
         auto state = std::make_shared<gpu::State>();
@@ -144,9 +144,9 @@ void TextureTest::cleanupTestCase() {
     _gpuContext.reset();
 }
 
-std::vector<gpu::TexturePointer> TextureTest::loadTestTextures() const {
+std::vector<std::pair<gpu::TexturePointer, glm::ivec2>> TextureTest::loadTestTextures() const {
     // Load the test textures
-    std::vector<gpu::TexturePointer> result;
+    std::vector<std::pair<gpu::TexturePointer, glm::ivec2>> result;
     size_t newTextureCount = std::min<size_t>(_textureFiles.size(), LOAD_TEXTURE_COUNT);
     for (size_t i = 0; i < newTextureCount; ++i) {
         const auto& textureFile = _textureFiles[i];
@@ -193,14 +193,14 @@ void TextureTest::testTextureLoading() {
         auto renderTexturesLamdba = [&](gpu::Batch& batch) {
             batch.setPipeline(_pipeline);
             for (const auto& texture : textures) {
-                batch.setResourceTexture(0, texture);
+                batch.setResourceTexture(0, texture.first);
                 batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
             }
         };
 
         size_t expectedAllocation = 0;
         for (const auto& texture : textures) {
-            expectedAllocation += texture->evalTotalSize();
+            expectedAllocation += texture.first->evalTotalSize();
         }
         QVERIFY(textures.size() > 0);
 
