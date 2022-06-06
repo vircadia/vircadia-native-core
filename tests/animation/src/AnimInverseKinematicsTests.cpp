@@ -30,8 +30,6 @@ const glm::quat quaterTurnAroundZ = glm::angleAxis(0.5f * PI, zAxis);
 
 void makeTestFBXJoints(HFMModel& hfmModel) {
     HFMJoint joint;
-    joint.isFree = false;
-    joint.freeLineage.clear();
     joint.parentIndex = -1;
     joint.distanceToParent = 1.0f;
 
