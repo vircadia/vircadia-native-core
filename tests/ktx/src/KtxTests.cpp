@@ -80,6 +80,10 @@ void KtxTests::testKtxSerialization() {
     std::atomic<bool> abortSignal;
     gpu::TexturePointer testTexture =
         image::TextureUsage::process2DTextureColorFromImage(std::move(image), TEST_IMAGE.toStdString(), true, gpu::BackendTarget::GL45, true, abortSignal);
+    if (!testTexture) {
+        qWarning() << "Failed to process2DTextureColorFromImage:" << TEST_IMAGE;
+        QFAIL("Failed to process2DTextureColorFromImage");
+    }
     auto ktxMemory = gpu::Texture::serialize(*testTexture, glm::ivec2(testTexture->getWidth(), testTexture->getHeight()));
     QVERIFY(ktxMemory.get());
 
