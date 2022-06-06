@@ -15,6 +15,7 @@
 #include <ktx/KTX.h>
 #include <gpu/Texture.h>
 #include <image/Image.h>
+#include <image/TextureProcessing.h>
 
 
 QTEST_GUILESS_MAIN(KtxTests)
@@ -78,8 +79,8 @@ void KtxTests::testKtxSerialization() {
     QImage image(TEST_IMAGE);
     std::atomic<bool> abortSignal;
     gpu::TexturePointer testTexture =
-        image::TextureUsage::process2DTextureColorFromImage(std::move(image), TEST_IMAGE.toStdString(), true, abortSignal);
-    auto ktxMemory = gpu::Texture::serialize(*testTexture);
+        image::TextureUsage::process2DTextureColorFromImage(std::move(image), TEST_IMAGE.toStdString(), true, gpu::BackendTarget::GL45, true, abortSignal);
+    auto ktxMemory = gpu::Texture::serialize(*testTexture, glm::ivec2(testTexture->getWidth(), testTexture->getHeight()));
     QVERIFY(ktxMemory.get());
 
     // Serialize the image to a file
