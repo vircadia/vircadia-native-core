@@ -53,8 +53,11 @@ void AnimTests::testClipInternalState() {
     float timeScale = 1.1f;
     bool loopFlag = true;
     bool mirrorFlag = false;
+    AnimBlendType blendType = AnimBlendType_Normal;
+    QString baseUrl = "";
+    float baseFrame = 0.0f;
 
-    AnimClip clip(id, url, startFrame, endFrame, timeScale, loopFlag, mirrorFlag);
+    AnimClip clip(id, url, startFrame, endFrame, timeScale, loopFlag, mirrorFlag, blendType, baseUrl, baseFrame);
 
     QVERIFY(clip.getID() == id);
     QVERIFY(clip.getType() == AnimNode::Type::Clip);
@@ -81,11 +84,15 @@ void AnimTests::testClipEvaulate() {
     float timeScale = 1.0f;
     bool loopFlag = true;
     bool mirrorFlag = false;
+    AnimBlendType blendType = AnimBlendType_Normal;
+    QString baseUrl = "";
+    float baseFrame = 0.0f;
+
 
     auto vars = AnimVariantMap();
     vars.set("FalseVar", false);
 
-    AnimClip clip(id, url, startFrame, endFrame, timeScale, loopFlag, mirrorFlag);
+    AnimClip clip(id, url, startFrame, endFrame, timeScale, loopFlag, mirrorFlag, blendType, baseUrl, baseFrame);
 
     AnimVariantMap triggers;
     clip.evaluate(vars, context, framesToSec(10.0f), triggers);
@@ -112,12 +119,16 @@ void AnimTests::testClipEvaulate() {
 void AnimTests::testClipEvaulateWithVars() {
     AnimContext context(false, false, false, glm::mat4(), glm::mat4(), 0);
     QString id = "myClipNode";
-    QString url = ExternalResource::getInstance()->getUrl(ExternalResource::Bucket::HF_Content, "/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
+    QString url = ExternalResource::getInstance()->getUrl(ExternalResource::Bucket::HF_Content, "/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx");
     float startFrame = 2.0f;
     float endFrame = 22.0f;
     float timeScale = 1.0f;
     bool loopFlag = true;
     bool mirrorFlag = false;
+    AnimBlendType blendType = AnimBlendType_Normal;
+    QString baseUrl = "";
+    float baseFrame = 0.0f;
+
 
     float startFrame2 = 22.0f;
     float endFrame2 = 100.0f;
@@ -130,7 +141,7 @@ void AnimTests::testClipEvaulateWithVars() {
     vars.set("timeScale2", timeScale2);
     vars.set("loopFlag2", loopFlag2);
 
-    AnimClip clip(id, url, startFrame, endFrame, timeScale, loopFlag, mirrorFlag);
+    AnimClip clip(id, url, startFrame, endFrame, timeScale, loopFlag, mirrorFlag, blendType, baseUrl, baseFrame);
     clip.setStartFrameVar("startFrame2");
     clip.setEndFrameVar("endFrame2");
     clip.setTimeScaleVar("timeScale2");
