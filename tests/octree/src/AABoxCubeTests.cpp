@@ -27,9 +27,8 @@ void AABoxCubeTests::raycastOutHitsXMinFace() {
     float distance;
     BoxFace face;
     glm::vec3 surfaceNormal;
-    glm::vec3 invDirection; //FIXME -- what should this be set to?
 
-    bool intersects = box.findRayIntersection(origin, direction, invDirection, distance, face, surfaceNormal);
+    bool intersects = box.findRayIntersection(origin, direction, 1.0f / direction, distance, face, surfaceNormal);
 
     QCOMPARE(intersects, true);
     QCOMPARE(distance, 0.5f);
@@ -47,10 +46,8 @@ void AABoxCubeTests::raycastOutHitsXMaxFace () {
     float distance;
     BoxFace face;
     glm::vec3 surfaceNormal;
-    glm::vec3 invDirection; //FIXME -- what should this be set to?
 
-
-    bool intersects = box.findRayIntersection(origin, direction, invDirection, distance, face, surfaceNormal);
+    bool intersects = box.findRayIntersection(origin, direction, 1.0f / direction, distance, face, surfaceNormal);
 
     QCOMPARE(intersects, true);
     QCOMPARE(distance, 0.5f);
@@ -67,9 +64,8 @@ void AABoxCubeTests::raycastInHitsXMinFace () {
     float distance;
     BoxFace face;
     glm::vec3 surfaceNormal;
-    glm::vec3 invDirection; //FIXME -- what should this be set to?
 
-    bool intersects = box.findRayIntersection(origin, direction, invDirection, distance, face, surfaceNormal);
+    bool intersects = box.findRayIntersection(origin, direction, 1.0f / direction, distance, face, surfaceNormal);
 
     QCOMPARE(intersects, true);
     QCOMPARE(distance, 0.25f);
