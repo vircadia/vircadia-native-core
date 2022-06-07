@@ -35,6 +35,11 @@
 
     #define OVERTE_IGNORE_DEPRECATED_END _Pragma("clang diagnostic pop")
 
+#elif OVERTE_WARNINGS_WHITELIST_MSVC
+
+// Nothing here yet. Avoids problems with the #warning below, MSVC doesn't like it.
+
+
 #else
 
 #warning "Don't know how to suppress warnings on this compiler. Please fix me."
