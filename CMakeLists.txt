@@ -161,8 +161,8 @@ if(OVERTE_WARNINGS_WHITELIST)
 endif()
 
 if(OVERTE_WARNINGS_AS_ERRORS)
-    set(ENV{CXXFLAGS "$ENV{CXXFLAGS} -Werror"})
-    set(ENV{CFLAGS "$ENV{CXXFLAGS} -Werror"})
+    set(ENV{CXXFLAGS} "$ENV{CXXFLAGS} -Werror")
+    set(ENV{CFLAGS} "$ENV{CXXFLAGS} -Werror")
 endif()
 
 
