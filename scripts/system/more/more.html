@@ -73,16 +73,16 @@
                 if (seachedFieldsFilter.indexOf(targeted) === -1) {
                     seachedFieldsFilter.push(targeted);
                 } else {
-                    seachedFieldsFilter = arrayRemove(seachedFieldsFilter, targeted);
+                    seachedFieldsFilter = removeElementFromArray(seachedFieldsFilter, targeted);
                 }
                 loadRecordsUpTo = NUMBER_OF_RECORDS_PER_LOAD;
                 displaySearchFieldsFilter();
                 doSearch();
             }
 
-            function arrayRemove(arr, value) {
+            function removeElementFromArray(arr, value) {
                 return arr.filter(function(ele){
-                    return ele != value;
+                    return ele !== value;
                 });
             }
 
