@@ -32,8 +32,7 @@
  * @hifi-server-entity
  *
  * @property {Vec3} position - The avatar's position.
- * @property {number} scale - The target scale of the avatar without any restrictions on permissible values imposed by the
- *     domain.
+ * @property {number} scale - The scale of the avatar. This includes any limits on permissible values imposed by the domain.
  * @property {Vec3} handPosition - A user-defined hand position, in world coordinates. The position moves with the avatar but
  *    is otherwise not used or changed by Interface.
  * @property {number} bodyPitch - The pitch of the avatar's body, in degrees.
