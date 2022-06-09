@@ -57,6 +57,8 @@ private:
 
     void processKillAvatar(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
 
+    void processKillAvatar(const QUuid&, KillAvatarReason);
+
     Derived& derived();
     const Derived& derived() const;
 

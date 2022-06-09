@@ -118,7 +118,10 @@ namespace vircadia::client
             });
 
             epitaphsOut.resize(epitaphs.size());
-            std::copy(epitaphs.begin(), epitaphs.end(), epitaphsOut.begin());
+            std::transform(epitaphs.begin(), epitaphs.end(), epitaphsOut.begin(), [](auto& epitaph) {
+                return std::pair{toUUIDArray(epitaph.first), epitaph.second};
+            });
+            epitaphs.clear();
         }
 
         {
@@ -163,10 +166,6 @@ namespace vircadia::client
         if (isNew) {
             avatars.emplace_back(sessionUUID, AvatarPtr(std::make_shared<Avatar>()));
             avatar = std::prev(avatars.end());
-            auto epitaph = std::find_if(epitaphs.begin(), epitaphs.end(), firstEquals(sessionUUID));
-            if (epitaph != epitaphs.end()) {
-                epitaphs.erase(epitaph);
-            }
         }
 
         return AvatarPtr(avatar->second, std::move(lock));
@@ -188,10 +187,6 @@ namespace vircadia::client
         AvatarPtr removed = std::move(avatar->second);
         avatars.erase(avatar);
 
-        constexpr size_t EPITAPHS_MAX = 100;
-        if (epitaphs.size() == EPITAPHS_MAX) {
-            epitaphs.erase(epitaphs.begin());
-        }
         epitaphs.emplace_back(sessionUUID, reason);
 
         return removed;
@@ -231,6 +226,8 @@ namespace vircadia::client
         // packet.
         myAvatar.data.changes.set(AvatarData::IdentityIndex);
     }
+
+    void AvatarManager::onNodeIngored(const QUuid&, bool) {}
 
 } // namespace vircadia::client
 

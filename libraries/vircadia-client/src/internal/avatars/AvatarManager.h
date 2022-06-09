@@ -49,7 +49,7 @@ namespace vircadia::client
 
         AvatarData myAvatarDataIn;
         std::vector<AvatarData> avatarDataOut;
-        std::vector<std::pair<QUuid, KillAvatarReason>> epitaphsOut;
+        std::vector<std::pair<UUID, KillAvatarReason>> epitaphsOut;
         std::vector<vircadia_conical_view_frustum> viewsIn;
 
     private:
@@ -67,6 +67,7 @@ namespace vircadia::client
         void onAvatarDataReceived(const QUuid& sessionUUID, const QByteArray& data);
         void onAvatarMixerActivated();
         void onSessionUUIDChanged(const QUuid&, const QUuid& old);
+        void onNodeIngored(const QUuid&, bool ignored);
 
 
         Avatar myAvatar;

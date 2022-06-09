@@ -81,6 +81,20 @@ AvatarPacketHandler<Derived, AvatarPtr>::AvatarPacketHandler() {
         }
     });
 
+    derived().connect(nodeList.data(), &NodeList::ignoredNode, &derived(), [this](const QUuid& nodeID, bool enabled) {
+        if (enabled) {
+            processKillAvatar(nodeID, KillAvatarReason::AvatarIgnored);
+        }
+        derived().onNodeIngored(nodeID, enabled);
+        //FIXME: CRTP interface/src/avatar/AvatarManager has similar ignored node handler with this additional logic
+        // if (!enabled) {
+        //     auto avatar = std::static_pointer_cast<Avatar>(getAvatarBySessionID(nodeID));
+        //     if (avatar) {
+        //         avatar->createOrb();
+        //     }
+        // }
+    });
+
 }
 
 template <typename Derived, typename AvatarPtr>
@@ -331,6 +345,12 @@ void AvatarPacketHandler<Derived, AvatarPtr>::processKillAvatar(QSharedPointer<R
 
     KillAvatarReason reason;
     message->readPrimitive(&reason);
+
+    processKillAvatar(sessionUUID, reason);
+}
+
+template <typename Derived, typename AvatarPtr>
+void AvatarPacketHandler<Derived, AvatarPtr>::processKillAvatar(const QUuid& sessionUUID, KillAvatarReason reason) {
     // remove any information about processed traits for this avatar
     // TODO: CRTP removeAvatar on derived returns nothing, this expects it to return the removed avatar (not replicas)
     auto removed = derived().removeAvatar(sessionUUID, reason);
