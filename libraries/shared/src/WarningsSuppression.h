@@ -37,8 +37,11 @@
 
 #elif OVERTE_WARNINGS_WHITELIST_MSVC
 
-// Nothing here yet. Avoids problems with the #warning below, MSVC doesn't like it.
+    #define OVERTE_IGNORE_DEPRECATED_BEGIN \
+        _Pragma("warning(push)") \
+        _Pragma("warning(disable : 4996)")
 
+    #define OVERTE_IGNORE_DEPRECATED_END _Pragma("warning(pop)")
 
 #else
 
