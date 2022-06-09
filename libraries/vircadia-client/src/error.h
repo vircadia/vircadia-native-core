@@ -137,4 +137,11 @@ VIRCADIA_CLIENT_DYN_API int vircadia_error_avatar_entity_invalid();
 /// @return -17
 VIRCADIA_CLIENT_DYN_API int vircadia_error_avatar_view_invalid();
 
+/// @brief Avatar disconnection index is invalid.
+///
+/// Specified avatar disconnection index was out of range.
+///
+/// @return -18
+VIRCADIA_CLIENT_DYN_API int vircadia_error_avatar_disconnection_invalid();
+
 #endif /* end of include guard */

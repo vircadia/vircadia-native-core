@@ -16,6 +16,8 @@
 #include <vector>
 #include <memory>
 
+#include <AvatarDataStream.h>
+
 #include "Common.h"
 #include "../avatars.h"
 
@@ -39,6 +41,7 @@ namespace vircadia::client {
 
         AvatarData& myAvatar();
         const std::vector<AvatarData>& all() const;
+        const std::vector<std::pair<UUID, KillAvatarReason>>& epitaphs() const;
         std::vector<vircadia_conical_view_frustum>& views();
     };
 

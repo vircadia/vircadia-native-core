@@ -714,3 +714,35 @@ vircadia_avatar_grab_result vircadia_get_avatar_grab(int context_id, int avatar_
     );
 }
 
+VIRCADIA_CLIENT_DYN_API
+int vircadia_get_avatar_disconnection_count(int context_id) {
+    return chain(checkAvatarsEnabled(context_id), [&](auto) {
+        std::next(std::begin(contexts), context_id)->avatars().epitaphs().size();
+        return 0;
+    });
+}
+
+template <typename F>
+auto validateEpitaphIndex(int context_id, int index, F&& f) {
+    return chain(checkAvatarsEnabled(context_id), [&](auto) {
+        const auto& epitaphs = std::next(std::begin(contexts), context_id)->avatars().epitaphs();
+        return chain(checkIndexValid(epitaphs, index, ErrorCode::AVATAR_EPITAPH_INVALID), [&](auto) {
+            return std::invoke(std::forward<F>(f), *std::next(std::begin(epitaphs), index));
+        });
+    });
+}
+
+VIRCADIA_CLIENT_DYN_API
+const uint8_t* vircadia_get_avatar_disconnection_uuid(int context_id, int disconnection_index) {
+    return validateEpitaphIndex(context_id, disconnection_index, [&](auto& epitaph) {
+        return epitaph.first.data();
+    });
+}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_get_avatar_disconnection_reason(int context_id, int disconnection_index) {
+    return validateEpitaphIndex(context_id, disconnection_index, [&](auto& epitaph) -> int {
+        return epitaph.second;
+    });
+}
+

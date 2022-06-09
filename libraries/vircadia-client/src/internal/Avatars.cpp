@@ -53,6 +53,11 @@ namespace vircadia::client
         return DependencyManager::get<AvatarManager>()->avatarDataOut;
     }
 
+    const std::vector<std::pair<UUID, KillAvatarReason>>& Avatars::epitaphs() const {
+        assert(isEnabled());
+        return DependencyManager::get<AvatarManager>()->epitaphsOut;
+    }
+
     std::vector<vircadia_conical_view_frustum>& Avatars::views() {
         assert(isEnabled());
         return DependencyManager::get<AvatarManager>()->viewsIn;

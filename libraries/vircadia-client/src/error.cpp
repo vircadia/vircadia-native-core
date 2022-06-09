@@ -84,3 +84,7 @@ VIRCADIA_CLIENT_DYN_API int vircadia_error_avatar_view_invalid() {
     return toInt(ErrorCode::AVATAR_VIEW_INVALID);
 }
 
+VIRCADIA_CLIENT_DYN_API int vircadia_error_avatar_disconnection_invalid() {
+    return toInt(ErrorCode::AVATAR_EPITAPH_INVALID);
+}
+

@@ -74,18 +74,16 @@ struct vircadia_transform {
 /// Used with vircadia_set_my_avatar_additional_flags() and
 /// vircadia_get_avatar_additional_flags()
 struct vircadia_avatar_additional_flags{
-    /// @brief A bit set for the pointing state of the avatars hands.
+    /// @brief A bit set for the pointing state of the avatar's hands.
     ///
     /// This controls where the laser emanates from. If the index
     /// finger is pointing the laser emanates from the tip of that
     /// finger, otherwise it emanates from the palm.
     ///
-    /// \n
-    /// Bit 0: Specifies whether the left hand pointing or not. \n
-    /// Bit 1: Specifies whether the right hand pointing or not. \n
-    /// Bit 2: Specifies whether the index finger is pointing or not \n
-    /// for the specified hand. \n
-    /// Other bits are always 0. \n
+    /// Valid values are any combination(including 0) of: \n
+    /// vircadia_avatar_left_hand_pointing() \n
+    /// vircadia_avatar_right_hand_pointing() \n
+    /// vircadia_avatar_index_finger_pointing() \n
     uint8_t hand_state;
 
     // Indicates the state of some keyboard keys (???)
@@ -269,10 +267,11 @@ struct vircadia_avatar_bone {
 
     /// @brief The type of the bone/joint.
     ///
-    /// 0 - Skeleton root. \n
-    /// 1 - Skeleton child. \n
-    /// 2 - Non skeleton root. \n
-    /// 4 - Non skeleton child. \n
+    /// Valid values:
+    /// vircadia_avatar_skeleton_root_bone() \n
+    /// vircadia_avatar_skeleton_child_bone() \n
+    /// vircadia_avatar_root_bone() \n
+    /// vircadia_avatar_child_bone()
     uint8_t type;
 
     /// @brief The default pose of the bone/joint.
@@ -1324,5 +1323,57 @@ int vircadia_get_avatar_grabs_count(int context_id, int avatar_index);
 /// @return Grab action data or a negative error code.
 VIRCADIA_CLIENT_DYN_API
 vircadia_avatar_grab_result vircadia_get_avatar_grab(int context_id, int avatar_index, int grab_index);
+
+/// @brief Gets the total count of avatar disconnections.
+///
+/// The list of disconnected avatars is updated with vircadia_update_avatars().
+/// Information of specific disconnection can be retrieved with
+/// vircadia_get_avatar_disconnection_uuid(),
+/// vircadia_get_avatar_disconnection_reason(),
+///
+/// @param context_id - The id of the context (context.h).
+///
+/// @return The count of disconnected avatars, or a negative error code. \n
+/// Possible error codes: \n
+/// vircadia_error_context_invalid() \n
+/// vircadia_error_context_loss() \n
+/// vircadia_error_avatars_disabled()
+VIRCADIA_CLIENT_DYN_API
+int vircadia_get_avatar_disconnection_count(int context_id);
+
+/// @brief Gets the UUID of specified disconnected avatar.
+///
+/// @param context_id - The id of the context (context.h).
+/// @param disconnection_index - The avatar index in the internal buffer of
+/// avatars disconnection. Must be in range
+/// (vircadia_get_avatar_disconnection_count()).
+///
+/// @return RFC4122 avatar identifier or null in case of an error.
+VIRCADIA_CLIENT_DYN_API
+const uint8_t* vircadia_get_avatar_disconnection_uuid(int context_id, int disconnection_index);
+
+/// @brief Gets the reason of specified avatar's disconnection.
+///
+/// @param context_id - The id of the context (context.h).
+/// @param disconnection_index - The index in the internal buffer of
+/// avatar disconnections. Must be in range
+/// (vircadia_get_avatar_disconnection_count()).
+///
+/// @return The reason code of avatar disconnection, or a negative error code. \n
+///
+/// Reason codes: \n
+/// vircadia_avatar_disconnection_unknown() \n
+/// vircadia_avatar_disconnection_normal() \n
+/// vircadia_avatar_disconnection_ignored() \n
+/// vircadia_avatar_disconnection_they_entered_bubble() \n
+/// vircadia_avatar_disconnection_you_entered_bubble() \n
+///
+/// Possible error codes: \n
+/// vircadia_error_context_invalid() \n
+/// vircadia_error_context_loss() \n
+/// vircadia_error_avatars_disabled() \n
+/// vircadia_error_avatar_disconnection_invalid()
+VIRCADIA_CLIENT_DYN_API
+int vircadia_get_avatar_disconnection_reason(int context_id, int disconnection_index);
 
 #endif /* end of include guard */
