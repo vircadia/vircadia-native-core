@@ -14,8 +14,6 @@
 
 #include <AvatarDataStream.h>
 
-using namespace vircadia::client;
-
 VIRCADIA_CLIENT_DYN_API uint8_t vircadia_avatar_left_hand_pointing() {
     return LEFT_HAND_POINTING_FLAG;
 }
