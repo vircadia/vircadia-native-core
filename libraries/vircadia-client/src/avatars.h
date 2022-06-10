@@ -19,6 +19,8 @@
 
 #include "common.h"
 
+// TODO: move the data types to a separate header
+
 /// @brief Defines the layout of vectors.
 struct vircadia_vector {
     /// @brief The x coordinate of the vector.

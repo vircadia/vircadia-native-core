@@ -106,12 +106,37 @@ namespace vircadia::client
 
     void AvatarManager::updateData() {
 
+        QMap<QUuid, QByteArray> myGrabData;
+        QUuid myId;
+        {
+            std::scoped_lock lock(myAvatarMutex);
+            auto previousChanges = myAvatar.data.changes;
+            auto identitySequenceNumber = myAvatar.data.identitySequenceNumber;
+
+            myAvatarDataIn.grabs.added.insert(myAvatarDataIn.grabs.added.begin(),
+                myAvatar.data.grabs.added.begin(), myAvatar.data.grabs.added.end());
+            myAvatarDataIn.grabs.removed.insert(myAvatarDataIn.grabs.removed.begin(),
+                myAvatar.data.grabs.removed.begin(), myAvatar.data.grabs.removed.end());
+
+            myAvatar.data = myAvatarDataIn;
+
+            myAvatar.data.changes |= previousChanges;
+            myAvatar.data.identitySequenceNumber = identitySequenceNumber;
+
+            myAvatarDataIn.changes.reset();
+            myAvatarDataIn.grabs.added.clear();
+            myAvatarDataIn.grabs.removed.clear();
+
+            myGrabData = myAvatar.getGrabData();
+            myId = myAvatar.getSessionUUIDOut();
+        }
+
         {
             std::scoped_lock lock(avatarsMutex);
 
             avatarDataOut.resize(avatars.size());
-            std::transform(avatars.begin(), avatars.end(), avatarDataOut.begin(), [](auto& avatar){
-                avatar.second->setGrabDataIn();
+            std::transform(avatars.begin(), avatars.end(), avatarDataOut.begin(), [&](auto& avatar){
+                avatar.second->setGrabDataIn(avatar.second->getSessionUUID() == myId ? &myGrabData : nullptr);
                 auto data = avatar.second->data;
                 avatar.second->data.changes.reset();
                 return data;
@@ -122,21 +147,6 @@ namespace vircadia::client
                 return std::pair{toUUIDArray(epitaph.first), epitaph.second};
             });
             epitaphs.clear();
-        }
-
-        {
-            std::scoped_lock lock(myAvatarMutex);
-            auto previousChanges = myAvatar.data.changes;
-            auto identitySequenceNumber = myAvatar.data.identitySequenceNumber;
-
-            myAvatar.data = myAvatarDataIn;
-
-            myAvatar.data.changes |= previousChanges;
-            myAvatar.data.identitySequenceNumber = identitySequenceNumber;
-
-            myAvatarDataIn.changes.reset();
-            myAvatarDataIn.grabs.added.clear();
-            myAvatarDataIn.grabs.removed.clear();
         }
 
         {

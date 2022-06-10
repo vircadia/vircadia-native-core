@@ -441,10 +441,13 @@ namespace vircadia::client
         }
     }
 
-    void Avatar::setGrabDataIn() {
-        data.resizeProperty<AvatarData::GrabDataIndex>(_avatarGrabData.size());
+    void Avatar::setGrabDataIn(const QMap<QUuid, QByteArray>* grabData) {
+        if (grabData == nullptr) {
+            grabData = &_avatarGrabData;
+        }
+        data.resizeProperty<AvatarData::GrabDataIndex>(grabData->size());
         int i = 0;
-        for (auto begin = _avatarGrabData.begin(); begin != _avatarGrabData.end(); ++begin) {
+        for (auto begin = grabData->begin(); begin != grabData->end(); ++begin) {
 
             Grab grab;
             grab.fromByteArray(*begin);
@@ -459,6 +462,10 @@ namespace vircadia::client
             data.setProperty<AvatarData::GrabDataIndex>(i++,
                 std::pair{ toUUIDArray(begin.key()), converted });
         }
+    }
+
+    const QMap<QUuid, QByteArray>& Avatar::getGrabData() const {
+        return _avatarGrabData;
     }
 
     void Avatar::onParseError(std::string) {

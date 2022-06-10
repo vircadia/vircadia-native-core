@@ -435,7 +435,8 @@ namespace vircadia::client
         std::vector<AvatarSkeletonTrait::UnpackedJointData> getSkeletonDataOut() const;
         void setSkeletonDataIn(std::vector<AvatarSkeletonTrait::UnpackedJointData>);
 
-        void setGrabDataIn();
+        void setGrabDataIn(const QMap<QUuid, QByteArray>* grabData = nullptr);
+        const QMap<QUuid, QByteArray>& getGrabData() const;
 
         void onGrabRemoved(QUuid);
 
