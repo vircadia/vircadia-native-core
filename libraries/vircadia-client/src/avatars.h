@@ -1376,4 +1376,23 @@ const uint8_t* vircadia_get_avatar_disconnection_uuid(int context_id, int discon
 VIRCADIA_CLIENT_DYN_API
 int vircadia_get_avatar_disconnection_reason(int context_id, int disconnection_index);
 
+/// @brief Checks if given avatar data has been updated.
+///
+/// This function checks whether an individual avatar's data has been updated
+/// by the last call to vircadia_update_avatars().
+///
+/// @param context_id - The id of the context (context.h).
+/// @param avatar_index - The index in the internal buffer of avatars. Must be
+/// in range (vircadia_get_avatar_count()).
+///
+/// @return 0 - avatar not updated, 1 - avatar updated, or a negative error code. \n
+///
+/// Possible error codes: \n
+/// vircadia_error_context_invalid() \n
+/// vircadia_error_context_loss() \n
+/// vircadia_error_avatars_disabled() \n
+/// vircadia_error_avatar_invalid()
+VIRCADIA_CLIENT_DYN_API
+int vircadia_avatar_changed(int context_id, int avatar_index);
+
 #endif /* end of include guard */

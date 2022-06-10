@@ -746,3 +746,10 @@ int vircadia_get_avatar_disconnection_reason(int context_id, int disconnection_i
     });
 }
 
+VIRCADIA_CLIENT_DYN_API
+int vircadia_avatar_changed(int context_id, int avatar_index) {
+    return validateAvatarIndex(context_id, avatar_index, [&](auto& avatar) {
+        return avatar.changes.any() ? 1 : 0;
+    });
+}
+
