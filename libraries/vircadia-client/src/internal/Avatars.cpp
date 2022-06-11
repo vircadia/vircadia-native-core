@@ -58,7 +58,7 @@ namespace vircadia::client
         return DependencyManager::get<AvatarManager>()->epitaphsOut;
     }
 
-    std::vector<vircadia_conical_view_frustum>& Avatars::views() {
+    std::vector<ConicalViewFrustumData>& Avatars::views() {
         assert(isEnabled());
         return DependencyManager::get<AvatarManager>()->viewsIn;
     }

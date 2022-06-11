@@ -15,24 +15,14 @@
 #include <NumericalConstants.h>
 #include "../ViewFrustum.h"
 
+
 void ConicalViewFrustum::set(const ViewFrustum& viewFrustum) {
-    // The ConicalViewFrustum has two parts: a central sphere (same as ViewFrustum) and a circular cone that bounds the frustum part.
-    // Why?  Because approximate intersection tests are much faster to compute for a cone than for a frustum.
-    _data.position = viewFrustum.getPosition();
-    _data.radius = viewFrustum.getCenterRadius();
-    _data.farClip = viewFrustum.getFarClip();
-
-    auto topLeft = viewFrustum.getNearTopLeft() - _data.position;
-    auto topRight = viewFrustum.getNearTopRight() - _data.position;
-    auto bottomLeft = viewFrustum.getNearBottomLeft() - _data.position;
-    auto bottomRight = viewFrustum.getNearBottomRight() - _data.position;
-    auto centerAxis = 0.25f * (topLeft + topRight + bottomLeft + bottomRight); // Take the average
-
-    _data.direction = glm::normalize(centerAxis);
-    _data.angle = std::max(std::max(angleBetween(_data.direction, topLeft),
-                               angleBetween(_data.direction, topRight)),
-                      std::max(angleBetween(_data.direction, bottomLeft),
-                               angleBetween(_data.direction, bottomRight)));
+    _data.set(ViewFrustum.getPosition(), viewFrustum.getCenterRadius(), viewFrustum.getFarClip(), {
+        viewFrustum.getNearTopLeft(),
+        viewFrustum.getNearTopRight(),
+        viewFrustum.getNearBottomLeft(),
+        viewFrustum.getNearBottomRight(),
+    });
 }
 
 void ConicalViewFrustum::calculate() {

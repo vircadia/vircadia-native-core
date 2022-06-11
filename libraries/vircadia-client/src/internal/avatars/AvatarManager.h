@@ -50,7 +50,7 @@ namespace vircadia::client
         AvatarData myAvatarDataIn;
         std::vector<AvatarData> avatarDataOut;
         std::vector<std::pair<UUID, KillAvatarReason>> epitaphsOut;
-        std::vector<vircadia_conical_view_frustum> viewsIn;
+        std::vector<ConicalViewFrustumData> viewsIn;
 
     private:
         friend class AvatarPacketHandler<AvatarManager, AvatarPtr>;

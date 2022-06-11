@@ -19,6 +19,8 @@
 #include "internal/avatars/AvatarData.h"
 #include "internal/avatars/GLMHelpers.h"
 
+#include <shared/ConicalViewFrustumData.h>
+
 using namespace vircadia::client;
 
 using vircadia::client::operator==;
@@ -444,7 +446,33 @@ int vircadia_set_avatar_view(int context_id, int view_index, vircadia_conical_vi
     return chain(checkAvatarsEnabled(context_id), [&](auto) {
         auto& views = std::next(std::begin(contexts), context_id)->avatars().views();
         return chain(checkIndexValid(views, view_index, ErrorCode::AVATAR_VIEW_INVALID), [&](auto) {
-            views[view_index] = view_frustum;
+            views[view_index] = ConicalViewFrustumData {
+                glmVec3From(view_frustum.position),
+                glmVec3From(view_frustum.direction),
+                view_frustum.angle,
+                view_frustum.radius,
+                view_frustum.far_clip
+            };
+            return 0;
+        });
+    });
+}
+
+int vircadia_set_avatar_view_corners(int context_id, int view_index, vircadia_view_frustum_corners view_frustum_corners) {
+    return chain(checkAvatarsEnabled(context_id), [&](auto) {
+        auto& views = std::next(std::begin(contexts), context_id)->avatars().views();
+        return chain(checkIndexValid(views, view_index, ErrorCode::AVATAR_VIEW_INVALID), [&](auto) {
+            views[view_index].set(
+                glmVec3From(view_frustum_corners.position),
+                view_frustum_corners.radius,
+                view_frustum_corners.far_clip,
+                {
+                    glmVec3From(view_frustum_corners.near_top_left),
+                    glmVec3From(view_frustum_corners.near_top_right),
+                    glmVec3From(view_frustum_corners.near_bottom_left),
+                    glmVec3From(view_frustum_corners.near_bottom_right)
+                }
+            );
             return 0;
         });
     });

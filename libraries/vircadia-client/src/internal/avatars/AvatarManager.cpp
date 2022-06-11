@@ -151,16 +151,7 @@ namespace vircadia::client
 
         {
             std::scoped_lock lock(viewsMutex);
-            views.resize(viewsIn.size());
-            std::transform(viewsIn.begin(), viewsIn.end(), views.begin(), [](const auto& view) {
-                return ConicalViewFrustumData {
-                    glmVec3From(view.position),
-                    glmVec3From(view.direction),
-                    view.angle,
-                    view.radius,
-                    view.far_clip
-                };
-            });
+            views = viewsIn;
         }
 
     }

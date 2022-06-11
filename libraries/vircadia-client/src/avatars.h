@@ -379,6 +379,37 @@ struct vircadia_conical_view_frustum {
 
 };
 
+/// @brief Defines the layout of view frustum.
+///
+/// This is a representation of a view frustum based on near clip plane
+/// corners.
+///
+/// Used with vircadia_set_avatar_view_corners().
+struct vircadia_view_frustum_corners {
+
+    /// @brief The position of the viewer.
+    vircadia_vector position;
+
+    /// @brief The radius of the sphere around the viewer.
+    float radius;
+
+    /// @brief The far clip plane of the view.
+    float far_clip;
+
+    /// @brief The top left corner of the near clip plane.
+    vircadia_vector near_top_left;
+
+    /// @brief The top right corner of the near clip plane.
+    vircadia_vector near_top_right;
+
+    /// @brief The bottom left corner of the near clip plane.
+    vircadia_vector near_bottom_left;
+
+    /// @brief The bottom right corner of the near clip plane.
+    vircadia_vector near_bottom_right;
+
+};
+
 /// @brief Enable handling of avatars.
 ///
 /// Avatar data will be received/sent from/to internal buffers accessible
@@ -895,9 +926,10 @@ int vircadia_my_avatar_release_grab(int context_id, const uint8_t* uuid);
 /// @brief Sets the total count of camera views to be sent to the mixer.
 ///
 /// The mixer will use these to cull the avatar data sent back to the client.
-/// The individual view data can be set with vircadia_set_avatar_view().
-/// Increasing the count from the previously set value preserves the data.
-/// Decreasing the count erases the data past the newly set value.
+/// The individual view data can be set with vircadia_set_avatar_view() or
+/// vircadia_set_avatar_view_corners(). Increasing the count from the
+/// previously set value preserves the data. Decreasing the count erases the
+/// data past the newly set value.
 ///
 /// @param context_id - The id of the context (context.h).
 /// @param view_count - The count of camera views. Must not be negative.
@@ -911,7 +943,7 @@ int vircadia_my_avatar_release_grab(int context_id, const uint8_t* uuid);
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_avatar_view_count(int context_id, int view_count);
 
-/// @brief Sets the camera vie data at a specified index to be sent to the
+/// @brief Sets the camera view data at a specified index to be sent to the
 /// mixer.
 ///
 /// @param context_id - The id of the context (context.h).
@@ -927,6 +959,27 @@ int vircadia_set_avatar_view_count(int context_id, int view_count);
 /// vircadia_error_avatar_view_invalid()
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_avatar_view(int context_id, int view_index, vircadia_conical_view_frustum view_frustum);
+
+/// @brief Sets the camera view data at a specified index to be sent to the
+/// mixer.
+///
+/// Unlike vircadia_set_avatar_view(), this function accepts usual rectangular
+/// near plane corners instead of direction and angle of the cone and performs
+/// a conversion under the hood.
+///
+/// @param context_id - The id of the context (context.h).
+/// @param view_index - The index of the view. Must be in range set by
+/// vircadia_set_avatar_view_count().
+/// @param view_frustum_corners - The corner data of the camera view frustum.
+///
+/// @return 0 on success, or a negative error code. \n
+/// Possible error codes: \n
+/// vircadia_error_context_invalid() \n
+/// vircadia_error_context_loss() \n
+/// vircadia_error_avatars_disabled() \n
+/// vircadia_error_avatar_view_invalid()
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_avatar_view_corners(int context_id, int view_index, vircadia_view_frustum_corners view_frustum_corners);
 
 /// @brief Gets the total count of avatars in the current domain.
 ///

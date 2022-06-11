@@ -57,3 +57,21 @@ bool ConicalViewFrustumData::isVerySimilar(const ConicalViewFrustumData& other) 
             closeEnough(radius, other.radius, MIN_RELATIVE_ERROR);
 }
 
+void ConicalViewFrustumData::set(glm::vec3 position, float radius, float farClip, std::array<glm::vec3, 4> nearCorners) {
+    this->position = position;
+    this->radius = radius;
+    this->farClip = farClip;
+
+    auto topLeft = nearCorners[0] - position;
+    auto topRight = nearCorners[1] - position;
+    auto bottomLeft = nearCorners[2] - position;
+    auto bottomRight = nearCorners[3] - position;
+    auto centerAxis = 0.25f * (topLeft + topRight + bottomLeft + bottomRight); // Take the average
+
+    direction = glm::normalize(centerAxis);
+    angle = std::max(std::max(angleBetween(direction, topLeft),
+                               angleBetween(direction, topRight)),
+                      std::max(angleBetween(direction, bottomLeft),
+                               angleBetween(direction, bottomRight)));
+}
+
