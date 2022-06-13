@@ -17,7 +17,7 @@
 
 
 void ConicalViewFrustum::set(const ViewFrustum& viewFrustum) {
-    _data.set(ViewFrustum.getPosition(), viewFrustum.getCenterRadius(), viewFrustum.getFarClip(), {
+    _data.set(viewFrustum.getPosition(), viewFrustum.getCenterRadius(), viewFrustum.getFarClip(), {
         viewFrustum.getNearTopLeft(),
         viewFrustum.getNearTopRight(),
         viewFrustum.getNearBottomLeft(),
