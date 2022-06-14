@@ -2859,17 +2859,17 @@ QByteArray AvatarData::toFrame(const AvatarData& avatar) {
         qCDebug(avatars).noquote() << QJsonDocument(obj).toJson(QJsonDocument::JsonFormat::Indented);
     }
 #endif
-    OVERTE_IGNORE_DEPRECATED_BEGIN
+    IGNORE_DEPRECATED_BEGIN
     // Can't use CBOR yet, would break the protocol
     return QJsonDocument(root).toBinaryData();
-    OVERTE_IGNORE_DEPRECATED_END
+    IGNORE_DEPRECATED_END
 }
 
 
 void AvatarData::fromFrame(const QByteArray& frameData, AvatarData& result, bool useFrameSkeleton) {
-    OVERTE_IGNORE_DEPRECATED_BEGIN
+    IGNORE_DEPRECATED_BEGIN
     QJsonDocument doc = QJsonDocument::fromBinaryData(frameData);
-    OVERTE_IGNORE_DEPRECATED_END
+    IGNORE_DEPRECATED_END
 
 #ifdef WANT_JSON_DEBUG
     {
@@ -3196,9 +3196,9 @@ QScriptValue AvatarEntityMapToScriptValue(QScriptEngine* engine, const AvatarEnt
     QScriptValue obj = engine->newObject();
     for (auto entityID : value.keys()) {
         QByteArray entityProperties = value.value(entityID);
-        OVERTE_IGNORE_DEPRECATED_BEGIN
+        IGNORE_DEPRECATED_BEGIN
         QJsonDocument jsonEntityProperties = QJsonDocument::fromBinaryData(entityProperties);
-        OVERTE_IGNORE_DEPRECATED_END
+        IGNORE_DEPRECATED_END
         if (!jsonEntityProperties.isObject()) {
             qCDebug(avatars) << "bad AvatarEntityData in AvatarEntityMap" << QString(entityProperties.toHex());
         }
@@ -3222,9 +3222,9 @@ void AvatarEntityMapFromScriptValue(const QScriptValue& object, AvatarEntityMap&
         QScriptValue scriptEntityProperties = itr.value();
         QVariant variantEntityProperties = scriptEntityProperties.toVariant();
         QJsonDocument jsonEntityProperties = QJsonDocument::fromVariant(variantEntityProperties);
-        OVERTE_IGNORE_DEPRECATED_BEGIN
+        IGNORE_DEPRECATED_BEGIN
         QByteArray binaryEntityProperties = jsonEntityProperties.toBinaryData();
-        OVERTE_IGNORE_DEPRECATED_END
+        IGNORE_DEPRECATED_END
         value[EntityID] = binaryEntityProperties;
     }
 }

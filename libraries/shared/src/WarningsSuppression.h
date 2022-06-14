@@ -19,35 +19,35 @@
  */
 
 
-#ifdef OVERTE_WARNINGS_WHITELIST_GCC
+#ifdef WARNINGS_WHITELIST_GCC
 
-    #define OVERTE_IGNORE_DEPRECATED_BEGIN \
+    #define IGNORE_DEPRECATED_BEGIN \
         _Pragma("GCC diagnostic push") \
         _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
 
-    #define OVERTE_IGNORE_DEPRECATED_END _Pragma("GCC diagnostic pop")
+    #define IGNORE_DEPRECATED_END _Pragma("GCC diagnostic pop")
 
-#elif OVERTE_WARNINGS_WHITELIST_CLANG
+#elif WARNINGS_WHITELIST_CLANG
 
-    #define OVERTE_IGNORE_DEPRECATED_BEGIN \
+    #define IGNORE_DEPRECATED_BEGIN \
         _Pragma("clang diagnostic push") \
         _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"")
 
-    #define OVERTE_IGNORE_DEPRECATED_END _Pragma("clang diagnostic pop")
+    #define IGNORE_DEPRECATED_END _Pragma("clang diagnostic pop")
 
-#elif OVERTE_WARNINGS_WHITELIST_MSVC
+#elif WARNINGS_WHITELIST_MSVC
 
-    #define OVERTE_IGNORE_DEPRECATED_BEGIN \
+    #define IGNORE_DEPRECATED_BEGIN \
         _Pragma("warning(push)") \
         _Pragma("warning(disable : 4996)")
 
-    #define OVERTE_IGNORE_DEPRECATED_END _Pragma("warning(pop)")
+    #define IGNORE_DEPRECATED_END _Pragma("warning(pop)")
 
 #else
 
 #warning "Don't know how to suppress warnings on this compiler. Please fix me."
 
-#define OVERTE_IGNORE_DEPRECATED_BEGIN
-#define OVERTE_IGNORE_DEPRECATED_END
+#define IGNORE_DEPRECATED_BEGIN
+#define IGNORE_DEPRECATED_END
 
 #endif

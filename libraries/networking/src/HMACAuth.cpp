@@ -20,7 +20,7 @@
 #include "WarningsSuppression.h"
 
 
-OVERTE_IGNORE_DEPRECATED_BEGIN
+IGNORE_DEPRECATED_BEGIN
 // Qt provides HMAC, do we actually need this here?
 // But for the time being, suppress this.
 
@@ -122,4 +122,4 @@ bool HMACAuth::calculateHash(HMACHash& hashResult, const char* data, int dataLen
     return true;
 }
 
-OVERTE_IGNORE_DEPRECATED_END
+IGNORE_DEPRECATED_END

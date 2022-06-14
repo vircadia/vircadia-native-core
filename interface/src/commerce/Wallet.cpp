@@ -42,7 +42,7 @@
 #include "scripting/HMDScriptingInterface.h"
 #include "WarningsSuppression.h"
 
-OVERTE_IGNORE_DEPRECATED_BEGIN;
+IGNORE_DEPRECATED_BEGIN;
 // We're ignoring deprecated warnings in this entire file, since it's pretty much
 // entirely obsolete anyway, and probably safe to remove. But until that decision
 // is taken, we'll get the OpenSSL annoyances out of the way.
@@ -956,4 +956,4 @@ void Wallet::getWalletStatus() {
     }
 }
 
-OVERTE_IGNORE_DEPRECATED_END
+IGNORE_DEPRECATED_END

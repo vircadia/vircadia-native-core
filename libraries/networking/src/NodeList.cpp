@@ -189,10 +189,10 @@ qint64 NodeList::sendStats(QJsonObject statsObject, SockAddr destination) {
 
     QJsonDocument jsonDocument(statsObject);
 
-    OVERTE_IGNORE_DEPRECATED_BEGIN
+    IGNORE_DEPRECATED_BEGIN
     // Can't use CBOR yet, will break protocol.
     statsPacketList->write(jsonDocument.toBinaryData());
-    OVERTE_IGNORE_DEPRECATED_END
+    IGNORE_DEPRECATED_END
 
     sendPacketList(std::move(statsPacketList), destination);
     return 0;

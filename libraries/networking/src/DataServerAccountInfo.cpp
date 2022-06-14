@@ -121,7 +121,7 @@ QByteArray DataServerAccountInfo::getUsernameSignature(const QUuid& connectionTo
 }
 
 QByteArray DataServerAccountInfo::signPlaintext(const QByteArray& plaintext) {
-    OVERTE_IGNORE_DEPRECATED_BEGIN
+    IGNORE_DEPRECATED_BEGIN
     // Deprecated OpenSSL API code -- this should be fixed eventually.
 
     if (!_privateKey.isEmpty()) {
@@ -153,7 +153,7 @@ QByteArray DataServerAccountInfo::signPlaintext(const QByteArray& plaintext) {
         }
     }
     return QByteArray();
-    OVERTE_IGNORE_DEPRECATED_END
+    IGNORE_DEPRECATED_END
 }
 
 QDataStream& operator<<(QDataStream &out, const DataServerAccountInfo& info) {

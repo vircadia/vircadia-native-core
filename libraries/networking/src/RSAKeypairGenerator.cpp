@@ -23,7 +23,7 @@
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
-OVERTE_IGNORE_DEPRECATED_BEGIN
+IGNORE_DEPRECATED_BEGIN
 // Deprecated OpenSSL functions being used here.
 // Should look into modernizing this.
 
@@ -106,4 +106,4 @@ void RSAKeypairGenerator::generateKeypair() {
     emit generatedKeypair(_publicKey, _privateKey);
 }
 
-OVERTE_IGNORE_DEPRECATED_END
+IGNORE_DEPRECATED_END
