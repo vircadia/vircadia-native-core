@@ -32,7 +32,7 @@ To produce an executable installer on Windows, the following are required:
     1. Extract Zip
     1. Copy `Include\nsProcess.nsh` to `C:\Program Files (x86)\NSIS\Include\`
     1. Copy `Plugins\nsProcess.dll` to `C:\Program Files (x86)\NSIS\Plugins\x86-ansi\`
-    1. Copy `Plugins\nsProcessW.dll` to `C:\Program Files (x86)\NSIS\Plugins\x86-unicode\` and rename the filename to nsProcess.dll (remove the 'W' charactor)
+    1. Copy `Plugins\nsProcessW.dll` to `C:\Program Files (x86)\NSIS\Plugins\x86-unicode\` and rename the filename to `nsProcess.dll` (remove the 'W' character)
 
 1. [InetC Plug-in for Nullsoft](http://nsis.sourceforge.net/Inetc_plug-in) - 1.0
     1. Extract Zip
