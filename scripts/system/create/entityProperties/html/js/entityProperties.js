@@ -2350,7 +2350,7 @@ function createDragEndFunction(property) {
 }
 
 function createEmitNumberPropertyUpdateFunction(property) {
-    return function() {       
+    return function() {
         let value = parseFloat(applyOutputNumberPropertyModifiers(parseFloat(this.value), property.data));
         updateProperty(property.name, value, property.isParticleProperty);
     };
@@ -4222,7 +4222,6 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
                             property.elInput.checked = inverse ? !subPropertyValue : subPropertyValue;
                             property.elInput.classList.remove('multi-diff');
                         }
-
                     } else {
                         if (isMultiDiffValue) {
                             property.elInput.checked = false;
