@@ -834,6 +834,17 @@ const GROUPS = [
                 propertyID: "intensity",
             },
             {
+                label: "Distance", //This is a shortcut to set the "dimensions.z" property for a more intuitive UI.
+                type: "number-draggable",
+                min: 0,
+                max: 64000,
+                step: 0.01,
+                decimals: 4,
+                unit: "m",
+                propertyID: "lightDistance",
+                propertyName: "dimensions.z", // actual entity property name
+            },            
+            {
                 label: "Fall-Off Radius",
                 type: "number-draggable",
                 min: 0,
@@ -2339,7 +2350,7 @@ function createDragEndFunction(property) {
 }
 
 function createEmitNumberPropertyUpdateFunction(property) {
-    return function() {
+    return function() {       
         let value = parseFloat(applyOutputNumberPropertyModifiers(parseFloat(this.value), property.data));
         updateProperty(property.name, value, property.isParticleProperty);
     };
@@ -4410,6 +4421,7 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
         if (doSelectElement && typeof activeElement.select !== "undefined") {
             activeElement.select();
         }
+
     }
 }
 
