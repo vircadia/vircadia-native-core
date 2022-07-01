@@ -380,8 +380,11 @@
     "intensity": {
         "tooltip": "The brightness of the light."
     },
+    "lightDistance": {
+        "tooltip": "The distance in meters from the light's center where the light ends."
+    },
     "falloffRadius": {
-        "tooltip": "The distance from the light's center where the intensity is reduced."
+        "tooltip": "The distance in meters from the light's center where the intensity is reduced."
     },
     "isSpotlight": {
         "tooltip": "If enabled, then the light is directional, otherwise the light is a point light which emits light in all directions."
