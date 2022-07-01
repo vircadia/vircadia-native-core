@@ -4420,7 +4420,6 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
         if (doSelectElement && typeof activeElement.select !== "undefined") {
             activeElement.select();
         }
-
     }
 }
 
