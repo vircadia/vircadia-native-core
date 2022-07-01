@@ -49,7 +49,7 @@ To produce an executable installer on Windows, the following are required:
 1. [nsisSlideshow Plug-in for Nullsoft](<http://wiz0u.free.fr/prog/nsisSlideshow/>) - 1.7
    1.  Extract Zip
    1.  Copy `bin\nsisSlideshow.dll` to `C:\Program Files (x86)\NSIS\Plugins\x86-ansi\`
-   1.  Copy `bin\nsisSlideshowW.dll` to `C:\Program Files (x86)\NSIS\Plugins\x86-unicode\` and rename the filename to nsisSlideshow.dll (remove the 'W' charactor)
+   1.  Copy `bin\nsisSlideshowW.dll` to `C:\Program Files (x86)\NSIS\Plugins\x86-unicode\` and rename the filename to `nsisSlideshow.dll` (remove the 'W' character)
 
 1. [Nsisunz plug-in for Nullsoft](http://nsis.sourceforge.net/Nsisunz_plug-in)
    1.  Download both Zips and unzip
