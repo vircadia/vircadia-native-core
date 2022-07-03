@@ -17,6 +17,7 @@
 class Plugin : public QObject {
     Q_OBJECT
 public:
+    // NOTE: for audio plugins this is a unique identifier used in format negotiation network packets
     /// \return human-readable name
     virtual const QString getName() const = 0;
 
