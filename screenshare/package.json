@@ -18,7 +18,7 @@
   },
   "homepage": "https://github.com/highfidelity/hifi#readme",
   "devDependencies": {
-    "electron": "^13.6.6",
+    "electron": "^15.5.5",
     "electron-packager": "^14.0.6"
   },
   "dependencies": {

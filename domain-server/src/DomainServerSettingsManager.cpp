@@ -1349,6 +1349,7 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
 
             connection->respond(HTTPConnection::StatusCode200, QJsonDocument(currentDomainSettingsJSON).toJson(),
                                 "application/force-download", downloadHeaders);
+            return true;
         }
     }
 

@@ -17,7 +17,8 @@
         <link rel="stylesheet" type="text/css" href="../../../html/css/edit-style.css">
         <link rel="stylesheet" type="text/css" href="../../../html/css/colpick.css">
         <link rel="stylesheet" type="text/css" href="../../../html/css/jsoneditor.css">
-        <link rel="stylesheet" type="text/css" href="../../../html/css/tabs.css">    
+        <link rel="stylesheet" type="text/css" href="../../../html/css/tabs.css">
+        <link rel="stylesheet" type="text/css" href="../../../html/css/materialAssistant.css">
         <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
         <script src="../../../html/js/jquery-2.1.4.min.js"></script>
         <script type="text/javascript" src="../../../html/js/colpick.js"></script>
@@ -29,7 +30,8 @@
         <script type="text/javascript" src="js/underscore-min.js"></script>
         <script type="text/javascript" src="js/createAppTooltip.js"></script>
         <script type="text/javascript" src="js/draggableNumber.js"></script>
-        <script type="text/javascript" src="js/entityProperties.js"></script>    
+        <script type="text/javascript" src="js/entityProperties.js"></script>
+        <script type="text/javascript" src="js/materialAssistant.js"></script> 
     </head>
     <body onload='loaded();'>
         <div id="properties-list">
@@ -59,5 +61,137 @@
                 </tr>
             </table>
         </div>
+        <div id="uiMaterialAssistant" style="display: none;">
+            <div id="uiMaterialAssistant-sidewalk">
+
+                <div id="uiMaterialAssistant-formContainer">
+                    <div id="uiMaterialAssistant-headerContainer">
+                        <div style="width: 85%; text-align: left;"><font class="uiMaterialAssistant-title">MATERIAL DATA</font></div>
+                        <div style="width: 15%; text-align: right;"><span id="uiMaterialAssistant-closeButton">&#10006;</span></div>
+                    </div>
+
+                    <div class="uiMaterialAssistant-group">
+                        <font class="uiMaterialAssistant-label">Name:&nbsp;</font>
+                        <input name = "ma-name" id = "ma-name" type = "text" class="uiMaterialAssistant-input" style= "width: 90%;">
+                    </div>
+                    
+                    <div class="uiMaterialAssistant-group">
+                        <button class="uiMaterialAssistant-active" id="ma-albedo-isActive"></button>
+                        <font class="uiMaterialAssistant-label">Albedo (Color): </font>
+                        <div id="ma-albedo-colorPicker" class="uiMaterialAssistant-color-picker"></div>
+                        <br><br>
+                        <button class="uiMaterialAssistant-active" id="ma-albedoMap-isActive"></button>
+                        <font class="uiMaterialAssistant-label">Albedo Map (RGB) URL: </font>
+                        <input name = "ma-albedoMap" id = "ma-albedoMap" class="uiMaterialAssistant-input" type = "text" style= "width:100%;"><br>
+                        <font class="uiMaterialAssistant-Explain">The Albedo (Color) can be used to tint the texture of the Albedo Map.</font>
+                    </div>
+                    
+                    <div class="uiMaterialAssistant-group">
+                        <button class="uiMaterialAssistant-active" id="ma-metallic-isActive"></button>
+                        <font class="uiMaterialAssistant-label">Metallic: </font>
+                        <input class="uiMaterialAssistant-input" name = "ma-metallic" id = "ma-metallic" readonly type = "text" size = "5"><br> 
+                        <input type="range"  style="width:100%;" min="1" max="1000" value="1" class="uiMaterialAssistant-slider" name = "ma-metallic-slider" id = "ma-metallic-slider"><br>
+                        <div style="width: 100%; display: flex;">
+                            <div style="width: 15%; text-align: left;"><font class = "uiMaterialAssistant-Explain">|&lt; Nonmetal</font></div>
+                            <div style="width: 15%; text-align: left;"><font class = "uiMaterialAssistant-Explain">| Hair</font></div>
+                            <div style="width: 60%; text-align: left;"><font class = "uiMaterialAssistant-Explain">| Chitin</font></div>
+                            <div style="width: 10%; text-align: right;"><font class = "uiMaterialAssistant-Explain">Metal &gt;|</font></div>
+                        </div><br>
+                        <font class="uiMaterialAssistant-label">Metallic Map (Grayscale) URL: </font>
+                        <input name = "ma-metallicMap" id = "ma-metallicMap" class="uiMaterialAssistant-input" type = "text" style= "width:100%;">
+                    </div>
+                    
+                    <div class="uiMaterialAssistant-group">
+                        <button class="uiMaterialAssistant-active" id="ma-roughness-isActive"></button>
+                        <font class="uiMaterialAssistant-label">Roughness:</font> 
+                        <input name = "ma-roughness" id = "ma-roughness" readonly class="uiMaterialAssistant-input" type = "text" size = "5"><br>
+                        <input type="range"  style="width:100%;" min="0" max="1000" value="0" class="uiMaterialAssistant-slider" name = "ma-roughness-slider" id = "ma-roughness-slider"><br>
+                        <div style="width: 100%; display: flex;">
+                            <div style="width: 50%; text-align: left;"><font class = "uiMaterialAssistant-Explain">|&lt; Glossy, polished, lustrous</font></div>
+                            <div style="width: 50%; text-align: right;"><font class = "uiMaterialAssistant-Explain">Unpolished, mat, rough &gt;|</font></div>
+                        </div><br>
+                        <font class="uiMaterialAssistant-label">Roughness Map (Grayscale) URL: </font>
+                        <input name = "ma-roughnessMap" id = "ma-roughnessMap" class="uiMaterialAssistant-input" type = "text" style= "width:100%;">
+                    </div>
+                    
+                    <div class="uiMaterialAssistant-group">
+                        <button class="uiMaterialAssistant-active" id="ma-normalMap-isActive"></button>
+                        <font class="uiMaterialAssistant-label">Normal Map URL: </font>
+                        <input name = "ma-normalMap" id = "ma-normalMap" class="uiMaterialAssistant-input" type = "text" style= "width:100%;">
+                    </div>
+                    
+                    <div class="uiMaterialAssistant-group">
+                        <button class="uiMaterialAssistant-active" id="ma-opacity-isActive"></button>
+                        <font class="uiMaterialAssistant-label">Opacity: </font> 
+                        <input name = "ma-opacity" id = "ma-opacity" readonly class="uiMaterialAssistant-input" type = "text" size = "5"><br>
+                        <input type="range"  style="width:100%;" min="0" max="1000" value="0" class="uiMaterialAssistant-slider" name = "ma-opacity-slider" id = "ma-opacity-slider"><br>
+                        <div style="width: 100%; display: flex;">
+                            <div style="width: 50%; text-align: left;"><font class = "uiMaterialAssistant-Explain">|&lt; Transparent</font></div>
+                            <div style="width: 50%; text-align: right;"><font class = "uiMaterialAssistant-Explain">Opaque &gt;|</font></div>
+                        </div>
+                        <br>
+                        <font class="uiMaterialAssistant-label">Opacity Map Mode:</font><br><br>
+                        <input type="radio" class="uiMaterialAssistant-radio" checked name = "ma-opacityMapMode" id = "ma-opacityMapMode-dont" value = "OPACITY_MAP_OPAQUE"> Do not used&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        <input type="radio" class="uiMaterialAssistant-radio" name = "ma-opacityMapMode" id = "ma-opacityMapMode-mask" value = "OPACITY_MAP_MASK"> Cut off mask&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        <input type="radio" class="uiMaterialAssistant-radio" name = "ma-opacityMapMode" id = "ma-opacityMapMode-blend" value = "OPACITY_MAP_BLEND"> Blend<br>
+                        <font class="uiMaterialAssistant-Explain"><br>Note: For an opacity map, the alpha layer of the Albedo Map will be used.<br>
+                        'Blend' mode will used the alpha value to determine the opacity of a pixel.<br>
+                        'Cut off mask' mode will use the 'Cut off threshold' to determine if a pixel will be opaque or transparent, based on the alpha value from the map.</font><br><br>
+                        <font class="uiMaterialAssistant-label">Cut Off Threshold: </font>
+                        <input name = "ma-opacityCutoff" id = "ma-opacityCutoff" readonly class="uiMaterialAssistant-input" type = "text" size = "5"><br>
+                        <input type="range"  style="width:100%;" min="0" max="1000" value="0" class="uiMaterialAssistant-slider" name = "ma-opacityCutoff-slider" id = "ma-opacityCutoff-slider"><br>
+                        <div style="width: 100%; display: flex;">
+                            <div style="width: 50%; text-align: left;"><font class = "uiMaterialAssistant-Explain">|&lt; Transparent</font></div>
+                            <div style="width: 50%; text-align: right;"><font class = "uiMaterialAssistant-Explain">Opaque &gt;|</font></div>
+                        </div>
+                    </div>
+                    
+                    <div class="uiMaterialAssistant-group">
+                        <div style="width: 100%; display: flex;">
+                            <div style="width: 70%; text-align: left;">
+                                <button class="uiMaterialAssistant-active" id="ma-emissive-isActive"></button>
+                                <font class="uiMaterialAssistant-label">Emissive: </font>
+                                <div id="ma-emissive-colorPicker" class="uiMaterialAssistant-color-picker"></div>                           
+                            </div>
+                            <div style="width: 30%; text-align: left;">
+                                <input type="checkbox" class="uiMaterialAssistant-checkbox" name = "ma-unlit" id = "ma-unlit">
+                                <font class="uiMaterialAssistant-label">Unlit</font>
+                            </div>
+                        </div>
+                        <font class="uiMaterialAssistant-label">Bloom Factor:</font> 
+                        <input name = "ma-bloom" id = "ma-bloom" readonly class="uiMaterialAssistant-input" type = "text" size = "5"><br>            
+                        <input type="range"  style="width:100%;" min="100" max="900" value="100" class="uiMaterialAssistant-slider" name = "ma-bloom-slider" id = "ma-bloom-slider"><br>
+                        <font class="uiMaterialAssistant-label">Emissive Map (RGB) URL:</font> 
+                        <input name = "ma-emissiveMap" id = "ma-emissiveMap" class="uiMaterialAssistant-input" type = "text" style= "width:100%;">
+                    </div>
+                    
+                    <div class="uiMaterialAssistant-group">
+                        <button class="uiMaterialAssistant-active" id="ma-scattering-isActive"></button>
+                        <font class="uiMaterialAssistant-label">Scattering: </font>
+                        <input name = "ma-scattering" id = "ma-scattering" readonly class="uiMaterialAssistant-input" type = "text" size = "5"><br>
+                        <input type="range"  style="width:100%;" min="0" max="1000" value="0" class="uiMaterialAssistant-slider" name = "ma-scattering-slider" id = "ma-scattering-slider"><br>
+                        <font class="uiMaterialAssistant-label">Scattering Map (Grayscale) URL: </font>
+                        <input name = "ma-scatteringMap" id = "ma-scatteringMap" class="uiMaterialAssistant-input" type = "text" style= "width:100%;">
+                    </div>
+                    
+                    <div class="uiMaterialAssistant-group">
+                        <button class="uiMaterialAssistant-active" id="ma-occlusionMap-isActive"></button>
+                        <font class="uiMaterialAssistant-label">Occlusion Map (Grayscale) URL: </font>
+                        <input name = "ma-occlusionMap" id = "ma-occlusionMap" class="uiMaterialAssistant-input" type = "text" style= "width:100%;">
+                    </div>
+
+                    <div class="uiMaterialAssistant-group">
+                        <font class="uiMaterialAssistant-label">Material displayed on surface: </font><br><br> 
+                        <input type="radio" class="uiMaterialAssistant-radio" checked name = "ma-cullFaceMode" id = "ma-cullFaceMode-back" value = "CULL_BACK"> Outside&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        <input type="radio" class="uiMaterialAssistant-radio" name = "ma-cullFaceMode" id = "ma-cullFaceMode-front" value = "CULL_FRONT"> Inside&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        <input type="radio" class="uiMaterialAssistant-radio" name = "ma-cullFaceMode" id = "ma-cullFaceMode-none" value = "CULL_NONE"> Both<br>
+                    </div>
+                    <br><br><br><br><br>
+                </div>
+            </div>
+        </div>
+        <script>
+            initiateMaUi();
+        </script>
     </body>
 </html>
