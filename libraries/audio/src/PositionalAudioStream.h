@@ -13,7 +13,7 @@
 #define hifi_PositionalAudioStream_h
 
 #include <glm/gtx/quaternion.hpp>
-#include <AABox.h>
+#include <AABoxData.h>
 
 #include "InboundAudioStream.h"
 
@@ -69,7 +69,7 @@ public:
     const glm::vec3& getAvatarBoundingBoxCorner() const { return _avatarBoundingBoxCorner; }
     const glm::vec3& getAvatarBoundingBoxScale() const { return _avatarBoundingBoxScale; }
 
-    using IgnoreBox = AABox;
+    using IgnoreBox = AABoxData;
 
     // called from single AudioMixerSlave while processing packets for node
     void enableIgnoreBox();

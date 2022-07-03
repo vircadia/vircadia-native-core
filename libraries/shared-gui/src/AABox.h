@@ -19,6 +19,8 @@
 
 #include <QDebug>
 
+#include <AABoxData.h>
+
 #include "BoxBase.h"
 #include "GeometryUtil.h"
 #include "StreamUtils.h"
@@ -43,20 +45,20 @@ public:
     glm::vec3 getFarthestVertex(const glm::vec3& normal) const; // return vertex most parallel to normal
     glm::vec3 getNearestVertex(const glm::vec3& normal) const; // return vertex most anti-parallel to normal
 
-    const glm::vec3& getCorner() const { return _corner; }
-    const glm::vec3& getScale() const { return _scale; }
-    const glm::vec3& getDimensions() const { return _scale; }
-    float getLargestDimension() const { return glm::max(_scale.x, glm::max(_scale.y, _scale.z)); }
+    const glm::vec3& getCorner() const { return _data.corner; }
+    const glm::vec3& getScale() const { return _data.scale; }
+    const glm::vec3& getDimensions() const { return _data.scale; }
+    float getLargestDimension() const { return glm::max(_data.scale.x, glm::max(_data.scale.y, _data.scale.z)); }
 
     glm::vec3 calcCenter() const;
-    glm::vec3 calcTopFarLeft() const { return _corner + _scale; }
+    glm::vec3 calcTopFarLeft() const { return _data.corner + _data.scale; }
 
-    const glm::vec3& getMinimum() const { return _corner; }
-    glm::vec3 getMaximum() const { return _corner + _scale; }
+    const glm::vec3& getMinimum() const { return _data.corner; }
+    glm::vec3 getMaximum() const { return _data.corner + _data.scale; }
 
     glm::vec3 getVertex(BoxVertex vertex) const;
 
-    const glm::vec3& getMinimumPoint() const { return _corner; }
+    const glm::vec3& getMinimumPoint() const { return _data.corner; }
     glm::vec3 getMaximumPoint() const { return calcTopFarLeft(); }
 
     bool contains(const Triangle& triangle) const;
@@ -80,31 +82,31 @@ public:
     bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) const;
     bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration) const;
 
-    bool isNull() const { return _scale == glm::vec3(0.0f, 0.0f, 0.0f); }
+    bool isNull() const { return _data.scale == glm::vec3(0.0f, 0.0f, 0.0f); }
 
     AABox clamp(const glm::vec3& min, const glm::vec3& max) const;
     AABox clamp(float min, float max) const;
 
     inline AABox& operator+=(const glm::vec3& point) {
         bool valid = !isInvalid();
-        glm::vec3 maximum = glm::max(_corner + _scale, point);
-        _corner = glm::min(_corner, point);
+        glm::vec3 maximum = glm::max(_data.corner + _data.scale, point);
+        _data.corner = glm::min(_data.corner, point);
         if (valid) {
-            _scale = maximum - _corner;
+            _data.scale = maximum - _data.corner;
         }
         return (*this);
     }
 
     inline AABox& operator+=(const AABox& box) {
         if (!box.isInvalid()) {
-            (*this) += box._corner;
+            (*this) += box._data.corner;
             (*this) += box.calcTopFarLeft();
         }
         return (*this);
     }
 
     // Translate the AABox just moving the corner
-    void translate(const glm::vec3& translation) { _corner += translation; }
+    void translate(const glm::vec3& translation) { _data.corner += translation; }
 
     // Rotate the AABox around its frame origin
     // meaning rotating the corners of the AABox around the point {0,0,0} and reevaluating the min max
@@ -129,9 +131,9 @@ public:
 
     static const glm::vec3 INFINITY_VECTOR;
 
-    bool isInvalid() const { return _corner.x == std::numeric_limits<float>::infinity(); }
+    bool isInvalid() const { return _data.corner.x == std::numeric_limits<float>::infinity(); }
 
-    void clear() { _corner = INFINITY_VECTOR; _scale = glm::vec3(0.0f); }
+    void clear() { _data.corner = INFINITY_VECTOR; _data.scale = glm::vec3(0.0f); }
 
     typedef enum {
         topLeftNear,
@@ -157,8 +159,7 @@ private:
     void checkPossibleParabolicIntersection(float t, int i, float& minDistance,
         const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration, bool& hit) const;
 
-    glm::vec3 _corner;
-    glm::vec3 _scale;
+    AABoxData _data;
 };
 
 inline bool operator==(const AABox& a, const AABox& b) {
