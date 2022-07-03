@@ -475,11 +475,6 @@ void Agent::executeScript() {
                 packetType = PacketType::SilentAudioFrame;
             }
 
-            Transform audioTransform;
-            auto headOrientation = scriptedAvatar->getHeadOrientation();
-            audioTransform.setTranslation(scriptedAvatar->getWorldPosition());
-            audioTransform.setRotation(headOrientation);
-
             QByteArray encodedBuffer;
             if (_encoder) {
                 _encoder->encode(audio, encodedBuffer);
@@ -488,7 +483,7 @@ void Agent::executeScript() {
             }
 
             AbstractAudioInterface::emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), audioSequenceNumber, false,
-                                                    audioTransform, scriptedAvatar->getWorldPosition(), glm::vec3(0),
+                                                    {scriptedAvatar->getWorldPosition(), scriptedAvatar->getHeadOrientation()}, scriptedAvatar->getWorldPosition(), glm::vec3(0),
                                                     packetType, _selectedCodecName);
         });
 
@@ -719,7 +714,7 @@ void Agent::processAgentAvatarAudio() {
             if (isPlayingRecording && !_shouldMuteRecordingAudio) {
                 _shouldMuteRecordingAudio = true;
             }
-            
+
             auto audioData = _avatarSound->getAudioData();
             nextSoundOutput = reinterpret_cast<const int16_t*>(audioData->rawData()
                     + _numAvatarSoundSentBytes);
@@ -880,7 +875,7 @@ void Agent::aboutToFinish() {
     {
         DependencyManager::get<ScriptEngines>()->shutdownScripting();
     }
-    
+
     DependencyManager::destroy<ScriptEngines>();
 
     DependencyManager::destroy<AssignmentDynamicFactory>();
