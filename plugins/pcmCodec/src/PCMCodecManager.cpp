@@ -15,80 +15,84 @@
 
 #include <PerfStat.h>
 
-const char* PCMCodec::NAME { "pcm" };
-
-void PCMCodec::init() {
+void PCMCodecManager::init() {
 }
 
-void PCMCodec::deinit() {
+void PCMCodecManager::deinit() {
 }
 
-bool PCMCodec::activate() {
+bool PCMCodecManager::activate() {
     CodecPlugin::activate();
     return true;
 }
 
-void PCMCodec::deactivate() {
+void PCMCodecManager::deactivate() {
     CodecPlugin::deactivate();
 }
 
 
-bool PCMCodec::isSupported() const {
+bool PCMCodecManager::isSupported() const {
     return true;
 }
 
-
-
-Encoder* PCMCodec::createEncoder(int sampleRate, int numChannels) {
-    return this;
+const QString PCMCodecManager::getName() const {
+    return PCMCodec::getName();
 }
 
-Decoder* PCMCodec::createDecoder(int sampleRate, int numChannels) {
-    return this;
+
+
+Encoder* PCMCodecManager::createEncoder(int sampleRate, int numChannels) {
+    return PCMCodec::createEncoder(sampleRate, numChannels);
 }
 
-void PCMCodec::releaseEncoder(Encoder* encoder) {
-    // do nothing
+Decoder* PCMCodecManager::createDecoder(int sampleRate, int numChannels) {
+    return PCMCodec::createDecoder(sampleRate, numChannels);
 }
 
-void PCMCodec::releaseDecoder(Decoder* decoder) {
-    // do nothing
+void PCMCodecManager::releaseEncoder(Encoder* encoder) {
+    PCMCodec::releaseEncoder(encoder);
 }
 
-const char* zLibCodec::NAME { "zlib" };
-
-void zLibCodec::init() {
+void PCMCodecManager::releaseDecoder(Decoder* decoder) {
+    PCMCodec::releaseDecoder(decoder);
 }
 
-void zLibCodec::deinit() {
+void zLibCodecManager::init() {
 }
 
-bool zLibCodec::activate() {
+void zLibCodecManager::deinit() {
+}
+
+bool zLibCodecManager::activate() {
     CodecPlugin::activate();
     return true;
 }
 
-void zLibCodec::deactivate() {
+void zLibCodecManager::deactivate() {
     CodecPlugin::deactivate();
 }
 
-bool zLibCodec::isSupported() const {
+bool zLibCodecManager::isSupported() const {
     return true;
 }
 
-Encoder* zLibCodec::createEncoder(int sampleRate, int numChannels) {
-    return this;
+const QString zLibCodecManager::getName() const {
+    return zLibCodec::getName();
 }
 
-Decoder* zLibCodec::createDecoder(int sampleRate, int numChannels) {
-    return this;
+Encoder* zLibCodecManager::createEncoder(int sampleRate, int numChannels) {
+    return zLibCodec::createEncoder(sampleRate, numChannels);
 }
 
-void zLibCodec::releaseEncoder(Encoder* encoder) {
-    // do nothing... it wasn't allocated
+Decoder* zLibCodecManager::createDecoder(int sampleRate, int numChannels) {
+    return zLibCodec::createDecoder(sampleRate, numChannels);
 }
 
-void zLibCodec::releaseDecoder(Decoder* decoder) {
-    // do nothing... it wasn't allocated
+void zLibCodecManager::releaseEncoder(Encoder* encoder) {
+    return zLibCodec::releaseEncoder(encoder);
+}
+
+void zLibCodecManager::releaseDecoder(Decoder* decoder) {
+    return zLibCodec::releaseDecoder(decoder);
 }
 

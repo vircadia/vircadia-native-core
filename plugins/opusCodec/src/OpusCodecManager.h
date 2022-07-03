@@ -13,14 +13,15 @@
 #define hifi__OpusCodecManager_h
 
 #include <plugins/CodecPlugin.h>
+#include <OpusCodec.h>
 
-class AthenaOpusCodec : public CodecPlugin {
+class AthenaOpusCodec : public CodecPlugin, public OpusCodec {
     Q_OBJECT
 
 public:
     // Plugin functions
     bool isSupported() const override;
-    const QString getName() const override { return NAME; }
+    const QString getName() const override;
 
     void init() override;
     void deinit() override;
@@ -34,9 +35,6 @@ public:
     virtual Decoder* createDecoder(int sampleRate, int numChannels) override;
     virtual void releaseEncoder(Encoder* encoder) override;
     virtual void releaseDecoder(Decoder* decoder) override;
-
-private:
-    static const char* NAME;
 };
 
 #endif // hifi__opusCodecManager_h

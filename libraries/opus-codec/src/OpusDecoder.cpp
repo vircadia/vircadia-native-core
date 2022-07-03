@@ -1,6 +1,6 @@
 //
-//  OpusCodecManager.h
-//  plugins/opusCodec/src
+//  OpusDecoder.h
+//  libraries/opus-codec/src
 //
 //  Copyright 2020 Dale Glass
 //
@@ -14,7 +14,7 @@
 
 #include "OpusDecoder.h"
 
-static QLoggingCategory decoder("AthenaOpusDecoder");
+static QLoggingCategory decoder("OpusDecoder");
 
 static QString error_to_string(int error) {
     switch (error) {
@@ -38,7 +38,7 @@ static QString error_to_string(int error) {
 }
 
 
-AthenaOpusDecoder::AthenaOpusDecoder(int sampleRate, int numChannels) {
+OpusDecoder::OpusDecoder(int sampleRate, int numChannels) {
     int error;
 
     _opusSampleRate = sampleRate;
@@ -56,16 +56,16 @@ AthenaOpusDecoder::AthenaOpusDecoder(int sampleRate, int numChannels) {
     qCDebug(decoder) << "Opus decoder initialized, sampleRate = " << sampleRate << "; numChannels = " << numChannels;
 }
 
-AthenaOpusDecoder::~AthenaOpusDecoder() {
+OpusDecoder::~OpusDecoder() {
     if (_decoder) {
         opus_decoder_destroy(_decoder);
     }
 
 }
 
-void AthenaOpusDecoder::decode(const QByteArray &encodedBuffer, QByteArray &decodedBuffer) {
+void OpusDecoder::decode(const QByteArray &encodedBuffer, QByteArray &decodedBuffer) {
     assert(_decoder);
-    PerformanceTimer perfTimer("AthenaOpusDecoder::decode");
+    PerformanceTimer perfTimer("OpusDecoder::decode");
 
     // The audio system encodes and decodes always in fixed size chunks
     int bufferSize = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * static_cast<int>(sizeof(int16_t))
@@ -96,10 +96,10 @@ void AthenaOpusDecoder::decode(const QByteArray &encodedBuffer, QByteArray &deco
 
 }
 
-void AthenaOpusDecoder::lostFrame(QByteArray &decodedBuffer) {
+void OpusDecoder::lostFrame(QByteArray &decodedBuffer) {
     assert(_decoder);
 
-    PerformanceTimer perfTimer("AthenaOpusDecoder::lostFrame");
+    PerformanceTimer perfTimer("OpusDecoder::lostFrame");
 
     int bufferSize = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * static_cast<int>(sizeof(int16_t))
         * _opusNumChannels;

@@ -1,6 +1,6 @@
 //
-//  OpusCodecManager.h
-//  plugins/opusCodec/src
+//  OpusDecoder.h
+//  libraries/opus-codec/src
 //
 //  Copyright 2020 Dale Glass
 //
@@ -8,18 +8,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef OPUSDECODER_H
-#define OPUSDECODER_H
+#ifndef LIBRARIES_OPUS_CODEC_SRC_OPUSDECODER_H
+#define LIBRARIES_OPUS_CODEC_SRC_OPUSDECODER_H
 
 
-#include <plugins/CodecPlugin.h>
+#include <Codec.h>
 #include <opus/opus.h>
 
-
-class AthenaOpusDecoder : public Decoder {
+class OpusDecoder : public Decoder {
 public:
-    AthenaOpusDecoder(int sampleRate, int numChannels);
-    ~AthenaOpusDecoder() override;
+    OpusDecoder(int sampleRate, int numChannels);
+    ~OpusDecoder() override;
 
 
     virtual void decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) override;
@@ -35,5 +34,4 @@ private:
     int _decodedSize = 0;
 };
 
-
-#endif // OPUSDECODER_H
+#endif /* end of include guard */
