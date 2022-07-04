@@ -184,22 +184,25 @@ static void applyGainSmoothing(float* buffer, int numFrames, float gain0, float 
     }
 }
 
-inline inline float convertToFloat(int16_t sample) {
+inline float convertToFloat(int16_t sample) {
     return (float)sample * (1 / 32768.0f);
 }
 
-template<Derived>
+template <typename Derived>
 Derived& AudioPacketHandler<Derived>::derived() {
     return *static_cast<Derived*>(this);
 }
 
-template<Derived>
+template <typename Derived>
 const Derived& AudioPacketHandler<Derived>::derived() const {
     return *static_cast<const Derived*>(this);
 }
 
-template<Derived>
+template <typename Derived>
 AudioPacketHandler<Derived>::AudioPacketHandler() {
+
+    // FIXME: CRTP,
+    // _sessionOutputBufferSizeFrames = _outputBufferSizeFrames.get();
 
     // set up the desired audio format
     _desiredInputFormat.setSampleRate(AudioConstants::SAMPLE_RATE);
@@ -227,7 +230,9 @@ AudioPacketHandler<Derived>::AudioPacketHandler() {
     }
 
     derived().connect(&_receivedAudioStream, &MixedProcessedAudioStream::processSamples,
-        &derived(), &AudioPacketHandler::processReceivedSamples, Qt::DirectConnection);
+        &derived(), [this](const QByteArray& decodedBuffer, QByteArray& outputBuffer)
+            { processReceivedSamples(decodedBuffer, outputBuffer); },
+        Qt::DirectConnection);
 
     // FIXME: CRTP
     // connect(this, &AudioClient::changeDevice, this, [=](const HifiAudioDeviceInfo& outputDeviceInfo) {
@@ -235,7 +240,9 @@ AudioPacketHandler<Derived>::AudioPacketHandler() {
     //     switchOutputToAudioDevice(outputDeviceInfo);
     // });
 
-    derived().connect(&_receivedAudioStream, &InboundAudioStream::mismatchedAudioCodec, &derived(), &AudioPacketHandler::handleMismatchAudioFormat);
+    derived().connect(&_receivedAudioStream, &InboundAudioStream::mismatchedAudioCodec,
+        &derived(), [this](SharedNodePointer node, const QString& currentCodec, const QString& receivedCodec)
+            { handleMismatchAudioFormat(node, currentCodec, receivedCodec); });
 
     // FIXME: CRTP
     // initialize wasapi; if getAvailableDevices is called from the CheckDevicesThread before this, it will crash
@@ -324,9 +331,9 @@ AudioPacketHandler<Derived>::~AudioPacketHandler() {
 // }
 
 template <typename Derived>
-void AudioPacketHandler<Derived>::handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec) {
-    qCDebug(audioclient) << __FUNCTION__ << "sendingNode:" << *node << "currentCodec:" << currentCodec << "recievedCodec:" << recievedCodec;
-    selectAudioFormat(recievedCodec);
+void AudioPacketHandler<Derived>::handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& receivedCodec) {
+    qCDebug(audioclient) << __FUNCTION__ << "sendingNode:" << *node << "currentCodec:" << currentCodec << "receivedCodec:" << receivedCodec;
+    selectAudioFormat(receivedCodec);
 }
 
 template <typename Derived>
@@ -1773,7 +1780,8 @@ int AudioPacketHandler<Derived>::setOutputBufferSize(int numFrames, bool persist
         qCInfo(audioclient, "Audio output buffer set to %d frames", numFrames);
         _sessionOutputBufferSizeFrames = numFrames;
         if (persist) {
-            _outputBufferSizeFrames.set(numFrames);
+            // FIXME: CRTP
+            // _outputBufferSizeFrames.set(numFrames);
         }
     }
     return numFrames;
@@ -1966,7 +1974,7 @@ void AudioPacketHandler<Derived>::setAvatarBoundingBoxParameters(glm::vec3 corne
 
 template <typename Derived>
 void AudioPacketHandler<Derived>::startThread() {
-    moveToNewNamedThread(derived(), "Audio Thread", [this] { start(); }, QThread::TimeCriticalPriority);
+    moveToNewNamedThread(&derived(), "Audio Thread", [this] { start(); }, QThread::TimeCriticalPriority);
 }
 
 #endif /* end of include guard */

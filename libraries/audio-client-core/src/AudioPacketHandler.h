@@ -145,11 +145,6 @@ public:
 
     const AudioIOStats& getStats() const { return _stats; }
 
-    int getOutputBufferSize() { return _outputBufferSizeFrames.get(); }
-
-    bool getOutputStarveDetectionEnabled() { return _outputStarveDetectionEnabled.get(); }
-    void setOutputStarveDetectionEnabled(bool enabled) { _outputStarveDetectionEnabled.set(enabled); }
-
     bool isSimulatingJitter() { return _gate.isSimulatingJitter(); }
     void setIsSimulatingJitter(bool enable) { _gate.setIsSimulatingJitter(enable); }
 
@@ -304,9 +299,7 @@ private:
     quint64 _outputStarveDetectionStartTimeMsec{ 0 };
     int _outputStarveDetectionCount { 0 };
 
-    Setting::Handle<int> _outputBufferSizeFrames{"audioOutputBufferFrames", DEFAULT_BUFFER_FRAMES};
-    int _sessionOutputBufferSizeFrames{ _outputBufferSizeFrames.get() };
-    Setting::Handle<bool> _outputStarveDetectionEnabled{ "audioOutputStarveDetectionEnabled", DEFAULT_STARVE_DETECTION_ENABLED};
+    int _sessionOutputBufferSizeFrames{ DEFAULT_BUFFER_FRAMES };
 
     float _lastRawInputLoudness{ 0.0f };    // before mute/gate
     float _lastSmoothedRawInputLoudness{ 0.0f };
