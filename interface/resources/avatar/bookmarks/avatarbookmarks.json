@@ -5,7 +5,148 @@
         "avatarEntites": [
         ],
         "avatarScale": 1,
-        "avatarUrl": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Woody/mannequin.fst",
+        "avatarUrl": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/woody/mannequin.fst",
+        "avatarIcon": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/woody/img/icon.png",
+        "version": 3
+    },
+    "Amrita": {
+        "attachments": [
+        ],
+        "avatarEntites": [
+        ],
+        "avatarScale": 1,
+        "avatarUrl": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Amrita/fbx/Amrita.fst",
+        "avatarIcon": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Amrita/img/icon.png",
+        "version": 3
+    },
+    "James": {
+        "attachments": [
+        ],
+        "avatarEntites": [
+        ],
+        "avatarScale": 1,
+        "avatarUrl": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/James/fbx/James.fst",
+        "avatarIcon": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/James/img/icon.png",
+        "version": 3
+    },
+    "Emily": {
+        "attachments": [
+        ],
+        "avatarEntites": [
+        ],
+        "avatarScale": 1,
+        "avatarUrl": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Emily/fbx/Emily.fst",
+        "avatarIcon": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Emily/img/icon.PNG",
+        "version": 3
+    },
+    "Cedric": {
+        "attachments": [
+        ],
+        "avatarEntites": [
+        ],
+        "avatarScale": 1,
+        "avatarUrl": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Cedric/fbx/Cedric.fst",
+        "avatarIcon": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Cedric/img/icon.png",
+        "version": 3
+    },
+    "Cedric_Shorts": {
+        "attachments": [
+        ],
+        "avatarEntites": [
+        ],
+        "avatarScale": 1,
+        "avatarUrl": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Cedric_Shorts/fbx/Cedric_Shorts.fst",
+        "avatarIcon": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Cedric_Shorts/img/Cedric_Shorts.png",
+        "version": 3
+    },
+    "Mohan": {
+        "attachments": [
+        ],
+        "avatarEntites": [
+        ],
+        "avatarScale": 1,
+        "avatarUrl": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Mohan/fbx/Mohan.fst",
+        "avatarIcon": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Mohan/img/icon.png",
+        "version": 3
+    },
+    "Mohan-Mohawk": {
+        "attachments": [
+        ],
+        "avatarEntites": [
+        ],
+        "avatarScale": 1,
+        "avatarUrl": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Mohan-Mohawk/fbx/Mohan-Mohawk.fst",
+        "avatarIcon": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Mohan-Mohawk/img/icon.png",
+        "version": 3
+    },
+    "Julia": {
+        "attachments": [
+        ],
+        "avatarEntites": [
+        ],
+        "avatarScale": 1,
+        "avatarUrl": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Julia/fbx/Julia.fst",
+        "avatarIcon": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Julia/img/icon.png",
+        "version": 3
+    },
+    "Rami": {
+        "attachments": [
+        ],
+        "avatarEntites": [
+        ],
+        "avatarScale": 1,
+        "avatarUrl": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Rami/fbx/Rami.fst",
+        "avatarIcon": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Rami/img/icon.png",
+        "version": 3
+    },
+    "Rajesh": {
+        "attachments": [
+        ],
+        "avatarEntites": [
+        ],
+        "avatarScale": 1,
+        "avatarUrl": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Rajesh/fbx/Rajesh.fst",
+        "avatarIcon": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Rajesh/img/icon.png",
+        "version": 3
+    },
+    "Radhika": {
+        "attachments": [
+        ],
+        "avatarEntites": [
+        ],
+        "avatarScale": 1,
+        "avatarUrl": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Radhika/fbx/Radhika.fst",
+        "avatarIcon": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Radhika/img/icon.png",
+        "version": 3
+    },
+    "Wendy": {
+        "attachments": [
+        ],
+        "avatarEntites": [
+        ],
+        "avatarScale": 1,
+        "avatarUrl": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Wendy/fbx/Wendy.fst",
+        "avatarIcon": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Wendy/img/icon.png",
+        "version": 3
+    },
+    "Tola": {
+        "attachments": [
+        ],
+        "avatarEntites": [
+        ],
+        "avatarScale": 1,
+        "avatarUrl": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Tola/fbx/Tola.fst",
+        "avatarIcon": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Tola/img/icon.png",
+        "version": 3
+    },
+    "Thad": {
+        "attachments": [
+        ],
+        "avatarEntites": [
+        ],
+        "avatarScale": 1,
+        "avatarUrl": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Thad/fbx/Thad.fst",
+        "avatarIcon": "https://cdn-1.vircadia.com/us-e-1/Bazaar/Avatars/Thad/img/icon.png",
         "version": 3
     },
     "Kim": {

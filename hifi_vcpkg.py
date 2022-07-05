@@ -302,7 +302,7 @@ endif()
             url = hifi_android.getPackageUrl(package)
             zipFile = package['file'].endswith('.zip')
             print("Android archive {}".format(package['file']))
-            hifi_utils.downloadAndExtract(url, dest, isZip=zipFile, hash=package['checksum'], hasher=hashlib.md5())
+            hifi_utils.downloadAndExtract([url], dest, hash=package['checksum'], hasher=hashlib.md5)
 
     def writeTag(self):
         if self.noClean:

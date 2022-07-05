@@ -562,7 +562,7 @@ signals:
      * restrictions on permissible scale values imposed by the domain.
      * @function MyAvatar.targetScaleChanged
      * @param {number} targetScale - The avatar's target scale.
-     * @returns Signal
+     * @returns {Signal}
      */
     void targetScaleChanged(float targetScale);
 

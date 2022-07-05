@@ -32,8 +32,7 @@
  * @hifi-server-entity
  *
  * @property {Vec3} position - The avatar's position.
- * @property {number} scale - The target scale of the avatar without any restrictions on permissible values imposed by the
- *     domain.
+ * @property {number} scale - The scale of the avatar. This includes any limits on permissible values imposed by the domain.
  * @property {Vec3} handPosition - A user-defined hand position, in world coordinates. The position moves with the avatar but
  *    is otherwise not used or changed by Interface.
  * @property {number} bodyPitch - The pitch of the avatar's body, in degrees.
@@ -57,7 +56,7 @@
  * @property {boolean} lookAtSnappingEnabled - <code>true</code> if the avatar's eyes snap to look at another avatar's eyes
  *     when the other avatar is in the line of sight and also has <code>lookAtSnappingEnabled == true</code>.
  *
- * @property {string} skeletonModelURL - The avatar's FST file.
+ * @property {string} skeletonModelURL - The URL of the avatar's FST, glTF, or FBX model file.
  * @property {AttachmentData[]} attachmentData - Information on the avatar's attachments.
  *     <p class="important">Deprecated: This property is deprecated and will be removed. Use avatar entities instead.</p>
  * @property {string[]} jointNames - The list of joints in the avatar model.

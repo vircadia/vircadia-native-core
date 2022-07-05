@@ -50,12 +50,14 @@
 #include <NumericalConstants.h>
 #include <Trace.h>
 #include <StatTracker.h>
+#include <SSLCommon.h>
 
 #include "AssetsBackupHandler.h"
 #include "ContentSettingsBackupHandler.h"
 #include "DomainServerNodeData.h"
 #include "EntitiesBackupHandler.h"
 #include "NodeConnectionData.h"
+#include "DomainServerAcmeClient.h"
 
 #include <Gzip.h>
 
@@ -195,7 +197,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _gatekeeper(this),
     _httpManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTP_PORT,
-        QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this)
+        QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
+    _acmeClient(nullptr)
 {
     if (_parentPID != -1) {
         watchParentProcess(_parentPID);
@@ -269,6 +272,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         _oauthEnable = optionallyReadX509KeyAndCertificate();
     }
 
+    _acmeClient = std::make_unique<DomainServerAcmeClient>(_settingsManager);
+
     _settingsManager.apiRefreshGroupInformation();
 
 #if defined(WEBRTC_DATA_CHANNELS)
@@ -279,9 +284,14 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     // disables WebRTC for the server as a whole.
     if (isWebRTCEnabled) {
         const QString WEBRTC_WSS_ENABLE = "webrtc.enable_webrtc_websocket_ssl";
-        bool isWebRTCEnabled = _settingsManager.valueForKeyPath(WEBRTC_WSS_ENABLE).toBool();
-        qCDebug(domain_server) << "WebRTC WSS enabled:" << isWebRTCEnabled;
-        _webrtcSignalingServer.reset(new WebRTCSignalingServer(this, isWebRTCEnabled));
+        bool isWebRTCWSSEnabled = _settingsManager.valueForKeyPath(WEBRTC_WSS_ENABLE).toBool();
+        qCDebug(domain_server) << "WebRTC WSS enabled:" << isWebRTCWSSEnabled;
+        if (isWebRTCWSSEnabled) {
+            _webrtcSignalingServer.reset(new WebRTCSignalingServer(this,
+                DomainServerAcmeClient::getCertificatePaths(_settingsManager)));
+        } else {
+            _webrtcSignalingServer.reset(new WebRTCSignalingServer(this));
+        }
     }
 #endif
 
@@ -926,6 +936,9 @@ void DomainServer::setUpWebRTCSignalingServer() {
             &DomainServer::forwardAssignmentClientSignalingMessageToUserClient));
     connect(this, &DomainServer::webrtcSignalingMessageForUserClient,
         _webrtcSignalingServer.get(), &WebRTCSignalingServer::sendMessage);
+
+    connect(_acmeClient.get(), &DomainServerAcmeClient::certificateUpdated,
+        _webrtcSignalingServer.get(), &WebRTCSignalingServer::onSSLCertificateUpdate);
 }
 
 // Routes an inbound WebRTC signaling message received from a client app to the appropriate recipient.
@@ -2708,8 +2721,9 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         }
     }
 
-    // didn't process the request, let our DomainServerSettingsManager or HTTPManager handle
-    return _settingsManager.handleAuthenticatedHTTPRequest(connection, url);
+    // didn't process the request, let our DomainServerSettingsManager, DomainServerAcmeClient, or HTTPManager handle
+    return _settingsManager.handleAuthenticatedHTTPRequest(connection, url) ||
+        _acmeClient->handleAuthenticatedHTTPRequest(connection, url);
 }
 
 static const QString HIFI_SESSION_COOKIE_KEY = "DS_WEB_SESSION_UUID";
