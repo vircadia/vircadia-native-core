@@ -3,12 +3,9 @@
 # to match anything in the build tree. If built, it fails with:
 
 # [ 91%] Linking CXX executable shaders-ShaderTests
-# /usr/bin/ld: CMakeFiles/shaders-ShaderTests.dir/src/ShaderTests.cpp.o: in function `rebuildSource(shader::Dialect, shader::Variant, shader::Source const&)':
-# /home/dale/git/vircadia/overte/tests/shaders/src/ShaderTests.cpp:354: undefined reference to `glslang::TShader::TShader(EShLanguage)'
-# /usr/bin/ld: /home/dale/git/vircadia/overte/tests/shaders/src/ShaderTests.cpp:358: undefined reference to `glslang::TShader::setStrings(char const* const*, int)'
-# /usr/bin/ld: /home/dale/git/vircadia/overte/tests/shaders/src/ShaderTests.cpp:417: undefined reference to `glslang::TShader::~TShader()'
-# /usr/bin/ld: /home/dale/git/vircadia/overte/tests/shaders/src/ShaderTests.cpp:417: undefined reference to `glslang::TShader::~TShader()'
-# collect2: error: ld returned 1 exit status
+# ...
+# ShaderTests.cpp:354: undefined reference to `glslang::TShader::TShader(EShLanguage)'
+# (other errors snipped)
 #
 # So I've disabled the entire thing, but left the code around as a reference in case it can be fixed.
 
