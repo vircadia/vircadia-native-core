@@ -165,7 +165,7 @@ QJsonDocument variantMapToJsonDocument(const QSettings::SettingsMap& map) {
                 QByteArray a = variant.toByteArray();
                 QString result = QLatin1String("@ByteArray(");
                 int sz = a.size();
-                if ( sz > 0 ) {
+                if (sz > 0) {
                     // Work around 'warning: ‘size_t strlen(const char*)’ reading 1 or more bytes from a region of size 0 [-Wstringop-overread]'
                     // size() indeed could be zero bytes, so make sure that can't be the case.
                     result += QString::fromLatin1(a.constData(), sz);
@@ -219,7 +219,7 @@ QJsonDocument variantMapToJsonDocument(const QSettings::SettingsMap& map) {
 
                 QString result = QLatin1String("@Variant(");
                 int sz = array.size();
-                if ( sz > 0 ) {
+                if (sz > 0) {
                     // See comment in the case handling QVariant::ByteArray
                     result += QString::fromLatin1(array.constData(), sz);
                 }

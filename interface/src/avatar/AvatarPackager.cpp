@@ -28,13 +28,8 @@
 std::once_flag setupQMLTypesFlag;
 AvatarPackager::AvatarPackager() {
     std::call_once(setupQMLTypesFlag, []() {
-        IGNORE_DEPRECATED_BEGIN
-
-        qmlRegisterType<FST>();
-        qmlRegisterType<MarketplaceItemUploader>();
-
-        IGNORE_DEPRECATED_END
-
+        qmlRegisterAnonymousType<FST>("Hifi", 1);
+        qmlRegisterAnonymousType<MarketplaceItemUploader>("Hifi", 1);
         qRegisterMetaType<AvatarPackager*>();
         qRegisterMetaType<AvatarProject*>();
         qRegisterMetaType<AvatarDoctor*>();
