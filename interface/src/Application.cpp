@@ -7387,6 +7387,7 @@ void Application::nodeActivated(SharedNodePointer node) {
         }
     }
 
+    // FIXME: this will be handled in AudioClient, once it's derived from AudioPacketHandler
     if (node->getType() == NodeType::AudioMixer && !isInterstitialMode()) {
         DependencyManager::get<AudioClient>()->negotiateAudioFormat();
     }

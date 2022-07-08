@@ -308,6 +308,7 @@ AudioPacketHandler<Derived>::AudioPacketHandler() {
     derived().connect(nodeList.data(), &NodeList::nodeActivated, &derived(), [this](SharedNodePointer node) {
         if (node->getType() == NodeType::AudioMixer) {
             _solo.resend();
+            negotiateAudioFormat();
         }
     });
 }
