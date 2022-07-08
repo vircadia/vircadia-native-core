@@ -188,6 +188,7 @@ public:
 
     void sendDownstreamAudioStatsPacket() { _stats.publish(); }
     void handleMicAudioInput();
+    void handleMicAudioInput(const char* data, int size);
     void audioInputStateChanged(QAudio::State state);
     void handleRecordedAudioInput(const QByteArray& audio);
     void reset();
@@ -271,82 +272,81 @@ private:
         std::queue<QSharedPointer<ReceivedMessage>> _queue;
         std::mutex _mutex;
 
-        int _index{ 0 };
-        int _threshold{ 1 };
-        bool _isSimulatingJitter{ false };
+        int _index {0};
+        int _threshold {1};
+        bool _isSimulatingJitter {false};
     };
 
     Gate _gate{ this };
 
     Mutex _injectorsMutex;
-    QTimer* _dummyAudioInput{ nullptr };
+    QTimer* _dummyAudioInput {nullptr};
     QAudioFormat _desiredInputFormat;
     QAudioFormat _inputFormat;
-    QIODevice* _inputDevice{ nullptr };
-    std::atomic<bool> _audioOutputInitialized { false };
+    std::atomic<bool> _audioOutputInitialized {false};
     QAudioFormat _desiredOutputFormat;
     QAudioFormat _outputFormat;
-    int _outputFrameSize{ 0 };
-    int _numOutputCallbackBytes{ 0 };
-    AudioRingBuffer _inputRingBuffer{ 0 };
-    LocalInjectorsStream _localInjectorsStream{ 0 , 1 };
+    int _outputFrameSize {0};
+    int _numOutputCallbackBytes {0};
+    std::vector<int16_t> _inputTypeConversionBuffer {};
+    AudioRingBuffer _inputRingBuffer {0};
+    LocalInjectorsStream _localInjectorsStream {0 , 1};
     // In order to use _localInjectorsStream as a lock-free pipe,
     // use it with a single producer/consumer, and track available samples and injectors
-    std::atomic<int> _localSamplesAvailable { 0 };
-    std::atomic<bool> _localInjectorsAvailable { false };
-    MixedProcessedAudioStream _receivedAudioStream{ RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES };
+    std::atomic<int> _localSamplesAvailable {0};
+    std::atomic<bool> _localInjectorsAvailable  {false};
+    MixedProcessedAudioStream _receivedAudioStream {RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES};
 
-    quint64 _outputStarveDetectionStartTimeMsec{ 0 };
-    int _outputStarveDetectionCount { 0 };
+    quint64 _outputStarveDetectionStartTimeMsec {0};
+    int _outputStarveDetectionCount {0};
 
-    int _sessionOutputBufferSizeFrames{ DEFAULT_BUFFER_FRAMES };
+    int _sessionOutputBufferSizeFrames {DEFAULT_BUFFER_FRAMES};
 
-    float _lastRawInputLoudness{ 0.0f };    // before mute/gate
-    float _lastSmoothedRawInputLoudness{ 0.0f };
-    float _lastInputLoudness{ 0.0f };       // after mute/gate
-    float _timeSinceLastClip{ -1.0f };
+    float _lastRawInputLoudness {0.0f};    // before mute/gate
+    float _lastSmoothedRawInputLoudness {0.0f};
+    float _lastInputLoudness {0.0f};       // after mute/gate
+    float _timeSinceLastClip {-1.0f};
     int _totalInputAudioSamples;
 
-    bool _isMuted{ false };
-    bool _shouldEchoLocally{ false };
-    bool _shouldEchoToServer{ false };
-    bool _isNoiseGateEnabled{ true };
-    bool _isNoiseReductionAutomatic{ true };
-    float _noiseReductionThreshold{ 0.1f };
-    bool _isAECEnabled{ true };
+    bool _isMuted {false};
+    bool _shouldEchoLocally {false};
+    bool _shouldEchoToServer {false};
+    bool _isNoiseGateEnabled {true};
+    bool _isNoiseReductionAutomatic {true};
+    float _noiseReductionThreshold {0.1f};
+    bool _isAECEnabled {true};
 
-    bool _reverb{ false };
+    bool _reverb {false};
     AudioEffectOptions _scriptReverbOptions;
     AudioEffectOptions _zoneReverbOptions;
-    AudioEffectOptions* _reverbOptions{ &_scriptReverbOptions };
-    AudioReverb _sourceReverb { AudioConstants::SAMPLE_RATE };
-    AudioReverb _listenerReverb { AudioConstants::SAMPLE_RATE };
-    AudioReverb _localReverb { AudioConstants::SAMPLE_RATE };
+    AudioEffectOptions* _reverbOptions {&_scriptReverbOptions};
+    AudioReverb _sourceReverb {AudioConstants::SAMPLE_RATE};
+    AudioReverb _listenerReverb {AudioConstants::SAMPLE_RATE};
+    AudioReverb _localReverb {AudioConstants::SAMPLE_RATE};
 
     // possible streams needed for resample
-    AudioSRC* _inputToNetworkResampler{ nullptr };
-    AudioSRC* _networkToOutputResampler{ nullptr };
-    AudioSRC* _localToOutputResampler{ nullptr };
-    AudioSRC* _loopbackResampler{ nullptr };
+    AudioSRC* _inputToNetworkResampler {nullptr};
+    AudioSRC* _networkToOutputResampler {nullptr};
+    AudioSRC* _localToOutputResampler {nullptr};
 
     // for network audio (used by network audio thread)
     int16_t _networkScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
 
     // for output audio (used by this thread)
-    int _outputPeriod { 0 };
-    float* _outputMixBuffer { NULL };
-    int16_t* _outputScratchBuffer { NULL };
-    std::atomic<float> _outputGain { 1.0f };
-    float _lastOutputGain { 1.0f };
+    int _outputPeriod {0};
+    float* _outputMixBuffer {NULL};
+    int16_t* _outputScratchBuffer {NULL};
+    std::atomic<float> _outputGain {1.0f};
+    float _lastOutputGain {1.0f};
 
     // for local audio (used by audio injectors thread)
-    std::atomic<float> _localInjectorGain { 1.0f };
-    std::atomic<float> _systemInjectorGain { 1.0f };
+    std::atomic<float> _localInjectorGain {1.0f};
+    std::atomic<float> _systemInjectorGain {1.0f};
     float _localMixBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int16_t _localScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
-    float* _localOutputMixBuffer { NULL };
+    float* _localOutputMixBuffer {NULL};
     Mutex _localAudioMutex;
-    AudioLimiter _audioLimiter{ AudioConstants::SAMPLE_RATE, OUTPUT_CHANNEL_COUNT };
+    AudioLimiter _audioLimiter {AudioConstants::SAMPLE_RATE, OUTPUT_CHANNEL_COUNT};
 
     // Adds Reverb
     void configureReverb();
@@ -357,7 +357,7 @@ private:
     static const int WEBRTC_CHANNELS_MAX = 2;
     static const int WEBRTC_FRAMES_MAX = webrtc::AudioProcessing::kChunkSizeMs * WEBRTC_SAMPLE_RATE_MAX / 1000;
 
-    webrtc::AudioProcessing* _apm { nullptr };
+    webrtc::AudioProcessing* _apm {nullptr};
 
     int16_t _fifoFarEnd[WEBRTC_CHANNELS_MAX * WEBRTC_FRAMES_MAX] {};
     int _numFifoFarEnd = 0; // numFrames saved in fifo
@@ -378,14 +378,14 @@ private:
     int calculateNumberOfInputCallbackBytes(const QAudioFormat& format) const;
     int calculateNumberOfFrameSamples(int numBytes) const;
 
-    quint16 _outgoingAvatarAudioSequenceNumber{ 0 };
+    quint16 _outgoingAvatarAudioSequenceNumber {0};
 
-    AudioOutputIODevice _audioOutputIODevice{ _localInjectorsStream, _receivedAudioStream, this };
+    AudioOutputIODevice _audioOutputIODevice {_localInjectorsStream, _receivedAudioStream, this};
 
-    AudioIOStats _stats{ &_receivedAudioStream };
+    AudioIOStats _stats {&_receivedAudioStream};
 
-    AudioGate* _audioGate { nullptr };
-    bool _audioGateOpen { true };
+    AudioGate* _audioGate {nullptr};
+    bool _audioGateOpen {true};
 
     AudioPositionGetter _positionGetter{ []{ return Vectors::ZERO; } };
     AudioOrientationGetter _orientationGetter{ [] { return Quaternions::IDENTITY; } };
@@ -393,16 +393,16 @@ private:
     glm::vec3 avatarBoundingBoxCorner;
     glm::vec3 avatarBoundingBoxScale;
 
-    bool _hasReceivedFirstPacket { false };
+    bool _hasReceivedFirstPacket {false};
 
     QVector<AudioInjectorPointer> _activeLocalAudioInjectors;
 
-    bool _isPlayingBackRecording { false };
-    bool _audioPaused { false };
+    bool _isPlayingBackRecording {false};
+    bool _audioPaused {false};
 
     std::shared_ptr<Codec> _codec;
     QString _selectedCodecName;
-    Encoder* _encoder { nullptr };  // for outbound mic stream
+    Encoder* _encoder {nullptr};  // for outbound mic stream
 
     RateCounter<> _silentOutbound;
     RateCounter<> _audioOutbound;
@@ -410,14 +410,14 @@ private:
     RateCounter<> _audioInbound;
 
 #if defined(Q_OS_ANDROID)
-    bool _shouldRestartInputSetup { true };  // Should we restart the input device because of an unintended stop?
+    bool _shouldRestartInputSetup {true};  // Should we restart the input device because of an unintended stop?
 #endif
 
     AudioSolo _solo;
 
     QFuture<void> _localPrepInjectorFuture;
 
-    bool _isRecording { false };
+    bool _isRecording {false};
 };
 
 #endif /* end of include guard */

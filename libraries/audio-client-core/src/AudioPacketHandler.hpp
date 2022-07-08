@@ -185,7 +185,11 @@ static void applyGainSmoothing(float* buffer, int numFrames, float gain0, float 
 }
 
 inline float convertToFloat(int16_t sample) {
-    return (float)sample * (1 / 32768.0f);
+    return static_cast<float>(sample * (1.f / std::numeric_limits<int16_t>::max()));
+}
+
+inline float convertToSignedInt(int16_t sample) {
+    return static_cast<int16_t>(sample * std::numeric_limits<int16_t>::max());
 }
 
 template <typename Derived>
@@ -977,31 +981,52 @@ void AudioPacketHandler<Derived>::handleAudioInput(QByteArray& audioBuffer) {
     }
 }
 
-template <typename Derived>
-void AudioPacketHandler<Derived>::handleMicAudioInput() {
-    if (!_inputDevice || _isPlayingBackRecording) {
-        return;
-    }
-
-    // FIXME: CRTP
+// CRTP: replaced libraries/audio-client/AudioClient::handleMicAudioInput
+// void AudioClient::handleMicAudioInput() {
+//     if (!_inputDevice || _isPlayingBackRecording) {
+//         return;
+//     }
+//     QByteArray inputByteArray = _inputDevice->readAll();
+//
 // #if defined(Q_OS_ANDROID)
 //     _inputReadsSinceLastCheck++;
 // #endif
+//
+//     handleLocalEchoAndReverb(inputByteArray);
+//
+//     handleMicAudioInput(inputByteArray.data(), inputByteArray.size());
+// }
+
+template <typename Derived>
+void AudioPacketHandler<Derived>::handleMicAudioInput(const char* data, int size) {
+
+    const trailingBytes = size % _inputFormat.sampleSize();
+    if (trailingBytes != 0) {
+        qCWarning(audioclient) << "Input buffer trailing bytes: " << trailingBytes;
+        size -= trailingBytes; // we ignore trailing bytes
+    }
+
+    if (_inputFormat.sampleType() == QAudioFormat::Float) {
+        _inputTypeConversionBuffer.resize(size / sizeof(float));
+        const auto floats = reinterpret_cast<const float*>(data);
+        for (int i = 0; i < (int)_inputTypeConversionBuffer.size(); i+= _inputFormat.channelCount()) {
+            for (int j = 0; j < _inputFormat.channelCount(); ++j) {
+                _inputTypeConversionBuffer[i+j] = convertToSignedInt(floats[i+j]);
+            }
+        }
+
+        data = reinterpret_cast<const char*>(_inputTypeConversionBuffer.data());
+        size = _inputTypeConversionBuffer.size() * sizeof(int16_t);
+    }
 
     // input samples required to produce exactly NETWORK_FRAME_SAMPLES of output
     const int inputSamplesRequired = (_inputToNetworkResampler ?
                                       _inputToNetworkResampler->getMinInput(AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL) :
                                       AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL) * _inputFormat.channelCount();
 
-    const auto inputAudioSamples = std::unique_ptr<int16_t[]>(new int16_t[inputSamplesRequired]);
-    QByteArray inputByteArray = _inputDevice->readAll();
+    _inputRingBuffer.writeData(data, size);
 
-    // FIXME: CRTP
-    // handleLocalEchoAndReverb(inputByteArray);
-
-    _inputRingBuffer.writeData(inputByteArray.data(), inputByteArray.size());
-
-    float audioInputMsecsRead = inputByteArray.size() / (float)(_inputFormat.bytesForDuration(USECS_PER_MSEC));
+    float audioInputMsecsRead = size / (float)(_inputFormat.bytesForDuration(USECS_PER_MSEC));
     _stats.updateInputMsRead(audioInputMsecsRead);
 
     const int numNetworkBytes = _desiredInputFormat.channelCount() == AudioConstants::STEREO
@@ -1013,7 +1038,13 @@ void AudioPacketHandler<Derived>::handleMicAudioInput() {
 
     static int16_t networkAudioSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
 
+    // TODO: this loop should go into a separate thread, and the mic input
+    // callback should return ASAP, that's why the ring buffer is lock free
     while (_inputRingBuffer.samplesAvailable() >= inputSamplesRequired) {
+
+        // TODO: this should at least be a vector to avoid unnecessary
+        // re-allocations, and better resized in setupInput() not here.
+        const auto inputAudioSamples = std::unique_ptr<int16_t[]>(new int16_t[inputSamplesRequired]);
 
         _inputRingBuffer.readSamples(inputAudioSamples.get(), inputSamplesRequired);
 
