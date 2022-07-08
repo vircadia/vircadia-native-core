@@ -1000,7 +1000,7 @@ void AudioPacketHandler<Derived>::handleAudioInput(QByteArray& audioBuffer) {
 template <typename Derived>
 void AudioPacketHandler<Derived>::handleMicAudioInput(const char* data, int size) {
 
-    const trailingBytes = size % _inputFormat.sampleSize();
+    const auto trailingBytes = size % _inputFormat.sampleSize();
     if (trailingBytes != 0) {
         qCWarning(audioclient) << "Input buffer trailing bytes: " << trailingBytes;
         size -= trailingBytes; // we ignore trailing bytes
