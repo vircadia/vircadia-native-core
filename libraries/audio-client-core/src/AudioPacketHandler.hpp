@@ -613,7 +613,7 @@ template <typename Derived>
 void AudioPacketHandler<Derived>::negotiateAudioFormat() {
     auto nodeList = DependencyManager::get<NodeList>();
     auto negotiateFormatPacket = NLPacket::create(PacketType::NegotiateAudioFormat);
-    std::vector<std::shared_ptr<Codec>> codecs;
+    const auto& codecs = derived().getSupportedCodecs();
     // FIXME: CRTP
     // const auto& codecPlugins = PluginManager::getInstance()->getCodecPlugins();
     quint8 numberOfCodecs = (quint8)codecs.size();
@@ -653,7 +653,7 @@ void AudioPacketHandler<Derived>::selectAudioFormat(const QString& selectedCodec
     }
     _receivedAudioStream.cleanupCodec();
 
-    std::vector<std::shared_ptr<Codec>> codecs;
+    const auto& codecs = derived().getSupportedCodecs();
     // FIXME: CRTP
     // const auto& codecPlugins = PluginManager::getInstance()->getCodecPlugins();
     for (const auto& codec : codecs) {
