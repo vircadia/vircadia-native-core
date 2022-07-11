@@ -187,8 +187,8 @@ public:
     void handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec);
 
     void sendDownstreamAudioStatsPacket() { _stats.publish(); }
-    void handleMicAudioInput();
     void handleMicAudioInput(const char* data, int size);
+    void sendInput();
     void audioInputStateChanged(QAudio::State state);
     void handleRecordedAudioInput(const QByteArray& audio);
     void reset();
@@ -210,9 +210,9 @@ public:
     bool isAcousticEchoCancellationEnabled() const { return _isAECEnabled; }
 
     // FIXME: CRTP these should override virtual members of in audio-client/sec/AudioClient
-    virtual bool getServerEcho() { return _shouldEchoToServer; }
-    virtual void setServerEcho(bool serverEcho) { _shouldEchoToServer = serverEcho; }
-    virtual void toggleServerEcho() { _shouldEchoToServer = !_shouldEchoToServer; }
+    bool getServerEcho() { return _shouldEchoToServer; }
+    void setServerEcho(bool serverEcho) { _shouldEchoToServer = serverEcho; }
+    void toggleServerEcho() { _shouldEchoToServer = !_shouldEchoToServer; }
 
     void processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
     void sendMuteEnvironmentPacket();
@@ -229,6 +229,21 @@ public:
 protected:
     AudioPacketHandler();
     ~AudioPacketHandler();
+
+    void cleanupInput();
+    bool setupInput(QAudioFormat);
+    void setupDummyInput();
+
+    void cleanupOutput();
+    bool setupOutput(QAudioFormat);
+
+    AudioOutputIODevice _audioOutputIODevice {_localInjectorsStream, _receivedAudioStream, this};
+    bool _isMuted {false};
+    glm::vec3 avatarBoundingBoxCorner {};
+    glm::vec3 avatarBoundingBoxScale {};
+    QAudioFormat _inputFormat;
+    QAudioFormat _outputFormat;
+    QString _selectedCodecName;
 
 private:
     static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES{ 100 };
@@ -282,10 +297,8 @@ private:
     Mutex _injectorsMutex;
     QTimer* _dummyAudioInput {nullptr};
     QAudioFormat _desiredInputFormat;
-    QAudioFormat _inputFormat;
     std::atomic<bool> _audioOutputInitialized {false};
     QAudioFormat _desiredOutputFormat;
-    QAudioFormat _outputFormat;
     int _outputFrameSize {0};
     int _numOutputCallbackBytes {0};
     std::vector<int16_t> _inputTypeConversionBuffer {};
@@ -308,7 +321,6 @@ private:
     float _timeSinceLastClip {-1.0f};
     int _totalInputAudioSamples;
 
-    bool _isMuted {false};
     bool _shouldEchoLocally {false};
     bool _shouldEchoToServer {false};
     bool _isNoiseGateEnabled {true};
@@ -367,20 +379,11 @@ private:
     void processWebrtcNearEnd(int16_t* samples, int numFrames, int numChannels, int sampleRate);
 #endif
 
-    void cleanupInput();
-    bool setupInput(QAudioFormat);
-    void setupDummyInput();
-
-    void cleanupOutput();
-    bool setupOutput(QAudioFormat);
-
     // Callback acceleration dependent calculations
     int calculateNumberOfInputCallbackBytes(const QAudioFormat& format) const;
     int calculateNumberOfFrameSamples(int numBytes) const;
 
     quint16 _outgoingAvatarAudioSequenceNumber {0};
-
-    AudioOutputIODevice _audioOutputIODevice {_localInjectorsStream, _receivedAudioStream, this};
 
     AudioIOStats _stats {&_receivedAudioStream};
 
@@ -390,9 +393,6 @@ private:
     AudioPositionGetter _positionGetter{ []{ return Vectors::ZERO; } };
     AudioOrientationGetter _orientationGetter{ [] { return Quaternions::IDENTITY; } };
 
-    glm::vec3 avatarBoundingBoxCorner;
-    glm::vec3 avatarBoundingBoxScale;
-
     bool _hasReceivedFirstPacket {false};
 
     QVector<AudioInjectorPointer> _activeLocalAudioInjectors;
@@ -401,7 +401,6 @@ private:
     bool _audioPaused {false};
 
     std::shared_ptr<Codec> _codec;
-    QString _selectedCodecName;
     Encoder* _encoder {nullptr};  // for outbound mic stream
 
     RateCounter<> _silentOutbound;

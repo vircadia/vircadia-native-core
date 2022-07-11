@@ -62,7 +62,7 @@ if(UNIX)
     target_link_libraries(${TARGET_NAME} Threads::Threads)
 endif()
 
-link_hifi_libraries(shared networking)
+link_hifi_libraries(shared networking audio-client-core pcm-codec opus-codec)
 
 add_subdirectory(tests)
 
@@ -73,6 +73,7 @@ install(FILES
     src/context.h
     src/error.h
     src/messages.h
+    src/audio.h
     src/message_types.h
     src/node_list.h
     src/node_types.h

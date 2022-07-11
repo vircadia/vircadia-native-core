@@ -26,6 +26,8 @@ public:
     virtual void releaseEncoder(Encoder* encoder) override;
     virtual void releaseDecoder(Decoder* decoder) override;
 
+    static const char* getNameCString() { return NAME; }
+
 private:
     static const char* NAME;
 };

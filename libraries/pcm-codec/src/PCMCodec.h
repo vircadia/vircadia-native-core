@@ -42,6 +42,8 @@ public:
         memset(decodedBuffer.data(), 0, decodedBuffer.size());
     }
 
+    static const char* getNameCString() { return NAME; }
+
 private:
     static const char* NAME;
 };
@@ -68,6 +70,8 @@ public:
         decodedBuffer.resize(AudioConstants::NETWORK_FRAME_BYTES_STEREO);
         memset(decodedBuffer.data(), 0, decodedBuffer.size());
     }
+
+    static const char* getNameCString() { return NAME; }
 
 private:
     static const char* NAME;

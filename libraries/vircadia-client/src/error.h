@@ -80,4 +80,39 @@ VIRCADIA_CLIENT_DYN_API int vircadia_error_packet_write();
 /// @return -9
 VIRCADIA_CLIENT_DYN_API int vircadia_error_argument_invalid();
 
+/// @brief Audio Functionality is disabled.
+///
+/// Use vircadia_enable_audio() to enable audio.
+///
+/// @return Unique negative error code.
+VIRCADIA_CLIENT_DYN_API int vircadia_error_audio_disabled();
+
+/// @brief Invalid audio format specified.
+///
+/// Valid audio format must have non-zero positive frequency and
+/// channel count, and one of sample types defined in
+/// audio_constants.h. Additionally when passed to
+/// vircadia_set_audio_input_format(), the channel count must not be
+/// greater than two.
+///
+/// @return Unique negative error code.
+VIRCADIA_CLIENT_DYN_API int vircadia_audio_format_invalid();
+
+/// @brief Invalid audio context specified.
+///
+/// Audio context must be retrieved by polling
+/// vircadia_get_audio_input_context()/vircadia_get_audio_output_context(),
+/// after calling
+/// vircadia_set_audio_input_format()/vircadia_set_audio_output_format().
+///
+/// @return Unique negative error code.
+VIRCADIA_CLIENT_DYN_API int vircadia_audio_context_invalid();
+
+/// @brief Invalid audio codec name specified.
+///
+/// Valid codec names are defined in audio_constants.h.
+///
+/// @return Unique negative error code.
+VIRCADIA_CLIENT_DYN_API int vircadia_audio_codec_invalid();
+
 #endif /* end of include guard */

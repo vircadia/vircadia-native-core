@@ -33,7 +33,8 @@ namespace vircadia::client {
         argc(1),
         argvData("qt_is_such_a_joke"),
         argv(&argvData[0]),
-        messages_()
+        messages_(),
+        audio_()
     {
         auto qtInitialization = qtInitialized.get_future();
         appThread = std::thread{ [ this, nodeListParams, userAgent, info ] () {
@@ -97,6 +98,7 @@ namespace vircadia::client {
                 QThreadPool::globalInstance()->waitForDone();
 
                 messages_.destroy();
+                audio_.destroy();
                 DependencyManager::destroy<NodeList>();
                 DependencyManager::destroy<AddressManager>();
                 DependencyManager::destroy<DomainAccountManager>();
@@ -164,6 +166,14 @@ namespace vircadia::client {
 
     const Messages& Context::messages() const {
         return messages_;
+    }
+
+    Audio& Context::audio() {
+        return audio_;
+    }
+
+    const Audio& Context::audio() const {
+        return audio_;
     }
 
     std::list<Context> contexts;
