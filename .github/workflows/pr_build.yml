@@ -159,7 +159,7 @@ jobs:
         else # macOS
           echo "Downloading MacOSX10.12 SDK.."
           # TODO: do this in cmake or python build scripts to make use of centralized external asset configuration with fallback gateways.
-          curl --progress-bar -L -o macOS_SDK10.12.4.tar.xz "http://ipfs.vircadia.dev/ipfs/QmTDLEYdo616YgZKSYC2mySSw8EKQWTz7CH8UyMupMBpzK?filename=macOS_SDK10.12.4.tar.xz" || exit 1
+          curl --progress-bar -L -o macOS_SDK10.12.4.tar.xz "https://ipfs.vircadia.dev/ipfs/QmTDLEYdo616YgZKSYC2mySSw8EKQWTz7CH8UyMupMBpzK?filename=macOS_SDK10.12.4.tar.xz" || exit 1
           echo "  done\n"
           echo "Checking MacOSX10.12 SDK.."
           echo "c00e03cb64bed8d0d75d7a01c93de094b6ffaa3bc3318e7b29a9bdc354f0e29e363c454b7db89db8a3b78e9702668d1c661f1af279807de8db11accecb0ca498  macOS_SDK10.12.4.tar.xz" >> macOS_SDK10.12.4.tar.xz.checksum
