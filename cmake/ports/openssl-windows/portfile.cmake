@@ -11,10 +11,13 @@ vcpkg_find_acquire_program(PERL)
 get_filename_component(PERL_EXE_PATH ${PERL} DIRECTORY)
 set(ENV{PATH} "$ENV{PATH};${PERL_EXE_PATH}")
 
+file(READ "${VCPKG_ROOT_DIR}/_env/EXTERNAL_OPENSSL_111H_URLS.txt" EXTERNAL_OPENSSL_111H_URLS)
+file(READ "${VCPKG_ROOT_DIR}/_env/EXTERNAL_OPENSSL_111H_SHA512.txt" EXTERNAL_OPENSSL_111H_SHA512)
+
 vcpkg_download_distfile(OPENSSL_SOURCE_ARCHIVE
-    URLS "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz" "https://www.openssl.org/source/old/1.1.1/openssl-${OPENSSL_VERSION}.tar.gz"
+    URLS ${EXTERNAL_OPENSSL_111H_URLS}
     FILENAME "openssl-${OPENSSL_VERSION}.tar.gz"
-    SHA512 da50fd99325841ed7a4367d9251c771ce505a443a73b327d8a46b2c6a7d2ea99e43551a164efc86f8743b22c2bdb0020bf24a9cbd445e9d68868b2dc1d34033a
+    SHA512 ${EXTERNAL_OPENSSL_111H_SHA512}
 )
 
 vcpkg_extract_source_archive(${OPENSSL_SOURCE_ARCHIVE})

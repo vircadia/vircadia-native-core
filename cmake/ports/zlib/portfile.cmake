@@ -2,10 +2,13 @@ include(vcpkg_common_functions)
 
 set(VERSION 1.2.11)
 
+file(READ "${VCPKG_ROOT_DIR}/_env/EXTERNAL_ZLIB_URLS.txt" EXTERNAL_ZLIB_URLS)
+file(READ "${VCPKG_ROOT_DIR}/_env/EXTERNAL_ZLIB_SHA512.txt" EXTERNAL_ZLIB_SHA512)
+
 vcpkg_download_distfile(ARCHIVE_FILE
-    URLS "http://www.zlib.net/zlib-${VERSION}.tar.gz" "https://downloads.sourceforge.net/project/libpng/zlib/${VERSION}/zlib-${VERSION}.tar.gz"
+    URLS ${EXTERNAL_ZLIB_URLS}
     FILENAME "zlib1211.tar.gz"
-    SHA512 73fd3fff4adeccd4894084c15ddac89890cd10ef105dd5e1835e1e9bbb6a49ff229713bd197d203edfa17c2727700fce65a2a235f07568212d820dca88b528ae
+    SHA512 ${EXTERNAL_ZLIB_SHA512}
 )
 
 vcpkg_extract_source_archive_ex(
