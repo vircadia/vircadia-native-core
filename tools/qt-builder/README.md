@@ -192,9 +192,11 @@ Using 7-Zip:
 * `7z a -ttar qt5-install-5.15.2-windows.tar qt5-install`
 * `7z a -tgzip qt5-install-5.15.2-windows.tar.gz qt5-install-5.15.2-windows.tar`
 
-Upload qt5-install-5.15.2-windows.tar.gz to the Amazon S3 vircadia-public bucket, under the dependencies/vckpg directory.
-Update hifi_vcpkg.py to use this new URL. Additionally, you should make a small change to any file in the vircadia/cmake/ports
-directory to force the re-download of the qt-install.tar.gz during the build process for Vircadia.
+Upload qt5-install-5.15.2-windows.tar.gz to vircadia IPFS gateway server
+(ipfs.vircadia.dev) and add/pin it.  Update `cmake/ExternalAssetsConfig.cmake`
+to use this new CID and SHA512/MD5 chacksums. Additionally, you should make a
+small change to any file in the vircadia/cmake/ports directory to force the
+re-download of the qt-install.tar.gz during the build process for Vircadia.
 
 #### Preparing Symbols
 
@@ -281,7 +283,7 @@ find . -name \*.prl -exec sed -i -e '/^QMAKE_PRL_BUILD_DIR/d' {} \;
 ```bash
 tar -Jcvf qt5-install-5.15.2-ubuntu-18.04-amd64.tar.xz qt5-install
 ```
-2.  Upload qt5-install-5.15.2-ubuntu-18.04-amd64.tar.xz to https://athena-public.s3.amazonaws.com/dependencies/vcpkg/
+2.  Upload qt5-install-5.15.2-ubuntu-18.04-amd64.tar.xz to http://ipfs.vircadia.dev and add/pin it to IPFS, and update `cmake/ExternalAssetsConfig.cmake` to use the new CID and SHA512/MD5 checksums.
 
 
 
