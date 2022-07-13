@@ -201,14 +201,14 @@ endif()
             downloadVcpkg = True
 
         if downloadVcpkg:
-            if "HIFI_VCPKG_BOOTSTRAP" in os.environ:
+            if "HIFI_VCPKG_NO_BOOTSTRAP" in os.environ:
+                print("Fetching vcpkg from {} to {}".format(self.vcpkgUrl, self.path))
+                hifi_utils.downloadAndExtract(self.vcpkgUrl, self.path, self.vcpkgSha512)
+            else:
                 print("Cloning vcpkg from github to {}".format(self.path))
                 hifi_utils.executeSubprocess(['git', 'clone', '--depth 1', '--branch 2022.06.16.1', 'https://github.com/microsoft/vcpkg', self.path])
                 print("Bootstrapping vcpkg")
                 hifi_utils.executeSubprocess(self.bootstrapCmds, folder=self.path, env=self.bootstrapEnv)
-            else:
-                print("Fetching vcpkg from {} to {}".format(self.vcpkgUrl, self.path))
-                hifi_utils.downloadAndExtract(self.vcpkgUrl, self.path, self.vcpkgSha512)
 
         print("Replacing port files")
         portsPath = os.path.join(self.path, 'ports')
