@@ -203,7 +203,7 @@ endif()
         if downloadVcpkg:
             if "HIFI_VCPKG_BOOTSTRAP" in os.environ:
                 print("Cloning vcpkg from github to {}".format(self.path))
-                hifi_utils.executeSubprocess(['git', 'clone', 'https://github.com/microsoft/vcpkg', self.path])
+                hifi_utils.executeSubprocess(['git', 'clone', '--depth 1', '--branch 2022.06.16.1', 'https://github.com/microsoft/vcpkg', self.path])
                 print("Bootstrapping vcpkg")
                 hifi_utils.executeSubprocess(self.bootstrapCmds, folder=self.path, env=self.bootstrapEnv)
             else:
