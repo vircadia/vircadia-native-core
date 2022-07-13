@@ -192,9 +192,9 @@ Using 7-Zip:
 * `7z a -ttar qt5-install-5.15.2-windows.tar qt5-install`
 * `7z a -tgzip qt5-install-5.15.2-windows.tar.gz qt5-install-5.15.2-windows.tar`
 
-Upload qt5-install-5.15.2-windows.tar.gz to Vircadia IPFS gateway server
+Upload `qt5-install-5.15.2-windows.tar.gz` to Vircadia IPFS gateway server
 (ipfs.vircadia.dev), add/pin it there with IPFS, add a location entry with
-file's CID in `/etc/nginx/sites-available/default/`, similarly in [IPFS hashes
+file's CID in `/etc/nginx/sites-available/default`, similarly in [IPFS hashes
 JSON](https://github.com/vircadia/vircadia-ipfs-repo/blob/master/hashes.json)
 and update `cmake/ExternalAssetsConfig.cmake` to use the new CID and SHA512/MD5
 checksums.
@@ -284,10 +284,10 @@ find . -name \*.prl -exec sed -i -e '/^QMAKE_PRL_BUILD_DIR/d' {} \;
 ```bash
 tar -Jcvf qt5-install-5.15.2-ubuntu-18.04-amd64.tar.xz qt5-install
 ```
-2.  Upload qt5-install-5.15.2-ubuntu-18.04-amd64.tar.xz to Vircadia IPFS
+2.  Upload `qt5-install-5.15.2-ubuntu-18.04-amd64.tar.xz` to Vircadia IPFS
     gateway server (ipfs.vircadia.dev), add/pin it with IPFS, add a location
-    entry with files CID in /etc/nginx/sites-available/default/, and similarly
-    in [IPFS hashes
+    entry with files CID in `/etc/nginx/sites-available/default`, similarly in
+    [IPFS hashes
     JSON](https://github.com/vircadia/vircadia-ipfs-repo/blob/master/hashes.json)
     and update `cmake/ExternalAssetsConfig.cmake` to use the new CID and
     SHA512/MD5 checksums.
@@ -356,9 +356,9 @@ Add a *qt.conf* file.
 ```bash
 tar -Jcvf qt5-install-5.15.2-qtwebengine-5.15.7-macOSXSDK10.14-macos.tar.xz qt5-install
 ```
-Upload qt5-install-5.15.2-qtwebengine-5.15.7-macOSXSDK10.14-macos.tar.xz to
+Upload `qt5-install-5.15.2-qtwebengine-5.15.7-macOSXSDK10.14-macos.tar.xz` to
 Vircadia IPFS gateway server (ipfs.vircadia.dev), add/pin it there with IPFS,
-add a location entry with file's CID in `/etc/nginx/sites-available/default/`,
+add a location entry with file's CID in `/etc/nginx/sites-available/default`,
 similarly in [IPFS hashes
 JSON](https://github.com/vircadia/vircadia-ipfs-repo/blob/master/hashes.json)
 and update `cmake/ExternalAssetsConfig.cmake` to use the new CID and SHA512/MD5
