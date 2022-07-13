@@ -114,12 +114,6 @@ def getPlatformPackages():
         result = { **result, **platformPackages }
     return result
 
-def getPackageUrls(package):
-    return hifi_utils.readEnviromentVariableFromFile(self.args.build_root, 'EXTERNAL_' + package['extAssetID'] + '_URLS').split(";")
-
-def getPackageMD5Checksum(package):
-    return hifi_utils.readEnviromentVariableFromFile(self.args.build_root, 'EXTERNAL_' + package['extAssetID'] + '_MD5')
-
 def copyAndroidLibs(packagePath, appPath):
     androidPackages = getPlatformPackages()
     jniPath = os.path.join(appPath, 'src/main/jniLibs/arm64-v8a')
