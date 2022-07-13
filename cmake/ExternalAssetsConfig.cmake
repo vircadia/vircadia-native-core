@@ -3,7 +3,7 @@
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/macros/ExternalAssetsUtils.cmake")
 
 set(USE_IPFS_EXTERNAL_BUILD_ASSETS true CACHE STRING "Enable IPFS gateway for external assets (default: true)")
-set(USE_DIRECT_EXTERNAL_BUILD_ASSETS true CACHE STRING "Enable direct links for external assets (default: true)")
+set(USE_DIRECT_EXTERNAL_BUILD_ASSETS false CACHE STRING "Enable direct links for external assets (default: false)")
 
 set(EXTERNAL_BUILD_ASSETS_DIRECT_BASE_URLS
     "https://athena-public.s3.amazonaws.com"
