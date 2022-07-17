@@ -230,9 +230,21 @@ endif()
         print('Copying triplet ' + triplet + ' to have build type ' + self.vcpkgBuildType)
         tripletPath = os.path.join(self.path, 'triplets', triplet + '.cmake')
         tripletForBuildTypePath = os.path.join(self.path, 'triplets', self.getTripletWithBuildType(triplet) + '.cmake')
-        shutil.copy(tripletPath, tripletForBuildTypePath)
-        with open(tripletForBuildTypePath, "a") as tripletForBuildTypeFile:
-            tripletForBuildTypeFile.write("set(VCPKG_BUILD_TYPE " + self.vcpkgBuildType + ")\n")
+        try:
+            shutil.copy(tripletPath, tripletForBuildTypePath)
+            with open(tripletForBuildTypePath, "a") as tripletForBuildTypeFile:
+                tripletForBuildTypeFile.write("set(VCPKG_BUILD_TYPE " + self.vcpkgBuildType + ")\n")
+        except FileNotFoundError:
+            if 'Linux' == platform.system() and 'aarch64' == platfor.machine():
+                with open(tripletForBuildTypePath, "a") as tripletForBuildTypeFile:
+                    tripletForBuildTypeFile.write("set(VCPKG_TARGET_ARCHITECTURE arm64)\n")
+                    tripletForBuildTypeFile.write("set(VCPKG_CRT_LINKAGE dynamic)\n")
+                    tripletForBuildTypeFile.write("set(VCPKG_LIBRARY_LINKAGE static)\n")
+                    tripletForBuildTypeFile.write("set(VCPKG_CMAKE_SYSTEM_NAME Linux)\n")
+                    tripletForBuildTypeFile.write("set(VCPKG_BUILD_TYPE " + self.vcpkgBuildType + ")\n")
+            else:
+                raise
+
 
     def getTripletWithBuildType(self, triplet):
         if (not self.vcpkgBuildType):
