@@ -234,7 +234,7 @@ endif()
             shutil.copy(tripletPath, tripletForBuildTypePath)
             with open(tripletForBuildTypePath, "a") as tripletForBuildTypeFile:
                 tripletForBuildTypeFile.write("set(VCPKG_BUILD_TYPE " + self.vcpkgBuildType + ")\n")
-        except FileNotFoundError:
+        except OSError:
             if 'Linux' == platform.system() and 'aarch64' == platfor.machine():
                 with open(tripletForBuildTypePath, "a") as tripletForBuildTypeFile:
                     tripletForBuildTypeFile.write("set(VCPKG_TARGET_ARCHITECTURE arm64)\n")
