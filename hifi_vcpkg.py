@@ -235,7 +235,7 @@ endif()
             with open(tripletForBuildTypePath, "a") as tripletForBuildTypeFile:
                 tripletForBuildTypeFile.write("set(VCPKG_BUILD_TYPE " + self.vcpkgBuildType + ")\n")
         except OSError:
-            if 'Linux' == platform.system() and 'aarch64' == platfor.machine():
+            if 'Linux' == platform.system() and 'aarch64' == platform.machine():
                 with open(tripletForBuildTypePath, "a") as tripletForBuildTypeFile:
                     tripletForBuildTypeFile.write("set(VCPKG_TARGET_ARCHITECTURE arm64)\n")
                     tripletForBuildTypeFile.write("set(VCPKG_CRT_LINKAGE dynamic)\n")
