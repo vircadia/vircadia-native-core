@@ -112,10 +112,12 @@ endif()
                 self.prebuiltArchiveSha512 = self.readVar('EXTERNAL_VCPKG_MAC_SHA512')
         elif 'Linux' == system and 'aarch64' == machine:
             self.exe = os.path.join(self.path, 'vcpkg')
-            self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '-disableMetrics' ]
+            self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '-disableMetrics', '-useSystemBinaries' ]
             self.vcpkgUrl = self.readVar('EXTERNAL_VCPKG_LINUX_AARCH64_URLS').split(';')
             self.vcpkgSha512 = self.readVar('EXTERNAL_VCPKG_LINUX_AARCH64_SHA512')
             self.hostTriplet = 'arm64-linux'
+            os.environ['VCPKG_FORCE_SYSTEM_BINARIES'] = '1'
+            os.environ['VCPKG_DEFAULT_TRIPLET'] = 'arm64-linux'
         else:
             self.exe = os.path.join(self.path, 'vcpkg')
             self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '-disableMetrics' ]
