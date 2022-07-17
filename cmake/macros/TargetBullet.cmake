@@ -1,10 +1,10 @@
-# 
+#
 #  Copyright 2015 High Fidelity, Inc.
 #  Created by Bradley Austin Davis on 2015/10/10
 #
 #  Distributed under the Apache License, Version 2.0.
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-# 
+#
 macro(TARGET_BULLET)
     if (ANDROID)
         set(INSTALL_DIR ${HIFI_ANDROID_PRECOMPILED}/bullet)
@@ -24,6 +24,7 @@ macro(TARGET_BULLET)
     else()
       target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${BULLET_INCLUDE_DIRS})
     endif()
+    target_compile_definitions(${TARGET_NAME} PUBLIC BT_ENABLE_PROFILE)
     target_link_libraries(${TARGET_NAME} ${BULLET_LIBRARIES})
 endmacro()
 
