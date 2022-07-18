@@ -49,7 +49,7 @@ jobs:
             # Do not change the names of self-hosted runners without knowing what you are doing, as they correspond to labels that have to be set on the runner.
             - os: self-hosted_debian-11_aarch64
               build_type: full
-              apt-dependencies: qtbase5-dev qtbase5-private-dev qtwebengine5-dev qtwebengine5-dev-tools qtmultimedia5-dev libqt5opengl5-dev qtscript5-dev libqt5scripttools5 libqt5webchannel5-dev libqt5websockets5-dev qtxmlpatterns5-dev-tools qttools5-dev libqt5xmlpatterns5-dev libqt5svg5-dev qml-module-qtwebchannel build-essential cmake curl freeglut3-dev git libasound2 libasound2-dev libdouble-conversion-dev libdrm-dev libfontconfig1 libgl1-mesa-dev libglvnd-dev libharfbuzz-dev libjack-dev libjack0 libnspr4 libnss3 libpcre2-16-0 libpulse0 libsdl2-dev libssl-dev libudev-dev libxcb-xinerama0-dev libxcb-xinput0 libxcomposite1 libxcursor1 libxi-dev libxmu-dev libxrandr-dev libxslt1.1 libxtst6 make mesa-common-dev mesa-utils nodejs npm patchelf python2 python3 python3-distro xdg-user-dirs zlib1g-dev ninja-build zip
+              apt-dependencies: qtbase5-dev qtbase5-private-dev qtwebengine5-dev qtwebengine5-dev-tools qtmultimedia5-dev libqt5opengl5-dev qtscript5-dev libqt5scripttools5 libqt5webchannel5-dev libqt5websockets5-dev qtxmlpatterns5-dev-tools qttools5-dev libqt5xmlpatterns5-dev libqt5svg5-dev qml-module-qtwebchannel build-essential curl freeglut3-dev git libasound2 libasound2-dev libdouble-conversion-dev libdrm-dev libfontconfig1 libgl1-mesa-dev libglvnd-dev libharfbuzz-dev libjack-dev libjack0 libnspr4 libnss3 libpcre2-16-0 libpulse0 libsdl2-dev libssl-dev libudev-dev libxcb-xinerama0-dev libxcb-xinput0 libxcomposite1 libxcursor1 libxi-dev libxmu-dev libxrandr-dev libxslt1.1 libxtst6 make mesa-common-dev mesa-utils nodejs npm patchelf python2 python3 python3-distro xdg-user-dirs zlib1g-dev ninja-build zip
         fail-fast: false
     runs-on: ${{matrix.os}}
     if: github.event.action != 'labeled' || github.event.label.name == 'rebuild'
@@ -154,6 +154,16 @@ jobs:
 
           echo "Installing apt packages"
           sudo apt install -y ${{ matrix.apt-dependencies }} || exit 1
+
+          if [ "${{ matrix.os }}" = "self-hosted_debian-11_aarch64" ]; then
+            echo "Installing cmake from source"
+            wget https://github.com/Kitware/CMake/releases/download/v3.22.2/cmake-3.22.2.tar.gz
+            tar -zxvf cmake-3.22.2.tar.gz
+            cd cmake-3.22.2
+            ./bootstrap
+            make
+            sudo make install
+          fi
         else # macOS
           echo "Downloading MacOSX10.12 SDK.."
           curl --progress-bar -L -o macOS_SDK10.12.4.tar.xz "https://cloudflare-ipfs.com/ipfs/QmTDLEYdo616YgZKSYC2mySSw8EKQWTz7CH8UyMupMBpzK?filename=macOS_SDK10.12.4.tar.xz" || exit 1
