@@ -161,8 +161,8 @@ jobs:
             tar -zxvf cmake-3.22.2.tar.gz
             cd cmake-3.22.2
             ./bootstrap
-            make
-            sudo make install
+            make -j$(nproc)
+            sudo make install -j$(nproc)
           fi
         else # macOS
           echo "Downloading MacOSX10.12 SDK.."
