@@ -18,11 +18,11 @@
 
 
 VIRCADIA_CLIENT_DYN_API uint8_t vircadia_audio_sample_type_float() {
-    return QAudioFormat::Float;
+    return AudioFormat::Float;
 }
 
 VIRCADIA_CLIENT_DYN_API uint8_t vircadia_audio_sample_type_sint16() {
-    return QAudioFormat::SignedInt;
+    return AudioFormat::Signed16;
 }
 
 VIRCADIA_CLIENT_DYN_API const char* vircadia_audio_codec_opus() {

@@ -27,9 +27,6 @@
 #include <QtCore/QObject>
 #include <QtCore/QSharedPointer>
 #include <QtCore/QVector>
-#include <QtMultimedia/QAudio>
-#include <QtMultimedia/QAudioFormat>
-#include <QtMultimedia/QAudioInput>
 
 #include <AbstractAudioInterface.h>
 #include <AudioEffectOptions.h>
@@ -89,6 +86,41 @@ class NLPacket;
 #define DEFAULT_STARVE_DETECTION_ENABLED true
 #define DEFAULT_BUFFER_FRAMES 1
 
+struct AudioFormat {
+    enum SampleTag {
+        Signed16,
+        Float
+    };
+
+    SampleTag sampleType = SampleTag(-1);
+    int sampleRate = -1;
+    int channelCount = -1;
+
+    int getSampleSize() const {
+        switch(sampleType) {
+            case Signed16: return sizeof(int16_t) * CHAR_BIT;
+            case Float: return sizeof(float) * CHAR_BIT;
+            default: return 0;
+        };
+    };
+
+    qint32 bytesForDuration(qint64 microseconds) const {
+        return microseconds * sampleRate * channelCount * getSampleSize() / USECS_PER_SECOND;
+    }
+
+    bool operator==(const AudioFormat& other) const {
+        return sampleType == other.sampleType && sampleRate == other.sampleRate && channelCount == other.channelCount;
+    }
+    bool operator!=(const AudioFormat& other) const {
+        return !(*this == other);
+    }
+
+    bool isValid() const {
+        return sampleRate != -1 && channelCount != -1 &&
+            (sampleType == Signed16 || sampleType == Float);
+    }
+};
+
 template <typename Derived>
 class AudioPacketHandler {
     using LocalInjectorsStream = AudioMixRingBuffer;
@@ -135,8 +167,6 @@ public:
 
     const MixedProcessedAudioStream& getReceivedAudioStream() const { return _receivedAudioStream; }
     MixedProcessedAudioStream& getReceivedAudioStream() { return _receivedAudioStream; }
-
-    const QAudioFormat& getOutputFormat() const { return _outputFormat; }
 
     float getLastInputLoudness() const { return _lastInputLoudness; }
 
@@ -231,18 +261,18 @@ protected:
     ~AudioPacketHandler();
 
     void cleanupInput();
-    bool setupInput(QAudioFormat);
+    bool setupInput(AudioFormat);
     void setupDummyInput();
 
     void cleanupOutput();
-    bool setupOutput(QAudioFormat);
+    bool setupOutput(AudioFormat);
 
     AudioOutputIODevice _audioOutputIODevice {_localInjectorsStream, _receivedAudioStream, this};
     bool _isMuted {false};
     glm::vec3 avatarBoundingBoxCorner {};
     glm::vec3 avatarBoundingBoxScale {};
-    QAudioFormat _inputFormat;
-    QAudioFormat _outputFormat;
+    AudioFormat _inputFormat;
+    AudioFormat _outputFormat;
     QString _selectedCodecName;
 
 private:
@@ -296,9 +326,9 @@ private:
 
     Mutex _injectorsMutex;
     QTimer* _dummyAudioInput {nullptr};
-    QAudioFormat _desiredInputFormat;
+    AudioFormat _desiredInputFormat;
     std::atomic<bool> _audioOutputInitialized {false};
-    QAudioFormat _desiredOutputFormat;
+    AudioFormat _desiredOutputFormat;
     int _outputFrameSize {0};
     int _numOutputCallbackBytes {0};
     std::vector<int16_t> _inputTypeConversionBuffer {};
@@ -380,7 +410,7 @@ private:
 #endif
 
     // Callback acceleration dependent calculations
-    int calculateNumberOfInputCallbackBytes(const QAudioFormat& format) const;
+    int calculateNumberOfInputCallbackBytes(const AudioFormat& format) const;
     int calculateNumberOfFrameSamples(int numBytes) const;
 
     quint16 _outgoingAvatarAudioSequenceNumber {0};

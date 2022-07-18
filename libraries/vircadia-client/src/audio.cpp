@@ -38,7 +38,7 @@ int checkAudioEnabled(int id) {
 
 int validateAudioFormat(const vircadia_audio_format& format, bool input = false) {
     if (
-        !(format.sample_type == QAudioFormat::SignedInt && format.sample_type == QAudioFormat::Float) ||
+        !(format.sample_type == AudioFormat::Signed16 && format.sample_type == AudioFormat::Float) ||
         format.sample_rate <= 0 ||
         format.channel_count <= 0 ||
         (input && format.channel_count > 2)
@@ -68,14 +68,11 @@ int vircadia_set_audio_codec_params(int context_id, const char* codec, vircadia_
     });
 }
 
-QAudioFormat qAudioFormatFrom(const vircadia_audio_format& format) {
-    QAudioFormat result;
-    result.setSampleRate(format.sample_rate);
-    result.setSampleSize(format.sample_type == QAudioFormat::Float ? 32 : 16);
-    result.setCodec("audio/pcm");
-    result.setSampleType(QAudioFormat::SampleType(format.sample_type));
-    result.setByteOrder(QAudioFormat::LittleEndian);
-    result.setChannelCount(format.channel_count);
+AudioFormat audioFormatFrom(const vircadia_audio_format& format) {
+    AudioFormat result{};
+    result.sampleType = AudioFormat::SampleTag(format.sample_type);
+    result.sampleRate = format.sample_rate;
+    result.channelCount = format.channel_count;
     return result;
 }
 
@@ -85,7 +82,7 @@ int vircadia_set_audio_input_format(int context_id, vircadia_audio_format format
         checkAudioEnabled(context_id),
         validateAudioFormat(format, true)
     }, [&](auto) {
-        std::next(std::begin(contexts), context_id)->audio().setInput(qAudioFormatFrom(format));
+        std::next(std::begin(contexts), context_id)->audio().setInput(audioFormatFrom(format));
         return 0;
     });
 }
@@ -96,7 +93,7 @@ int vircadia_set_audio_output_format(int context_id, vircadia_audio_format forma
         checkAudioEnabled(context_id),
         validateAudioFormat(format)
     }, [&](auto) {
-        std::next(std::begin(contexts), context_id)->audio().setOutput(qAudioFormatFrom(format));
+        std::next(std::begin(contexts), context_id)->audio().setOutput(audioFormatFrom(format));
         return 0;
     });
 }

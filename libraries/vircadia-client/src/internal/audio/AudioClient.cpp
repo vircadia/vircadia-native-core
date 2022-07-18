@@ -58,13 +58,13 @@ namespace vircadia::client
         updateTimer.start();
     }
 
-    void AudioClient::setInputFormat(QAudioFormat format) {
+    void AudioClient::setInputFormat(AudioFormat format) {
         std::scoped_lock lock(inout);
         inputFormat = format;
         input = nullptr;
     }
 
-    void AudioClient::setOutputFormat(QAudioFormat format) {
+    void AudioClient::setOutputFormat(AudioFormat format) {
         std::scoped_lock lock(inout);
         outputFormat = format;
         output = nullptr;

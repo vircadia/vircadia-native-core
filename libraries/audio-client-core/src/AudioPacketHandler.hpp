@@ -57,6 +57,14 @@
 
 using Lock = std::unique_lock<std::mutex>;
 
+inline QDebug& operator<<(QDebug& debug, const AudioFormat& audioFormat) {
+    QString sampleTypeString = audioFormat.sampleType == AudioFormat::Signed16 ? "Signed 16bit" :
+        audioFormat.sampleType == AudioFormat::Float ? "Float" :
+        "!INVALID!";
+    return debug << QString("AudioFormat{ sampleType: %1, sampleRate: %2, channelCount: %3 }")
+        .arg(sampleTypeString, audioFormat.sampleRate, audioFormat.channelCount);
+}
+
 template <typename Source, typename Destination>
 auto channelUpmix(const Source* source, Destination* destination, int numSamples, int numExtraChannels) {
     Source* dest = reinterpret_cast<Source*>(destination);
@@ -202,6 +210,20 @@ const Derived& AudioPacketHandler<Derived>::derived() const {
     return *static_cast<const Derived*>(this);
 }
 
+// FIXME: CRTP this will be needed in audio-client/src/AudioClient
+// QAudioFormat qAudioFormatFrom(AudioFormat format) {
+//     QAudioFormat result;
+//     result.setSampleRate(format.sampleRate);
+//     result.setSampleSize(format.getSampleSize());
+//     result.setCodec("audio/pcm");
+//     result.setSampleType(format.sampleType == AudioFormat::Signed16 ? QAudioFormat::SignedInt :
+//         format.sampleType == AudioFormat::Float ? QAudioFormat::Float :
+//         QAudioFormat::Unknown);
+//     result.setByteOrder(QAudioFormat::LittleEndian);
+//     result.setChannelCount(format.channelCount);
+//     return result;
+// }
+
 template <typename Derived>
 AudioPacketHandler<Derived>::AudioPacketHandler() {
 
@@ -209,15 +231,12 @@ AudioPacketHandler<Derived>::AudioPacketHandler() {
     // _sessionOutputBufferSizeFrames = _outputBufferSizeFrames.get();
 
     // set up the desired audio format
-    _desiredInputFormat.setSampleRate(AudioConstants::SAMPLE_RATE);
-    _desiredInputFormat.setSampleSize(16);
-    _desiredInputFormat.setCodec("audio/pcm");
-    _desiredInputFormat.setSampleType(QAudioFormat::SignedInt);
-    _desiredInputFormat.setByteOrder(QAudioFormat::LittleEndian);
-    _desiredInputFormat.setChannelCount(AudioConstants::MONO);
+    _desiredInputFormat.sampleRate = AudioConstants::SAMPLE_RATE;
+    _desiredInputFormat.sampleType = AudioFormat::Signed16;
+    _desiredInputFormat.channelCount = AudioConstants::MONO;
 
     _desiredOutputFormat = _desiredInputFormat;
-    _desiredOutputFormat.setChannelCount(OUTPUT_CHANNEL_COUNT);
+    _desiredOutputFormat.channelCount = OUTPUT_CHANNEL_COUNT;
 
 
     // avoid putting a lock in the device callback
@@ -329,11 +348,6 @@ AudioPacketHandler<Derived>::~AudioPacketHandler() {
         _dummyAudioInput = NULL;
     }
 }
-
-// FIXME: CRTP add this to vircadia-client/src/internal/audio/AudioClient
-// void AudioClient::customDeleter() {
-//     deleteLater();
-// }
 
 template <typename Derived>
 void AudioPacketHandler<Derived>::handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& receivedCodec) {
@@ -645,7 +659,7 @@ void AudioPacketHandler<Derived>::selectAudioFormat(const QString& selectedCodec
 
     _selectedCodecName = selectedCodecName;
 
-    qCDebug(audioclient) << "Selected codec:" << _selectedCodecName << "; Is stereo input:" << (_desiredInputFormat.channelCount() == AudioConstants::STEREO);
+    qCDebug(audioclient) << "Selected codec:" << _selectedCodecName << "; Is stereo input:" << (_desiredInputFormat.channelCount == AudioConstants::STEREO);
 
     // release any old codec encoder/decoder first...
     if (_codec && _encoder) {
@@ -662,7 +676,7 @@ void AudioPacketHandler<Derived>::selectAudioFormat(const QString& selectedCodec
         if (_selectedCodecName == codec->getName()) {
             _codec = codec;
             _receivedAudioStream.setupCodec(codec, _selectedCodecName, AudioConstants::STEREO);
-            _encoder = codec->createEncoder(_desiredInputFormat.sampleRate(), _desiredInputFormat.channelCount());
+            _encoder = codec->createEncoder(_desiredInputFormat.sampleRate, _desiredInputFormat.channelCount);
             qCDebug(audioclient) << "Selected codec:" << _codec.get();
             break;
         }
@@ -701,7 +715,7 @@ void AudioPacketHandler<Derived>::configureReverb() {
     _localReverb.setParameters(&p);
 
     // used only for adding self-reverb to loopback audio
-    p.sampleRate = _outputFormat.sampleRate();
+    p.sampleRate = _outputFormat.sampleRate;
     p.wetDryMix = 100.0f;
     p.preDelay = 0.0f;
     p.earlyGain = -96.0f;   // disable ER
@@ -925,7 +939,7 @@ void AudioPacketHandler<Derived>::handleAudioInput(QByteArray& audioBuffer) {
         if (!_isMuted) {
             int16_t* samples = reinterpret_cast<int16_t*>(audioBuffer.data());
             int numSamples = audioBuffer.size() / AudioConstants::SAMPLE_SIZE;
-            int numFrames = numSamples / _desiredInputFormat.channelCount();
+            int numFrames = numSamples / _desiredInputFormat.channelCount;
 
             if (_isNoiseGateEnabled && _isNoiseReductionAutomatic) {
                 // The audio gate includes DC removal
@@ -976,7 +990,7 @@ void AudioPacketHandler<Derived>::handleAudioInput(QByteArray& audioBuffer) {
             encodedBuffer = audioBuffer;
         }
 
-        AbstractAudioInterface::emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, _desiredInputFormat.channelCount() == AudioConstants::STEREO,
+        AbstractAudioInterface::emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, _desiredInputFormat.channelCount == AudioConstants::STEREO,
                         {_positionGetter(), _orientationGetter()}, avatarBoundingBoxCorner, avatarBoundingBoxScale,
                         packetType, _selectedCodecName);
         _stats.sentPacket();
@@ -1003,18 +1017,18 @@ void AudioPacketHandler<Derived>::handleAudioInput(QByteArray& audioBuffer) {
 template <typename Derived>
 void AudioPacketHandler<Derived>::handleMicAudioInput(const char* data, int size) {
 
-    const auto sampleBytes = _inputFormat.sampleSize() / std::numeric_limits<uint8_t>::digits;
+    const auto sampleBytes = _inputFormat.getSampleSize() / std::numeric_limits<uint8_t>::digits;
     const auto trailingBytes = size % sampleBytes;
     if (trailingBytes != 0) {
         qCWarning(audioclient) << "Input buffer trailing bytes: " << trailingBytes;
         size -= trailingBytes; // we ignore trailing bytes
     }
 
-    if (_inputFormat.sampleType() == QAudioFormat::Float) {
+    if (_inputFormat.sampleType == AudioFormat::Float) {
         _inputTypeConversionBuffer.resize(size / sizeof(float));
         const auto floats = reinterpret_cast<const float*>(data);
-        for (int i = 0; i < (int)_inputTypeConversionBuffer.size(); i+= _inputFormat.channelCount()) {
-            for (int j = 0; j < _inputFormat.channelCount(); ++j) {
+        for (int i = 0; i < (int)_inputTypeConversionBuffer.size(); i+= _inputFormat.channelCount) {
+            for (int j = 0; j < _inputFormat.channelCount; ++j) {
                 _inputTypeConversionBuffer[i+j] = convertToSignedInt(floats[i+j]);
             }
         }
@@ -1031,17 +1045,17 @@ void AudioPacketHandler<Derived>::handleMicAudioInput(const char* data, int size
 
 template <typename Derived>
 void AudioPacketHandler<Derived>::sendInput() {
-    const int numNetworkBytes = _desiredInputFormat.channelCount() == AudioConstants::STEREO
+    const int numNetworkBytes = _desiredInputFormat.channelCount == AudioConstants::STEREO
         ? AudioConstants::NETWORK_FRAME_BYTES_STEREO
         : AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
-    const int numNetworkSamples = _desiredInputFormat.channelCount() == AudioConstants::STEREO
+    const int numNetworkSamples = _desiredInputFormat.channelCount == AudioConstants::STEREO
         ? AudioConstants::NETWORK_FRAME_SAMPLES_STEREO
         : AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
 
     // input samples required to produce exactly NETWORK_FRAME_SAMPLES of output
     const int inputSamplesRequired = (_inputToNetworkResampler ?
                                       _inputToNetworkResampler->getMinInput(AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL) :
-                                      AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL) * _inputFormat.channelCount();
+                                      AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL) * _inputFormat.channelCount;
 
     static int16_t networkAudioSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     while (_inputRingBuffer.samplesAvailable() >= inputSamplesRequired) {
@@ -1054,7 +1068,7 @@ void AudioPacketHandler<Derived>::sendInput() {
         _inputRingBuffer.readSamples(inputAudioSamples.get(), inputSamplesRequired);
 
         // detect clipping on the raw input
-        bool isClipping = detectClipping(inputAudioSamples.get(), inputSamplesRequired, _inputFormat.channelCount());
+        bool isClipping = detectClipping(inputAudioSamples.get(), inputSamplesRequired, _inputFormat.channelCount);
         if (isClipping) {
             _timeSinceLastClip = 0.0f;
         } else if (_timeSinceLastClip >= 0.0f) {
@@ -1064,8 +1078,8 @@ void AudioPacketHandler<Derived>::sendInput() {
 
 #if defined(WEBRTC_AUDIO)
         if (_isAECEnabled) {
-            processWebrtcNearEnd(inputAudioSamples.get(), inputSamplesRequired / _inputFormat.channelCount(),
-                                 _inputFormat.channelCount(), _inputFormat.sampleRate());
+            processWebrtcNearEnd(inputAudioSamples.get(), inputSamplesRequired / _inputFormat.channelCount,
+                                 _inputFormat.channelCount, _inputFormat.sampleRate);
         }
 #endif
 
@@ -1084,7 +1098,7 @@ void AudioPacketHandler<Derived>::sendInput() {
             possibleResampling(_inputToNetworkResampler,
                 inputAudioSamples.get(), networkAudioSamples,
                 inputSamplesRequired, numNetworkSamples,
-                _inputFormat.channelCount(), _desiredInputFormat.channelCount());
+                _inputFormat.channelCount, _desiredInputFormat.channelCount);
         }
         int bytesInInputRingBuffer = _inputRingBuffer.samplesAvailable() * AudioConstants::SAMPLE_SIZE;
         float msecsInInputRingBuffer = bytesInInputRingBuffer / (float)(_inputFormat.bytesForDuration(USECS_PER_MSEC));
@@ -1428,9 +1442,9 @@ int AudioPacketHandler<Derived>::getNumLocalInjectors() {
 
 template <typename Derived>
 void AudioPacketHandler<Derived>::outputFormatChanged() {
-    _outputFrameSize = (AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * OUTPUT_CHANNEL_COUNT * _outputFormat.sampleRate()) /
-        _desiredOutputFormat.sampleRate();
-    _receivedAudioStream.outputFormatChanged(_outputFormat.sampleRate(), OUTPUT_CHANNEL_COUNT);
+    _outputFrameSize = (AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * OUTPUT_CHANNEL_COUNT * _outputFormat.sampleRate) /
+        _desiredOutputFormat.sampleRate;
+    _receivedAudioStream.outputFormatChanged(_outputFormat.sampleRate, OUTPUT_CHANNEL_COUNT);
 
     _audioOutputIODevice.open();
 
@@ -1503,26 +1517,26 @@ void AudioPacketHandler<Derived>::cleanupInput() {
 }
 
 template <typename Derived>
-bool AudioPacketHandler<Derived>::setupInput(QAudioFormat inputFormat) {
+bool AudioPacketHandler<Derived>::setupInput(AudioFormat inputFormat) {
     bool supportedFormat = false;
 
-    if (inputFormat.channelCount() > 2) {
-        qCDebug(audioclient) << "Audio input has too many channels: " << inputFormat.channelCount();
+    if (inputFormat.channelCount > 2) {
+        qCDebug(audioclient) << "Audio input has too many channels: " << inputFormat.channelCount;
         return false;
     }
 
     _inputFormat = inputFormat;
 
     // if necessary reinitialize the codec
-    if (_inputFormat.channelCount() != _desiredInputFormat.channelCount()) {
+    if (_inputFormat.channelCount != _desiredInputFormat.channelCount) {
         if (_codec) {
             if (_encoder) {
                 _codec->releaseEncoder(_encoder);
             }
-            _encoder = _codec->createEncoder(_desiredInputFormat.sampleRate(), _inputFormat.channelCount());
-            qCDebug(audioclient) << "Reset Codec:" << _selectedCodecName << "isStereoInput:" << (_inputFormat.channelCount() == 2);
+            _encoder = _codec->createEncoder(_desiredInputFormat.sampleRate, _inputFormat.channelCount);
+            qCDebug(audioclient) << "Reset Codec:" << _selectedCodecName << "isStereoInput:" << (_inputFormat.channelCount == 2);
         }
-        _desiredInputFormat.setChannelCount(inputFormat.channelCount());
+        _desiredInputFormat.channelCount = inputFormat.channelCount;
     }
 
     qCDebug(audioclient) << "The format to be used for audio input is" << _inputFormat;
@@ -1530,21 +1544,21 @@ bool AudioPacketHandler<Derived>::setupInput(QAudioFormat inputFormat) {
     // we've got the best we can get for input
     // if required, setup a resampler for this input to our desired network format
     if (_inputFormat != _desiredInputFormat
-        && _inputFormat.sampleRate() != _desiredInputFormat.sampleRate()) {
+        && _inputFormat.sampleRate != _desiredInputFormat.sampleRate) {
         qCDebug(audioclient) << "Attemping to create a resampler for input format to network format.";
 
-        assert(_desiredInputFormat.sampleSize() == 16);
-        int channelCount = (_inputFormat.channelCount() == 2 && _desiredInputFormat.channelCount() == 2) ? 2 : 1;
+        assert(_desiredInputFormat.getSampleSize() == 16);
+        int channelCount = (_inputFormat.channelCount == 2 && _desiredInputFormat.channelCount == 2) ? 2 : 1;
 
-        _inputToNetworkResampler = new AudioSRC(_inputFormat.sampleRate(), _desiredInputFormat.sampleRate(), channelCount);
+        _inputToNetworkResampler = new AudioSRC(_inputFormat.sampleRate, _desiredInputFormat.sampleRate, channelCount);
 
     } else {
         qCDebug(audioclient) << "No resampling required for audio input to match desired network format.";
     }
 
     // the audio gate runs after the resampler
-    _audioGate = new AudioGate(_desiredInputFormat.sampleRate(), _desiredInputFormat.channelCount());
-    qCDebug(audioclient) << "Noise gate created with" << _desiredInputFormat.channelCount() << "channels.";
+    _audioGate = new AudioGate(_desiredInputFormat.sampleRate, _desiredInputFormat.channelCount);
+    qCDebug(audioclient) << "Noise gate created with" << _desiredInputFormat.channelCount << "channels.";
     auto numInputCallbackBytes = calculateNumberOfInputCallbackBytes(_inputFormat);
     // how do we want to handle input working, but output not working?
     int numFrameSamples = calculateNumberOfFrameSamples(numInputCallbackBytes);
@@ -1567,13 +1581,13 @@ void AudioPacketHandler<Derived>::setupDummyInput() {
     qCDebug(audioclient) << "The format to be used for audio input is" << _inputFormat;
     qCDebug(audioclient) << "No re-sampling required for audio input to match desired network format.";
 
-    _audioGate = new AudioGate(_desiredInputFormat.sampleRate(), _desiredInputFormat.channelCount());
-    qCDebug(audioclient) << "Noise gate created with" << _desiredInputFormat.channelCount() << "channels.";
+    _audioGate = new AudioGate(_desiredInputFormat.sampleRate, _desiredInputFormat.channelCount);
+    qCDebug(audioclient) << "Noise gate created with" << _desiredInputFormat.channelCount << "channels.";
 
     // generate audio callbacks at the network sample rate
     _dummyAudioInput = new QTimer();
     _dummyAudioInput->connect(_dummyAudioInput, &QTimer::timeout, [this](){
-        const int numNetworkBytes = _desiredInputFormat.channelCount() == AudioConstants::STEREO
+        const int numNetworkBytes = _desiredInputFormat.channelCount == AudioConstants::STEREO
             ? AudioConstants::NETWORK_FRAME_BYTES_STEREO
             : AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
 
@@ -1697,7 +1711,7 @@ void AudioPacketHandler<Derived>::cleanupOutput() {
 }
 
 template <typename Derived>
-bool AudioPacketHandler<Derived>::setupOutput(QAudioFormat outputFormat) {
+bool AudioPacketHandler<Derived>::setupOutput(AudioFormat outputFormat) {
     _outputFormat = outputFormat;
 
     qCDebug(audioclient) << "The format to be used for audio output is" << _outputFormat;
@@ -1705,20 +1719,20 @@ bool AudioPacketHandler<Derived>::setupOutput(QAudioFormat outputFormat) {
     // we've got the best we can get for input
     // if required, setup a resampler for this input to our desired network format
     if (_desiredOutputFormat != _outputFormat
-        && _desiredOutputFormat.sampleRate() != _outputFormat.sampleRate()) {
+        && _desiredOutputFormat.sampleRate != _outputFormat.sampleRate) {
         qCDebug(audioclient) << "Attemping to create a resampler for network format to output format.";
 
-        assert(_desiredOutputFormat.sampleSize() == 16);
+        assert(_desiredOutputFormat.getSampleSize() == 16);
 
-        _networkToOutputResampler = new AudioSRC(_desiredOutputFormat.sampleRate(), _outputFormat.sampleRate(), OUTPUT_CHANNEL_COUNT);
-        _localToOutputResampler = new AudioSRC(_desiredOutputFormat.sampleRate(), _outputFormat.sampleRate(), OUTPUT_CHANNEL_COUNT);
+        _networkToOutputResampler = new AudioSRC(_desiredOutputFormat.sampleRate, _outputFormat.sampleRate, OUTPUT_CHANNEL_COUNT);
+        _localToOutputResampler = new AudioSRC(_desiredOutputFormat.sampleRate, _outputFormat.sampleRate, OUTPUT_CHANNEL_COUNT);
 
     } else {
         qCDebug(audioclient) << "No resampling required for network output to match actual output format.";
     }
 
 
-    int frameSize = (AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * _outputFormat.channelCount() * _outputFormat.sampleRate()) / _desiredOutputFormat.sampleRate();
+    int frameSize = (AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * _outputFormat.channelCount * _outputFormat.sampleRate) / _desiredOutputFormat.sampleRate;
     int requestedSize = _sessionOutputBufferSizeFrames * frameSize * AudioConstants::SAMPLE_SIZE;
 
     _outputPeriod = requestedSize;
@@ -1822,10 +1836,10 @@ int AudioPacketHandler<Derived>::setOutputBufferSize(int numFrames, bool persist
 }
 
 template <typename Derived>
-int AudioPacketHandler<Derived>::calculateNumberOfInputCallbackBytes(const QAudioFormat& format) const {
+int AudioPacketHandler<Derived>::calculateNumberOfInputCallbackBytes(const AudioFormat& format) const {
     int numInputCallbackBytes = (int)(((AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL
-        * format.channelCount()
-        * ((float) format.sampleRate() / AudioConstants::SAMPLE_RATE))) + 0.5f);
+        * format.channelCount
+        * ((float) format.sampleRate / AudioConstants::SAMPLE_RATE))) + 0.5f);
 
     return numInputCallbackBytes;
 }
@@ -1883,7 +1897,7 @@ qint64 AudioPacketHandler<Derived>::AudioOutputIODevice::readData(char * data, q
     }
 
     // max samples requested from OUTPUT_CHANNEL_COUNT
-    int deviceChannelCount = _audio->_outputFormat.channelCount();
+    int deviceChannelCount = _audio->_outputFormat.channelCount;
     int maxSamplesRequested = (int)(maxSize / AudioConstants::SAMPLE_SIZE) * OUTPUT_CHANNEL_COUNT / deviceChannelCount;
     // restrict samplesRequested to the size of our mix/scratch buffers
     maxSamplesRequested = std::min(maxSamplesRequested, _audio->_outputPeriod);
@@ -1955,13 +1969,13 @@ qint64 AudioPacketHandler<Derived>::AudioOutputIODevice::readData(char * data, q
 
 #if defined(WEBRTC_AUDIO)
     if (_audio->_isAECEnabled) {
-        _audio->processWebrtcFarEnd(scratchBuffer, framesPopped, OUTPUT_CHANNEL_COUNT, _audio->_outputFormat.sampleRate());
+        _audio->processWebrtcFarEnd(scratchBuffer, framesPopped, OUTPUT_CHANNEL_COUNT, _audio->_outputFormat.sampleRate);
     }
 #endif
 
     int bytesWritten = 0;
 
-    if (_audio->_outputFormat.sampleType() == QAudioFormat::Float) {
+    if (_audio->_outputFormat.sampleType == AudioFormat::Float) {
         // Convert samples to normalized float. This is used in the client
         // library, since a lot of audio APIs prefer to restrict themselves to
         // float samples.

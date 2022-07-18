@@ -102,13 +102,13 @@ namespace vircadia::client
         return true;
     }
 
-    void Audio::setInput(const QAudioFormat& format) {
+    void Audio::setInput(const AudioFormat& format) {
         auto client =
         DependencyManager::get<AudioClient>();
         client->setInputFormat(format);
     }
 
-    void Audio::setOutput(const QAudioFormat& format) {
+    void Audio::setOutput(const AudioFormat& format) {
         DependencyManager::get<AudioClient>()->setOutputFormat(format);
     }
 

@@ -18,7 +18,7 @@
 #include <mutex>
 
 class Codec;
-class QAudioFormat;
+class AudioFormat;
 struct vircadia_vantage_;
 struct vircadia_bounds_;
 
@@ -43,8 +43,8 @@ namespace vircadia::client {
         void setBounds(const vircadia_bounds_&);
         void setInputEcho(bool enabled);
 
-        void setInput(const QAudioFormat&);
-        void setOutput(const QAudioFormat&);
+        void setInput(const AudioFormat&);
+        void setOutput(const AudioFormat&);
 
         AudioClient* getInputContext();
         AudioClient* getOutputContext();

@@ -32,8 +32,8 @@ namespace vircadia::client
         void setSupportedCodecs(const std::vector<std::shared_ptr<Codec>>&);
         const std::vector<std::shared_ptr<Codec>>& getSupportedCodecs() const;
 
-        void setInputFormat(QAudioFormat);
-        void setOutputFormat(QAudioFormat);
+        void setInputFormat(AudioFormat);
+        void setOutputFormat(AudioFormat);
 
         AudioClient* getInput();
         AudioClient* getOutput();
@@ -66,8 +66,8 @@ namespace vircadia::client
         QTimer updateTimer;
 
         std::vector<std::shared_ptr<Codec>> codecsIn;
-        QAudioFormat inputFormat;
-        QAudioFormat outputFormat;
+        AudioFormat inputFormat;
+        AudioFormat outputFormat;
         AudioClient* input;
         AudioClient* output;
         std::string selectedCodecName;
