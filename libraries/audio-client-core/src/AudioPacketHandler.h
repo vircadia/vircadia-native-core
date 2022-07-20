@@ -263,6 +263,7 @@ protected:
     void cleanupInput();
     bool setupInput(AudioFormat);
     void setupDummyInput();
+    bool isDummyInput();
 
     void cleanupOutput();
     bool setupOutput(AudioFormat);
@@ -271,8 +272,8 @@ protected:
     bool _isMuted {false};
     glm::vec3 avatarBoundingBoxCorner {};
     glm::vec3 avatarBoundingBoxScale {};
-    AudioFormat _inputFormat;
-    AudioFormat _outputFormat;
+    AudioFormat _inputFormat {};
+    AudioFormat _outputFormat {};
     QString _selectedCodecName;
 
 private:

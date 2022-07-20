@@ -256,7 +256,7 @@ AudioPacketHandler<Derived>::~AudioPacketHandler() {
     if (_dummyAudioInput) {
         _dummyAudioInput->stop();
         _dummyAudioInput->deleteLater();
-        _dummyAudioInput = NULL;
+        _dummyAudioInput = nullptr;
     }
 }
 
@@ -1502,7 +1502,7 @@ void AudioPacketHandler<Derived>::cleanupInput() {
     if (_dummyAudioInput) {
         _dummyAudioInput->stop();
         _dummyAudioInput->deleteLater();
-        _dummyAudioInput = NULL;
+        _dummyAudioInput = nullptr;
     }
 
     // cleanup any resamplers
@@ -1597,6 +1597,11 @@ void AudioPacketHandler<Derived>::setupDummyInput() {
         handleAudioInput(audioBuffer);
     });
     _dummyAudioInput->start((int)(AudioConstants::NETWORK_FRAME_MSECS + 0.5f));
+}
+
+template <typename Derived>
+bool AudioPacketHandler<Derived>::isDummyInput() {
+    return _dummyAudioInput != nullptr;
 }
 
 // FIXME: CRTP move to derived, different implementation

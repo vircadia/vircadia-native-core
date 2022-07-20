@@ -33,8 +33,8 @@ namespace vircadia::client
         codecs(supportedCodecs),
         updateTimer(this),
         codecsIn(codecs),
-        inputFormat(),
-        outputFormat(),
+        inputFormat{},
+        outputFormat{},
         input(nullptr),
         output(nullptr),
         selectedCodecName(),
@@ -90,7 +90,7 @@ namespace vircadia::client
                 cleanupInput();
                 if (inputFormat.isValid()) {
                     setupInput(inputFormat);
-                } else {
+                } else if (!isDummyInput()) {
                     setupDummyInput();
                 }
             }
