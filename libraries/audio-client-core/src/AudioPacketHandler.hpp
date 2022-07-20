@@ -241,95 +241,6 @@ AudioPacketHandler<Derived>::AudioPacketHandler() {
 
     // avoid putting a lock in the device callback
     assert(_localSamplesAvailable.is_lock_free());
-
-    // deprecate legacy settings
-    {
-        Setting::Handle<int>::Deprecated("maxFramesOverDesired", InboundAudioStream::MAX_FRAMES_OVER_DESIRED);
-        Setting::Handle<int>::Deprecated("windowStarveThreshold", InboundAudioStream::WINDOW_STARVE_THRESHOLD);
-        Setting::Handle<int>::Deprecated("windowSecondsForDesiredCalcOnTooManyStarves", InboundAudioStream::WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES);
-        Setting::Handle<int>::Deprecated("windowSecondsForDesiredReduction", InboundAudioStream::WINDOW_SECONDS_FOR_DESIRED_REDUCTION);
-        Setting::Handle<bool>::Deprecated("useStDevForJitterCalc", InboundAudioStream::USE_STDEV_FOR_JITTER);
-        Setting::Handle<bool>::Deprecated("repetitionWithFade", InboundAudioStream::REPETITION_WITH_FADE);
-    }
-
-    derived().connect(&_receivedAudioStream, &MixedProcessedAudioStream::processSamples,
-        &derived(), [this](const QByteArray& decodedBuffer, QByteArray& outputBuffer)
-            { processReceivedSamples(decodedBuffer, outputBuffer); },
-        Qt::DirectConnection);
-
-    // FIXME: CRTP
-    // connect(this, &AudioClient::changeDevice, this, [=](const HifiAudioDeviceInfo& outputDeviceInfo) {
-    //     qCDebug(audioclient)<< "got AudioClient::changeDevice signal, about to call switchOutputToAudioDevice() outputDeviceInfo: ["<< outputDeviceInfo.deviceName() << "]";
-    //     switchOutputToAudioDevice(outputDeviceInfo);
-    // });
-
-    derived().connect(&_receivedAudioStream, &InboundAudioStream::mismatchedAudioCodec,
-        &derived(), [this](SharedNodePointer node, const QString& currentCodec, const QString& receivedCodec)
-            { handleMismatchAudioFormat(node, currentCodec, receivedCodec); });
-
-    // FIXME: CRTP
-    // initialize wasapi; if getAvailableDevices is called from the CheckDevicesThread before this, it will crash
-    // defaultAudioDeviceName(QAudio::AudioInput);
-    // defaultAudioDeviceName(QAudio::AudioOutput);
-
-    // FIXME: CRTP
-    // start a thread to detect any device changes
-    // _checkDevicesTimer = new QTimer(this);
-    // const unsigned long DEVICE_CHECK_INTERVAL_MSECS = 2 * 1000;
-    // connect(_checkDevicesTimer, &QTimer::timeout, this, [=] {
-    //     QtConcurrent::run(QThreadPool::globalInstance(), [=] {
-    //         checkDevices();
-    //         // On some systems (Ubuntu) checking all the audio devices can take more than 2 seconds.  To
-    //         // avoid consuming all of the thread pool, don't start the check interval until the previous
-    //         // check has completed.
-    //         QMetaObject::invokeMethod(_checkDevicesTimer, "start", Q_ARG(int, DEVICE_CHECK_INTERVAL_MSECS));
-    //     });
-    // });
-    // _checkDevicesTimer->setSingleShot(true);
-    // _checkDevicesTimer->start(DEVICE_CHECK_INTERVAL_MSECS);
-
-    // FIXME: CRTP
-    // start a thread to detect peak value changes
-    // _checkPeakValuesTimer = new QTimer(this);
-    // connect(_checkPeakValuesTimer, &QTimer::timeout, this, [this] {
-    //     QtConcurrent::run(QThreadPool::globalInstance(), [this] { checkPeakValues(); });
-    // });
-    // const unsigned long PEAK_VALUES_CHECK_INTERVAL_MSECS = 50;
-    // _checkPeakValuesTimer->start(PEAK_VALUES_CHECK_INTERVAL_MSECS);
-    //
-    // configureReverb();
-
-#if defined(WEBRTC_AUDIO)
-    configureWebrtc();
-#endif
-
-    auto nodeList = DependencyManager::get<NodeList>();
-    auto& packetReceiver = nodeList->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::AudioStreamStats,
-        PacketReceiver::makeSourcedListenerReference<AudioIOStats>(&_stats, &AudioIOStats::processStreamStatsPacket));
-    packetReceiver.registerListener(PacketType::AudioEnvironment,
-        PacketReceiver::makeUnsourcedListenerReference<Derived>(&derived(), &AudioPacketHandler::handleAudioEnvironmentDataPacket));
-    packetReceiver.registerListener(PacketType::SilentAudioFrame,
-        PacketReceiver::makeUnsourcedListenerReference<Derived>(&derived(), &AudioPacketHandler::handleAudioDataPacket));
-    packetReceiver.registerListener(PacketType::MixedAudio,
-        PacketReceiver::makeUnsourcedListenerReference<Derived>(&derived(), &AudioPacketHandler::handleAudioDataPacket));
-    packetReceiver.registerListener(PacketType::NoisyMute,
-        PacketReceiver::makeUnsourcedListenerReference<Derived>(&derived(), &AudioPacketHandler::handleNoisyMutePacket));
-    packetReceiver.registerListener(PacketType::MuteEnvironment,
-        PacketReceiver::makeUnsourcedListenerReference<Derived>(&derived(), &AudioPacketHandler::handleMuteEnvironmentPacket));
-    packetReceiver.registerListener(PacketType::SelectedAudioFormat,
-        PacketReceiver::makeUnsourcedListenerReference<Derived>(&derived(), &AudioPacketHandler::handleSelectedAudioFormat));
-
-    auto& domainHandler = nodeList->getDomainHandler();
-    derived().connect(&domainHandler, &DomainHandler::disconnectedFromDomain, &derived(), [this] {
-        _solo.reset();
-    });
-    derived().connect(nodeList.data(), &NodeList::nodeActivated, &derived(), [this](SharedNodePointer node) {
-        if (node->getType() == NodeType::AudioMixer) {
-            _solo.resend();
-            negotiateAudioFormat();
-        }
-    });
 }
 
 template <typename Derived>
@@ -449,6 +360,95 @@ int possibleResampling(AudioSRC* resampler,
 
 template <typename Derived>
 void AudioPacketHandler<Derived>::start() {
+    // deprecate legacy settings
+    {
+        Setting::Handle<int>::Deprecated("maxFramesOverDesired", InboundAudioStream::MAX_FRAMES_OVER_DESIRED);
+        Setting::Handle<int>::Deprecated("windowStarveThreshold", InboundAudioStream::WINDOW_STARVE_THRESHOLD);
+        Setting::Handle<int>::Deprecated("windowSecondsForDesiredCalcOnTooManyStarves", InboundAudioStream::WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES);
+        Setting::Handle<int>::Deprecated("windowSecondsForDesiredReduction", InboundAudioStream::WINDOW_SECONDS_FOR_DESIRED_REDUCTION);
+        Setting::Handle<bool>::Deprecated("useStDevForJitterCalc", InboundAudioStream::USE_STDEV_FOR_JITTER);
+        Setting::Handle<bool>::Deprecated("repetitionWithFade", InboundAudioStream::REPETITION_WITH_FADE);
+    }
+
+    derived().connect(&_receivedAudioStream, &MixedProcessedAudioStream::processSamples,
+        &derived(), [this](const QByteArray& decodedBuffer, QByteArray& outputBuffer)
+            { processReceivedSamples(decodedBuffer, outputBuffer); },
+        Qt::DirectConnection);
+
+    // FIXME: CRTP
+    // connect(this, &AudioClient::changeDevice, this, [=](const HifiAudioDeviceInfo& outputDeviceInfo) {
+    //     qCDebug(audioclient)<< "got AudioClient::changeDevice signal, about to call switchOutputToAudioDevice() outputDeviceInfo: ["<< outputDeviceInfo.deviceName() << "]";
+    //     switchOutputToAudioDevice(outputDeviceInfo);
+    // });
+
+    derived().connect(&_receivedAudioStream, &InboundAudioStream::mismatchedAudioCodec,
+        &derived(), [this](SharedNodePointer node, const QString& currentCodec, const QString& receivedCodec)
+            { handleMismatchAudioFormat(node, currentCodec, receivedCodec); });
+
+    // FIXME: CRTP
+    // initialize wasapi; if getAvailableDevices is called from the CheckDevicesThread before this, it will crash
+    // defaultAudioDeviceName(QAudio::AudioInput);
+    // defaultAudioDeviceName(QAudio::AudioOutput);
+
+    // FIXME: CRTP
+    // start a thread to detect any device changes
+    // _checkDevicesTimer = new QTimer(this);
+    // const unsigned long DEVICE_CHECK_INTERVAL_MSECS = 2 * 1000;
+    // connect(_checkDevicesTimer, &QTimer::timeout, this, [=] {
+    //     QtConcurrent::run(QThreadPool::globalInstance(), [=] {
+    //         checkDevices();
+    //         // On some systems (Ubuntu) checking all the audio devices can take more than 2 seconds.  To
+    //         // avoid consuming all of the thread pool, don't start the check interval until the previous
+    //         // check has completed.
+    //         QMetaObject::invokeMethod(_checkDevicesTimer, "start", Q_ARG(int, DEVICE_CHECK_INTERVAL_MSECS));
+    //     });
+    // });
+    // _checkDevicesTimer->setSingleShot(true);
+    // _checkDevicesTimer->start(DEVICE_CHECK_INTERVAL_MSECS);
+
+    // FIXME: CRTP
+    // start a thread to detect peak value changes
+    // _checkPeakValuesTimer = new QTimer(this);
+    // connect(_checkPeakValuesTimer, &QTimer::timeout, this, [this] {
+    //     QtConcurrent::run(QThreadPool::globalInstance(), [this] { checkPeakValues(); });
+    // });
+    // const unsigned long PEAK_VALUES_CHECK_INTERVAL_MSECS = 50;
+    // _checkPeakValuesTimer->start(PEAK_VALUES_CHECK_INTERVAL_MSECS);
+    //
+    // configureReverb();
+
+#if defined(WEBRTC_AUDIO)
+    configureWebrtc();
+#endif
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto& packetReceiver = nodeList->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::AudioStreamStats,
+        PacketReceiver::makeSourcedListenerReference<AudioIOStats>(&_stats, &AudioIOStats::processStreamStatsPacket));
+    packetReceiver.registerListener(PacketType::AudioEnvironment,
+        PacketReceiver::makeUnsourcedListenerReference<Derived>(&derived(), &AudioPacketHandler::handleAudioEnvironmentDataPacket));
+    packetReceiver.registerListener(PacketType::SilentAudioFrame,
+        PacketReceiver::makeUnsourcedListenerReference<Derived>(&derived(), &AudioPacketHandler::handleAudioDataPacket));
+    packetReceiver.registerListener(PacketType::MixedAudio,
+        PacketReceiver::makeUnsourcedListenerReference<Derived>(&derived(), &AudioPacketHandler::handleAudioDataPacket));
+    packetReceiver.registerListener(PacketType::NoisyMute,
+        PacketReceiver::makeUnsourcedListenerReference<Derived>(&derived(), &AudioPacketHandler::handleNoisyMutePacket));
+    packetReceiver.registerListener(PacketType::MuteEnvironment,
+        PacketReceiver::makeUnsourcedListenerReference<Derived>(&derived(), &AudioPacketHandler::handleMuteEnvironmentPacket));
+    packetReceiver.registerListener(PacketType::SelectedAudioFormat,
+        PacketReceiver::makeUnsourcedListenerReference<Derived>(&derived(), &AudioPacketHandler::handleSelectedAudioFormat));
+
+    auto& domainHandler = nodeList->getDomainHandler();
+    derived().connect(&domainHandler, &DomainHandler::disconnectedFromDomain, &derived(), [this] {
+        _solo.reset();
+    });
+    derived().connect(nodeList.data(), &NodeList::nodeActivated, &derived(), [this](SharedNodePointer node) {
+        if (node->getType() == NodeType::AudioMixer) {
+            _solo.resend();
+            negotiateAudioFormat();
+        }
+    });
+
     //initialize input to the dummy device to prevent starves
     cleanupInput();
     setupDummyInput();
