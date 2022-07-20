@@ -128,11 +128,16 @@ int vircadia_set_audio_input_data(uint8_t* audio_context, const uint8_t* data, i
 VIRCADIA_CLIENT_DYN_API
 int vircadia_get_audio_output_data(uint8_t* audio_context, uint8_t* data, int size) {
     auto audioClient = reinterpret_cast<AudioClient*>(audio_context);
-    if (audioClient == nullptr || audioClient->getOutputIODevice().read(reinterpret_cast<char*>(data), size) == -1) {
+    if (audioClient == nullptr) {
         return toInt(ErrorCode::AUDIO_CONTEXT_INVALID);
-    } else {
-        return 0;
     }
+
+    int bytesWritten = audioClient->getOutputIODevice().read(reinterpret_cast<char*>(data), size);
+    if (bytesWritten== -1) {
+        return toInt(ErrorCode::AUDIO_CONTEXT_INVALID);
+    }
+
+    return bytesWritten;
 }
 
 VIRCADIA_CLIENT_DYN_API
