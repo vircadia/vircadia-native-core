@@ -1905,7 +1905,7 @@ qint64 AudioPacketHandler<Derived>::AudioOutputIODevice::readData(char * data, q
 
     // max samples requested from OUTPUT_CHANNEL_COUNT
     int deviceChannelCount = _audio->_outputFormat.channelCount;
-    int maxSamplesRequested = (int)(maxSize / AudioConstants::SAMPLE_SIZE) * OUTPUT_CHANNEL_COUNT / deviceChannelCount;
+    int maxSamplesRequested = (int)(maxSize / _audio->_outputFormat.getSampleSize()) * OUTPUT_CHANNEL_COUNT / deviceChannelCount;
     // restrict samplesRequested to the size of our mix/scratch buffers
     maxSamplesRequested = std::min(maxSamplesRequested, _audio->_outputPeriod);
 
