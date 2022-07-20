@@ -522,7 +522,7 @@ void AudioPacketHandler<Derived>::handleAudioDataPacket(QSharedPointer<ReceivedM
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveFirstAudioPacket);
 
-    if (!_audioOutputInitialized.load(std::memory_order_acquire)) {
+    if (_audioOutputInitialized.load(std::memory_order_acquire)) {
 
         if (!_hasReceivedFirstPacket) {
             _hasReceivedFirstPacket = true;
