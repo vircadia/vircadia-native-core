@@ -33,7 +33,7 @@ VIRCADIA_CLIENT_DYN_API uint8_t vircadia_audio_sample_type_sint16();
 
 /// @brief Unique identifier/name of the Opus codec.
 ///
-/// @return null terminated string.
+/// @return Null terminated string.
 VIRCADIA_CLIENT_DYN_API const char* vircadia_audio_codec_opus();
 
 /// @brief Unique identifier/name of the raw PCM codec.
