@@ -94,15 +94,23 @@ namespace vircadia::client {
                     nodeList->getPacketReceiver().setShouldDropPackets(true);
                 }
 
+                // TODO: a lot of objects destroyed below use
+                // deleteLater, and that doesn't seem to work
+                // reliably here (aboutToQuit signal), so maybe need
+                // to hand roll a quit event, to allow the event loop
+                // to clean things up, or not use deleteLater in this
+                // specific case
+
+                audio_.destroy();
+
                 QThreadPool::globalInstance()->clear();
                 QThreadPool::globalInstance()->waitForDone();
 
                 messages_.destroy();
-                audio_.destroy();
-                DependencyManager::destroy<NodeList>();
                 DependencyManager::destroy<AddressManager>();
                 DependencyManager::destroy<DomainAccountManager>();
                 DependencyManager::destroy<AccountManager>();
+                DependencyManager::destroy<NodeList>();
 
 
             });
