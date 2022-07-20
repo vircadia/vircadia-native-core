@@ -196,7 +196,7 @@ inline float convertToFloat(int16_t sample) {
     return static_cast<float>(sample * (1.f / std::numeric_limits<int16_t>::max()));
 }
 
-inline float convertToSignedInt(int16_t sample) {
+inline float convertToSignedInt(float sample) {
     return static_cast<int16_t>(sample * std::numeric_limits<int16_t>::max());
 }
 
