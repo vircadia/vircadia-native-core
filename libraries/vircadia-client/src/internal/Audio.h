@@ -18,7 +18,7 @@
 #include <mutex>
 
 class Codec;
-class AudioFormat;
+struct AudioFormat;
 struct vircadia_vantage_;
 struct vircadia_bounds_;
 
