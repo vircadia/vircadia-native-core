@@ -53,7 +53,9 @@ namespace vircadia::client
         });
 
         startThread();
+    }
 
+    void AudioClient::onStart() {
         connect(&updateTimer, &QTimer::timeout, this, &AudioClient::update);
         updateTimer.start();
     }

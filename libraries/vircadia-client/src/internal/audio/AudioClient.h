@@ -28,6 +28,7 @@ namespace vircadia::client
     public:
 
         AudioClient(const std::vector<std::shared_ptr<Codec>>& supportedCodecs);
+        void onStart();
 
         void setSupportedCodecs(const std::vector<std::shared_ptr<Codec>>&);
         const std::vector<std::shared_ptr<Codec>>& getSupportedCodecs() const;

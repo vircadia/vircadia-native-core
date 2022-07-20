@@ -453,6 +453,8 @@ void AudioPacketHandler<Derived>::start() {
     cleanupInput();
     setupDummyInput();
 
+    derived().onStart();
+
 // FIXME: CRTP
 // switchOutputToAudioDevice(defaultAudioDeviceForMode(QAudio::AudioOutput, QString()));
 // #if defined(Q_OS_ANDROID)
