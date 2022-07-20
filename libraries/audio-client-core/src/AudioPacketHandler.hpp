@@ -62,7 +62,7 @@ inline QDebug& operator<<(QDebug& debug, const AudioFormat& audioFormat) {
         audioFormat.sampleType == AudioFormat::Float ? "Float" :
         "!INVALID!";
     return debug << QString("AudioFormat{ sampleType: %1, sampleRate: %2, channelCount: %3 }")
-        .arg(sampleTypeString, audioFormat.sampleRate, audioFormat.channelCount);
+        .arg(sampleTypeString, QString::number(audioFormat.sampleRate), QString::number(audioFormat.channelCount));
 }
 
 template <typename Source, typename Destination>
