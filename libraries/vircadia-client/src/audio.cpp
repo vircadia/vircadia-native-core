@@ -38,7 +38,7 @@ int checkAudioEnabled(int id) {
 
 int validateAudioFormat(const vircadia_audio_format& format, bool input = false) {
     if (
-        !(format.sample_type == AudioFormat::Signed16 && format.sample_type == AudioFormat::Float) ||
+        !(format.sample_type == AudioFormat::Signed16 || format.sample_type == AudioFormat::Float) ||
         format.sample_rate <= 0 ||
         format.channel_count <= 0 ||
         (input && format.channel_count > 2)
