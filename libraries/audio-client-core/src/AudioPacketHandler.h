@@ -98,10 +98,14 @@ struct AudioFormat {
 
     int getSampleSize() const {
         switch(sampleType) {
-            case Signed16: return sizeof(int16_t) * CHAR_BIT;
-            case Float: return sizeof(float) * CHAR_BIT;
+            case Signed16: return sizeof(int16_t);
+            case Float: return sizeof(float) ;
             default: return 0;
         };
+    };
+
+    int getSampleBits() const {
+        return getSampleSize() * CHAR_BIT;
     };
 
     qint32 bytesForDuration(qint64 microseconds) const {

@@ -214,7 +214,7 @@ const Derived& AudioPacketHandler<Derived>::derived() const {
 // QAudioFormat qAudioFormatFrom(AudioFormat format) {
 //     QAudioFormat result;
 //     result.setSampleRate(format.sampleRate);
-//     result.setSampleSize(format.getSampleSize());
+//     result.setSampleSize(format.getSampleBits());
 //     result.setCodec("audio/pcm");
 //     result.setSampleType(format.sampleType == AudioFormat::Signed16 ? QAudioFormat::SignedInt :
 //         format.sampleType == AudioFormat::Float ? QAudioFormat::Float :
@@ -1019,7 +1019,7 @@ void AudioPacketHandler<Derived>::handleAudioInput(QByteArray& audioBuffer) {
 template <typename Derived>
 void AudioPacketHandler<Derived>::handleMicAudioInput(const char* data, int size) {
 
-    const auto sampleBytes = _inputFormat.getSampleSize() / std::numeric_limits<uint8_t>::digits;
+    const auto sampleBytes = _inputFormat.getSampleSize();
     const auto trailingBytes = size % sampleBytes;
     if (trailingBytes != 0) {
         qCWarning(audioclient) << "Input buffer trailing bytes: " << trailingBytes;
@@ -1549,7 +1549,7 @@ bool AudioPacketHandler<Derived>::setupInput(AudioFormat inputFormat) {
         && _inputFormat.sampleRate != _desiredInputFormat.sampleRate) {
         qCDebug(audioclient) << "Attemping to create a resampler for input format to network format.";
 
-        assert(_desiredInputFormat.getSampleSize() == 16);
+        assert(_desiredInputFormat.getSampleBits() == 16);
         int channelCount = (_inputFormat.channelCount == 2 && _desiredInputFormat.channelCount == 2) ? 2 : 1;
 
         _inputToNetworkResampler = new AudioSRC(_inputFormat.sampleRate, _desiredInputFormat.sampleRate, channelCount);
@@ -1729,7 +1729,7 @@ bool AudioPacketHandler<Derived>::setupOutput(AudioFormat outputFormat) {
         && _desiredOutputFormat.sampleRate != _outputFormat.sampleRate) {
         qCDebug(audioclient) << "Attemping to create a resampler for network format to output format.";
 
-        assert(_desiredOutputFormat.getSampleSize() == 16);
+        assert(_desiredOutputFormat.getSampleBits() == 16);
 
         _networkToOutputResampler = new AudioSRC(_desiredOutputFormat.sampleRate, _outputFormat.sampleRate, OUTPUT_CHANNEL_COUNT);
         _localToOutputResampler = new AudioSRC(_desiredOutputFormat.sampleRate, _outputFormat.sampleRate, OUTPUT_CHANNEL_COUNT);
