@@ -16,8 +16,6 @@
 #include <NodeList.h>
 #include <PositionalAudioStream.h>
 
-#include "AudioPacketHandler.h"
-
 // This is called 1x/sec (see AudioClient) and we want it to log the last 5s
 static const int INPUT_READS_WINDOW = 5;
 static const int INPUT_UNPLAYED_WINDOW = 5;
