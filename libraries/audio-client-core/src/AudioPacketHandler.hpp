@@ -11,6 +11,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#ifndef LIBRARIES_AUDIO_CLIENT_CORE_SRC_AUDIOPACKETHANDLER_HPP
+#define LIBRARIES_AUDIO_CLIENT_CORE_SRC_AUDIOPACKETHANDLER_HPP
+
 #include "AudioPacketHandler.h"
 
 #include <cstring>
@@ -51,9 +54,6 @@
 #include "AudioClientLogging.h"
 #include "AudioLogging.h"
 #include "AudioHelpers.h"
-
-#ifndef LIBRARIES_AUDIO_CLIENT_CORE_SRC_AUDIOPACKETHANDLER_HPP
-#define LIBRARIES_AUDIO_CLIENT_CORE_SRC_AUDIOPACKETHANDLER_HPP
 
 using Lock = std::unique_lock<std::mutex>;
 
