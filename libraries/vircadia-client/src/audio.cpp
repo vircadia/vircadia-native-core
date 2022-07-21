@@ -117,7 +117,9 @@ uint8_t* vircadia_get_audio_output_context(int context_id) {
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_audio_input_data(uint8_t* audio_context, const uint8_t* data, int size) {
     auto audioClient = reinterpret_cast<AudioClient*>(audio_context);
-    if (audioClient == nullptr) {
+    if (data == nullptr || size < 0) {
+        return toInt(ErrorCode::ARGUMENT_INVALID);
+    } else if (audioClient == nullptr) {
         return toInt(ErrorCode::AUDIO_CONTEXT_INVALID);
     } else {
         audioClient->handleMicAudioInput(reinterpret_cast<const char*>(data), size);
@@ -128,7 +130,9 @@ int vircadia_set_audio_input_data(uint8_t* audio_context, const uint8_t* data, i
 VIRCADIA_CLIENT_DYN_API
 int vircadia_get_audio_output_data(uint8_t* audio_context, uint8_t* data, int size) {
     auto audioClient = reinterpret_cast<AudioClient*>(audio_context);
-    if (audioClient == nullptr) {
+    if (data == nullptr || size < 0) {
+        return toInt(ErrorCode::ARGUMENT_INVALID);
+    } else if (audioClient == nullptr) {
         return toInt(ErrorCode::AUDIO_CONTEXT_INVALID);
     }
 
