@@ -7,10 +7,8 @@ link_hifi_libraries(audio)
 include_hifi_library_headers(shared)
 include_hifi_library_headers(networking)
 
-if (ANDROID)
-else ()
-  # implement a cmake option for this
-  # target_webrtc()
+if (ENABLE_WEBRTC_AUDIO)
+  target_webrtc()
 endif ()
 
 # append audio includes to our list of includes to bubble
