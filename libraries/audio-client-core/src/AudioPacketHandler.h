@@ -86,6 +86,14 @@ class NLPacket;
 #define DEFAULT_STARVE_DETECTION_ENABLED true
 #define DEFAULT_BUFFER_FRAMES 1
 
+inline auto defaultAudioPositionGetter() {
+    return Vectors::ZERO;
+}
+
+inline auto defaultAudioOrientationGetter() {
+    return Quaternions::IDENTITY;
+}
+
 struct AudioFormat {
     enum SampleTag {
         Signed16,
@@ -425,8 +433,8 @@ private:
     AudioGate* _audioGate {nullptr};
     bool _audioGateOpen {true};
 
-    AudioPositionGetter _positionGetter{ []{ return Vectors::ZERO; } };
-    AudioOrientationGetter _orientationGetter{ [] { return Quaternions::IDENTITY; } };
+    AudioPositionGetter _positionGetter{ defaultAudioPositionGetter };
+    AudioOrientationGetter _orientationGetter{ defaultAudioOrientationGetter };
 
     bool _hasReceivedFirstPacket {false};
 
