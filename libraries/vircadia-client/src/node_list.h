@@ -4,6 +4,7 @@
 //
 //  Created by Nshan G. on 31 March 2022.
 //  Copyright 2022 Vircadia contributors.
+//  Copyright 2022 DigiSomni LLC.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -112,5 +113,15 @@ int vircadia_node_active(int context_id, int index);
 /// vircadia_error_node_invalid()
 VIRCADIA_CLIENT_DYN_API
 int vircadia_node_type(int context_id, int index);
+
+/// @brief Get the session UUID of the client node.
+///
+/// The session UUID only changes with an explicit call to
+/// vircadia_update_nodes().
+///
+/// @param context_id The ID of the context to use (context.h).
+/// @return Pointer to 16 byte UUID or null in case of an error.
+VIRCADIA_CLIENT_DYN_API
+const uint8_t* vircadia_client_get_session_uuid(int context_id);
 
 #endif /* end of include guard */

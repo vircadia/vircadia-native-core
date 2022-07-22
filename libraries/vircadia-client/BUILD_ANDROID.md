@@ -90,7 +90,7 @@ git am libraries/vircadia-client/android/wreckage.patch
 ```
 
 Hardcode `QT_CMAKE_PTEFIX_PATH` for android in CMakeLists.txt in project root to the path of qt installation.<br />
-Hardcode `OPENSSL_INSTALL_DIR` for android in `cmake/macros/TargetOpenSSL.cmake` to the path of OpenSSl installation for desired architecture.<br />
+Hardcode `OPENSSL_INSTALL_DIR` for android in `cmake/macros/TargetOpenSSL.cmake` to the path of OpenSSL installation for desired architecture.<br />
 Create a build directory for desired architecture.
 ```
 mkdir build_armeabi-v7a
@@ -113,7 +113,7 @@ Running the second time fixes it somehow.
 
 Finally build and install the library (will be installed in `libraries/vircadia-client/vircadia-client-package` directory in the build directory).
 ```
-cmake --build . --target vircadia
+cmake --build . --config Release --target vircadia-client -j4
 cd libraries/vircadia-client
 cmake --build . --target install/strip
 ```

@@ -4,6 +4,7 @@
 //
 //  Created by Nshan G. on 27 March 2022.
 //  Copyright 2022 Vircadia contributors.
+//  Copyright 2022 DigiSomni LLC.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -25,6 +26,7 @@
 #include <DomainAccountManager.h>
 #include <AddressManager.h>
 
+#include "avatars/AvatarManager.h"
 #include "Error.h"
 
 namespace vircadia::client {
@@ -34,7 +36,8 @@ namespace vircadia::client {
         argvData("qt_is_such_a_joke"),
         argv(&argvData[0]),
         messages_(),
-        audio_()
+        audio_(),
+        avatars_()
     {
         auto qtInitialization = qtInitialized.get_future();
         appThread = std::thread{ [ this, nodeListParams, userAgent, info ] () {
@@ -80,10 +83,24 @@ namespace vircadia::client {
 
             // TODO: account manager login
 
-            QObject::connect(&qtApp, &QCoreApplication::aboutToQuit, [this](){
+            QTimer updateTimer;
+            QObject::connect(&updateTimer, &QTimer::timeout, [this]() {
+                if (avatars_.isEnabled()) {
+                    auto nodeList = DependencyManager::get<NodeList>();
+                    auto avatarMixer = nodeList->soloNodeOfType(NodeType::AvatarMixer);
+                    if (avatarMixer && avatarMixer->getActiveSocket()) {
+                        avatars_.updateManager();
+                    }
+                }
+            });
+            updateTimer.start(16);
+
+            QObject::connect(&qtApp, &QCoreApplication::aboutToQuit, [this, &updateTimer](){
                 DependencyManager::prepareToExit();
 
                 {
+                    updateTimer.stop();
+
                     auto nodeList = DependencyManager::get<NodeList>();
 
                     // send the domain a disconnect packet, force stoppage of domain-server check-ins
@@ -101,12 +118,13 @@ namespace vircadia::client {
                 // to clean things up, or not use deleteLater in this
                 // specific case
 
+                avatars_.destroy();
                 audio_.destroy();
+                messages_.destroy();
 
                 QThreadPool::globalInstance()->clear();
                 QThreadPool::globalInstance()->waitForDone();
 
-                messages_.destroy();
                 DependencyManager::destroy<AddressManager>();
                 DependencyManager::destroy<DomainAccountManager>();
                 DependencyManager::destroy<AccountManager>();
@@ -158,6 +176,8 @@ namespace vircadia::client {
                 return data;
             });
         });
+
+        sessionUUID = toUUIDArray(DependencyManager::get<NodeList>()->getSessionUUID());
     }
 
     bool Context::isConnected() const {
@@ -182,6 +202,18 @@ namespace vircadia::client {
 
     const Audio& Context::audio() const {
         return audio_;
+    }
+
+    Avatars& Context::avatars() {
+        return avatars_;
+    }
+
+    const Avatars& Context::avatars() const {
+        return avatars_;
+    }
+
+    const UUID& Context::getSessionUUID() const {
+        return sessionUUID;
     }
 
     std::list<Context> contexts;

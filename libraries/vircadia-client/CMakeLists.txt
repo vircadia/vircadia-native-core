@@ -62,12 +62,13 @@ if(UNIX)
     target_link_libraries(${TARGET_NAME} Threads::Threads)
 endif()
 
-link_hifi_libraries(shared networking audio-client-core pcm-codec opus-codec)
+link_hifi_libraries(shared networking avatars-core audio-client-core pcm-codec opus-codec)
 
 add_subdirectory(tests)
 
 install(TARGETS ${TARGET_NAME} TYPE LIBRARY)
 install(FILES
+    src/avatars.h
     src/client.h
     src/common.h
     src/context.h

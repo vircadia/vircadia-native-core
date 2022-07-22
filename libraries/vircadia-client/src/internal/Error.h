@@ -4,6 +4,7 @@
 //
 //  Created by Nshan G. on 27 March 2022.
 //  Copyright 2022 Vircadia contributors.
+//  Copyright 2022 DigiSomni LLC.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -36,11 +37,20 @@ enum class ErrorCode : int {
 
     ARGUMENT_INVALID,
 
+    AVATARS_DISABLED,
+    AVATAR_INVALID,
+    AVATAR_ATTACHMENT_INVALID,
+    AVATAR_JOINT_INVALID,
+    AVATAR_BONE_INVALID,
+    AVATAR_GRAB_INVALID,
+    AVATAR_ENTITY_INVALID,
+    AVATAR_VIEW_INVALID,
+    AVATAR_EPITAPH_INVALID,
+
     AUDIO_DISABLED,
     AUDIO_FORMAT_INVALID,
     AUDIO_CONTEXT_INVALID,
     AUDIO_CODEC_INVALID
-
 };
 
 inline int toInt(ErrorCode code) {
@@ -56,6 +66,11 @@ bool isError(T* result) {
     return result == nullptr;
 }
 
+template <typename ResultType>
+auto makeError(int errorCode) {
+    return errorCode;
+}
+
 template <typename R, typename F>
 auto chain(R result, F&& f) {
     if (isError(result)) {
@@ -63,7 +78,7 @@ auto chain(R result, F&& f) {
         if constexpr (std::is_pointer_v<ReturnType>) {
             return static_cast<ReturnType>(nullptr);
         } else {
-            return result;
+            return makeError<ReturnType>(result);
         }
     } else {
         return std::invoke(std::forward<F>(f), result);
@@ -79,7 +94,7 @@ auto chain(std::initializer_list<R> result, F&& f) {
         if constexpr (std::is_pointer_v<ReturnType>) {
             return static_cast<ReturnType>(nullptr);
         } else {
-            return *error;
+            return makeError<ReturnType>(*error);
         }
     } else {
         return std::invoke(std::forward<F>(f), result);

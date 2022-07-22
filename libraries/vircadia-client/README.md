@@ -28,7 +28,11 @@ To build the unit tests:
 ```
 cmake --build . --target vircadia-client-tests
 ```
-The tests can be run with `ctest`.
+and to run them:
+```
+ctest -j10
+```
+parallelization is important, since some tests have two parts, sender and receiver that communicate. Ideally all test should run in parallel, you can use a number of processes much greater than the processor core count, since most of the test idle most of the time.
 
 
 To build the documentation (requires doxygen):
