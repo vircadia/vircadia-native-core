@@ -10,8 +10,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef LIBRARIES_VIRCADIA_CLIENT_SRC_INTERNAL_AVATARS_H
-#define LIBRARIES_VIRCADIA_CLIENT_SRC_INTERNAL_AVATARS_H
+#ifndef LIBRARIES_VIRCADIA_CLIENT_SRC_INTERNAL_AUDIO_H
+#define LIBRARIES_VIRCADIA_CLIENT_SRC_INTERNAL_AUDIO_H
 
 #include <vector>
 #include <memory>
