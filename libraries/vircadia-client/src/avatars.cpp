@@ -12,14 +12,14 @@
 
 #include "avatars.h"
 
+#include <shared/ConicalViewFrustumData.h>
 
 #include "internal/Error.h"
 #include "internal/Context.h"
 #include "internal/Avatars.h"
 #include "internal/avatars/AvatarData.h"
-#include "internal/avatars/GLMHelpers.h"
+#include "internal/DataTypeConversions.h"
 
-#include <shared/ConicalViewFrustumData.h>
 
 using namespace vircadia::client;
 

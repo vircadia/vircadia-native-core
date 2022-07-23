@@ -145,7 +145,7 @@ int vircadia_get_audio_output_data(uint8_t* audio_context, uint8_t* data, int si
 }
 
 VIRCADIA_CLIENT_DYN_API
-int vircadia_set_audio_bounds(int context_id, vircadia_bounds_ bounds) {
+int vircadia_set_audio_bounds(int context_id, vircadia_bounds bounds) {
     return chain(checkAudioEnabled(context_id), [&](auto) {
         std::next(std::begin(contexts), context_id)->audio().setBounds(bounds);
         return 0;
@@ -153,7 +153,7 @@ int vircadia_set_audio_bounds(int context_id, vircadia_bounds_ bounds) {
 }
 
 VIRCADIA_CLIENT_DYN_API
-int vircadia_set_audio_vantage(int context_id, vircadia_vantage_ vantage) {
+int vircadia_set_audio_vantage(int context_id, vircadia_vantage vantage) {
     return chain(checkAudioEnabled(context_id), [&](auto) {
         std::next(std::begin(contexts), context_id)->audio().setVantage(vantage);
         return 0;

@@ -19,8 +19,8 @@
 
 class Codec;
 struct AudioFormat;
-struct vircadia_vantage_;
-struct vircadia_bounds_;
+struct vircadia_vantage;
+struct vircadia_bounds;
 
 namespace vircadia::client {
 
@@ -39,8 +39,8 @@ namespace vircadia::client {
         bool getIsMuted() const;
         bool getIsMutedByMixer() const;
         void setIsMuted(bool);
-        void setVantage(const vircadia_vantage_&);
-        void setBounds(const vircadia_bounds_&);
+        void setVantage(const vircadia_vantage&);
+        void setBounds(const vircadia_bounds&);
         void setInputEcho(bool enabled);
 
         void setInput(const AudioFormat&);

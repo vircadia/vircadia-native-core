@@ -14,7 +14,7 @@
 
 #include <AvatarDataStream.hpp>
 
-#include "GLMHelpers.h"
+#include "../DataTypeConversions.h"
 
 using vircadia::client::operator==;
 using vircadia::client::operator!=;

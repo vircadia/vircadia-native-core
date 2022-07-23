@@ -17,7 +17,7 @@
 #include <AvatarPacketHandler.hpp>
 #include <ThreadHelpers.h>
 
-#include "GLMHelpers.h"
+#include "../DataTypeConversions.h"
 
 namespace vircadia::client
 {

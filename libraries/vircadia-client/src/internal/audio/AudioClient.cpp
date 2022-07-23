@@ -14,17 +14,10 @@
 
 #include <AudioPacketHandler.hpp>
 
+#include "../DataTypeConversions.h"
+
 namespace vircadia::client
 {
-    // FIXME: avatar API PR also has these, need to be moved to a
-    // common header once merged
-    glm::vec3 glmVec3From_(vircadia_vector_ v) {
-        return {v.x, v.y, v.z};
-    }
-
-    glm::quat glmQuatFrom_(vircadia_quaternion_ q) {
-        return {q.w, q.x, q.y, q.z};
-    }
 
     AudioClient::AudioClient(const std::vector<std::shared_ptr<Codec>>& supportedCodecs) :
         AudioPacketHandler<AudioClient>(),
@@ -117,10 +110,10 @@ namespace vircadia::client
                 negotiateAudioFormat();
             }
 
-            position = glmVec3From_(vantage.position);
-            orientation = glmQuatFrom_(vantage.rotation);
-            avatarBoundingBoxCorner = glmVec3From_(bounds.offset);
-            avatarBoundingBoxScale = glmVec3From_(bounds.dimensions);
+            position = glmVec3From(vantage.position);
+            orientation = glmQuatFrom(vantage.rotation);
+            avatarBoundingBoxCorner = glmVec3From(bounds.offset);
+            avatarBoundingBoxScale = glmVec3From(bounds.dimensions);
 
             _isMuted = isMuted || isMutedByMixer;
             setServerEcho(inputEcho);
@@ -164,12 +157,12 @@ namespace vircadia::client
         return isMutedByMixer;
     }
 
-    void AudioClient::setVantage(vircadia_vantage_ value) {
+    void AudioClient::setVantage(vircadia_vantage value) {
         std::scoped_lock lock(inout);
         vantage = value;
     }
 
-    void AudioClient::setBounds(vircadia_bounds_ value) {
+    void AudioClient::setBounds(vircadia_bounds value) {
         std::scoped_lock lock(inout);
         bounds = value;
     }

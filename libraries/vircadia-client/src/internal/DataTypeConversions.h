@@ -1,8 +1,8 @@
 //
-//  GLMHelpers.cpp
+//  DataTypeConversions.h
 //  libraries/vircadia-client/src/internal/avatars
 //
-//  Created by Nshan G. on 28 May 2022.
+//  Created by Nshan G. on 23 July 2022.
 //  Copyright 2022 Vircadia contributors.
 //  Copyright 2022 DigiSomni LLC.
 //
@@ -10,14 +10,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef LIBRARIES_VIRCADIA_CLIENT_SRC_INTERNAL_AVATARS_GLMHELPERS_H
-#define LIBRARIES_VIRCADIA_CLIENT_SRC_INTERNAL_AVATARS_GLMHELPERS_H
+#ifndef LIBRARIES_VIRCADIA_CLIENT_SRC_INTERNAL_AVATARS_DATATYPECONVERSIONS_H
+#define LIBRARIES_VIRCADIA_CLIENT_SRC_INTERNAL_AVATARS_DATATYPECONVERSIONS_H
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-#include "../../avatars.h"
+#include "../geometry.h"
 
 namespace vircadia::client
 {

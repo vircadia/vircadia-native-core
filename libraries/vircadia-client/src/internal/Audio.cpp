@@ -61,11 +61,11 @@ namespace vircadia::client
         DependencyManager::get<AudioClient>()->setIsMuted(muted);
     }
 
-    void Audio::setVantage(const vircadia_vantage_& vantage) {
+    void Audio::setVantage(const vircadia_vantage& vantage) {
         DependencyManager::get<AudioClient>()->setVantage(vantage);
     }
 
-    void Audio::setBounds(const vircadia_bounds_& bounds) {
+    void Audio::setBounds(const vircadia_bounds& bounds) {
         DependencyManager::get<AudioClient>()->setBounds(bounds);
     }
 

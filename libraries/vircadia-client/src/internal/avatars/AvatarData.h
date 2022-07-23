@@ -24,7 +24,7 @@
 #include "../Common.h"
 #include "../../avatars.h"
 #include "ClientTraitsHandler.h"
-#include "GLMHelpers.h"
+#include "../DataTypeConversions.h"
 
 namespace vircadia::client
 {

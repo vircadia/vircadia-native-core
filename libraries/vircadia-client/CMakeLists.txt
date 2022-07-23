@@ -68,13 +68,16 @@ add_subdirectory(tests)
 
 install(TARGETS ${TARGET_NAME} TYPE LIBRARY)
 install(FILES
+    src/audio_constants.h
+    src/audio.h
+    src/avatar_constants.h
     src/avatars.h
     src/client.h
     src/common.h
     src/context.h
     src/error.h
+    src/geometry.h
     src/messages.h
-    src/audio.h
     src/message_types.h
     src/node_list.h
     src/node_types.h

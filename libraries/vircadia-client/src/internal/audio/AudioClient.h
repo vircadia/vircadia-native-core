@@ -44,8 +44,8 @@ namespace vircadia::client
         bool getIsMuted() const;
         bool getIsMutedByMixer() const;
 
-        void setVantage(vircadia_vantage_);
-        void setBounds(vircadia_bounds_);
+        void setVantage(vircadia_vantage);
+        void setBounds(vircadia_bounds);
         void setInputEcho(bool enabled);
         void setIsMuted(bool muted);
 
@@ -75,8 +75,8 @@ namespace vircadia::client
         bool isMuted;
         bool isMutedByMixer;
         bool inputEcho;
-        vircadia_vantage_ vantage;
-        vircadia_bounds_ bounds;
+        vircadia_vantage vantage;
+        vircadia_bounds bounds;
 
 
         mutable std::mutex inout;

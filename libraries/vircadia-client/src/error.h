@@ -160,7 +160,7 @@ VIRCADIA_CLIENT_DYN_API int vircadia_error_audio_disabled();
 /// greater than two.
 ///
 /// @return Unique negative error code.
-VIRCADIA_CLIENT_DYN_API int vircadia_audio_format_invalid();
+VIRCADIA_CLIENT_DYN_API int vircadia_error_audio_format_invalid();
 
 /// @brief Invalid audio context specified.
 ///
@@ -170,13 +170,13 @@ VIRCADIA_CLIENT_DYN_API int vircadia_audio_format_invalid();
 /// vircadia_set_audio_input_format()/vircadia_set_audio_output_format().
 ///
 /// @return Unique negative error code.
-VIRCADIA_CLIENT_DYN_API int vircadia_audio_context_invalid();
+VIRCADIA_CLIENT_DYN_API int vircadia_error_audio_context_invalid();
 
 /// @brief Invalid audio codec name specified.
 ///
 /// Valid codec names are defined in audio_constants.h.
 ///
 /// @return Unique negative error code.
-VIRCADIA_CLIENT_DYN_API int vircadia_audio_codec_invalid();
+VIRCADIA_CLIENT_DYN_API int vircadia_error_audio_codec_invalid();
 
 #endif /* end of include guard */

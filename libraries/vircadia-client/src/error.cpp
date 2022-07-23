@@ -56,15 +56,15 @@ VIRCADIA_CLIENT_DYN_API int vircadia_error_audio_disabled() {
     return toInt(ErrorCode::AUDIO_DISABLED);
 }
 
-VIRCADIA_CLIENT_DYN_API int vircadia_audio_format_invalid() {
+VIRCADIA_CLIENT_DYN_API int vircadia_error_audio_format_invalid() {
     return toInt(ErrorCode::AUDIO_FORMAT_INVALID);
 }
 
-VIRCADIA_CLIENT_DYN_API int vircadia_audio_context_invalid() {
+VIRCADIA_CLIENT_DYN_API int vircadia_error_audio_context_invalid() {
     return toInt(ErrorCode::AUDIO_CONTEXT_INVALID);
 }
 
-VIRCADIA_CLIENT_DYN_API int vircadia_audio_codec_invalid() {
+VIRCADIA_CLIENT_DYN_API int vircadia_error_audio_codec_invalid() {
     return toInt(ErrorCode::AUDIO_CODEC_INVALID);
 }
 

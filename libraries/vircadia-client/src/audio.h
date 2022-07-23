@@ -18,28 +18,7 @@
 #include <stdint.h>
 
 #include "common.h"
-
-// FIXME: Avatar API also has these, so will need to move to common.h
-// once merged.
-struct vircadia_vector_ {
-    float x;
-    float y;
-    float z;
-};
-struct vircadia_bounds_ {
-    vircadia_vector_ dimensions;
-    vircadia_vector_ offset;
-};
-struct vircadia_quaternion_ {
-    float x;
-    float y;
-    float z;
-    float w;
-};
-struct vircadia_vantage_ {
-    vircadia_vector_ position;
-    vircadia_quaternion_ rotation;
-};
+#include "geometry.h"
 
 /// @brief Basic information of PCM audio data.
 ///
@@ -140,7 +119,8 @@ const char* vircadia_get_selected_audio_codec_name(int context_id);
 /// Possible error codes: \n
 /// vircadia_error_context_invalid() \n
 /// vircadia_error_context_loss() \n
-/// vircadia_error_audio_disabled()
+/// vircadia_error_audio_disabled() \n
+/// vircadia_error_audio_codec_invalid()
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_audio_codec_params(int context_id, const char* codec, vircadia_audio_codec_params params);
 
@@ -160,7 +140,7 @@ int vircadia_set_audio_codec_params(int context_id, const char* codec, vircadia_
 /// vircadia_error_context_invalid() \n
 /// vircadia_error_context_loss() \n
 /// vircadia_error_audio_disabled() \n
-/// vircadia_audio_format_invalid()
+/// vircadia_error_audio_format_invalid()
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_audio_input_format(int context_id, vircadia_audio_format format);
 
@@ -180,7 +160,7 @@ int vircadia_set_audio_input_format(int context_id, vircadia_audio_format format
 /// vircadia_error_context_invalid() \n
 /// vircadia_error_context_loss() \n
 /// vircadia_error_audio_disabled() \n
-/// vircadia_audio_format_invalid()
+/// vircadia_error_audio_format_invalid()
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_audio_output_format(int context_id, vircadia_audio_format format);
 
@@ -261,7 +241,7 @@ int vircadia_get_audio_output_data(uint8_t* audio_context, uint8_t* data, int si
 /// vircadia_error_context_loss() \n
 /// vircadia_error_audio_disabled()
 VIRCADIA_CLIENT_DYN_API
-int vircadia_set_audio_bounds(int context_id, vircadia_bounds_ bounds);
+int vircadia_set_audio_bounds(int context_id, vircadia_bounds bounds);
 
 /// @brief Set the position and rotation of the audio source.
 ///
@@ -274,7 +254,7 @@ int vircadia_set_audio_bounds(int context_id, vircadia_bounds_ bounds);
 /// vircadia_error_context_loss() \n
 /// vircadia_error_audio_disabled()
 VIRCADIA_CLIENT_DYN_API
-int vircadia_set_audio_vantage(int context_id, vircadia_vantage_ vantage);
+int vircadia_set_audio_vantage(int context_id, vircadia_vantage vantage);
 
 /// @brief Specify whether the audio input should be sent back to the client.
 ///
