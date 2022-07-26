@@ -1,13 +1,27 @@
+
+import { ContentSettingsValues } from "@Base/modules/domain/interfaces/contentSettings";
+import { SettingsValues } from "@Base/modules/domain/interfaces/settings";
+
 export interface MainState {
-    globalConsts: {
-        API_SERVER: string,
+    serverSettings: {
+        ContentSettings: ContentSettingsValues,
+        Settings: SettingsValues
+    },
+    workingSettings: {
+        ContentSettings: ContentSettingsValues,
+        Settings: SettingsValues
     },
 }
 
 function state (): MainState {
     return {
-        globalConsts: {
-            API_SERVER: "http://localhost:40100/" // this is for testing. Full build should just be "/"
+        serverSettings: {
+            ContentSettings: {},
+            Settings: {}
+        },
+        workingSettings: {
+            ContentSettings: {},
+            Settings: {}
         }
     };
 }

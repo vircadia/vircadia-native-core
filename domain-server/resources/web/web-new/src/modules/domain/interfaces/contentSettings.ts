@@ -89,16 +89,16 @@ export interface Scripts {
         "persistent_scripts": PersistentScript[];
     }
 
-export interface Values {
-        "audio_env": AudioEnv;
-        "entity_server_settings": EntityServerSettings;
-        "installed_content": InstalledContent;
-        paths: Record<string, Path>;
-        scripts: Scripts;
-        version: number;
+export interface ContentSettingsValues {
+        "audio_env"?: AudioEnv;
+        "entity_server_settings"?: EntityServerSettings;
+        "installed_content"?: InstalledContent;
+        paths?: Record<string, Path>;
+        scripts?: Scripts;
+        version?: number;
     }
 
-export interface ContentSettings {
+export interface ContentSettingsResponse {
         descriptions: Description[];
-        values: Values;
+        values: ContentSettingsValues;
     }

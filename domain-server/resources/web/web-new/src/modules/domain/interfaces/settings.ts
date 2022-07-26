@@ -338,31 +338,31 @@ export interface Wizard {
         steps_completed: number;
     }
 
-export interface Values {
-        asset_server: AssetServer;
-        audio_buffer: AudioBuffer;
-        audio_env: AudioEnv;
-        audio_threading: AudioThreading;
-        authentication: Authentication;
-        automatic_content_archives: AutomaticContentArchives;
-        avatar_mixer: AvatarMixer;
-        avatars: Avatars;
-        broadcasting: Broadcasting;
-        descriptors: Descriptors;
-        domain_server: DomainServer;
-        entity_script_server: EntityScriptServer;
-        entity_server_settings: EntityServerSettings;
-        messages_mixer: MessagesMixer;
-        metaverse: Metaverse;
-        monitoring: Monitoring;
-        oauth: Oauth;
-        security: Security;
-        version: number;
-        webrtc: Webrtc;
-        wizard: Wizard;
+export interface SettingsValues {
+        asset_server?: AssetServer;
+        audio_buffer?: AudioBuffer;
+        audio_env?: AudioEnv;
+        audio_threading?: AudioThreading;
+        authentication?: Authentication;
+        automatic_content_archives?: AutomaticContentArchives;
+        avatar_mixer?: AvatarMixer;
+        avatars?: Avatars;
+        broadcasting?: Broadcasting;
+        descriptors?: Descriptors;
+        domain_server?: DomainServer;
+        entity_script_server?: EntityScriptServer;
+        entity_server_settings?: EntityServerSettings;
+        messages_mixer?: MessagesMixer;
+        metaverse?: Metaverse;
+        monitoring?: Monitoring;
+        oauth?: Oauth;
+        security?: Security;
+        version?: number;
+        webrtc?: Webrtc;
+        wizard?: Wizard;
     }
 
-export interface Settings {
+export interface SettingsResponse {
         descriptions: Description[];
-        values: Values;
+        values: SettingsValues;
     }
