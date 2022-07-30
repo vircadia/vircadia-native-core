@@ -40,13 +40,13 @@ TEST_CASE("Client API audio functionality.", "[client-api-audio]") {
         std::thread output_thread{};
 
         auto cleanup = defer([context, &input_thread, &output_thread](){
-            REQUIRE(vircadia_destroy_context(context) == 0);
             if (input_thread.joinable()) {
                 input_thread.join();
             }
             if (output_thread.joinable()) {
                 output_thread.join();
             }
+            REQUIRE(vircadia_destroy_context(context) == 0);
         });
 
 
