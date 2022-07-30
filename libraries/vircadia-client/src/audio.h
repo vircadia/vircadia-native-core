@@ -271,6 +271,39 @@ int vircadia_set_audio_vantage(int context_id, vircadia_vantage vantage);
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_audio_input_echo(int context_id, uint8_t enabled);
 
+/// @brief Set the audio output buffer size based on network frames.
+///
+/// A network frame is 480 samples at 24000Hz. The default value is 1.
+/// If the caller of vircadia_get_audio_output_data() expects more
+/// (taking sample rate conversion into account) this value will need
+/// to be increased to avoid starvation (causes stuttering/cracking).
+///
+/// @param context_id - The id of the client context (context.h).
+/// @param frames - The number of frames to buffer.
+///
+/// @return non-negative value on success, or a negative error code. \n
+/// Possible error codes: \n
+/// vircadia_error_context_invalid() \n
+/// vircadia_error_context_loss() \n
+/// vircadia_error_audio_disabled()
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_audio_output_buffer_frames(int context_id, int frames);
+
+/// @brief Set the audio mixer injector gain/volume.
+///
+/// Injector are usually used for environmental sounds.
+///
+/// @param context_id - The id of the client context (context.h).
+/// @param gain - gain value in decibel (-60dB to 20dB)
+///
+/// @return non-negative value on success, or a negative error code. \n
+/// Possible error codes: \n
+/// vircadia_error_context_invalid() \n
+/// vircadia_error_context_loss() \n
+/// vircadia_error_audio_disabled()
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_audio_mixer_injector_gain(int context_id, float gain);
+
 /// @brief Un/mutes the audio input.
 ///
 /// By default the input not muted.
@@ -299,6 +332,6 @@ VIRCADIA_CLIENT_DYN_API
 int vircadia_get_audio_input_muted_by_mixer(int context_id);
 
 // TODO: API for injectors (AudioInjectorManager)
-// TODO: API for soling, noise gate, noise reduction, gain, output buffer size (AudioPacketHandler)
+// TODO: API for soling, noise gate, noise reduction, avatar gain and mute (AudioPacketHandler)
 
 #endif /* end of include guard */

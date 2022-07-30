@@ -18,6 +18,7 @@
 
 #include <PCMCodec.h>
 #include <OpusCodec.h>
+#include <NodeList.h>
 
 #include "audio/AudioClient.h"
 
@@ -71,6 +72,15 @@ namespace vircadia::client
 
     void Audio::setInputEcho(bool enabled) {
         DependencyManager::get<AudioClient>()->setInputEcho(enabled);
+    }
+
+    void Audio::setOutputBufferFrames(int frames)
+    {
+        DependencyManager::get<AudioClient>()->setOutputBufferSize(frames);
+    }
+
+    void Audio::setServerInjectorGain(float gain) {
+        DependencyManager::get<NodeList>()->setInjectorGain(gain);
     }
 
     bool Audio::isEnabled() const {

@@ -169,6 +169,23 @@ int vircadia_set_audio_input_echo(int context_id, uint8_t enabled) {
 }
 
 VIRCADIA_CLIENT_DYN_API
+int vircadia_set_audio_output_buffer_frames(int context_id, int frames) {
+    return chain(checkAudioEnabled(context_id), [&](auto) {
+        std::next(std::begin(contexts), context_id)->audio().setOutputBufferFrames(frames);
+        return 0;
+    });
+}
+
+VIRCADIA_CLIENT_DYN_API
+int vircadia_set_audio_mixer_injector_gain(int context_id, float gain) {
+    return chain(checkAudioEnabled(context_id), [&](auto) {
+        // TODO: maybe validate gain range?
+        std::next(std::begin(contexts), context_id)->audio().setServerInjectorGain(gain);
+        return 0;
+    });
+}
+
+VIRCADIA_CLIENT_DYN_API
 int vircadia_set_audio_input_muted(int context_id, uint8_t muted) {
     return chain(checkAudioEnabled(context_id), [&](auto) {
         std::next(std::begin(contexts), context_id)->audio().setIsMuted(muted);

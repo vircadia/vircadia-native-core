@@ -42,6 +42,9 @@ namespace vircadia::client {
         void setVantage(const vircadia_vantage&);
         void setBounds(const vircadia_bounds&);
         void setInputEcho(bool enabled);
+        void setOutputBufferFrames(int frames);
+
+        void setServerInjectorGain(float gain);
 
         void setInput(const AudioFormat&);
         void setOutput(const AudioFormat&);
