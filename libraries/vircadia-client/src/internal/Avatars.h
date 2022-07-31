@@ -21,7 +21,7 @@
 #include "Common.h"
 #include "../avatars.h"
 
-class ConicalViewFrustumData;
+struct ConicalViewFrustumData;
 
 namespace vircadia::client {
 
