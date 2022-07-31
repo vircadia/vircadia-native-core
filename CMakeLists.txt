@@ -233,7 +233,7 @@ if (WIN32 OR (UNIX AND NOT APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64"))
     set(ENABLE_WEBRTC_DATA_CHANNELS_OPTION ON)
 endif()
 
-if (WIN32 OR (UNIX AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64"))
+if (WIN32 OR (UNIX AND NOT ANDROID AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64"))
     # We don't yet have a working libwebrtc for android.
     # WebRTC is difficult to build on aarch64 Linux.
     # an alternative is https://gitlab.freedesktop.org/pulseaudio/webrtc-audio-processing.
