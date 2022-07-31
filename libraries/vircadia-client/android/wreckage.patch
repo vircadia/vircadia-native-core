@@ -1,6 +1,6 @@
-From 65a5297c8cb4f95f1b0d223669b9d4cb3e7737c7 Mon Sep 17 00:00:00 2001
+From 519bd45dd5e2880805c8607fca0f788bf28fe247 Mon Sep 17 00:00:00 2001
 From: namark <nshan.nnnn@gmail.com>
-Date: Mon, 13 Jun 2022 17:53:40 +0400
+Date: Sun, 31 Jul 2022 20:02:08 +0400
 Subject: [PATCH] Ugly hacks to cross compile native client library for
  android.
 
@@ -10,19 +10,19 @@ Subject: [PATCH] Ugly hacks to cross compile native client library for
  .../dummy/src/main/res/values/strings.xml     |   3 +
  cmake/compiler.cmake                          |   6 +-
  cmake/macros/TargetOpenSSL.cmake              |   4 +-
+ cmake/macros/TargetOpus.cmake                 |   9 +-
  cmake/macros/TargetTBB.cmake                  |  16 +-
- hifi_vcpkg.py                                 |   2 +-
  libraries/networking/src/AccountManager.cpp   |   2 +-
  libraries/shared/CMakeLists.txt               |   4 +-
  libraries/shared/src/Gzip.cpp                 | 266 +++++++++---------
  libraries/shared/src/SharedUtil.cpp           |   4 +-
  libraries/vircadia-client/CMakeLists.txt      |   4 +-
- 12 files changed, 159 insertions(+), 158 deletions(-)
+ 12 files changed, 163 insertions(+), 161 deletions(-)
  create mode 100644 android/apps/dummy/CMakeLists.txt
  create mode 100644 android/apps/dummy/src/main/res/values/strings.xml
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index e923a89316..bb9e5310eb 100644
+index 76f2d19ba5..54f50cbda1 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -167,7 +167,7 @@ endif()
@@ -85,6 +85,24 @@ index faf5116a25..6e1d9f303e 100644
          set(OPENSSL_INCLUDE_DIR "${OPENSSL_INSTALL_DIR}/include" CACHE STRING INTERNAL)
          set(OPENSSL_LIBRARIES "${OPENSSL_INSTALL_DIR}/lib/libcrypto.a;${OPENSSL_INSTALL_DIR}/lib/libssl.a" CACHE STRING INTERNAL)
      else()
+diff --git a/cmake/macros/TargetOpus.cmake b/cmake/macros/TargetOpus.cmake
+index a8faf5139e..c602d642d2 100644
+--- a/cmake/macros/TargetOpus.cmake
++++ b/cmake/macros/TargetOpus.cmake
+@@ -6,8 +6,9 @@
+ #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+ #
+ macro(TARGET_opus)
+-    find_library(OPUS_LIBRARY_RELEASE NAMES opus PATHS ${VCPKG_INSTALL_ROOT}/lib)
+-    find_library(OPUS_LIBRARY_DEBUG NAMES opus PATHS ${VCPKG_INSTALL_ROOT}/debug/lib)
+-    select_library_configurations(OPUS)
+-    target_link_libraries(${TARGET_NAME} ${OPUS_LIBRARY})
++    # set(OPUS_INSTALL_DIR ${VCPKG_INSTALL_ROOT})
++    set(OPUS_INSTALL_DIR /home/namark/dev/opus-1.3.1/build/opus_package)
++    # set(OPUS_INSTALL_DIR /home/namark/dev/opus-1.3.1/build64/opus_package)
++    include_directories(SYSTEM "${OPUS_INSTALL_DIR}/include")
++    target_link_libraries(${TARGET_NAME} ${OPUS_INSTALL_DIR}/lib/libopus.a)
+ endmacro()
 diff --git a/cmake/macros/TargetTBB.cmake b/cmake/macros/TargetTBB.cmake
 index 087f3f3242..156d4e4021 100644
 --- a/cmake/macros/TargetTBB.cmake
@@ -111,19 +129,6 @@ index 087f3f3242..156d4e4021 100644
 +target_link_libraries(${TARGET_NAME} TBB::tbb)
  
  endmacro()
-diff --git a/hifi_vcpkg.py b/hifi_vcpkg.py
-index df14f05799..daff91e9b0 100644
---- a/hifi_vcpkg.py
-+++ b/hifi_vcpkg.py
-@@ -302,7 +302,7 @@ endif()
-             url = hifi_android.getPackageUrl(package)
-             zipFile = package['file'].endswith('.zip')
-             print("Android archive {}".format(package['file']))
--            hifi_utils.downloadAndExtract(url, dest, isZip=zipFile, hash=package['checksum'], hasher=hashlib.md5())
-+            hifi_utils.downloadAndExtract([url], dest, hash=package['checksum'], hasher=hashlib.md5)
- 
-     def writeTag(self):
-         if self.noClean:
 diff --git a/libraries/networking/src/AccountManager.cpp b/libraries/networking/src/AccountManager.cpp
 index ce449a66c3..63bf824800 100644
 --- a/libraries/networking/src/AccountManager.cpp
@@ -458,7 +463,7 @@ index e9576a4477..e75ff5666e 100644
  
  #ifdef Q_OS_WIN
 diff --git a/libraries/vircadia-client/CMakeLists.txt b/libraries/vircadia-client/CMakeLists.txt
-index 99ff27e249..6f92bf2b26 100644
+index 8fed87968a..d8fd2533da 100644
 --- a/libraries/vircadia-client/CMakeLists.txt
 +++ b/libraries/vircadia-client/CMakeLists.txt
 @@ -53,7 +53,7 @@ endif (DOXYGEN_FOUND)
@@ -472,7 +477,7 @@ index 99ff27e249..6f92bf2b26 100644
  if(UNIX)
 @@ -64,7 +64,7 @@ endif()
  
- link_hifi_libraries(shared networking avatars-core)
+ link_hifi_libraries(shared networking avatars-core audio-client-core pcm-codec opus-codec)
  
 -add_subdirectory(tests)
 +# add_subdirectory(tests)
