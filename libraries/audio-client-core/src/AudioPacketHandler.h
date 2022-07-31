@@ -76,8 +76,6 @@
 #define DEFAULT_AEC_ENABLED true
 #endif
 
-class QAudioInput;
-class QAudioOutput;
 class QIODevice;
 
 class Transform;
@@ -231,7 +229,6 @@ public:
     void sendDownstreamAudioStatsPacket() { _stats.publish(); }
     void handleMicAudioInput(const char* data, int size);
     void sendInput();
-    void audioInputStateChanged(QAudio::State state);
     void handleRecordedAudioInput(const QByteArray& audio);
     void reset();
     void audioMixerKilled();

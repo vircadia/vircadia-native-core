@@ -41,8 +41,6 @@
 #include <QtConcurrent/QtConcurrent>
 #include <QtCore/QThreadPool>
 #include <QtCore/QBuffer>
-#include <QtMultimedia/QAudioInput>
-#include <QtMultimedia/QAudioOutput>
 
 #include <shared/QtHelpers.h>
 #include <ThreadHelpers.h>

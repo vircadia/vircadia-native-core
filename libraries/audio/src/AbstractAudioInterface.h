@@ -13,7 +13,6 @@
 #define hifi_AbstractAudioInterface_h
 
 #include <QtCore/QObject>
-#include <QtMultimedia/qaudiooutput.h>
 
 #include <udt/PacketHeaders.h>
 
