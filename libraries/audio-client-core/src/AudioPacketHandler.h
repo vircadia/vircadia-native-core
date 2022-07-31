@@ -137,8 +137,8 @@ template <typename Derived>
 class AudioPacketHandler {
     using LocalInjectorsStream = AudioMixRingBuffer;
 public:
-    static const int MIN_BUFFER_FRAMES = 1;
-    static const int MAX_BUFFER_FRAMES = 20;
+    static constexpr int MIN_BUFFER_FRAMES = 1;
+    static constexpr int MAX_BUFFER_FRAMES = 20;
 
     using AudioPositionGetter = std::function<glm::vec3()>;
     using AudioOrientationGetter = std::function<glm::quat()>;
