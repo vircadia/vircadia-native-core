@@ -67,7 +67,13 @@ To create this variable:
 * Set "Variable name" to `QT_CMAKE_PREFIX_PATH`
 * Set "Variable value" to `%QT_INSTALL_DIR%\5.15.2\msvc2019_64\lib\cmake`, where `%QT_INSTALL_DIR%` is the directory you specified for Qt's installation. The default is `C:\Qt`.
 
-## Step 6. Create VCPKG environment variable
+## Step 6. Clone the Vircadia repository.
+Clone the project repository, including submodules. This can be done with a single command in git bash:
+```bash
+git clone --recursive https://github.com/vircadia/vircadia.git
+```
+
+## Step 7. Create VCPKG environment variable
 In the next step, you will use CMake to build Vircadia. By default, the CMake process builds dependency files in Windows' `%TEMP%` directory, which is periodically cleared by the operating system. To prevent you from having to re-build the dependencies in the event that Windows clears that directory, we recommend that you create a `HIFI_VCPKG_BASE` environment variable linked to a directory somewhere on your machine. That directory will contain all dependency files until you manually remove them.
 
 To create this variable:
@@ -86,7 +92,7 @@ To create this variable:
 * Set "Variable name" to `HIFI_VCPKG_BOOTSTRAP`
 * Set "Variable value" to `1`
 
-## Step 7. Running CMake to Generate Build Files
+## Step 8. Running CMake to Generate Build Files
 
 Run Command Prompt from Start and run the following commands:
 `cd "%VIRCADIA_DIR%"`
@@ -98,7 +104,7 @@ Run `cmake .. -G "Visual Studio 16 2019" -A x64`.
 
 Where `%VIRCADIA_DIR%` is the directory for the Vircadia repository.
 
-## Step 8. Making a Build
+## Step 9. Making a Build
 
 Open `%VIRCADIA_DIR%\build\vircadia.sln` using Visual Studio.
 
@@ -106,7 +112,7 @@ Change the Solution Configuration (menu ribbon under the menu bar, next to the g
 
 Run from the menu bar `Build > Build Solution`.
 
-## Step 9. Testing Interface
+## Step 10. Testing Interface
 
 Create another environment variable (see Step #3)
 * Set "Variable name": `_NO_DEBUG_HEAP`
