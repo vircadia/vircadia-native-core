@@ -20,8 +20,12 @@
 #include "error.h"
 #include "context.h"
 #include "node_list.h"
+#include "node_types.h"
 #include "messages.h"
 #include "message_types.h"
 #include "avatars.h"
+#include "avatar_constants.h"
+#include "audio.h"
+#include "audio_constants.h"
 
 #endif /* end of include guard */
