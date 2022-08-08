@@ -1,14 +1,14 @@
-### Client API
+### Overview
 
-This is C/C++ library for Vircadia client->server communication.
+[Vircadia Native Client Library](https://github.com/vircadia/vircadia/blob/unity-sdk/libraries/vircadia-client) is a C API/ABI for Vircadia client->server communication.
 
 ### Coding Style
 
-This library is meant to use by other projects in particular other language bindings, and it exposes a C API for that purpose. The C API interfaces adhere to common C coding naming conventions:
+This library is meant to use by other projects in particular other language bindings, and it exposes a C API/ABI for that purpose. The interfaces adhere to common C naming conventions:
 - All words in names are separated by underscores (snake case).
 - File, variable, function and type names are all lower case.
 - Global constants (including enum values) and macros are all upper case.
-In other aspects they adheres to the [coding standard](https://github.com/namark/vircadia/blob/master/CODING_STANDARD.md).
+In other aspects they adheres to the [coding standard](https://github.com/vircadia/vircadia/blob/master/CODING_STANDARD.md).
 
 
 The `src/internal` folder contains the internal C++ implementation details and is not subject to these C style naming convention. The `.cpp` files that correspond to C API header files in the `src` folder make use of these internals and may contain a mixture of styles.
