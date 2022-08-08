@@ -486,10 +486,10 @@ int vircadia_set_my_avatar_attachment_count(int context_id, int attachment_count
 /// vircadia_error_avatars_disabled() \n
 /// vircadia_error_argument_invalid()
 VIRCADIA_CLIENT_DYN_API
-int vircadia_set_my_avatar_attachments(int context_id, const vircadia_avatar_attachment* attachments, int size);
+int vircadia_set_my_avatar_attachments(int context_id, const vircadia_avatar_attachment* attachments, int attachment_count);
 
 // this is read-only
-// @private
+/// @private
 VIRCADIA_CLIENT_DYN_API
 int vircadia_set_my_avatar_session_display_name(int context_id, const char* session_display_name);
 
@@ -766,7 +766,7 @@ int vircadia_set_my_avatar_joint(int context_id, int joint_index, vircadia_vanta
 /// @brief Sets avatar current pose data be sent to the mixer.
 ///
 /// @param context_id - The id of the context (context.h).
-/// @param data - The array of joints that define the current pose. Must not be
+/// @param joints - The array of joints that define the current pose. Must not be
 /// null unless size is 0.
 /// @param size - The count of joints. Must not be negative.
 ///
@@ -819,7 +819,7 @@ int vircadia_set_my_avatar_joint_flags(int context_id, int joint_index, vircadia
 /// @brief Sets avatar current pose flags be sent to the mixer.
 ///
 /// @param context_id - The id of the context (context.h).
-/// @param data - The array of joint flags that define the current pose. Must
+/// @param flags - The array of joint flags that define the current pose. Must
 /// not be null unless size is 0.
 /// @param size - The count of joints. Must not be negative.
 ///
