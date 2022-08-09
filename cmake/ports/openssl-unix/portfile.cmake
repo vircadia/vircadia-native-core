@@ -1,5 +1,6 @@
 include(vcpkg_common_functions)
 
+
 if(VCPKG_CMAKE_SYSTEM_NAME STREQUAL "WindowsStore" OR NOT VCPKG_CMAKE_SYSTEM_NAME)
     message(FATAL_ERROR "This port is only for openssl on Unix-like systems")
 endif()
@@ -16,12 +17,15 @@ endif()
 
 vcpkg_find_acquire_program(PERL)
 
+file(READ "${VCPKG_ROOT_DIR}/_env/EXTERNAL_OPENSSL_102S_URLS.txt" EXTERNAL_OPENSSL_102S_URLS)
+file(READ "${VCPKG_ROOT_DIR}/_env/EXTERNAL_OPENSSL_102S_SHA512.txt" EXTERNAL_OPENSSL_102S_SHA512)
+
 set(OPENSSL_VERSION 1.0.2s)
 
 vcpkg_download_distfile(OPENSSL_SOURCE_ARCHIVE
-    URLS "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz" "https://www.openssl.org/source/old/1.0.2/openssl-${OPENSSL_VERSION}.tar.gz"
+    URLS ${EXTERNAL_OPENSSL_102S_URLS}
     FILENAME "openssl-${OPENSSL_VERSION}.tar.gz"
-    SHA512 9f745452c4f777df694158e95003cde78a2cf8199bc481a563ec36644664c3c1415a774779b9791dd18f2aeb57fa1721cb52b3db12d025955e970071d5b66d2a
+    SHA512 ${EXTERNAL_OPENSSL_102S_SHA512}
 )
 
 vcpkg_extract_source_archive_ex(
