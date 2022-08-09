@@ -299,10 +299,10 @@ endif()
             dest = os.path.join(self.androidPackagePath, packageName)
             if os.path.isdir(dest):
                 continue
-            url = hifi_android.getPackageUrl(package)
-            zipFile = package['file'].endswith('.zip')
-            print("Android archive {}".format(package['file']))
-            hifi_utils.downloadAndExtract([url], dest, hash=package['checksum'], hasher=hashlib.md5)
+            urls = self.readVar('EXTERNAL_' + package['extAssetID'] + '_URLS').split(';')
+            checksum = self.readVar('EXTERNAL_' + package['extAssetID'] + '_MD5')
+            print("Android archive {}".format(packageName))
+            hifi_utils.downloadAndExtract(urls, dest, hash=checksum, hasher=hashlib.md5)
 
     def writeTag(self):
         if self.noClean:

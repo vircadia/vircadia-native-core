@@ -20,6 +20,7 @@ macro(define_external_asset_urls ASSETNAME)
 
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/_env/EXTERNAL_${ASSETNAME}_URLS.txt" "${EXTERNAL_${ASSETNAME}_URLS}")
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/_env/EXTERNAL_${ASSETNAME}_SHA512.txt" "${EXTERNAL_${ASSETNAME}_SHA512}")
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/_env/EXTERNAL_${ASSETNAME}_MD5.txt" "${EXTERNAL_${ASSETNAME}_MD5}")
 
 endmacro(define_external_asset_urls)
 
