@@ -112,10 +112,12 @@ endif()
                 self.prebuiltArchiveSha512 = self.readVar('EXTERNAL_VCPKG_MAC_SHA512')
         elif 'Linux' == system and 'aarch64' == machine:
             self.exe = os.path.join(self.path, 'vcpkg')
-            self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '-disableMetrics' ]
+            self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '-disableMetrics', '-useSystemBinaries' ]
             self.vcpkgUrl = self.readVar('EXTERNAL_VCPKG_LINUX_AARCH64_URLS').split(';')
             self.vcpkgSha512 = self.readVar('EXTERNAL_VCPKG_LINUX_AARCH64_SHA512')
             self.hostTriplet = 'arm64-linux'
+            os.environ['VCPKG_FORCE_SYSTEM_BINARIES'] = '1'
+            os.environ['VCPKG_DEFAULT_TRIPLET'] = 'arm64-linux'
         else:
             self.exe = os.path.join(self.path, 'vcpkg')
             self.bootstrapCmds = [ os.path.join(self.path, 'bootstrap-vcpkg.sh'), '-disableMetrics' ]
@@ -201,14 +203,14 @@ endif()
             downloadVcpkg = True
 
         if downloadVcpkg:
-            if "HIFI_VCPKG_BOOTSTRAP" in os.environ:
-                print("Cloning vcpkg from github to {}".format(self.path))
-                hifi_utils.executeSubprocess(['git', 'clone', 'https://github.com/microsoft/vcpkg', self.path])
-                print("Bootstrapping vcpkg")
-                hifi_utils.executeSubprocess(self.bootstrapCmds, folder=self.path, env=self.bootstrapEnv)
-            else:
+            if "HIFI_VCPKG_NO_BOOTSTRAP" in os.environ:
                 print("Fetching vcpkg from {} to {}".format(self.vcpkgUrl, self.path))
                 hifi_utils.downloadAndExtract(self.vcpkgUrl, self.path, self.vcpkgSha512)
+            else:
+                print("Cloning vcpkg from github to {}".format(self.path))
+                hifi_utils.executeSubprocess(['git', 'clone', '--depth', '1', '--branch', '2022.06.16.1', 'https://github.com/microsoft/vcpkg', self.path])
+                print("Bootstrapping vcpkg")
+                hifi_utils.executeSubprocess(self.bootstrapCmds, folder=self.path, env=self.bootstrapEnv)
 
         print("Replacing port files")
         portsPath = os.path.join(self.path, 'ports')
@@ -230,9 +232,21 @@ endif()
         print('Copying triplet ' + triplet + ' to have build type ' + self.vcpkgBuildType)
         tripletPath = os.path.join(self.path, 'triplets', triplet + '.cmake')
         tripletForBuildTypePath = os.path.join(self.path, 'triplets', self.getTripletWithBuildType(triplet) + '.cmake')
-        shutil.copy(tripletPath, tripletForBuildTypePath)
-        with open(tripletForBuildTypePath, "a") as tripletForBuildTypeFile:
-            tripletForBuildTypeFile.write("set(VCPKG_BUILD_TYPE " + self.vcpkgBuildType + ")\n")
+        try:
+            shutil.copy(tripletPath, tripletForBuildTypePath)
+            with open(tripletForBuildTypePath, "a") as tripletForBuildTypeFile:
+                tripletForBuildTypeFile.write("set(VCPKG_BUILD_TYPE " + self.vcpkgBuildType + ")\n")
+        except OSError:
+            if 'Linux' == platform.system() and 'aarch64' == platform.machine():
+                with open(tripletForBuildTypePath, "a") as tripletForBuildTypeFile:
+                    tripletForBuildTypeFile.write("set(VCPKG_TARGET_ARCHITECTURE arm64)\n")
+                    tripletForBuildTypeFile.write("set(VCPKG_CRT_LINKAGE dynamic)\n")
+                    tripletForBuildTypeFile.write("set(VCPKG_LIBRARY_LINKAGE static)\n")
+                    tripletForBuildTypeFile.write("set(VCPKG_CMAKE_SYSTEM_NAME Linux)\n")
+                    tripletForBuildTypeFile.write("set(VCPKG_BUILD_TYPE " + self.vcpkgBuildType + ")\n")
+            else:
+                raise
+
 
     def getTripletWithBuildType(self, triplet):
         if (not self.vcpkgBuildType):
