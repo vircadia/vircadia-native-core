@@ -15,7 +15,7 @@ You can use the [Vircadia Builder](https://github.com/vircadia/vircadia-builder)
 This guide focuses on Ubuntu 18.04 only.
 
 ### Ubuntu 18.04 Server only
-Add the universe repository:  
+Add the universe repository:
 _(This is not enabled by default on the server edition.)_
 ```bash
 sudo add-apt-repository universe
@@ -23,7 +23,7 @@ sudo apt-get update
 ```
 
 ### Install build tools
--  First update the repositories:  
+-  First update the repositories:
 ```bash
 sudo apt-get update -y
 sudo apt-get upgrade -y
@@ -93,9 +93,9 @@ sudo apt-get install nodejs
 
 ### Get code and checkout the branch you need
 
-Clone this repository:
+Clone this repository, including submodules:
 ```bash
-git clone https://github.com/vircadia/vircadia.git
+git clone --recursive https://github.com/vircadia/vircadia.git
 ```
 
 Then checkout the master branch with:
@@ -136,7 +136,7 @@ Prepare makefiles:
 cmake ..
 ```
 
-If cmake fails with a vcpkg error, then delete `~/vircadia-files/vcpkg/`.  
+If cmake fails with a vcpkg error, then delete `~/vircadia-files/vcpkg/`.
 
 #### Vircadia Server
 
@@ -189,7 +189,7 @@ Go to "localhost" in the running Interface to visit your newly launched Domain s
 ## Arch Linux
 
 ### Install build tools:
--  First update the system:  
+-  First update the system:
 ```bash
 sudo pacman -Syu
 ```
@@ -275,9 +275,9 @@ sudo pacman -S unzip
 
 ### Get code and checkout the branch you need
 
-Clone this repository:
+Clone this repository, including submodules:
 ```bash
-git clone https://github.com/vircadia/vircadia.git
+git clone --recursive https://github.com/vircadia/vircadia.git
 ```
 
 Enter the repository folder:
@@ -370,7 +370,7 @@ Go to "localhost" in the running Interface to visit your newly launched Domain s
 
 ### vcpkg
 
-If your goal is to set up a development environment, it is desirable to set the directory 
+If your goal is to set up a development environment, it is desirable to set the directory
 that vcpkg builds into with the `HIFI_VCPKG_BASE` environment variable.
 For example, you might set `HIFI_VCPKG_BASE` to `/home/$USER/vcpkg`.
 
@@ -379,7 +379,7 @@ By default, vcpkg will build in the `~/vircadia-files/vcpkg/` directory.
 ### Architecture support
 
 If the build is intended to be packaged for distribution, the `VIRCADIA_CPU_ARCHITECTURE`
-CMake variable needs to be set to an architecture specific value. For example you can set 
+CMake variable needs to be set to an architecture specific value. For example you can set
 it to `-msse3`. This will help ensure that the build can run on all reasonably modern CPUs.
 
 By default, it is set to `-march=native -mtune=native`, which yields builds optimized for a particular
