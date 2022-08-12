@@ -75,9 +75,9 @@ bool NetworkMaterialResource::parseJSONColor(const QJsonValue& array, glm::vec3&
 /*@jsdoc
  * A material or set of materials used by a {@link Entities.EntityType|Material entity}.
  * @typedef {object} Entities.MaterialResource
- * @property {number} materialVersion=1 - The version of the material. <em>Currently not used.</em>
- * @property {Entities.Material|Entities.Material[]|string} materials - The details of the material or materials, or the ID of another
- *     Material entity.
+ * @property {number} [materialVersion=1] - The version of the material. <em>Currently not used.</em>
+ * @property {Entities.Material|Entities.Material[]|string} materials - The details of the material or materials, or the ID of
+ *     another Material entity.
  */
 NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMaterials(const QJsonDocument& materialJSON, const QUrl& baseUrl) {
     ParsedMaterials toReturn;
@@ -126,107 +126,102 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseMaterialF
 /*@jsdoc
  * A material used in a {@link Entities.MaterialResource|MaterialResource}.
  * @typedef {object} Entities.Material
- * @property {string} name="" - A name for the material. Supported by all material models.
- * @property {string} model="hifi_pbr" - Different material models support different properties and rendering modes.
+ * @property {string} [name=""] - A name for the material. Supported by all material models.
+ * @property {string} [model="hifi_pbr"] - Different material models support different properties and rendering modes.
  *     Supported models are: <code>"hifi_pbr"</code>, <code>"hifi_shader_simple"</code>.
- * @property {ColorFloat|RGBS|string} emissive - The emissive color, i.e., the color that the material emits. A 
- *     {@link ColorFloat} value is treated as sRGB and must have component values in the range <code>0.0</code> &ndash; 
- *     <code>1.0</code>. A {@link RGBS} value can be either RGB or sRGB. 
+ * @property {ColorFloat|RGBS|string} [emissive] - The emissive color, i.e., the color that the material emits. A
+ *     {@link ColorFloat} value is treated as sRGB and must have component values in the range <code>0.0</code> &ndash;
+ *     <code>1.0</code>. A {@link RGBS} value can be either RGB or sRGB.
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {number|string} opacity=1.0 - The opacity, range <code>0.0</code> &ndash; <code>1.0</code>.
+ * @property {number|string} [opacity=1.0] - The opacity, range <code>0.0</code> &ndash; <code>1.0</code>.
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> and
  *     <code>"hifi_shader_simple"</code> models only.
- * @property {boolean|string} unlit=false - <code>true</code> if the material is unaffected by lighting, <code>false</code> if 
+ * @property {boolean|string} [unlit=false] - <code>true</code> if the material is unaffected by lighting, <code>false</code> if
  *     it is lit by the key light and local lights.
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {ColorFloat|RGBS|string} albedo - The albedo color. A {@link ColorFloat} value is treated as sRGB and must have
+ * @property {ColorFloat|RGBS|string} [albedo] - The albedo color. A {@link ColorFloat} value is treated as sRGB and must have
  *     component values in the range <code>0.0</code> &ndash; <code>1.0</code>. A {@link RGBS} value can be either RGB or sRGB.
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> and
  *     <code>"hifi_shader_simple"</code> models only.
- * @property {number|string} roughness - The roughness, range <code>0.0</code> &ndash; <code>1.0</code>. 
+ * @property {number|string} [roughness] - The roughness, range <code>0.0</code> &ndash; <code>1.0</code>.
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {number|string} metallic - The metallicness, range <code>0.0</code> &ndash; <code>1.0</code>. 
+ * @property {number|string} [metallic] - The metallicness, range <code>0.0</code> &ndash; <code>1.0</code>.
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {number|string} scattering - The scattering, range <code>0.0</code> &ndash; <code>1.0</code>. 
+ * @property {number|string} [scattering] - The scattering, range <code>0.0</code> &ndash; <code>1.0</code>.
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {string} emissiveMap - The URL of the emissive texture image, or an entity ID.  An entity ID may be that of an
+ * @property {string} [emissiveMap] - The URL of the emissive texture image, or an entity ID.  An entity ID may be that of an
  *     Image or Web entity.  Set to <code>"fallthrough"</code> to fall through to the material below.
  *     <code>"hifi_pbr"</code> model only.
- * @property {string} albedoMap - The URL of the albedo texture image, or an entity ID.  An entity ID may be that of an Image
+ * @property {string} [albedoMap] - The URL of the albedo texture image, or an entity ID.  An entity ID may be that of an Image
  *     or Web entity.  Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code>
  *     model only.
- * @property {string} opacityMap - The URL of the opacity texture image, or an entity ID.  An entity ID may be that of an Image
+ * @property {string} [opacityMap] - The URL of the opacity texture image, or an entity ID. An entity ID may be that of an Image
  *     or Web entity.  Set the value the same as the <code>albedoMap</code> value for transparency.
  *     <code>"hifi_pbr"</code> model only.
- * @property {string} opacityMapMode - The mode defining the interpretation of the opacity map. Values can be:
+ * @property {string} [opacityMapMode] - The mode defining the interpretation of the opacity map. Values can be:
  *     <ul>
  *         <li><code>"OPACITY_MAP_OPAQUE"</code> for ignoring the opacity map information.</li>
- *         <li><code>"OPACITY_MAP_MASK"</code> for using the <code>opacityMap</code> as a mask, where only the texel greater 
+ *         <li><code>"OPACITY_MAP_MASK"</code> for using the <code>opacityMap</code> as a mask, where only the texel greater
  *         than <code>opacityCutoff</code> are visible and rendered opaque.</li>
- *         <li><code>"OPACITY_MAP_BLEND"</code> for using the <code>opacityMap</code> for alpha blending the material surface 
+ *         <li><code>"OPACITY_MAP_BLEND"</code> for using the <code>opacityMap</code> for alpha blending the material surface
  *         with the background.</li>
  *     </ul>
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {number|string} opacityCutoff - The opacity cutoff threshold used to determine the opaque texels of the 
- *     <code>opacityMap</code> when <code>opacityMapMode</code> is <code>"OPACITY_MAP_MASK"</code>. Range <code>0.0</code> 
+ * @property {number|string} [opacityCutoff] - The opacity cutoff threshold used to determine the opaque texels of the
+ *     <code>opacityMap</code> when <code>opacityMapMode</code> is <code>"OPACITY_MAP_MASK"</code>. Range <code>0.0</code>
  *     &ndash; <code>1.0</code>.
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {string} cullFaceMode="CULL_BACK" - The mode defining which side of the geometry should be rendered. Values can be:
+ * @property {string} [cullFaceMode="CULL_BACK"] - The mode defining which side of the geometry should be rendered. Values can
+       be:
  *     <ul>
  *         <li><code>"CULL_NONE"</code> to render both sides of the geometry.</li>
  *         <li><code>"CULL_FRONT"</code> to cull the front faces of the geometry.</li>
  *         <li><code>"CULL_BACK"</code> (the default) to cull the back faces of the geometry.</li>
  *     </ul>
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {string} cullFaceMode - The mode defining which side of the geometry should be rendered. Values can be:
- *     <ul>
- *         <li><code>"CULL_NONE"</code> for rendering both sides of the geometry.</li>
- *         <li><code>"CULL_FRONT"</code> for culling the front faces of the geometry.</li>
- *         <li><code>"CULL_BACK"</code> (the default) for culling the back faces of the geometry.</li>
- *     </ul>
+ * @property {string} [roughnessMap] - The URL of the roughness texture image. You can use this or <code>glossMap</code>, but
+ *     not both.
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {string} roughnessMap - The URL of the roughness texture image. You can use this or <code>glossMap</code>, but not 
- *     both. 
+ * @property {string} [glossMap] - The URL of the gloss texture image. You can use this or <code>roughnessMap</code>, but not
+ *     both.
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {string} glossMap - The URL of the gloss texture image. You can use this or <code>roughnessMap</code>, but not 
- *     both. 
- *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {string} metallicMap - The URL of the metallic texture image, or an entity ID.  An entity ID may be that of an
+ * @property {string} [metallicMap] - The URL of the metallic texture image, or an entity ID.  An entity ID may be that of an
  *     Image or Web entity.  You can use this or <code>specularMap</code>, but not both.
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {string} specularMap - The URL of the specular texture image, or an entity ID.  An entity ID may be that of an
+ * @property {string} [specularMap] - The URL of the specular texture image, or an entity ID.  An entity ID may be that of an
  *     Image or Web entity.  You can use this or <code>metallicMap</code>, but not both.
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {string} normalMap - The URL of the normal texture image, or an entity ID.  An entity ID may be that of an Image
+ * @property {string} [normalMap] - The URL of the normal texture image, or an entity ID.  An entity ID may be that of an Image
  *     or Web entity.  You can use this or <code>bumpMap</code>, but not both. Set to <code>"fallthrough"</code> to fall
  *     through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {string} bumpMap - The URL of the bump texture image, or an entity ID.  An entity ID may be that of an Image
+ * @property {string} [bumpMap] - The URL of the bump texture image, or an entity ID.  An entity ID may be that of an Image
  *     or Web entity.  You can use this or <code>normalMap</code>, but not both. Set to <code>"fallthrough"</code> to
  *     fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {string} occlusionMap - The URL of the occlusion texture image, or an entity ID.  An entity ID may be that of
+ * @property {string} [occlusionMap] - The URL of the occlusion texture image, or an entity ID.  An entity ID may be that of
  *     an Image or Web entity.  Set to <code>"fallthrough"</code> to fall through to the material below.
  *     <code>"hifi_pbr"</code> model only.
- * @property {string} scatteringMap - The URL of the scattering texture image, or an entity ID.  An entity ID may be that of an
+ * @property {string} [scatteringMap] - The URL of the scattering texture image, or an entity ID. An entity ID may be that of an
  *     Image or Web entity.  Only used if <code>normalMap</code> or <code>bumpMap</code> is specified.
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {string} lightMap - The URL of the light map texture image, or an entity ID.  An entity ID may be that of an Image
+ * @property {string} [lightMap] - The URL of the light map texture image, or an entity ID. An entity ID may be that of an Image
  *     or Web entity.  Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code>
  *     model only.
- * @property {Mat4|string} texCoordTransform0 - The transform to use for all of the maps apart from <code>occlusionMap</code> 
- *     and <code>lightMap</code>. 
+ * @property {Mat4|string} [texCoordTransform0] - The transform to use for all of the maps apart from <code>occlusionMap</code>
+ *     and <code>lightMap</code>.
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {Mat4|string} texCoordTransform1 - The transform to use for <code>occlusionMap</code> and <code>lightMap</code>. 
+ * @property {Mat4|string} [texCoordTransform1] - The transform to use for <code>occlusionMap</code> and <code>lightMap</code>.
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {string} lightmapParams - Parameters for controlling how <code>lightMap</code> is used. 
- *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only. 
+ * @property {string} [lightmapParams] - Parameters for controlling how <code>lightMap</code> is used.
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
  *     <p><em>Currently not used.</em></p>
- * @property {string} materialParams - Parameters for controlling the material projection and repetition. 
- *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only. 
+ * @property {string} [materialParams] - Parameters for controlling the material projection and repetition.
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
  *     <p><em>Currently not used.</em></p>
- * @property {boolean} defaultFallthrough=false - <code>true</code> if all properties fall through to the material below 
- *     unless they are set, <code>false</code> if properties respect their individual fall-through settings. 
+ * @property {boolean} [defaultFallthrough=false] - <code>true</code> if all properties fall through to the material below
+ *     unless they are set, <code>false</code> if properties respect their individual fall-through settings.
  *     <code>"hifi_pbr"</code> and <code>"hifi_shader_simple"</code> models only.
- * @property {ProceduralData} procedural - The definition of a procedural shader material.  <code>"hifi_shader_simple"</code> model only.
+ * @property {ProceduralData} [procedural] - The definition of a procedural shader material.  <code>"hifi_shader_simple"</code>
+ *     model only.
  */
 // Note: See MaterialEntityItem.h for default values used in practice.
 std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource::parseJSONMaterial(const QJsonValue& materialJSONValue, const QUrl& baseUrl) {
