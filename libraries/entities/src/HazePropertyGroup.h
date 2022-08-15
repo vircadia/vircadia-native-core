@@ -52,7 +52,7 @@ static const float INITIAL_KEY_LIGHT_ALTITUDE{ 200.0f };
  * @property {boolean} hazeEnableGlare=false - <code>true</code> if the haze is colored with glare from the key light, 
  *     <code>false</code> if it isn't. If <code>true</code>, then <code>hazeGlareColor</code> and <code>hazeGlareAngle</code> 
  *     are used.
- * @property {Color} hazeGlareColor=255,299,179 - The color of the haze when looking towards the key light.
+ * @property {Color} hazeGlareColor=255,229,179 - The color of the haze when looking towards the key light.
  * @property {number} hazeGlareAngle=20 - The angle in degrees across the circle around the key light that the glare color and 
  *     haze color are blended 50/50.
  *
