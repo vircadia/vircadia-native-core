@@ -158,7 +158,7 @@ protected:
     QString _filterURL { DEFAULT_FILTER_URL };
 
     // Avatar-updates priority
-    uint32_t _avatarPriority { COMPONENT_MODE_INHERIT };
+    uint32_t _avatarPriority { AVATAR_PRIORITY_INHERIT };
 
     // Screen-sharing zone
     uint32_t _screenshare { COMPONENT_MODE_INHERIT };
