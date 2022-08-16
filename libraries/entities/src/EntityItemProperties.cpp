@@ -950,19 +950,19 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * Material entities render as non-scalable spheres if they don't have their parent set.</p>
  *
  * @typedef {object} Entities.EntityProperties-Material
- * @property {Vec3} dimensions=0.1,0.1,0.1 - Used when <code>materialMappingMode == "projected"</code>.
- * @property {string} materialURL="" - URL to a {@link Entities.MaterialResource|MaterialResource}. Alternatively, set the
+ * @property {Vec3} [dimensions=0.1,0.1,0.1] - Used when <code>materialMappingMode == "projected"</code>.
+ * @property {string} [materialURL=""] - URL to a {@link Entities.MaterialResource|MaterialResource}. Alternatively, set the
  *     property value to <code>"materialData"</code> to use the <code>materialData</code> property for the
  *     {@link Entities.MaterialResource|MaterialResource} values. If you append <code>"#name"</code> to the URL, the material
  *     with that name will be applied to the entity. You can also use the ID of another Material entity as the URL, in which
  *     case this material will act as a copy of that material, with its own unique material transform, priority, etc.
- * @property {string} materialData="" - Used to store {@link Entities.MaterialResource|MaterialResource} data as a JSON string.
+ * @property {string} [materialData=""] - Used to store {@link Entities.MaterialResource|MaterialResource} data as a JSON string.
  *     You can use <code>JSON.parse()</code> to parse the string into a JavaScript object which you can manipulate the
  *     properties of, and use <code>JSON.stringify()</code> to convert the object into a string to put in the property.
- * @property {number} priority=0 - The priority for applying the material to its parent. Only the highest priority material is
+ * @property {number} [priority=0] - The priority for applying the material to its parent. Only the highest priority material is
  *     applied, with materials of the same priority randomly assigned. Materials that come with the model have a priority of
  *     <code>0</code>.
- * @property {string} parentMaterialName="0" - Selects the mesh part or parts within the parent to which to apply the material.
+ * @property {string} [parentMaterialName="0"] - Selects the mesh part or parts within the parent to which to apply the material.
  *     If in the format <code>"mat::string"</code>, all mesh parts with material name <code>"string"</code> are replaced.
  *     If <code>"all"</code>, then all mesh parts are replaced.
  *     Otherwise the property value is parsed as an unsigned integer, specifying the mesh part index to modify.
@@ -970,18 +970,19 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     at each <code>","</code> and each element parsed as either a number or a string if it starts with <code>"mat::"</code>.
  *     For example, <code>"[0,1,mat::string,mat::string2]"</code> will replace mesh parts 0 and 1, and any mesh parts with
  *     material <code>"string"</code> or <code>"string2"</code>. Do not put spaces around the commas. Invalid values are parsed
- *     to <code>0</code>.</p>
- * @property {string} materialMappingMode="uv" - How the material is mapped to the entity. Either <code>"uv"</code> or
+ *     to <code>"0"</code>.</p>
+ * @property {string} [materialMappingMode="uv"] - How the material is mapped to the entity. Either <code>"uv"</code> or
  *     <code>"projected"</code>. In <code>"uv"</code> mode, the material is evaluated within the UV space of the mesh it is
  *     applied to. In <code>"projected"</code> mode, the 3D transform (position, rotation, and dimensions) of the Material
  *     entity is used to evaluate the texture coordinates for the material.
- * @property {Vec2} materialMappingPos=0,0 - Offset position in UV-space of the top left of the material, range
+ * @property {Vec2} [materialMappingPos=0.0,0.0] - Offset position in UV-space of the top left of the material, range
  *     <code>{ x: 0, y: 0 }</code> &ndash; <code>{ x: 1, y: 1 }</code>.
- * @property {Vec2} materialMappingScale=1,1 - How much to scale the material within the parent's UV-space.
- * @property {number} materialMappingRot=0 - How much to rotate the material within the parent's UV-space, in degrees.
- * @property {boolean} materialRepeat=true - <code>true</code> if the material repeats, <code>false</code> if it doesn't. If
+ * @property {Vec2} [materialMappingScale=1.0,1.0] - How much to scale the material within the parent's UV-space.
+ * @property {number} [materialMappingRot=0] - How much to rotate the material within the parent's UV-space, in degrees.
+ * @property {boolean} [materialRepeat=true] - <code>true</code> if the material repeats, <code>false</code> if it doesn't. If
  *     <code>false</code>, fragments outside of texCoord 0 &ndash; 1 will be discarded. Works in both <code>"uv"</code> and
  *     <code>"projected"</code> modes.
+ *
  * @example <caption>Color a sphere using a Material entity.</caption>
  * var entityID = Entities.addEntity({
  *     type: "Sphere",
