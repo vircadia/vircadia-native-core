@@ -101,6 +101,7 @@ def hashFolder(folder):
     return hashFiles(filenames)
 
 def downloadFile(urls, hash=None, hasher=hashlib.sha512, retries=3):
+    errorLog = ""
     for url in urls:
         for i in range(retries):
             tempFileName = None
@@ -119,19 +120,19 @@ def downloadFile(urls, hash=None, hasher=hashlib.sha512, retries=3):
                 with urllib.request.urlopen(request, context=context) as response, open(tempFileDescriptor, 'wb') as tempFile:
                     shutil.copyfileobj(response, tempFile)
             except Exception as e:
-                print(url, ": ", repr(e))
+                errorLog = errorLog + url + ": " + repr(e) + "\n"
                 continue
 
             downloadHash = hashFile(tempFileName, hasher)
             # Verify the hash
             if hash is not None and hash != downloadHash:
-                print("Try {}: Downloaded file {} hash {} does not match expected hash {} for url {}".format(i + 1, tempFileName, downloadHash, hash, url))
-                print("File stats: ", os.stat(tempFileName))
+                errorLog = errorLog + "Try {}: Downloaded file {} hash {} does not match expected hash {} for url {}\n".format(i + 1, tempFileName, downloadHash, hash, url)
+                errorLog = errorLog + "File stats: " + os.stat(tempFileName) + "\n"
                 os.remove(tempFileName)
                 continue
             return tempFileName
 
-    raise RuntimeError("Failed to download file from any of {}".format(urls))
+    raise RuntimeError("Failed to download file from any of {} \nError Log:\n{}".format(urls, errorLog))
 
 
 def downloadAndExtract(urls, destPath, hash=None, hasher=hashlib.sha512):
