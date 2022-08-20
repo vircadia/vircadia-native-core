@@ -309,13 +309,10 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       run: cat ./_CPack_Packages/win64/NSIS/NSISOutput.log
 
-    - name: Upload Artifact
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      env:
-        GITHUB_CONTEXT: ${{ toJson(github) }}
-      run: |
-        if [[ "${{ matrix.build_type }}" == "android" ]]; then
-          cd $GITHUB_WORKSPACE/android
-        fi
-        $PYTHON_EXEC "$GITHUB_WORKSPACE/tools/ci-scripts/upload_to_publish_server.py"
+    - name: Create main artifact
+      if: matrix.build_type != 'android'
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-${{ matrix.os }}-${{ github.event.number }}
+        path: ${{ runner.workspace }}/build/Vircadia-PR${{ github.event.number }}-*.${{ env.INSTALLER_EXT }}
+        if-no-files-found: error
