@@ -309,10 +309,18 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       run: cat ./_CPack_Packages/win64/NSIS/NSISOutput.log
 
-    - name: Create main artifact
-      if: matrix.build_type != 'android'
+    - name: Upload full build
+      if: matrix.build_type == 'full'
       uses: actions/upload-artifact@v3
       with:
-        name: build-${{ matrix.os }}-${{ github.event.number }}
+        name: build-full-${{ matrix.os }}-${{ github.event.number }}
         path: ${{ runner.workspace }}/build/Vircadia-PR${{ github.event.number }}-*.${{ env.INSTALLER_EXT }}
+        if-no-files-found: error
+
+    - name: Upload client build
+      if: matrix.build_type == 'client'
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-interface-${{ matrix.os }}-${{ github.event.number }}
+        path: ${{ runner.workspace }}/build/Vircadia-Interface-PR${{ github.event.number }}-*.${{ env.INSTALLER_EXT }}
         if-no-files-found: error
