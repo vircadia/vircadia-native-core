@@ -10,7 +10,7 @@ GITDATE=`git log -n 1 --format=raw | grep author | cut -d">" -f 2 | cut -d" " -f
 GITCOMMIT=`git rev-parse HEAD | cut -c 1-7`
 VERSION=$DEBVERSION-$GITDATE-$GITCOMMIT
 
-sudo apt-get install chrpath binutils dh-make
+sudo apt-get install chrpath patchelf binutils dh-make
 
 DEB_BUILD_ROOT=temp-make-deb/vircadia-server_$VERSION-0ubuntu1
 rm -r temp-make-deb
@@ -23,6 +23,10 @@ cp build/tools/oven/oven $DEB_BUILD_ROOT
 cp build/libraries/*/*.so $DEB_BUILD_ROOT
 #cp build/ice-server/ice-server $DEB_BUILD_ROOT
 chrpath -d $DEB_BUILD_ROOT/*
+ls $DEB_BUILD_ROOT/*.so | xargs -I{} patchelf --set-rpath '/opt/vircadia/lib' {}
+patchelf --set-rpath '/opt/vircadia/lib' $DEB_BUILD_ROOT/domain-server
+patchelf --set-rpath '/opt/vircadia/lib' $DEB_BUILD_ROOT/assignment-client
+patchelf --set-rpath '/opt/vircadia/lib' $DEB_BUILD_ROOT/oven
 if [ "$VIRCADIA_USE_SYSTEM_QT" = "" ]; then
 	cp $QT5_LIBS/libQt5Network.so.*.*.* $DEB_BUILD_ROOT
 	cp $QT5_LIBS/libQt5Core.so.*.*.* $DEB_BUILD_ROOT

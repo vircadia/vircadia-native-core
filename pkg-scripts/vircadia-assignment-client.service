@@ -7,7 +7,6 @@ PartOf=vircadia-server.target
 Restart=always
 
 WorkingDirectory=/opt/vircadia
-Environment="LD_LIBRARY_PATH=/opt/vircadia/lib"
 User=vircadia
 Group=vircadia
 #LimitCORE=infinity
