@@ -114,6 +114,18 @@ int vircadia_node_active(int context_id, int index);
 VIRCADIA_CLIENT_DYN_API
 int vircadia_node_type(int context_id, int index);
 
+VIRCADIA_CLIENT_DYN_API
+float vircadia_node_inbound_pps(int context_id, int index);
+
+VIRCADIA_CLIENT_DYN_API
+float vircadia_node_outbound_pps(int context_id, int index);
+
+VIRCADIA_CLIENT_DYN_API
+float vircadia_node_inbound_kbps(int context_id, int index);
+
+VIRCADIA_CLIENT_DYN_API
+float vircadia_node_outbound_kbps(int context_id, int index);
+
 /// @brief Get the session UUID of the client node.
 ///
 /// The session UUID only changes with an explicit call to

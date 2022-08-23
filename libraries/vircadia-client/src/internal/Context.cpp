@@ -172,6 +172,10 @@ namespace vircadia::client {
                 data.address = activeSocket != nullptr ? activeSocket->toString().toStdString() : "";
 
                 data.uuid = toUUIDArray(node->getUUID());
+                data.inboundPPS = node->getInboundPPS();
+                data.outboundPPS = node->getOutboundPPS();
+                data.inboundKbps = node->getInboundKbps();
+                data.outboundKbps = node->getOutboundKbps();
 
                 return data;
             });

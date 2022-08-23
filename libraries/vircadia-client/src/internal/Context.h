@@ -38,6 +38,11 @@ namespace vircadia::client {
         bool active;
         std::string address;
         UUID uuid;
+
+        float inboundPPS;
+        float outboundPPS;
+        float inboundKbps;
+        float outboundKbps;
     };
 
     /// @private
