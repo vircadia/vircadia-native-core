@@ -223,14 +223,21 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       run: cat ./_CPack_Packages/win64/NSIS/NSISOutput.log
 
-    - name: Upload artifact
-      if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macOS')
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.aws_access_key_id }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_access_key }}
-      run: $PYTHON_EXEC $GITHUB_WORKSPACE/tools/ci-scripts/upload.py
+    - name: Upload full build
+      if: matrix.build_type == 'full' && (startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macOS'))
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-full-${{ matrix.os }}-${{ github.event.number }}
+        path: ${{ runner.workspace }}/build/Vircadia-*.${{ env.INSTALLER_EXT }}
+        if-no-files-found: error
+
+    - name: Upload client build
+      if: matrix.build_type == 'client' && (startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macOS'))
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-interface-${{ matrix.os }}-${{ github.event.number }}
+        path: ${{ runner.workspace }}/build/Vircadia-*.${{ env.INSTALLER_EXT }}
+        if-no-files-found: error
 
     #- name: Archive symbols
     #  if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macOS')
