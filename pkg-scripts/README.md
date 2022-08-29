@@ -21,7 +21,7 @@ Then in the root of the project:
 DEBVERSION="Semver e.g. 2021.1.3" DEBEMAIL="your-email@somewhere.com" DEBFULLNAME="Your Full Name" ./pkg-scripts/make-deb-server
 ```
 This script assumes default configuration, with a build directory in the root of the project.
-It will retrieve the current git commit date and hash and append it to your specified version. If successfully created the .deb file will be available in the project root.
+It will retrieve the current git commit date and hash and append it to your specified version. If successfully created, the .deb file will be available in the project root.
 
 ## Amazon Linux 2
 
