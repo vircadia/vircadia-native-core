@@ -24,6 +24,7 @@ case "$1" in
 	mkdir -p /var/lib/vircadia
 	chown vircadia:vircadia /var/lib/vircadia
 	chmod 775 /var/lib/vircadia
+    setcap CAP_NET_BIND_SERVICE=+eip /opt/vircadia/domain-server
 	if [ ! -d "/var/lib/vircadia/default" ]; then
 		if [ -d "/var/lib/athena" ]; then
 			ATHENA_ACTIVE=`systemctl list-units \
