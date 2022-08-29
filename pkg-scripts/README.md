@@ -1,6 +1,6 @@
 # Vircadia Server Packaging Scripts
 
-Collection of scripts to create server distribution packages. Most of these scripts assume
+Collection of scripts to create server distribution packages. Some of these scripts assume
 use of the build script at https://github.com/vircadia/vircadia-builder, specifically that
 the following directory structure exists:
 
@@ -11,19 +11,20 @@ base folder/
 	qt5-install/	installed or built Qt5 installation
 ```
 
-These scripts assume that the current directory is the pkg-scripts folder inside of the source directory
+In this case the scripts assume that the current directory is the pkg-scripts folder inside of the source directory
 and that the base folder can be reached by going to `../..`. This may not work if pkg-scripts is a symlink; adding an VIRCADIA=~/Vircadia to the beginning of the commandline will override where it looks for the base folder.
 
 ## Ubuntu
+First build the project following the instruction [here](../BUILD_LINUX.md).
+Then in the root of the project:
 ```
-DEBVERSION="Semver e.g. 2021.1.3" DEBEMAIL="your-email@somewhere.com" DEBFULLNAME="Your Full Name" ./make-deb-server
+DEBVERSION="Semver e.g. 2021.1.3" DEBEMAIL="your-email@somewhere.com" DEBFULLNAME="Your Full Name" ./pkg-scripts/make-deb-server
 ```
-
-This script will retrieve the current git commit date and hash and append it to your specified version.
-It will attempt construct a .deb file in the pkg-scripts folder
+This script assumes default configuration, with a build directory in the root of the project.
+It will retrieve the current git commit date and hash and append it to your specified version. If successfully created the .deb file will be available in the project root.
 
 ## Amazon Linux 2
-    
+
 You will need to install `rpm-build` if you have not already.
 ```
 sudo yum install rpm-build
