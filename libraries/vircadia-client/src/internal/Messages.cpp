@@ -134,6 +134,14 @@ namespace vircadia::client
         return ret;
     }
 
+    bool Messages::isAnyEnabled(std::bitset<8> type) const {
+        bool ret = false;
+        forAllSet(type, messageContexts, [&](auto& messagesContext) {
+            ret |= messagesContext.enabled;
+        });
+        return ret;
+    }
+
     int Messages::send(std::bitset<8> type, QString channel, QByteArray payload, bool localOnly) {
         auto client = DependencyManager::get<MessagesClient>();
 

@@ -29,9 +29,9 @@ VIRCADIA_CLIENT_DYN_API uint8_t vircadia_text_messages();
 /// @return 0b10
 VIRCADIA_CLIENT_DYN_API uint8_t vircadia_data_messages();
 
-/// @brief Flag value indicating any message type.
+/// @brief Flag value that includes all message types.
 ///
 /// @return vircadia_text_messages() | vircadia_data_messages()
-VIRCADIA_CLIENT_DYN_API uint8_t vircadia_any_messages();
+VIRCADIA_CLIENT_DYN_API uint8_t vircadia_all_messages();
 
 #endif /* end of include guard */

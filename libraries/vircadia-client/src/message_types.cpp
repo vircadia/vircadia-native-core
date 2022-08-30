@@ -24,6 +24,6 @@ VIRCADIA_CLIENT_DYN_API uint8_t vircadia_data_messages() {
     return MESSAGE_TYPE_DATA;
 }
 
-VIRCADIA_CLIENT_DYN_API uint8_t vircadia_any_messages() {
-    return MESSAGE_TYPE_ANY;
+VIRCADIA_CLIENT_DYN_API uint8_t vircadia_all_messages() {
+    return MESSAGE_TYPE_ALL;
 }
