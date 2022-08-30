@@ -16,17 +16,19 @@
 
 Vircadia™ is an open source metaverse project seeking to incrementally bring about a truly free and open metaverse.
 
-* Desktop and VR use
+* Mobile, desktop, and VR support
 * Hundreds of users simultaneously
 * Full-body avatars
 * Script with JavaScript & TypeScript (coming soon)
+* Visual scripting (coming soon)
+* Full world editor (coming soon)
 * 4096km³ world space in a server
 * Fully self-hosted
 * Apache 2.0
 
-### Releases
+### How to use
 
-[View Releases here](https://github.com/vircadia/vircadia/releases/)
+Coming soon...
 
 ### How to deploy a Server
 
@@ -34,7 +36,7 @@ Vircadia™ is an open source metaverse project seeking to incrementally bring a
 
 ### Building
 
-#### How to build the Interface
+#### How to build the Developer Interface
 
 - [For Windows](https://github.com/vircadia/vircadia/blob/master/BUILD_WIN.md)
 - [For Mac](https://github.com/vircadia/vircadia/blob/master/BUILD_OSX.md)
@@ -48,9 +50,7 @@ Vircadia™ is an open source metaverse project seeking to incrementally bring a
 #### How to generate an Installer
 
 - [For Windows - Interface & Server](https://github.com/vircadia/vircadia/blob/master/INSTALLER.md)
-- [For Mac - Interface](https://github.com/vircadia/vircadia/blob/master/INSTALLER.md#os-x)
 - [For Linux - Server .deb - Vircadia Builder](INSTALLER.md#ubuntu-1804--deb)
-- [For Linux - Interface AppImage - Vircadia Builder](https://github.com/vircadia/vircadia-builder/blob/master/README.md#building-appimages)
 
 ### Boot to Metaverse: [The Goal](https://vircadia.com/vision/)
 
@@ -60,17 +60,13 @@ Having a place to experience adventure, a place to relax with calm breath, that'
 
 Vircadia consists of many projects and codebases with its unifying structure's goal being a decentralized metaverse.
 
-- The Native Interface & Client API (Codename Athena) - You are here!
+- The Developer Interface & Client API (Codename Athena) - You are here!
 - The Server (Codename Athena) - You are also here!
 - [The Web Interface (Codename Aether)](https://github.com/vircadia/vircadia-web/)
 - [The Web SDK (Codename Ananke)](https://github.com/vircadia/vircadia-web-sdk/)
 - [The Unity SDK (Codename Ourea)](https://github.com/vircadia/vircadia-unity-sdk/)
 - [The Metaverse Server (Codename Iamus)](https://github.com/vircadia/Iamus/)
 - [The Metaverse Server Dashboard (Codename Iamus)](https://github.com/vircadia/project-iamus-dashboard/)
-- [The Launcher (Codename Pantheon)](https://github.com/vircadia/pantheon-launcher/) - Currently Windows only.
-
-#### Tools
-- [Vircadia Builder for Linux](https://github.com/vircadia/vircadia-builder/)
 
 #### Documentation
 - [User Documentation](https://github.com/vircadia/vircadia-docs-sphinx/)
