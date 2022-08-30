@@ -71,6 +71,14 @@ namespace vircadia::client {
                 QTimer* domainCheckInTimer = new QTimer(nodeList.data());
                 QObject::connect(domainCheckInTimer, &QTimer::timeout, nodeList.data(), &NodeList::sendDomainServerCheckIn);
                 domainCheckInTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
+                QObject::connect(&qtApp, &QCoreApplication::aboutToQuit, [domainCheckInTimer](){
+                    domainCheckInTimer->stop();
+                    domainCheckInTimer->deleteLater();
+                });
+
+                // you might think we could just do this in NodeList but we only want this connection for Interface
+                QObject::connect(&nodeList->getDomainHandler(), &DomainHandler::limitOfSilentDomainCheckInsReached,
+                    nodeList.data(), [nodeList]() {nodeList->reset("Domain checkin limit"); });
 
                 // start the nodeThread so its event loop is running
                 // (must happen after the checkin timer is created with the nodelist as it's parent)
