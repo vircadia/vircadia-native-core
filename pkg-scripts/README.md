@@ -113,8 +113,8 @@ journalctl -fu vircadia-assignment-client@default
 
 To save all todays logs to a file:
 ```
-journalctl -u vircadia-domain-server@default > domain-server.log
-journalctl -u vircadia-assignment-client@default > assignment-client.log
+journalctl -u vircadia-domain-server@default --sicne today > domain-server.log
+journalctl -u vircadia-assignment-client@default --since today > assignment-client.log
 ```
 
 To download the logs (or any files) you can use `scp` in your local terminal:
