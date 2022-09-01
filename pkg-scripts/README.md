@@ -88,7 +88,7 @@ The server stores its files in the following locations:
 /etc/opt/vircadia - environment variables when launching named domains
 ```
 
-### Ubuntu user guide
+### Ubuntu User Guide
 
 Install the deb package using apt:
 
