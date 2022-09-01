@@ -90,7 +90,7 @@ The server stores its files in the following locations:
 
 ### Ubuntu User Guide
 
-Install the deb package using apt:
+Install the .deb package using `apt`:
 
 ```
 apt update && apt install path/to/package.deb
@@ -111,7 +111,7 @@ journalctl -fu vircadia-domain-server@default
 journalctl -fu vircadia-assignment-client@default
 ```
 
-To save all todays logs to a file:
+To save all of today's logs to a file:
 ```
 journalctl -u vircadia-domain-server@default --sicne today > domain-server.log
 journalctl -u vircadia-assignment-client@default --since today > assignment-client.log
@@ -122,7 +122,7 @@ To download the logs (or any files) you can use `scp` in your local terminal:
 scp root@server.com:/root/domain-server.log .
 ```
 
-For convenience of working in the server a terminal multiplexer can be used. Here are basic usage instruction for [byobu](https://www.byobu.org).
+For convenience of working in the server, a terminal multiplexer can be used. Here are the basic usage instructions for [byobu](https://www.byobu.org).
 
 Start byobu
 ```
