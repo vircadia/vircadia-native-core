@@ -87,3 +87,65 @@ The server stores its files in the following locations:
 /var/lib/vircadia/serverName - "named" (template) domains
 /etc/opt/vircadia - environment variables when launching named domains
 ```
+
+### Ubuntu User Guide
+
+Install the .deb package using `apt`:
+
+```
+apt update && apt install path/to/package.deb
+```
+
+The default services should be running after installation.
+
+To check the status of services:
+```
+systemctl status vircadia-domain-server@default
+systemctl status vircadia-assignment-client@default
+```
+Similarly can use `systemctl restart` to restart if there is a problem.
+
+To view logs in realtime:
+```
+journalctl -fu vircadia-domain-server@default
+journalctl -fu vircadia-assignment-client@default
+```
+
+To save all of today's logs to a file:
+```
+journalctl -u vircadia-domain-server@default --sicne today > domain-server.log
+journalctl -u vircadia-assignment-client@default --since today > assignment-client.log
+```
+
+To download the logs (or any files) you can use `scp` in your local terminal:
+```
+scp root@server.com:/root/domain-server.log .
+```
+
+For convenience of working in the server, a terminal multiplexer can be used. Here are the basic usage instructions for [byobu](https://www.byobu.org).
+
+Start byobu
+```
+byobu
+```
+
+General controls:
+```
+F2 - create a new terminal window
+F3 - move to the left terminal window
+F4 - move to the right terminal window
+```
+
+Controls for viewing realtime logs:
+```
+F7 - pause and browse terminal output
+While browsing:
+    - Ctrl+U - scroll up
+    - Ctrl+D - scroll down
+    - ? - search backwards
+    - / - search forwards
+    - n - go to next search match (depends on search direction)
+    - N - go to previous search match (depends on search direction)
+    - Enter - unpause the output
+Shift+F7 - open the terminal output in a text editor
+```
