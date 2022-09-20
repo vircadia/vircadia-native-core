@@ -223,40 +223,6 @@ var importingSVOTextOverlay = Overlays.addOverlay("text", {
     visible: false
 });
 
-var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace";
-var marketplaceWindow = new OverlayWebWindow({
-    title: 'Marketplace',
-    source: "about:blank",
-    width: 900,
-    height: 700,
-    visible: false
-});
-
-function showMarketplace(marketplaceID) {
-    var url = MARKETPLACE_URL;
-    if (marketplaceID) {
-        url = url + "/items/" + marketplaceID;
-    }
-    marketplaceWindow.setURL(url);
-    marketplaceWindow.setVisible(true);
-    marketplaceWindow.raise();
-
-    UserActivityLogger.logAction("opened_marketplace");
-}
-
-function hideMarketplace() {
-    marketplaceWindow.setVisible(false);
-    marketplaceWindow.setURL("about:blank");
-}
-
-// function toggleMarketplace() {
-//     if (marketplaceWindow.visible) {
-//         hideMarketplace();
-//     } else {
-//         showMarketplace();
-//     }
-// }
-
 function adjustPositionPerBoundingBox(position, direction, registration, dimensions, orientation) {
     // Adjust the position such that the bounding box (registration, dimensions and orientation) lies behind the original
     // position in the given direction.
@@ -290,7 +256,7 @@ function checkEditPermissionsAndUpdate() {
         return;
     }
 
-    var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
+    var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp());
     createButton.editProperties({
         icon: (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON),
         captionColor: (hasRezPermissions ? "#ffffff" : "#888888"),
@@ -856,9 +822,7 @@ var toolBar = (function () {
 
         Entities.canRezChanged.connect(checkEditPermissionsAndUpdate);
         Entities.canRezTmpChanged.connect(checkEditPermissionsAndUpdate);
-        Entities.canRezCertifiedChanged.connect(checkEditPermissionsAndUpdate);
-        Entities.canRezTmpCertifiedChanged.connect(checkEditPermissionsAndUpdate);
-        var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
+        var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp());
 
         Entities.deletingEntity.connect(checkDeletedEntityAndUpdate);
 
@@ -883,7 +847,7 @@ var toolBar = (function () {
         createToolsWindow.fromQml.addListener(fromQml);
 
         createButton.clicked.connect(function() {
-            if ( ! (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified()) ) {
+            if ( ! (Entities.canRez() || Entities.canRezTmp()) ) {
                 Window.notifyEditError(INSUFFICIENT_PERMISSIONS_ERROR_MSG);
                 return;
             }
@@ -994,7 +958,6 @@ var toolBar = (function () {
     };
 
     that.setActive = function (active) {
-        ContextOverlay.enabled = !active;
         Settings.setValue(EDIT_SETTING, active);
         if (active) {
             Controller.captureEntityClickEvents();
@@ -1006,7 +969,7 @@ var toolBar = (function () {
         if (active === isActive) {
             return;
         }
-        if (active && !Entities.canRez() && !Entities.canRezTmp() && !Entities.canRezCertified() && !Entities.canRezTmpCertified()) {
+        if (active && !Entities.canRez() && !Entities.canRezTmp()) {
             Window.notifyEditError(INSUFFICIENT_PERMISSIONS_ERROR_MSG);
             return;
         }
@@ -1400,13 +1363,6 @@ function mouseClickEvent(event) {
                 return;
             }
             properties = Entities.getEntityProperties(result.entityID);
-            if (properties.marketplaceID) {
-                propertyMenu.marketplaceID = properties.marketplaceID;
-                propertyMenu.updateMenuItemText(showMenuItem, "Show in Marketplace");
-            } else {
-                propertyMenu.marketplaceID = null;
-                propertyMenu.updateMenuItemText(showMenuItem, "No marketplace info");
-            }
             propertyMenu.setPosition(event.x, event.y);
             propertyMenu.show();
         } else {
@@ -1855,7 +1811,7 @@ function onFileOpenChanged(filename) {
         }
     }
     if (importURL) {
-        if (!isActive && (Entities.canRez() && Entities.canRezTmp() && Entities.canRezCertified() && Entities.canRezTmpCertified())) {
+        if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {
             toolBar.toggle();
         }
         importSVO(importURL);
@@ -1865,7 +1821,7 @@ function onFileOpenChanged(filename) {
 function onPromptTextChanged(prompt) {
     Window.promptTextChanged.disconnect(onPromptTextChanged);
     if (prompt !== "") {
-        if (!isActive && (Entities.canRez() && Entities.canRezTmp() && Entities.canRezCertified() && Entities.canRezTmpCertified())) {
+        if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {
             toolBar.toggle();
         }
         importSVO(prompt);
@@ -1930,8 +1886,7 @@ function getPositionToCreateEntity(extra) {
 }
 
 function importSVO(importURL) {
-    if (!Entities.canRez() && !Entities.canRezTmp() &&
-        !Entities.canRezCertified() && !Entities.canRezTmpCertified()) {
+    if (!Entities.canRez() && !Entities.canRezTmp()) {
         Window.notifyEditError(INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG);
         return;
     }
@@ -2520,8 +2475,6 @@ var PropertiesTool = function (opts) {
             data.ids.forEach(function(entityID) {
                 Entities.editEntity(entityID, data.properties);
             });
-        } else if (data.type === "showMarketplace") {
-            showMarketplace();
         } else if (data.type === "action") {
             if (data.action === "moveSelectionToGrid") {
                 if (selectionManager.hasSelection()) {
@@ -2880,7 +2833,6 @@ var PopupMenu = function () {
     };
 
     function cleanup() {
-        ContextOverlay.enabled = true;
         for (var i = 0; i < overlays.length; i++) {
             Overlays.deleteOverlay(overlays[i]);
         }
@@ -2890,8 +2842,6 @@ var PopupMenu = function () {
 
         Entities.canRezChanged.disconnect(checkEditPermissionsAndUpdate);
         Entities.canRezTmpChanged.disconnect(checkEditPermissionsAndUpdate);
-        Entities.canRezCertifiedChanged.disconnect(checkEditPermissionsAndUpdate);
-        Entities.canRezTmpCertifiedChanged.disconnect(checkEditPermissionsAndUpdate);
     }
 
     Controller.mousePressEvent.connect(self.mousePressEvent);
@@ -3018,13 +2968,7 @@ keyUpEventFromUIWindow = function(keyUpEvent) {
 var propertyMenu = new PopupMenu();
 
 propertyMenu.onSelectMenuItem = function (name) {
-
-    if (propertyMenu.marketplaceID) {
-        showMarketplace(propertyMenu.marketplaceID);
-    }
 };
-
-var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 
 var propertiesTool = new PropertiesTool();
 

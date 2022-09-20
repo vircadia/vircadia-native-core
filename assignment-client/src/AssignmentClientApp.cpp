@@ -70,10 +70,6 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
                                                 "Minimum UDP listen port", "port");
     parser.addOption(minChildListenPort);
 
-    const QCommandLineOption walletDestinationOption(ASSIGNMENT_WALLET_DESTINATION_ID_OPTION,
-                                                     "set wallet destination", "wallet-uuid");
-    parser.addOption(walletDestinationOption);
-
     const QCommandLineOption assignmentServerHostnameOption(CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION,
                                                             "set assignment-server hostname", "hostname");
     parser.addOption(assignmentServerHostnameOption);
@@ -182,14 +178,6 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
         assignmentPool = parser.value(poolOption);
     }
 
-    QUuid walletUUID;
-    if (argumentVariantMap.contains(ASSIGNMENT_WALLET_DESTINATION_ID_OPTION)) {
-        walletUUID = argumentVariantMap.value(ASSIGNMENT_WALLET_DESTINATION_ID_OPTION).toString();
-    }
-    if (parser.isSet(walletDestinationOption)) {
-        walletUUID = parser.value(walletDestinationOption);
-    }
-
     QString assignmentServerHostname;
     if (argumentVariantMap.contains(CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION)) {
         assignmentServerHostname = argumentVariantMap.value(CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION).toString();
@@ -257,14 +245,14 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     if (numForks || minForks || maxForks) {
         AssignmentClientMonitor* monitor =  new AssignmentClientMonitor(numForks, minForks, maxForks,
                                                                         requestAssignmentType, assignmentPool, listenPort,
-                                                                        childMinListenPort, walletUUID, assignmentServerHostname,
+                                                                        childMinListenPort, assignmentServerHostname,
                                                                         assignmentServerPort, httpStatusPort, logDirectory,
                                                                         disableDomainPortAutoDiscovery);
         monitor->setParent(this);
         connect(this, &QCoreApplication::aboutToQuit, monitor, &AssignmentClientMonitor::aboutToQuit);
     } else {
         AssignmentClient* client = new AssignmentClient(requestAssignmentType, assignmentPool, listenPort,
-                                                        walletUUID, assignmentServerHostname,
+                                                        assignmentServerHostname,
                                                         assignmentServerPort, monitorPort,
                                                         disableDomainPortAutoDiscovery);
         client->setParent(this);

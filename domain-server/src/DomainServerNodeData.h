@@ -34,9 +34,6 @@ public:
     void setAssignmentUUID(const QUuid& assignmentUUID) { _assignmentUUID = assignmentUUID; }
     const QUuid& getAssignmentUUID() const { return _assignmentUUID; }
 
-    void setWalletUUID(const QUuid& walletUUID) { _walletUUID = walletUUID; }
-    const QUuid& getWalletUUID() const { return _walletUUID; }
-
     void setUsername(const QString& username) { _username = username; }
     const QString& getUsername() const { return _username; }
 
@@ -83,7 +80,6 @@ private:
     
     QHash<QUuid, QUuid> _sessionSecretHash;
     QUuid _assignmentUUID;
-    QUuid _walletUUID;
     QString _username;
     QElapsedTimer _paymentIntervalTimer;
     
