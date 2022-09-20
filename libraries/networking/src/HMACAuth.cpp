@@ -17,6 +17,12 @@
 #include <QUuid>
 #include "NetworkLogging.h"
 #include <cassert>
+#include "WarningsSuppression.h"
+
+
+IGNORE_DEPRECATED_BEGIN
+// Qt provides HMAC, do we actually need this here?
+// But for the time being, suppress this.
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000
 HMACAuth::HMACAuth(AuthMethod authMethod)
@@ -88,9 +94,9 @@ HMACAuth::HMACHash HMACAuth::result() {
     HMACHash hashValue(EVP_MAX_MD_SIZE);
     unsigned int hashLen;
     QMutexLocker lock(&_lock);
-    
+
     auto hmacResult = HMAC_Final(_hmacContext, &hashValue[0], &hashLen);
-    
+
     if (hmacResult) {
         hashValue.resize((size_t)hashLen);
     } else {
@@ -115,3 +121,5 @@ bool HMACAuth::calculateHash(HMACHash& hashResult, const char* data, int dataLen
     hashResult = result();
     return true;
 }
+
+IGNORE_DEPRECATED_END

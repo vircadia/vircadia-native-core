@@ -35,7 +35,7 @@
 using namespace hifi::qml;
 using namespace hifi::qml::impl;
 
-QmlUrlValidator OffscreenSurface::validator = [](const QUrl& url) -> bool { 
+QmlUrlValidator OffscreenSurface::validator = [](const QUrl& url) -> bool {
     if (url.isRelative()) {
         return true;
     }
@@ -173,9 +173,13 @@ bool OffscreenSurface::eventFilter(QObject* originalDestination, QEvent* event) 
 
         case QEvent::Wheel: {
             QWheelEvent* wheelEvent = static_cast<QWheelEvent*>(event);
-            QPointF transformedPos = mapToVirtualScreen(wheelEvent->pos());
-            QWheelEvent mappedEvent(transformedPos, wheelEvent->delta(), wheelEvent->buttons(), wheelEvent->modifiers(),
-                                    wheelEvent->orientation());
+            QPointF transformedPos = mapToVirtualScreen(wheelEvent->position());
+
+
+            QWheelEvent mappedEvent(transformedPos, wheelEvent->globalPosition(), wheelEvent->pixelDelta(), wheelEvent->angleDelta(),
+                wheelEvent->buttons(), wheelEvent->modifiers(), wheelEvent->phase(),
+                wheelEvent->inverted(), wheelEvent->source());
+
             mappedEvent.ignore();
             if (QCoreApplication::sendEvent(_sharedObject->getWindow(), &mappedEvent)) {
                 return mappedEvent.isAccepted();

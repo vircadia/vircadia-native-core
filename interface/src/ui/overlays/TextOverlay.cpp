@@ -20,7 +20,7 @@ QUrl const TextOverlay::URL(QString("hifi/overlays/TextOverlay.qml"));
 
 TextOverlay::TextOverlay() : QmlOverlay(URL) { }
 
-TextOverlay::TextOverlay(const TextOverlay* textOverlay) 
+TextOverlay::TextOverlay(const TextOverlay* textOverlay)
     : QmlOverlay(URL, textOverlay) {
 }
 
@@ -38,6 +38,6 @@ QSizeF TextOverlay::textSize(const QString& text) const {
     QFont font(ROBOTO_FONT_FAMILY);
     font.setPixelSize(18);
     QFontMetrics fm(font);
-    QSizeF result = QSizeF(fm.width(text), 18 * lines);
-    return result; 
+    QSizeF result = QSizeF(fm.horizontalAdvance(text), 18 * lines);
+    return result;
 }

@@ -29,7 +29,7 @@ QScriptClass::QueryFlags ArrayBufferViewClass::queryProperty(const QScriptValue&
     if (name == _bufferName || name == _byteOffsetName || name == _byteLengthName) {
         return flags &= HandlesReadAccess; // Only keep read access flags
     }
-    return 0; // No access
+    return QScriptClass::QueryFlags(); // No access
 }
 
 QScriptValue ArrayBufferViewClass::property(const QScriptValue& object,

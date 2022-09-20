@@ -17,6 +17,7 @@
 
 #include <GLMHelpers.h>
 #include <udt/PacketHeaders.h>
+#include "WarningsSuppression.h"
 
 OctreeQuery::OctreeQuery(bool randomizeConnectionID) {
     if (randomizeConnectionID) {
@@ -49,7 +50,7 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
             destinationBuffer += view.serialize(destinationBuffer);
         }
     }
-    
+
     // desired Max Octree PPS
     memcpy(destinationBuffer, &_maxQueryPPS, sizeof(_maxQueryPPS));
     destinationBuffer += sizeof(_maxQueryPPS);
@@ -61,19 +62,22 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
     // desired boundaryLevelAdjust
     memcpy(destinationBuffer, &_boundaryLevelAdjust, sizeof(_boundaryLevelAdjust));
     destinationBuffer += sizeof(_boundaryLevelAdjust);
-    
+
     // create a QByteArray that holds the binary representation of the JSON parameters
     QByteArray binaryParametersDocument;
-    
+
     if (!_jsonParameters.isEmpty()) {
+        IGNORE_DEPRECATED_BEGIN
+        // Can't use CBOR yet, will break the protocol.
         binaryParametersDocument = QJsonDocument(_jsonParameters).toBinaryData();
+        IGNORE_DEPRECATED_END
     }
-    
+
     // write the size of the JSON parameters
     uint16_t binaryParametersBytes = binaryParametersDocument.size();
     memcpy(destinationBuffer, &binaryParametersBytes, sizeof(binaryParametersBytes));
     destinationBuffer += sizeof(binaryParametersBytes);
-    
+
     // pack the binary JSON parameters
     // NOTE: for now we assume that the filters that will be set are all small enough that we will not have a packet > MTU
     if (binaryParametersDocument.size() > 0) {
@@ -91,7 +95,7 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
 
 // called on the other nodes - assigns it to my views of the others
 int OctreeQuery::parseData(ReceivedMessage& message) {
- 
+
     const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(message.getRawMessage());
     const unsigned char* sourceBuffer = startPosition;
 
@@ -141,21 +145,23 @@ int OctreeQuery::parseData(ReceivedMessage& message) {
     // desired boundaryLevelAdjust
     memcpy(&_boundaryLevelAdjust, sourceBuffer, sizeof(_boundaryLevelAdjust));
     sourceBuffer += sizeof(_boundaryLevelAdjust);
-    
+
     // check if we have a packed JSON filter
     uint16_t binaryParametersBytes;
     memcpy(&binaryParametersBytes, sourceBuffer, sizeof(binaryParametersBytes));
     sourceBuffer += sizeof(binaryParametersBytes);
-    
+
     if (binaryParametersBytes > 0) {
         // unpack the binary JSON parameters
         QByteArray binaryJSONParameters { binaryParametersBytes, 0 };
         memcpy(binaryJSONParameters.data(), sourceBuffer, binaryParametersBytes);
         sourceBuffer += binaryParametersBytes;
-        
+
         // grab the parameter object from the packed binary representation of JSON
+        IGNORE_DEPRECATED_BEGIN
         auto newJsonDocument = QJsonDocument::fromBinaryData(binaryJSONParameters);
-        
+        IGNORE_DEPRECATED_END
+
         QWriteLocker jsonParameterLocker { &_jsonParametersLock };
         _jsonParameters = newJsonDocument.object();
     }

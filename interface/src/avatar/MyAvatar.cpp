@@ -67,6 +67,7 @@
 #include "EntityEditPacketSender.h"
 #include "MovingEntitiesOperator.h"
 #include "SceneScriptingInterface.h"
+#include "WarningsSuppression.h"
 
 using namespace std;
 
@@ -1146,11 +1147,11 @@ void MyAvatar::updateSensorToWorldMatrix() {
     _sensorToWorldMatrixCache.set(_sensorToWorldMatrix);
     updateJointFromController(controller::Action::LEFT_HAND, _controllerLeftHandMatrixCache);
     updateJointFromController(controller::Action::RIGHT_HAND, _controllerRightHandMatrixCache);
-    
+
     if (hasSensorToWorldScaleChanged) {
         emit sensorToWorldScaleChanged(sensorToWorldScale);
     }
-    
+
 }
 
 glm::vec3 MyAvatar::getLeftHandPosition() const {
@@ -1601,7 +1602,7 @@ bool MyAvatar::hasAvatarEntities() const {
 void MyAvatar::handleCanRezAvatarEntitiesChanged(bool canRezAvatarEntities) {
     if (canRezAvatarEntities) {
         // Start displaying avatar entities.
-        // Allow time for the avatar mixer to be updated with the user's permissions so that it doesn't discard the avatar 
+        // Allow time for the avatar mixer to be updated with the user's permissions so that it doesn't discard the avatar
         // entities sent. In theory, typical worst case would be Interface running on same PC as server and the timings of
         // Interface and the avatar mixer sending DomainListRequest to the domain server being such that the avatar sends its
         // DomainListRequest and gets its DomainList response DOMAIN_SERVER_CHECK_IN_MSECS after Interface does. Allow extra
@@ -1733,7 +1734,7 @@ void MyAvatar::handleChangedAvatarEntityData() {
                 }
             });
         }
-        
+
     }
 
     // CHANGE real entities
@@ -2017,7 +2018,10 @@ void MyAvatar::updateAvatarEntity(const QUuid& entityID, const QByteArray& entit
 
     bool changed = false;
     _avatarEntitiesLock.withWriteLock([&] {
+        IGNORE_DEPRECATED_BEGIN
+        // We're not transitioning to CBOR yet, since it'd break the protocol.
         auto data = QJsonDocument::fromBinaryData(entityData);
+        IGNORE_DEPRECATED_END
         if (data.isEmpty() || data.isNull() || !data.isObject() || data.object().isEmpty()) {
             qDebug() << "ERROR!  Trying to update with invalid avatar entity data.  Skipping." << data;
         } else {
@@ -2589,7 +2593,7 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
         }
         QObject::disconnect(*skeletonConnection);
     });
-    
+
     saveAvatarUrl();
     emit skeletonChanged();
 }
@@ -2968,9 +2972,9 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName,
                       bool allowDuplicates, bool useSaved) {
     if (QThread::currentThread() != thread()) {
         BLOCKING_INVOKE_METHOD(this, "attach",
-            Q_ARG(const QString&, modelURL), 
-            Q_ARG(const QString&, jointName), 
-            Q_ARG(const glm::vec3&, translation), 
+            Q_ARG(const QString&, modelURL),
+            Q_ARG(const QString&, jointName),
+            Q_ARG(const glm::vec3&, translation),
             Q_ARG(const glm::quat&, rotation),
             Q_ARG(float, scale),
             Q_ARG(bool, isSoft),
@@ -3068,7 +3072,7 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
     emit attachmentsChanged();
 }
 
-QVector<AttachmentData> MyAvatar::getAttachmentData() const {    
+QVector<AttachmentData> MyAvatar::getAttachmentData() const {
     QVector<AttachmentData> attachmentData;
 
     if (!DependencyManager::get<NodeList>()->getThisNodeCanRezAvatarEntities()) {
@@ -3124,7 +3128,7 @@ void MyAvatar::setAttachmentsVariant(const QVariantList& variant) {
             newAttachments.append(attachment);
         }
     }
-    setAttachmentData(newAttachments);   
+    setAttachmentData(newAttachments);
 }
 
 bool MyAvatar::findAvatarEntity(const QString& modelURL, const QString& jointName, QUuid& entityID) {
@@ -3515,7 +3519,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
     //  Smoothly rotate body with arrow keys
     float targetSpeed = getDriveKey(YAW) * _yawSpeed;
     CameraMode mode = qApp->getCamera().getMode();
-    bool computeLookAt = isReadyForPhysics() && !qApp->isHMDMode() && 
+    bool computeLookAt = isReadyForPhysics() && !qApp->isHMDMode() &&
                         (mode == CAMERA_MODE_FIRST_PERSON_LOOK_AT || mode == CAMERA_MODE_LOOK_AT || mode == CAMERA_MODE_SELFIE);
     bool smoothCameraYaw = computeLookAt && mode != CAMERA_MODE_FIRST_PERSON_LOOK_AT;
     if (smoothCameraYaw) {
@@ -3815,16 +3819,16 @@ void MyAvatar::updateOrientation(float deltaTime) {
                 if (_firstPersonSteadyHeadTimer < FIRST_PERSON_RECENTER_SECONDS) {
                     if (_firstPersonSteadyHeadTimer > 0.0f) {
                         _firstPersonSteadyHeadTimer += deltaTime;
-                    }                    
+                    }
                 } else {
                     _shouldTurnToFaceCamera = true;
                     _firstPersonSteadyHeadTimer = 0.0f;
-                }                
+                }
             } else {
                 _firstPersonSteadyHeadTimer = deltaTime;
             }
         }
-        
+
     } else {
         head->setBaseYaw(0.0f);
         head->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime
@@ -3902,7 +3906,7 @@ glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 rig
             zSpeed != 0.0f && xSpeed != 0.0f && !isFlying()){
             direction = (zSpeed * forward);
         }
-        
+
         auto length = glm::length(direction);
         if (length > EPSILON) {
             direction /= length;
@@ -3914,8 +3918,6 @@ glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 rig
 
 // Calculate the world-space motor velocity for the avatar.
 glm::vec3 MyAvatar::calculateScaledDirection() {
-    CharacterController::State state = _characterController.getState();
-
     // compute action input
     // Determine if we're head or controller relative...
     glm::vec3 forward, right;
@@ -5453,7 +5455,7 @@ void MyAvatar::setIsInSittingState(bool isSitting) {
     // In updateSitStandState, we only change state if this timer is above a threshold (STANDING_TIMEOUT, SITTING_TIMEOUT).
     // This avoids changing state if the user sits and stands up quickly.
     _sitStandStateTimer = 0.0f;
-    
+
     _isInSittingState.set(isSitting);
     setResetMode(true);
     setSitStandStateChange(true);
@@ -5541,7 +5543,7 @@ void MyAvatar::setWalkBackwardSpeed(float value) {
             changed = false;
             break;
     }
-    
+
     if (changed && prevVal != value) {
         emit walkBackwardSpeedChanged(value);
     }
@@ -5736,7 +5738,8 @@ void MyAvatar::FollowHelper::deactivate() {
 }
 
 void MyAvatar::FollowHelper::deactivate(CharacterController::FollowType type) {
-    assert(static_cast<int>(type) >= 0 && type < CharacterController::FollowType::Count);
+    int int_type = static_cast<int>(type);
+    assert(int_type >= 0 && int_type < static_cast<int>(CharacterController::FollowType::Count));
     _timeRemaining[(int)type] = 0.0f;
 }
 
@@ -5744,14 +5747,16 @@ void MyAvatar::FollowHelper::deactivate(CharacterController::FollowType type) {
 // eg. activate(FollowType::Rotation, true) snaps the FollowHelper's rotation immediately
 // to the rotation of its _followDesiredBodyTransform.
 void MyAvatar::FollowHelper::activate(CharacterController::FollowType type, const bool snapFollow) {
-    assert(static_cast<int>(type) >= 0 && type < CharacterController::FollowType::Count);
+    int int_type = static_cast<int>(type);
+    assert(int_type >= 0 && int_type < static_cast<int>(CharacterController::FollowType::Count));
 
     // TODO: Perhaps, the follow time should be proportional to the displacement.
     _timeRemaining[(int)type] = snapFollow ? CharacterController::FOLLOW_TIME_IMMEDIATE_SNAP : FOLLOW_TIME;
 }
 
 bool MyAvatar::FollowHelper::isActive(CharacterController::FollowType type) const {
-    assert(static_cast<int>(type) >= 0 && type < CharacterController::FollowType::Count);
+    int int_type = static_cast<int>(type);
+    assert(int_type >= 0 && int_type < static_cast<int>(CharacterController::FollowType::Count));
     return _timeRemaining[(int)type] > 0.0f;
 }
 
@@ -5863,7 +5868,7 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontal_userStanding(
             }
         }
     }
-    
+
     if (!stepDetected) {
         glm::vec3 defaultHipsPosition = myAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(myAvatar.getJointIndex("Hips"));
         glm::vec3 defaultHeadPosition = myAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(myAvatar.getJointIndex("Head"));
@@ -6697,15 +6702,15 @@ void MyAvatar::useFlow(bool isActive, bool isCollidable, const QVariantMap& phys
 /*@jsdoc
  * Flow options currently used in flow simulation.
  * @typedef {object} MyAvatar.FlowData
- * @property {boolean} initialized - <code>true</code> if flow has been initialized for the current avatar, <code>false</code> 
+ * @property {boolean} initialized - <code>true</code> if flow has been initialized for the current avatar, <code>false</code>
  *     if it hasn't.
  * @property {boolean} active - <code>true</code> if flow is enabled, <code>false</code> if it isn't.
  * @property {boolean} colliding - <code>true</code> if collisions are enabled, <code>false</code> if they aren't.
- * @property {Object<GroupName, MyAvatar.FlowPhysicsData>} physicsData - The physics configuration for each group of joints 
+ * @property {Object<GroupName, MyAvatar.FlowPhysicsData>} physicsData - The physics configuration for each group of joints
  *     that has been configured.
- * @property {Object<JointName, MyAvatar.FlowCollisionsData>} collisions - The collisions configuration for each joint that 
+ * @property {Object<JointName, MyAvatar.FlowCollisionsData>} collisions - The collisions configuration for each joint that
  *     has collisions configured.
- * @property {Object<ThreadName, number[]>} threads - The threads that have been configured, with the first joint's name as the 
+ * @property {Object<ThreadName, number[]>} threads - The threads that have been configured, with the first joint's name as the
  *     <code>ThreadName</code> and value as an array of the indexes of all the joints in the thread.
  */
 /*@jsdoc
@@ -6756,7 +6761,7 @@ QVariantMap MyAvatar::getFlowData() {
                 }
                 groupJointsMap[groupName].push_back(joint.second.getIndex());
             }
-        }        
+        }
         for (auto &group : groups) {
             QVariantMap settingsObject;
             QString groupName = group.first;

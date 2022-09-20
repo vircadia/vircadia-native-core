@@ -123,7 +123,9 @@ void Space::categorizeAndGetChanges(std::vector<Space::Change>& changes) {
 uint32_t Space::copyProxyValues(Proxy* proxies, uint32_t numDestProxies) const {
     std::unique_lock<std::mutex> lock(_proxiesMutex);
     auto numCopied = std::min(numDestProxies, (uint32_t)_proxies.size());
-    memcpy(proxies, _proxies.data(), numCopied * sizeof(Proxy));
+    for (unsigned int i=0; i<numCopied; i++) {
+        proxies[i] = _proxies[i];
+    }
     return numCopied;
 }
 

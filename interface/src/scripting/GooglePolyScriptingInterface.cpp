@@ -22,6 +22,7 @@
 #include <QString>
 #include <QTime>
 #include <QUrl>
+#include <QRandomGenerator>
 
 #include "ScriptEngineLogging.h"
 
@@ -29,7 +30,7 @@ const QString LIST_POLY_URL = "https://poly.googleapis.com/v1/assets?";
 const QString GET_POLY_URL = "https://poly.googleapis.com/v1/assets/model?";
 
 const QStringList VALID_FORMATS = QStringList() << "BLOCKS" << "FBX" << "GLTF" << "GLTF2" << "OBJ" << "TILT" << "";
-const QStringList VALID_CATEGORIES = QStringList() << "animals" << "architecture" << "art" << "food" << 
+const QStringList VALID_CATEGORIES = QStringList() << "animals" << "architecture" << "art" << "food" <<
     "nature" << "objects" << "people" << "scenes" << "technology" << "transport" << "";
 
 GooglePolyScriptingInterface::GooglePolyScriptingInterface() {
@@ -75,7 +76,7 @@ QString GooglePolyScriptingInterface::getGLTF2(const QString& keyword, const QSt
     QUrl url = formatURLQuery(keyword, category, "GLTF2");
     return getModelURL(url);
 }
- 
+
 // This method will not be useful until we support Tilt models
 QString GooglePolyScriptingInterface::getTilt(const QString& keyword, const QString& category) {
     QUrl url = formatURLQuery(keyword, category, "TILT");
@@ -102,9 +103,7 @@ QString GooglePolyScriptingInterface::getModelInfo(const QString& input) {
 }
 
 int GooglePolyScriptingInterface::getRandIntInRange(int length) {
-    QTime time = QTime::currentTime();
-    qsrand((uint)time.msec());
-    return qrand() % length;
+    return QRandomGenerator::global()->bounded(length);
 }
 
 QUrl GooglePolyScriptingInterface::formatURLQuery(const QString& keyword, const QString& category, const QString& format) {

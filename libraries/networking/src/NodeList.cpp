@@ -43,6 +43,7 @@
 #include "SharedUtil.h"
 #include <Trace.h>
 #include <ModerationFlags.h>
+#include "WarningsSuppression.h"
 
 using namespace std::chrono;
 
@@ -187,7 +188,11 @@ qint64 NodeList::sendStats(QJsonObject statsObject, SockAddr destination) {
     auto statsPacketList = NLPacketList::create(PacketType::NodeJsonStats, QByteArray(), true, true);
 
     QJsonDocument jsonDocument(statsObject);
+
+    IGNORE_DEPRECATED_BEGIN
+    // Can't use CBOR yet, will break protocol.
     statsPacketList->write(jsonDocument.toBinaryData());
+    IGNORE_DEPRECATED_END
 
     sendPacketList(std::move(statsPacketList), destination);
     return 0;
@@ -496,7 +501,7 @@ void NodeList::sendDomainServerCheckIn() {
 
         // pack our data to send to the domain-server including
         // the hostname information (so the domain-server can see which place name we came in on)
-        packetStream << _ownerType.load() << publicSockAddr.getType() << publicSockAddr << localSockAddr.getType() 
+        packetStream << _ownerType.load() << publicSockAddr.getType() << publicSockAddr << localSockAddr.getType()
             << localSockAddr << _nodeTypesOfInterest.values();
         packetStream << DependencyManager::get<AddressManager>()->getPlaceName();
 
@@ -1422,7 +1427,7 @@ bool NodeList::adjustCanRezAvatarEntitiesPermissions(const QJsonObject& domainSe
 
     const double CANREZAVATARENTITIES_INTRODUCED_VERSION = 2.5;
     auto version = domainSettingsObject.value("version");
-    if (version.isUndefined() || version.isDouble() && version.toDouble() < CANREZAVATARENTITIES_INTRODUCED_VERSION) {
+    if (version.isUndefined() || (version.isDouble() && version.toDouble() < CANREZAVATARENTITIES_INTRODUCED_VERSION)) {
         // On domains without the canRezAvatarEntities permission available, set it to the same as canConnectToDomain.
         if (permissions.can(NodePermissions::Permission::canConnectToDomain)) {
             if (!permissions.can(NodePermissions::Permission::canRezAvatarEntities)) {

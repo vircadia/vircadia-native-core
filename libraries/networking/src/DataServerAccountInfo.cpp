@@ -22,6 +22,7 @@
 #include <UUID.h>
 
 #include "NetworkLogging.h"
+#include "WarningsSuppression.h"
 
 #ifdef __clang__
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
@@ -68,7 +69,7 @@ void DataServerAccountInfo::setAccessTokenFromJSON(const QJsonObject& jsonObject
 void DataServerAccountInfo::setUsername(const QString& username) {
     if (_username != username) {
         _username = username;
-        
+
         qCDebug(networking) << "Username changed to" << username;
     }
 }
@@ -120,6 +121,9 @@ QByteArray DataServerAccountInfo::getUsernameSignature(const QUuid& connectionTo
 }
 
 QByteArray DataServerAccountInfo::signPlaintext(const QByteArray& plaintext) {
+    IGNORE_DEPRECATED_BEGIN
+    // Deprecated OpenSSL API code -- this should be fixed eventually.
+
     if (!_privateKey.isEmpty()) {
         const char* privateKeyData = _privateKey.constData();
         RSA* rsaPrivateKey = d2i_RSAPrivateKey(NULL,
@@ -149,6 +153,7 @@ QByteArray DataServerAccountInfo::signPlaintext(const QByteArray& plaintext) {
         }
     }
     return QByteArray();
+    IGNORE_DEPRECATED_END
 }
 
 QDataStream& operator<<(QDataStream &out, const DataServerAccountInfo& info) {

@@ -98,7 +98,7 @@ namespace controller {
         if (!QDir(SAVE_DIRECTORY).exists()) {
             QDir().mkdir(SAVE_DIRECTORY);
         }
-       
+
         QFile saveFile (fileName);
         if (!saveFile.open(QIODevice::WriteOnly)) {
             qWarning() << "could not open file: " << fileName;
@@ -112,7 +112,7 @@ namespace controller {
             qCritical("unable to gzip while saving to json.");
             return;
         }
-        
+
         saveFile.write(jsonDataForFile);
         saveFile.close();
     }
@@ -133,7 +133,7 @@ namespace controller {
             status = false;
             return object;
         }
-        
+
         QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData);
         object = jsonDoc.object();
         status = true;
@@ -166,12 +166,12 @@ namespace controller {
         QJsonObject data;
         data["frameCount"] = _framesRecorded;
         data["version"] = "0.0";
-        
+
         QJsonArray actionArrayList;
         QJsonArray poseArrayList;
-        for(const ActionStates actionState: _actionStateList) {
+        for(const ActionStates& actionState: _actionStateList) {
             QJsonArray actionArray;
-            for (const auto action: actionState) {
+            for (const auto& action: actionState) {
                 QJsonObject actionJson;
                 actionJson["name"] = action.first;
                 actionJson["value"] = action.second;
@@ -180,9 +180,9 @@ namespace controller {
             actionArrayList.append(actionArray);
         }
 
-        for (const PoseStates poseState: _poseStateList) {
+        for (const PoseStates& poseState: _poseStateList) {
             QJsonArray poseArray;
-            for (const auto pose: poseState) {
+            for (const auto& pose: poseState) {
                 QJsonObject poseJson;
                 poseJson["name"] = pose.first;
                 poseJson["pose"] = poseToJsonObject(pose.second);
@@ -217,12 +217,12 @@ namespace controller {
         QString filePath = urlPath.toLocalFile();
         QFileInfo info(filePath);
         QString extension = info.suffix();
-        
+
         if (extension != "gz") {
             qWarning() << "can not load file with exentsion of " << extension;
             return;
         }
-        
+
         bool success = false;
         QJsonObject data = openFile(filePath, success);
         auto keyValue = data.find("version");
@@ -250,15 +250,15 @@ namespace controller {
                 _poseStateList.push_back(_currentFramePoses);
                 _currentFramePoses.clear();
             }
-        } 
+        }
         _loading = false;
     }
-    
+
     void InputRecorder::stopRecording() {
         _recording = false;
         _framesRecorded = (int)_actionStateList.size();
     }
-    
+
     void InputRecorder::startPlayback() {
         _playback = true;
         _recording = false;

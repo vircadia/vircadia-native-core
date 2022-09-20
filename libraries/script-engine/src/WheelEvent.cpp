@@ -27,25 +27,24 @@ WheelEvent::WheelEvent() :
     isMeta(false),
     isAlt(false)
 {
-    
+
 }
 
 WheelEvent::WheelEvent(const QWheelEvent& event) {
-    x = event.x();
-    y = event.y();
-    
-    delta = event.delta();
-    if (event.orientation() == Qt::Horizontal) {
+    x = event.position().x();
+    y = event.position().y();
+
+    if (event.angleDelta().x() != 0) {
         orientation = "HORIZONTAL";
     } else {
         orientation = "VERTICAL";
     }
-    
+
     // button pressed state
     isLeftButton = (event.buttons().testFlag(Qt::LeftButton));
     isRightButton = (event.buttons().testFlag(Qt::RightButton));
     isMiddleButton = (event.buttons().testFlag(Qt::MiddleButton));
-    
+
     // keyboard modifiers
     isShifted = event.modifiers().testFlag(Qt::ShiftModifier);
     isMeta = event.modifiers().testFlag(Qt::MetaModifier);
@@ -58,15 +57,15 @@ WheelEvent::WheelEvent(const QWheelEvent& event) {
  * @typedef {object} WheelEvent
  * @property {number} x - Integer x-coordinate of the event on the Interface window or HMD HUD.
  * @property {number} y - Integer y-coordinate of the event on the Interface window or HMD HUD.
- * @property {number} delta - Integer number indicating the direction and speed to scroll: positive numbers to scroll up, and 
+ * @property {number} delta - Integer number indicating the direction and speed to scroll: positive numbers to scroll up, and
  *     negative numers to scroll down.
- * @property {string} orientation - The orientation of the wheel: <code>"VERTICAL"</code> for a typical mouse; 
+ * @property {string} orientation - The orientation of the wheel: <code>"VERTICAL"</code> for a typical mouse;
  *     <code>"HORIZONTAL"</code> for a "horizontal" wheel.
- * @property {boolean} isLeftButton - <code>true</code> if the left button was pressed when the event was generated, otherwise 
+ * @property {boolean} isLeftButton - <code>true</code> if the left button was pressed when the event was generated, otherwise
  *     <code>false</code>.
- * @property {boolean} isMiddleButton - <code>true</code> if the middle button was pressed when the event was generated, 
+ * @property {boolean} isMiddleButton - <code>true</code> if the middle button was pressed when the event was generated,
  *     otherwise <code>false</code>.
- * @property {boolean} isRightButton - <code>true</code> if the right button was pressed when the event was generated, 
+ * @property {boolean} isRightButton - <code>true</code> if the right button was pressed when the event was generated,
  *     otherwise <code>false</code>.
  * @property {boolean} isShifted - <code>true</code> if the Shift key was pressed when the event was generated, otherwise
  *     <code>false</code>.

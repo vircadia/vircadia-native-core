@@ -44,7 +44,7 @@ AudioDataPointer AudioData::make(uint32_t numSamples, uint32_t numChannels,
     const size_t memorySize = sizeof(AudioData) + bufferSize;
 
     // Allocate the memory for the audio data object and the buffer
-    void* memory = ::malloc(memorySize);
+    void* memory = ::calloc(1, memorySize);
     auto audioData = reinterpret_cast<AudioData*>(memory);
     auto buffer = reinterpret_cast<AudioSample*>(audioData + 1);
     assert(((char*)buffer - (char*)audioData) == sizeof(AudioData));

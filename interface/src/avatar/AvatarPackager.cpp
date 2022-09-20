@@ -23,12 +23,13 @@
 
 #include <mutex>
 #include "ui/TabletScriptingInterface.h"
+#include "WarningsSuppression.h"
 
 std::once_flag setupQMLTypesFlag;
 AvatarPackager::AvatarPackager() {
     std::call_once(setupQMLTypesFlag, []() {
-        qmlRegisterType<FST>();
-        qmlRegisterType<MarketplaceItemUploader>();
+        qmlRegisterAnonymousType<FST>("Hifi", 1);
+        qmlRegisterAnonymousType<MarketplaceItemUploader>("Hifi", 1);
         qRegisterMetaType<AvatarPackager*>();
         qRegisterMetaType<AvatarProject*>();
         qRegisterMetaType<AvatarDoctor*>();
