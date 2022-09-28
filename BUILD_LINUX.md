@@ -1,10 +1,8 @@
 # Build Linux
 
-*Last Updated on February 13, 2022*
+*Last Updated on September 28, 2022*
 
 Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only Linux specific instructions are found in this file. Check out the [notes](#notes) for other important information.
-
-You can use the [Vircadia Builder](https://github.com/vircadia/vircadia-builder) to automate the build process on Linux. Alternatively, you can follow the manual steps below.
 
 [Ubuntu guide](#ubuntu) | [Arch guide](#arch-linux)
 
