@@ -1524,9 +1524,7 @@ std::vector<uint> Avatar::calculateRemoteToLocalJointMap() {
         }
     } else {
         qWarning() << "Remote and local skeletons for avatar are different sizes.";
-        for (int i = 0; i < jointNames.size(); i++) {
-            remoteToLocalJointMap[i] = i;
-        }
+        remoteToLocalJointMap.resize(0);  // Don't attempt to control avatar's joints.
     }
 
     return remoteToLocalJointMap;
