@@ -630,6 +630,13 @@ public slots:
     // Hooked up to Model::rigReset signal
     void rigReset();
 
+    /*@jsdoc
+     * @function MyAvatar.onSkeletonDataChanged
+     * @deprecated This function is deprecated and will be removed.
+     */
+    // Hooked up to AvatarData::skeletonDataChanged signal
+    void onSkeletonDataChanged();
+
 protected:
     float getUnscaledEyeHeightFromSkeleton() const;
     void buildUnscaledEyeHeightCache();

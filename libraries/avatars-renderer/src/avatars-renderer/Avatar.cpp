@@ -1617,6 +1617,10 @@ void Avatar::rigReset() {
     clearSpine2SplineRatioCache();
 }
 
+void Avatar::onSkeletonDataChanged() {
+    getSkeletonModel()->getRig().setSkeletonJointMap(calculateRemoteToLocalJointMap());
+}
+
 void Avatar::computeMultiSphereShapes() {
     const Rig& rig = getSkeletonModel()->getRig();
     const HFMModel& geometry = getSkeletonModel()->getHFMModel();

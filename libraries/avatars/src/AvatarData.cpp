@@ -3236,6 +3236,8 @@ void AvatarData::setSkeletonData(const std::vector<AvatarSkeletonTrait::Unpacked
     _avatarSkeletonDataLock.withWriteLock([&] {
         _avatarSkeletonData = skeletonData;
     });
+
+    emit skeletonDataChanged();
 }
 
 std::vector<AvatarSkeletonTrait::UnpackedJointData> AvatarData::getSkeletonData() const {

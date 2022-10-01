@@ -1886,6 +1886,9 @@ protected:
     bool updateAvatarGrabData(const QUuid& grabID, const QByteArray& grabData);
     virtual void clearAvatarGrabData(const QUuid& grabID);
 
+signals:
+    void skeletonDataChanged();
+
 private:
     Q_DISABLE_COPY(AvatarData)
 
