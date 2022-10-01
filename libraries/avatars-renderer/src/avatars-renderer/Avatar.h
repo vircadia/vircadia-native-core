@@ -204,6 +204,7 @@ public:
     virtual QStringList getJointNames() const override;
 
     std::vector<AvatarSkeletonTrait::UnpackedJointData> getSkeletonDefaultData();
+    std::vector<uint> calculateRemoteToLocalJointMap();
 
     /*@jsdoc
      * Gets the default rotation of a joint (in the current avatar) relative to its parent.

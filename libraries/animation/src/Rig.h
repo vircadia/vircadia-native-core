@@ -259,6 +259,10 @@ public:
     bool getNetworkGraphActive() const;
     void setDirectionalBlending(const QString& targetName, const glm::vec3& blendingTarget, const QString& alphaName, float alpha);
 
+    void setSkeletonJointMap(const std::vector<uint>& remoteToLocalJointMap) {
+        _remoteToLocalJointMap = remoteToLocalJointMap;
+    };
+
 signals:
     void onLoadComplete();
     void onLoadFailed();
@@ -485,6 +489,8 @@ protected:
     ControllerParameters _previousControllerParameters;
     Flow _internalFlow;
     Flow _networkFlow;
+
+    std::vector<uint> _remoteToLocalJointMap;
 };
 
 #endif /* defined(__hifi__Rig__) */
