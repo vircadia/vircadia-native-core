@@ -1618,7 +1618,9 @@ void Avatar::rigReset() {
 }
 
 void Avatar::onSkeletonDataChanged() {
-    getSkeletonModel()->getRig().setSkeletonJointMap(calculateRemoteToLocalJointMap());
+    if (getSkeletonModel()->isLoaded()) {
+        getSkeletonModel()->getRig().setSkeletonJointMap(calculateRemoteToLocalJointMap());
+    }
 }
 
 void Avatar::computeMultiSphereShapes() {
