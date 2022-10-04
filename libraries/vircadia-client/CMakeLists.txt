@@ -20,7 +20,8 @@ set(VIRCADIA_CLIENT_VERSION_YEAR 2022)
 set(VIRCADIA_CLIENT_VERSION_MAJOR 0)
 set(VIRCADIA_CLIENT_VERSION_MINOR 1)
 set(VIRCADIA_CLIENT_VERSION "${VIRCADIA_CLIENT_VERSION_MAJOR}.${VIRCADIA_CLIENT_VERSION_MINOR}")
-set(VIRCADIA_CLIENT_VERSION_FULL "v${VIRCADIA_CLIENT_VERSION_YEAR}.${VIRCADIA_CLIENT_VERSION}-git.${VIRCADIA_CLIENT_GIT_COMMIT_SHA_SHORT}")
+set(VIRCADIA_CLIENT_VERSION_RELEASE "${VIRCADIA_CLIENT_VERSION_YEAR}.${VIRCADIA_CLIENT_VERSION}")
+set(VIRCADIA_CLIENT_VERSION_FULL "v${VIRCADIA_CLIENT_VERSION_RELEASE}-git.${VIRCADIA_CLIENT_GIT_COMMIT_SHA_SHORT}")
 
 add_compile_definitions(VIRCADIA_CLIENT_GIT_COMMIT_SHA_SHORT=${VIRCADIA_CLIENT_GIT_COMMIT_SHA_SHORT})
 add_compile_definitions(VIRCADIA_CLIENT_VERSION_YEAR=${VIRCADIA_CLIENT_VERSION_YEAR})
@@ -34,19 +35,53 @@ set_property(GLOBAL APPEND
     PROPERTY CMAKE_CONFIGURE_DEPENDS
     "${VIRCADIA_CLIENT_GIT_ROOT}/.git/index")
 
+set(VIRCADIA_CLIENT_INSTALL_HEADERS
+    src/audio_constants.h
+    src/audio.h
+    src/avatar_constants.h
+    src/avatars.h
+    src/client.h
+    src/common.h
+    src/context.h
+    src/error.h
+    src/geometry.h
+    src/messages.h
+    src/message_types.h
+    src/node_list.h
+    src/node_types.h
+    src/version.h
+)
+
 # check if Doxygen is installed
 find_package(Doxygen)
 if (DOXYGEN_FOUND)
     set(DOXYGEN_PROJECT_NAME "Vircadia Client API")
+    set(DOXYGEN_PROJECT_BRIEF "C language API/ABI for developing client applications and/or other language bindings for Vircadia Open Source Metaverse Platform.")
+    set(DOXYGEN_PROJECT_NUMBER ${VIRCADIA_CLIENT_VERSION_RELEASE})
     set(DOXYGEN_PROJECT_VERSION ${VIRCADIA_CLIENT_VERSION_FULL})
     set(DOXYGEN_GENERATE_MAN YES)
+    set(DOXYGEN_INLINE_SIMPLE_STRUCTS YES)
+    set(DOXYGEN_GENERATE_TREEVIEW YES)
+    set(DOXYGEN_HTML_EXTRA_STYLESHEET
+        "./docs/doxygen-awesome-css/doxygen-awesome.css"
+        "./docs/doxygen-awesome-css/doxygen-awesome-sidebar-only.css"
+    )
+    set(DOXYGEN_USE_MDFILE_AS_MAINPAGE "./docs/mainpage.md")
     doxygen_add_docs(
         vircadia-client-docs
+        ${VIRCADIA_CLIENT_INSTALL_HEADERS}
+        "./docs/mainpage.md"
         COMMENT "Generate Vircadia Client API documentation."
     )
     unset(DOXYGEN_PROJECT_NAME)
+    unset(DOXYGEN_PROJECT_BRIEF)
+    unset(DOXYGEN_PROJECT_NUMBER)
     unset(DOXYGEN_PROJECT_VERSION)
     unset(DOXYGEN_GENERATE_MAN)
+    unset(DOXYGEN_INLINE_SIMPLE_STRUCTS)
+    unset(DOXYGEN_GENERATE_TREEVIEW)
+    unset(DOXYGEN_HTML_EXTRA_STYLESHEET)
+    unset(DOXYGEN_USE_MDFILE_AS_MAINPAGE)
 else (DOXYGEN_FOUND)
     message("Doxygen not found. Vircadia Client API documentation target will not be generatred.")
 endif (DOXYGEN_FOUND)
@@ -62,19 +97,9 @@ if(UNIX)
     target_link_libraries(${TARGET_NAME} Threads::Threads)
 endif()
 
-link_hifi_libraries(shared networking)
+link_hifi_libraries(shared networking avatars-core audio-client-core pcm-codec opus-codec)
 
 add_subdirectory(tests)
 
 install(TARGETS ${TARGET_NAME} TYPE LIBRARY)
-install(FILES
-    src/client.h
-    src/common.h
-    src/context.h
-    src/error.h
-    src/messages.h
-    src/message_types.h
-    src/node_list.h
-    src/node_types.h
-    src/version.h
-    TYPE INCLUDE)
+install(FILES ${VIRCADIA_CLIENT_INSTALL_HEADERS} TYPE INCLUDE)

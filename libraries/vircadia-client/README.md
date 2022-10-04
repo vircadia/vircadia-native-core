@@ -1,14 +1,14 @@
-### Client API
+### Overview
 
-This is C/C++ library for Vircadia client->server communication.
+[Vircadia Native Client Library](https://github.com/vircadia/vircadia/blob/unity-sdk/libraries/vircadia-client) is a C API/ABI for Vircadia client->server communication.
 
 ### Coding Style
 
-This library is meant to use by other projects in particular other language bindings, and it exposes a C API for that purpose. The C API interfaces adhere to common C coding naming conventions:
+This library is meant to use by other projects in particular other language bindings, and it exposes a C API/ABI for that purpose. The interfaces adhere to common C naming conventions:
 - All words in names are separated by underscores (snake case).
 - File, variable, function and type names are all lower case.
 - Global constants (including enum values) and macros are all upper case.
-In other aspects they adheres to the [coding standard](https://github.com/namark/vircadia/blob/master/CODING_STANDARD.md).
+In other aspects they adheres to the [coding standard](https://github.com/vircadia/vircadia/blob/master/CODING_STANDARD.md).
 
 
 The `src/internal` folder contains the internal C++ implementation details and is not subject to these C style naming convention. The `.cpp` files that correspond to C API header files in the `src` folder make use of these internals and may contain a mixture of styles.
@@ -28,7 +28,11 @@ To build the unit tests:
 ```
 cmake --build . --target vircadia-client-tests
 ```
-The tests can be run with `ctest`.
+and to run them:
+```
+ctest -j10
+```
+parallelization is important, since some tests have two parts, sender and receiver that communicate. Ideally all test should run in parallel, you can use a number of processes much greater than the processor core count, since most of the test idle most of the time.
 
 
 To build the documentation (requires doxygen):
@@ -41,13 +45,13 @@ cmake --build . --target vircadia-client-docs
 ### Packaging
 
 Several build options can be set to minimize dependencies of the library and simplify packaging.
-- `ENABLE_WEBRTC_DATA_CHANNELS` can be set to `OFF` since that is only used by the server to support the Web SDK and client.
+- `ENABLE_WEBRTC_DATA_CHANNELS` and 'ENABLE_WEBRTC_AUDIO' can be set to `OFF` to avoid having to build and package WebRTC for the target platform.
 - `BUILD_SHARED_LIBS` can be set to `OFF` to link internal libraries statically.
 - `STATIC_STDLIB` can be set to `ON` to not require standard runtime libraries that might not be present on a bare-bones system.
 
 The following commands in the build directory will produce a package containing all public headers and the dynamic library.
 ```
-cmake .. -DENABLE_WEBRTC_DATA_CHANNELS=OFF -DBUILD_SHARED_LIBS=OFF -DSTATIC_STDLIB=ON -DCMAKE_INSTALL_PREFIX:PATH=vircadia-client-package
+cmake .. -DENABLE_WEBRTC_DATA_CHANNELS=OFF -DENABLE_WEBRTC_AUDIO=OFF -DBUILD_SHARED_LIBS=OFF -DSTATIC_STDLIB=ON -DCMAKE_INSTALL_PREFIX:PATH=vircadia-client-package
 cmake --build . --config Release --target vircadia-client -j4
 cd libraries/vircadia-client
 cmake --build . --target install/strip

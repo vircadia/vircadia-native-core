@@ -6994,6 +6994,7 @@ void Application::updateRenderArgs(float deltaTime) {
     });
 }
 
+// FIXME: incorporate into avatars-core or vircadia-client
 void Application::queryAvatars() {
     if (!isInterstitialMode()) {
         auto avatarPacket = NLPacket::create(PacketType::AvatarQuery);
@@ -7353,6 +7354,7 @@ void Application::nodeAdded(SharedNodePointer node) {
     }
 }
 
+// FIXME: incorporate into native client library
 void Application::nodeActivated(SharedNodePointer node) {
     if (node->getType() == NodeType::AssetServer) {
         // asset server just connected - check if we have the asset browser showing
@@ -7387,6 +7389,7 @@ void Application::nodeActivated(SharedNodePointer node) {
         }
     }
 
+    // FIXME: this will be handled in AudioClient, once it's derived from AudioPacketHandler
     if (node->getType() == NodeType::AudioMixer && !isInterstitialMode()) {
         DependencyManager::get<AudioClient>()->negotiateAudioFormat();
     }

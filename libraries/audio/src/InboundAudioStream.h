@@ -18,8 +18,7 @@
 #include <udt/PacketHeaders.h>
 #include <ReceivedMessage.h>
 #include <StDev.h>
-
-#include <plugins/CodecPlugin.h>
+#include <Codec.h>
 
 #include "AudioRingBuffer.h"
 #include "MovingMinMaxAvg.h"
@@ -75,7 +74,7 @@ public:
 
     /// returns the desired number of jitter buffer frames under the dyanmic jitter buffers scheme
     int getCalculatedJitterBufferFrames() const { return _calculatedJitterBufferFrames; }
-    
+
     bool dynamicJitterBufferEnabled() const { return _dynamicJitterBufferEnabled; }
     int getStaticJitterBufferFrames() { return _staticJitterBufferFrames; }
     int getDesiredJitterBufferFrames() { return _desiredJitterBufferFrames; }
@@ -95,14 +94,14 @@ public:
     int getOverflowCount() const { return _ringBuffer.getOverflowCount(); }
 
     int getPacketsReceived() const { return _incomingSequenceNumberStats.getReceived(); }
-    
+
     bool hasReverb() const { return _hasReverb; }
     float getRevebTime() const { return _reverbTime; }
     float getWetLevel() const { return _wetLevel; }
     void setReverb(float reverbTime, float wetLevel);
     void clearReverb() { _hasReverb = false; }
 
-    void setupCodec(CodecPluginPointer codec, const QString& codecName, int numChannels);
+    void setupCodec(std::shared_ptr<Codec> codec, const QString& codecName, int numChannels);
     void cleanupCodec();
 
 signals:
@@ -139,7 +138,7 @@ protected:
 
     /// writes silent frames to the buffer that may be dropped to reduce latency caused by the buffer
     virtual int writeDroppableSilentFrames(int silentFrames);
-    
+
 protected:
 
     AudioRingBuffer _ringBuffer;
@@ -147,7 +146,7 @@ protected:
 
     bool _lastPopSucceeded { false };
     AudioRingBuffer::ConstIterator _lastPopOutput;
-    
+
     bool _dynamicJitterBufferEnabled { DEFAULT_DYNAMIC_JITTER_BUFFER_ENABLED };
     int _staticJitterBufferFrames { DEFAULT_STATIC_JITTER_FRAMES };
     int _desiredJitterBufferFrames;
@@ -185,7 +184,7 @@ protected:
     float _reverbTime { 0.0f };
     float _wetLevel { 0.0f };
 
-    CodecPluginPointer _codec;
+    std::shared_ptr<Codec> _codec;
     QString _selectedCodecName;
     QMutex _decoderMutex;
     Decoder* _decoder { nullptr };

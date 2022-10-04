@@ -8,13 +8,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OpusEncoder.h"
+
 #include <PerfStat.h>
 #include <QtCore/QLoggingCategory>
 #include <opus/opus.h>
 
-#include "OpusEncoder.h"
-
-static QLoggingCategory encoder("AthenaOpusEncoder");
+static QLoggingCategory encoder("OpusEncoder");
 
 static QString errorToString(int error) {
     switch (error) {
@@ -39,7 +39,7 @@ static QString errorToString(int error) {
 
 
 
-AthenaOpusEncoder::AthenaOpusEncoder(int sampleRate, int numChannels) {
+OpusEncoder::OpusEncoder(int sampleRate, int numChannels) {
     _opusSampleRate = sampleRate;
     _opusChannels = numChannels;
 
@@ -61,15 +61,15 @@ AthenaOpusEncoder::AthenaOpusEncoder(int sampleRate, int numChannels) {
     qCDebug(encoder) << "Opus encoder initialized, sampleRate = " << sampleRate << "; numChannels = " << numChannels;
 }
 
-AthenaOpusEncoder::~AthenaOpusEncoder() {
+OpusEncoder::~OpusEncoder() {
     opus_encoder_destroy(_encoder);
 }
 
 
 
-void AthenaOpusEncoder::encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) {
+void OpusEncoder::encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) {
 
-    PerformanceTimer perfTimer("AthenaOpusEncoder::encode");
+    PerformanceTimer perfTimer("OpusEncoder::encode");
     assert(_encoder);
 
     encodedBuffer.resize(decodedBuffer.size());
@@ -89,14 +89,14 @@ void AthenaOpusEncoder::encode(const QByteArray& decodedBuffer, QByteArray& enco
 
 }
 
-int AthenaOpusEncoder::getComplexity() const {
+int OpusEncoder::getComplexity() const {
     assert(_encoder);
     int returnValue;
     opus_encoder_ctl(_encoder, OPUS_GET_COMPLEXITY(&returnValue));
     return returnValue;
 }
 
-void AthenaOpusEncoder::setComplexity(int complexity) {
+void OpusEncoder::setComplexity(int complexity) {
     assert(_encoder);
     int returnValue = opus_encoder_ctl(_encoder, OPUS_SET_COMPLEXITY(complexity));
 
@@ -105,14 +105,14 @@ void AthenaOpusEncoder::setComplexity(int complexity) {
     }
 }
 
-int AthenaOpusEncoder::getBitrate() const {
+int OpusEncoder::getBitrate() const {
     assert(_encoder);
     int returnValue;
     opus_encoder_ctl(_encoder, OPUS_GET_BITRATE(&returnValue));
     return returnValue;
 }
 
-void AthenaOpusEncoder::setBitrate(int bitrate) {
+void OpusEncoder::setBitrate(int bitrate) {
     assert(_encoder);
     int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_BITRATE(bitrate));
 
@@ -121,14 +121,14 @@ void AthenaOpusEncoder::setBitrate(int bitrate) {
     }
 }
 
-int AthenaOpusEncoder::getVBR() const {
+int OpusEncoder::getVBR() const {
     assert(_encoder);
     int returnValue;
     opus_encoder_ctl(_encoder, OPUS_GET_VBR(&returnValue));
     return returnValue;
 }
 
-void AthenaOpusEncoder::setVBR(int vbr) {
+void OpusEncoder::setVBR(int vbr) {
     assert(_encoder);
     int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_VBR(vbr));
 
@@ -137,14 +137,14 @@ void AthenaOpusEncoder::setVBR(int vbr) {
     }
 }
 
-int AthenaOpusEncoder::getVBRConstraint() const {
+int OpusEncoder::getVBRConstraint() const {
     assert(_encoder);
     int returnValue;
     opus_encoder_ctl(_encoder, OPUS_GET_VBR_CONSTRAINT(&returnValue));
     return returnValue;
 }
 
-void AthenaOpusEncoder::setVBRConstraint(int vbr_const) {
+void OpusEncoder::setVBRConstraint(int vbr_const) {
     assert(_encoder);
     int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_VBR_CONSTRAINT(vbr_const));
 
@@ -153,14 +153,14 @@ void AthenaOpusEncoder::setVBRConstraint(int vbr_const) {
     }
 }
 
-int AthenaOpusEncoder::getMaxBandwidth() const {
+int OpusEncoder::getMaxBandwidth() const {
     assert(_encoder);
     int returnValue;
     opus_encoder_ctl(_encoder, OPUS_GET_MAX_BANDWIDTH(&returnValue));
     return returnValue;
 }
 
-void AthenaOpusEncoder::setMaxBandwidth(int maxBandwidth) {
+void OpusEncoder::setMaxBandwidth(int maxBandwidth) {
     assert(_encoder);
     int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_MAX_BANDWIDTH(maxBandwidth));
 
@@ -169,14 +169,14 @@ void AthenaOpusEncoder::setMaxBandwidth(int maxBandwidth) {
     }
 }
 
-int AthenaOpusEncoder::getBandwidth() const {
+int OpusEncoder::getBandwidth() const {
     assert(_encoder);
     int bandwidth;
     opus_encoder_ctl(_encoder, OPUS_GET_BANDWIDTH(&bandwidth));
     return bandwidth;
 }
 
-void AthenaOpusEncoder::setBandwidth(int bandwidth) {
+void OpusEncoder::setBandwidth(int bandwidth) {
     assert(_encoder);
     int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_BANDWIDTH(bandwidth));
 
@@ -185,14 +185,14 @@ void AthenaOpusEncoder::setBandwidth(int bandwidth) {
     }
 }
 
-int AthenaOpusEncoder::getSignal() const {
+int OpusEncoder::getSignal() const {
     assert(_encoder);
     int signal;
     opus_encoder_ctl(_encoder, OPUS_GET_SIGNAL(&signal));
     return signal;
 }
 
-void AthenaOpusEncoder::setSignal(int signal) {
+void OpusEncoder::setSignal(int signal) {
     assert(_encoder);
     int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_SIGNAL(signal));
 
@@ -201,14 +201,14 @@ void AthenaOpusEncoder::setSignal(int signal) {
     }
 }
 
-int AthenaOpusEncoder::getApplication() const {
+int OpusEncoder::getApplication() const {
     assert(_encoder);
     int applicationValue;
     opus_encoder_ctl(_encoder, OPUS_GET_APPLICATION(&applicationValue));
     return applicationValue;
 }
 
-void AthenaOpusEncoder::setApplication(int application) {
+void OpusEncoder::setApplication(int application) {
     assert(_encoder);
     int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_APPLICATION(application));
 
@@ -217,21 +217,21 @@ void AthenaOpusEncoder::setApplication(int application) {
     }
 }
 
-int AthenaOpusEncoder::getLookahead() const {
+int OpusEncoder::getLookahead() const {
     assert(_encoder);
     int lookAhead;
     opus_encoder_ctl(_encoder, OPUS_GET_LOOKAHEAD(&lookAhead));
     return lookAhead;
 }
 
-int AthenaOpusEncoder::getInbandFEC() const {
+int OpusEncoder::getInbandFEC() const {
     assert(_encoder);
     int fec;
     opus_encoder_ctl(_encoder, OPUS_GET_INBAND_FEC(&fec));
     return fec;
 }
 
-void AthenaOpusEncoder::setInbandFEC(int inBandFEC) {
+void OpusEncoder::setInbandFEC(int inBandFEC) {
     assert(_encoder);
     int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_INBAND_FEC(inBandFEC));
 
@@ -240,14 +240,14 @@ void AthenaOpusEncoder::setInbandFEC(int inBandFEC) {
     }
 }
 
-int AthenaOpusEncoder::getExpectedPacketLossPercentage() const {
+int OpusEncoder::getExpectedPacketLossPercentage() const {
     assert(_encoder);
     int lossPercentage;
     opus_encoder_ctl(_encoder, OPUS_GET_PACKET_LOSS_PERC(&lossPercentage));
     return lossPercentage;
 }
 
-void AthenaOpusEncoder::setExpectedPacketLossPercentage(int percentage) {
+void OpusEncoder::setExpectedPacketLossPercentage(int percentage) {
     assert(_encoder);
     int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_PACKET_LOSS_PERC(percentage));
 
@@ -256,14 +256,14 @@ void AthenaOpusEncoder::setExpectedPacketLossPercentage(int percentage) {
     }
 }
 
-int AthenaOpusEncoder::getDTX() const {
+int OpusEncoder::getDTX() const {
     assert(_encoder);
     int dtx;
     opus_encoder_ctl(_encoder, OPUS_GET_DTX(&dtx));
     return dtx;
 }
 
-void AthenaOpusEncoder::setDTX(int dtx) {
+void OpusEncoder::setDTX(int dtx) {
     assert(_encoder);
     int errorCode = opus_encoder_ctl(_encoder, OPUS_SET_DTX(dtx));
 

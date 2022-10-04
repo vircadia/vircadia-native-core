@@ -16,15 +16,14 @@
 
 #include <glm/glm.hpp>
 
+#include <shared/ConicalViewFrustumData.h>
+
 class AACube;
 class AABox;
 class ViewFrustum;
 using ViewFrustums = std::vector<ViewFrustum>;
 
 const float SQRT_TWO_OVER_TWO = 0.7071067811865f;
-const float DEFAULT_VIEW_ANGLE = 1.0f;
-const float DEFAULT_VIEW_RADIUS = 10.0f;
-const float DEFAULT_VIEW_FAR_CLIP = 100.0f;
 
 // ConicalViewFrustum is an approximation of a ViewFrustum for fast calculation of sort priority.
 class ConicalViewFrustum {
@@ -35,11 +34,11 @@ public:
     void set(const ViewFrustum& viewFrustum);
     void calculate();
 
-    const glm::vec3& getPosition() const { return _position; }
-    const glm::vec3& getDirection() const { return _direction; }
-    float getAngle() const { return _angle; }
-    float getRadius() const { return _radius; }
-    float getFarClip() const { return _farClip; }
+    const glm::vec3& getPosition() const { return _data.position; }
+    const glm::vec3& getDirection() const { return _data.direction; }
+    float getAngle() const { return _data.angle; }
+    float getRadius() const { return _data.radius; }
+    float getFarClip() const { return _data.farClip; }
 
     bool isVerySimilar(const ConicalViewFrustum& other) const;
 
@@ -58,11 +57,7 @@ public:
     void setPositionAndSimpleRadius(const glm::vec3& position, float radius);
 
 private:
-    glm::vec3 _position { 0.0f, 0.0f, 0.0f };
-    glm::vec3 _direction { 0.0f, 0.0f, 1.0f };
-    float _angle { DEFAULT_VIEW_ANGLE };
-    float _radius { DEFAULT_VIEW_RADIUS };
-    float _farClip { DEFAULT_VIEW_FAR_CLIP };
+    ConicalViewFrustumData _data {};
 
     float _sinAngle { SQRT_TWO_OVER_TWO };
     float _cosAngle { SQRT_TWO_OVER_TWO };

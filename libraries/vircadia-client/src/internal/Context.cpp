@@ -4,6 +4,7 @@
 //
 //  Created by Nshan G. on 27 March 2022.
 //  Copyright 2022 Vircadia contributors.
+//  Copyright 2022 DigiSomni LLC.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -25,6 +26,7 @@
 #include <DomainAccountManager.h>
 #include <AddressManager.h>
 
+#include "avatars/AvatarManager.h"
 #include "Error.h"
 
 namespace vircadia::client {
@@ -33,7 +35,9 @@ namespace vircadia::client {
         argc(1),
         argvData("qt_is_such_a_joke"),
         argv(&argvData[0]),
-        messages_()
+        messages_(),
+        audio_(),
+        avatars_()
     {
         auto qtInitialization = qtInitialized.get_future();
         appThread = std::thread{ [ this, nodeListParams, userAgent, info ] () {
@@ -67,6 +71,14 @@ namespace vircadia::client {
                 QTimer* domainCheckInTimer = new QTimer(nodeList.data());
                 QObject::connect(domainCheckInTimer, &QTimer::timeout, nodeList.data(), &NodeList::sendDomainServerCheckIn);
                 domainCheckInTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
+                QObject::connect(&qtApp, &QCoreApplication::aboutToQuit, [domainCheckInTimer](){
+                    domainCheckInTimer->stop();
+                    domainCheckInTimer->deleteLater();
+                });
+
+                // you might think we could just do this in NodeList but we only want this connection for Interface
+                QObject::connect(&nodeList->getDomainHandler(), &DomainHandler::limitOfSilentDomainCheckInsReached,
+                    nodeList.data(), [nodeList]() {nodeList->reset("Domain checkin limit"); });
 
                 // start the nodeThread so its event loop is running
                 // (must happen after the checkin timer is created with the nodelist as it's parent)
@@ -79,10 +91,24 @@ namespace vircadia::client {
 
             // TODO: account manager login
 
-            QObject::connect(&qtApp, &QCoreApplication::aboutToQuit, [this](){
+            QTimer updateTimer;
+            QObject::connect(&updateTimer, &QTimer::timeout, [this]() {
+                if (avatars_.isEnabled()) {
+                    auto nodeList = DependencyManager::get<NodeList>();
+                    auto avatarMixer = nodeList->soloNodeOfType(NodeType::AvatarMixer);
+                    if (avatarMixer && avatarMixer->getActiveSocket()) {
+                        avatars_.updateManager();
+                    }
+                }
+            });
+            updateTimer.start(16);
+
+            QObject::connect(&qtApp, &QCoreApplication::aboutToQuit, [this, &updateTimer](){
                 DependencyManager::prepareToExit();
 
                 {
+                    updateTimer.stop();
+
                     auto nodeList = DependencyManager::get<NodeList>();
 
                     // send the domain a disconnect packet, force stoppage of domain-server check-ins
@@ -93,14 +119,24 @@ namespace vircadia::client {
                     nodeList->getPacketReceiver().setShouldDropPackets(true);
                 }
 
+                // TODO: a lot of objects destroyed below use
+                // deleteLater, and that doesn't seem to work
+                // reliably here (aboutToQuit signal), so maybe need
+                // to hand roll a quit event, to allow the event loop
+                // to clean things up, or not use deleteLater in this
+                // specific case
+
+                avatars_.destroy();
+                audio_.destroy();
+                messages_.destroy();
+
                 QThreadPool::globalInstance()->clear();
                 QThreadPool::globalInstance()->waitForDone();
 
-                messages_.destroy();
-                DependencyManager::destroy<NodeList>();
                 DependencyManager::destroy<AddressManager>();
                 DependencyManager::destroy<DomainAccountManager>();
                 DependencyManager::destroy<AccountManager>();
+                DependencyManager::destroy<NodeList>();
 
 
             });
@@ -144,10 +180,16 @@ namespace vircadia::client {
                 data.address = activeSocket != nullptr ? activeSocket->toString().toStdString() : "";
 
                 data.uuid = toUUIDArray(node->getUUID());
+                data.inboundPPS = node->getInboundPPS();
+                data.outboundPPS = node->getOutboundPPS();
+                data.inboundKbps = node->getInboundKbps();
+                data.outboundKbps = node->getOutboundKbps();
 
                 return data;
             });
         });
+
+        sessionUUID = toUUIDArray(DependencyManager::get<NodeList>()->getSessionUUID());
     }
 
     bool Context::isConnected() const {
@@ -164,6 +206,26 @@ namespace vircadia::client {
 
     const Messages& Context::messages() const {
         return messages_;
+    }
+
+    Audio& Context::audio() {
+        return audio_;
+    }
+
+    const Audio& Context::audio() const {
+        return audio_;
+    }
+
+    Avatars& Context::avatars() {
+        return avatars_;
+    }
+
+    const Avatars& Context::avatars() const {
+        return avatars_;
+    }
+
+    const UUID& Context::getSessionUUID() const {
+        return sessionUUID;
     }
 
     std::list<Context> contexts;

@@ -13,7 +13,6 @@
 #define hifi_AbstractAudioInterface_h
 
 #include <QtCore/QObject>
-#include <QtMultimedia/qaudiooutput.h>
 
 #include <udt/PacketHeaders.h>
 
@@ -23,7 +22,11 @@
 
 class AudioInjector;
 class AudioInjectorLocalBuffer;
-class Transform;
+
+struct Vantage {
+    glm::vec3 position;
+    glm::quat rotation;
+};
 
 class AbstractAudioInterface : public QObject {
     Q_OBJECT
@@ -31,7 +34,7 @@ public:
     AbstractAudioInterface(QObject* parent = 0) : QObject(parent) {};
 
     static void emitAudioPacket(const void* audioData, size_t bytes, quint16& sequenceNumber, bool isStereo,
-                                const Transform& transform, glm::vec3 avatarBoundingBoxCorner, glm::vec3 avatarBoundingBoxScale,
+                                const Vantage& vantage, glm::vec3 avatarBoundingBoxCorner, glm::vec3 avatarBoundingBoxScale,
                                 PacketType packetType, QString codecName = QString(""));
 
     // threadsafe

@@ -4,6 +4,7 @@
 //
 //  Created by Nshan G. on 25 March 2022.
 //  Copyright 2022 Vircadia contributors.
+//  Copyright 2022 DigiSomni LLC.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -49,7 +50,8 @@ int vircadia_enable_messages(int context_id, uint8_t types);
 /// @return 0 on success, or a negative error code. \n
 /// Possible error codes: \n
 /// vircadia_error_context_invalid() \n
-/// vircadia_error_context_loss()
+/// vircadia_error_context_loss() \n
+/// vircadia_error_message_type_disabled()
 VIRCADIA_CLIENT_DYN_API
 int vircadia_messages_subscribe(int context_id, const char* channel);
 
@@ -61,7 +63,8 @@ int vircadia_messages_subscribe(int context_id, const char* channel);
 /// @return 0 on success, or a negative error code. \n
 /// Possible error codes: \n
 /// vircadia_error_context_invalid() \n
-/// vircadia_error_context_loss()
+/// vircadia_error_context_loss() \n
+/// vircadia_error_message_type_disabled()
 VIRCADIA_CLIENT_DYN_API
 int vircadia_messages_unsubscribe(int context_id, const char* channel);
 

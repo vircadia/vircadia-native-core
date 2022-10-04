@@ -8,8 +8,7 @@ include_hifi_library_headers(shared)
 include_hifi_library_headers(shared-gui)
 include_hifi_library_headers(networking)
 
-if (ANDROID)
-else ()
+if (ENABLE_WEBRTC_AUDIO)
   target_webrtc()
 endif ()
 

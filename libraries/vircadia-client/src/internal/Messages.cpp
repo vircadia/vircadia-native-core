@@ -4,6 +4,7 @@
 //
 //  Created by Nshan G. on 16 Apr 2022.
 //  Copyright 2022 Vircadia contributors.
+//  Copyright 2022 DigiSomni LLC.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -129,6 +130,14 @@ namespace vircadia::client
         bool ret = true;
         forAllSet(type, messageContexts, [&](auto& messagesContext) {
             ret &= messagesContext.enabled;
+        });
+        return ret;
+    }
+
+    bool Messages::isAnyEnabled(std::bitset<8> type) const {
+        bool ret = false;
+        forAllSet(type, messageContexts, [&](auto& messagesContext) {
+            ret |= messagesContext.enabled;
         });
         return ret;
     }

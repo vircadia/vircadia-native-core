@@ -30,12 +30,12 @@ public:
         static std::once_flag once;
         std::call_once(once, [&] {
 
-            CodecPluginPointer pcmCodec(std::make_shared<PCMCodec>());
+            CodecPluginPointer pcmCodec(std::make_shared<PCMCodecManager>());
             if (pcmCodec->isSupported()) {
                 _codecPlugins.push_back(pcmCodec);
             }
 
-            CodecPluginPointer zlibCodec(std::make_shared<zLibCodec>());
+            CodecPluginPointer zlibCodec(std::make_shared<zLibCodecManager>());
             if (zlibCodec->isSupported()) {
                 _codecPlugins.push_back(zlibCodec);
             }

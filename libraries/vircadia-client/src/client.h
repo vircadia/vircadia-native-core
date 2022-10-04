@@ -4,6 +4,7 @@
 //
 //  Created by Nshan G. on 31 March 2022.
 //  Copyright 2022 Vircadia contributors.
+//  Copyright 2022 DigiSomni LLC.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -19,7 +20,12 @@
 #include "error.h"
 #include "context.h"
 #include "node_list.h"
+#include "node_types.h"
 #include "messages.h"
 #include "message_types.h"
+#include "avatars.h"
+#include "avatar_constants.h"
+#include "audio.h"
+#include "audio_constants.h"
 
 #endif /* end of include guard */

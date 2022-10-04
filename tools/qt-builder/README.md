@@ -192,9 +192,12 @@ Using 7-Zip:
 * `7z a -ttar qt5-install-5.15.2-windows.tar qt5-install`
 * `7z a -tgzip qt5-install-5.15.2-windows.tar.gz qt5-install-5.15.2-windows.tar`
 
-Upload qt5-install-5.15.2-windows.tar.gz to the Amazon S3 vircadia-public bucket, under the dependencies/vckpg directory.
-Update hifi_vcpkg.py to use this new URL. Additionally, you should make a small change to any file in the vircadia/cmake/ports
-directory to force the re-download of the qt-install.tar.gz during the build process for Vircadia.
+Upload `qt5-install-5.15.2-windows.tar.gz` to Vircadia IPFS gateway server
+(ipfs.vircadia.dev), add/pin it there with IPFS, add a location entry with
+file's CID in `/etc/nginx/sites-available/default`, similarly in [IPFS hashes
+JSON](https://github.com/vircadia/vircadia-ipfs-repo/blob/master/hashes.json)
+and update `cmake/ExternalAssetsConfig.cmake` to use the new CID and SHA512/MD5
+checksums.
 
 #### Preparing Symbols
 
@@ -281,7 +284,13 @@ find . -name \*.prl -exec sed -i -e '/^QMAKE_PRL_BUILD_DIR/d' {} \;
 ```bash
 tar -Jcvf qt5-install-5.15.2-ubuntu-18.04-amd64.tar.xz qt5-install
 ```
-2.  Upload qt5-install-5.15.2-ubuntu-18.04-amd64.tar.xz to https://athena-public.s3.amazonaws.com/dependencies/vcpkg/
+2.  Upload `qt5-install-5.15.2-ubuntu-18.04-amd64.tar.xz` to Vircadia IPFS
+    gateway server (ipfs.vircadia.dev), add/pin it with IPFS, add a location
+    entry with files CID in `/etc/nginx/sites-available/default`, similarly in
+    [IPFS hashes
+    JSON](https://github.com/vircadia/vircadia-ipfs-repo/blob/master/hashes.json)
+    and update `cmake/ExternalAssetsConfig.cmake` to use the new CID and
+    SHA512/MD5 checksums.
 
 
 
@@ -347,7 +356,13 @@ Add a *qt.conf* file.
 ```bash
 tar -Jcvf qt5-install-5.15.2-qtwebengine-5.15.7-macOSXSDK10.14-macos.tar.xz qt5-install
 ```
-Upload qt5-install-5.15.2-qtwebengine-5.15.7-macOSXSDK10.14-macos.tar.xz to our Amazon S3 vircadia-public bucket, under the dependencies/vckpg directory
+Upload `qt5-install-5.15.2-qtwebengine-5.15.7-macOSXSDK10.14-macos.tar.xz` to
+Vircadia IPFS gateway server (ipfs.vircadia.dev), add/pin it there with IPFS,
+add a location entry with file's CID in `/etc/nginx/sites-available/default`,
+similarly in [IPFS hashes
+JSON](https://github.com/vircadia/vircadia-ipfs-repo/blob/master/hashes.json)
+and update `cmake/ExternalAssetsConfig.cmake` to use the new CID and SHA512/MD5
+checksums.
 
 #### Creating symbols (optional)
 Run `python3 prepare-mac-symbols-for-backtrace.py qt5-install` to scan the qt5-build directory for any dylibs and execute dsymutil to create dSYM bundles.  After running this command the backtrace directory will be created.  Zip this directory up, but make sure that all dylibs and dSYM fiels are in the root of the zip file, not under a sub-directory.  This file can then be uploaded to backtrace or other crash log handling tool.

@@ -4,6 +4,7 @@
 //
 //  Created by Nshan G. on 25 March 2022.
 //  Copyright 2022 Vircadia contributors.
+//  Copyright 2022 DigiSomni LLC.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -17,7 +18,7 @@
 using namespace vircadia::client;
 
 int validMessageType(uint8_t type) {
-    if ((type & ~MESSAGE_TYPE_ANY) != 0)
+    if ((type & ~MESSAGE_TYPE_ALL) != 0)
         return toInt(ErrorCode::MESSAGE_TYPE_INVALID);
     return 0;
 }
@@ -73,19 +74,33 @@ int vircadia_enable_messages(int context_id, uint8_t type) {
     });
 }
 
+int anyTypesEnabled(const Context& context, uint8_t type) {
+    if (context.messages().isAnyEnabled(type)) {
+        return 0;
+    } else {
+        return toInt(ErrorCode::MESSAGE_TYPE_DISABLED);
+    }
+}
+
 VIRCADIA_CLIENT_DYN_API
 int vircadia_messages_subscribe(int context_id, const char* channel) {
     return chain(checkContextReady(context_id), [&](auto) {
-        std::next(std::begin(contexts), context_id)->messages().subscribe(channel);
-        return 0;
+        auto context = std::next(std::begin(contexts), context_id);
+        return chain(anyTypesEnabled(*context, MESSAGE_TYPE_ALL), [&](auto) {
+            context->messages().subscribe(channel);
+            return 0;
+        });
     });
 }
 
 VIRCADIA_CLIENT_DYN_API
 int vircadia_messages_unsubscribe(int context_id, const char* channel) {
     return chain(checkContextReady(context_id), [&](auto) {
-        std::next(std::begin(contexts), context_id)->messages().unsubscribe(channel);
-        return 0;
+        auto context = std::next(std::begin(contexts), context_id);
+        return chain(anyTypesEnabled(*context, MESSAGE_TYPE_ALL), [&](auto) {
+            context->messages().unsubscribe(channel);
+            return 0;
+        });
     });
 }
 

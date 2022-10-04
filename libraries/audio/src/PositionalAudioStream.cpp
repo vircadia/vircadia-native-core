@@ -81,7 +81,7 @@ int PositionalAudioStream::parsePositionalData(const QByteArray& positionalByteA
     packetStream.readRawData(reinterpret_cast<char*>(&_avatarBoundingBoxCorner), sizeof(_avatarBoundingBoxCorner));
     packetStream.readRawData(reinterpret_cast<char*>(&_avatarBoundingBoxScale), sizeof(_avatarBoundingBoxScale));
 
-    if (_avatarBoundingBoxCorner != _ignoreBox.getCorner()) {
+    if (_avatarBoundingBoxCorner != _ignoreBox.corner) {
         // if the ignore box corner changes, we need to re-calculate the ignore box
         calculateIgnoreBox();
     }
@@ -117,7 +117,7 @@ void PositionalAudioStream::calculateIgnoreBox() {
         scale *= IGNORE_BOX_SCALE_FACTOR;
 
         // create the box (we use a box for the zone for convenience)
-        _ignoreBox.setBox(_avatarBoundingBoxCorner, scale);
+        _ignoreBox = AABoxData{_avatarBoundingBoxCorner, scale};
     }
 }
 

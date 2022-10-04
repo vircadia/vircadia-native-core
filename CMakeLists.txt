@@ -227,9 +227,17 @@ set(BUILD_INSTALLER_OPTION ON)
 set(DISABLE_QML_OPTION OFF)
 set(DOWNLOAD_SERVERLESS_CONTENT_OPTION OFF)
 set(ENABLE_WEBRTC_DATA_CHANNELS_OPTION OFF)
+set(ENABLE_WEBRTC_AUDIO_OPTION OFF)
 
 if (WIN32 OR (UNIX AND NOT APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64"))
     set(ENABLE_WEBRTC_DATA_CHANNELS_OPTION ON)
+endif()
+
+if (WIN32 OR (UNIX AND NOT ANDROID AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64"))
+    # We don't yet have a working libwebrtc for android.
+    # WebRTC is difficult to build on aarch64 Linux.
+    # an alternative is https://gitlab.freedesktop.org/pulseaudio/webrtc-audio-processing.
+    set(ENABLE_WEBRTC_AUDIO_OPTION ON)
 endif()
 
 if (ANDROID OR UWP)
@@ -304,11 +312,16 @@ option(
   ${DOWNLOAD_SERVERLESS_CONTENT_OPTION}
 )
 option(ENABLE_WEBRTC_DATA_CHANNELS "Use WebRTC for client-server connection in parallel with UDP" ${ENABLE_WEBRTC_DATA_CHANNELS_OPTION})
+option(ENABLE_WEBRTC_AUDIO "Use WebRTC for audio processing (e.g. echo cancelation)." ${ENABLE_WEBRTC_AUDIO_OPTION})
 
 set(PLATFORM_QT_GL OpenGL)
 
 if (ENABLE_WEBRTC_DATA_CHANNELS)
   add_compile_definitions(WEBRTC_DATA_CHANNELS=1)
+endif()
+
+if (ENABLE_WEBRTC_AUDIO)
+  add_compile_definitions(WEBRTC_AUDIO=1)
 endif()
 
 if (USE_KHR_ROBUSTNESS)
@@ -338,6 +351,7 @@ MESSAGE(STATUS "Build installer:       " ${BUILD_INSTALLER})
 MESSAGE(STATUS "GL ES:                 " ${USE_GLES})
 MESSAGE(STATUS "DL serverless content: " ${DOWNLOAD_SERVERLESS_CONTENT})
 MESSAGE(STATUS "WebRTC Data Channels:  " ${ENABLE_WEBRTC_DATA_CHANNELS})
+MESSAGE(STATUS "WebRTC Audio:          " ${ENABLE_WEBRTC_AUDIO})
 MESSAGE(STATUS "Static standard libraries: " ${STATIC_STDLIB})
 MESSAGE(STATUS "Shared internal libraries: " ${BUILD_SHARED_LIBS})
 

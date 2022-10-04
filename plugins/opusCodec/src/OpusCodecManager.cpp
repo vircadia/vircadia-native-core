@@ -1,5 +1,5 @@
 //
-//  opusCodec.cpp
+//  OpusCodecManager.cpp
 //  plugins/opusCodec/src
 //
 //  Created by Michael Bailey on 12/20/2019
@@ -14,11 +14,8 @@
 #include <QtCore/QCoreApplication>
 
 #include <PerfStat.h>
-
-#include "OpusEncoder.h"
-#include "OpusDecoder.h"
-
-const char* AthenaOpusCodec::NAME { "opus" };
+#include <OpusEncoder.h>
+#include <OpusDecoder.h>
 
 void AthenaOpusCodec::init() {
 }
@@ -40,19 +37,23 @@ bool AthenaOpusCodec::isSupported() const {
     return true;
 }
 
+const QString AthenaOpusCodec::getName() const {
+    return OpusCodec::getName();
+}
+
 
 Encoder* AthenaOpusCodec::createEncoder(int sampleRate, int numChannels) {
-    return new AthenaOpusEncoder(sampleRate, numChannels);
+    return OpusCodec::createEncoder(sampleRate, numChannels);
 }
 
 Decoder* AthenaOpusCodec::createDecoder(int sampleRate, int numChannels) {
-    return new AthenaOpusDecoder(sampleRate, numChannels);
+    return OpusCodec::createDecoder(sampleRate, numChannels);
 }
 
 void AthenaOpusCodec::releaseEncoder(Encoder* encoder) {
-    delete encoder;
+    return OpusCodec::releaseEncoder(encoder);
 }
 
 void AthenaOpusCodec::releaseDecoder(Decoder* decoder) {
-    delete decoder;
+    return OpusCodec::releaseDecoder(decoder);
 }

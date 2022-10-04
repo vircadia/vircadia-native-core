@@ -13,15 +13,15 @@
 #define hifi__PCMCodecManager_h
 
 #include <plugins/CodecPlugin.h>
-#include <AudioConstants.h>
+#include <PCMCodec.h>
 
-class PCMCodec : public CodecPlugin, public Encoder, public Decoder {
+class PCMCodecManager : public CodecPlugin, public PCMCodec {
     Q_OBJECT
 
 public:
     // Plugin functions
     bool isSupported() const override;
-    const QString getName() const override { return NAME; }
+    const QString getName() const override;
 
     void init() override;
     void deinit() override;
@@ -35,31 +35,15 @@ public:
     virtual Decoder* createDecoder(int sampleRate, int numChannels) override;
     virtual void releaseEncoder(Encoder* encoder) override;
     virtual void releaseDecoder(Decoder* decoder) override;
-
-    virtual void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) override {
-        encodedBuffer = decodedBuffer;
-    }
-
-    virtual void decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) override {
-        decodedBuffer = encodedBuffer;
-    }
-
-    virtual void lostFrame(QByteArray& decodedBuffer) override {
-        decodedBuffer.resize(AudioConstants::NETWORK_FRAME_BYTES_STEREO);
-        memset(decodedBuffer.data(), 0, decodedBuffer.size());
-    }
-
-private:
-    static const char* NAME;
 };
 
-class zLibCodec : public CodecPlugin, public Encoder, public Decoder {
+class zLibCodecManager : public CodecPlugin, public zLibCodec {
     Q_OBJECT
 
 public:
     // Plugin functions
     bool isSupported() const override;
-    const QString getName() const override { return NAME; }
+    const QString getName() const override;
 
     void init() override;
     void deinit() override;
@@ -73,22 +57,6 @@ public:
     virtual Decoder* createDecoder(int sampleRate, int numChannels) override;
     virtual void releaseEncoder(Encoder* encoder) override;
     virtual void releaseDecoder(Decoder* decoder) override;
-
-    virtual void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) override {
-        encodedBuffer = qCompress(decodedBuffer);
-    }
-
-    virtual void decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) override {
-        decodedBuffer = qUncompress(encodedBuffer);
-    }
-
-    virtual void lostFrame(QByteArray& decodedBuffer) override {
-        decodedBuffer.resize(AudioConstants::NETWORK_FRAME_BYTES_STEREO);
-        memset(decodedBuffer.data(), 0, decodedBuffer.size());
-    }
-
-private:
-    static const char* NAME;
 };
 
 #endif // hifi__PCMCodecManager_h

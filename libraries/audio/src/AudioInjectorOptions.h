@@ -12,8 +12,6 @@
 #ifndef hifi_AudioInjectorOptions_h
 #define hifi_AudioInjectorOptions_h
 
-#include <QtScript/qscriptengine.h>
-
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
@@ -32,10 +30,5 @@ public:
     float secondOffset;
     float pitch;    // multiplier, where 2.0f shifts up one octave
 };
-
-Q_DECLARE_METATYPE(AudioInjectorOptions);
-
-QScriptValue injectorOptionsToScriptValue(QScriptEngine* engine, const AudioInjectorOptions& injectorOptions);
-void injectorOptionsFromScriptValue(const QScriptValue& object, AudioInjectorOptions& injectorOptions);
 
 #endif // hifi_AudioInjectorOptions_h

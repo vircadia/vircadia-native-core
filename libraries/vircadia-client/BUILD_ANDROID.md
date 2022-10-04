@@ -5,7 +5,7 @@ These are various hacks and workarounds I used to build the client library for A
 ### Pre requisites
 
 #### Android SDK and NDK, OpenJDK
-Install OpenJDK 8, should be available on most pretty much all linux distros.
+Install OpenJDK 8, should be available on most linux distros.
 ```
 sudo apt install openjdk-8-jdk
 ```
@@ -35,7 +35,7 @@ Build and install:
 make -j4
 make install -j4
 ```
-Qt is built for all architectures by default so you don't need to worry about that here.
+Qt is built for all architectures by default, so you don't need to worry about that here.
 
 #### TBB
 Clone oneTBB repo from github (mater is on 9d2a3477ce276d437bf34b1582781e5b11f9b37a at the time of writing this)
@@ -82,6 +82,20 @@ make -j4
 make install -j4
 ```
 
+#### Opus
+
+Download [opus-1.3.1.tar.gz source archive](https://archive.mozilla.org/pub/opus/opus-1.3.1.tar.gz).<br />
+Export the path to android NDK.
+```
+export NDk=/home/namark/dev/android/ndk/21.3.6528147
+```
+Create a build directory for specific architecture
+```
+mkdir build_armeabi-v7a
+cd build_armeabi-v7a
+```
+Configure build and install using [android/opus_configure_android.sh](android/opus_configure_android.sh), uncommenting the desired target architecture. The library will be installed in the build directory as under `opus_package`.<br />
+
 ### Project setup wreckage
 Make sure to navigate to the vircadia project root.<br />
 Apply wreckage.patch using git
@@ -89,8 +103,9 @@ Apply wreckage.patch using git
 git am libraries/vircadia-client/android/wreckage.patch
 ```
 
-Hardcode `QT_CMAKE_PTEFIX_PATH` for android in CMakeLists.txt in project root to the path of qt installation.<br />
-Hardcode `OPENSSL_INSTALL_DIR` for android in `cmake/macros/TargetOpenSSL.cmake` to the path of OpenSSl installation for desired architecture.<br />
+Hardcode `QT_CMAKE_PTEFIX_PATH` for android in CMakeLists.txt in project root to the path of the Qt installation.<br />
+Hardcode `OPENSSL_INSTALL_DIR` for android in `cmake/macros/TargetOpenSSL.cmake` to the path of the OpenSSL installation for desired architecture.<br />
+Hardcode `OPUS_INSTALL_DIR` for android in `cmake/macros/TargetOpus.cmake` to the path of the Opus installation for desired architecture.<br />
 Create a build directory for desired architecture.
 ```
 mkdir build_armeabi-v7a
@@ -98,7 +113,7 @@ cd build_armeabi-v7a
 ```
 Configure using the following cmake command, adjusting `-DCMAKE_TOOLCHAIN_FILE`, `-DANDROID_ABI` as in TBB instructions above, and -DTBB_DIR according to your TBB installation for specific architecture.
 ```
-cmake .. -DCMAKE_SYSTEM_NAME=Android -DCMAKE_TOOLCHAIN_FILE=/home/namark/dev/android/ndk-bundle/build/cmake/android.toolchain.cmake -DANDROID_ABI=armeabi-v7a -DANDROID_PLATFORM=android-28 -DHIFI_ANDROID=ON -DTBB_DIR=/home/namark/dev/oneTBB/build/tbb_install/lib/cmake/TBB -DHIFI_ANDROID_APP=dummy -DVIRCADIA_OPTIMIZE=OFF -DUSE_IPFS_EXTERNAL_BUILD_ASSETS=OFF -DVIRCADIA_CPU_ARCHITECTURE="" -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX:PATH=vircadia-client-package
+cmake .. -DCMAKE_SYSTEM_NAME=Android -DCMAKE_TOOLCHAIN_FILE=/home/namark/dev/android/ndk-bundle/build/cmake/android.toolchain.cmake -DANDROID_ABI=armeabi-v7a -DANDROID_PLATFORM=android-28 -DHIFI_ANDROID=ON -DTBB_DIR=/home/namark/dev/oneTBB/build/tbb_install/lib/cmake/TBB -DHIFI_ANDROID_APP=dummy -DVIRCADIA_OPTIMIZE=OFF -DVIRCADIA_CPU_ARCHITECTURE="" -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX:PATH=vircadia-client-package
 ```
 Note: First time cmake is ran it may produce an error about the compiler:
 ```
@@ -113,7 +128,7 @@ Running the second time fixes it somehow.
 
 Finally build and install the library (will be installed in `libraries/vircadia-client/vircadia-client-package` directory in the build directory).
 ```
-cmake --build . --target vircadia
+cmake --build . --config Release --target vircadia-client -j4
 cd libraries/vircadia-client
 cmake --build . --target install/strip
 ```

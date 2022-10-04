@@ -279,7 +279,7 @@ bool shouldBeSkipped(MixableStream& stream, const Node& listener,
     bool shouldCheckIgnoreBox = (listenerAudioStream.isIgnoreBoxEnabled() ||
                                  stream.positionalStream->isIgnoreBoxEnabled());
     if (shouldCheckIgnoreBox &&
-        listenerAudioStream.getIgnoreBox().touches(stream.positionalStream->getIgnoreBox())) {
+        isTouching(listenerAudioStream.getIgnoreBox(), stream.positionalStream->getIgnoreBox())) {
         return true;
     }
 
@@ -587,7 +587,7 @@ void AudioMixerSlave::updateHRTFParameters(AudioMixerClientData::MixableStream& 
     glm::vec3 relativePosition = streamToAdd->getPosition() - listeningNodeStream.getPosition();
 
     float distance = glm::max(glm::length(relativePosition), EPSILON);
-    float gain = isEcho ? 1.0f : computeGain(masterAvatarGain, masterInjectorGain, listeningNodeStream, *streamToAdd, 
+    float gain = isEcho ? 1.0f : computeGain(masterAvatarGain, masterInjectorGain, listeningNodeStream, *streamToAdd,
                                              relativePosition, distance);
     float azimuth = isEcho ? 0.0f : computeAzimuth(listeningNodeStream, listeningNodeStream, relativePosition);
 
@@ -815,14 +815,14 @@ float computeAzimuth(const AvatarAudioStream& listeningNodeStream,
 
     float rotatedSourcePositionLength2 = glm::length2(rotatedSourcePosition);
     if (rotatedSourcePositionLength2 > SOURCE_DISTANCE_THRESHOLD) {
-        
+
         // produce an oriented angle about the y-axis
         glm::vec3 direction = rotatedSourcePosition * (1.0f / fastSqrtf(rotatedSourcePositionLength2));
         float angle = fastAcosf(glm::clamp(-direction.z, -1.0f, 1.0f)); // UNIT_NEG_Z is "forward"
         return (direction.x < 0.0f) ? -angle : angle;
 
-    } else {   
+    } else {
         // no azimuth if they are in same spot
-        return 0.0f; 
+        return 0.0f;
     }
 }

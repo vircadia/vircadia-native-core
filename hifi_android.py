@@ -10,95 +10,75 @@ import zipfile
 
 print = functools.partial(print, flush=True)
 
-ANDROID_PACKAGE_URL = 'https://cdn-1.vircadia.com/eu-c-1/vircadia-public/dependencies/android/'
-
 ANDROID_PACKAGES = {
     'qt' : {
-        'file': 'qt-5.11.1_linux_armv8-libcpp_openssl_patched.tgz',
-        'checksum': 'aa449d4bfa963f3bc9a9dfe558ba29df',
+        'extAssetID': 'QT_LINUX_ARMV8_LIBCPP_OPENSSL_PATCHED',
     },
     'bullet': {
-        'file': 'bullet-2.88_armv8-libcpp.tgz',
-        'checksum': '81642779ccb110f8c7338e8739ac38a0',
-    },            
+        'extAssetID': 'BULLET_ARMV8_LIBCPP',
+    },
     'draco': {
-        'file': 'draco_armv8-libcpp.tgz',
-        'checksum': '617a80d213a5ec69fbfa21a1f2f738cd',
+        'extAssetID': 'DRACO_ARMV8_LIBCPP',
     },
     'glad': {
-        'file': 'glad_armv8-libcpp.zip',
-        'checksum': 'a8ee8584cf1ccd34766c7ddd9d5e5449',
+        'extAssetID': 'GLAD_ARMV8_LIBCPP',
     },
     'gvr': {
-        'file': 'gvrsdk_v1.101.0.tgz',
-        'checksum': '57fd02baa069176ba18597a29b6b4fc7',
+        'extAssetID': 'GVRSDK',
     },
     'nvtt': {
-        'file': 'nvtt_armv8-libcpp.zip',
-        'checksum': 'eb46d0b683e66987190ed124aabf8910',
+        'extAssetID': 'NVTT_ARMV8_LIBCPP',
         'sharedLibFolder': 'lib',
         'includeLibs': ['libnvtt.so', 'libnvmath.so', 'libnvimage.so', 'libnvcore.so']
     },
     'ovr_sdk_mobile_1.37.0': {
-        'file': 'ovr_sdk_mobile_1.37.0.zip',
-        'checksum': '6040e1966f335a3e5015295154cd7383',
+        'extAssetID': 'OVR_SDK_MOBILE',
         'sharedLibFolder': 'VrApi/Libs/Android/arm64-v8a/Release',
         'includeLibs': ['libvrapi.so']
     },
     'ovr_platform_sdk_23.0.0': {
-        'file': 'ovr_platform_sdk_23.0.0.zip',
-        'checksum': '29d02b560f60d0fa7b8a64cd965dd55b',
+        'extAssetID': 'OVR_PLATFORM_SDK_ANDROID',
         'sharedLibFolder': 'Android/libs/arm64-v8a',
         'includeLibs': ['libovrplatformloader.so']
     },
     'openssl': {
-        'file': 'openssl-1.1.0g_armv8.tgz',
-        'checksum': 'cabb681fbccd79594f65fcc266e02f32'
+        'extAssetID': 'OPENSSL_ANDROID',
     },
     'polyvox': {
-        'file': 'polyvox_armv8-libcpp.tgz',
-        'checksum': 'dba88b3a098747af4bb169e9eb9af57e',
+        'extAssetID': 'POLYVOX_ARMV8_LIBCPP',
         'sharedLibFolder': 'lib',
         'includeLibs': ['Release/libPolyVoxCore.so', 'libPolyVoxUtil.so'],
     },
     'tbb': {
-        'file': 'tbb-2018_U1_armv8_libcpp.tgz',
-        'checksum': '20768f298f53b195e71b414b0ae240c4',
+        'extAssetID': 'TBB_ARMV8_LIBCPP',
         'sharedLibFolder': 'lib/release',
         'includeLibs': ['libtbb.so', 'libtbbmalloc.so'],
     },
     'hifiAC': {
-        'baseUrl': 'https://cdn-1.vircadia.com/eu-c-1/vircadia-public/dependencies/',
-        'file': 'codecSDK-android_armv8-2.0.zip',
-        'checksum': '1cbef929675818fc64c4101b72f84a6a'
+        'extAssetID': 'CODECSDK_ANDROID_ARMV8',
     },
     'etc2comp': {
-        'file': 'etc2comp-patched-armv8-libcpp.tgz',
-        'checksum': '14b02795d774457a33bbc60e00a786bc'
+        'extAssetID': 'ETC2COMP_PATCHED_ARMV8_LIBCPP',
     },
     'breakpad': {
-        'file': 'breakpad.tgz',
-        'checksum': 'ddcb23df336b08017042ba4786db1d9e',
+        'extAssetID': 'BREAKPAD',
         'sharedLibFolder': 'lib',
         'includeLibs': {'libbreakpad_client.a'}
     },
     'webrtc': {
-        'file': 'webrtc-20190626-android.tar.gz',
-        'checksum': 'e2dccd3d8efdcba6d428c87ba7fb2a53'
+        'extAssetID': 'WEBRTC_ANDROID',
     }
 }
 
 ANDROID_PLATFORM_PACKAGES = {
     'Darwin' : {
         'qt': {
-            'file': 'qt-5.11.1_osx_armv8-libcpp_openssl_patched.tgz',
-            'checksum': 'c83cc477c08a892e00c71764dca051a0'
+            'extAssetID': 'QT_MAC_ARMV8_LIBCPP_OPENSSL_PATCHED',
         },
     },
     'Windows' : {
         'qt': {
-            'file': 'qt-5.11.1_win_armv8-libcpp_openssl_patched.tgz',
-            'checksum': '0582191cc55431aa4f660848a542883e'
+            'extAssetID': 'QT_WIN_ARMV8_LIBCPP_OPENSSL_PATCHED',
         },
     }
 }
@@ -133,15 +113,6 @@ def getPlatformPackages():
         platformPackages = ANDROID_PLATFORM_PACKAGES[system]
         result = { **result, **platformPackages }
     return result
-
-def getPackageUrl(package):
-    url = ANDROID_PACKAGE_URL
-    if 'baseUrl' in package:
-        url = package['baseUrl']
-    url += package['file']
-    if 'versionId' in package:
-        url += '?versionId=' + package['versionId']
-    return url
 
 def copyAndroidLibs(packagePath, appPath):
     androidPackages = getPlatformPackages()
@@ -211,7 +182,7 @@ class QtPackager:
                 continue
 
             tree = ET.parse(androidDeps)
-            root = tree.getroot()                
+            root = tree.getroot()
             for item in root.findall('./dependencies/lib/depends/*'):
                 if (item.tag == 'lib') or (item.tag == 'bundled'):
                     relativeFilename = item.attrib['file']
@@ -236,8 +207,8 @@ class QtPackager:
         qmlRootPath = hifi_utils.scriptRelative('interface/resources/qml')
         qmlImportPath = os.path.join(self.qtRootPath, 'qml')
         commandResult = hifi_utils.executeSubprocessCapture([
-            qmlImportCommandFile, 
-            '-rootPath', qmlRootPath, 
+            qmlImportCommandFile,
+            '-rootPath', qmlRootPath,
             '-importPath', qmlImportPath
         ])
         qmlImportResults = json.loads(commandResult)
@@ -318,15 +289,15 @@ class QtPackager:
         #
         # Gradle version
         #
-        # DataOutputStream fos = new DataOutputStream(new FileOutputStream(outputFile));
+        # DataOutputStream fos = new DataOutputStream(new FileOutputStream(outputFile))
         # for (Map.Entry<String, List<String>> e: directoryContents.entrySet()) {
         #     def entryList = e.getValue()
         #     fos.writeInt(e.key.length()*2); // 2 bytes per char
-        #     fos.writeChars(e.key);
-        #     fos.writeInt(entryList.size());
+        #     fos.writeChars(e.key)
+        #     fos.writeInt(entryList.size())
         #     for (String entry: entryList) {
-        #         fos.writeInt(entry.length()*2);
-        #         fos.writeChars(entry);
+        #         fos.writeInt(entry.length()*2)
+        #         fos.writeChars(entry)
         #     }
         # }
 

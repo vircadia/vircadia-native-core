@@ -4,6 +4,7 @@
 //
 //  Created by Nshan G. on 27 March 2022.
 //  Copyright 2022 Vircadia contributors.
+//  Copyright 2022 DigiSomni LLC.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -24,6 +25,8 @@
 #include "../context.h"
 #include "Common.h"
 #include "Messages.h"
+#include "Audio.h"
+#include "Avatars.h"
 
 class QCoreApplication;
 
@@ -35,6 +38,11 @@ namespace vircadia::client {
         bool active;
         std::string address;
         UUID uuid;
+
+        float inboundPPS;
+        float outboundPPS;
+        float inboundKbps;
+        float outboundKbps;
     };
 
     /// @private
@@ -57,10 +65,19 @@ namespace vircadia::client {
         Messages& messages();
         const Messages& messages() const;
 
+        Audio& audio();
+        const Audio& audio() const;
+
+        Avatars& avatars();
+        const Avatars& avatars() const;
+
+        const UUID& getSessionUUID() const;
+
     private:
         std::thread appThread {};
         std::atomic<QCoreApplication*> app {};
         std::vector<NodeData> nodes {};
+        UUID sessionUUID {};
         std::promise<void> qtInitialized {};
 
         int argc;
@@ -68,6 +85,8 @@ namespace vircadia::client {
         char* argv;
 
         Messages messages_;
+        Audio audio_;
+        Avatars avatars_;
     };
 
     extern std::list<Context> contexts;

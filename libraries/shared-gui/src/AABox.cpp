@@ -20,102 +20,101 @@
 const glm::vec3 AABox::INFINITY_VECTOR(std::numeric_limits<float>::infinity());
 
 AABox::AABox(const AACube& other) :
-    _corner(other.getCorner()), _scale(other.getScale(), other.getScale(), other.getScale()) {
+    _data{other.getCorner(), {other.getScale(), other.getScale(), other.getScale()}} {
 }
 
 AABox::AABox(const Extents& other) :
-    _corner(other.minimum),
-    _scale(other.maximum - other.minimum) {
+    _data{other.minimum, other.maximum - other.minimum} {
 }
 
 AABox::AABox(const glm::vec3& corner, float size) :
-    _corner(corner), _scale(size, size, size) {
+    _data{corner, {size, size, size}} {
 };
 
 AABox::AABox(const glm::vec3& corner, const glm::vec3& dimensions) :
-    _corner(corner), _scale(dimensions) {
+    _data{corner, dimensions} {
 };
 
-AABox::AABox() : _corner(INFINITY_VECTOR), _scale(0.0f) {
+AABox::AABox() : _data{INFINITY_VECTOR, Vectors::ZERO} {
 };
 
 glm::vec3 AABox::calcCenter() const {
-    glm::vec3 center(_corner);
-    center += (_scale * 0.5f);
+    glm::vec3 center(_data.corner);
+    center += (_data.scale * 0.5f);
     return center;
 }
 
 glm::vec3 AABox::getVertex(BoxVertex vertex) const {
     switch (vertex) {
         case BOTTOM_LEFT_NEAR:
-            return _corner + glm::vec3(_scale.x, 0, 0);
+            return _data.corner + glm::vec3(_data.scale.x, 0, 0);
         case BOTTOM_RIGHT_NEAR:
-            return _corner;
+            return _data.corner;
         case TOP_RIGHT_NEAR:
-            return _corner + glm::vec3(0, _scale.y, 0);
+            return _data.corner + glm::vec3(0, _data.scale.y, 0);
         case TOP_LEFT_NEAR:
-            return _corner + glm::vec3(_scale.x, _scale.y, 0);
+            return _data.corner + glm::vec3(_data.scale.x, _data.scale.y, 0);
         case BOTTOM_LEFT_FAR:
-            return _corner + glm::vec3(_scale.x, 0, _scale.z);
+            return _data.corner + glm::vec3(_data.scale.x, 0, _data.scale.z);
         case BOTTOM_RIGHT_FAR:
-            return _corner + glm::vec3(0, 0, _scale.z);
+            return _data.corner + glm::vec3(0, 0, _data.scale.z);
         case TOP_RIGHT_FAR:
-            return _corner + glm::vec3(0, _scale.y, _scale.z);
+            return _data.corner + glm::vec3(0, _data.scale.y, _data.scale.z);
         default: //quiet windows warnings
         case TOP_LEFT_FAR:
-            return _corner + _scale;
+            return _data.corner + _data.scale;
     }
 }
 
 void AABox::setBox(const glm::vec3& corner, float scale) {
-    _corner = corner;
-    _scale = glm::vec3(scale, scale, scale);
+    _data.corner = corner;
+    _data.scale = glm::vec3(scale, scale, scale);
 }
 
 void AABox::setBox(const glm::vec3& corner, const glm::vec3& scale) {
-    _corner = corner;
-    _scale = scale;
+    _data.corner = corner;
+    _data.scale = scale;
 }
 
 glm::vec3 AABox::getFarthestVertex(const glm::vec3& normal) const {
-    glm::vec3 result = _corner;
+    glm::vec3 result = _data.corner;
     // This is a branchless version of:
     //if (normal.x > 0.0f) {
-    //    result.x += _scale.x;
+    //    result.x += _data.scale.x;
     //}
     //if (normal.y > 0.0f) {
-    //    result.y += _scale.y;
+    //    result.y += _data.scale.y;
     //}
     //if (normal.z > 0.0f) {
-    //    result.z += _scale.z;
+    //    result.z += _data.scale.z;
     //}
     float blend = (float)(normal.x > 0.0f);
-    result.x += blend * _scale.x + (1.0f - blend) * 0.0f;
+    result.x += blend * _data.scale.x + (1.0f - blend) * 0.0f;
     blend = (float)(normal.y > 0.0f);
-    result.y += blend * _scale.y + (1.0f - blend) * 0.0f;
+    result.y += blend * _data.scale.y + (1.0f - blend) * 0.0f;
     blend = (float)(normal.z > 0.0f);
-    result.z += blend * _scale.z + (1.0f - blend) * 0.0f;
+    result.z += blend * _data.scale.z + (1.0f - blend) * 0.0f;
     return result;
 }
 
 glm::vec3 AABox::getNearestVertex(const glm::vec3& normal) const {
-    glm::vec3 result = _corner;
+    glm::vec3 result = _data.corner;
     // This is a branchless version of:
     //if (normal.x < 0.0f) {
-    //    result.x += _scale.x;
+    //    result.x += _data.scale.x;
     //}
     //if (normal.y < 0.0f) {
-    //    result.y += _scale.y;
+    //    result.y += _data.scale.y;
     //}
     //if (normal.z < 0.0f) {
-    //    result.z += _scale.z;
+    //    result.z += _data.scale.z;
     //}
     float blend = (float)(normal.x < 0.0f);
-    result.x += blend * _scale.x + (1.0f - blend) * 0.0f;
+    result.x += blend * _data.scale.x + (1.0f - blend) * 0.0f;
     blend = (float)(normal.y < 0.0f);
-    result.y += blend * _scale.y + (1.0f - blend) * 0.0f;
+    result.y += blend * _data.scale.y + (1.0f - blend) * 0.0f;
     blend = (float)(normal.z < 0.0f);
-    result.z += blend * _scale.z + (1.0f - blend) * 0.0f;
+    result.z += blend * _data.scale.z + (1.0f - blend) * 0.0f;
     return result;
 }
 
@@ -124,7 +123,7 @@ bool AABox::contains(const Triangle& triangle) const {
 }
 
 bool AABox::contains(const glm::vec3& point) const {
-    return aaBoxContains(point, _corner, _scale);
+    return aaBoxContains(point, _data.corner, _data.scale);
 }
 
 bool AABox::contains(const AABox& otherBox) const {
@@ -138,13 +137,7 @@ bool AABox::contains(const AABox& otherBox) const {
 }
 
 bool AABox::touches(const AABox& otherBox) const {
-    glm::vec3 relativeCenter = _corner - otherBox._corner + ((_scale - otherBox._scale) * 0.5f);
-
-    glm::vec3 totalHalfScale = (_scale + otherBox._scale) * 0.5f;
-
-    return fabsf(relativeCenter.x) <= totalHalfScale.x &&
-        fabsf(relativeCenter.y) <= totalHalfScale.y &&
-        fabsf(relativeCenter.z) <= totalHalfScale.z;
+    return isTouching(_data, otherBox._data);
 }
 
 bool AABox::contains(const AACube& otherCube) const {
@@ -158,9 +151,9 @@ bool AABox::contains(const AACube& otherCube) const {
 }
 
 bool AABox::touches(const AACube& otherCube) const {
-    glm::vec3 relativeCenter = _corner - otherCube.getCorner() + ((_scale - otherCube.getDimensions()) * 0.5f);
+    glm::vec3 relativeCenter = _data.corner - otherCube.getCorner() + ((_data.scale - otherCube.getDimensions()) * 0.5f);
 
-    glm::vec3 totalHalfScale = (_scale + otherCube.getDimensions()) * 0.5f;
+    glm::vec3 totalHalfScale = (_data.scale + otherCube.getDimensions()) * 0.5f;
 
     return fabsf(relativeCenter.x) <= totalHalfScale.x &&
         fabsf(relativeCenter.y) <= totalHalfScale.y &&
@@ -173,9 +166,9 @@ static bool isWithinExpanded(float value, float corner, float size, float expans
 }
 
 bool AABox::expandedContains(const glm::vec3& point, float expansion) const {
-    return isWithinExpanded(point.x, _corner.x, _scale.x, expansion) &&
-        isWithinExpanded(point.y, _corner.y, _scale.y, expansion) &&
-        isWithinExpanded(point.z, _corner.z, _scale.z, expansion);
+    return isWithinExpanded(point.x, _data.corner.x, _data.scale.x, expansion) &&
+        isWithinExpanded(point.y, _data.corner.y, _data.scale.y, expansion) &&
+        isWithinExpanded(point.z, _data.corner.z, _data.scale.z, expansion);
 }
 
 bool AABox::expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& end, float expansion) const {
@@ -184,8 +177,8 @@ bool AABox::expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& e
         return true;
     }
     // check each axis
-    glm::vec3 expandedCorner = _corner - glm::vec3(expansion, expansion, expansion);
-    glm::vec3 expandedSize = _scale + glm::vec3(expansion, expansion, expansion) * 2.0f;
+    glm::vec3 expandedCorner = _data.corner - glm::vec3(expansion, expansion, expansion);
+    glm::vec3 expandedSize = _data.scale + glm::vec3(expansion, expansion, expansion) * 2.0f;
     glm::vec3 direction = end - start;
     float axisDistance;
     return (findIntersection(start.x, direction.x, expandedCorner.x, expandedSize.x, axisDistance) &&
@@ -204,19 +197,19 @@ bool AABox::expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& e
 
 bool AABox::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& invDirection,
                                 float& distance, BoxFace& face, glm::vec3& surfaceNormal) const {
-    return findRayAABoxIntersection(origin, direction, invDirection, _corner, _scale, distance, face, surfaceNormal);
+    return findRayAABoxIntersection(origin, direction, invDirection, _data.corner, _data.scale, distance, face, surfaceNormal);
 }
 
 bool AABox::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
                                      float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal) const {
-    return findParabolaAABoxIntersection(origin, velocity, acceleration, _corner, _scale, parabolicDistance, face, surfaceNormal);
+    return findParabolaAABoxIntersection(origin, velocity, acceleration, _data.corner, _data.scale, parabolicDistance, face, surfaceNormal);
 }
 
 bool AABox::rayHitsBoundingSphere(const glm::vec3& origin, const glm::vec3& direction) const {
     glm::vec3 localCenter = calcCenter() - origin;
     float distance = glm::dot(localCenter, direction);
     const float ONE_OVER_TWO_SQUARED = 0.25f;
-    float radiusSquared = ONE_OVER_TWO_SQUARED * glm::length2(_scale);
+    float radiusSquared = ONE_OVER_TWO_SQUARED * glm::length2(_data.scale);
     return (glm::length2(localCenter) < radiusSquared
             || (glm::abs(distance) > 0.0f && glm::distance2(distance * direction, localCenter) < radiusSquared));
 }
@@ -224,7 +217,7 @@ bool AABox::rayHitsBoundingSphere(const glm::vec3& origin, const glm::vec3& dire
 bool AABox::parabolaPlaneIntersectsBoundingSphere(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration, const glm::vec3& normal) const {
     glm::vec3 localCenter = calcCenter() - origin;
     const float ONE_OVER_TWO_SQUARED = 0.25f;
-    float radiusSquared = ONE_OVER_TWO_SQUARED * glm::length2(_scale);
+    float radiusSquared = ONE_OVER_TWO_SQUARED * glm::length2(_data.scale);
 
     // origin is inside the sphere
     if (glm::length2(localCenter) < radiusSquared) {
@@ -246,7 +239,7 @@ bool AABox::parabolaPlaneIntersectsBoundingSphere(const glm::vec3& origin, const
 
 bool AABox::touchesSphere(const glm::vec3& center, float radius) const {
     // Avro's algorithm from this paper: http://www.mrtc.mdh.se/projects/3Dgraphics/paperF.pdf
-    glm::vec3 e = glm::max(_corner - center, Vectors::ZERO) + glm::max(center - _corner - _scale, Vectors::ZERO);
+    glm::vec3 e = glm::max(_data.corner - center, Vectors::ZERO) + glm::max(center - _data.corner - _data.scale, Vectors::ZERO);
     return glm::length2(e) <= radius * radius;
 }
 
@@ -304,29 +297,29 @@ bool AABox::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end,
 glm::vec3 AABox::getClosestPointOnFace(const glm::vec3& point, BoxFace face) const {
     switch (face) {
         case MIN_X_FACE:
-            return glm::clamp(point, glm::vec3(_corner.x, _corner.y, _corner.z),
-                glm::vec3(_corner.x, _corner.y + _scale.y, _corner.z + _scale.z));
+            return glm::clamp(point, glm::vec3(_data.corner.x, _data.corner.y, _data.corner.z),
+                glm::vec3(_data.corner.x, _data.corner.y + _data.scale.y, _data.corner.z + _data.scale.z));
 
         case MAX_X_FACE:
-            return glm::clamp(point, glm::vec3(_corner.x + _scale.x, _corner.y, _corner.z),
-                glm::vec3(_corner.x + _scale.x, _corner.y + _scale.y, _corner.z + _scale.z));
+            return glm::clamp(point, glm::vec3(_data.corner.x + _data.scale.x, _data.corner.y, _data.corner.z),
+                glm::vec3(_data.corner.x + _data.scale.x, _data.corner.y + _data.scale.y, _data.corner.z + _data.scale.z));
 
         case MIN_Y_FACE:
-            return glm::clamp(point, glm::vec3(_corner.x, _corner.y, _corner.z),
-                glm::vec3(_corner.x + _scale.x, _corner.y, _corner.z + _scale.z));
+            return glm::clamp(point, glm::vec3(_data.corner.x, _data.corner.y, _data.corner.z),
+                glm::vec3(_data.corner.x + _data.scale.x, _data.corner.y, _data.corner.z + _data.scale.z));
 
         case MAX_Y_FACE:
-            return glm::clamp(point, glm::vec3(_corner.x, _corner.y + _scale.y, _corner.z),
-                glm::vec3(_corner.x + _scale.x, _corner.y + _scale.y, _corner.z + _scale.z));
+            return glm::clamp(point, glm::vec3(_data.corner.x, _data.corner.y + _data.scale.y, _data.corner.z),
+                glm::vec3(_data.corner.x + _data.scale.x, _data.corner.y + _data.scale.y, _data.corner.z + _data.scale.z));
 
         case MIN_Z_FACE:
-            return glm::clamp(point, glm::vec3(_corner.x, _corner.y, _corner.z),
-                glm::vec3(_corner.x + _scale.x, _corner.y + _scale.y, _corner.z));
+            return glm::clamp(point, glm::vec3(_data.corner.x, _data.corner.y, _data.corner.z),
+                glm::vec3(_data.corner.x + _data.scale.x, _data.corner.y + _data.scale.y, _data.corner.z));
 
         default: //quiet windows warnings
         case MAX_Z_FACE:
-            return glm::clamp(point, glm::vec3(_corner.x, _corner.y, _corner.z + _scale.z),
-                glm::vec3(_corner.x + _scale.x, _corner.y + _scale.y, _corner.z + _scale.z));
+            return glm::clamp(point, glm::vec3(_data.corner.x, _data.corner.y, _data.corner.z + _data.scale.z),
+                glm::vec3(_data.corner.x + _data.scale.x, _data.corner.y + _data.scale.y, _data.corner.z + _data.scale.z));
     }
 }
 
@@ -376,7 +369,7 @@ glm::vec3 AABox::getClosestPointOnFace(const glm::vec4& origin, const glm::vec4&
         glm::vec4 thirdAxisMaxPlane = getPlane((BoxFace)(thirdAxis * 2 + 1));
 
         glm::vec4 offset = glm::vec4(0.0f, 0.0f, 0.0f,
-            glm::dot(glm::vec3(secondAxisMaxPlane + thirdAxisMaxPlane), _scale) * 0.5f);
+            glm::dot(glm::vec3(secondAxisMaxPlane + thirdAxisMaxPlane), _data.scale) * 0.5f);
         glm::vec4 diagonals[] = { secondAxisMinPlane + thirdAxisMaxPlane + offset,
             secondAxisMaxPlane + thirdAxisMaxPlane + offset };
 
@@ -399,12 +392,12 @@ glm::vec3 AABox::getClosestPointOnFace(const glm::vec4& origin, const glm::vec4&
 
 bool AABox::touchesAAEllipsoid(const glm::vec3& center, const glm::vec3& radials) const {
     // handle case where ellipsoid's alix-aligned box doesn't touch this AABox
-    if (_corner.x - radials.x > center.x ||
-        _corner.y - radials.y > center.y ||
-        _corner.z - radials.z > center.z ||
-        _corner.x + _scale.x + radials.x < center.x ||
-        _corner.y + _scale.y + radials.y < center.y ||
-        _corner.z + _scale.z + radials.z < center.z) {
+    if (_data.corner.x - radials.x > center.x ||
+        _data.corner.y - radials.y > center.y ||
+        _data.corner.z - radials.z > center.z ||
+        _data.corner.x + _data.scale.x + radials.x < center.x ||
+        _data.corner.y + _data.scale.y + radials.y < center.y ||
+        _data.corner.z + _data.scale.z + radials.z < center.z) {
         return false;
     }
 
@@ -431,13 +424,13 @@ bool AABox::touchesAAEllipsoid(const glm::vec3& center, const glm::vec3& radials
 
 glm::vec4 AABox::getPlane(BoxFace face) const {
     switch (face) {
-        case MIN_X_FACE: return glm::vec4(-1.0f, 0.0f, 0.0f, _corner.x);
-        case MAX_X_FACE: return glm::vec4(1.0f, 0.0f, 0.0f, -_corner.x - _scale.x);
-        case MIN_Y_FACE: return glm::vec4(0.0f, -1.0f, 0.0f, _corner.y);
-        case MAX_Y_FACE: return glm::vec4(0.0f, 1.0f, 0.0f, -_corner.y - _scale.y);
-        case MIN_Z_FACE: return glm::vec4(0.0f, 0.0f, -1.0f, _corner.z);
+        case MIN_X_FACE: return glm::vec4(-1.0f, 0.0f, 0.0f, _data.corner.x);
+        case MAX_X_FACE: return glm::vec4(1.0f, 0.0f, 0.0f, -_data.corner.x - _data.scale.x);
+        case MIN_Y_FACE: return glm::vec4(0.0f, -1.0f, 0.0f, _data.corner.y);
+        case MAX_Y_FACE: return glm::vec4(0.0f, 1.0f, 0.0f, -_data.corner.y - _data.scale.y);
+        case MIN_Z_FACE: return glm::vec4(0.0f, 0.0f, -1.0f, _data.corner.z);
         default: //quiet windows warnings
-        case MAX_Z_FACE: return glm::vec4(0.0f, 0.0f, 1.0f, -_corner.z - _scale.z);
+        case MAX_Z_FACE: return glm::vec4(0.0f, 0.0f, 1.0f, -_data.corner.z - _data.scale.z);
     }
 }
 
@@ -454,7 +447,7 @@ BoxFace AABox::getOppositeFace(BoxFace face) {
 }
 
 AABox AABox::clamp(const glm::vec3& min, const glm::vec3& max) const {
-    glm::vec3 clampedCorner = glm::clamp(_corner, min, max);
+    glm::vec3 clampedCorner = glm::clamp(_data.corner, min, max);
     glm::vec3 clampedTopFarLeft = glm::clamp(calcTopFarLeft(), min, max);
     glm::vec3 clampedScale = clampedTopFarLeft - clampedCorner;
 
@@ -462,7 +455,7 @@ AABox AABox::clamp(const glm::vec3& min, const glm::vec3& max) const {
 }
 
 AABox AABox::clamp(float min, float max) const {
-    glm::vec3 clampedCorner = glm::clamp(_corner, min, max);
+    glm::vec3 clampedCorner = glm::clamp(_data.corner, min, max);
     glm::vec3 clampedTopFarLeft = glm::clamp(calcTopFarLeft(), min, max);
     glm::vec3 clampedScale = clampedTopFarLeft - clampedCorner;
 
@@ -470,33 +463,33 @@ AABox AABox::clamp(float min, float max) const {
 }
 
 void AABox::embiggen(float scale) {
-    _corner += scale * (-0.5f * _scale);
-    _scale *= scale;
+    _data.corner += scale * (-0.5f * _data.scale);
+    _data.scale *= scale;
 }
 
 void AABox::embiggen(const glm::vec3& scale) {
-    _corner += scale * (-0.5f * _scale);
-    _scale *= scale;
+    _data.corner += scale * (-0.5f * _data.scale);
+    _data.scale *= scale;
 }
 
 void AABox::setScaleStayCentered(const glm::vec3& scale) {
-    _corner -= 0.5f * (scale - _scale);
-    _scale = scale;
+    _data.corner -= 0.5f * (scale - _data.scale);
+    _data.scale = scale;
 }
 
 void AABox::scale(float scale) {
-    _corner *= scale;
-    _scale *= scale;
+    _data.corner *= scale;
+    _data.scale *= scale;
 }
 
 void AABox::scale(const glm::vec3& scale) {
-    _corner *= scale;
-    _scale *= scale;
+    _data.corner *= scale;
+    _data.scale *= scale;
 }
 
 void AABox::rotate(const glm::quat& rotation) {
-    auto minimum = _corner;
-    auto maximum = _corner + _scale;
+    auto minimum = _data.corner;
+    auto maximum = _data.corner + _data.scale;
 
     glm::vec3 bottomLeftNear(minimum.x, minimum.y, minimum.z);
     glm::vec3 bottomRightNear(maximum.x, minimum.y, minimum.z);
@@ -534,8 +527,8 @@ void AABox::rotate(const glm::quat& rotation) {
         glm::max(topLeftFarRotated,
         topRightFarRotated)))))));
 
-    _corner = minimum;
-    _scale = maximum - minimum;
+    _data.corner = minimum;
+    _data.scale = maximum - minimum;
 }
 
 void AABox::transform(const Transform& transform) {
@@ -547,8 +540,8 @@ void AABox::transform(const Transform& transform) {
 // Logic based on http://clb.demon.fi/MathGeoLib/nightly/docs/AABB.cpp_code.html#471
 void AABox::transform(const glm::mat4& matrix) {
     // FIXME use simd operations
-    auto halfSize = _scale * 0.5f;
-    auto center = _corner + halfSize;
+    auto halfSize = _data.scale * 0.5f;
+    auto center = _data.corner + halfSize;
     halfSize = abs(halfSize);
     auto mm = glm::transpose(glm::mat3(matrix));
     vec3 newDir = vec3(
@@ -558,43 +551,43 @@ void AABox::transform(const glm::mat4& matrix) {
     );
 
     auto newCenter = transformPoint(matrix, center);
-    _corner = newCenter - newDir;
-    _scale = newDir * 2.0f;
+    _data.corner = newCenter - newDir;
+    _data.scale = newDir * 2.0f;
 }
 
 AABox AABox::getOctreeChild(OctreeChild child) const {
     AABox result(*this); // self
     switch (child) {
         case topLeftNear:
-            result._corner.y += _scale.y / 2.0f;
+            result._data.corner.y += _data.scale.y / 2.0f;
             break;
         case topLeftFar:
-            result._corner.y += _scale.y / 2.0f;
-            result._corner.z += _scale.z / 2.0f;
+            result._data.corner.y += _data.scale.y / 2.0f;
+            result._data.corner.z += _data.scale.z / 2.0f;
             break;
         case topRightNear:
-            result._corner.y += _scale.y / 2.0f;
-            result._corner.x += _scale.x / 2.0f;
+            result._data.corner.y += _data.scale.y / 2.0f;
+            result._data.corner.x += _data.scale.x / 2.0f;
             break;
         case topRightFar:
-            result._corner.y += _scale.y / 2.0f;
-            result._corner.x += _scale.x / 2.0f;
-            result._corner.z += _scale.z / 2.0f;
+            result._data.corner.y += _data.scale.y / 2.0f;
+            result._data.corner.x += _data.scale.x / 2.0f;
+            result._data.corner.z += _data.scale.z / 2.0f;
             break;
         case bottomLeftNear:
-            // _corner = same as parent
+            // _data.corner = same as parent
             break;
         case bottomLeftFar:
-            result._corner.z += _scale.z / 2.0f;
+            result._data.corner.z += _data.scale.z / 2.0f;
             break;
         case bottomRightNear:
-            result._corner.x += _scale.x / 2.0f;
+            result._data.corner.x += _data.scale.x / 2.0f;
             break;
         case bottomRightFar:
-            result._corner.x += _scale.x / 2.0f;
-            result._corner.z += _scale.z / 2.0f;
+            result._data.corner.x += _data.scale.x / 2.0f;
+            result._data.corner.z += _data.scale.z / 2.0f;
             break;
     }
-    result._scale /= 2.0f; // everything is half the scale
+    result._data.scale /= 2.0f; // everything is half the scale
     return result;
 }

@@ -10,26 +10,14 @@
 //
 #pragma once
 
+#include <Codec.h>
+
 #include "Plugin.h"
 
-class Encoder {
+class CodecPlugin : public Plugin, public Codec {
 public:
-    virtual ~Encoder() { }
-    virtual void encode(const QByteArray& decodedBuffer, QByteArray& encodedBuffer) = 0;
+    const QString getName() const override {
+        return static_cast<const Codec*>(this)->getName();
+    }
 };
 
-class Decoder {
-public:
-    virtual ~Decoder() { }
-    virtual void decode(const QByteArray& encodedBuffer, QByteArray& decodedBuffer) = 0;
-
-    virtual void lostFrame(QByteArray& decodedBuffer) = 0;
-};
-
-class CodecPlugin : public Plugin {
-public:
-    virtual Encoder* createEncoder(int sampleRate, int numChannels) = 0;
-    virtual Decoder* createDecoder(int sampleRate, int numChannels) = 0;
-    virtual void releaseEncoder(Encoder* encoder) = 0;
-    virtual void releaseDecoder(Decoder* decoder) = 0;
-};

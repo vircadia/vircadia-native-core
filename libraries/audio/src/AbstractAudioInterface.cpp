@@ -13,12 +13,13 @@
 #include <DependencyManager.h>
 #include <NodeList.h>
 #include <NLPacket.h>
-#include <Transform.h>
+
+#include <GLMHelpers.h>
 
 #include "AudioConstants.h"
 
 void AbstractAudioInterface::emitAudioPacket(const void* audioData, size_t bytes, quint16& sequenceNumber, bool isStereo,
-                                             const Transform& transform, glm::vec3 avatarBoundingBoxCorner, glm::vec3 avatarBoundingBoxScale,
+                                             const Vantage& vantage, glm::vec3 avatarBoundingBoxCorner, glm::vec3 avatarBoundingBoxScale,
                                              PacketType packetType, QString codecName) {
     static std::mutex _mutex;
     using Locker = std::unique_lock<std::mutex>;
@@ -48,12 +49,12 @@ void AbstractAudioInterface::emitAudioPacket(const void* audioData, size_t bytes
         }
 
         // at this point we'd better be sending the mixer a valid position, or it won't consider us for mixing
-        assert(!isNaN(transform.getTranslation()));
+        assert(!isNaN(vantage.position));
 
         // pack the three float positions
-        audioPacket->writePrimitive(transform.getTranslation());
+        audioPacket->writePrimitive(vantage.position);
         // pack the orientation
-        audioPacket->writePrimitive(transform.getRotation());
+        audioPacket->writePrimitive(vantage.rotation);
 
         audioPacket->writePrimitive(avatarBoundingBoxCorner);
         audioPacket->writePrimitive(avatarBoundingBoxScale);

@@ -4,6 +4,7 @@
 //
 //  Created by Nshan G. on 16 Apr 2022.
 //  Copyright 2022 Vircadia contributors.
+//  Copyright 2022 DigiSomni LLC.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -36,7 +37,7 @@ namespace vircadia::client {
     enum MessageType : uint8_t {
         MESSAGE_TYPE_TEXT = 1ul << MESSAGE_TYPE_TEXT_INDEX,
         MESSAGE_TYPE_DATA = 1ul << MESSAGE_TYPE_DATA_INDEX,
-        MESSAGE_TYPE_ANY = MESSAGE_TYPE_TEXT | MESSAGE_TYPE_DATA
+        MESSAGE_TYPE_ALL = MESSAGE_TYPE_TEXT | MESSAGE_TYPE_DATA
     };
 
     /// @private
@@ -67,6 +68,7 @@ namespace vircadia::client {
         void unsubscribe(QString channel) const;
         const std::vector<MessageData>& get(std::bitset<8> type) const;
         bool isEnabled(std::bitset<8> type) const;
+        bool isAnyEnabled(std::bitset<8> type) const;
         int send(std::bitset<8> type, QString channel, QByteArray payload, bool localOnly);
 
         void destroy();

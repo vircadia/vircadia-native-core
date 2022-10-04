@@ -144,7 +144,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
         }
         case SequenceNumberStats::Early: {
             // Packet is early. Treat the packets as if all the packets between the last
-            // OnTime packet and this packet were lost. If we're using a codec this will 
+            // OnTime packet and this packet were lost. If we're using a codec this will
             // also result in allowing the codec to interpolate lost data. Then
             // fall through to the "on time" logic to actually handle this packet
             int packetsDropped = arrivalInfo._seqDiffFromExpected;
@@ -270,7 +270,7 @@ int InboundAudioStream::lostAudioData(int numPackets) {
 int InboundAudioStream::parseAudioData(const QByteArray& packetAfterStreamProperties) {
     QByteArray decodedBuffer;
 
-    // may block on the real-time thread, which is acceptible as 
+    // may block on the real-time thread, which is acceptible as
     // parseAudioData is only called by the packet processing
     // thread which, while high performance, is not as sensitive to
     // delays as the real-time thread.
@@ -287,22 +287,22 @@ int InboundAudioStream::parseAudioData(const QByteArray& packetAfterStreamProper
 int InboundAudioStream::writeDroppableSilentFrames(int silentFrames) {
 
     // We can't guarentee that all clients have faded the stream down
-    // to silence and encoded that silence before sending us a 
+    // to silence and encoded that silence before sending us a
     // SilentAudioFrame. If the encoder has truncated the stream it will
-    // leave the decoder holding some unknown loud state. To handle this 
+    // leave the decoder holding some unknown loud state. To handle this
     // case we will call the decoder's lostFrame() method, which indicates
-    // that it should interpolate from its last known state down toward 
+    // that it should interpolate from its last known state down toward
     // silence.
     {
-        // may block on the real-time thread, which is acceptible as 
+        // may block on the real-time thread, which is acceptible as
         // writeDroppableSilentFrames is only called by the packet processing
         // thread which, while high performance, is not as sensitive to
         // delays as the real-time thread.
         QMutexLocker lock(&_decoderMutex);
         if (_decoder) {
-            // FIXME - We could potentially use the output from the codec, in which 
-            // case we might get a cleaner fade toward silence. NOTE: The below logic 
-            // attempts to catch up in the event that the jitter buffers have grown. 
+            // FIXME - We could potentially use the output from the codec, in which
+            // case we might get a cleaner fade toward silence. NOTE: The below logic
+            // attempts to catch up in the event that the jitter buffers have grown.
             // The better long term fix is to use the output from the decode, detect
             // when it actually reaches silence, and then delete the silent portions
             // of the jitter buffers. Or petentially do a cross fade from the decode
@@ -338,7 +338,7 @@ int InboundAudioStream::writeDroppableSilentFrames(int silentFrames) {
     }
 
     int ret = _ringBuffer.addSilentSamples(silentSamples - numSilentFramesToDrop * samplesPerFrame);
-    
+
     return ret;
 }
 
@@ -360,7 +360,7 @@ int InboundAudioStream::popSamples(int maxSamples, bool allOrNothing) {
             popSamplesNoCheck(samplesAvailable);
             samplesPopped = samplesAvailable;
         } else {
-            // we can't pop any samples, set this stream to starved for jitter 
+            // we can't pop any samples, set this stream to starved for jitter
             // buffer calculations.
             setToStarved();
             _consecutiveNotMixedCount++;
@@ -485,7 +485,7 @@ void InboundAudioStream::setStaticJitterBufferFrames(int staticJitterBufferFrame
 }
 
 void InboundAudioStream::packetReceivedUpdateTimingStats() {
-    
+
     // update our timegap stats and desired jitter buffer frames if necessary
     // discard the first few packets we receive since they usually have gaps that aren't represensative of normal jitter
     const quint32 NUM_INITIAL_PACKETS_DISCARD = 1000; // 10s
@@ -567,7 +567,7 @@ float calculateRepeatedFrameFadeFactor(int indexOfRepeat) {
     return 0.0f;
 }
 
-void InboundAudioStream::setupCodec(CodecPluginPointer codec, const QString& codecName, int numChannels) {
+void InboundAudioStream::setupCodec(std::shared_ptr<Codec> codec, const QString& codecName, int numChannels) {
     cleanupCodec(); // cleanup any previously allocated coders first
     _codec = codec;
     _selectedCodecName = codecName;
