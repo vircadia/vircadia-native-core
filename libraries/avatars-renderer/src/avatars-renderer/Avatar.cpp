@@ -1511,6 +1511,25 @@ std::vector<AvatarSkeletonTrait::UnpackedJointData> Avatar::getSkeletonDefaultDa
     return defaultSkeletonData;
 }
 
+std::vector<uint> Avatar::calculateRemoteToLocalJointMap() {
+    auto jointNames = getJointNames();
+    auto remoteSkeletonData = getSkeletonData();
+
+    std::vector<uint> remoteToLocalJointMap;
+    remoteToLocalJointMap.resize(jointNames.size());
+
+    if (jointNames.size() == remoteSkeletonData.size()) {
+        for (int i = 0; i < jointNames.size(); i++) {
+            remoteToLocalJointMap[std::max(jointNames.indexOf(remoteSkeletonData[i].jointName), 0)] = i;
+        }
+    } else {
+        qWarning() << "Remote and local skeletons for avatar are different sizes.";
+        remoteToLocalJointMap.resize(0);  // Don't attempt to control avatar's joints.
+    }
+
+    return remoteToLocalJointMap;
+}
+
 glm::vec3 Avatar::getJointPosition(int index) const {
     glm::vec3 position;
     _skeletonModel->getJointPositionInWorldFrame(index, position);
@@ -1578,7 +1597,17 @@ void Avatar::rigReady() {
     buildSpine2SplineRatioCache();
     computeMultiSphereShapes();
     buildSpine2SplineRatioCache();
-    setSkeletonData(getSkeletonDefaultData());
+
+    // Set skeleton data for own avatar; skeleton data for other users is received from them.
+    auto skeletonDefaultData = getSkeletonDefaultData();
+    if (isMyAvatar()) {
+        setSkeletonData(skeletonDefaultData);
+    }
+
+    // The joint order of skeleton loaded locally may differ from that of the skeleton received from a remote client.
+    // The mapping is 1:1 for own avatar.
+    getSkeletonModel()->getRig().setSkeletonJointMap(calculateRemoteToLocalJointMap());
+
     sendSkeletonData();
 }
 
@@ -1586,6 +1615,12 @@ void Avatar::rigReady() {
 void Avatar::rigReset() {
     clearUnscaledEyeHeightCache();
     clearSpine2SplineRatioCache();
+}
+
+void Avatar::onSkeletonDataChanged() {
+    if (getSkeletonModel()->isLoaded()) {
+        getSkeletonModel()->getRig().setSkeletonJointMap(calculateRemoteToLocalJointMap());
+    }
 }
 
 void Avatar::computeMultiSphereShapes() {

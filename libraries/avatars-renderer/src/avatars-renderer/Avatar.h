@@ -204,6 +204,7 @@ public:
     virtual QStringList getJointNames() const override;
 
     std::vector<AvatarSkeletonTrait::UnpackedJointData> getSkeletonDefaultData();
+    std::vector<uint> calculateRemoteToLocalJointMap();
 
     /*@jsdoc
      * Gets the default rotation of a joint (in the current avatar) relative to its parent.
@@ -628,6 +629,13 @@ public slots:
      */
     // Hooked up to Model::rigReset signal
     void rigReset();
+
+    /*@jsdoc
+     * @function MyAvatar.onSkeletonDataChanged
+     * @deprecated This function is deprecated and will be removed.
+     */
+    // Hooked up to AvatarData::skeletonDataChanged signal
+    void onSkeletonDataChanged();
 
 protected:
     float getUnscaledEyeHeightFromSkeleton() const;

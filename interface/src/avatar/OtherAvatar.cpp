@@ -48,6 +48,9 @@ OtherAvatar::OtherAvatar(QThread* thread) : Avatar(thread) {
     connect(_skeletonModel.get(), &Model::setURLFinished, this, &Avatar::setModelURLFinished);
     connect(_skeletonModel.get(), &Model::rigReady, this, &Avatar::rigReady);
     connect(_skeletonModel.get(), &Model::rigReset, this, &Avatar::rigReset);
+
+    // Skeleton data of remote avatar may be received after the local client has already loaded the rig for it.
+    connect(this, &AvatarData::skeletonDataChanged, this, &Avatar::onSkeletonDataChanged);
 }
 
 OtherAvatar::~OtherAvatar() {

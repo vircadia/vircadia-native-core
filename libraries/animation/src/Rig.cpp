@@ -2643,13 +2643,18 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
         return;
     }
 
+    if (numJoints != _remoteToLocalJointMap.size()) {
+        // jointData mapping is not yet set up.
+        return;
+    }
+
     // make a vector of rotations in absolute-model-frame
     std::vector<glm::quat> rotations;
     rotations.reserve(numJoints);
     const glm::quat rigToGeometryRot(glmExtractRotation(_rigToGeometryTransform));
 
     for (int i = 0; i < numJoints; i++) {
-        const JointData& data = jointDataVec.at(i);
+        const JointData& data = jointDataVec.at(_remoteToLocalJointMap[i]);
         if (data.rotationIsDefaultPose) {
             rotations.push_back(absoluteDefaultPoses[i].rot());
         } else {
@@ -2667,7 +2672,7 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
     }
     const AnimPoseVec& relativeDefaultPoses = _animSkeleton->getRelativeDefaultPoses();
     for (int i = 0; i < numJoints; i++) {
-        const JointData& data = jointDataVec.at(i);
+        const JointData& data = jointDataVec.at(_remoteToLocalJointMap[i]);
         _internalPoseSet._relativePoses[i].rot() = rotations[i];
         if (data.translationIsDefaultPose) {
             _internalPoseSet._relativePoses[i].trans() = relativeDefaultPoses[i].trans();
