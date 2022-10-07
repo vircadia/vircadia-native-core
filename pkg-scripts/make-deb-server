@@ -21,12 +21,13 @@ cp build/assignment-client/assignment-client $DEB_BUILD_ROOT
 cp build/domain-server/domain-server $DEB_BUILD_ROOT
 cp build/tools/oven/oven $DEB_BUILD_ROOT
 cp build/libraries/*/*.so $DEB_BUILD_ROOT
-#cp build/ice-server/ice-server $DEB_BUILD_ROOT
+cp build/ice-server/ice-server $DEB_BUILD_ROOT
 chrpath -d $DEB_BUILD_ROOT/*
 ls $DEB_BUILD_ROOT/*.so | xargs -I{} patchelf --set-rpath '/opt/vircadia/lib' {}
 patchelf --set-rpath '/opt/vircadia/lib' $DEB_BUILD_ROOT/domain-server
 patchelf --set-rpath '/opt/vircadia/lib' $DEB_BUILD_ROOT/assignment-client
 patchelf --set-rpath '/opt/vircadia/lib' $DEB_BUILD_ROOT/oven
+patchelf --set-rpath '/opt/vircadia/lib' $DEB_BUILD_ROOT/ice-server
 if [ "$VIRCADIA_USE_SYSTEM_QT" = "" ]; then
 	cp $QT5_LIBS/libQt5Network.so.*.*.* $DEB_BUILD_ROOT
 	cp $QT5_LIBS/libQt5Core.so.*.*.* $DEB_BUILD_ROOT
@@ -58,8 +59,8 @@ cp pkg-scripts/vircadia-assignment-client.service $DEB_BUILD_ROOT/debian
 cp pkg-scripts/vircadia-assignment-client@.service $DEB_BUILD_ROOT/debian
 cp pkg-scripts/vircadia-domain-server.service $DEB_BUILD_ROOT/debian
 cp pkg-scripts/vircadia-domain-server@.service $DEB_BUILD_ROOT/debian
-#cp pkg-scripts/vircadia-ice-server.service $DEB_BUILD_ROOT/debian
-#cp pkg-scripts/vircadia-ice-server@.service $DEB_BUILD_ROOT/debian
+cp pkg-scripts/vircadia-ice-server.service $DEB_BUILD_ROOT/debian
+cp pkg-scripts/vircadia-ice-server@.service $DEB_BUILD_ROOT/debian
 cp pkg-scripts/vircadia-server.target $DEB_BUILD_ROOT/debian
 cp pkg-scripts/vircadia-server@.target $DEB_BUILD_ROOT/debian
 
@@ -80,7 +81,7 @@ echo README_hifi.md >> $DEB_BUILD_ROOT/debian/docs
 echo assignment-client opt/vircadia > $DEB_BUILD_ROOT/debian/install
 echo domain-server opt/vircadia >> $DEB_BUILD_ROOT/debian/install
 echo oven opt/vircadia >> $DEB_BUILD_ROOT/debian/install
-#echo ice-server opt/vircadia >> $DEB_BUILD_ROOT/debian/install
+echo ice-server opt/vircadia >> $DEB_BUILD_ROOT/debian/install
 echo new-server opt/vircadia >> $DEB_BUILD_ROOT/debian/install
 if [ "$VIRCADIA_USE_SYSTEM_QT" = "" ]; then
 	for so in *.so.*.*.*; do
