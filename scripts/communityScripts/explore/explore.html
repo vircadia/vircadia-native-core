@@ -306,34 +306,29 @@
             if (locationData != null) {
                 for (var i = 0; i < locationData.length; i++) {
                     joinedData.push({
-                        "index": joinedData.length, 
-                        "location": locationData[i].Visit, 
-                        "name": locationData[i]['Domain Name'], 
-                        "owner": locationData[i].Owner, 
-                        "userCount": locationData[i].People, 
-                        "description": "", 
+                        "index": joinedData.length,
+                        "location": locationData[i].Visit,
+                        "name": locationData[i]['Domain Name'],
+                        "owner": locationData[i].Owner,
+                        "userCount": locationData[i].People,
+                        "description": "",
                         "thumbnail": ""
                     });
                 }
             }
 
             if (placesData != null) {
-                var activeThresholdTime = new Date();
-                activeThresholdTime.setMinutes(activeThresholdTime.getMinutes() - 15);
 
-                // while blending metaverse data ensure it is cleaned for active domains
                 for (var i = 0; i < placesData.length; i++) {
-                    if (placesData[i].domain.active && placesData[i].visibility == "open" && new Date(placesData[i].last_activity_update) > activeThresholdTime) {
-                        joinedData.push({
-                            "index": joinedData.length,
-                            "location": placesData[i].name,
-                            "name": placesData[i].name,
-                            "owner": placesData[i].managers[0],
-                            "userCount": placesData[i].current_attendance,
-                            "description": placesData[i].description,
-                            "thumbnail": placesData[i].thumbnail
-                        });
-                    }
+                    joinedData.push({
+                        "index": joinedData.length,
+                        "location": placesData[i].name,
+                        "name": placesData[i].name,
+                        "owner": placesData[i].managers[0],
+                        "userCount": placesData[i].current_attendance,
+                        "description": placesData[i].description,
+                        "thumbnail": placesData[i].thumbnail
+                    });
                 }
             }
 
@@ -354,7 +349,7 @@
             // if metaverse data not loaded fire a request for it
             if (placesData == null) {
                 // fire off data get against the metaverse
-                axios.get("https://metaverse.vircadia.com/live/api/v1/places")
+                axios.get("https://metaverse.vircadia.com/live/api/v1/places?status=online&per_page=1000")
                     .then((response) => {
                         placesData = response.data.data.places;
                         exploreComponent.updateData(blendedData());
