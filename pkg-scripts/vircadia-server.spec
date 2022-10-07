@@ -35,7 +35,7 @@ install -d $RPM_BUILD_ROOT/opt/vircadia
 install -m 0755 -t $RPM_BUILD_ROOT/opt/vircadia $VIRCADIA/build/assignment-client/assignment-client
 install -m 0755 -t $RPM_BUILD_ROOT/opt/vircadia $VIRCADIA/build/domain-server/domain-server
 install -m 0755 -t $RPM_BUILD_ROOT/opt/vircadia $VIRCADIA/build/tools/oven/oven
-#install -m 0755 -t $RPM_BUILD_ROOT/opt/vircadia $VIRCADIA/build/ice-server/ice-server
+install -m 0755 -t $RPM_BUILD_ROOT/opt/vircadia $VIRCADIA/build/ice-server/ice-server
 strip --strip-all $RPM_BUILD_ROOT/opt/vircadia/*
 chrpath -d $RPM_BUILD_ROOT/opt/vircadia/*
 install -m 0755 -t $RPM_BUILD_ROOT/opt/vircadia $VIRCADIA/source/pkg-scripts/new-server
@@ -57,8 +57,8 @@ install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $VIRCADIA/source/pkg-s
 install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $VIRCADIA/source/pkg-scripts/vircadia-assignment-client@.service
 install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $VIRCADIA/source/pkg-scripts/vircadia-domain-server.service
 install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $VIRCADIA/source/pkg-scripts/vircadia-domain-server@.service
-#install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $VIRCADIA/source/pkg-scripts/vircadia-ice-server.service
-#install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $VIRCADIA/source/pkg-scripts/vircadia-ice-server@.service
+install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $VIRCADIA/source/pkg-scripts/vircadia-ice-server.service
+install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $VIRCADIA/source/pkg-scripts/vircadia-ice-server@.service
 install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $VIRCADIA/source/pkg-scripts/vircadia-server.target
 install -m 0644 -t $RPM_BUILD_ROOT/usr/lib/systemd/system $VIRCADIA/source/pkg-scripts/vircadia-server@.target
 cp -a $VIRCADIA/source/domain-server/resources $RPM_BUILD_ROOT/opt/vircadia
@@ -94,8 +94,8 @@ ldconfig -n /opt/vircadia/lib
 %systemd_post vircadia-assignment-client@.service
 %systemd_post vircadia-domain-server.service
 %systemd_post vircadia-domain-server@.service
-#%systemd_post vircadia-ice-server.service
-#%systemd_post vircadia-ice-server@.service
+%systemd_post vircadia-ice-server.service
+%systemd_post vircadia-ice-server@.service
 %systemd_post vircadia-server.target
 %systemd_post vircadia-server@.target
 
@@ -153,8 +153,8 @@ fi
 %systemd_preun vircadia-assignment-client@.service
 %systemd_preun vircadia-domain-server.service
 %systemd_preun vircadia-domain-server@.service
-#%systemd_preun vircadia-ice-server.service
-#%systemd_preun vircadia-ice-server@.service
+%systemd_preun vircadia-ice-server.service
+%systemd_preun vircadia-ice-server@.service
 
 
 %postun
@@ -164,5 +164,5 @@ fi
 %systemd_postun_with_restart vircadia-assignment-client@.service
 %systemd_postun_with_restart vircadia-domain-server.service
 %systemd_postun_with_restart vircadia-domain-server@.service
-#%systemd_postun_with_restart vircadia-ice-server.service
-#%systemd_postun_with_restart vircadia-ice-server@.service
+%systemd_postun_with_restart vircadia-ice-server.service
+%systemd_postun_with_restart vircadia-ice-server@.service

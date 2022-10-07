@@ -62,10 +62,12 @@ The following systemd services are installed in `/usr/lib/systemd/system`:
 ```
 vircadia-assignment-client.service
 vircadia-domain-server.service
-vircadia-server.target - used to launch/shutdown the two prior services
+vircadia-ice-server.service
+vircadia-server.target - used to launch/shutdown the prior services
 vircadia-assignment-client@.service
 vircadia-domain-server@.service
-vircadia-server@.target - used to launch/shutdown the two prior services
+vircadia-ice-server@.service
+vircadia-server@.target - used to launch/shutdown the prior services
 ```
 
 The top three services in this list are the "normal" services that launch Vircadia
@@ -102,6 +104,7 @@ To check the status of services:
 ```
 systemctl status vircadia-domain-server@default
 systemctl status vircadia-assignment-client@default
+systemctl status vircadia-ice-server@default
 ```
 Similarly can use `systemctl restart` to restart if there is a problem.
 
@@ -109,12 +112,14 @@ To view logs in realtime:
 ```
 journalctl -fu vircadia-domain-server@default
 journalctl -fu vircadia-assignment-client@default
+journalctl -fu vircadia-ice-server@default
 ```
 
 To save all of today's logs to a file:
 ```
 journalctl -u vircadia-domain-server@default --sicne today > domain-server.log
 journalctl -u vircadia-assignment-client@default --since today > assignment-client.log
+journalctl -u vircadia-ice-server@default --since today > ice-server.log
 ```
 
 To download the logs (or any files) you can use `scp` in your local terminal:
