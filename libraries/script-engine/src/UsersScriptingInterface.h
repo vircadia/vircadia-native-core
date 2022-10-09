@@ -34,8 +34,8 @@
  *
  * @property {boolean} canKick - <code>true</code> if the domain server allows the client to kick (ban) avatars, otherwise 
  *     <code>false</code>. <em>Read-only.</em>
- * @property {boolean} requestsDomainListData - <code>true</code> if the client requests extra data from the mixers (such as 
- *     positional data of an avatar they've ignored). <em>Read-only.</em>
+ * @property {boolean} requestsDomainListData=false - <code>true</code> to have the client request extra data from the mixers 
+ *     (such as positional data of an avatar they've ignored), <code>false</code> to not request extra data.
  * @property {BanFlags} NO_BAN - Do not ban user. <em>Read-only.</em>
  * @property {BanFlags} BAN_BY_USERNAME - Ban user by username. <em>Read-only.</em>
  * @property {BanFlags} BAN_BY_FINGERPRINT - Ban user by fingerprint. <em>Read-only.</em>
