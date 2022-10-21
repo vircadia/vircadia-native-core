@@ -5,6 +5,7 @@
 #  Created by Leonardo Murillo on 07/14/2015.
 #  Copyright 2015 High Fidelity, Inc.
 #  Copyright 2020 Vircadia contributors.
+#  Copyright 2020 DigiSomni LLC
 #
 #  Distributed under the Apache License, Version 2.0.
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -49,8 +50,8 @@ macro(SET_PACKAGING_PARAMETERS)
     set(PRODUCTION_BUILD 1)
     set(BUILD_VERSION ${RELEASE_NUMBER})
     set(BUILD_ORGANIZATION "Vircadia")
-    set(HIGH_FIDELITY_PROTOCOL "vw")
-    set(HIGH_FIDELITY_APP_PROTOCOL "vwapp")
+    set(HIGH_FIDELITY_PROTOCOL "xr")
+    set(HIGH_FIDELITY_APP_PROTOCOL "xrapp")
     set(INTERFACE_ICON_PREFIX "interface")
 
     # add definition for this release type
