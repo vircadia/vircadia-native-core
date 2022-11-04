@@ -31,6 +31,7 @@ class WDCConnection;
 /// @addtogroup Networking
 /// @{
 
+
 /// @brief A WebRTC session description observer.
 class WDCSetSessionDescriptionObserver : public webrtc::SetSessionDescriptionObserver {
 public:
@@ -43,6 +44,32 @@ public:
     void OnFailure(webrtc::RTCError error) override;
 };
 
+// NOTE: this indicates a newer WebRTC build in use on linux,
+// TODO: remove the old code when windows WebRTC is updated as well
+#ifdef API_SET_LOCAL_DESCRIPTION_OBSERVER_INTERFACE_H_
+
+/// @brief A WebRTC local description observer.
+class WDCSetLocalDescriptionObserver : public webrtc::SetLocalDescriptionObserverInterface {
+public:
+    /// @brief The call to SetLocalDescription completed.
+    /// @param error Optional error information.
+    void OnSetLocalDescriptionComplete(webrtc::RTCError error) override;
+};
+
+/// @brief A WebRTC remote description observer.
+class WDCSetRemoteDescriptionObserver : public webrtc::SetRemoteDescriptionObserverInterface {
+public:
+    /// @brief The call to SetRemoteDescription completed.
+    /// @param error Optional error information.
+    void OnSetRemoteDescriptionComplete(webrtc::RTCError error) override;
+};
+
+#else
+
+#define WDCSetLocalDescriptionObserver WDCSetSessionDescriptionObserver
+#define WDCSetRemoteDescriptionObserver WDCSetSessionDescriptionObserver
+
+#endif
 
 /// @brief A WebRTC create session description observer.
 class WDCCreateSessionDescriptionObserver : public webrtc::CreateSessionDescriptionObserver {
@@ -93,7 +120,7 @@ public:
     virtual void OnIceConnectionChange(webrtc::PeerConnectionInterface::IceConnectionState newState) override;
 
     /// @brief Called when the standards-compliant ICE connection state changes.
-    /// @param new_state The new ICE connection state. 
+    /// @param new_state The new ICE connection state.
     virtual void OnStandardizedIceConnectionChange(webrtc::PeerConnectionInterface::IceConnectionState newState) override;
 
     /// @brief Called when a remote peer opens a data channel.
@@ -154,12 +181,12 @@ public:
 
     /// @brief Sends an answer to the remote client via the signaling channel.
     /// @param description The answer.
-    void sendAnswer(webrtc::SessionDescriptionInterface* description);
-    
+    void sendAnswer(std::string descriptionString);
+
     /// @brief Sets the local session description on the WebRTC data channel being connected.
     /// @param description The local session description.
-    void setLocalDescription(webrtc::SessionDescriptionInterface* description);
-    
+    void setLocalDescription(std::unique_ptr<webrtc::SessionDescriptionInterface> description);
+
     /// @brief Adds an ICE candidate received from the remote client via the signaling channel.
     /// @param data The ICE candidate.
     void addIceCandidate(QJsonObject& data);
@@ -196,12 +223,13 @@ public:
 
     /// @brief Closes the WebRTC peer connection.
     void closePeerConnection();
-    
+
 private:
     WebRTCDataChannels* _parent;
     QString _dataChannelID;
 
-    rtc::scoped_refptr<WDCSetSessionDescriptionObserver> _setSessionDescriptionObserver { nullptr };
+    rtc::scoped_refptr<WDCSetLocalDescriptionObserver> _setLocalDescriptionObserver { nullptr };
+    rtc::scoped_refptr<WDCSetRemoteDescriptionObserver> _setRemoteDescriptionObserver { nullptr };
     rtc::scoped_refptr<WDCCreateSessionDescriptionObserver> _createSessionDescriptionObserver { nullptr };
 
     std::shared_ptr<WDCDataChannelObserver> _dataChannelObserver { nullptr };
@@ -223,7 +251,7 @@ private:
 ///
 /// Additionally, for debugging purposes, instead of containing a Vircadia protocol payload, a WebRTC message may be an echo
 /// request. This is bounced back to the client.
-/// 
+///
 /// A WebRTC data channel is identified by the IP address and port of the client WebSocket that was used when opening the data
 /// channel - this is considered to be the WebRTC data channel's address. The IP address and port of the actual WebRTC
 /// connection is not used.
@@ -247,7 +275,7 @@ public:
 
     /// @brief Immediately closes all connections and resets the socket.
     void reset();
-    
+
     /// @brief Handles a WebRTC data channel opening.
     /// @param connection The WebRTC data channel connection.
     /// @param dataChannelID The IP address and port of the signaling WebSocket that the client used to connect, `"n.n.n.n:n"`.

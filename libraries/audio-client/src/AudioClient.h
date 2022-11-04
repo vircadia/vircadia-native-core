@@ -124,7 +124,7 @@ public:
         AudioClient* _audio;
         int _unfulfilledReads;
     };
-    
+
     void startThread();
     void negotiateAudioFormat();
     void selectAudioFormat(const QString& selectedCodecName);
@@ -170,7 +170,7 @@ public:
 
     HifiAudioDeviceInfo getActiveAudioDevice(QAudio::Mode mode) const;
     QList<HifiAudioDeviceInfo> getAudioDevices(QAudio::Mode mode) const;
-  
+
     void enablePeakValues(bool enable) { _enablePeakValues = enable; }
     bool peakValuesAvailable() const;
 
@@ -225,10 +225,10 @@ public slots:
 
     void setNoiseReduction(bool isNoiseGateEnabled, bool emitSignal = true);
     bool isNoiseReductionEnabled() const { return _isNoiseGateEnabled; }
-    
+
     void setNoiseReductionAutomatic(bool isNoiseGateAutomatic, bool emitSignal = true);
     bool isNoiseReductionAutomatic() const { return _isNoiseReductionAutomatic; }
-    
+
     void setNoiseReductionThreshold(float noiseReductionThreshold, bool emitSignal = true);
     float noiseReductionThreshold() const { return _noiseReductionThreshold; }
 
@@ -463,7 +463,13 @@ private:
     static const int WEBRTC_CHANNELS_MAX = 2;
     static const int WEBRTC_FRAMES_MAX = webrtc::AudioProcessing::kChunkSizeMs * WEBRTC_SAMPLE_RATE_MAX / 1000;
 
+// NOTE: this indicates an older WebRTC build
+// TODO: remove when windows WebRTC is updated
+#ifdef MODULES_AUDIO_PROCESSING_INCLUDE_CONFIG_H_
     webrtc::AudioProcessing* _apm { nullptr };
+#else
+    rtc::scoped_refptr<webrtc::AudioProcessing> _apm { nullptr };
+#endif
 
     int16_t _fifoFarEnd[WEBRTC_CHANNELS_MAX * WEBRTC_FRAMES_MAX] {};
     int _numFifoFarEnd = 0; // numFrames saved in fifo
@@ -527,7 +533,7 @@ private:
 #endif
 
     AudioSolo _solo;
-    
+
     QFuture<void> _localPrepInjectorFuture;
     QReadWriteLock _hmdNameLock;
     Mutex _checkDevicesMutex;

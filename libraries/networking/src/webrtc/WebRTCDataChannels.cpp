@@ -46,16 +46,49 @@ void WDCSetSessionDescriptionObserver::OnFailure(RTCError error) {
 }
 
 
+// NOTE: this indicates a newer WebRTC build in use on linux,
+// TODO: remove the old code when windows WebRTC is updated as well
+#ifdef API_SET_LOCAL_DESCRIPTION_OBSERVER_INTERFACE_H_
+
+void WDCSetLocalDescriptionObserver::OnSetLocalDescriptionComplete(webrtc::RTCError error) {
+#ifdef WEBRTC_DEBUG
+    if(error.ok()) {
+        qCDebug(networking_webrtc) << "SetLocalDescription call succeeded";
+    } else {
+        qCDebug(networking_webrtc) << "SetLocalDescription call failed:" << error.message();
+    }
+#endif
+}
+
+void WDCSetRemoteDescriptionObserver::OnSetRemoteDescriptionComplete(webrtc::RTCError error) {
+#ifdef WEBRTC_DEBUG
+    if(error.ok()) {
+        qCDebug(networking_webrtc) << "SetRemoteDescription call succeeded";
+    } else {
+        qCDebug(networking_webrtc) << "SetRemoteDescription call failed:" << error.message();
+    }
+#endif
+}
+
+#endif
+
 WDCCreateSessionDescriptionObserver::WDCCreateSessionDescriptionObserver(WDCConnection* parent) :
     _parent(parent)
 { }
 
-void WDCCreateSessionDescriptionObserver::OnSuccess(SessionDescriptionInterface* description) {
+void WDCCreateSessionDescriptionObserver::OnSuccess(SessionDescriptionInterface* descriptionRaw) {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WDCCreateSessionDescriptionObserver::OnSuccess()";
 #endif
-    _parent->sendAnswer(description);
-    _parent->setLocalDescription(description);
+    // NOTE: according to documentation in the relevant webrtc header,
+    // ownership of description is transferred here, so we use a unique pointer
+    // to accept and transfer it further. The callback signature is likely to
+    // change in the future to pass a unique pointer.
+    auto description = std::unique_ptr<SessionDescriptionInterface>(descriptionRaw);
+    std::string descriptionString;
+    description->ToString(&descriptionString);
+    _parent->sendAnswer(descriptionString);
+    _parent->setLocalDescription(std::move(description));
 }
 
 void WDCCreateSessionDescriptionObserver::OnFailure(RTCError error) {
@@ -185,14 +218,16 @@ void WDCDataChannelObserver::OnMessage(const DataBuffer& buffer) {
 
 WDCConnection::WDCConnection(WebRTCDataChannels* parent, const QString& dataChannelID) :
     _parent(parent),
-    _dataChannelID(dataChannelID)
+    _dataChannelID(dataChannelID),
+    _peerConnection()
 {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WDCConnection::WDCConnection() :" << dataChannelID;
 #endif
 
     // Create observers.
-    _setSessionDescriptionObserver = new rtc::RefCountedObject<WDCSetSessionDescriptionObserver>();
+    _setLocalDescriptionObserver = new rtc::RefCountedObject<WDCSetLocalDescriptionObserver>();
+    _setRemoteDescriptionObserver = new rtc::RefCountedObject<WDCSetRemoteDescriptionObserver>();
     _createSessionDescriptionObserver = new rtc::RefCountedObject<WDCCreateSessionDescriptionObserver>(this);
     _dataChannelObserver = std::make_shared<WDCDataChannelObserver>(this);
     _peerConnectionObserver = std::make_shared<WDCPeerConnectionObserver>(this);
@@ -207,8 +242,14 @@ void WDCConnection::setRemoteDescription(QJsonObject& description) {
 #endif
 
     SdpParseError sdpParseError;
+    auto sdpType = SdpTypeFromString(description.value("type").toString().toStdString());
+    if (!sdpType) {
+        qCWarning(networking_webrtc) << "Error parsing WebRTC remote description type: "
+            << description;
+        return;
+    }
     auto sessionDescription = CreateSessionDescription(
-        description.value("type").toString().toStdString(),
+        *sdpType,
         description.value("sdp").toString().toStdString(),
         &sdpParseError);
     if (!sessionDescription) {
@@ -218,9 +259,17 @@ void WDCConnection::setRemoteDescription(QJsonObject& description) {
     }
 
 #ifdef WEBRTC_DEBUG
-    qCDebug(networking_webrtc) << "3. Set remote description:" << sessionDescription;
+    qCDebug(networking_webrtc) << "3. Set remote description:" << sessionDescription.get();
 #endif
-    _peerConnection->SetRemoteDescription(_setSessionDescriptionObserver, sessionDescription);
+    if (_peerConnection) {
+// NOTE: this indicates a newer WebRTC build in use on linux,
+// TODO: remove the old code when windows WebRTC is updated as well
+#ifdef API_SET_LOCAL_DESCRIPTION_OBSERVER_INTERFACE_H_
+        _peerConnection->SetRemoteDescription(std::move(sessionDescription), _setRemoteDescriptionObserver);
+#else
+        _peerConnection->SetRemoteDescription(_setRemoteDescriptionObserver, sessionDescription.release());
+#endif
+    }
 }
 
 void WDCConnection::createAnswer() {
@@ -228,18 +277,18 @@ void WDCConnection::createAnswer() {
     qCDebug(networking_webrtc) << "WDCConnection::createAnswer()";
     qCDebug(networking_webrtc) << "4.a Create answer";
 #endif
-    _peerConnection->CreateAnswer(_createSessionDescriptionObserver, PeerConnectionInterface::RTCOfferAnswerOptions());
+    if (_peerConnection) {
+        _peerConnection->CreateAnswer(_createSessionDescriptionObserver.get(), PeerConnectionInterface::RTCOfferAnswerOptions());
+    }
 }
 
-void WDCConnection::sendAnswer(SessionDescriptionInterface* description) {
+void WDCConnection::sendAnswer(std::string descriptionString) {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WDCConnection::sendAnswer()";
     qCDebug(networking_webrtc) << "4.b Send answer to the remote peer";
 #endif
 
     QJsonObject jsonDescription;
-    std::string descriptionString;
-    description->ToString(&descriptionString);
     jsonDescription.insert("sdp", QString::fromStdString(descriptionString));
     jsonDescription.insert("type", "answer");
 
@@ -254,12 +303,20 @@ void WDCConnection::sendAnswer(SessionDescriptionInterface* description) {
     _parent->sendSignalingMessage(jsonObject);
 }
 
-void WDCConnection::setLocalDescription(SessionDescriptionInterface* description) {
+void WDCConnection::setLocalDescription(std::unique_ptr<SessionDescriptionInterface> description) {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WDCConnection::setLocalDescription()";
     qCDebug(networking_webrtc) << "5. Set local description";
 #endif
-    _peerConnection->SetLocalDescription(_setSessionDescriptionObserver, description);
+    if (_peerConnection) {
+// NOTE: this indicates a newer WebRTC build in use on linux,
+// TODO: remove the old code when windows WebRTC is updated as well
+#ifdef API_SET_LOCAL_DESCRIPTION_OBSERVER_INTERFACE_H_
+        _peerConnection->SetLocalDescription(std::move(description), _setLocalDescriptionObserver);
+#else
+        _peerConnection->SetLocalDescription(_setLocalDescriptionObserver, description.release());
+#endif
+    }
 }
 
 void WDCConnection::addIceCandidate(QJsonObject& data) {
@@ -282,7 +339,9 @@ void WDCConnection::addIceCandidate(QJsonObject& data) {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "6. Add ICE candidate";
 #endif
-    _peerConnection->AddIceCandidate(iceCandidate);
+    if (_peerConnection) {
+        _peerConnection->AddIceCandidate(iceCandidate);
+    }
 }
 
 void WDCConnection::sendIceCandidate(const IceCandidateInterface* candidate) {
@@ -394,8 +453,8 @@ qint64 WDCConnection::getBufferedAmount() const {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WDCConnection::getBufferedAmount()";
 #endif
-    return _dataChannel && _dataChannel->state() != DataChannelInterface::kClosing 
-            && _dataChannel->state() != DataChannelInterface::kClosed 
+    return _dataChannel && _dataChannel->state() != DataChannelInterface::kClosing
+            && _dataChannel->state() != DataChannelInterface::kClosed
         ? _dataChannel->buffered_amount() : 0;
 }
 
@@ -407,7 +466,7 @@ bool WDCConnection::sendDataMessage(const DataBuffer& buffer) {
         qCDebug(networking_webrtc) << "No data channel to send on";
     }
 #endif
-    if (!_dataChannel || _dataChannel->state() == DataChannelInterface::kClosing 
+    if (!_dataChannel || _dataChannel->state() == DataChannelInterface::kClosing
             || _dataChannel->state() == DataChannelInterface::kClosed) {
         // Data channel may have been closed while message to send was being prepared.
         return false;
@@ -421,9 +480,13 @@ bool WDCConnection::sendDataMessage(const DataBuffer& buffer) {
 
 void WDCConnection::closePeerConnection() {
 #ifdef WEBRTC_DEBUG
-    qCDebug(networking_webrtc) << "WDCConnection::closePeerConnection() :" << (int)_peerConnection->peer_connection_state();
+    if (_peerConnection) {
+        qCDebug(networking_webrtc) << "WDCConnection::closePeerConnection() :" << (int)_peerConnection->peer_connection_state();
+    }
 #endif
-    _peerConnection->Close();
+    if (_peerConnection) {
+        _peerConnection->Close();
+    }
     // Don't set _peerConnection = nullptr because it is a scoped_refptr.
     _peerConnectionObserver = nullptr;
 #ifdef WEBRTC_DEBUG
@@ -508,7 +571,7 @@ void WebRTCDataChannels::onSignalingMessage(const QJsonObject& message) {
     auto data = message.value("data").isObject() ? message.value("data").toObject() : QJsonObject();
     auto from = message.value("from").toString();
     auto to = NodeType::fromChar(message.value("to").toString().at(0));
-    if (!DATA_CHANNEL_ID_REGEX.match(from).hasMatch() || to == NodeType::Unassigned 
+    if (!DATA_CHANNEL_ID_REGEX.match(from).hasMatch() || to == NodeType::Unassigned
             || !data.contains("description") && !data.contains("candidate")) {
         qCWarning(networking_webrtc) << "Invalid or unexpected signaling message:"
             << QJsonDocument(message).toJson(QJsonDocument::Compact).left(MAX_DEBUG_DETAIL_LENGTH);
@@ -580,7 +643,7 @@ bool WebRTCDataChannels::sendDataMessage(const SockAddr& destination, const QByt
     }
 
     auto connection = _connectionsByID.value(dataChannelID);
-    DataBuffer buffer(byteArray.toStdString(), true);
+    DataBuffer buffer(rtc::CopyOnWriteBuffer(byteArray.data(), byteArray.size()), true);
     return connection->sendDataMessage(buffer);
 }
 
@@ -613,11 +676,28 @@ rtc::scoped_refptr<PeerConnectionInterface> WebRTCDataChannels::createPeerConnec
     qCDebug(networking_webrtc) << "2. Create a new peer connection";
 #endif
     PeerConnectionDependencies dependencies(peerConnectionObserver.get());
+
+// NOTE: this indicates a newer WebRTC build in use on linux,
+// TODO: remove the old code when windows WebRTC is updated as well
+#ifdef API_SET_LOCAL_DESCRIPTION_OBSERVER_INTERFACE_H_
+    auto result = _peerConnectionFactory->CreatePeerConnectionOrError(configuration, std::move(dependencies));
+    if (result.ok()) {
+#ifdef WEBRTC_DEBUG
+        qCDebug(networking_webrtc) << "Created peer connection";
+#endif
+        return result.MoveValue();
+    } else {
+        qCCritical(networking_webrtc) << "WebRTCDataChannels::createPeerConnection(): Failed: " << result.error().message();
+        return nullptr;
+    }
+#else
     auto result = _peerConnectionFactory->CreatePeerConnection(configuration, std::move(dependencies));
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "Created peer connection";
 #endif
     return result;
+#endif
+
 }
 
 
@@ -625,7 +705,7 @@ void WebRTCDataChannels::closePeerConnection(WDCConnection* connection) {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "WebRTCDataChannels::closePeerConnection()";
 #endif
-    // Use Qt's signals/slots mechanism to close the peer connection on its own call stack, separate from the DataChannel 
+    // Use Qt's signals/slots mechanism to close the peer connection on its own call stack, separate from the DataChannel
     // callback that initiated the peer connection.
     // https://bugs.chromium.org/p/webrtc/issues/detail?id=3721
     emit closePeerConnectionSoon(connection);
