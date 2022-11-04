@@ -37,7 +37,7 @@
 #include "OctreeUtils.h"
 #include "OctreeDataUtils.h"
 
-constexpr std::chrono::seconds OctreePersistThread::DEFAULT_PERSIST_INTERVAL { 30 };
+const std::chrono::seconds OctreePersistThread::DEFAULT_PERSIST_INTERVAL { 30 };
 constexpr std::chrono::milliseconds TIME_BETWEEN_PROCESSING { 10 };
 
 constexpr int MAX_OCTREE_REPLACEMENT_BACKUP_FILES_COUNT { 20 };
