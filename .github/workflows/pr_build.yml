@@ -70,7 +70,7 @@ jobs:
             echo "VCPKG_FORCE_SYSTEM_BINARIES=true" >> $GITHUB_ENV
           fi
           if [ "${{ matrix.build_type }}" = "full" ]; then
-            echo "CMAKE_EXTRA=-DVIRCADIA_CPU_ARCHITECTURE= -DBUILD_TOOLS:BOOLEAN=FALSE" >> $GITHUB_ENV
+            echo "CMAKE_EXTRA=-DVIRCADIA_CPU_ARCHITECTURE=" >> $GITHUB_ENV
           else
             echo "CMAKE_EXTRA=-DVIRCADIA_CPU_ARCHITECTURE= -DCLIENT_ONLY=1 -DBUILD_TOOLS:BOOLEAN=FALSE" >> $GITHUB_ENV
           fi
@@ -84,7 +84,7 @@ jobs:
               echo "VCPKG_FORCE_SYSTEM_BINARIES=true" >> $GITHUB_ENV
             fi
             if [ "${{ matrix.build_type }}" = "full" ]; then
-              echo "CMAKE_EXTRA=-DVIRCADIA_CPU_ARCHITECTURE= -DBUILD_TOOLS:BOOLEAN=FALSE -DHIFI_PYTHON_EXEC:FILEPATH=$(which python3)" >> $GITHUB_ENV
+              echo "CMAKE_EXTRA=-DVIRCADIA_CPU_ARCHITECTURE= -DHIFI_PYTHON_EXEC:FILEPATH=$(which python3)" >> $GITHUB_ENV
             else
               echo "CMAKE_EXTRA=-DVIRCADIA_CPU_ARCHITECTURE= -DCLIENT_ONLY=1 -DBUILD_TOOLS:BOOLEAN=FALSE -DHIFI_PYTHON_EXEC:FILEPATH=$(which python3)" >> $GITHUB_ENV
             fi
