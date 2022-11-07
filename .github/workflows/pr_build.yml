@@ -229,12 +229,6 @@ jobs:
         path: ${{ runner.workspace }}/cmake-logs-${{ matrix.os }}-${{ github.event.number }}.tar.xz
         if-no-files-found: error
 
-    - name: Build Application
-      if: matrix.build_type == 'full' || matrix.build_type == 'client'
-      working-directory: ${{runner.workspace}}/build
-      shell: bash
-      run: cmake --build . --config $BUILD_TYPE --target $APP_TARGET_NAME $CMAKE_BUILD_EXTRA
-
     - name: Build Domain Server
       if: matrix.build_type == 'full'
       working-directory: ${{runner.workspace}}/build
@@ -246,6 +240,18 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target assignment-client $CMAKE_BUILD_EXTRA
+
+    - name: Build Deb Package
+      if: matrix.os == 'ubuntu-20.04' || matrix.os == 'ubuntu-18.04'
+      working-directory: ${{runner.workspace}}
+      shell: bash
+      run: DEBVERSION=$RELEASE_NUMBER DEBEMAIL="namark@digisomni.com" DEBFULLNAME="Na Mark" ./pkg-scripts/make-deb-server
+
+    - name: Build Application
+      if: matrix.build_type == 'full' || matrix.build_type == 'client'
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake --build . --config $BUILD_TYPE --target $APP_TARGET_NAME $CMAKE_BUILD_EXTRA
 
     - name: Build Console
       if: matrix.build_type == 'full' || matrix.os == 'windows-2019'
@@ -334,3 +340,12 @@ jobs:
         name: build-interface-${{ matrix.os }}-${{ github.event.number }}
         path: ${{ runner.workspace }}/build/Vircadia-Interface-PR${{ github.event.number }}-*.${{ env.INSTALLER_EXT }}
         if-no-files-found: error
+
+    - name: Upload Deb package
+      if: matrix.os == 'ubuntu-20.04'
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-server-${{ matrix.os }}-${{ github.event.number }}
+        path: ${{ runner.workspace }}/*.deb
+        if-no-files-found: error
+
