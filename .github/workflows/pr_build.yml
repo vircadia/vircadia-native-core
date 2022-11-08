@@ -272,7 +272,7 @@ jobs:
       run: cmake --build . --config $BUILD_TYPE --target packaged-server-console $CMAKE_BUILD_EXTRA
 
     - name: Build Installer
-      if: matrix.build_type != 'android' && (matrix.os == 'ubuntu-20.04' || matrix.os == 'ubuntu-18.04')
+      if: matrix.build_type != 'android' && (matrix.os != 'ubuntu-20.04' && matrix.os != 'ubuntu-18.04')
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: |
