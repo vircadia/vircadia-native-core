@@ -280,6 +280,7 @@ The release and debug static libraries can be copied over from `src/out/Release/
 The [linux](./linux) directory contains a Makefile and patches to automate the entire process from installing prerequisits to creating the VCPKG package, tested on Ubuntu 20.04 server, WebRTC version 5387. To use it copy the contents to a folder to where WebRTC should be built and invoke `make`. The Makefile has the following parameters:
 * VERSION - the version of webrtc to checkout, this is just the number, will be prefixed with "branch_heads/" for the git checkout command. (default: 5387)
 * DESTDIR - the output directory in which to build the package VCPKG package (default: package)
+
 If the process completes succsessfully the VCPKG package will be available under `DESTDIR` as `webrtc-VERSION-linux.tar.xz`. The [patches](./linux/patches) directory contains a directory per version which contain diff files to apply to `src` folder berfore building. This way if different changes are required for future versions of WebRTC they can be added there as diff files under appropriate directories.
 
 ## MacOS - M78
