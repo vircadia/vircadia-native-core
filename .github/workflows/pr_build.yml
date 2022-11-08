@@ -338,7 +338,7 @@ jobs:
       run: cat ./_CPack_Packages/win64/NSIS/NSISOutput.log
 
     - name: Upload full build
-      if: matrix.build_type == 'full'
+      if: matrix.build_type == 'full' && matrix.os != 'ubuntu-18.04' && matrix.os != 'ubuntu-20.04'
       uses: actions/upload-artifact@v3
       with:
         name: build-full-${{ matrix.os }}-${{ github.event.number }}
