@@ -254,7 +254,7 @@ jobs:
       run: cmake --build . --config $BUILD_TYPE --target ice-server $CMAKE_BUILD_EXTRA
 
     - name: Build Deb Package
-      if: matrix.build_type = 'full' && (matrix.os == 'ubuntu-20.04' || matrix.os == 'ubuntu-18.04')
+      if: matrix.build_type == 'full' && (matrix.os == 'ubuntu-20.04' || matrix.os == 'ubuntu-18.04')
       working-directory: ${{runner.workspace}}/vircadia
       shell: bash
       run: DEBVERSION=$RELEASE_NUMBER DEBEMAIL="namark@digisomni.com" DEBFULLNAME="Na Mark" DEBBUILDDIR="../build" ./pkg-scripts/make-deb-server
