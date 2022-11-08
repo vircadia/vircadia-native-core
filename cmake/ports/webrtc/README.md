@@ -250,7 +250,7 @@ Remove BoringSSL library to make sure it's not included in the build:
 ```
 rm -rf third_party/boringssl
 ```
-This will break several other dependencies, so they need to be updated to use the system OpenSSL library instead of BoringSSL. The commands below that generate build configurations will give errors for relevant third party sub projects. Each of these has a BUILD.gn file in it's root, this is configuration file that specifies dependency on boringssl in arrays called `deps` with a path string `//third_party/boringssl`. All those need to be removed. Additionally under `config("<projectname>_config")` OpenSSL libraries linkage parameters need to be added, these are specified in another array called `libs`, that should include `"ssl", "crypto"` to link against libssl and libcrypto. In version 5387 affected third party projects are `grpc` and `libsrtp`, and necessary modification are available in a diff format [here](./linux/patches/5387/replace_boringssl.diff).
+This will break several other dependencies, so they need to be updated to use the system OpenSSL library instead of BoringSSL. The commands below that generate build configurations will give errors for relevant third party sub projects. Each of these has a BUILD.gn file in its root, this is configuration file that specifies dependency on boringssl in arrays called `deps` with a path string `//third_party/boringssl`. All those need to be removed. Additionally under `config("<projectname>_config")` OpenSSL libraries linkage parameters need to be added, these are specified in another array called `libs`, that should include `"ssl", "crypto"` to link against libssl and libcrypto. In version 5387 affected third party projects are `grpc` and `libsrtp`, and necessary modification are available in a diff format [here](./linux/patches/5387/replace_boringssl.diff).
 
 #### Building the library
 
@@ -277,10 +277,10 @@ The release and debug static libraries can be copied over from `src/out/Release/
 
 ### Automation
 
-The [linux](./linux) contains a Makefile and patches to automate the entire process from prerequisits to creating the VCPKG package, tested on Ubuntu 20.04 server, WebRTC version 5387. To use it copy the contents to a folder where WebRTC should be built and invoke `make`. The Makefile has the following parameters:
+The [linux](./linux) directory contains a Makefile and patches to automate the entire process from installing prerequisits to creating the VCPKG package, tested on Ubuntu 20.04 server, WebRTC version 5387. To use it copy the contents to a folder to where WebRTC should be built and invoke `make`. The Makefile has the following parameters:
 * VERSION - the version of webrtc to checkout, this is just the number, will be prefixed with "branch_heads/" for the git checkout command. (default: 5387)
 * DESTDIR - the output directory in which to build the package VCPKG package (default: package)
-If the process completes succsessfully the VCPKG package will be available under `DESTDIR`(by default directory named package) as `webrtc-<version>-linux.tar.xz`. The [patches](./linux/patches) directory contains a directory per version which conatin diff files to apply to `src` folder berfore building. This way if different changes are required for future versions of WebRTC they can be added there as diff files under appropriate directories.
+If the process completes succsessfully the VCPKG package will be available under `DESTDIR` as `webrtc-VERSION-linux.tar.xz`. The [patches](./linux/patches) directory contains a directory per version which contain diff files to apply to `src` folder berfore building. This way if different changes are required for future versions of WebRTC they can be added there as diff files under appropriate directories.
 
 ## MacOS - M78
 
