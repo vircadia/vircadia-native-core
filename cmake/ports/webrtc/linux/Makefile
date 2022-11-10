@@ -3,7 +3,8 @@ BRANCH = branch-heads/$(VERSION)
 DESTDIR ?= package
 PKGNAME := webrtc
 PKGDIR ?= $(DESTDIR)/$(PKGNAME)
-PKG = $(DESTDIR)/webrtc-$(VERSION)-linux.tar.xz
+PKGARCH := webrtc-$(VERSION)-linux.tar.xz
+PKG := $(DESTDIR)/$(PKGARCH)
 
 SRCDIR := ./src
 
@@ -52,7 +53,7 @@ package: $(PKG)
 $(PKG): $(PKGINC) $(PKGLIB) $(PKGDBGLIB) $(PKGLICENSE)
 	-rm $@
 	cd $(DESTDIR); \
-	tar -cJf $@ $(PKGNAME); \
+	tar -cJf $(PKGARCH) $(PKGNAME); \
 	cd -;
 
 $(PKGINCDIR)/%.h: $(SRCDIR)/%.h
@@ -108,18 +109,10 @@ $(SRCDIR):
 	git checkout $(BRANCH); \
 	gclient sync; \
 	rm -rf third_party/boringssl; \
-	patch -p0 < ../patches/$(VERSION)/*.diff || patch -p0 < ../patches/default/*.diff; \
+	cat ../patches/$(VERSION)/*.diff | patch -p0 || cat ../patches/default/*.diff | patch -p0; \
 	export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig/; \
 	gn gen $(RELDIR) --args='use_custom_libcxx=false target_sysroot="/" rtc_include_tests=false rtc_build_examples=false use_debug_fission=false is_debug=false use_rtti=true rtc_use_h264=true proprietary_codecs=true rtc_build_ssl=false rtc_ssl_root=" "'; \
 	gn gen $(DBGDIR) --args='use_custom_libcxx=false target_sysroot="/" rtc_include_tests=false rtc_build_examples=false use_debug_fission=false is_debug=true rtc_use_h264=true proprietary_codecs=true rtc_build_ssl=false rtc_ssl_root=" "'; \
-	cd -
-
-gngen:
-	cd $(SRCDIR); \
-	export PATH=$(PWD)/depot_tools:$(PATH); \
-	export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig/; \
-	gn gen $(RELDIR) --args='is_clang=false use_custom_libcxx=false target_sysroot="/" rtc_include_tests=false rtc_build_examples=false use_debug_fission=false is_debug=false use_rtti=true rtc_use_h264=true proprietary_codecs=true rtc_build_ssl=false rtc_ssl_root=" "'; \
-	gn gen $(DBGDIR) --args='is_clang=false use_custom_libcxx=false target_sysroot="/" rtc_include_tests=false rtc_build_examples=false use_debug_fission=false is_debug=true rtc_use_h264=true proprietary_codecs=true rtc_build_ssl=false rtc_ssl_root=" "'; \
 	cd -
 
 getsumspace:
