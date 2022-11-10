@@ -5,6 +5,7 @@
 //  Created by Simon Walton on Oct 15, 2018.
 //  Copyright 2018 High Fidelity, Inc.
 //  Copyright 2020 Vircadia contributors.
+//  Copyright 2020 DigiSomni LLC.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html

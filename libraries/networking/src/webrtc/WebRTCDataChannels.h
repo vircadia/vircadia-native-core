@@ -4,6 +4,7 @@
 //
 //  Created by David Rowe on 21 May 2021.
 //  Copyright 2021 Vircadia contributors.
+//  Copyright 2021 DigiSomni LLC.
 //
 
 #ifndef vircadia_WebRTCDataChannels_h
