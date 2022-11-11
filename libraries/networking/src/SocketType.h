@@ -4,6 +4,7 @@
 //
 //  Created by David Rowe on 17 May 2021.
 //  Copyright 2021 Vircadia contributors.
+//  Copyright 2021 DigiSomni LLC.
 //
 //  Handles UDP and WebRTC sockets in parallel.
 //

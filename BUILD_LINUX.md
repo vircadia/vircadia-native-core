@@ -239,7 +239,7 @@ glxinfo | grep "OpenGL version"
 
 Install the following:
 ```bash
-sudo pacman -S install libpulse libnss_nis nspr fontconfig libxcursor libxcomposite libxtst libxslt
+sudo pacman -S libpulse libnss_nis nspr fontconfig libxcursor libxcomposite libxtst libxslt
 ```
 
 Misc dependencies:

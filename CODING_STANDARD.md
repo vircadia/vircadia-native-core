@@ -987,6 +987,7 @@ copyright line, copyright Vircadia contributors.
 //  Created by Stephen Birarda on 15 Feb 2013.
 //  Copyright 2013 High Fidelity, Inc.
 //  Copyright 2020 Vircadia contributors.
+//  Copyright 2020 DigiSomni LLC.
 //
 //  This is where you could place an optional one line comment about the file.
 //

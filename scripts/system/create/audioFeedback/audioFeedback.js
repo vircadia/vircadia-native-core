@@ -3,6 +3,7 @@
 //
 //  Created by Alezia Kurdis on September 30, 2020.
 //  Copyright 2020 Vircadia contributors.
+//  Copyright 2020 DigiSomni LLC.
 //
 //  This script add audio feedback (confirmation and rejection) for user interactions that require one.
 //

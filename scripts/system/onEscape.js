@@ -5,6 +5,7 @@
 //
 //  Created by Kalila L. on Feb 3 2021.
 //  Copyright 2021 Vircadia contributors.
+//  Copyright 2021 DigiSomni LLC.
 //
 //  This script manages actions when the user triggers an "escape" key or action.
 //
