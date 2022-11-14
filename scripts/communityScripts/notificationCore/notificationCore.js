@@ -4,6 +4,7 @@
 //  Created by Fluffy Jenkins January 2020.
 //  Copyright 2020 Fluffy Jenkins
 //  Copyright 2020 Vircadia contributors.
+//  Copyright 2020 DigiSomni LLC.
 //
 //  For any future coders, please keep me in the loop when making changes.
 //  Please tag me in any Pull Requests.

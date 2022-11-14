@@ -3,6 +3,7 @@
 //
 //  Created by Dale Glass on 6 Sep 2020
 //  Copyright 2020 Vircadia contributors.
+//  Copyright 2020 DigiSomni LLC.
 //
 //  Flexible management for external resources (e.g., on S3).
 //
