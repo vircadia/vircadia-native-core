@@ -1694,7 +1694,7 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress, const
     bool isWebRTCWSSEnabled = _settingsManager.valueForKeyPath(WEBRTC_WSS_ENABLED_SETTINGS_KEY).toBool();
     auto acmeDomainList = _settingsManager.valueOrDefaultValueForKeyPath("acme.certificate_domains").toList();
     QJsonArray acmeDomains;
-    for (auto&& acmeDomain : acmeDomainList) {
+    for (auto&& acmeDomain: acmeDomainList) {
         acmeDomains.push_back(acmeDomain.toMap()["domain"].toString());
     }
     webRTCCapabilities["enabled"] = isWebRTCEnabled;
