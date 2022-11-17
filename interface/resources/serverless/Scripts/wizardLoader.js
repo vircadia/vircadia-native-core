@@ -5,6 +5,7 @@
 //
 //  Created by Kalila L. on Feb 19 2021.
 //  Copyright 2021 Vircadia contributors.
+//  Copyright 2021 DigiSomni LLC.
 //
 //  This script is used to load the onboarding wizard at the location of the entity it's on.
 //

@@ -5,7 +5,7 @@
 //  Created by Stephen Birarda on 9/26/13.
 //  Copyright 2013 High Fidelity, Inc.
 //  Copyright 2020 Vircadia contributors.
-//  Copyright 2022 DigiSomni LLC.
+//  Copyright 2020 DigiSomni LLC.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -1694,7 +1694,7 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress, const
     bool isWebRTCWSSEnabled = _settingsManager.valueForKeyPath(WEBRTC_WSS_ENABLED_SETTINGS_KEY).toBool();
     auto acmeDomainList = _settingsManager.valueOrDefaultValueForKeyPath("acme.certificate_domains").toList();
     QJsonArray acmeDomains;
-    for (auto&& acmeDomain : acmeDomainList) {
+    for (auto&& acmeDomain: acmeDomainList) {
         acmeDomains.push_back(acmeDomain.toMap()["domain"].toString());
     }
     webRTCCapabilities["enabled"] = isWebRTCEnabled;
