@@ -1703,12 +1703,13 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress, const
     capabilities["webrtc"] = webRTCCapabilities;
 #endif
 
-    QJsonObject prometheusCapabilities;
+    // provides server statistics in a specific format (see DomainServerExporter.h)
+    QJsonObject prometheusExporterCapabilities;
     bool isExporterEnabled = _settingsManager.valueOrDefaultValueForKeyPath(ENABLE_PROMETHEUS_EXPORTER_SETTINGS_KEY).toBool();
     int exporterPort = _settingsManager.valueOrDefaultValueForKeyPath(PROMETHEUS_EXPORTER_PORT_SETTINGS_KEY).toInt();
-    prometheusCapabilities["enabled"] = isExporterEnabled;
-    prometheusCapabilities["port"] = exporterPort;
-    capabilities["prometheus_exporter"] = prometheusCapabilities;
+    prometheusExporterCapabilities["enabled"] = isExporterEnabled;
+    prometheusExporterCapabilities["port"] = exporterPort;
+    capabilities["prometheus_exporter"] = prometheusExporterCapabilities;
 
     QJsonObject metadataCapabilities;
     bool isMetadataExporterEnabled = _settingsManager.valueOrDefaultValueForKeyPath(ENABLE_METADATA_EXPORTER_SETTINGS_KEY).toBool();
