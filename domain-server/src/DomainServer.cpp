@@ -89,6 +89,16 @@ bool DomainServer::_getTempName { false };
 QString DomainServer::_userConfigFilename;
 int DomainServer::_parentPID { -1 };
 
+#if defined(WEBRTC_DATA_CHANNELS)
+const QString WEBRTC_ENABLED_SETTINGS_KEY = "webrtc.enable_webrtc";
+const QString WEBRTC_WSS_ENABLED_SETTINGS_KEY = "webrtc.enable_webrtc_websocket_ssl";
+#endif
+const QString ENABLE_PROMETHEUS_EXPORTER_SETTINGS_KEY = "monitoring.enable_prometheus_exporter";
+const QString PROMETHEUS_EXPORTER_PORT_SETTINGS_KEY = "monitoring.prometheus_exporter_port";
+const QString ENABLE_METADATA_EXPORTER_SETTINGS_KEY = "metaverse.enable_metadata_exporter";
+const QString METADATA_EXPORTER_PORT_SETTINGS_KEY = "metaverse.metadata_exporter_port";
+
+
 /// @brief The Domain server can proxy requests to the Metaverse server, this function handles those forwarding requests.
 /// @param connection The HTTP connection object.
 /// @param requestUrl The full URL of the request. e.g. https://google.com/api/v1/test
@@ -278,14 +288,12 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _settingsManager.apiRefreshGroupInformation();
 
 #if defined(WEBRTC_DATA_CHANNELS)
-    const QString WEBRTC_ENABLE = "webrtc.enable_webrtc";
-    bool isWebRTCEnabled = _settingsManager.valueForKeyPath(WEBRTC_ENABLE).toBool();
+    bool isWebRTCEnabled = _settingsManager.valueForKeyPath(WEBRTC_ENABLED_SETTINGS_KEY).toBool();
     qCDebug(domain_server) << "WebRTC enabled:" << isWebRTCEnabled;
     // The domain server's WebRTC signaling server is used by the domain server and the assignment clients, so disabling it
     // disables WebRTC for the server as a whole.
     if (isWebRTCEnabled) {
-        const QString WEBRTC_WSS_ENABLE = "webrtc.enable_webrtc_websocket_ssl";
-        bool isWebRTCWSSEnabled = _settingsManager.valueForKeyPath(WEBRTC_WSS_ENABLE).toBool();
+        bool isWebRTCWSSEnabled = _settingsManager.valueForKeyPath(WEBRTC_WSS_ENABLED_SETTINGS_KEY).toBool();
         qCDebug(domain_server) << "WebRTC WSS enabled:" << isWebRTCWSSEnabled;
         if (isWebRTCWSSEnabled) {
             _webrtcSignalingServer.reset(new WebRTCSignalingServer(this,
@@ -1677,6 +1685,50 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress, const
     } else if (!networkAddressFromSettings.isEmpty()) {
         domainObject[PUBLIC_SOCKET_ADDRESS_KEY] = networkAddressFromSettings;
     }
+
+    QJsonObject capabilities;
+
+#if defined(WEBRTC_DATA_CHANNELS)
+    QJsonObject webRTCCapabilities;
+    bool isWebRTCEnabled = _settingsManager.valueForKeyPath(WEBRTC_ENABLED_SETTINGS_KEY).toBool();
+    bool isWebRTCWSSEnabled = _settingsManager.valueForKeyPath(WEBRTC_WSS_ENABLED_SETTINGS_KEY).toBool();
+    auto acmeDomainList = _settingsManager.valueOrDefaultValueForKeyPath("acme.certificate_domains").toList();
+    QJsonArray acmeDomains;
+    for (auto&& acmeDomain: acmeDomainList) {
+        acmeDomains.push_back(acmeDomain.toMap()["domain"].toString());
+    }
+    webRTCCapabilities["enabled"] = isWebRTCEnabled;
+    webRTCCapabilities["ssl_enabled"] = isWebRTCWSSEnabled;
+    webRTCCapabilities["ssl_domains"] = acmeDomains;
+    capabilities["webrtc"] = webRTCCapabilities;
+#endif
+
+    // provides server statistics in a specific format (see DomainServerExporter.h)
+    QJsonObject prometheusExporterCapabilities;
+    bool isExporterEnabled = _settingsManager.valueOrDefaultValueForKeyPath(ENABLE_PROMETHEUS_EXPORTER_SETTINGS_KEY).toBool();
+    int exporterPort = _settingsManager.valueOrDefaultValueForKeyPath(PROMETHEUS_EXPORTER_PORT_SETTINGS_KEY).toInt();
+    prometheusExporterCapabilities["enabled"] = isExporterEnabled;
+    prometheusExporterCapabilities["port"] = exporterPort;
+    capabilities["prometheus_exporter"] = prometheusExporterCapabilities;
+
+    QJsonObject metadataCapabilities;
+    bool isMetadataExporterEnabled = _settingsManager.valueOrDefaultValueForKeyPath(ENABLE_METADATA_EXPORTER_SETTINGS_KEY).toBool();
+    int metadataExporterPort = _settingsManager.valueOrDefaultValueForKeyPath(METADATA_EXPORTER_PORT_SETTINGS_KEY).toInt();
+    metadataCapabilities["enabled"] = isMetadataExporterEnabled;
+    metadataCapabilities["port"] = metadataExporterPort;
+    capabilities["metadata_exporter"] = metadataCapabilities;
+
+    QJsonObject audioCapabilites;
+    auto audioCodecPreferenceList = _settingsManager.valueOrDefaultValueForKeyPath("audio_env.codec_preference_order").toString().split(",");
+    QJsonArray audioCodecPreference;
+    for (auto&& audioCodec : audioCodecPreferenceList) {
+        audioCodecPreference.push_back(audioCodec);
+    }
+    audioCapabilites["codec_preference_order"] = audioCodecPreference;
+    // TODO: add a list of available codecs, must be retrieved from PluginManager
+    capabilities["audio"] = audioCapabilites;
+
+    domainObject["capabilities"] = capabilities;
 
     static const QString PORT_SETTINGS_KEY = "domain_server." + PUBLIC_SOCKET_PORT_KEY;
     const int portFromSettings = _settingsManager.valueForKeyPath(PORT_SETTINGS_KEY).toInt();
@@ -3269,11 +3321,8 @@ void DomainServer::updateUpstreamNodes() {
 }
 
 void DomainServer::initializeExporter() {
-    static const QString ENABLE_EXPORTER = "monitoring.enable_prometheus_exporter";
-    static const QString EXPORTER_PORT = "monitoring.prometheus_exporter_port";
-
-    bool isExporterEnabled = _settingsManager.valueOrDefaultValueForKeyPath(ENABLE_EXPORTER).toBool();
-    int exporterPort = _settingsManager.valueOrDefaultValueForKeyPath(EXPORTER_PORT).toInt();
+    bool isExporterEnabled = _settingsManager.valueOrDefaultValueForKeyPath(ENABLE_PROMETHEUS_EXPORTER_SETTINGS_KEY).toBool();
+    int exporterPort = _settingsManager.valueOrDefaultValueForKeyPath(PROMETHEUS_EXPORTER_PORT_SETTINGS_KEY).toInt();
 
     if (exporterPort < MIN_PORT || exporterPort > MAX_PORT) {
         qCWarning(domain_server) << "Prometheus exporter port " << exporterPort << " is out of range.";
@@ -3295,11 +3344,8 @@ void DomainServer::initializeExporter() {
 }
 
 void DomainServer::initializeMetadataExporter() {
-    static const QString ENABLE_EXPORTER = "metaverse.enable_metadata_exporter";
-    static const QString EXPORTER_PORT = "metaverse.metadata_exporter_port";
-
-    bool isMetadataExporterEnabled = _settingsManager.valueOrDefaultValueForKeyPath(ENABLE_EXPORTER).toBool();
-    int metadataExporterPort = _settingsManager.valueOrDefaultValueForKeyPath(EXPORTER_PORT).toInt();
+    bool isMetadataExporterEnabled = _settingsManager.valueOrDefaultValueForKeyPath(ENABLE_METADATA_EXPORTER_SETTINGS_KEY).toBool();
+    int metadataExporterPort = _settingsManager.valueOrDefaultValueForKeyPath(METADATA_EXPORTER_PORT_SETTINGS_KEY).toInt();
 
     if (metadataExporterPort < MIN_PORT || metadataExporterPort > MAX_PORT) {
         qCWarning(domain_server) << "Metadata exporter port" << metadataExporterPort << "is out of range.";

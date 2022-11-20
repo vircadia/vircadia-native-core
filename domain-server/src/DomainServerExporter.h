@@ -27,9 +27,10 @@
 /**
  * @brief Prometheus exporter for domain stats
  *
- * This class exportors the statistics that can be seen on the domain's page in
- * a format that can be parsed by Prometheus. This is useful for troubleshooting,
- * monitoring performance, and making pretty graphs.
+ * This class exports the statistics that can be seen on the domain's page in a
+ * format that can be parsed by Prometheus (https://prometheus.io/). This is
+ * useful for troubleshooting, monitoring performance, and making pretty
+ * graphs.
  */
 class DomainServerExporter : public HTTPRequestHandler
 {
