@@ -255,9 +255,8 @@ jobs:
 
     - name: Build Deb Package
       if: matrix.build_type == 'full' && (matrix.os == 'ubuntu-20.04' || matrix.os == 'ubuntu-18.04')
-      working-directory: ${{runner.workspace}}/vircadia
       shell: bash
-      run: DEBVERSION=$RELEASE_NUMBER DEBEMAIL="namark@digisomni.com" DEBFULLNAME="Na Mark" DEBBUILDDIR="../build" ./pkg-scripts/make-deb-server
+      run: DEBVERSION=$RELEASE_NUMBER DEBEMAIL="namark@digisomni.com" DEBFULLNAME="Na Mark" DEBBUILDDIR=${{runner.workspace}}/build ./pkg-scripts/make-deb-server
 
     - name: Build Application
       if: matrix.build_type == 'full' || matrix.build_type == 'client'
@@ -358,6 +357,6 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: build-server-${{ matrix.os }}-${{ github.event.number }}
-        path: ${{ runner.workspace }}/vircadia/*.deb
+        path: ./*.deb
         if-no-files-found: error
 
