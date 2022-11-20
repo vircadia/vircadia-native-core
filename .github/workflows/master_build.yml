@@ -29,13 +29,16 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-2019, macOS-10.15, ubuntu-18.04]
+        os: [windows-2019, macOS-10.15, ubuntu-18.04, ubuntu-20.04]
         # build_type: [full, client]
         build_type: [full]
         include:
           - os: ubuntu-18.04
             build_type: full
             apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion1 libpulse0 libsnappy1v5 libwebpdemux2 libwebpmux3
+          - os: ubuntu-20.04
+            build_type: full
+            apt-dependencies: mesa-common-dev libegl1 libglvnd-dev libdouble-conversion3 libpulse0 libsnappy1v5 libwebpdemux2 libwebpmux3
       fail-fast: false
     runs-on: ${{matrix.os}}
     steps:
@@ -51,12 +54,23 @@ jobs:
         echo ::set-output name=github_sha_short::`echo $GIT_COMMIT | cut -c1-7`
         echo "JOB_NAME=build (${{matrix.os}}, ${{matrix.build_type}})" >> $GITHUB_ENV
         echo "APP_TARGET_NAME=$APP_NAME" >> $GITHUB_ENV
-        # Linux build variables
-        if [[ "${{ matrix.os }}" = "ubuntu-"* ]]; then
-          echo "PYTHON_EXEC=python3" >> $GITHUB_ENV
-          echo "INSTALLER_EXT=tgz" >> $GITHUB_ENV
-          echo "CMAKE_BUILD_EXTRA=-- -j3" >> $GITHUB_ENV
-          echo "CMAKE_EXTRA=-DVIRCADIA_CPU_ARCHITECTURE= -DBUILD_TOOLS:BOOLEAN=FALSE -DHIFI_PYTHON_EXEC:FILEPATH=$(which python3)" >> $GITHUB_ENV
+        # Ununti 20.04 build variables
+        if [[ "${{ matrix.os }}" = "ubuntu-20.04" ]]; then
+          echo "INSTALLER_EXT=*" >> $GITHUB_ENV
+          echo "VIRCADIA_QT_PATH=/opt/qt515" >> $GITHUB_ENV
+          echo "CMAKE_BUILD_EXTRA=-- -j$(nproc)" >> $GITHUB_ENV
+          if [[ "${{ matrix.os }}" = *"aarch64" ]]; then
+            echo "VCPKG_FORCE_SYSTEM_BINARIES=true" >> $GITHUB_ENV
+          fi
+          echo "CMAKE_EXTRA=-DVIRCADIA_CPU_ARCHITECTURE=" >> $GITHUB_ENV
+        else
+          # other Linux build variables
+          if [[ "${{ matrix.os }}" = "ubuntu-"* ]]; then
+            echo "PYTHON_EXEC=python3" >> $GITHUB_ENV
+            echo "INSTALLER_EXT=tgz" >> $GITHUB_ENV
+            echo "CMAKE_BUILD_EXTRA=-- -j3" >> $GITHUB_ENV
+            echo "CMAKE_EXTRA=-DVIRCADIA_CPU_ARCHITECTURE= -DBUILD_TOOLS:BOOLEAN=FALSE -DHIFI_PYTHON_EXEC:FILEPATH=$(which python3)" >> $GITHUB_ENV
+          fi
         fi
         # Mac build variables
         if [ "${{ matrix.os }}" = "macOS-10.15" ]; then
@@ -120,6 +134,18 @@ jobs:
 
           echo "Installing apt packages"
           sudo apt install -y ${{ matrix.apt-dependencies }} || exit 1
+
+          if [[ "${{ matrix.os }}" = "ubuntu-20.04" ]]; then
+
+            sudo apt-add-repository ppa:beineri/opt-qt-5.15.2-focal
+            sudo apt update
+            sudo apt upgrade
+
+            sudo apt install cmake g++ zip libgl-dev libssl-dev
+
+            sudo apt install qt5153d qt5153d-dbg qt515base qt515base-dbg qt515charts-no-lgpl qt515connectivity qt515connectivity-dbg qt515datavis3d-no-lgpl qt515declarative qt515declarative-dbg qt515doc qt515gamepad qt515graphicaleffects qt515graphicaleffects-dbg qt515imageformats qt515imageformats-dbg qt515location qt515location-dbg qt515lottie-no-lgpl qt515multimedia qt515multimedia-dbg qt515networkauth-no-lgpl qt515opcua qt515opcua-dbg qt515quick3d-no-lgpl qt515quickcontrols qt515quickcontrols-dbg qt515quickcontrols2 qt515quickcontrols2-dbg qt515quicktimeline-no-lgpl qt515remoteobjects qt515remoteobjects-dbg qt515script qt515script-dbg qt515scxml qt515scxml-dbg qt515sensors qt515sensors-dbg qt515serialbus qt515serialbus-dbg qt515serialport qt515serialport-dbg qt515speech qt515speech-dbg qt515svg qt515svg-dbg qt515tools qt515tools-dbg qt515translations qt515wayland qt515wayland-dbg qt515webchannel qt515webchannel-dbg qt515webengine qt515webengine-dbg qt515webglplugin-no-lgpl qt515websockets qt515websockets-dbg qt515x11extras qt515x11extras-dbg qt515xmlpatterns qt515xmlpatterns-dbg
+          fi
+
         else # macOS
           echo "Downloading MacOSX10.12 SDK.."
           # TODO: do this in cmake or python build scripts to make use of centralized external asset configuration with fallback gateways.
@@ -156,27 +182,46 @@ jobs:
       shell: bash
       run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DVCPKG_BUILD_TYPE=release -DCLIENT_ONLY:BOOLEAN=$CLIENT_ONLY -DBYPASS_SIGNING:BOOLEAN=TRUE $CMAKE_EXTRA
 
-    - name: Build application
-      working-directory: ${{runner.workspace}}/build
-      shell: bash
-      run: cmake --build . --config $BUILD_TYPE --target $APP_TARGET_NAME $CMAKE_BUILD_EXTRA
-
-    - name: Build domain server
+    - name: Build Domain Server
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target domain-server $CMAKE_BUILD_EXTRA
 
-    - name: Build assignment client
+    - name: Build Assignment Client
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target assignment-client $CMAKE_BUILD_EXTRA
 
-    - name: Build console
+    - name: Build Oven
+      if: matrix.os == 'ubuntu-20.04' || matrix.os == 'ubuntu-18.04'
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake --build . --config $BUILD_TYPE --target oven $CMAKE_BUILD_EXTRA
+
+    - name: Build ICE Server
+      if: matrix.os == 'ubuntu-20.04' || matrix.os == 'ubuntu-18.04'
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake --build . --config $BUILD_TYPE --target ice-server $CMAKE_BUILD_EXTRA
+
+    - name: Build Deb Package
+      if: matrix.os == 'ubuntu-20.04' || matrix.os == 'ubuntu-18.04'
+      working-directory: ${{runner.workspace}}/vircadia
+      shell: bash
+      run: DEBVERSION=$RELEASE_NUMBER DEBEMAIL="namark@digisomni.com" DEBFULLNAME="Na Mark" DEBBUILDDIR="../build" ./pkg-scripts/make-deb-server
+
+    - name: Build Application
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake --build . --config $BUILD_TYPE --target $APP_TARGET_NAME $CMAKE_BUILD_EXTRA
+
+    - name: Build Console
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: cmake --build . --config $BUILD_TYPE --target packaged-server-console $CMAKE_BUILD_EXTRA
 
-    - name: Build installer
+    - name: Build Installer
+      if: matrix.os != 'ubuntu-20.04' && matrix.os != 'ubuntu-18.04'
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: |
@@ -237,6 +282,14 @@ jobs:
       with:
         name: build-interface-${{ matrix.os }}-${{ github.event.number }}
         path: ${{ runner.workspace }}/build/Vircadia-*.${{ env.INSTALLER_EXT }}
+        if-no-files-found: error
+
+    - name: Upload Deb Packages
+      if: matrix.os == 'ubuntu-20.04'
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-server-${{ matrix.os }}-${{ github.event.number }}
+        path: ${{ runner.workspace }}/vircadia/*.deb
         if-no-files-found: error
 
     #- name: Archive symbols
