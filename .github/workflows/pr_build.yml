@@ -61,7 +61,7 @@ jobs:
         echo "JOB_NAME=build (${{matrix.os}}, ${{matrix.build_type}})" >> $GITHUB_ENV
         echo "APP_TARGET_NAME=$APP_NAME" >> $GITHUB_ENV
 
-        # Ununti 20.04 build variables
+        # Ununtu 20.04 build variables
         if [[ "${{ matrix.os }}" = "ubuntu-20.04" ]]; then
           echo "INSTALLER_EXT=*" >> $GITHUB_ENV
           echo "VIRCADIA_QT_PATH=/opt/qt515" >> $GITHUB_ENV
