@@ -12,7 +12,6 @@ env:
   CI_BUILD: Github
   GIT_COMMIT: ${{ github.sha }}
   RELEASE_TYPE: PRODUCTION
-  RELEASE_NUMBER: ${{ github.run_number }}
   STABLE_BUILD: 0
   UPLOAD_BUCKET: athena-public
 
@@ -46,6 +45,17 @@ jobs:
       shell: bash
       run: |
         echo "Build number: $BUILD_NUMBER"
+    - name: Clear working directory
+      if: startsWith(matrix.os, 'windows')
+      shell: bash
+      working-directory: ${{runner.workspace}}
+      run: rm -rf ./*
+    - uses: actions/checkout@v1
+      with:
+        submodules: false
+        fetch-depth: 1
+    - name: Checkout ACME submodule
+      run: git submodule update --init libraries/networking/src/acme
     - name: Configure build environment 1
       shell: bash
       id: buildenv1
@@ -54,7 +64,13 @@ jobs:
         echo ::set-output name=github_sha_short::`echo $GIT_COMMIT | cut -c1-7`
         echo "JOB_NAME=build (${{matrix.os}}, ${{matrix.build_type}})" >> $GITHUB_ENV
         echo "APP_TARGET_NAME=$APP_NAME" >> $GITHUB_ENV
-        # Ununti 20.04 build variables
+
+        RELEASE_NUMBER=$(head -1 .VERSION)
+        RELEASE_NAME=$(tail -1 .VERSION)
+        echo "RELEASE_NUMBER=$RELEASE_NUMBER" >> $GITHUB_ENV
+        echo "RELEASE_NAME=$RELEASE_NAME" >> $GITHUB_ENV
+
+        # Ununtu 20.04 build variables
         if [[ "${{ matrix.os }}" = "ubuntu-20.04" ]]; then
           echo "INSTALLER_EXT=*" >> $GITHUB_ENV
           echo "VIRCADIA_QT_PATH=/opt/qt515" >> $GITHUB_ENV
@@ -109,17 +125,6 @@ jobs:
           echo "CLIENT_ONLY=TRUE" >> $GITHUB_ENV
           echo "INSTALLER=Vircadia-Interface-$BUILD_NUMBER-$GIT_COMMIT_SHORT.$INSTALLER_EXT" >> $GITHUB_ENV
         fi
-    - name: Clear working directory
-      if: startsWith(matrix.os, 'windows')
-      shell: bash
-      working-directory: ${{runner.workspace}}
-      run: rm -rf ./*
-    - uses: actions/checkout@v1
-      with:
-        submodules: false
-        fetch-depth: 1
-    - name: Checkout ACME submodule
-      run: git submodule update --init libraries/networking/src/acme
 
     - name: Install dependencies
       shell: bash
