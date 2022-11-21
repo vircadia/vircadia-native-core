@@ -1,6 +1,6 @@
 # Build Windows
 
-*Last Updated on 15 Apr 2021*
+*Last Updated on 6 Aug 2022*
 
 This is a stand-alone guide for creating your first Vircadia build for Windows 64-bit.
 
