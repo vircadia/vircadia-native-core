@@ -10,13 +10,27 @@
 -->
 
 <template>
-    <h1>Test</h1>
+    <div>
+        <NodesList></NodesList>
+
+        <AssignmentsList></AssignmentsList>
+    </div>
 </template>
 
 <script lang="ts">
 import { defineComponent } from "vue";
+import NodesList from "@Components/dashboard/Nodes";
+import AssignmentsList from "@Components/dashboard/Assignments";
 
 export default defineComponent({
-    name: "Index"
+    name: "Index",
+
+    components: {
+        NodesList,
+        AssignmentsList
+    },
+
+    methods: {
+    }
 });
 </script>

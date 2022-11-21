@@ -47,7 +47,7 @@ export const storeKey: InjectionKey<VuexStore<StateInterface>> = Symbol("vuex-ke
 export default store(function (/* { ssrContext } */) {
     const Store = createStore<StateInterface>({
         modules: {
-            // example
+
         },
 
         // enable strict mode (adds overhead!)

@@ -1,10 +1,28 @@
+
+import { ContentSettingsValues } from "@Base/modules/domain/interfaces/contentSettings";
+import { SettingsValues } from "@Base/modules/domain/interfaces/settings";
+
 export interface MainState {
-    prop: boolean;
+    serverSettings: {
+        ContentSettings: ContentSettingsValues,
+        Settings: SettingsValues
+    },
+    workingSettings: {
+        ContentSettings: ContentSettingsValues,
+        Settings: SettingsValues
+    },
 }
 
 function state (): MainState {
     return {
-        prop: false
+        serverSettings: {
+            ContentSettings: {},
+            Settings: {}
+        },
+        workingSettings: {
+            ContentSettings: {},
+            Settings: {}
+        }
     };
 }
 
