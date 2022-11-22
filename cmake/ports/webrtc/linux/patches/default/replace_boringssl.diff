@@ -1,0 +1,81 @@
+diff -pur ./third_party/grpc/BUILD.gn ../b/third_party/grpc/BUILD.gn
+--- ./third_party/grpc/BUILD.gn	2022-11-04 20:05:30.859743963 +0000
++++ ../b/third_party/grpc/BUILD.gn	2022-11-04 20:04:43.087301631 +0000
+@@ -61,7 +61,12 @@ config("grpc_config") {
+   ]
+ 
+   if (is_android) {
+-    libs = [ "log" ]  # For __android_log_write
++    libs = [ 
++      "ssl", "crypto", 
++      "log" # For __android_log_write
++    ]  
++  } else {
++    libs = [ "ssl", "crypto" ]  
+   }
+ 
+   if (is_android) {
+@@ -1090,7 +1095,6 @@ source_set("grpc++_h") {
+     ":cares",
+     ":upb",
+     "//third_party/abseil-cpp:absl",
+-    "//third_party/boringssl",
+     "//third_party/protobuf:protobuf_lite",
+     "//third_party/zlib",
+   ]
+@@ -1825,7 +1829,6 @@ source_set("grpc++_cc") {
+     ":grpc++_h",
+     ":upb",
+     "//third_party/abseil-cpp:absl",
+-    "//third_party/boringssl",
+     "//third_party/protobuf:protobuf_lite",
+     "//third_party/zlib",
+   ]
+@@ -1900,7 +1903,6 @@ source_set("grpc++_repeated1") {
+     ":grpc++_h",
+     ":upb",
+     "//third_party/abseil-cpp:absl",
+-    "//third_party/boringssl",
+     "//third_party/protobuf:protobuf_lite",
+     "//third_party/zlib",
+   ]
+@@ -1925,7 +1927,6 @@ source_set("grpc++_repeated2") {
+     ":grpc++_h",
+     ":upb",
+     "//third_party/abseil-cpp:absl",
+-    "//third_party/boringssl",
+     "//third_party/protobuf:protobuf_lite",
+     "//third_party/zlib",
+   ]
+@@ -2158,7 +2159,7 @@ source_set("cares") {
+   } else {
+     sources += [ "src/third_party/cares/config_linux/ares_config.h" ]
+   }
+-  deps = [ "//third_party/boringssl" ]
++  deps = []
+ 
+   public_configs = [ ":grpc_config" ]
+ }
+diff -pur ./third_party/libsrtp/BUILD.gn ../b/third_party/libsrtp/BUILD.gn
+--- ./third_party/libsrtp/BUILD.gn	2022-11-04 20:05:44.127866747 +0000
++++ ../b/third_party/libsrtp/BUILD.gn	2022-11-04 20:04:29.143172445 +0000
+@@ -55,6 +55,8 @@ config("libsrtp_config") {
+     "include",
+     "crypto/include",
+   ]
++
++  libs = ["ssl", "crypto"]
+ }
+ 
+ config("libsrtp_warnings") {
+@@ -133,9 +135,7 @@ static_library("libsrtp") {
+     # "crypto/cipher/aes_icm_nss.c",
+   ]
+ 
+-  public_deps = [
+-    "//third_party/boringssl:boringssl",
+-  ]
++  public_deps = []
+ }
+ 
+ if (build_libsrtp_tests) {
