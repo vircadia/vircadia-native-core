@@ -4,11 +4,67 @@
 
 Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only Linux specific instructions are found in this file. Check out the [notes](#notes) for other important information.
 
-[Ubuntu guide](#ubuntu) | [Arch guide](#arch-linux)
+[Ubuntu 20.04 Server guide](#ubuntu-2004-server-only) | [Ubuntu 18.04 guide](#ubuntu-1804) | [Arch guide](#arch-linux)
 
 ---
 
-## Ubuntu
+## Ubuntu 20.04 Server Only
+
+Steps for building server components on Ubuntu 20.04 server version (probably won't work as is on the desktop version, and is not enough to build the interface properly).
+
+
+Install build tools, OpenGL and OpenSSL libraries.
+```
+sudo apt install cmake g++ zip libgl-dev libssl-dev
+```
+
+
+Install Qt 5.15.
+```
+sudo apt-add-repository ppa:beineri/opt-qt-5.15.2-focal
+sudo apt update
+sudo apt upgrade
+sudo apt install qt515base qt515connectivity qt515declarative qt515imageformats qt515multimedia qt515tools qt515webengine qt515websockets qt515xmlpatterns qt515svg qt515script
+```
+
+
+Optionally expand the default volume to all available space. This is a [quirk](https://askubuntu.com/questions/1106795/ubuntu-server-18-04-lvm-out-of-space-with-improper-default-partitioning) of default ubuntu server configuration, that may cause the build to run out of disk space.
+```
+sudo lvextend -l +100%FREE /dev/ubuntu-vg/ubuntu-lv
+sudo resize2fs /dev/ubuntu-vg/ubuntu-lv
+```
+
+
+Clone the repository and move to project root.
+```
+git clone --recursive https://github.com/vircadia/vircadia
+cd vircadia
+```
+
+
+Configure the build. This will download and install more dependencies using VCPKG in `~/vircadia-files`.
+```
+mkdir build
+cd build
+export VIRCADIA_QT_PATH=/opt/qt515
+cmake ..
+```
+
+
+Build the domain server and the assignment client (the -j option specifies the number of parallel processes to run).
+```
+make domain-server assignment-client -j2
+```
+
+
+Optionally build the ICE server.
+```
+make ice-server -j2
+```
+
+---
+
+## Ubuntu 18.04
 
 This guide focuses on Ubuntu 18.04 only.
 
