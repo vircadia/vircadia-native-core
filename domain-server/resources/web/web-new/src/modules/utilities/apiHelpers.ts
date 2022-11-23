@@ -1,7 +1,9 @@
+// edited 23/11/2022 by Ujean
+
 import axios from "axios";
 
 import { DOMAIN_SERVER_ROOT } from "src/config";
-import Log from "@Modules/debugging/log";
+// import Log from "@Modules/debugging/log";
 
 /**
  * Extract the error string from a thrown error.
@@ -44,10 +46,11 @@ export async function doAPIGet (pAPIUrl: string, pAPIBaseUrl?: string): Promise<
         } else {
             errorString = `Poorly formed response to GET ${pAPIUrl}: ${JSON.stringify(response)}`;
         }
-    } catch (err) {
-        const errMsg = findErrorMsg(err);
-        Log.error(Log.types.API, `Exception on GET ${pAPIUrl}: ${errMsg}`);
-        errorString = `Exception on GET ${pAPIUrl}: ${errMsg}`;
+    } catch (error) {
+        const errorMessage = findErrorMsg(error);
+        errorString = `Exception on GET ${pAPIUrl}: ${errorMessage}`;
+        console.log(errorString);
+        // Log.error(Log.types.API, `Exception on GET ${pAPIUrl}: ${errMsg}`);
     }
     throw new Error(errorString);
 }
@@ -66,10 +69,11 @@ export async function doAPIDelete (pAPIUrl: string, pAPIBaseUrl?: string) {
         } else {
             errorString = `Poorly formed response to DELETE ${pAPIUrl}: ${JSON.stringify(response)}`;
         }
-    } catch (err) {
-        const errMsg = findErrorMsg(err);
-        Log.error(Log.types.API, `Exception on DELETE ${pAPIUrl}: ${errMsg}`);
-        errorString = `Exception on DELETE ${pAPIUrl}: ${errMsg}`;
+    } catch (error) {
+        const errorMessage = findErrorMsg(error);
+        errorString = `Exception on DELETE ${pAPIUrl}: ${errorMessage}`;
+        console.log(errorString);
+        // Log.error(Log.types.API, `Exception on DELETE ${pAPIUrl}: ${errMsg}`);
     }
     throw new Error(errorString);
 }

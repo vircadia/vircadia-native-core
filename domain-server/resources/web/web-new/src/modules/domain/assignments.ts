@@ -1,4 +1,6 @@
-import Log from "@Modules/debugging/log";
+// edited 23/11/2022 by Ujean
+
+// import Log from "@Modules/debugging/log";
 import { doAPIGet, findErrorMsg } from "src/modules/utilities/apiHelpers";
 import { GetAllAssigmentsResp, GetAssigmentsResp } from "./interfaces/assignments";
 
@@ -26,12 +28,12 @@ export const Assignments = {
             );
 
             return response;
-        } catch (err) {
-            const errr = findErrorMsg(err);
-            Log.error(Log.types.API, `Exception while attempting to get assignments: ${errr}`);
+        } catch (error) {
+            const errorMessage = findErrorMsg(error);
+            console.log(`Exception while attempting to get assignments: ${errorMessage}`);
+            // Log.error(Log.types.API, `Exception while attempting to get assignments: ${errr}`);
         }
 
         return response;
     }
-
 };
