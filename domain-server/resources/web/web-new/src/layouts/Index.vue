@@ -90,6 +90,8 @@ export default {
         async restartServer () {
             // TODO: add a confirmation question here
             alert("restart");
+            const myPromise = new Promise(function (resolve) { resolve("Server Restarted"); });
+            console.log(await myPromise);
         }
     }
 };

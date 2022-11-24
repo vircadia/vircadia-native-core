@@ -1,4 +1,6 @@
-import Log from "@Modules/debugging/log";
+// edited 24/11/2022 by Ujean
+
+// import Log from "@Modules/debugging/log";
 import { doAPIGet, findErrorMsg } from "src/modules/utilities/apiHelpers";
 import { ContentSettingsResponse, ContentSettingsValues } from "./interfaces/contentSettings";
 
@@ -14,9 +16,10 @@ export const ContentSettings = {
             response = contentSettingsResponse.values;
 
             return response;
-        } catch (err) {
-            const errr = findErrorMsg(err);
-            Log.error(Log.types.API, `Exception while attempting to get content-settings: ${errr}`);
+        } catch (error) {
+            const errorMessage = findErrorMsg(error);
+            console.log(`Exception while attempting to get content-settings: ${errorMessage}`);
+            // Log.error(Log.types.API, `Exception while attempting to get content-settings: ${errr}`);
         }
 
         return response;
