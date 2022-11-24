@@ -1,7 +1,7 @@
 <template>
     <div>
     <q-list >
-      <q-item v-for="menuItem in menuItems" :key="menuItem.route" :to="menuItem.route" exact active-class="bg-blue-grey-14 text-white active-tab">
+      <q-item v-for="menuItem in menuItems" :key="menuItem.route" :to="menuItem.route" exact active-class="bg-grey-8 text-white active-tab">
         <q-item-section avatar>
           <q-icon :name="menuItem.icon">
           </q-icon>
@@ -10,7 +10,7 @@
         <q-item-section>
           <span class="relative-position">
             {{ menuItem.label }}
-            <q-badge v-show="menuItem.badge.length > 0" color="orange" :label="menuItem.badge" floating/>
+            <q-badge v-show="menuItem.badge.length > 0" color="primary" :label="menuItem.badge" floating rounded/>
           </span>
         </q-item-section>
       </q-item>
@@ -24,7 +24,7 @@ export default {
     data () {
         return {
             menuItems: [
-                { icon: "mdi-view-dashboard", route: "/", label: "Dashboard", badge: "" },
+                { icon: "mdi-view-dashboard", route: "/", label: "Dashboard", badge: "!" },
                 { icon: "mdi-lan", route: "/networking", label: "Networking", badge: "" },
                 { icon: "mdi-shield-lock-outline", route: "/security", label: "Security", badge: "" },
                 { icon: "mdi-cube-outline", route: "/content", label: "Content", badge: "" },

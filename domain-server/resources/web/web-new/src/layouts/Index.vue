@@ -5,10 +5,10 @@
       <q-card>
           <q-card-section class="row items-center">
             <q-avatar icon="mdi-alert" text-color="warning" size="40px" font-size="40px"/>
-            <span class="q-ml-sm">Are you sure?</span>
+            <span class="q-ml-sm">Confirm Restart?</span>
           </q-card-section>
           <q-card-section class="row items-center">
-            <span class="q-ml-sm">This will restart your domain server, causing your domain to be briefly offline.</span>
+            <span class="q-ml-sm">Your domain server will be briefly offline while it restarts.</span>
           </q-card-section>
           <q-card-actions align="center">
               <q-btn flat label="Cancel" color="primary" v-close-popup />
@@ -16,18 +16,16 @@
           </q-card-actions>
       </q-card>
     </q-dialog>
-    <q-header elevated class="bg-blue-grey-10 text-white">
+    <q-header elevated class="primary-10 text-white">
       <q-toolbar>
         <q-btn dense flat round icon="menu" @click="toggleLeftDrawer" />
 
         <q-toolbar-title>
-          <q-avatar>
+          <q-avatar size="1.1em" class="q-mb-xs">
             <img src="icons/favicon-128x128.png">
           </q-avatar>
-          Domain Server Administration
+          <span class="text-h6 q-ml-sm gt-xs">Domain Server Administration</span>
         </q-toolbar-title>
-
-        <q-space />
 
         <q-btn
             flat

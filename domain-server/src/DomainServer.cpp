@@ -208,7 +208,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _gatekeeper(this),
     _httpManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTP_PORT,
-        QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
+        QString("%1/resources/web/web-new/dist/spa/").arg(QCoreApplication::applicationDirPath()), this),
     _acmeClient(nullptr)
 {
     if (_parentPID != -1) {
