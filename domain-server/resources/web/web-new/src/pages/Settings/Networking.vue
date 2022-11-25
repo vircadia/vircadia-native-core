@@ -11,6 +11,7 @@
 
 <template>
     <div class="q-pa-md">
+        <!-- METAVERSE ACCOUNT SECTION/CARD -->
         <q-card class="my-card">
             <q-card-section>
                 <div class="text-h5 text-center text-weight-bold">Your Metaverse Account</div>
@@ -22,10 +23,10 @@
                     <q-btn v-if="!isUserConnected" @click="onConnectAccount" class="q-mb-sm" padding="0.5em 2em" push color="positive" label="Connect Metaverse Account" />
                     <q-btn v-else @click="onConnectAccount" class="q-mb-sm" padding="0.5em 1.5em" push color="negative" label="Disconnect Account" />
                 </q-card-actions>
-                <q-separator inset />
-
+                <!-- *END* METAVERSE CONNECT/DISCONNECT BUTTON *END* -->
+                <q-separator />
                 <!-- ADVANCED SETTINGS SECTION -->
-                <q-expansion-item v-model="isAdvancedSettingsToggled" class="q-mt-md text-subtitle1" popup icon="settings" label="Advanced Settings">
+                <q-expansion-item v-model="isAccountSettingsToggled" class="q-mt-md text-subtitle1" popup icon="settings" label="Advanced Settings">
                     <q-card>
                         <!-- access token section -->
                         <q-card-section>
@@ -66,8 +67,73 @@
                         </q-card-section>
                     </q-card>
                 </q-expansion-item>
+                <!-- *END* ADVANCED SETTINGS SECTION *END* -->
             </q-card-section>
         </q-card>
+        <!-- *END* METAVERSE ACCOUNT SECTION/CARD *END* -->
+
+        <!-- WebRTC Settings -->
+        <q-card class="my-card q-mt-md">
+            <q-card-section>
+                <div class="text-h5 text-center text-weight-bold q-mb-sm">WebRTC</div>
+                <q-separator />
+                <!-- ADVANCED SETTINGS SECTION -->
+                <q-expansion-item v-model="isWebRTCSettingsToggled" class="q-mt-md text-subtitle1" popup icon="settings" label="Advanced Settings">
+                    <q-card>
+                        <!-- enable WebRTC client connections section -->
+                        <q-card-section>
+                            <q-toggle v-model="isWebRTCConnectionsEnabled" checked-icon="check" color="positive" label="Enable WebRTC Client Connections"
+                                unchecked-icon="clear" />
+                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Allow web clients to connect over WebRTC data channels.</div>
+                        </q-card-section>
+                        <!-- enable WebRTC WebSocket SSL section -->
+                        <q-card-section>
+                            <q-toggle v-model="isWebsocketSSLEnabled" checked-icon="check" color="positive" label="Enable WebRTC WebSocket SSL"
+                                unchecked-icon="clear" />
+                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Use secure WebSocket (wss:// protocol) for WebRTC signaling channel. If "on", the key, cert, and CA files are expected to be in the local Vircadia app directory, in a /domain-server/ subdirectory with filenames vircadia-cert.key, vircadia-cert.crt, and vircadia-crt-ca.crt.</div>
+                        </q-card-section>
+                    </q-card>
+                </q-expansion-item>
+                <!-- *END* ADVANCED SETTINGS SECTION *END* -->
+            </q-card-section>
+        </q-card>
+        <!-- *END* WebRTC Settings *END* -->
+
+        <!-- WordPress OAuth2 Settings -->
+        <q-card class="my-card q-mt-md">
+            <q-card-section>
+                <div class="text-h5 text-center text-weight-bold q-mb-sm">WordPress OAuth2</div>
+                <q-separator />
+                <!-- ADVANCED SETTINGS SECTION -->
+                <q-expansion-item v-model="isWordPressSettingsToggled" class="q-mt-md text-subtitle1" popup icon="settings" label="WordPress OAuth2 Settings">
+                    <q-card>
+                        <!-- enable WebRTC client connections section -->
+                        <q-card-section>
+                            <q-toggle v-model="isOauth2AuthenticationEnabled" checked-icon="check" color="positive" label="Enable OAuth2 Authentication"
+                                unchecked-icon="clear" />
+                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Allow a WordPress-based (miniOrange) OAuth2 service to assign users to groups based on their role with the service.</div>
+                        </q-card-section>
+                        <!-- Authentication URL section -->
+                        <q-card-section>
+                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="authenticationURL" label="Authentication URL"/>
+                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">The URL that the Interface will use to login via OAuth2.</div>
+                        </q-card-section>
+                        <!-- WordPress API URL Base section -->
+                        <q-card-section>
+                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="wordpressAPIURL" label="WordPress API URL Base"/>
+                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">The URL base that the domain server will use to make WordPress API calls. Typically "https://oursite.com/wp-json/". However, if using non-pretty permalinks or otherwise get a 404 error then try "https://oursite.com/?rest_route=/".</div>
+                        </q-card-section>
+                        <!-- WordPress Plugin Client ID section -->
+                        <q-card-section>
+                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="wordpressPluginID" label="WordPress Plugin Client ID"/>
+                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">This is the client ID from the WordPress plugin configuration.</div>
+                        </q-card-section>
+                    </q-card>
+                </q-expansion-item>
+                <!-- *END* ADVANCED SETTINGS SECTION *END* -->
+            </q-card-section>
+        </q-card>
+        <!-- *END* WordPress OAuth2 Settings *END* -->
     </div>
 </template>
 
@@ -79,19 +145,36 @@ export default defineComponent({
 
     data () {
         return {
-            isAdvancedSettingsToggled: ref(false),
+            isAccountSettingsToggled: ref(false),
+            isWebRTCSettingsToggled: ref(false),
+            isWordPressSettingsToggled: ref(false),
+            // Metaverse Account section variables
             isUserConnected: false, // TODO: get connection status
             accessToken: "04b94c95-f93e-4f56-9973-9a9eef1440", // TODO: get access token
             domainID: 123456789, // TODO: get domain ID
             localUDPPort: 40102, // TODO: get local UDP port
             isPacketVerificationEnabled: false, // TODO: get packet verification setting state
             isHTTPMetadataEnabled: false, // TODO: get metadata HTTP availability setting state
-            metadataExporterPort: 9704 // TODO: get metadata exporter HTTP port
+            metadataExporterPort: 9704, // TODO: get metadata exporter HTTP port
+            // WebRTC section variables
+            isWebRTCConnectionsEnabled: false, // TODO: get web RTC client connections settings state
+            isWebsocketSSLEnabled: false, // TODO: get webRTC webSocket SSL settings state
+            // WordPress OAuth2 section variables
+            isOauth2AuthenticationEnabled: false, // TODO: get OAuth2 Authentication settings state
+            authenticationURL: "example.com", // TODO: get authentication URL
+            wordpressAPIURL: "examplewordpressapi.com", // TODO: get wordpress API URL
+            wordpressPluginID: "exampleID" // TODO: get wordpress plugin client ID
         };
     },
     methods: {
         onConnectAccount () {
             this.isUserConnected = !this.isUserConnected;
+        },
+        onNewDomainID () {
+            console.log("new domain ID");
+        },
+        onChooseFromDomains () {
+            console.log("choose from domains");
         }
     }
 });
