@@ -1,6 +1,6 @@
 // edited 23/11/2022 by Ujean
 
-// import Log from "@Modules/debugging/log";
+// import Log from "@Modules/utilities/log";
 import { doAPIGet, findErrorMsg } from "src/modules/utilities/apiHelpers";
 import { GetAllAssigmentsResp, GetAssigmentsResp } from "./interfaces/assignments";
 
