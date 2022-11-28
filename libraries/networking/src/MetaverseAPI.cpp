@@ -12,21 +12,45 @@
 #include "MetaverseAPI.h"
 
 #include <QUrl>
-#include <QDebug>
-#include "NetworkingConstants.h"
+
 #include <SettingHandle.h>
+#include <DependencyManager.h>
+
+#include "NetworkingConstants.h"
+#include "NodeList.h"
 
 
 namespace MetaverseAPI {
+
+    const QString Settings::GROUP = "metaverse";
+    const QString Settings::URL_KEY = "server_url";
+    const QString Settings::URL_KEY_PATH = Settings::GROUP + "." + Settings::URL_KEY;
 
     Settings* Settings::getInstance() {
         static Settings sharedInstance;
         return &sharedInstance;
     }
 
-    Settings::Settings(QObject* parent) : QObject(parent) { };
+    Settings::Settings(QObject* parent) : QObject(parent), settingsURL(std::nullopt) { };
 
     const QString BASE_URL_SETTING_KEY = "private/selectedMetaverseURL";
+
+    std::optional<QUrl> getMetaverseURLFromDomainHandler() {
+        if (DependencyManager::isSet<NodeList>()) {
+            auto&& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
+            if (domainHandler.hasSettings()) {
+                auto&& settings = domainHandler.getSettingsObject();
+                if (settings.contains(Settings::GROUP) &&
+                    settings[Settings::GROUP].isObject() &&
+                    settings[Settings::GROUP].toObject().contains(Settings::URL_KEY) &&
+                    settings[Settings::GROUP][Settings::URL_KEY].isString()) {
+                    return QUrl(settings[Settings::GROUP][Settings::URL_KEY].toString());
+                }
+            }
+        }
+
+        return std::nullopt;
+    }
 
     QUrl Settings::getBaseUrl() {
         const QString HIFI_METAVERSE_URL_ENV = "HIFI_METAVERSE_URL";
@@ -36,7 +60,14 @@ namespace MetaverseAPI {
             defaultURL = QUrl(QProcessEnvironment::systemEnvironment().value(HIFI_METAVERSE_URL_ENV));
         }
 
-        return Setting::Handle<QUrl> (BASE_URL_SETTING_KEY, defaultURL).get();
+        auto optionalURL = settingsURL ? settingsURL : getMetaverseURLFromDomainHandler();
+        QUrl settingsURL = optionalURL ? *optionalURL : defaultURL;
+
+        return Setting::Handle<QUrl> (BASE_URL_SETTING_KEY, settingsURL).get();
+    }
+
+    void Settings::setSettingsUrl(const QUrl& value) {
+        settingsURL = value;
     }
 
     void Settings::setBaseUrl(const QUrl& value) {

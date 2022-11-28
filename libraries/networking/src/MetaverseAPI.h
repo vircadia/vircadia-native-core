@@ -12,6 +12,8 @@
 #ifndef athena_MetaverseAPI_h
 #define athena_MetaverseAPI_h
 
+#include <optional>
+
 #include <QtCore/QProcessEnvironment>
 #include <QtCore/QUrl>
 
@@ -20,7 +22,13 @@ namespace MetaverseAPI {
     class Settings : public QObject {
         Q_OBJECT
     public:
+        static const QString GROUP;
+        static const QString URL_KEY;
+        static const QString URL_KEY_PATH;
+
         static Settings* getInstance();
+
+        void setSettingsUrl(const QUrl& value);
 
     public slots:
         QUrl getBaseUrl();
@@ -29,6 +37,9 @@ namespace MetaverseAPI {
 
     protected:
         Settings(QObject* parent = nullptr);
+
+    private:
+        std::optional<QUrl> settingsURL;
     };
 
     QUrl getCurrentMetaverseServerURL();

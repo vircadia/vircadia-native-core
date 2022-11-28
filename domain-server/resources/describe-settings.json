@@ -4,7 +4,14 @@
     {
       "name": "metaverse",
       "label": "Networking / Metaverse",
+      "assignment-types": [ 0, 1, 2, 3, 4, 5, 6 ],
       "settings": [
+        {
+          "name": "server_url",
+          "label": "Metaverse Server URL",
+          "placeholder": "Optional",
+          "advanced": true
+        },
         {
           "name": "access_token",
           "label": "Access Token",
