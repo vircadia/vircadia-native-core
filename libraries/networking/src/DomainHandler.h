@@ -34,7 +34,6 @@
 #include "Node.h"
 #include "ReceivedMessage.h"
 #include "NetworkingConstants.h"
-#include "MetaverseAPI.h"
 
 const unsigned short DEFAULT_DOMAIN_SERVER_PORT =
     QProcessEnvironment::systemEnvironment()
@@ -83,7 +82,7 @@ const quint16 DOMAIN_SERVER_EXPORTER_PORT =
             .value("VIRCADIA_DOMAIN_SERVER_EXPORTER_PORT")
             .toUInt()
         : 9703;
-        
+
 const quint16 DOMAIN_SERVER_METADATA_EXPORTER_PORT =
     QProcessEnvironment::systemEnvironment()
     .contains("VIRCADIA_DOMAIN_SERVER_METADATA_EXPORTER_PORT")

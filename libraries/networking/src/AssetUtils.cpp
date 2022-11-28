@@ -21,7 +21,6 @@
 #include "NetworkAccessManager.h"
 #include "NetworkLogging.h"
 #include "NetworkingConstants.h"
-#include "MetaverseAPI.h"
 
 #include "ResourceManager.h"
 
@@ -93,7 +92,7 @@ bool saveToCache(const QUrl& url, const QByteArray& file) {
             }
         }
     }
-    
+
     return false;
 }
 

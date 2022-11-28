@@ -22,7 +22,6 @@
 #include <plugins/PluginManager.h>
 #include <EntityEditFilters.h>
 #include <NetworkingConstants.h>
-#include <MetaverseAPI.h>
 #include <hfm/ModelFormatRegistry.h>
 
 #include "../AssignmentDynamicFactory.h"
@@ -279,7 +278,7 @@ int EntityServer::sendSpecialPackets(const SharedNodePointer& node, OctreeQueryN
 
     #ifdef EXTRA_ERASE_DEBUGGING
         if (packetsSent > 0) {
-            qDebug() << "EntityServer::sendSpecialPackets() sent " << packetsSent << "special packets of " 
+            qDebug() << "EntityServer::sendSpecialPackets() sent " << packetsSent << "special packets of "
                         << totalBytes << " total bytes to node:" << node->getUUID();
         }
     #endif
@@ -345,14 +344,14 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
     } else {
         tree->setEntityScriptSourceWhitelist("");
     }
-    
+
     auto entityEditFilters = DependencyManager::get<EntityEditFilters>();
-    
+
     QString filterURL;
     if (readOptionString("entityEditFilter", settingsSectionObject, filterURL) && !filterURL.isEmpty()) {
         // connect the filterAdded signal, and block edits until you hear back
         connect(entityEditFilters.data(), &EntityEditFilters::filterAdded, this, &EntityServer::entityFilterAdded);
-        
+
         entityEditFilters->addFilter(EntityItemID(), filterURL);
     }
 }
@@ -386,7 +385,7 @@ void EntityServer::nodeKilled(SharedNodePointer node) {
 
 // FIXME - this stats tracking is somewhat temporary to debug the Whiteboard issues. It's not a bad
 // set of stats to have, but we'd probably want a different data structure if we keep it very long.
-// Since this version uses a single shared QMap for all senders, there could be some lock contention 
+// Since this version uses a single shared QMap for all senders, there could be some lock contention
 // on this QWriteLocker
 void EntityServer::trackSend(const QUuid& dataID, quint64 dataLastEdited, const QUuid& sessionID) {
     QWriteLocker locker(&_viewerSendingStatsLock);
