@@ -31,6 +31,7 @@
 
 <script lang="ts">
 import { defineComponent, ref } from "vue";
+import { Settings } from "@Modules/domain/settings";
 
 export default defineComponent({
     name: "WebRTCSettings",
@@ -44,6 +45,15 @@ export default defineComponent({
         };
     },
     methods: {
+        async refreshSettingsValues (): Promise<void> {
+            const settingsValues = await Settings.getValues();
+            // assigns values and checks they are not undefined
+            this.isWebRTCConnectionsEnabled = settingsValues.webrtc?.enable_webrtc ?? false;
+            this.isWebsocketSSLEnabled = settingsValues.webrtc?.enable_webrtc_websocket_ssl ?? false;
+        }
+    },
+    beforeMount () {
+        this.refreshSettingsValues();
     }
 });
 </script>

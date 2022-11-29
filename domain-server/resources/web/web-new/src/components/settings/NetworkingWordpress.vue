@@ -40,6 +40,7 @@
 
 <script lang="ts">
 import { defineComponent, ref } from "vue";
+import { Settings } from "@Modules/domain/settings";
 
 export default defineComponent({
     name: "WordpressSettings",
@@ -49,12 +50,23 @@ export default defineComponent({
             isWordPressSettingsToggled: ref(false),
             // WordPress OAuth2 section variables
             isOauth2AuthenticationEnabled: false, // TODO: get OAuth2 Authentication settings state
-            authenticationURL: "example.com", // TODO: get authentication URL
-            wordpressAPIURL: "examplewordpressapi.com", // TODO: get wordpress API URL
-            wordpressPluginID: "exampleID" // TODO: get wordpress plugin client ID
+            authenticationURL: "example.com" as string, // TODO: get authentication URL
+            wordpressAPIURL: "examplewordpressapi.com" as string, // TODO: get wordpress API URL
+            wordpressPluginID: "exampleID" as string // TODO: get wordpress plugin client ID
         };
     },
     methods: {
+        async refreshSettingsValues (): Promise<void> {
+            const settingsValues = await Settings.getValues();
+            // assigns values and checks they are not undefined
+            this.isOauth2AuthenticationEnabled = settingsValues.authentication?.enable_oauth2 ?? false;
+            this.authenticationURL = settingsValues.authentication?.oauth2_url_path ?? "error";
+            this.wordpressAPIURL = settingsValues.authentication?.wordpress_url_base ?? "error";
+            this.wordpressPluginID = settingsValues.authentication?.plugin_client_id ?? "error";
+        }
+    },
+    beforeMount () {
+        this.refreshSettingsValues();
     }
 });
 </script>

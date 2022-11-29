@@ -8,7 +8,7 @@
             <span class="q-ml-sm text-weight-bolder text-warning">Confirm Restart?</span>
           </q-card-section>
           <q-card-section class="row items-center">
-            <span class="q-ml-sm">Your domain server will be briefly offline while it restarts</span>
+            <span>Your domain server will be briefly offline while it restarts</span>
           </q-card-section>
           <q-card-actions align="center">
               <q-btn flat label="Cancel" color="primary" v-close-popup />

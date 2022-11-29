@@ -10,7 +10,22 @@
                 <!-- METAVERSE CONNECT/DISCONNECT BUTTON -->
                 <q-card-actions align="center">
                     <q-btn v-if="!isUserConnected" @click="onConnectAccount" class="q-mb-sm" padding="0.5em 2em" push color="positive" label="Connect Metaverse Account" />
-                    <q-btn v-else @click="onConnectAccount" class="q-mb-sm" padding="0.5em 1.5em" push color="negative" label="Disconnect Account" />
+                    <q-btn v-else @click="confirmDisconnect=true" class="q-mb-sm" padding="0.5em 1.5em" push color="negative" label="Disconnect Account" />
+                    <q-dialog v-model="confirmDisconnect" persistent>
+                        <q-card class="bg-primary q-pa-sm">
+                            <q-card-section class="row items-center">
+                                <q-icon class="q-mb-sm q-mr-sm" name="warning" color="warning" size="1.5rem"/>
+                                <span class="text-h5 q-mb-sm text-bold text-warning">Are you sure?</span>
+                                <span class="text-body2">This will remove your domain-server OAuth access token.<br/>
+                                This could cause your domain to appear offline and no longer be reachable via any place names.</span>
+                            </q-card-section>
+
+                            <q-card-actions align="center">
+                                <q-btn flat label="Cancel" color="white" v-close-popup />
+                                <q-btn @click="onConnectAccount" flat label="Confirm" color="white" v-close-popup />
+                            </q-card-actions>
+                        </q-card>
+                    </q-dialog>
                 </q-card-actions>
                 <!-- *END* METAVERSE CONNECT/DISCONNECT BUTTON *END* -->
                 <q-separator />
@@ -24,7 +39,7 @@
                             You can also go to the Security page of your account on your Metaverse Server and generate a token with the 'domains' scope and paste it here.</div>
                         </q-card-section>
                         <!-- domain ID section -->
-                        <q-card-section>
+                        <q-card-section v-if="isUserConnected">
                             <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="domainID" label="Domain ID"/>
                             <q-btn class="q-mt-xs" color="primary" label="new domain ID" />
                             <q-btn class="q-mt-xs q-ml-xs" color="primary" label="choose from my domains" />
@@ -51,7 +66,7 @@
                         </q-card-section>
                         <!-- metadata exporter HTTP port section -->
                         <q-card-section>
-                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="localUDPPort" label="Metadata Exporter HTTP Port"/>
+                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="metadataExporterPort" label="Metadata Exporter HTTP Port"/>
                             <div class="q-ml-xs q-mt-xs text-caption text-grey-5">This is the port where the Metaverse exporter accepts connections. It listens both on IPv4 and IPv6 and can be accessed remotely, so you should make sure to restrict access with a firewall as needed.</div>
                         </q-card-section>
                     </q-card>
@@ -65,25 +80,33 @@
 
 <script lang="ts">
 import { defineComponent, ref } from "vue";
+import { Settings } from "@Modules/domain/settings";
+import { Description } from "@/src/modules/domain/interfaces/settings";
+// import { SettingsValues } from "@/src/modules/domain/interfaces/settings";
 
 export default defineComponent({
     name: "MetaverseSettings",
 
     data () {
         return {
+            descriptions: [] as Description[],
             isMetaverseSettingsToggled: ref(false),
+            confirmDisconnect: ref(false),
             // Metaverse Account section variables
             isUserConnected: false, // TODO: get connection status
-            accessToken: "04b94c95-f93e-4f56-9973-9a9eef1440", // TODO: get access token
-            domainID: 123456789, // TODO: get domain ID
-            localUDPPort: 40102, // TODO: get local UDP port
+            accessToken: "" as string, // TODO: get access token
+            domainID: "" as string, // TODO: get domain ID
+            localUDPPort: "" as string, // TODO: get local UDP port
             isPacketVerificationEnabled: false, // TODO: get packet verification setting state
             isHTTPMetadataEnabled: false, // TODO: get metadata HTTP availability setting state
-            metadataExporterPort: 9704 // TODO: get metadata exporter HTTP port
+            metadataExporterPort: "" as string // TODO: get metadata exporter HTTP port
         };
     },
     methods: {
         onConnectAccount () {
+            this.isUserConnected = !this.isUserConnected;
+        },
+        onDisconnectAccount () {
             this.isUserConnected = !this.isUserConnected;
         },
         onNewDomainID () {
@@ -91,7 +114,26 @@ export default defineComponent({
         },
         onChooseFromDomains () {
             console.log("choose from domains");
+        },
+        async refreshSettingsValues (): Promise<void> {
+            const settingsValues = await Settings.getValues();
+            // assigns values and checks they are not undefined
+            this.accessToken = settingsValues.metaverse?.access_token ?? "";
+            this.isUserConnected = Boolean(this.accessToken); // type cast to boolean (will evaluate false if access token is empty string)
+            this.domainID = settingsValues.metaverse?.id ?? "test123 (ID not found)";
+            this.localUDPPort = settingsValues.metaverse?.local_port ?? "test123 (local UDP port not found)";
+            this.isPacketVerificationEnabled = settingsValues.metaverse?.enable_packet_verification ?? false;
+            this.isHTTPMetadataEnabled = settingsValues.metaverse?.enable_metadata_exporter ?? false;
+            this.metadataExporterPort = settingsValues.metaverse?.metadata_exporter_port ?? "not found";
+        },
+        async getDescriptions (): Promise<void> {
+            this.descriptions = await Settings.getDescriptions();
         }
+    },
+
+    beforeMount () {
+        this.refreshSettingsValues();
+        this.getDescriptions();
     }
 });
 </script>
