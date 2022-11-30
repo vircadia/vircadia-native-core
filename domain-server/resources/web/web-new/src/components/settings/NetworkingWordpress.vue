@@ -39,7 +39,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from "vue";
+import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
 
 export default defineComponent({
@@ -47,7 +47,7 @@ export default defineComponent({
 
     data () {
         return {
-            isWordPressSettingsToggled: ref(false),
+            isWordPressSettingsToggled: false,
             // WordPress OAuth2 section variables
             isOauth2AuthenticationEnabled: false, // TODO: get OAuth2 Authentication settings state
             authenticationURL: "example.com" as string, // TODO: get authentication URL

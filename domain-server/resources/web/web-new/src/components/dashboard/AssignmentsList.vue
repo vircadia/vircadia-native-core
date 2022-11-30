@@ -15,7 +15,6 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-// import { Assignments, Assignment, QueuedAssignment } from "@Modules/domain/assignments";
 import { Assignments } from "@Modules/domain/assignments";
 import { Assignment, QueuedAssignment } from "@Base/modules/domain/interfaces/assignments";
 
@@ -63,5 +62,4 @@ export default defineComponent({
         this.cancelAutoUpdate();
     }
 });
-
 </script>

@@ -30,7 +30,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from "vue";
+import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
 
 export default defineComponent({
@@ -38,7 +38,7 @@ export default defineComponent({
 
     data () {
         return {
-            isWebRTCSettingsToggled: ref(false),
+            isWebRTCSettingsToggled: false,
             // WebRTC section variables
             isWebRTCConnectionsEnabled: false, // TODO: get web RTC client connections settings state
             isWebsocketSSLEnabled: false // TODO: get webRTC webSocket SSL settings state

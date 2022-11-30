@@ -3,10 +3,10 @@
         <!-- METAVERSE ACCOUNT SECTION/CARD -->
         <q-card class="my-card">
             <q-card-section>
+                <!-- SAVE BUTTON (FOR TESTING) IGNORE FOR NOW  <q-btn @click="saveSettings" class="q-mb-sm" padding="0.5em 1.5em" push color="positive" label="save" /> -->
                 <div class="text-h5 text-center text-weight-bold">Your Metaverse Account</div>
                 <div v-if="isUserConnected" class="text-overline text-positive text-center">Metaverse Account Connected</div>
                 <div v-else class="text-overline text-negative text-center">Account Not Connected</div>
-
                 <!-- METAVERSE CONNECT/DISCONNECT BUTTON -->
                 <q-card-actions align="center">
                     <q-btn v-if="!isUserConnected" @click="onConnectAccount" class="q-mb-sm" padding="0.5em 2em" push color="positive" label="Connect Metaverse Account" />
@@ -79,10 +79,9 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from "vue";
+import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
 import { Description } from "@/src/modules/domain/interfaces/settings";
-// import { SettingsValues } from "@/src/modules/domain/interfaces/settings";
 
 export default defineComponent({
     name: "MetaverseSettings",
@@ -90,8 +89,8 @@ export default defineComponent({
     data () {
         return {
             descriptions: [] as Description[],
-            isMetaverseSettingsToggled: ref(false),
-            confirmDisconnect: ref(false),
+            isMetaverseSettingsToggled: false,
+            confirmDisconnect: false,
             // Metaverse Account section variables
             isUserConnected: false, // TODO: get connection status
             accessToken: "" as string, // TODO: get access token
@@ -103,16 +102,16 @@ export default defineComponent({
         };
     },
     methods: {
-        onConnectAccount () {
+        onConnectAccount (): void {
             this.isUserConnected = !this.isUserConnected;
         },
-        onDisconnectAccount () {
+        onDisconnectAccount (): void {
             this.isUserConnected = !this.isUserConnected;
         },
-        onNewDomainID () {
+        onNewDomainID (): void {
             console.log("new domain ID");
         },
-        onChooseFromDomains () {
+        onChooseFromDomains (): void {
             console.log("choose from domains");
         },
         async refreshSettingsValues (): Promise<void> {
@@ -128,9 +127,21 @@ export default defineComponent({
         },
         async getDescriptions (): Promise<void> {
             this.descriptions = await Settings.getDescriptions();
+        },
+        saveSettings (): void {
+            const settingsToCommit = {
+                "metaverse": {
+                    "access_token": this.accessToken,
+                    "enable_metadata_exporter": this.isHTTPMetadataEnabled,
+                    "enable_packet_verification": this.isPacketVerificationEnabled,
+                    "id": this.domainID,
+                    "local_port": this.localUDPPort,
+                    "metadata_exporter_port": this.metadataExporterPort
+                }
+            };
+            Settings.commitSettings(settingsToCommit);
         }
     },
-
     beforeMount () {
         this.refreshSettingsValues();
         this.getDescriptions();

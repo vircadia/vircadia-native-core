@@ -3,9 +3,11 @@
 // import Log from "@Modules/debugging/log";
 import { doAPIGet, findErrorMsg } from "src/modules/utilities/apiHelpers";
 import { SettingsResponse, SettingsValues, Description } from "./interfaces/settings";
+import Log from "../../modules/utilities/log";
+
+const axios = require("axios");
 
 export const Settings = {
-
     async getValues (): Promise<SettingsValues> {
         let response: SettingsValues = {};
         try {
@@ -35,5 +37,16 @@ export const Settings = {
             // Log.error(Log.types.API, `Exception while attempting to get settings: ${errr}`);
         }
         return response;
+    },
+    commitSettings (settingsToCommit: any) {
+        return axios.post("/settings.json", JSON.stringify(settingsToCommit))
+            .then(() => {
+                Log.info(Log.types.DOMAIN, "Successfully committed settings.");
+                return true;
+            })
+            .catch((response: string) => {
+                Log.error(Log.types.DOMAIN, `Failed to commit settings to Domain: ${response}`);
+                return false;
+            });
     }
 };

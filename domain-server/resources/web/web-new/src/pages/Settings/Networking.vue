@@ -31,9 +31,6 @@ export default defineComponent({
         MetaverseSettings,
         WebRTCSettings,
         WordpressSettings
-    },
-
-    methods: {
     }
 });
 </script>
