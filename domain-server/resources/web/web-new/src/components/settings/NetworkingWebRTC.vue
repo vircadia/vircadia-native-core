@@ -32,6 +32,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
+import { SettingsValues } from "@/src/modules/domain/interfaces/settings";
 
 export default defineComponent({
     name: "WebRTCSettings",
@@ -39,17 +40,51 @@ export default defineComponent({
     data () {
         return {
             isWebRTCSettingsToggled: false,
+            values: {} as SettingsValues
             // WebRTC section variables
-            isWebRTCConnectionsEnabled: false, // TODO: get web RTC client connections settings state
-            isWebsocketSSLEnabled: false // TODO: get webRTC webSocket SSL settings state
+            // isWebRTCConnectionsEnabled: false, // TODO: get web RTC client connections settings state
+            // isWebsocketSSLEnabled: false // TODO: get webRTC webSocket SSL settings state
         };
     },
     methods: {
         async refreshSettingsValues (): Promise<void> {
-            const settingsValues = await Settings.getValues();
+            this.values = await Settings.getValues();
             // assigns values and checks they are not undefined
-            this.isWebRTCConnectionsEnabled = settingsValues.webrtc?.enable_webrtc ?? false;
-            this.isWebsocketSSLEnabled = settingsValues.webrtc?.enable_webrtc_websocket_ssl ?? false;
+            // this.isWebRTCConnectionsEnabled = settingsValues.webrtc?.enable_webrtc ?? false;
+            // this.isWebsocketSSLEnabled = settingsValues.webrtc?.enable_webrtc_websocket_ssl ?? false;
+        },
+        saveSettings (): void {
+            const settingsToCommit = {
+                "webrtc": {
+                    "enable_webrtc": this.isWebRTCConnectionsEnabled,
+                    "enable_webrtc_websocket_ssl": this.isWebsocketSSLEnabled
+                }
+            };
+            Settings.automaticCommitSettings(settingsToCommit);
+        }
+    },
+    computed: {
+        isWebRTCConnectionsEnabled: {
+            get (): boolean {
+                return this.values.webrtc?.enable_webrtc ?? false;
+            },
+            set (newEnableWebrtc: boolean): void {
+                if (typeof this.values.webrtc?.enable_webrtc !== "undefined") {
+                    this.values.webrtc.enable_webrtc = newEnableWebrtc;
+                    this.saveSettings();
+                }
+            }
+        },
+        isWebsocketSSLEnabled: {
+            get (): boolean {
+                return this.values.webrtc?.enable_webrtc_websocket_ssl ?? false;
+            },
+            set (newEnableWebsocketSSL: boolean): void {
+                if (typeof this.values.webrtc?.enable_webrtc_websocket_ssl !== "undefined") {
+                    this.values.webrtc.enable_webrtc_websocket_ssl = newEnableWebsocketSSL;
+                    this.saveSettings();
+                }
+            }
         }
     },
     beforeMount () {

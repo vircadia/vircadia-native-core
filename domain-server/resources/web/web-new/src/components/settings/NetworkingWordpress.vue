@@ -41,6 +41,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
+import { SettingsValues } from "@/src/modules/domain/interfaces/settings";
 
 export default defineComponent({
     name: "WordpressSettings",
@@ -48,21 +49,79 @@ export default defineComponent({
     data () {
         return {
             isWordPressSettingsToggled: false,
+            values: {} as SettingsValues
             // WordPress OAuth2 section variables
-            isOauth2AuthenticationEnabled: false, // TODO: get OAuth2 Authentication settings state
-            authenticationURL: "example.com" as string, // TODO: get authentication URL
-            wordpressAPIURL: "examplewordpressapi.com" as string, // TODO: get wordpress API URL
-            wordpressPluginID: "exampleID" as string // TODO: get wordpress plugin client ID
+            // isOauth2AuthenticationEnabled: false, // TODO: get OAuth2 Authentication settings state
+            // authenticationURL: "example.com" as string, // TODO: get authentication URL
+            // wordpressAPIURL: "examplewordpressapi.com" as string, // TODO: get wordpress API URL
+            // wordpressPluginID: "exampleID" as string // TODO: get wordpress plugin client ID
         };
     },
     methods: {
         async refreshSettingsValues (): Promise<void> {
-            const settingsValues = await Settings.getValues();
+            this.values = await Settings.getValues();
             // assigns values and checks they are not undefined
-            this.isOauth2AuthenticationEnabled = settingsValues.authentication?.enable_oauth2 ?? false;
-            this.authenticationURL = settingsValues.authentication?.oauth2_url_path ?? "error";
-            this.wordpressAPIURL = settingsValues.authentication?.wordpress_url_base ?? "error";
-            this.wordpressPluginID = settingsValues.authentication?.plugin_client_id ?? "error";
+            // this.isOauth2AuthenticationEnabled = settingsValues.authentication?.enable_oauth2 ?? false;
+            // this.authenticationURL = settingsValues.authentication?.oauth2_url_path ?? "error";
+            // this.wordpressAPIURL = settingsValues.authentication?.wordpress_url_base ?? "error";
+            // this.wordpressPluginID = settingsValues.authentication?.plugin_client_id ?? "error";
+        },
+        saveSettings (): void {
+            const settingsToCommit = {
+                "authentication": {
+                    "enable_oauth2": this.isOauth2AuthenticationEnabled,
+                    "oauth2_url_path": this.authenticationURL,
+                    "plugin_client_id": this.wordpressPluginID,
+                    "wordpress_url_base": this.wordpressAPIURL
+                }
+            };
+            Settings.automaticCommitSettings(settingsToCommit);
+        }
+    },
+    computed: {
+        isOauth2AuthenticationEnabled: {
+            get (): boolean {
+                return this.values.authentication?.enable_oauth2 ?? false;
+            },
+            set (newEnableOauth2: boolean): void {
+                if (typeof this.values.authentication?.enable_oauth2 !== "undefined") {
+                    this.values.authentication.enable_oauth2 = newEnableOauth2;
+                    this.saveSettings();
+                }
+            }
+        },
+        authenticationURL: {
+            get (): string {
+                return this.values.authentication?.oauth2_url_path ?? "error";
+            },
+            set (newAuthenticationURL: string): void {
+                if (typeof this.values.authentication?.oauth2_url_path !== "undefined") {
+                    this.values.authentication.oauth2_url_path = newAuthenticationURL;
+                    this.saveSettings();
+                }
+            }
+        },
+        wordpressAPIURL: {
+            get (): string {
+                return this.values.authentication?.wordpress_url_base ?? "error";
+            },
+            set (newWordPressURL: string): void {
+                if (typeof this.values.authentication?.wordpress_url_base !== "undefined") {
+                    this.values.authentication.wordpress_url_base = newWordPressURL;
+                    this.saveSettings();
+                }
+            }
+        },
+        wordpressPluginID: {
+            get (): string {
+                return this.values.authentication?.plugin_client_id ?? "error";
+            },
+            set (newPluginID: string): void {
+                if (typeof this.values.authentication?.plugin_client_id !== "undefined") {
+                    this.values.authentication.plugin_client_id = newPluginID;
+                    this.saveSettings();
+                }
+            }
         }
     },
     beforeMount () {
