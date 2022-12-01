@@ -6,6 +6,7 @@ import { SettingsResponse, SettingsValues, Description } from "./interfaces/sett
 import Log from "../../modules/utilities/log";
 
 const axios = require("axios");
+const timers: any[] = [];
 
 export const Settings = {
     async getValues (): Promise<SettingsValues> {
@@ -48,5 +49,12 @@ export const Settings = {
                 Log.error(Log.types.DOMAIN, `Failed to commit settings to Domain: ${response}`);
                 return false;
             });
+    },
+    automaticCommitSettings (settingsToCommit: any) {
+        // automaticCommitSettings should be called whenever an input change is detected
+        // only commits changes once no input changes are detected for 5 secs (5000 ms)
+        // call commitSettings instead of automaticCommitSettings to instantly commit changes
+        timers.forEach(timerID => clearTimeout(timerID));
+        timers.push(setTimeout(this.commitSettings, 5000, settingsToCommit));
     }
 };

@@ -81,24 +81,25 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
-import { Description } from "@/src/modules/domain/interfaces/settings";
+import { SettingsValues, Description } from "@/src/modules/domain/interfaces/settings";
 
 export default defineComponent({
     name: "MetaverseSettings",
 
     data () {
         return {
+            values: {} as SettingsValues,
             descriptions: [] as Description[],
             isMetaverseSettingsToggled: false,
             confirmDisconnect: false,
             // Metaverse Account section variables
-            isUserConnected: false, // TODO: get connection status
-            accessToken: "" as string, // TODO: get access token
-            domainID: "" as string, // TODO: get domain ID
-            localUDPPort: "" as string, // TODO: get local UDP port
-            isPacketVerificationEnabled: false, // TODO: get packet verification setting state
-            isHTTPMetadataEnabled: false, // TODO: get metadata HTTP availability setting state
-            metadataExporterPort: "" as string // TODO: get metadata exporter HTTP port
+            isUserConnected: false // TODO: get connection status
+            // accessToken: "" as string, // TODO: get access token
+            // domainID: "" as string, // TODO: get domain ID
+            // localUDPPort: "" as string, // TODO: get local UDP port
+            // isPacketVerificationEnabled: false, // TODO: get packet verification setting state
+            // isHTTPMetadataEnabled: false, // TODO: get metadata HTTP availability setting state
+            // metadataExporterPort: "" as string // TODO: get metadata exporter HTTP port
         };
     },
     methods: {
@@ -115,15 +116,15 @@ export default defineComponent({
             console.log("choose from domains");
         },
         async refreshSettingsValues (): Promise<void> {
-            const settingsValues = await Settings.getValues();
+            this.values = await Settings.getValues();
             // assigns values and checks they are not undefined
-            this.accessToken = settingsValues.metaverse?.access_token ?? "";
+            // this.accessToken = this.values.metaverse?.access_token ?? "";
             this.isUserConnected = Boolean(this.accessToken); // type cast to boolean (will evaluate false if access token is empty string)
-            this.domainID = settingsValues.metaverse?.id ?? "test123 (ID not found)";
-            this.localUDPPort = settingsValues.metaverse?.local_port ?? "test123 (local UDP port not found)";
-            this.isPacketVerificationEnabled = settingsValues.metaverse?.enable_packet_verification ?? false;
-            this.isHTTPMetadataEnabled = settingsValues.metaverse?.enable_metadata_exporter ?? false;
-            this.metadataExporterPort = settingsValues.metaverse?.metadata_exporter_port ?? "not found";
+            // this.domainID = this.values.metaverse?.id ?? "test123 (ID not found)";
+            // this.localUDPPort = this.values.metaverse?.local_port ?? "test123 (local UDP port not found)";
+            // this.isPacketVerificationEnabled = this.values.metaverse?.enable_packet_verification ?? false;
+            // this.isHTTPMetadataEnabled = this.values.metaverse?.enable_metadata_exporter ?? false;
+            // this.metadataExporterPort = this.values.metaverse?.metadata_exporter_port ?? "not found";
         },
         async getDescriptions (): Promise<void> {
             this.descriptions = await Settings.getDescriptions();
@@ -139,7 +140,75 @@ export default defineComponent({
                     "metadata_exporter_port": this.metadataExporterPort
                 }
             };
-            Settings.commitSettings(settingsToCommit);
+            Settings.automaticCommitSettings(settingsToCommit);
+        }
+    },
+    computed: {
+        accessToken: {
+            get (): string {
+                return this.values.metaverse?.access_token ?? "";
+            },
+            set (newAccessToken: string): void {
+                if (typeof this.values.metaverse?.access_token !== "undefined") {
+                    this.values.metaverse.access_token = newAccessToken;
+                }
+                this.saveSettings();
+            }
+        },
+        domainID: {
+            get (): string {
+                return this.values.metaverse?.id ?? "ID not found";
+            },
+            set (newDomainID: string): void {
+                if (typeof this.values.metaverse?.id !== "undefined") {
+                    this.values.metaverse.id = newDomainID;
+                }
+                this.saveSettings();
+            }
+        },
+        localUDPPort: {
+            get (): string {
+                return this.values.metaverse?.local_port ?? "local UDP port not found";
+            },
+            set (newLocalPort: string): void {
+                if (typeof this.values.metaverse?.local_port !== "undefined") {
+                    this.values.metaverse.local_port = newLocalPort;
+                }
+                this.saveSettings();
+            }
+        },
+        isPacketVerificationEnabled: {
+            get (): boolean {
+                return this.values.metaverse?.enable_packet_verification ?? false;
+            },
+            set (newEnablePacketVerification: boolean): void {
+                if (typeof this.values.metaverse?.enable_packet_verification !== "undefined") {
+                    this.values.metaverse.enable_packet_verification = newEnablePacketVerification;
+                }
+                this.saveSettings();
+            }
+        },
+        isHTTPMetadataEnabled: {
+            get (): boolean {
+                return this.values.metaverse?.enable_metadata_exporter ?? false;
+            },
+            set (newEnableMetadataExporter: boolean): void {
+                if (typeof this.values.metaverse?.enable_metadata_exporter !== "undefined") {
+                    this.values.metaverse.enable_metadata_exporter = newEnableMetadataExporter;
+                }
+                this.saveSettings();
+            }
+        },
+        metadataExporterPort: {
+            get (): string {
+                return this.values.metaverse?.metadata_exporter_port ?? "not found";
+            },
+            set (newExporterPort: string): void {
+                if (typeof this.values.metaverse?.metadata_exporter_port !== "undefined") {
+                    this.values.metaverse.metadata_exporter_port = newExporterPort;
+                }
+                this.saveSettings();
+            }
         }
     },
     beforeMount () {
