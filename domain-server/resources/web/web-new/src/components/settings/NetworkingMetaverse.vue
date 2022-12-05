@@ -9,8 +9,27 @@
                 <div v-else class="text-overline text-negative text-center">Account Not Connected</div>
                 <!-- METAVERSE CONNECT/DISCONNECT BUTTON -->
                 <q-card-actions align="center">
-                    <q-btn v-if="!isUserConnected" @click="onConnectAccount" class="q-mb-sm" padding="0.5em 2em" push color="positive" label="Connect Metaverse Account" />
+                    <q-btn v-if="!isUserConnected" @click="confirmConnect=true" href="https://metaverse.vircadia.com/live//user/tokens/new?for_domain_server=true" target="_blank" class="q-mb-sm" padding="0.5em 2em" push color="positive" label="Connect Metaverse Account" />
                     <q-btn v-else @click="confirmDisconnect=true" class="q-mb-sm" padding="0.5em 1.5em" push color="negative" label="Disconnect Account" />
+                    <!-- CONFIRM CONNECT ACCOUNT POPUP (for user to enter access token) -->
+                    <q-dialog v-model="confirmConnect" persistent>
+                        <q-card class="bg-primary q-pa-md">
+                            <q-card-section class="row items-center">
+                                <span class="text-h5 q-mb-sm text-bold text-white">Connect Account</span>
+                                <span class="text-body2">If you did not successfully create an access token click <b>CANCEL</b> below and attempt to connect your account again.</span>
+                            </q-card-section>
+                            <q-form @submit="onConnectAccount">
+                                <q-card-section>
+                                    <q-input mask="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" :rules="[value => /[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}/g.test(value) || 'Invalid Token', ]" bg-color="white" label-color="primary" standout="bg-white text-primary" class="text-subtitle1" v-model="accessToken" label="Enter Access Token"/>
+                                </q-card-section>
+                                <q-card-actions align="center">
+                                    <q-btn @click="onDisconnectAccount" flat label="Cancel" color="white" v-close-popup />
+                                    <q-btn flat label="Confirm" type="submit" color="white" />
+                                </q-card-actions>
+                            </q-form>
+                        </q-card>
+                    </q-dialog>
+                    <!-- CONFIRM DISCONNECT ACCOUNT POPUP -->
                     <q-dialog v-model="confirmDisconnect" persistent>
                         <q-card class="bg-primary q-pa-sm">
                             <q-card-section class="row items-center">
@@ -19,10 +38,9 @@
                                 <span class="text-body2">This will remove your domain-server OAuth access token.<br/>
                                 This could cause your domain to appear offline and no longer be reachable via any place names.</span>
                             </q-card-section>
-
                             <q-card-actions align="center">
                                 <q-btn flat label="Cancel" color="white" v-close-popup />
-                                <q-btn @click="onConnectAccount" flat label="Confirm" color="white" v-close-popup />
+                                <q-btn @click="onDisconnectAccount" flat label="Confirm" color="white" v-close-popup />
                             </q-card-actions>
                         </q-card>
                     </q-dialog>
@@ -32,6 +50,16 @@
                 <!-- ADVANCED SETTINGS SECTION -->
                 <q-expansion-item v-model="isMetaverseSettingsToggled" class="q-mt-md text-subtitle1" popup icon="settings" label="Advanced Settings">
                     <q-card>
+                        <!-- Automatic Networking section -->
+                        <q-card-section>
+                            <q-select standout="bg-primary text-white" color="primary" emit-value map-options v-model="automaticNetworking" :options="networkingOptions" label="Automatic Networking" transition-show="jump-up" transition-hide="jump-down">
+                                <template v-slot:prepend>
+                                    <q-icon name="public" />
+                                </template>
+                            </q-select>
+                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">This defines how other nodes in the Metaverse will be able to reach your domain-server.
+                            If you don't want to deal with any network settings, use full automatic networking.</div>
+                         </q-card-section>
                         <!-- access token section -->
                         <q-card-section>
                             <q-input mask="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" :rules="[value => /[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}/g.test(value) || 'Incorrect Token! Generate one by clicking `Connect Account` above', ]" standout="bg-primary text-white" class="text-subtitle1" v-model="accessToken" label="Access Token"/>
@@ -81,33 +109,54 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
-import { SettingsValues, Description } from "@/src/modules/domain/interfaces/settings";
+import { SettingsValues } from "@/src/modules/domain/interfaces/settings";
+import { useQuasar } from "quasar";
 
 export default defineComponent({
     name: "MetaverseSettings",
 
     data () {
         return {
+            $q: useQuasar(),
             values: {} as SettingsValues,
-            descriptions: [] as Description[],
+            networkingOptions: [
+                {
+                    label: "Full: update both the IP address and port to reach my server",
+                    value: "full"
+                },
+                {
+                    label: "IP Only: update just my IP address, I will open the port manually",
+                    value: "ip"
+                },
+                {
+                    label: "None: use the network information I have entered for this domain in the Metaverse Server",
+                    value: "disabled"
+                }
+            ],
             isMetaverseSettingsToggled: false,
+            confirmConnect: false,
             confirmDisconnect: false,
             // Metaverse Account section variables
-            isUserConnected: false // TODO: get connection status
-            // validAccessToken: false
-            // domainID: "" as string, // TODO: get domain ID
-            // localUDPPort: "" as string, // TODO: get local UDP port
-            // isPacketVerificationEnabled: false, // TODO: get packet verification setting state
-            // isHTTPMetadataEnabled: false, // TODO: get metadata HTTP availability setting state
-            // metadataExporterPort: "" as string // TODO: get metadata exporter HTTP port
+            isUserConnected: false
         };
     },
     methods: {
         onConnectAccount (): void {
-            this.isUserConnected = !this.isUserConnected;
+            this.isUserConnected = true;
+            this.confirmConnect = false;
         },
         onDisconnectAccount (): void {
-            this.isUserConnected = !this.isUserConnected;
+            if (this.accessToken !== "" || this.domainID !== "") {
+                // set access token and domain ID to empty strings, automatically saves
+                const settingsToCommit = {
+                    "metaverse": {
+                        "access_token": "",
+                        "id": ""
+                    }
+                };
+                Settings.commitSettings(settingsToCommit);
+                this.refreshSettingsValues();
+            }
         },
         onNewDomainID (): void {
             console.log("new domain ID");
@@ -117,17 +166,7 @@ export default defineComponent({
         },
         async refreshSettingsValues (): Promise<void> {
             this.values = await Settings.getValues();
-            // assigns values and checks they are not undefined
-            // this.accessToken = this.values.metaverse?.access_token ?? "";
             this.isUserConnected = Boolean(this.accessToken); // type cast to boolean (will evaluate false if access token is empty string)
-            // this.domainID = this.values.metaverse?.id ?? "test123 (ID not found)";
-            // this.localUDPPort = this.values.metaverse?.local_port ?? "test123 (local UDP port not found)";
-            // this.isPacketVerificationEnabled = this.values.metaverse?.enable_packet_verification ?? false;
-            // this.isHTTPMetadataEnabled = this.values.metaverse?.enable_metadata_exporter ?? false;
-            // this.metadataExporterPort = this.values.metaverse?.metadata_exporter_port ?? "not found";
-        },
-        async getDescriptions (): Promise<void> {
-            this.descriptions = await Settings.getDescriptions();
         },
         saveSettings (): void {
             const settingsToCommit = {
@@ -151,6 +190,17 @@ export default defineComponent({
         // }
     },
     computed: {
+        automaticNetworking: {
+            get (): string {
+                return this.values.metaverse?.automatic_networking ?? "";
+            },
+            set (newNetworkingSetting: string): void {
+                if (typeof this.values.metaverse?.automatic_networking !== "undefined") {
+                    this.values.metaverse.automatic_networking = newNetworkingSetting;
+                    this.saveSettings();
+                }
+            }
+        },
         accessToken: {
             get (): string {
                 return this.values.metaverse?.access_token ?? "";
@@ -220,7 +270,6 @@ export default defineComponent({
     },
     beforeMount () {
         this.refreshSettingsValues();
-        this.getDescriptions();
     }
 });
 </script>
