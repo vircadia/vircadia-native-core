@@ -14,6 +14,15 @@
           </q-card-actions>
       </q-card>
     </q-dialog>
+    <q-dialog v-model="restartPopup" persistent>
+      <q-card flat class="transparent q-pa-md">
+        <q-card-actions align="center" vertical class="row items-center no-wrap">
+            <q-spinner color="secondary" size="2rem" thickness="10"/>
+            <p class="q-mt-md text-subtitle1">Server Restarting...</p>
+            <q-linear-progress :value="restartProgress" animation-speed="500"/>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
     <q-header elevated class="primary-10 text-white">
       <q-toolbar>
         <q-btn dense flat round icon="menu" @click="toggleLeftDrawer" />
@@ -64,30 +73,38 @@
 </template>
 
 <script>
-import { ref } from "vue";
 import DrawerMenu from "../components/navigation/DrawerMenu.vue";
+import { doAPIGet } from "../modules/utilities/apiHelpers";
 
 export default {
     components: {
         DrawerMenu
     },
-    setup () {
-        const leftDrawerOpen = ref(false);
-
+    data () {
         return {
-            leftDrawerOpen,
-            toggleLeftDrawer () {
-                leftDrawerOpen.value = !leftDrawerOpen.value;
-            },
-            confirmRestart: ref(false)
+            restartPopup: false,
+            restartProgress: 0,
+            confirmRestart: false,
+            leftDrawerOpen: false
         };
     },
     methods: {
-        async restartServer () {
-            // TODO: add a confirmation question here
-            alert("restart");
-            const myPromise = new Promise(function (resolve) { resolve("Server Restarted"); });
-            console.log(await myPromise);
+        async restartServer () { // TODO: Make 3000 ms delay into a variable constant
+            const myPromise = new Promise(function (resolve) {
+                const apiRequestUrl = "restart";
+                doAPIGet(apiRequestUrl);
+                setTimeout(function () { resolve("Domain Server Restarted"); }, 3000);
+            });
+
+            const progressInterval = setInterval(() => { this.restartProgress += 0.05; console.log(this.restartProgress); }, 3000 / 24);
+            this.restartPopup = true;
+            await myPromise;
+            clearInterval(progressInterval);
+            this.restartProgress = 0;
+            this.restartPopup = false;
+        },
+        toggleLeftDrawer () {
+            this.leftDrawerOpen = !this.leftDrawerOpen;
         }
     }
 };

@@ -20,7 +20,7 @@
                             </q-card-section>
                             <q-form @submit="onConnectAccount">
                                 <q-card-section>
-                                    <q-input mask="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" :rules="[value => /[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}/g.test(value) || 'Invalid Token', ]" bg-color="white" label-color="primary" standout="bg-white text-primary" class="text-subtitle1" v-model="accessToken" label="Enter Access Token"/>
+                                    <q-input mask="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" :rules="[value => /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g.test(value) || 'Invalid Token', ]" bg-color="white" label-color="primary" standout="bg-white text-primary" class="text-subtitle1" v-model="accessToken" label="Enter Access Token"/>
                                 </q-card-section>
                                 <q-card-actions align="center">
                                     <q-btn @click="onDisconnectAccount" flat label="Cancel" color="white" v-close-popup />
