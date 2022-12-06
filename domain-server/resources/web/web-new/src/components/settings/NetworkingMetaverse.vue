@@ -51,7 +51,7 @@
                 <q-expansion-item v-model="isMetaverseSettingsToggled" class="q-mt-md text-subtitle1" popup icon="settings" label="Advanced Settings">
                     <q-card>
                         <!-- Automatic Networking section -->
-                        <q-card-section>
+                        <q-card-section v-if="showAutomaticNetworking">
                             <q-select standout="bg-primary text-white" color="primary" emit-value map-options v-model="automaticNetworking" :options="networkingOptions" label="Automatic Networking" transition-show="jump-up" transition-hide="jump-down">
                                 <template v-slot:prepend>
                                     <q-icon name="public" />
@@ -181,15 +181,11 @@ export default defineComponent({
             };
             Settings.automaticCommitSettings(settingsToCommit);
         }
-        // metaverseValueSetter (key: keyof Metaverse, newValue: string | boolean): void {
-        //     const metaverseKey = this.values.metaverse?.[key];
-        //     const giga = newValue as typeof metaverseKey;
-        //     if (typeof this.values.metaverse?.[key] !== "undefined") {
-        //         this.values.metaverse[key] = newValue;
-        //     }
-        // }
     },
     computed: {
+        showAutomaticNetworking (): boolean {
+            return this.isUserConnected && (this.domainID.length > 0);
+        },
         automaticNetworking: {
             get (): string {
                 return this.values.metaverse?.automatic_networking ?? "";

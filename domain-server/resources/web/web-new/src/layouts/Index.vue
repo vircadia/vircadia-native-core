@@ -2,17 +2,15 @@
 <template>
   <q-layout view="hHh lpR fFf">
     <q-dialog v-model="confirmRestart" persistent>
-      <q-card>
+      <q-card class="bg-primary q-pa-md">
           <q-card-section class="row items-center">
-            <q-avatar icon="mdi-alert" text-color="warning" size="30px" font-size="30px"/>
-            <span class="q-ml-sm text-weight-bolder text-warning">Confirm Restart?</span>
-          </q-card-section>
-          <q-card-section class="row items-center">
-            <span>Your domain server will be briefly offline while it restarts</span>
+            <q-avatar icon="mdi-alert" text-color="warning" size="28px" font-size="28px"/>
+            <span class="text-h5 q-ml-sm text-bold text-white">Confirm Restart?</span>
+            <span class="text-body2 q-mt-sm">Your domain server will be briefly offline while it restarts</span>
           </q-card-section>
           <q-card-actions align="center">
-              <q-btn flat label="Cancel" color="primary" v-close-popup />
-              <q-btn flat label="Restart" color="primary" @click="restartServer" v-close-popup />
+              <q-btn flat label="Cancel" v-close-popup />
+              <q-btn flat label="Restart" @click="restartServer" v-close-popup />
           </q-card-actions>
       </q-card>
     </q-dialog>
