@@ -14,12 +14,12 @@
           </q-card-actions>
       </q-card>
     </q-dialog>
-    <q-dialog v-model="restartPopup" persistent>
+    <q-dialog v-model="restartPopup" persistent transition-duration="200" transition-hide="fade">
       <q-card flat class="transparent q-pa-md">
         <q-card-actions align="center" vertical class="row items-center no-wrap">
-            <q-spinner color="secondary" size="2rem" thickness="10"/>
-            <p class="q-mt-md text-subtitle1">Server Restarting...</p>
-            <q-linear-progress :value="restartProgress" animation-speed="500"/>
+            <q-spinner color="accent" size="4rem" thickness="8"/>
+            <p class="q-mt-md text-h5">Server Restarting...</p>
+            <q-linear-progress :value="restartProgress" animation-speed="500" color="accent"/>
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -95,8 +95,8 @@ export default {
                 doAPIGet(apiRequestUrl);
                 setTimeout(function () { resolve("Domain Server Restarted"); }, 3000);
             });
-
-            const progressInterval = setInterval(() => { this.restartProgress += 0.05; console.log(this.restartProgress); }, 3000 / 24);
+            // TODO: make progress bar dynamic (hardcoded to 3000 ms currently)
+            const progressInterval = setInterval(() => { this.restartProgress += 0.05; }, 3000 / 23.5); // updates linear progress bar
             this.restartPopup = true;
             await myPromise;
             clearInterval(progressInterval);

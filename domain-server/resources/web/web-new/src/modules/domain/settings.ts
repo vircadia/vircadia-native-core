@@ -50,11 +50,25 @@ export const Settings = {
                 return false;
             });
     },
-    automaticCommitSettings (settingsToCommit: any) {
+    automaticCommitSettings (settingsToCommit: any): void {
         // automaticCommitSettings should be called whenever an input change is detected
         // only commits changes once no input changes are detected for 5 secs (5000 ms)
         // call commitSettings instead of automaticCommitSettings to instantly commit changes
         timers.forEach((timerID, index) => { clearTimeout(timerID); timers.splice(index, 1); });
         timers.push(setTimeout(this.commitSettings, 5000, settingsToCommit));
+    },
+    async createNewDomainID (newLabel: string): Promise<boolean> {
+        try {
+            const domainLabel = `label=${newLabel}`;
+            const response = await axios.post("/api/domains", domainLabel);
+            if (response.status === "failure") {
+                return false;
+            }
+            console.log("SUCCESS!");
+            return true;
+        } catch (error) {
+            console.log(error);
+            return false;
+        }
     }
 };

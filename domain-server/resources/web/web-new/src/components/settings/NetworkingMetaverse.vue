@@ -9,10 +9,10 @@
                 <div v-else class="text-overline text-negative text-center">Account Not Connected</div>
                 <!-- METAVERSE CONNECT/DISCONNECT BUTTON -->
                 <q-card-actions align="center">
-                    <q-btn v-if="!isUserConnected" @click="confirmConnect=true" href="https://metaverse.vircadia.com/live//user/tokens/new?for_domain_server=true" target="_blank" class="q-mb-sm" padding="0.5em 2em" push color="positive" label="Connect Metaverse Account" />
-                    <q-btn v-else @click="confirmDisconnect=true" class="q-mb-sm" padding="0.5em 1.5em" push color="negative" label="Disconnect Account" />
+                    <q-btn v-if="!isUserConnected" @click="showConfirmConnect=true" href="https://metaverse.vircadia.com/live//user/tokens/new?for_domain_server=true" target="_blank" class="q-mb-sm" padding="0.5em 2em" push color="positive" label="Connect Metaverse Account" />
+                    <q-btn v-else @click="showConfirmDisconnect=true" class="q-mb-sm" padding="0.5em 1.5em" push color="negative" label="Disconnect Account" />
                     <!-- CONFIRM CONNECT ACCOUNT POPUP (for user to enter access token) -->
-                    <q-dialog v-model="confirmConnect" persistent>
+                    <q-dialog v-model="showConfirmConnect" persistent>
                         <q-card class="bg-primary q-pa-md">
                             <q-card-section class="row items-center">
                                 <span class="text-h5 q-mb-sm text-bold text-white">Connect Account</span>
@@ -30,7 +30,7 @@
                         </q-card>
                     </q-dialog>
                     <!-- CONFIRM DISCONNECT ACCOUNT POPUP -->
-                    <q-dialog v-model="confirmDisconnect" persistent>
+                    <q-dialog v-model="showConfirmDisconnect" persistent>
                         <q-card class="bg-primary q-pa-sm">
                             <q-card-section class="row items-center">
                                 <q-icon class="q-mb-sm q-mr-sm" name="warning" color="warning" size="1.5rem"/>
@@ -69,10 +69,31 @@
                         <!-- domain ID section -->
                         <q-card-section v-if="isUserConnected">
                             <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="domainID" label="Domain ID"/>
-                            <q-btn class="q-mt-xs" color="primary" label="new domain ID" />
+                            <q-btn @click="showCreateNewDomainID=true" class="q-mt-xs" color="primary" label="new domain ID" />
                             <q-btn class="q-mt-xs q-ml-xs" color="primary" label="choose from my domains" />
                             <div class="q-ml-xs q-mt-xs text-caption text-grey-5">This is your Metaverse domain ID. If you do not want your domain to be registered in the Metaverse you can leave this blank.</div>
                         </q-card-section>
+                        <!-- Create new domain ID popup -->
+                        <q-dialog v-model="showCreateNewDomainID" persistent>
+                            <q-card class="bg-primary q-pa-md">
+                                <q-card-section class="row items-center">
+                                    <span class="text-h5 q-mb-sm text-bold text-white">Create new domain ID</span>
+                                    <span class="text-body2">Enter a unique name for this machine. This will help you identify which domain ID belongs to which machine.</span>
+                                </q-card-section>
+                                <q-form @submit="onNewDomainID">
+                                    <q-card-section>
+                                        <q-input
+                                            :rules="[val => !!val || 'A name is required']"
+                                            bg-color="white" label-color="primary" standout="bg-white text-primary" class="text-subtitle1"
+                                            v-model="newDomainLabel" label="Enter Name/Label" />
+                                    </q-card-section>
+                                    <q-card-actions align="center">
+                                        <q-btn @click="newDomainLabel=''" flat label="Cancel" color="white" v-close-popup />
+                                        <q-btn flat label="Create" type="submit" color="white"/>
+                                    </q-card-actions>
+                                </q-form>
+                            </q-card>
+                        </q-dialog>
                         <!-- local UDP port section -->
                         <q-card-section>
                             <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="localUDPPort" label="Local UDP Port"/>
@@ -110,14 +131,12 @@
 import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
 import { SettingsValues } from "@/src/modules/domain/interfaces/settings";
-import { useQuasar } from "quasar";
 
 export default defineComponent({
     name: "MetaverseSettings",
 
     data () {
         return {
-            $q: useQuasar(),
             values: {} as SettingsValues,
             networkingOptions: [
                 {
@@ -134,16 +153,19 @@ export default defineComponent({
                 }
             ],
             isMetaverseSettingsToggled: false,
-            confirmConnect: false,
-            confirmDisconnect: false,
+            showConfirmConnect: false,
+            showConfirmDisconnect: false,
+            showCreateNewDomainID: true,
+            showCreateNewDomainIDError: false,
             // Metaverse Account section variables
-            isUserConnected: false
+            isUserConnected: false,
+            newDomainLabel: ""
         };
     },
     methods: {
         onConnectAccount (): void {
             this.isUserConnected = true;
-            this.confirmConnect = false;
+            this.showConfirmConnect = false;
         },
         onDisconnectAccount (): void {
             if (this.accessToken !== "" || this.domainID !== "") {
@@ -158,8 +180,25 @@ export default defineComponent({
                 this.refreshSettingsValues();
             }
         },
-        onNewDomainID (): void {
-            console.log("new domain ID");
+        async onNewDomainID (): Promise<void> {
+            this.showCreateNewDomainID = false;
+            const isNewDomainSuccessful: boolean = await Settings.createNewDomainID(this.newDomainLabel);
+            if (isNewDomainSuccessful) { // if new domain ID successfully created, creates a positive notification
+                this.$q.notify({
+                    message: "Success!",
+                    caption: "click `Restart Server` to apply changes",
+                    color: "positive",
+                    position: "center"
+                });
+            } else { // if new domain ID not created, creates a negative notification
+                this.$q.notify({
+                    message: "There was a problem creating your new domain ID",
+                    caption: "please try again",
+                    color: "negative",
+                    position: "center"
+                });
+            }
+            this.showCreateNewDomainIDError = !isNewDomainSuccessful;
         },
         onChooseFromDomains (): void {
             console.log("choose from domains");
