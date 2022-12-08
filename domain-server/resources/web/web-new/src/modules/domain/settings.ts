@@ -57,18 +57,18 @@ export const Settings = {
         timers.forEach((timerID, index) => { clearTimeout(timerID); timers.splice(index, 1); });
         timers.push(setTimeout(this.commitSettings, 5000, settingsToCommit));
     },
-    async createNewDomainID (newLabel: string): Promise<boolean> {
+    async createNewDomainID (newLabel: string): Promise<string> {
         try {
             const domainLabel = `label=${newLabel}`;
             const response = await axios.post("/api/domains", domainLabel);
-            if (response.status === "failure") {
-                return false;
+            if (response.data.status === "failure") {
+                return "";
             }
-            console.log("SUCCESS!");
-            return true;
+            const newDomainID = response.data.domain.domainId;
+            return newDomainID;
         } catch (error) {
             console.log(error);
-            return false;
+            return "";
         }
     }
 };

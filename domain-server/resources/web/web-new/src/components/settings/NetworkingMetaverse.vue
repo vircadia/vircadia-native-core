@@ -155,8 +155,7 @@ export default defineComponent({
             isMetaverseSettingsToggled: false,
             showConfirmConnect: false,
             showConfirmDisconnect: false,
-            showCreateNewDomainID: true,
-            showCreateNewDomainIDError: false,
+            showCreateNewDomainID: false,
             // Metaverse Account section variables
             isUserConnected: false,
             newDomainLabel: ""
@@ -182,14 +181,16 @@ export default defineComponent({
         },
         async onNewDomainID (): Promise<void> {
             this.showCreateNewDomainID = false;
-            const isNewDomainSuccessful: boolean = await Settings.createNewDomainID(this.newDomainLabel);
-            if (isNewDomainSuccessful) { // if new domain ID successfully created, creates a positive notification
+            const newDomainID: string = await Settings.createNewDomainID(this.newDomainLabel);
+            this.newDomainLabel = "";
+            if (newDomainID) { // if new domain ID successfully created, creates a positive notification
                 this.$q.notify({
                     message: "Success!",
                     caption: "click `Restart Server` to apply changes",
                     color: "positive",
                     position: "center"
                 });
+                this.domainID = newDomainID;
             } else { // if new domain ID not created, creates a negative notification
                 this.$q.notify({
                     message: "There was a problem creating your new domain ID",
@@ -198,7 +199,6 @@ export default defineComponent({
                     position: "center"
                 });
             }
-            this.showCreateNewDomainIDError = !isNewDomainSuccessful;
         },
         onChooseFromDomains (): void {
             console.log("choose from domains");
