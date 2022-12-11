@@ -366,3 +366,31 @@ export interface SettingsResponse {
         descriptions: Description[];
         values: SettingsValues;
     }
+
+export interface MetaverseSaveSettings {
+    "metaverse": {
+        "access_token"?: string,
+        "automatic_networking"?: string,
+        "enable_metadata_exporter"?: boolean,
+        "enable_packet_verification"?: boolean,
+        "id"?: string,
+        "local_port"?: string,
+        "metadata_exporter_port"?: string
+    }
+}
+
+export interface WebrtcSaveSettings {
+    "webrtc": {
+        "enable_webrtc": boolean,
+        "enable_webrtc_websocket_ssl": boolean
+    }
+}
+
+export interface WordpressSaveSettings {
+    "authentication": {
+        "enable_oauth2": boolean,
+        "oauth2_url_path": string,
+        "plugin_client_id": string,
+        "wordpress_url_base": string
+    }
+}

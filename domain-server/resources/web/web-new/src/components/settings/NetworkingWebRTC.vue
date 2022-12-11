@@ -32,7 +32,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
-import { SettingsValues } from "@/src/modules/domain/interfaces/settings";
+import { SettingsValues, WebrtcSaveSettings } from "@/src/modules/domain/interfaces/settings";
 
 export default defineComponent({
     name: "WebRTCSettings",
@@ -41,20 +41,14 @@ export default defineComponent({
         return {
             isWebRTCSettingsToggled: false,
             values: {} as SettingsValues
-            // WebRTC section variables
-            // isWebRTCConnectionsEnabled: false, // TODO: get web RTC client connections settings state
-            // isWebsocketSSLEnabled: false // TODO: get webRTC webSocket SSL settings state
         };
     },
     methods: {
         async refreshSettingsValues (): Promise<void> {
             this.values = await Settings.getValues();
-            // assigns values and checks they are not undefined
-            // this.isWebRTCConnectionsEnabled = settingsValues.webrtc?.enable_webrtc ?? false;
-            // this.isWebsocketSSLEnabled = settingsValues.webrtc?.enable_webrtc_websocket_ssl ?? false;
         },
         saveSettings (): void {
-            const settingsToCommit = {
+            const settingsToCommit: WebrtcSaveSettings = {
                 "webrtc": {
                     "enable_webrtc": this.isWebRTCConnectionsEnabled,
                     "enable_webrtc_websocket_ssl": this.isWebsocketSSLEnabled

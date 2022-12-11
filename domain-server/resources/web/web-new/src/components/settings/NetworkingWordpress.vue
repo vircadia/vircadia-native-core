@@ -41,7 +41,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
-import { SettingsValues } from "@/src/modules/domain/interfaces/settings";
+import { SettingsValues, WordpressSaveSettings } from "@/src/modules/domain/interfaces/settings";
 
 export default defineComponent({
     name: "WordpressSettings",
@@ -50,24 +50,14 @@ export default defineComponent({
         return {
             isWordPressSettingsToggled: false,
             values: {} as SettingsValues
-            // WordPress OAuth2 section variables
-            // isOauth2AuthenticationEnabled: false, // TODO: get OAuth2 Authentication settings state
-            // authenticationURL: "example.com" as string, // TODO: get authentication URL
-            // wordpressAPIURL: "examplewordpressapi.com" as string, // TODO: get wordpress API URL
-            // wordpressPluginID: "exampleID" as string // TODO: get wordpress plugin client ID
         };
     },
     methods: {
         async refreshSettingsValues (): Promise<void> {
             this.values = await Settings.getValues();
-            // assigns values and checks they are not undefined
-            // this.isOauth2AuthenticationEnabled = settingsValues.authentication?.enable_oauth2 ?? false;
-            // this.authenticationURL = settingsValues.authentication?.oauth2_url_path ?? "error";
-            // this.wordpressAPIURL = settingsValues.authentication?.wordpress_url_base ?? "error";
-            // this.wordpressPluginID = settingsValues.authentication?.plugin_client_id ?? "error";
         },
         saveSettings (): void {
-            const settingsToCommit = {
+            const settingsToCommit: WordpressSaveSettings = {
                 "authentication": {
                     "enable_oauth2": this.isOauth2AuthenticationEnabled,
                     "oauth2_url_path": this.authenticationURL,

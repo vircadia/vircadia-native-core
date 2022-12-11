@@ -130,7 +130,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
-import { SettingsValues } from "@/src/modules/domain/interfaces/settings";
+import { MetaverseSaveSettings, SettingsValues } from "@/src/modules/domain/interfaces/settings";
 
 export default defineComponent({
     name: "MetaverseSettings",
@@ -169,7 +169,7 @@ export default defineComponent({
         onDisconnectAccount (): void {
             if (this.accessToken !== "" || this.domainID !== "") {
                 // set access token and domain ID to empty strings, automatically saves
-                const settingsToCommit = {
+                const settingsToCommit: MetaverseSaveSettings = {
                     "metaverse": {
                         "access_token": "",
                         "id": ""
@@ -208,9 +208,10 @@ export default defineComponent({
             this.isUserConnected = Boolean(this.accessToken); // type cast to boolean (will evaluate false if access token is empty string)
         },
         saveSettings (): void {
-            const settingsToCommit = {
+            const settingsToCommit: MetaverseSaveSettings = {
                 "metaverse": {
                     "access_token": this.accessToken,
+                    "automatic_networking": this.automaticNetworking,
                     "enable_metadata_exporter": this.isHTTPMetadataEnabled,
                     "enable_packet_verification": this.isPacketVerificationEnabled,
                     "id": this.domainID,
