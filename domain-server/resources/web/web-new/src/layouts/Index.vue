@@ -34,7 +34,7 @@
           <span class="text-h6 q-ml-sm gt-xs">Domain Server Administration</span>
         </q-toolbar-title>
 
-        <q-btn
+        <!-- <q-btn
             flat
             dense
             icon="save"
@@ -42,7 +42,7 @@
             label="Save Settings"
             @click="saveSettings"
             class="q-mr-sm q-ml-sm"
-        />
+        /> -->
         <q-btn
             flat
             dense

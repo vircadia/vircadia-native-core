@@ -2,7 +2,7 @@
 
 // import Log from "@Modules/debugging/log";
 import { doAPIGet, findErrorMsg } from "src/modules/utilities/apiHelpers";
-import { SettingsResponse, SettingsValues, Description, MetaverseSaveSettings, WebrtcSaveSettings, WordpressSaveSettings } from "./interfaces/settings";
+import { SettingsResponse, SettingsValues, Description, MetaverseSaveSettings, WebrtcSaveSettings, WordpressSaveSettings, DomainsResponse, Domains } from "./interfaces/settings";
 import Log from "../../modules/utilities/log";
 
 const axios = require("axios");
@@ -70,5 +70,17 @@ export const Settings = {
             console.log(error);
             return "";
         }
+    },
+    async getDomains () {
+        let domains = [] as Domains[];
+        try {
+            const apiRequestUrl = "api/domains";
+            const domainsResponse = await doAPIGet(apiRequestUrl) as DomainsResponse;
+            domains = domainsResponse.data.domains;
+            return domains;
+        } catch (error) {
+            console.log(error);
+        }
+        return domains;
     }
 };

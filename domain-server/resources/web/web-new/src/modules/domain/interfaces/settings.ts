@@ -367,6 +367,25 @@ export interface SettingsResponse {
         values: SettingsValues;
     }
 
+export interface Domains {
+        domainId: number,
+        id: number,
+        name: string
+}
+
+export interface DomainsData {
+        domains: Domains[]
+}
+
+export interface DomainsResponse {
+        status: string,
+        data: DomainsData,
+        current_page: number,
+        per_page: number,
+        total_pages: number,
+        total_entries: number
+    }
+
 export interface MetaverseSaveSettings {
     "metaverse": {
         "access_token"?: string,

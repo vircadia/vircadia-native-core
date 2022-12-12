@@ -3,7 +3,6 @@
         <!-- METAVERSE ACCOUNT SECTION/CARD -->
         <q-card class="my-card">
             <q-card-section>
-                <!-- SAVE BUTTON (FOR TESTING) IGNORE FOR NOW  <q-btn @click="saveSettings" class="q-mb-sm" padding="0.5em 1.5em" push color="positive" label="save" /> -->
                 <div class="text-h5 text-center text-weight-bold">Your Metaverse Account</div>
                 <div v-if="isUserConnected" class="text-overline text-positive text-center">Metaverse Account Connected</div>
                 <div v-else class="text-overline text-negative text-center">Account Not Connected</div>
@@ -70,7 +69,7 @@
                         <q-card-section v-if="isUserConnected">
                             <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="domainID" label="Domain ID"/>
                             <q-btn @click="showCreateNewDomainID=true" class="q-mt-xs" color="primary" label="new domain ID" />
-                            <q-btn class="q-mt-xs q-ml-xs" color="primary" label="choose from my domains" />
+                            <q-btn @click="onChooseFromDomains" class="q-mt-xs q-ml-xs" color="primary" label="choose from my domains" />
                             <div class="q-ml-xs q-mt-xs text-caption text-grey-5">This is your Metaverse domain ID. If you do not want your domain to be registered in the Metaverse you can leave this blank.</div>
                         </q-card-section>
                         <!-- Create new domain ID popup -->
@@ -92,6 +91,33 @@
                                         <q-btn flat label="Create" type="submit" color="white"/>
                                     </q-card-actions>
                                 </q-form>
+                            </q-card>
+                        </q-dialog>
+                        <!-- Choose from my domains popup -->
+                        <q-dialog v-model="showChooseDomains" persistent>
+                            <q-card class="bg-primary q-pa-md">
+                                <q-card-section class="row items-center">
+                                    <span class="text-h5 q-mb-sm text-bold text-white">Choose from your domains</span>
+                                    <span class="text-body2">Choose the Metaverse domain you want this domain-server to represent. This will set your domain ID on the settings page.</span>
+                                </q-card-section>
+                                <q-form v-if="showDomainOptions" @submit="onChooseDomain">
+                                    <q-card-section>
+                                        <q-select standout="bg-primary text-white" color="primary" emit-value map-options v-model="currentDomainOption" :options="domainsOptions" label="Choose Domain" transition-show="jump-up" transition-hide="jump-down">
+                                            <template v-slot:prepend>
+                                                <q-icon name="domain" />
+                                            </template>
+                                        </q-select>
+                                    </q-card-section>
+                                    <q-card-actions align="center">
+                                        <q-btn @click="newDomainLabel=''" flat label="Cancel" color="white" v-close-popup />
+                                        <q-btn flat label="Choose Domain" type="submit" color="white"/>
+                                    </q-card-actions>
+                                </q-form>
+                                <q-card-section v-if="!showDomainOptions">
+                                    <p class="text-warning text-subtitle1 text-weight-bold">You do not have any domains in your Metaverse account. Click `NEW DOMAIN ID` to make one.</p>
+                                    <q-card-actions align="center"><q-btn @click="newDomainLabel=''; showDomainOptions=true; showChooseDomains=false" flat label="Cancel" color="warning" v-close-popup /></q-card-actions>
+                                </q-card-section>
+                                <q-inner-loading :showing="chooseDomainLoading" label="Please wait..."/>
                             </q-card>
                         </q-dialog>
                         <!-- local UDP port section -->
@@ -156,7 +182,12 @@ export default defineComponent({
             showConfirmConnect: false,
             showConfirmDisconnect: false,
             showCreateNewDomainID: false,
+            showChooseDomains: false,
+            showDomainOptions: true,
+            chooseDomainLoading: false,
             // Metaverse Account section variables
+            domainsOptions: [] as any,
+            currentDomainOption: "",
             isUserConnected: false,
             newDomainLabel: ""
         };
@@ -200,8 +231,29 @@ export default defineComponent({
                 });
             }
         },
-        onChooseFromDomains (): void {
-            console.log("choose from domains");
+        async onChooseFromDomains () {
+            this.showChooseDomains = true;
+            this.chooseDomainLoading = true;
+            const domainsList = await Settings.getDomains();
+            this.chooseDomainLoading = false;
+            this.domainsOptions = [];
+            if (domainsList.length > 0) {
+                this.currentDomainOption = this.domainID;
+                domainsList.forEach(domain => {
+                    this.domainsOptions.push(
+                        {
+                            label: `"${domain.name}" - ${domain.domainId}`,
+                            value: domain.domainId
+                        }
+                    );
+                });
+            } else {
+                this.showDomainOptions = false;
+            }
+        },
+        onChooseDomain () {
+            this.showChooseDomains = false;
+            this.domainID = this.currentDomainOption;
         },
         async refreshSettingsValues (): Promise<void> {
             this.values = await Settings.getValues();
