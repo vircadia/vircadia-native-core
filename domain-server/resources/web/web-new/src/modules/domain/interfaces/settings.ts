@@ -69,6 +69,22 @@ export interface Description {
         hidden?: boolean;
     }
 
+export interface Acme {
+        account_key_path: string;
+        certificate_authority_filename: string;
+        certificate_directory: string;
+        certificate_domains: string;
+        certificate_filename: string;
+        certificate_key_filename: string;
+        challenge_handler_type: string;
+        directory_endpoint: string;
+        eab_kid: string;
+        eab_mac: string;
+        enable_client: boolean;
+        zerossl_api_key: string;
+        zerossl_rest_api: boolean;
+    }
+
 export interface AssetServer {
         assets_filesize_limit: number;
         assets_path: string;
@@ -339,6 +355,7 @@ export interface Wizard {
     }
 
 export interface SettingsValues {
+        acme?: Acme;
         asset_server?: AssetServer;
         audio_buffer?: AudioBuffer;
         audio_env?: AudioEnv;
@@ -411,5 +428,23 @@ export interface WordpressSaveSettings {
         "oauth2_url_path": string,
         "plugin_client_id": string,
         "wordpress_url_base": string
+    }
+}
+
+export interface SSLClientAcmeSaveSettings {
+    "acme": {
+        "account_key_path": string,
+        "certificate_authority_filename": string,
+        "certificate_directory": string,
+        "certificate_domains": string,
+        "certificate_filename": string,
+        "certificate_key_filename": string,
+        "challenge_handler_type": string,
+        "directory_endpoint": string,
+        "eab_kid": string,
+        "eab_mac": string,
+        "enable_client": boolean,
+        "zerossl_api_key": string,
+        "zerossl_rest_api": boolean
     }
 }
