@@ -433,18 +433,18 @@ export interface WordpressSaveSettings {
 
 export interface SSLClientAcmeSaveSettings {
     "acme": {
-        "account_key_path": string,
-        "certificate_authority_filename": string,
-        "certificate_directory": string,
-        "certificate_domains": string,
-        "certificate_filename": string,
-        "certificate_key_filename": string,
-        "challenge_handler_type": string,
-        "directory_endpoint": string,
-        "eab_kid": string,
-        "eab_mac": string,
-        "enable_client": boolean,
-        "zerossl_api_key": string,
-        "zerossl_rest_api": boolean
+        "account_key_path"?: string,
+        "certificate_authority_filename"?: string,
+        "certificate_directory"?: string,
+        "certificate_domains"?: string,
+        "certificate_filename"?: string,
+        "certificate_key_filename"?: string,
+        "challenge_handler_type"?: string,
+        "directory_endpoint"?: string,
+        "eab_kid"?: string,
+        "eab_mac"?: string,
+        "enable_client"?: boolean,
+        "zerossl_api_key"?: string,
+        "zerossl_rest_api"?: boolean
     }
 }

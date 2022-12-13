@@ -1,1 +1,0 @@
-"use strict";(globalThis["webpackChunkvircadia_domain_dashboard"]=globalThis["webpackChunkvircadia_domain_dashboard"]||[]).push([[648],{648:(a,n,r)=>{r.r(n),r.d(n,{default:()=>o});var d=r(3673);function i(a,n,r,i,e,s){return(0,d.wg)(),(0,d.iD)("h1",null,"security Test")}const e=(0,d.aZ)({name:"Index"});var s=r(4260);const c=(0,s.Z)(e,[["render",i]]),o=c}}]);
