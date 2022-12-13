@@ -58,11 +58,6 @@
                             <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="certificateKeyFilename" label="Certificate Key Filename"/>
                             <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Certificate private key will be stored with this filename in Certificate Directory.</div>
                         </q-card-section>
-                        <!-- Certificate Key Filename section -->
-                        <q-card-section>
-                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="certificateKeyFilename" label="Certificate Key Filename"/>
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Certificate private key will be stored with this filename in Certificate Directory.</div>
-                        </q-card-section>
                         <!-- Certificate Authority Filename section -->
                         <q-card-section>
                             <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="certificateAuthorityFilename" label="Certificate Authority Filename" placeholder="System Default"/>
@@ -70,7 +65,7 @@
                         </q-card-section>
                         <!-- Type of HTTP challenge handler section -->
                         <q-card-section>
-                            <q-select standout="bg-primary text-white" color="primary" emit-value map-options v-model="ChallengeHandler" :options="ChallengeHandlerOptions" label="Type of HTTP Challenge Handler" transition-show="jump-up" transition-hide="jump-down">
+                            <q-select standout="bg-primary text-white" color="primary" emit-value map-options v-model="challengeHandler" :options="challengeHandlerOptions" label="Type of HTTP Challenge Handler" transition-show="jump-up" transition-hide="jump-down">
                                 <template v-slot:prepend>
                                     <q-icon name="https" />
                                 </template>
@@ -98,7 +93,7 @@ export default defineComponent({
         return {
             isSSLClientSettingsToggled: false,
             values: {} as SettingsValues,
-            ChallengeHandlerOptions: [
+            challengeHandlerOptions: [
                 {
                     label: "SERVER: client will attempt to host the challenges on port 80",
                     value: "server"
@@ -130,7 +125,9 @@ export default defineComponent({
                     "eab_mac": this.externalAccountBindingMAC,
                     "certificate_directory": this.certificateDirectory,
                     "certificate_filename": this.certificateFilename,
-                    "certificate_key_filename": this.certificateKeyFilename
+                    "certificate_key_filename": this.certificateKeyFilename,
+                    "certificate_authority_filename": this.certificateAuthorityFilename,
+                    "challenge_handler_type": this.challengeHandler
                 }
             };
             Settings.automaticCommitSettings(settingsToCommit);
@@ -258,7 +255,7 @@ export default defineComponent({
                 }
             }
         },
-        ChallengeHandler: {
+        challengeHandler: {
             get (): string {
                 return this.values.acme?.challenge_handler_type ?? "error";
             },
