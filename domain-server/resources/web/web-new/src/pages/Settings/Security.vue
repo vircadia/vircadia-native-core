@@ -12,17 +12,20 @@
 <template>
     <div class="q-pa-md">
         <SSLClientSettings/>
+        <MonitoringSettings/>
     </div>
 </template>
 
 <script lang="ts">
 import { defineComponent } from "vue";
 import SSLClientSettings from "@Components/settings/SSLClient.vue";
+import MonitoringSettings from "@Components/settings/Monitoring.vue";
 
 export default defineComponent({
     name: "Networking",
     components: {
-        SSLClientSettings
+        SSLClientSettings,
+        MonitoringSettings
     }
 });
 </script>

@@ -448,3 +448,10 @@ export interface SSLClientAcmeSaveSettings {
         "zerossl_rest_api"?: boolean
     }
 }
+
+export interface MonitoringSaveSettings {
+    "monitoring": {
+        "enable_prometheus_exporter"?: boolean,
+        "prometheus_exporter_port"?: string
+    }
+}
