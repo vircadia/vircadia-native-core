@@ -455,3 +455,21 @@ export interface MonitoringSaveSettings {
         "prometheus_exporter_port"?: string
     }
 }
+
+export interface SecuritySaveSettings {
+    "security": {
+        "ac_subnet_whitelist"?: string[],
+        "approved_safe_urls"?: string,
+        "group_forbiddens"?: GroupForbidden[],
+        "group_permissions"?: GroupPermission[],
+        "http_username"?: string,
+        "ip_permissions"?: IpPermission[],
+        "mac_permissions"?: MacPermission[],
+        "machine_fingerprint_permissions"?: any[],
+        "maximum_user_capacity"?: string,
+        "maximum_user_capacity_redirect_location"?: string,
+        "multi_kick_logged_in"?: boolean,
+        "permissions"?: Permission[],
+        "standard_permissions"?: StandardPermission[]
+    }
+}
