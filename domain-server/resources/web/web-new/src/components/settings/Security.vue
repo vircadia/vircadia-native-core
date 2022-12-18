@@ -36,40 +36,40 @@
                         <!-- Redirect to Location on Maximum Capacity section -->
                         <q-card-section>
                             <h5 class="q-mx-none q-my-sm text-weight-bold">Domain-Wide User Permissions</h5>
-                            <p class="text-body2">Indicate which types of users can have which <span class="text-accent cursor-pointer">domain-wide permissions<q-tooltip>yes</q-tooltip></span></p>
+                            <p class="text-body2">Indicate which types of users can have which <a href="https://docs.vircadia.com/host/configure-settings/permission-settings.html#user-permissions" target="_blank" class="text-accent">domain-wide permissions</a></p>
                             <q-markup-table dark class="bg-grey-9">
                                 <thead>
                                     <tr class="bg-primary">
-                                        <th class="text-center">Type of User</th>
-                                        <th class="text-center">Connect</th>
-                                        <th class="text-center">Avatar Entities</th>
-                                        <th class="text-center">Lock / Unlock</th>
-                                        <th class="text-center">Rez</th>
-                                        <th class="text-center">Rez Temporary</th>
-                                        <th class="text-center">Rez Certified</th>
-                                        <th class="text-center">Rez Temporary Certified</th>
-                                        <th class="text-center">Write Assets</th>
-                                        <th class="text-center">Ignore Max Capacity</th>
-                                        <th class="text-center">Kick Users</th>
-                                        <th class="text-center">Replace Content</th>
-                                        <th class="text-center">Get and Set Private User Data</th>
+                                        <th class="text-center"><a class="text-white" href="https://docs.vircadia.com/host/configure-settings/permission-settings.html#standard-user-groups" target="_blank" >Type of User</a></th>
+                                        <th class="text-center">Connect<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can connect to the domain</q-tooltip></q-icon></th>
+                                        <th class="text-center">Avatar Entities<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can use avatar entities on the domain</q-tooltip></q-icon></th>
+                                        <th class="text-center">Lock / Unlock<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can use change the "locked" property of an entity (from off➔on / on➔off)</q-tooltip></q-icon></th>
+                                        <th class="text-center">Rez<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can use create new entities</q-tooltip></q-icon></th>
+                                        <th class="text-center">Rez Temporary<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can create new temporary entities (with finite lifetimes)</q-tooltip></q-icon></th>
+                                        <th class="text-center">Rez Certified<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can create new certified entities</q-tooltip></q-icon></th>
+                                        <th class="text-center">Rez Temporary Certified<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can create temporary (finite lifetime), certified entities</q-tooltip></q-icon></th>
+                                        <th class="text-center">Write Assets<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can make changes to the domain's asset-server assets</q-tooltip></q-icon></th>
+                                        <th class="text-center">Ignore Max Capacity<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can connect even when the domain's maximum user capacity is reached</q-tooltip></q-icon></th>
+                                        <th class="text-center">Kick Users<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can kick other users</q-tooltip></q-icon></th>
+                                        <th class="text-center">Replace Content<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can replace entire content sets by wiping existing domain content</q-tooltip></q-icon></th>
+                                        <th class="text-center">Get and Set Private User Data<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can get and set the privateUserData entity property</q-tooltip></q-icon></th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="(userType) in standardPermissions" :key="userType.permissions_id">
+                                    <tr v-for="(userType, index) in standardPermissions" :key="userType.permissions_id">
                                         <td class="text-center">{{userType.permissions_id}}</td>
-                                        <td class="text-center"><q-checkbox size="sm" v-model="userType.id_can_connect" @change="permissionChange"/></td>
-                                        <td class="text-center"><q-checkbox size="sm" v-model="userType.id_can_rez_avatar_entities"/></td>
-                                        <td class="text-center"><q-checkbox size="sm" v-model="userType.id_can_adjust_locks"/></td>
-                                        <td class="text-center"><q-checkbox size="sm" v-model="userType.id_can_rez"/></td>
-                                        <td class="text-center"><q-checkbox size="sm" v-model="userType.id_can_rez_tmp"/></td>
-                                        <td class="text-center"><q-checkbox size="sm" v-model="userType.id_can_rez_certified"/></td>
-                                        <td class="text-center"><q-checkbox size="sm" v-model="userType.id_can_rez_tmp_certified"/></td>
-                                        <td class="text-center"><q-checkbox size="sm" v-model="userType.id_can_write_to_asset_server"/></td>
-                                        <td class="text-center"><q-checkbox size="sm" v-model="userType.id_can_connect_past_max_capacity"/></td>
-                                        <td class="text-center"><q-checkbox size="sm" v-model="userType.id_can_kick"/></td>
-                                        <td class="text-center"><q-checkbox size="sm" v-model="userType.id_can_replace_content"/></td>
-                                        <td class="text-center"><q-checkbox size="sm" v-model="userType.id_can_get_and_set_private_user_data"/></td>
+                                        <td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_connect" @update:modelValue="newValue => onStandardPermissionChange(index, 'id_can_connect', newValue)"/></td>
+                                        <td class="text-center"><q-checkbox size="sm" v-model="userType.id_can_rez_avatar_entities" @update:modelValue="newValue => onStandardPermissionChange(index, 'id_can_rez_avatar_entities', newValue)"/></td>
+                                        <td class="text-center"><q-checkbox size="sm" v-model="userType.id_can_adjust_locks" @update:modelValue="newValue => onStandardPermissionChange(index, 'id_can_adjust_locks', newValue)"/></td>
+                                        <td class="text-center"><q-checkbox size="sm" v-model="userType.id_can_rez" @update:modelValue="newValue => onStandardPermissionChange(index, 'id_can_rez', newValue)"/></td>
+                                        <td class="text-center"><q-checkbox size="sm" v-model="userType.id_can_rez_tmp" @update:modelValue="newValue => onStandardPermissionChange(index, 'id_can_rez_tmp', newValue)"/></td>
+                                        <td class="text-center"><q-checkbox size="sm" v-model="userType.id_can_rez_certified" @update:modelValue="newValue => onStandardPermissionChange(index, 'id_can_rez_certified', newValue)"/></td>
+                                        <td class="text-center"><q-checkbox size="sm" v-model="userType.id_can_rez_tmp_certified" @update:modelValue="newValue => onStandardPermissionChange(index, 'id_can_rez_tmp_certified', newValue)"/></td>
+                                        <td class="text-center"><q-checkbox size="sm" v-model="userType.id_can_write_to_asset_server" @update:modelValue="newValue => onStandardPermissionChange(index, 'id_can_write_to_asset_server', newValue)"/></td>
+                                        <td class="text-center"><q-checkbox size="sm" v-model="userType.id_can_connect_past_max_capacity" @update:modelValue="newValue => onStandardPermissionChange(index, 'id_can_connect_past_max_capacity', newValue)"/></td>
+                                        <td class="text-center"><q-checkbox size="sm" v-model="userType.id_can_kick" @update:modelValue="newValue => onStandardPermissionChange(index, 'id_can_kick', newValue)"/></td>
+                                        <td class="text-center"><q-checkbox size="sm" v-model="userType.id_can_replace_content" @update:modelValue="newValue => onStandardPermissionChange(index, 'id_can_replace_content', newValue)"/></td>
+                                        <td class="text-center"><q-checkbox size="sm" v-model="userType.id_can_get_and_set_private_user_data" @update:modelValue="newValue => onStandardPermissionChange(index, 'id_can_get_and_set_private_user_data', newValue)"/></td>
                                     </tr>
                                 </tbody>
                             </q-markup-table>
@@ -93,43 +93,29 @@ export default defineComponent({
     data () {
         return {
             isSecuritySettingsToggled: false,
-            values: {} as SettingsValues,
-            standardPermissions: [] as StandardPermission[]
+            values: {} as SettingsValues
         };
     },
     methods: {
-        // onStandardPermissionChange<Permission extends keyof StandardPermission> (index: number, permission: Permission, value: StandardPermission[Permission]): void {
-        //     const changedPermission = this.standardPermissions[index];
-        //     // standardPermissions.splice(index, 1, )
-        //     if (typeof changedPermission[permission] === "boolean") {
-        //         changedPermission[permission] = !changedPermission[permission];
-        //     }
-        //     changedPermission[permission] = !changedPermission[permission];
-        //     this.standardPermissions.splice(index, 1, this.standardPermissions[index]);
-        // },
-        permissionChange (value: boolean): void {
-            console.log(value);
+        onStandardPermissionChange (index: number, permission: keyof StandardPermission, newValue: boolean): void {
+            const changedPermission = [...this.standardPermissions];
+            if (permission !== "permissions_id") {
+                changedPermission[index][permission] = newValue;
+                this.standardPermissions = [...changedPermission];
+            }
         },
         async refreshSettingsValues (): Promise<void> {
             this.values = await Settings.getValues();
-            this.standardPermissions = this.values.security?.standard_permissions ?? [];
         },
         saveSettings (): void {
             const settingsToCommit: SecuritySaveSettings = {
                 "security": {
                     "http_username": this.HTTPUsername,
-                    "approved_safe_urls": this.approvedURLs
+                    "approved_safe_urls": this.approvedURLs,
+                    "standard_permissions": this.standardPermissions
                 }
             };
             Settings.automaticCommitSettings(settingsToCommit);
-        }
-    },
-    watch: {
-        standardPermission: {
-            handler (newValue, oldValue) {
-                console.log(newValue, oldValue);
-            },
-            deep: true
         }
     },
     computed: {
@@ -188,19 +174,18 @@ export default defineComponent({
                     this.saveSettings();
                 }
             }
+        },
+        standardPermissions: {
+            get (): StandardPermission[] {
+                return this.values.security?.standard_permissions ?? [];
+            },
+            set (newStandardPermissions: StandardPermission[]): void {
+                if (typeof this.values.security?.standard_permissions !== "undefined") {
+                    this.values.security.standard_permissions = newStandardPermissions;
+                    this.saveSettings();
+                }
+            }
         }
-        // standardPermissions: {
-        //     get (): StandardPermission[] {
-        //         return this.values.security?.standard_permissions ?? [];
-        //     },
-        //     set (newStandardPermissions: StandardPermission[]): void {
-        //         console.log("changed");
-        //         if (typeof this.values.security?.standard_permissions !== "undefined") {
-        //             this.values.security.standard_permissions = newStandardPermissions;
-        //             this.saveSettings();
-        //         }
-        //     }
-        // }
     },
     beforeMount () {
         this.refreshSettingsValues();

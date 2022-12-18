@@ -1,4 +1,5 @@
 <template>
+    <SharedMethods :restart-server="restartServer"/>
     <div>
         <!-- METAVERSE ACCOUNT SECTION/CARD -->
         <q-card class="my-card">
@@ -157,10 +158,13 @@
 import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
 import { MetaverseSaveSettings, SettingsValues } from "@/src/modules/domain/interfaces/settings";
+import SharedMethods from "@Components/sharedMethods.vue";
 
 export default defineComponent({
     name: "MetaverseSettings",
-
+    components: {
+        SharedMethods
+    },
     data () {
         return {
             values: {} as SettingsValues,
@@ -189,7 +193,8 @@ export default defineComponent({
             domainsOptions: [] as any,
             currentDomainOption: "",
             isUserConnected: false,
-            newDomainLabel: ""
+            newDomainLabel: "",
+            restartServer: false
         };
     },
     methods: {
@@ -219,9 +224,10 @@ export default defineComponent({
                     message: "Success!",
                     caption: "click `Restart Server` to apply changes",
                     color: "positive",
-                    position: "center"
+                    position: "top"
                 });
                 this.domainID = newDomainID;
+                // this.toggleRestartServer();
             } else { // if new domain ID not created, creates a negative notification
                 this.$q.notify({
                     message: "There was a problem creating your new domain ID",
@@ -272,6 +278,10 @@ export default defineComponent({
                 }
             };
             Settings.automaticCommitSettings(settingsToCommit);
+        },
+        toggleRestartServer () {
+            // whenever restart-server state changes, the watcher in sharedMethods.vue will fire
+            this.restartServer = !this.restartServer;
         }
     },
     computed: {

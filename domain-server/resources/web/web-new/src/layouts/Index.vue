@@ -11,7 +11,7 @@
           </q-card-section>
           <q-card-actions align="center">
               <q-btn flat label="Cancel" v-close-popup />
-              <q-btn flat label="Restart" @click="restartServer = !restartServer" v-close-popup />
+              <q-btn flat label="Restart" @click="toggleRestartServer()" v-close-popup />
           </q-card-actions>
       </q-card>
     </q-dialog>
@@ -74,6 +74,10 @@ export default {
     methods: {
         toggleLeftDrawer () {
             this.leftDrawerOpen = !this.leftDrawerOpen;
+        },
+        toggleRestartServer () {
+            // whenever restart-server state changes, the watcher in sharedMethods.vue will fire
+            this.restartServer = !this.restartServer;
         }
     }
 };
