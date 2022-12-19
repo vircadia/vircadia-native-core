@@ -1,5 +1,5 @@
 <template>
-    <SharedMethods :restart-server="restartServer"/>
+    <SharedMethods :restart-server-watcher="restartServer"/>
     <div>
         <!-- METAVERSE ACCOUNT SECTION/CARD -->
         <q-card class="my-card">

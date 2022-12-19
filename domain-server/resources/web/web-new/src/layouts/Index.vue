@@ -1,6 +1,6 @@
 
 <template>
-  <SharedMethods :restart-server="restartServer"/>
+  <SharedMethods :restart-server-watcher="restartServer"/>
   <q-layout view="hHh lpR fFf">
     <q-dialog v-model="confirmRestart" persistent>
       <q-card class="bg-primary q-pa-md">
@@ -65,8 +65,6 @@ export default {
     data () {
         return {
             restartServer: false,
-            restartPopup: false,
-            restartProgress: 0,
             confirmRestart: false,
             leftDrawerOpen: false
         };
