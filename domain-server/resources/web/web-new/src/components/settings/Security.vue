@@ -59,18 +59,18 @@
                                 <template v-slot:body>
                                     <q-tr v-for="(userType, index) in standardPermissions" :key="userType.permissions_id">
                                         <q-td class="text-center">{{userType.permissions_id}}</q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_connect" @update:modelValue="newValue => onStandardPermissionChange(index, 'id_can_connect', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_avatar_entities" @update:modelValue="newValue => onStandardPermissionChange(index, 'id_can_rez_avatar_entities', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_adjust_locks" @update:modelValue="newValue => onStandardPermissionChange(index, 'id_can_adjust_locks', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez" @update:modelValue="newValue => onStandardPermissionChange(index, 'id_can_rez', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_tmp" @update:modelValue="newValue => onStandardPermissionChange(index, 'id_can_rez_tmp', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_certified" @update:modelValue="newValue => onStandardPermissionChange(index, 'id_can_rez_certified', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_tmp_certified" @update:modelValue="newValue => onStandardPermissionChange(index, 'id_can_rez_tmp_certified', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_write_to_asset_server" @update:modelValue="newValue => onStandardPermissionChange(index, 'id_can_write_to_asset_server', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_connect_past_max_capacity" @update:modelValue="newValue => onStandardPermissionChange(index, 'id_can_connect_past_max_capacity', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_kick" @update:modelValue="newValue => onStandardPermissionChange(index, 'id_can_kick', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_replace_content" @update:modelValue="newValue => onStandardPermissionChange(index, 'id_can_replace_content', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_get_and_set_private_user_data" @update:modelValue="newValue => onStandardPermissionChange(index, 'id_can_get_and_set_private_user_data', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_connect" @update:modelValue="newValue => onPermissionChange('standardPermissions', index, 'id_can_connect', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_avatar_entities" @update:modelValue="newValue => onPermissionChange('standardPermissions', index, 'id_can_rez_avatar_entities', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_adjust_locks" @update:modelValue="newValue => onPermissionChange('standardPermissions', index, 'id_can_adjust_locks', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez" @update:modelValue="newValue => onPermissionChange('standardPermissions', index, 'id_can_rez', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_tmp" @update:modelValue="newValue => onPermissionChange('standardPermissions', index, 'id_can_rez_tmp', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_certified" @update:modelValue="newValue => onPermissionChange('standardPermissions', index, 'id_can_rez_certified', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_tmp_certified" @update:modelValue="newValue => onPermissionChange('standardPermissions', index, 'id_can_rez_tmp_certified', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_write_to_asset_server" @update:modelValue="newValue => onPermissionChange('standardPermissions', index, 'id_can_write_to_asset_server', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_connect_past_max_capacity" @update:modelValue="newValue => onPermissionChange('standardPermissions', index, 'id_can_connect_past_max_capacity', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_kick" @update:modelValue="newValue => onPermissionChange('standardPermissions', index, 'id_can_kick', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_replace_content" @update:modelValue="newValue => onPermissionChange('standardPermissions', index, 'id_can_replace_content', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_get_and_set_private_user_data" @update:modelValue="newValue => onPermissionChange('standardPermissions', index, 'id_can_get_and_set_private_user_data', newValue)"/></q-td>
                                     </q-tr>
                                 </template>
                             </q-table>
@@ -100,36 +100,24 @@
                                 <template v-slot:body>
                                     <q-tr v-for="(userType, index) in groupPermissions" :key="userType.permissions_id">
                                         <q-td class="text-center">{{userType.permissions_id}}</q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_connect" @update:modelValue="newValue => onGroupPermissionChange(index, 'id_can_connect', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_avatar_entities" @update:modelValue="newValue => onGroupPermissionChange(index, 'id_can_rez_avatar_entities', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_adjust_locks" @update:modelValue="newValue => onGroupPermissionChange(index, 'id_can_adjust_locks', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez" @update:modelValue="newValue => onGroupPermissionChange(index, 'id_can_rez', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_tmp" @update:modelValue="newValue => onGroupPermissionChange(index, 'id_can_rez_tmp', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_certified" @update:modelValue="newValue => onGroupPermissionChange(index, 'id_can_rez_certified', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_tmp_certified" @update:modelValue="newValue => onGroupPermissionChange(index, 'id_can_rez_tmp_certified', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_write_to_asset_server" @update:modelValue="newValue => onGroupPermissionChange(index, 'id_can_write_to_asset_server', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_connect_past_max_capacity" @update:modelValue="newValue => onGroupPermissionChange(index, 'id_can_connect_past_max_capacity', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_kick" @update:modelValue="newValue => onGroupPermissionChange(index, 'id_can_kick', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_replace_content" @update:modelValue="newValue => onGroupPermissionChange(index, 'id_can_replace_content', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_get_and_set_private_user_data" @update:modelValue="newValue => onGroupPermissionChange(index, 'id_can_get_and_set_private_user_data', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-btn size="sm" color="negative" icon="delete" class="q-px-xs" @click="userGroupDeleteDialogueIndex=index" round /></q-td>
-                                        <q-dialog v-if="userGroupDeleteDialogueIndex==index" v-model="alwaysShow" persistent>
-                                            <q-card class="bg-primary q-pa-md">
-                                                <q-card-section class="row items-center">
-                                                    <p class="text-h6 q-ml-sm text-bold text-white"><q-avatar icon="mdi-alert" class="q-mr-sm" text-color="warning" size="20px" font-size="20px"/>Delete <span class="text-warning">{{userType.permissions_id}}</span>?</p>
-                                                    <p class="text-body2 q-mt-sm">WARNING: Deleting a user group cannot be undone.</p>
-                                                </q-card-section>
-                                                <q-card-actions align="center">
-                                                    <q-btn flat label="Cancel" @click="userGroupDeleteDialogueIndex=-1" />
-                                                    <q-btn flat label="Delete" @click="onDeleteUserGroup(index)" />
-                                                </q-card-actions>
-                                            </q-card>
-                                        </q-dialog>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_connect" @update:modelValue="newValue => onPermissionChange('groupPermissions', index, 'id_can_connect', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_avatar_entities" @update:modelValue="newValue => onPermissionChange('groupPermissions', index, 'id_can_rez_avatar_entities', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_adjust_locks" @update:modelValue="newValue => onPermissionChange('groupPermissions', index, 'id_can_adjust_locks', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez" @update:modelValue="newValue => onPermissionChange('groupPermissions', index, 'id_can_rez', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_tmp" @update:modelValue="newValue => onPermissionChange('groupPermissions', index, 'id_can_rez_tmp', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_certified" @update:modelValue="newValue => onPermissionChange('groupPermissions', index, 'id_can_rez_certified', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_tmp_certified" @update:modelValue="newValue => onPermissionChange('groupPermissions', index, 'id_can_rez_tmp_certified', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_write_to_asset_server" @update:modelValue="newValue => onPermissionChange('groupPermissions', index, 'id_can_write_to_asset_server', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_connect_past_max_capacity" @update:modelValue="newValue => onPermissionChange('groupPermissions', index, 'id_can_connect_past_max_capacity', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_kick" @update:modelValue="newValue => onPermissionChange('groupPermissions', index, 'id_can_kick', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_replace_content" @update:modelValue="newValue => onPermissionChange('groupPermissions', index, 'id_can_replace_content', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_get_and_set_private_user_data" @update:modelValue="newValue => onPermissionChange('groupPermissions', index, 'id_can_get_and_set_private_user_data', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-btn size="sm" color="negative" icon="delete" class="q-px-xs" @click="onShowConfirmDeleteDialogue('groupPermissions', index, userType.permissions_id)" round /></q-td>
                                     </q-tr>
                                 </template>
                                 <template v-slot:bottom>
-                                    <q-form @submit="onAddNewUserGroup()">
-                                        <q-input v-model="newUserGroupName" class="no-margin no-padding text-subtitle2 text-white" standout="bg-primary text-white" label="Add a new user group" dense>
+                                    <q-form @submit="onAddNewPermissionRow('groupPermissions', 'userGroupName')">
+                                        <q-input v-model="newPermissionNames.userGroupName" class="no-margin no-padding text-subtitle2 text-white" standout="bg-primary text-white" label="Add a new user group" dense>
                                             <q-btn color="positive" size="sm" type="submit"><q-icon name="add" size="sm"/></q-btn>
                                         </q-input>
                                     </q-form>
@@ -162,36 +150,24 @@
                                 <template v-slot:body>
                                     <q-tr v-for="(userType, index) in groupForbiddens" :key="userType.permissions_id">
                                         <q-td class="text-center">{{userType.permissions_id}}</q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_connect" @update:modelValue="newValue => onGroupForbiddensChange(index, 'id_can_connect', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_avatar_entities" @update:modelValue="newValue => onGroupForbiddensChange(index, 'id_can_rez_avatar_entities', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_adjust_locks" @update:modelValue="newValue => onGroupForbiddensChange(index, 'id_can_adjust_locks', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez" @update:modelValue="newValue => onGroupForbiddensChange(index, 'id_can_rez', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_tmp" @update:modelValue="newValue => onGroupForbiddensChange(index, 'id_can_rez_tmp', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_certified" @update:modelValue="newValue => onGroupForbiddensChange(index, 'id_can_rez_certified', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_tmp_certified" @update:modelValue="newValue => onGroupForbiddensChange(index, 'id_can_rez_tmp_certified', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_write_to_asset_server" @update:modelValue="newValue => onGroupForbiddensChange(index, 'id_can_write_to_asset_server', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_connect_past_max_capacity" @update:modelValue="newValue => onGroupForbiddensChange(index, 'id_can_connect_past_max_capacity', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_kick" @update:modelValue="newValue => onGroupForbiddensChange(index, 'id_can_kick', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_replace_content" @update:modelValue="newValue => onGroupForbiddensChange(index, 'id_can_replace_content', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_get_and_set_private_user_data" @update:modelValue="newValue => onGroupForbiddensChange(index, 'id_can_get_and_set_private_user_data', newValue)"/></q-td>
-                                        <q-td class="text-center"><q-btn size="sm" color="negative" icon="delete" class="q-px-xs" @click="forbiddenGroupDeleteDialogueIndex=index" round /></q-td>
-                                        <q-dialog v-if="forbiddenGroupDeleteDialogueIndex==index" v-model="alwaysShow" persistent>
-                                            <q-card class="bg-primary q-pa-md">
-                                                <q-card-section class="row items-center">
-                                                    <p class="text-h6 text-bold text-white"><q-avatar icon="mdi-alert" class="q-mr-sm" text-color="warning" size="20px" font-size="20px"/>Delete <span class="text-warning">{{userType.permissions_id}}</span>?</p>
-                                                    <p class="text-body2 q-mt-sm">WARNING: Deleting a blacklist group cannot be undone.</p>
-                                                </q-card-section>
-                                                <q-card-actions align="center">
-                                                    <q-btn flat label="Cancel" @click="forbiddenGroupDeleteDialogueIndex=-1" />
-                                                    <q-btn flat label="Delete" @click="onDeleteForbiddensGroup(index)" />
-                                                </q-card-actions>
-                                            </q-card>
-                                        </q-dialog>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_connect" @update:modelValue="newValue => onPermissionChange('groupForbiddens', index, 'id_can_connect', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_avatar_entities" @update:modelValue="newValue => onPermissionChange('groupForbiddens', index, 'id_can_rez_avatar_entities', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_adjust_locks" @update:modelValue="newValue => onPermissionChange('groupForbiddens', index, 'id_can_adjust_locks', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez" @update:modelValue="newValue => onPermissionChange('groupForbiddens', index, 'id_can_rez', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_tmp" @update:modelValue="newValue => onPermissionChange('groupForbiddens', index, 'id_can_rez_tmp', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_certified" @update:modelValue="newValue => onPermissionChange('groupForbiddens', index, 'id_can_rez_certified', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_tmp_certified" @update:modelValue="newValue => onPermissionChange('groupForbiddens', index, 'id_can_rez_tmp_certified', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_write_to_asset_server" @update:modelValue="newValue => onPermissionChange('groupForbiddens', index, 'id_can_write_to_asset_server', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_connect_past_max_capacity" @update:modelValue="newValue => onPermissionChange('groupForbiddens', index, 'id_can_connect_past_max_capacity', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_kick" @update:modelValue="newValue => onPermissionChange('groupForbiddens', index, 'id_can_kick', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_replace_content" @update:modelValue="newValue => onPermissionChange('groupForbiddens', index, 'id_can_replace_content', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_get_and_set_private_user_data" @update:modelValue="newValue => onPermissionChange('groupForbiddens', index, 'id_can_get_and_set_private_user_data', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-btn size="sm" color="negative" icon="delete" class="q-px-xs" @click="onShowConfirmDeleteDialogue('groupForbiddens', index, userType.permissions_id)" round /></q-td>
                                     </q-tr>
                                 </template>
                                 <template v-slot:bottom>
-                                    <q-form @submit="onAddNewForbiddensGroup()">
-                                        <q-input v-model="newForbiddenGroupName" class="no-margin no-padding text-subtitle2 text-white" standout="bg-primary text-white" label="Add a new blacklist group" dense>
+                                    <q-form @submit="onAddNewPermissionRow('groupForbiddens', 'forbiddenGroupName')">
+                                        <q-input v-model="newPermissionNames.forbiddenGroupName" class="no-margin no-padding text-subtitle2 text-white" standout="bg-primary text-white" label="Add a new blacklist group" dense>
                                             <q-btn color="positive" size="sm" type="submit"><q-icon name="add" size="sm"/></q-btn>
                                         </q-input>
                                     </q-form>
@@ -200,6 +176,19 @@
                             <p class="q-mt-xs q-mb-none text-caption text-grey-5">NOTE: For groups that are provided from WordPress you need to denote them by putting an "@" symbol in front of each item, e.g., "@silver".</p>
                         </q-card-section>
                     </q-card>
+                    <!-- CONFIRM DELETE PERMISSION DIALOGUE -->
+                    <q-dialog v-model="confirmDeleteDialogue.show" persistent>
+                        <q-card class="bg-primary q-pa-md">
+                            <q-card-section class="row items-center">
+                                <p class="text-h6 text-bold text-white full-width"><q-avatar icon="mdi-alert" class="q-mr-sm" text-color="warning" size="20px" font-size="20px"/>Delete <span class="text-warning">{{confirmDeleteDialogue.thingToDelete}}</span>?</p>
+                                <p class="text-body2">WARNING: Deleting a permission cannot be undone.</p>
+                            </q-card-section>
+                            <q-card-actions align="center">
+                                <q-btn flat label="Cancel" @click="onHideConfirmDeleteDialogue()"/>
+                                <q-btn flat label="Delete" @click="onDeletePermissionRow(confirmDeleteDialogue.permissionType, confirmDeleteDialogue.index)"/>
+                            </q-card-actions>
+                        </q-card>
+                    </q-dialog>
                 </q-expansion-item>
                 <!-- *END* ADVANCED SETTINGS SECTION *END* -->
             </q-card-section>
@@ -211,7 +200,10 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
-import { SettingsValues, SecuritySaveSettings, StandardPermission, GroupPermission, GroupForbidden } from "@/src/modules/domain/interfaces/settings";
+import { SettingsValues, SecuritySaveSettings, StandardPermission, GroupPermission, GroupForbidden, Permission } from "@/src/modules/domain/interfaces/settings";
+
+type PermissionTypes = "standardPermissions" | "groupPermissions" | "groupForbiddens";
+type PermissionNames = "userGroupName" | "forbiddenGroupName";
 
 export default defineComponent({
     name: "SecuritySettings",
@@ -219,39 +211,35 @@ export default defineComponent({
         return {
             // data vars that are always constant
             rows: [{}],
-            alwaysShow: true,
             // data vars that actually will change
             values: {} as SettingsValues,
             isSecuritySettingsToggled: false,
-            userGroupDeleteDialogueIndex: -1,
-            newUserGroupName: "",
-            forbiddenGroupDeleteDialogueIndex: -1,
-            newForbiddenGroupName: ""
+            newPermissionNames: { userGroupName: "", forbiddenGroupName: "" },
+            confirmDeleteDialogue: { show: false, thingToDelete: "", index: -1, permissionType: "" as PermissionTypes }
         };
     },
     methods: {
-        onStandardPermissionChange (index: number, permission: keyof StandardPermission, newValue: boolean): void {
-            const changedPermission = [...this.standardPermissions];
+        onPermissionChange (permissionType: PermissionTypes, index: number, permission: keyof Permission, newValue: boolean): void {
+            const changedPermission = [...this[permissionType]];
             if (permission !== "permissions_id") {
                 changedPermission[index][permission] = newValue;
-                this.standardPermissions = [...changedPermission];
+                this[permissionType] = [...changedPermission];
             }
         },
-        onGroupPermissionChange (index: number, permission: keyof GroupPermission, newValue: boolean): void {
-            const changedPermission = [...this.groupPermissions];
-            if (permission !== "permissions_id") {
-                changedPermission[index][permission] = newValue;
-                this.groupPermissions = [...changedPermission];
-            }
+        onShowConfirmDeleteDialogue (permissionType: PermissionTypes, index: number, thingToDelete: string): void {
+            this.confirmDeleteDialogue = { show: true, thingToDelete: thingToDelete, index: index, permissionType: permissionType };
         },
-        onDeleteUserGroup (index: number): void {
-            this.userGroupDeleteDialogueIndex = -1;
-            const changedPermission = [...this.groupPermissions];
+        onHideConfirmDeleteDialogue (): void {
+            this.confirmDeleteDialogue = { show: false, thingToDelete: "", index: -1, permissionType: "" as PermissionTypes };
+        },
+        onDeletePermissionRow (permissionType: PermissionTypes, index: number): void {
+            this.onHideConfirmDeleteDialogue();
+            const changedPermission = [...this[permissionType]];
             changedPermission.splice(index, 1);
-            this.groupPermissions = [...changedPermission];
+            this[permissionType] = [...changedPermission];
         },
-        onAddNewUserGroup (): void {
-            const newGroupPermission: GroupPermission = {
+        onAddNewPermissionRow (permissionType: PermissionTypes, permissionName: PermissionNames): void {
+            const newPermission: Permission = {
                 id_can_adjust_locks: false,
                 id_can_connect: false,
                 id_can_connect_past_max_capacity: false,
@@ -264,44 +252,11 @@ export default defineComponent({
                 id_can_rez_tmp: false,
                 id_can_rez_tmp_certified: false,
                 id_can_write_to_asset_server: false,
-                permissions_id: this.newUserGroupName
+                permissions_id: this.newPermissionNames[permissionName]
             };
-            const changedPermission = [...this.groupPermissions, newGroupPermission];
-            this.groupPermissions = [...changedPermission];
-            this.newUserGroupName = "";
-        },
-        onGroupForbiddensChange (index: number, permission: keyof GroupForbidden, newValue: boolean): void {
-            const changedPermission = [...this.groupForbiddens];
-            if (permission !== "permissions_id") {
-                changedPermission[index][permission] = newValue;
-                this.groupForbiddens = [...changedPermission];
-            }
-        },
-        onDeleteForbiddensGroup (index: number): void {
-            this.forbiddenGroupDeleteDialogueIndex = -1;
-            const changedPermission = [...this.groupForbiddens];
-            changedPermission.splice(index, 1);
-            this.groupForbiddens = [...changedPermission];
-        },
-        onAddNewForbiddensGroup (): void {
-            const newGroupForbidden: GroupForbidden = {
-                id_can_adjust_locks: false,
-                id_can_connect: false,
-                id_can_connect_past_max_capacity: false,
-                id_can_get_and_set_private_user_data: false,
-                id_can_kick: false,
-                id_can_replace_content: false,
-                id_can_rez: false,
-                id_can_rez_avatar_entities: false,
-                id_can_rez_certified: false,
-                id_can_rez_tmp: false,
-                id_can_rez_tmp_certified: false,
-                id_can_write_to_asset_server: false,
-                permissions_id: this.newForbiddenGroupName
-            };
-            const changedPermission = [...this.groupForbiddens, newGroupForbidden];
-            this.groupForbiddens = [...changedPermission];
-            this.newForbiddenGroupName = "";
+            const changedPermission = [...this[permissionType], newPermission];
+            this[permissionType] = [...changedPermission];
+            this.newPermissionNames[permissionName] = "";
         },
         async refreshSettingsValues (): Promise<void> {
             this.values = await Settings.getValues();
