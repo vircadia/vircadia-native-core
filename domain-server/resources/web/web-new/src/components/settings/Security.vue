@@ -175,6 +175,105 @@
                             </q-table>
                             <p class="q-mt-xs q-mb-none text-caption text-grey-5">NOTE: For groups that are provided from WordPress you need to denote them by putting an "@" symbol in front of each item, e.g., "@silver".</p>
                         </q-card-section>
+                        <!-- Permissions for Specific Users section -->
+                        <q-card-section>
+                            <p class="q-mb-xs text-body1 text-weight-bold">Permissions for Specific Users</p>
+                            <q-table dark class="bg-grey-9" :rows="rows">
+                                <template v-slot:header>
+                                    <q-tr class="bg-primary">
+                                        <q-th class="text-center">User</q-th>
+                                        <q-th class="text-center">Connect<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can connect to the domain</q-tooltip></q-icon></q-th>
+                                        <q-th class="text-center">Avatar Entities<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can use avatar entities on the domain</q-tooltip></q-icon></q-th>
+                                        <q-th class="text-center">Lock / Unlock<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can use change the "locked" property of an entity (from off➔on / on➔off)</q-tooltip></q-icon></q-th>
+                                        <q-th class="text-center">Rez<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can use create new entities</q-tooltip></q-icon></q-th>
+                                        <q-th class="text-center">Rez Temporary<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can create new temporary entities (with finite lifetimes)</q-tooltip></q-icon></q-th>
+                                        <q-th class="text-center">Rez Certified<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can create new certified entities</q-tooltip></q-icon></q-th>
+                                        <q-th class="text-center">Rez Temporary Certified<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can create temporary (finite lifetime), certified entities</q-tooltip></q-icon></q-th>
+                                        <q-th class="text-center">Write Assets<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can make changes to the domain's asset-server assets</q-tooltip></q-icon></q-th>
+                                        <q-th class="text-center">Ignore Max Capacity<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can connect even when the domain's maximum user capacity is reached</q-tooltip></q-icon></q-th>
+                                        <q-th class="text-center">Kick Users<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can kick other users</q-tooltip></q-icon></q-th>
+                                        <q-th class="text-center">Replace Content<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can replace entire content sets by wiping existing domain content</q-tooltip></q-icon></q-th>
+                                        <q-th class="text-center">Get and Set Private User Data<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can get and set the privateUserData entity property</q-tooltip></q-icon></q-th>
+                                        <q-th></q-th> <!-- Empty column for delete buttons -->
+                                    </q-tr>
+                                </template>
+                                <template v-slot:body>
+                                    <q-tr v-for="(userType, index) in userPermissions" :key="userType.permissions_id">
+                                        <q-td class="text-center">{{userType.permissions_id}}</q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_connect" @update:modelValue="newValue => onPermissionChange('userPermissions', index, 'id_can_connect', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_avatar_entities" @update:modelValue="newValue => onPermissionChange('userPermissions', index, 'id_can_rez_avatar_entities', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_adjust_locks" @update:modelValue="newValue => onPermissionChange('userPermissions', index, 'id_can_adjust_locks', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez" @update:modelValue="newValue => onPermissionChange('userPermissions', index, 'id_can_rez', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_tmp" @update:modelValue="newValue => onPermissionChange('userPermissions', index, 'id_can_rez_tmp', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_certified" @update:modelValue="newValue => onPermissionChange('userPermissions', index, 'id_can_rez_certified', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_tmp_certified" @update:modelValue="newValue => onPermissionChange('userPermissions', index, 'id_can_rez_tmp_certified', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_write_to_asset_server" @update:modelValue="newValue => onPermissionChange('userPermissions', index, 'id_can_write_to_asset_server', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_connect_past_max_capacity" @update:modelValue="newValue => onPermissionChange('userPermissions', index, 'id_can_connect_past_max_capacity', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_kick" @update:modelValue="newValue => onPermissionChange('userPermissions', index, 'id_can_kick', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_replace_content" @update:modelValue="newValue => onPermissionChange('userPermissions', index, 'id_can_replace_content', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_get_and_set_private_user_data" @update:modelValue="newValue => onPermissionChange('userPermissions', index, 'id_can_get_and_set_private_user_data', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-btn size="sm" color="negative" icon="delete" class="q-px-xs" @click="onShowConfirmDeleteDialogue('userPermissions', index, userType.permissions_id)" round /></q-td>
+                                    </q-tr>
+                                </template>
+                                <template v-slot:bottom>
+                                    <q-form @submit="onAddNewPermissionRow('userPermissions', 'userPermissionName')">
+                                        <q-input v-model="newPermissionNames.userPermissionName" class="no-margin no-padding text-subtitle2 text-white" standout="bg-primary text-white" label="Add a new user" dense>
+                                            <q-btn color="positive" size="sm" type="submit"><q-icon name="add" size="sm"/></q-btn>
+                                        </q-input>
+                                    </q-form>
+                                </template>
+                            </q-table>
+                        </q-card-section>
+                        <!-- Permissions for Users from IP Addresses section -->
+                        <q-card-section>
+                            <p class="q-mb-xs text-body1 text-weight-bold">Permissions for Users from IP Addresses</p>
+                            <q-table dark class="bg-grey-9" :rows="rows">
+                                <template v-slot:header>
+                                    <q-tr class="bg-primary">
+                                        <q-th class="text-center">IP Address</q-th>
+                                        <q-th class="text-center">Connect<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can connect to the domain</q-tooltip></q-icon></q-th>
+                                        <q-th class="text-center">Avatar Entities<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can use avatar entities on the domain</q-tooltip></q-icon></q-th>
+                                        <q-th class="text-center">Lock / Unlock<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can use change the "locked" property of an entity (from off➔on / on➔off)</q-tooltip></q-icon></q-th>
+                                        <q-th class="text-center">Rez<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can use create new entities</q-tooltip></q-icon></q-th>
+                                        <q-th class="text-center">Rez Temporary<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can create new temporary entities (with finite lifetimes)</q-tooltip></q-icon></q-th>
+                                        <q-th class="text-center">Rez Certified<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can create new certified entities</q-tooltip></q-icon></q-th>
+                                        <q-th class="text-center">Rez Temporary Certified<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can create temporary (finite lifetime), certified entities</q-tooltip></q-icon></q-th>
+                                        <q-th class="text-center">Write Assets<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can make changes to the domain's asset-server assets</q-tooltip></q-icon></q-th>
+                                        <q-th class="text-center">Ignore Max Capacity<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can connect even when the domain's maximum user capacity is reached</q-tooltip></q-icon></q-th>
+                                        <q-th class="text-center">Kick Users<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can kick other users</q-tooltip></q-icon></q-th>
+                                        <q-th class="text-center">Replace Content<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can replace entire content sets by wiping existing domain content</q-tooltip></q-icon></q-th>
+                                        <q-th class="text-center">Get and Set Private User Data<q-icon name="help" size="xs" class="q-ml-sm"><q-tooltip class="text-caption text-dark bg-grey-2">Whether a user can get and set the privateUserData entity property</q-tooltip></q-icon></q-th>
+                                        <q-th></q-th> <!-- Empty column for delete buttons -->
+                                    </q-tr>
+                                </template>
+                                <template v-slot:body>
+                                    <q-tr v-for="(userType, index) in ipPermissions" :key="userType.permissions_id">
+                                        <q-td class="text-center">{{userType.permissions_id}}</q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_connect" @update:modelValue="newValue => onPermissionChange('ipPermissions', index, 'id_can_connect', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_avatar_entities" @update:modelValue="newValue => onPermissionChange('ipPermissions', index, 'id_can_rez_avatar_entities', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_adjust_locks" @update:modelValue="newValue => onPermissionChange('ipPermissions', index, 'id_can_adjust_locks', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez" @update:modelValue="newValue => onPermissionChange('ipPermissions', index, 'id_can_rez', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_tmp" @update:modelValue="newValue => onPermissionChange('ipPermissions', index, 'id_can_rez_tmp', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_certified" @update:modelValue="newValue => onPermissionChange('ipPermissions', index, 'id_can_rez_certified', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_rez_tmp_certified" @update:modelValue="newValue => onPermissionChange('ipPermissions', index, 'id_can_rez_tmp_certified', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_write_to_asset_server" @update:modelValue="newValue => onPermissionChange('ipPermissions', index, 'id_can_write_to_asset_server', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_connect_past_max_capacity" @update:modelValue="newValue => onPermissionChange('ipPermissions', index, 'id_can_connect_past_max_capacity', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_kick" @update:modelValue="newValue => onPermissionChange('ipPermissions', index, 'id_can_kick', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_replace_content" @update:modelValue="newValue => onPermissionChange('ipPermissions', index, 'id_can_replace_content', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-checkbox size="sm" :modelValue="userType.id_can_get_and_set_private_user_data" @update:modelValue="newValue => onPermissionChange('ipPermissions', index, 'id_can_get_and_set_private_user_data', newValue)"/></q-td>
+                                        <q-td class="text-center"><q-btn size="sm" color="negative" icon="delete" class="q-px-xs" @click="onShowConfirmDeleteDialogue('ipPermissions', index, userType.permissions_id)" round /></q-td>
+                                    </q-tr>
+                                </template>
+                                <template v-slot:bottom>
+                                    <q-form @submit="onAddNewPermissionRow('ipPermissions', 'ipPermissionName')">
+                                        <q-input v-model="newPermissionNames.ipPermissionName" class="no-margin no-padding text-subtitle2 text-white" standout="bg-primary text-white" label="Add a new IP Address" dense>
+                                            <q-btn color="positive" size="sm" type="submit"><q-icon name="add" size="sm"/></q-btn>
+                                        </q-input>
+                                    </q-form>
+                                </template>
+                            </q-table>
+                            <p class="q-mt-xs q-mb-none text-caption text-grey-5">NOTE: Invalid IP Addresses will not be saved.</p>
+                        </q-card-section>
                     </q-card>
                     <!-- CONFIRM DELETE PERMISSION DIALOGUE -->
                     <q-dialog v-model="confirmDeleteDialogue.show" persistent>
@@ -200,10 +299,10 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
-import { SettingsValues, SecuritySaveSettings, StandardPermission, GroupPermission, GroupForbidden, Permission } from "@/src/modules/domain/interfaces/settings";
+import { SettingsValues, SecuritySaveSettings, StandardPermission, GroupPermission, GroupForbidden, Permission, IpPermission } from "@/src/modules/domain/interfaces/settings";
 
-type PermissionTypes = "standardPermissions" | "groupPermissions" | "groupForbiddens";
-type PermissionNames = "userGroupName" | "forbiddenGroupName";
+type PermissionTypes = "standardPermissions" | "groupPermissions" | "groupForbiddens" | "userPermissions" | "ipPermissions";
+type PermissionNames = "userGroupName" | "forbiddenGroupName" | "userPermissionName" | "ipPermissionName";
 
 export default defineComponent({
     name: "SecuritySettings",
@@ -214,7 +313,7 @@ export default defineComponent({
             // data vars that actually will change
             values: {} as SettingsValues,
             isSecuritySettingsToggled: false,
-            newPermissionNames: { userGroupName: "", forbiddenGroupName: "" },
+            newPermissionNames: { userGroupName: "", forbiddenGroupName: "", userPermissionName: "", ipPermissionName: "" },
             confirmDeleteDialogue: { show: false, thingToDelete: "", index: -1, permissionType: "" as PermissionTypes }
         };
     },
@@ -268,7 +367,9 @@ export default defineComponent({
                     "approved_safe_urls": this.approvedURLs,
                     "standard_permissions": this.standardPermissions,
                     "group_permissions": this.groupPermissions,
-                    "group_forbiddens": this.groupForbiddens
+                    "group_forbiddens": this.groupForbiddens,
+                    "permissions": this.userPermissions,
+                    "ip_permissions": this.ipPermissions
                 }
             };
             Settings.automaticCommitSettings(settingsToCommit);
@@ -360,6 +461,28 @@ export default defineComponent({
             set (newGroupForbiddens: GroupForbidden[]): void {
                 if (typeof this.values.security?.group_forbiddens !== "undefined") {
                     this.values.security.group_forbiddens = newGroupForbiddens;
+                    this.saveSettings();
+                }
+            }
+        },
+        userPermissions: {
+            get (): Permission[] {
+                return this.values.security?.permissions ?? [];
+            },
+            set (newUserPermissions: Permission[]): void {
+                if (typeof this.values.security?.permissions !== "undefined") {
+                    this.values.security.permissions = newUserPermissions;
+                    this.saveSettings();
+                }
+            }
+        },
+        ipPermissions: {
+            get (): IpPermission[] {
+                return this.values.security?.ip_permissions ?? [];
+            },
+            set (newIPPermissions: IpPermission[]): void {
+                if (typeof this.values.security?.ip_permissions !== "undefined") {
+                    this.values.security.ip_permissions = newIPPermissions;
                     this.saveSettings();
                 }
             }
