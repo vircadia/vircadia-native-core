@@ -2,7 +2,7 @@
 
 // import Log from "@Modules/debugging/log";
 import { doAPIGet, findErrorMsg } from "src/modules/utilities/apiHelpers";
-import { SettingsResponse, SettingsValues, Description, MetaverseSaveSettings, WebrtcSaveSettings, WordpressSaveSettings, DomainsResponse, Domains, SSLClientAcmeSaveSettings, MonitoringSaveSettings, SecuritySaveSettings } from "./interfaces/settings";
+import { SettingsResponse, SettingsValues, Description, MetaverseSaveSettings, WebrtcSaveSettings, WordpressSaveSettings, DomainsResponse, Domains, SSLClientAcmeSaveSettings, MonitoringSaveSettings, SecuritySaveSettings, AudioThreadingSaveSettings } from "./interfaces/settings";
 import Log from "../../modules/utilities/log";
 
 const axios = require("axios");
@@ -39,7 +39,7 @@ export const Settings = {
         }
         return response;
     },
-    commitSettings (settingsToCommit: MetaverseSaveSettings | WebrtcSaveSettings | WordpressSaveSettings | SSLClientAcmeSaveSettings | MonitoringSaveSettings | SecuritySaveSettings) {
+    commitSettings (settingsToCommit: MetaverseSaveSettings | WebrtcSaveSettings | WordpressSaveSettings | SSLClientAcmeSaveSettings | MonitoringSaveSettings | SecuritySaveSettings | AudioThreadingSaveSettings) {
         return axios.post("/settings.json", JSON.stringify(settingsToCommit))
             .then(() => {
                 Log.info(Log.types.DOMAIN, "Successfully committed settings.");
@@ -50,7 +50,7 @@ export const Settings = {
                 return false;
             });
     },
-    automaticCommitSettings (settingsToCommit: MetaverseSaveSettings | WebrtcSaveSettings | WordpressSaveSettings | SSLClientAcmeSaveSettings | MonitoringSaveSettings | SecuritySaveSettings): void {
+    automaticCommitSettings (settingsToCommit: MetaverseSaveSettings | WebrtcSaveSettings | WordpressSaveSettings | SSLClientAcmeSaveSettings | MonitoringSaveSettings | SecuritySaveSettings | AudioThreadingSaveSettings): void {
         // automaticCommitSettings should be called whenever an input change is detected
         // only commits changes once no input changes are detected for 5 secs (5000 ms)
         // call commitSettings instead of automaticCommitSettings to instantly commit changes

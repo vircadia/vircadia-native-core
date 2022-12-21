@@ -505,3 +505,12 @@ export interface SecuritySaveSettings {
         "standard_permissions"?: StandardPermission[]
     }
 }
+
+export interface AudioThreadingSaveSettings {
+    "audio_threading": {
+        "auto_threads"?: boolean;
+        "num_threads"?: string;
+        "throttle_backoff"?: number;
+        "throttle_start"?: number;
+    }
+}

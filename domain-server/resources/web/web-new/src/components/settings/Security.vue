@@ -366,7 +366,7 @@
                                 </template>
                                 <template v-slot:bottom>
                                     <q-form @submit="onAddNewPermissionRow('machineFingerprintPermissions', 'machineFingerprintPermissionName')">
-                                        <q-input v-model="newPermissionNames.machineFingerprintPermissionName" class="no-margin no-padding text-subtitle2 text-white" standout="bg-primary text-white" label="Add a new IP Address" dense>
+                                        <q-input v-model="newPermissionNames.machineFingerprintPermissionName" class="no-margin no-padding text-subtitle2 text-white" standout="bg-primary text-white" label="Add a new Fingerprint" dense>
                                             <q-btn color="positive" size="sm" type="submit"><q-icon name="add" size="sm"/></q-btn>
                                         </q-input>
                                     </q-form>
