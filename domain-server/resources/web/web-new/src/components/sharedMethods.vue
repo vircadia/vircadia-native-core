@@ -39,14 +39,13 @@ export default defineComponent({
     methods: {
         async restartServer (): Promise<void> {
             // TODO: Make 3000 ms delay into a variable constant
-            console.log("works");
             const myPromise = new Promise(function (resolve) {
                 const apiRequestUrl = "restart";
                 doAPIGet(apiRequestUrl);
                 setTimeout(function () { resolve("Domain Server Restarted"); }, 3000);
             });
             // TODO: make progress bar dynamic (hardcoded to 3000 ms currently)
-            const progressInterval = setInterval(() => { this.restartProgress += 0.05; console.log(this.restartProgress); }, 3000 / 23.5); // updates linear progress bar
+            const progressInterval = setInterval(() => { this.restartProgress += 0.05; }, 3000 / 23.5); // updates linear progress bar
             this.restartPopup = true;
             await myPromise;
             clearInterval(progressInterval);

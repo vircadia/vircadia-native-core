@@ -311,6 +311,22 @@ export interface MacPermission {
         permissions_id: string;
     }
 
+export interface MachineFingerprintPermission {
+        id_can_adjust_locks: boolean;
+        id_can_connect: boolean;
+        id_can_connect_past_max_capacity: boolean;
+        id_can_get_and_set_private_user_data: boolean;
+        id_can_kick: boolean;
+        id_can_replace_content: boolean;
+        id_can_rez: boolean;
+        id_can_rez_avatar_entities: boolean;
+        id_can_rez_certified: boolean;
+        id_can_rez_tmp: boolean;
+        id_can_rez_tmp_certified: boolean;
+        id_can_write_to_asset_server: boolean;
+        permissions_id: string;
+    }
+
 export interface Permission {
         id_can_adjust_locks: boolean;
         id_can_connect: boolean;
