@@ -522,3 +522,16 @@ export interface AudioEnvSaveSettings {
         "noise_muting_threshold"?: string;
     }
 }
+
+export interface AudioBufferSaveSettings {
+    "audio_buffer": {
+        "dynamic_jitter_buffer"?: boolean;
+        "max_frames_over_desired"?: string;
+        "repetition_with_fade"?: string;
+        "static_desired_jitter_buffer_frames"?: string;
+        "use_stdev_for_desired_calc"?: string;
+        "window_seconds_for_desired_calc_on_too_many_starves"?: string;
+        "window_seconds_for_desired_reduction"?: string;
+        "window_starve_threshold"?: string;
+    }
+}
