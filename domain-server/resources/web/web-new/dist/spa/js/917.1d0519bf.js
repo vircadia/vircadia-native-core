@@ -1,1 +1,0 @@
-"use strict";(globalThis["webpackChunkvircadia_domain_dashboard"]=globalThis["webpackChunkvircadia_domain_dashboard"]||[]).push([[917],{5917:(a,n,r)=>{r.r(n),r.d(n,{default:()=>t});var d=r(3673);function i(a,n,r,i,s,e){return(0,d.wg)(),(0,d.iD)("h1",null,"Avatars Test")}const s=(0,d.aZ)({name:"Index"});var e=r(4260);const o=(0,e.Z)(s,[["render",i]]),t=o}}]);

@@ -535,3 +535,12 @@ export interface AudioBufferSaveSettings {
         "window_starve_threshold"?: string;
     }
 }
+
+export interface AvatarsSaveSettings {
+    "avatars": {
+        "avatar_whitelist"?: string;
+        "max_avatar_height"?: number;
+        "min_avatar_height"?: number;
+        "replacement_avatar"?: string;
+    }
+}

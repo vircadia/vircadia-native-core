@@ -1,7 +1,7 @@
 <!--
 //  Audio.vue
 //
-//  Created by Eugene :) on Dec. 24th, 2022.
+//  Created by Eugene :) on Dec. 21th, 2022.
 //  Copyright 2022 Vircadia contributors.
 //  Copyright 2022 DigiSomni LLC.
 //
