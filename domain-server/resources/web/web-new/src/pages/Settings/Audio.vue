@@ -12,6 +12,7 @@
 <template>
     <div class="q-pa-md">
         <AudioThreadingSettings/>
+        <AudioEnvironmentVue/>
     </div>
 </template>
 
@@ -19,11 +20,13 @@
 import { defineComponent } from "vue";
 
 import AudioThreadingSettings from "@Components/settings/AudioThreading.vue";
+import AudioEnvironmentVue from "@Components/settings/AudioEnvironment.vue";
 
 export default defineComponent({
     name: "Index",
     components: {
-        AudioThreadingSettings
+        AudioThreadingSettings,
+        AudioEnvironmentVue
     }
 });
 </script>

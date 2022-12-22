@@ -514,3 +514,11 @@ export interface AudioThreadingSaveSettings {
         "throttle_start"?: number;
     }
 }
+
+export interface AudioEnvSaveSettings {
+    "audio_env": {
+        "codec_preference_order"?: string;
+        "enable_filter"?: boolean;
+        "noise_muting_threshold"?: string;
+    }
+}
