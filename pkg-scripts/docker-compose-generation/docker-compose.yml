@@ -1,0 +1,19 @@
+# We need 7 containers in total, one domain server 
+# + six assignment clients
+# -a 172.17.0.1
+
+version: "3.8"
+services:
+  domain-server:
+    image: james422481/vircadia_server:1
+    ports:
+      - "40100:40100/tcp"
+      - "40102:40102/udp"
+    command: /opt/vircadia/domain-server
+  assignment-client:
+    image: james422481/vircadia_server:1
+    ports:
+      - "40200-40205:40200/udp"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: /opt/vircadia/assignment-client -a host.docker.internal -p 40200 --server-port 40102 --disable-domain-port-auto-discovery
