@@ -48,6 +48,11 @@ const routes: RouteRecordRaw[] = [
         children: [{ path: "", component: () => import("pages/Settings/Avatars.vue") }]
     },
     {
+        path: "/entities",
+        component: () => import("layouts/Index.vue"),
+        children: [{ path: "", component: () => import("pages/Settings/Avatars.vue") }]
+    },
+    {
         path: "/scripts",
         component: () => import("layouts/Index.vue"),
         children: [{ path: "", component: () => import("pages/Settings/Scripts.vue") }]

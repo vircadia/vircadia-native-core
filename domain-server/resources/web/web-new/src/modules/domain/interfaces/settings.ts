@@ -544,3 +544,13 @@ export interface AvatarsSaveSettings {
         "replacement_avatar"?: string;
     }
 }
+
+export interface AvatarMixerSaveSettings {
+    "avatar_mixer": {
+        "auto_threads"?: boolean;
+        "connection_rate"?: string;
+        "max_node_send_bandwidth"?: number;
+        "num_threads"?: string;
+        "priority_fraction"?: string;
+    }
+}
