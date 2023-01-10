@@ -30,6 +30,7 @@ export default {
                 { icon: "mdi-cube-outline", route: "/content", label: "Content", badge: "" },
                 { icon: "mdi-volume-high", route: "/audio", label: "Audio", badge: "" },
                 { icon: "mdi-account-multiple", route: "/avatars", label: "Avatars", badge: "" },
+                { icon: "mdi-account-outline", route: "/entities", label: "Entities", badge: "" },
                 { icon: "mdi-script-text-outline", route: "/scripts", label: "Server Scripts", badge: "" },
                 { icon: "mdi-cog-outline", route: "/advanced", label: "Advanced", badge: "" },
                 { icon: "mdi-backup-restore", route: "/backup-restore", label: "Backup & Restore", badge: "" },
