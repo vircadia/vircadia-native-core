@@ -554,3 +554,27 @@ export interface AvatarMixerSaveSettings {
         "priority_fraction"?: string;
     }
 }
+
+export interface EntityServerSaveSettings {
+    "entity_server_settings": {
+        "NoBackup"?: boolean;
+        "NoPersist"?: boolean;
+        "backupDirectoryPath"?: string;
+        "clockSkew"?: string;
+        "debugReceiving"?: boolean;
+        "debugSending"?: boolean;
+        "debugTimestampNow"?: boolean;
+        "dynamicDomainVerificationTimeMax"?: string;
+        "dynamicDomainVerificationTimeMin"?: string;
+        "entityScriptSourceWhitelist"?: string;
+        "maxTmpLifetime"?: string;
+        "persistFileDownload"?: boolean;
+        "persistFilePath"?: string;
+        "persistInterval"?: string;
+        "statusHost"?: string;
+        "statusPort"?: string;
+        "verboseDebug"?: boolean;
+        "wantEditLogging"?: boolean;
+        "wantTerseEditLogging"?: boolean;
+    }
+}

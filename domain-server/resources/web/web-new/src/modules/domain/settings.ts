@@ -2,11 +2,13 @@
 
 // import Log from "@Modules/debugging/log";
 import { doAPIGet, findErrorMsg } from "src/modules/utilities/apiHelpers";
-import { SettingsResponse, SettingsValues, Description, MetaverseSaveSettings, WebrtcSaveSettings, WordpressSaveSettings, DomainsResponse, Domains, SSLClientAcmeSaveSettings, MonitoringSaveSettings, SecuritySaveSettings, AudioThreadingSaveSettings, AudioEnvSaveSettings, AudioBufferSaveSettings, AvatarsSaveSettings, AvatarMixerSaveSettings } from "./interfaces/settings";
+import { SettingsResponse, SettingsValues, Description, MetaverseSaveSettings, WebrtcSaveSettings, WordpressSaveSettings, DomainsResponse, Domains, SSLClientAcmeSaveSettings, MonitoringSaveSettings, SecuritySaveSettings, AudioThreadingSaveSettings, AudioEnvSaveSettings, AudioBufferSaveSettings, AvatarsSaveSettings, AvatarMixerSaveSettings, EntityServerSaveSettings } from "./interfaces/settings";
 import Log from "../../modules/utilities/log";
 
 const axios = require("axios");
 const timers: number[] = [];
+
+type settingsTypes = MetaverseSaveSettings | WebrtcSaveSettings | WordpressSaveSettings | SSLClientAcmeSaveSettings | MonitoringSaveSettings | SecuritySaveSettings | AudioThreadingSaveSettings | AudioEnvSaveSettings | AudioBufferSaveSettings | AvatarsSaveSettings | AvatarMixerSaveSettings | EntityServerSaveSettings;
 
 export const Settings = {
     async getValues (): Promise<SettingsValues> {
@@ -39,7 +41,7 @@ export const Settings = {
         }
         return response;
     },
-    commitSettings (settingsToCommit: MetaverseSaveSettings | WebrtcSaveSettings | WordpressSaveSettings | SSLClientAcmeSaveSettings | MonitoringSaveSettings | SecuritySaveSettings | AudioThreadingSaveSettings | AudioEnvSaveSettings | AudioBufferSaveSettings | AvatarsSaveSettings | AvatarMixerSaveSettings) {
+    commitSettings (settingsToCommit: settingsTypes) {
         return axios.post("/settings.json", JSON.stringify(settingsToCommit))
             .then(() => {
                 Log.info(Log.types.DOMAIN, "Successfully committed settings.");
@@ -50,7 +52,7 @@ export const Settings = {
                 return false;
             });
     },
-    automaticCommitSettings (settingsToCommit: MetaverseSaveSettings | WebrtcSaveSettings | WordpressSaveSettings | SSLClientAcmeSaveSettings | MonitoringSaveSettings | SecuritySaveSettings | AudioThreadingSaveSettings | AudioEnvSaveSettings | AudioBufferSaveSettings | AvatarsSaveSettings | AvatarMixerSaveSettings): void {
+    automaticCommitSettings (settingsToCommit: settingsTypes): void {
         // automaticCommitSettings should be called whenever an input change is detected
         // only commits changes once no input changes are detected for 5 secs (5000 ms)
         // call commitSettings instead of automaticCommitSettings to instantly commit changes
