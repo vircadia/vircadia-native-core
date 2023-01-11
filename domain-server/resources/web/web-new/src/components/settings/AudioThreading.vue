@@ -26,7 +26,7 @@
                         <!-- Throttle Backoff Target section -->
                         <q-card-section>
                             <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="throttleBackoff" label="Throttle Backoff Target" type="number"/>
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Target percentage of frame time to backoff throttling</div>
+                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Target percentage of frame time to backoff throttling.</div>
                         </q-card-section>
                     </q-card>
                 </q-expansion-item>

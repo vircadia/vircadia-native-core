@@ -2,13 +2,13 @@
 
 // import Log from "@Modules/debugging/log";
 import { doAPIGet, findErrorMsg } from "src/modules/utilities/apiHelpers";
-import { SettingsResponse, SettingsValues, Description, MetaverseSaveSettings, WebrtcSaveSettings, WordpressSaveSettings, DomainsResponse, Domains, SSLClientAcmeSaveSettings, MonitoringSaveSettings, SecuritySaveSettings, AudioThreadingSaveSettings, AudioEnvSaveSettings, AudioBufferSaveSettings, AvatarsSaveSettings, AvatarMixerSaveSettings, EntityServerSaveSettings } from "./interfaces/settings";
+import { SettingsResponse, SettingsValues, Description, MetaverseSaveSettings, WebrtcSaveSettings, WordpressSaveSettings, DomainsResponse, Domains, SSLClientAcmeSaveSettings, MonitoringSaveSettings, SecuritySaveSettings, AudioThreadingSaveSettings, AudioEnvSaveSettings, AudioBufferSaveSettings, AvatarsSaveSettings, AvatarMixerSaveSettings, EntityServerSaveSettings, EntityScriptServerSaveSettings } from "./interfaces/settings";
 import Log from "../../modules/utilities/log";
 
 const axios = require("axios");
 const timers: number[] = [];
 
-type settingsTypes = MetaverseSaveSettings | WebrtcSaveSettings | WordpressSaveSettings | SSLClientAcmeSaveSettings | MonitoringSaveSettings | SecuritySaveSettings | AudioThreadingSaveSettings | AudioEnvSaveSettings | AudioBufferSaveSettings | AvatarsSaveSettings | AvatarMixerSaveSettings | EntityServerSaveSettings;
+type settingsTypes = MetaverseSaveSettings | WebrtcSaveSettings | WordpressSaveSettings | SSLClientAcmeSaveSettings | MonitoringSaveSettings | SecuritySaveSettings | AudioThreadingSaveSettings | AudioEnvSaveSettings | AudioBufferSaveSettings | AvatarsSaveSettings | AvatarMixerSaveSettings | EntityServerSaveSettings | EntityScriptServerSaveSettings;
 
 export const Settings = {
     async getValues (): Promise<SettingsValues> {

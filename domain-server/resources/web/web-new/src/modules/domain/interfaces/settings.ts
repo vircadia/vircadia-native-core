@@ -578,3 +578,10 @@ export interface EntityServerSaveSettings {
         "wantTerseEditLogging"?: boolean;
     }
 }
+
+export interface EntityScriptServerSaveSettings {
+    "entity_script_server": {
+        "entity_pps_per_script"?: number;
+        "max_total_entity_pps"?: number;
+    }
+}

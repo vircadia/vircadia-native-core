@@ -3,34 +3,36 @@
         <!-- Entities Script Server Settings -->
         <q-card class="my-card q-mt-md">
             <q-card-section>
-                <div class="text-h5 text-center text-weight-bold q-mb-sm">Audio Threading</div>
+                <div class="text-h5 text-center text-weight-bold q-mb-sm">Entity Script Server (ESS)</div>
                 <q-separator />
                 <!-- ADVANCED SETTINGS SECTION -->
                 <q-expansion-item v-model="isWordPressSettingsToggled" class="q-mt-md text-subtitle1" popup icon="settings" label="Advanced Settings">
                     <q-card>
-                        <!-- enable automatic thread count section -->
+                        <!-- Entity PPS per script section -->
                         <q-card-section>
-                            <q-toggle v-model="isAutomaticThreadCountEnabled" checked-icon="check" color="positive" label="Automatically Determine Thread Count" unchecked-icon="clear" />
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Allow system to determine number of threads (recommended).</div>
+                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="entityPPSPerScript" label="Entity PPS per script" type="number"/>
+                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">The number of packets per second (PPS) that can be sent to the entity server for each server entity script. This contributes to a total overall amount.
+                                <br/>Example: 1000 PPS with 5 entites gives a total PPS of 5000 that is shared among the entity scripts. A single could use 4000 PPS, leaving 1000 for the rest, for example.</div>
                         </q-card-section>
-                        <!-- Number of Threads section -->
+                        <!-- Maximum Total Entity PPS section -->
                         <q-card-section>
-                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="numberOfThreads" label="Number of Threads"/>
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Threads to spin up for audio mixing (if not automatically set).</div>
+                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="maxEntityPPS" label="Maximum Total Entity PPS" type="number"/>
+                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">The maximum total packets per seconds (PPS) that can be sent to the entity server.
+                                <br/>Example: 5 scripts @ 1000 PPS per script = 5000 total PPS. A maximum total PPS of 4000 would cap this 5000 total PPS to 4000.</div>
                         </q-card-section>
                     </q-card>
                 </q-expansion-item>
                 <!-- *END* ADVANCED SETTINGS SECTION *END* -->
             </q-card-section>
         </q-card>
-        <!-- *END* Entities Settings *END* -->
+        <!-- *END* Entities Script Server Settings *END* -->
     </div>
 </template>
 
 <script lang="ts">
 import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
-import { AudioThreadingSaveSettings, SettingsValues } from "@/src/modules/domain/interfaces/settings";
+import { EntityScriptServerSaveSettings, SettingsValues } from "@/src/modules/domain/interfaces/settings";
 
 export default defineComponent({
     name: "EntityScriptServerSettings",
@@ -46,34 +48,34 @@ export default defineComponent({
             this.values = await Settings.getValues();
         },
         saveSettings (): void {
-            const settingsToCommit: AudioThreadingSaveSettings = {
-                "audio_threading": {
-                    "auto_threads": this.isAutomaticThreadCountEnabled,
-                    "num_threads": this.numberOfThreads
+            const settingsToCommit: EntityScriptServerSaveSettings = {
+                "entity_script_server": {
+                    "entity_pps_per_script": this.entityPPSPerScript,
+                    "max_total_entity_pps": this.maxEntityPPS
                 }
             };
             Settings.automaticCommitSettings(settingsToCommit);
         }
     },
     computed: {
-        isAutomaticThreadCountEnabled: {
-            get (): boolean {
-                return this.values.audio_threading?.auto_threads ?? false;
+        entityPPSPerScript: {
+            get (): number {
+                return this.values.entity_script_server?.entity_pps_per_script ?? 0;
             },
-            set (newEnableAutoThreads: boolean): void {
-                if (typeof this.values.audio_threading?.auto_threads !== "undefined") {
-                    this.values.audio_threading.auto_threads = newEnableAutoThreads;
+            set (newEntityPPS: number): void {
+                if (typeof this.values.entity_script_server?.entity_pps_per_script !== "undefined") {
+                    this.values.entity_script_server.entity_pps_per_script = newEntityPPS;
                     this.saveSettings();
                 }
             }
         },
-        numberOfThreads: {
-            get (): string {
-                return this.values.audio_threading?.num_threads ?? "error";
+        maxEntityPPS: {
+            get (): number {
+                return this.values.entity_script_server?.max_total_entity_pps ?? 0;
             },
-            set (newNumberOfThreads: string): void {
-                if (typeof this.values.audio_threading?.num_threads !== "undefined") {
-                    this.values.audio_threading.num_threads = newNumberOfThreads;
+            set (newMaxEntityPPS: number): void {
+                if (typeof this.values.entity_script_server?.max_total_entity_pps !== "undefined") {
+                    this.values.entity_script_server.max_total_entity_pps = newMaxEntityPPS;
                     this.saveSettings();
                 }
             }
