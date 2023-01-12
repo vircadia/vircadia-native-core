@@ -555,6 +555,12 @@ export interface AvatarMixerSaveSettings {
     }
 }
 
+export interface MessagesMixerSaveSettings {
+    "messages_mixer": {
+        "max_node_messages_per_second"?: number;
+    }
+}
+
 export interface EntityServerSaveSettings {
     "entity_server_settings": {
         "NoBackup"?: boolean;

@@ -2,15 +2,17 @@
 
 // import Log from "@Modules/debugging/log";
 import { doAPIGet, findErrorMsg } from "src/modules/utilities/apiHelpers";
-import { SettingsResponse, SettingsValues, Description, MetaverseSaveSettings, WebrtcSaveSettings, WordpressSaveSettings, DomainsResponse, Domains, SSLClientAcmeSaveSettings, MonitoringSaveSettings, SecuritySaveSettings, AudioThreadingSaveSettings, AudioEnvSaveSettings, AudioBufferSaveSettings, AvatarsSaveSettings, AvatarMixerSaveSettings, EntityServerSaveSettings, EntityScriptServerSaveSettings } from "./interfaces/settings";
+import { SettingsResponse, SettingsValues, Description, MetaverseSaveSettings, WebrtcSaveSettings, WordpressSaveSettings, DomainsResponse, Domains, SSLClientAcmeSaveSettings, MonitoringSaveSettings, SecuritySaveSettings, AudioThreadingSaveSettings, AudioEnvSaveSettings, AudioBufferSaveSettings, AvatarsSaveSettings, AvatarMixerSaveSettings, EntityServerSaveSettings, EntityScriptServerSaveSettings, MessagesMixerSaveSettings } from "./interfaces/settings";
 import Log from "../../modules/utilities/log";
 
 const axios = require("axios");
 const timers: number[] = [];
 
-type settingsTypes = MetaverseSaveSettings | WebrtcSaveSettings | WordpressSaveSettings | SSLClientAcmeSaveSettings | MonitoringSaveSettings | SecuritySaveSettings | AudioThreadingSaveSettings | AudioEnvSaveSettings | AudioBufferSaveSettings | AvatarsSaveSettings | AvatarMixerSaveSettings | EntityServerSaveSettings | EntityScriptServerSaveSettings;
+// accepted save setting types
+type settingsTypes = MetaverseSaveSettings | WebrtcSaveSettings | WordpressSaveSettings | SSLClientAcmeSaveSettings | MonitoringSaveSettings | SecuritySaveSettings | AudioThreadingSaveSettings | AudioEnvSaveSettings | AudioBufferSaveSettings | AvatarsSaveSettings | AvatarMixerSaveSettings | EntityServerSaveSettings | EntityScriptServerSaveSettings | MessagesMixerSaveSettings;
 
 export const Settings = {
+    // FUNCTION getValues returns values from localhost:40100/settings.json
     async getValues (): Promise<SettingsValues> {
         let response: SettingsValues = {};
         try {
@@ -26,6 +28,8 @@ export const Settings = {
         }
         return response;
     },
+    // FUNCTION getValues returns descriptions from localhost:40100/settings.json
+    // CURRENTLY NEVER INVOKED
     async getDescriptions (): Promise<Description[]> {
         let response: Description[] = [];
         try {
@@ -41,6 +45,7 @@ export const Settings = {
         }
         return response;
     },
+    // FUNCTION commitSettings commits settings values to localhost:40100/settings.json
     commitSettings (settingsToCommit: settingsTypes) {
         return axios.post("/settings.json", JSON.stringify(settingsToCommit))
             .then(() => {

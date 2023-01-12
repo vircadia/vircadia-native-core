@@ -13,6 +13,7 @@
     <div class="q-pa-md">
         <AvatarsSettings/>
         <AvatarMixerSettings/>
+        <MessagesMixerSettings/>
     </div>
 </template>
 
@@ -21,12 +22,14 @@ import { defineComponent } from "vue";
 
 import AvatarsSettings from "@Components/settings/Avatars.vue";
 import AvatarMixerSettings from "@Components/settings/AvatarMixer.vue";
+import MessagesMixerSettings from "@Components/settings/MessagesMixer.vue";
 
 export default defineComponent({
     name: "Index",
     components: {
         AvatarsSettings,
-        AvatarMixerSettings
+        AvatarMixerSettings,
+        MessagesMixerSettings
     }
 });
 </script>
