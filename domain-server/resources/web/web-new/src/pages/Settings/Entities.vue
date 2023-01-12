@@ -12,6 +12,7 @@
 <template>
     <div class="q-pa-md">
         <EntitiesSettings/>
+        <AssetServerSettings/>
         <EntityScriptServerSettings/>
     </div>
 </template>
@@ -20,12 +21,14 @@
 import { defineComponent } from "vue";
 
 import EntitiesSettings from "@Components/settings/Entities.vue";
+import AssetServerSettings from "@Components/settings/AssetServer.vue";
 import EntityScriptServerSettings from "@Components/settings/EntityScriptServer.vue";
 
 export default defineComponent({
     name: "Index",
     components: {
         EntitiesSettings,
+        AssetServerSettings,
         EntityScriptServerSettings
     }
 });

@@ -585,6 +585,14 @@ export interface EntityServerSaveSettings {
     }
 }
 
+export interface AssetServerSaveSettings {
+    "asset_server": {
+        "assets_filesize_limit"?: number;
+        "assets_path"?: string;
+        "enabled"?: boolean;
+    }
+}
+
 export interface EntityScriptServerSaveSettings {
     "entity_script_server": {
         "entity_pps_per_script"?: number;
