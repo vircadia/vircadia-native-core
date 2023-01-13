@@ -118,7 +118,7 @@
                                 <template v-slot:bottom>
                                     <q-form @submit="onAddNewPermissionRow('groupPermissions', 'userGroupName')">
                                         <q-input v-model="newPermissionNames.userGroupName" class="no-margin no-padding text-subtitle2 text-white" standout="bg-primary text-white" label="Add a new user group" dense>
-                                            <q-btn color="positive" size="sm" type="submit"><q-icon name="add" size="sm"/></q-btn>
+                                            <q-btn color="positive" type="submit"><q-icon name="add" size="sm"/></q-btn>
                                         </q-input>
                                     </q-form>
                                 </template>
@@ -168,7 +168,7 @@
                                 <template v-slot:bottom>
                                     <q-form @submit="onAddNewPermissionRow('groupForbiddens', 'forbiddenGroupName')">
                                         <q-input v-model="newPermissionNames.forbiddenGroupName" class="no-margin no-padding text-subtitle2 text-white" standout="bg-primary text-white" label="Add a new blacklist group" dense>
-                                            <q-btn color="positive" size="sm" type="submit"><q-icon name="add" size="sm"/></q-btn>
+                                            <q-btn color="positive" type="submit"><q-icon name="add" size="sm"/></q-btn>
                                         </q-input>
                                     </q-form>
                                 </template>
@@ -218,7 +218,7 @@
                                 <template v-slot:bottom>
                                     <q-form @submit="onAddNewPermissionRow('userPermissions', 'userPermissionName')">
                                         <q-input v-model="newPermissionNames.userPermissionName" class="no-margin no-padding text-subtitle2 text-white" standout="bg-primary text-white" label="Add a new user" dense>
-                                            <q-btn color="positive" size="sm" type="submit"><q-icon name="add" size="sm"/></q-btn>
+                                            <q-btn color="positive" type="submit"><q-icon name="add" size="sm"/></q-btn>
                                         </q-input>
                                     </q-form>
                                 </template>
@@ -267,7 +267,7 @@
                                 <template v-slot:bottom>
                                     <q-form @submit="onAddNewPermissionRow('ipPermissions', 'ipPermissionName')">
                                         <q-input v-model="newPermissionNames.ipPermissionName" class="no-margin no-padding text-subtitle2 text-white" standout="bg-primary text-white" label="Add a new IP Address" dense>
-                                            <q-btn color="positive" size="sm" type="submit"><q-icon name="add" size="sm"/></q-btn>
+                                            <q-btn color="positive" type="submit"><q-icon name="add" size="sm"/></q-btn>
                                         </q-input>
                                     </q-form>
                                 </template>
@@ -317,7 +317,7 @@
                                 <template v-slot:bottom>
                                     <q-form @submit="onAddNewPermissionRow('macPermissions', 'macPermissionName')">
                                         <q-input v-model="newPermissionNames.macPermissionName" class="no-margin no-padding text-subtitle2 text-white" standout="bg-primary text-white" label="Add a new IP Address" dense>
-                                            <q-btn color="positive" size="sm" type="submit"><q-icon name="add" size="sm"/></q-btn>
+                                            <q-btn color="positive" type="submit"><q-icon name="add" size="sm"/></q-btn>
                                         </q-input>
                                     </q-form>
                                 </template>
@@ -367,7 +367,7 @@
                                 <template v-slot:bottom>
                                     <q-form @submit="onAddNewPermissionRow('machineFingerprintPermissions', 'machineFingerprintPermissionName')">
                                         <q-input v-model="newPermissionNames.machineFingerprintPermissionName" class="no-margin no-padding text-subtitle2 text-white" standout="bg-primary text-white" label="Add a new Fingerprint" dense>
-                                            <q-btn color="positive" size="sm" type="submit"><q-icon name="add" size="sm"/></q-btn>
+                                            <q-btn color="positive" type="submit"><q-icon name="add" size="sm"/></q-btn>
                                         </q-input>
                                     </q-form>
                                 </template>

@@ -599,3 +599,16 @@ export interface EntityScriptServerSaveSettings {
         "max_total_entity_pps"?: number;
     }
 }
+
+export interface DescriptionSaveSettings {
+    "descriptors": {
+        "contact_info"?: string;
+        "description"?: string;
+        "images"?: string[];
+        "managers"?: string[];
+        "maturity"?: string;
+        "tags"?: string[];
+        "thumbnail"?: string;
+        "world_name"?: string;
+    }
+}

@@ -1,5 +1,5 @@
 <!--
-//  Avatars.vue
+//  Entities.vue
 //
 //  Created by Eugene :) on Jan. 10th, 2023.
 //  Copyright 2023 Vircadia contributors.
