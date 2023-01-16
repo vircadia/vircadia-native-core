@@ -12,6 +12,7 @@
 <template>
     <div class="q-pa-md">
         <DescriptionSettings/>
+        <BroadcastingSettings/>
     </div>
 </template>
 
@@ -19,11 +20,13 @@
 import { defineComponent } from "vue";
 
 import DescriptionSettings from "@Components/settings/Description.vue";
+import BroadcastingSettings from "@Components/settings/Broadcasting.vue";
 
 export default defineComponent({
     name: "Index",
     components: {
-        DescriptionSettings
+        DescriptionSettings,
+        BroadcastingSettings
     }
 });
 </script>

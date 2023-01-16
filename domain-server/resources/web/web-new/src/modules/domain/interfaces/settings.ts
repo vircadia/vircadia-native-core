@@ -612,3 +612,11 @@ export interface DescriptionSaveSettings {
         "world_name"?: string;
     }
 }
+
+export interface BroadcastingSaveSettings {
+    "broadcasting": {
+        "downstream_servers"?: DownstreamServer[];
+        "upstream_servers"?: UpstreamServer[];
+        "users"?: string[];
+    }
+}

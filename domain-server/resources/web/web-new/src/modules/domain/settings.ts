@@ -2,14 +2,14 @@
 
 // import Log from "@Modules/debugging/log";
 import { doAPIGet, findErrorMsg } from "src/modules/utilities/apiHelpers";
-import { SettingsResponse, SettingsValues, Description, MetaverseSaveSettings, WebrtcSaveSettings, WordpressSaveSettings, DomainsResponse, Domains, SSLClientAcmeSaveSettings, MonitoringSaveSettings, SecuritySaveSettings, AudioThreadingSaveSettings, AudioEnvSaveSettings, AudioBufferSaveSettings, AvatarsSaveSettings, AvatarMixerSaveSettings, EntityServerSaveSettings, EntityScriptServerSaveSettings, MessagesMixerSaveSettings, AssetServerSaveSettings, DescriptionSaveSettings } from "./interfaces/settings";
+import { SettingsResponse, SettingsValues, Description, MetaverseSaveSettings, WebrtcSaveSettings, WordpressSaveSettings, DomainsResponse, Domains, SSLClientAcmeSaveSettings, MonitoringSaveSettings, SecuritySaveSettings, AudioThreadingSaveSettings, AudioEnvSaveSettings, AudioBufferSaveSettings, AvatarsSaveSettings, AvatarMixerSaveSettings, EntityServerSaveSettings, EntityScriptServerSaveSettings, MessagesMixerSaveSettings, AssetServerSaveSettings, DescriptionSaveSettings, BroadcastingSaveSettings } from "./interfaces/settings";
 import Log from "../../modules/utilities/log";
 
 const axios = require("axios");
 const timers: number[] = [];
 
 // accepted save setting types
-type settingsTypes = MetaverseSaveSettings | WebrtcSaveSettings | WordpressSaveSettings | SSLClientAcmeSaveSettings | MonitoringSaveSettings | SecuritySaveSettings | AudioThreadingSaveSettings | AudioEnvSaveSettings | AudioBufferSaveSettings | AvatarsSaveSettings | AvatarMixerSaveSettings | EntityServerSaveSettings | AssetServerSaveSettings | EntityScriptServerSaveSettings | MessagesMixerSaveSettings | DescriptionSaveSettings;
+type settingsTypes = MetaverseSaveSettings | WebrtcSaveSettings | WordpressSaveSettings | SSLClientAcmeSaveSettings | MonitoringSaveSettings | SecuritySaveSettings | AudioThreadingSaveSettings | AudioEnvSaveSettings | AudioBufferSaveSettings | AvatarsSaveSettings | AvatarMixerSaveSettings | EntityServerSaveSettings | AssetServerSaveSettings | EntityScriptServerSaveSettings | MessagesMixerSaveSettings | DescriptionSaveSettings | BroadcastingSaveSettings;
 
 export const Settings = {
     // FUNCTION getValues returns values from localhost:40100/settings.json

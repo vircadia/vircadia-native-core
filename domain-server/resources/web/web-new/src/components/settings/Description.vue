@@ -134,7 +134,7 @@
                             </q-card-section>
                             <q-card-actions align="center">
                                 <q-btn flat label="Cancel" @click="onHideConfirmDeleteDialogue()"/>
-                                <q-btn flat label="Delete" @click="onDeleteRow(confirmDeleteDialogue.permissionType, confirmDeleteDialogue.index)"/>
+                                <q-btn flat label="Delete" @click="onDeleteRow(confirmDeleteDialogue.settingType, confirmDeleteDialogue.index)"/>
                             </q-card-actions>
                         </q-card>
                     </q-dialog>
@@ -162,7 +162,7 @@ export default defineComponent({
             isWordPressSettingsToggled: false,
             values: {} as SettingsValues,
             newRowNames: { images: "", managers: "", tags: "" },
-            confirmDeleteDialogue: { show: false, thingToDelete: "", index: -1, permissionType: "" as settingTypes },
+            confirmDeleteDialogue: { show: false, thingToDelete: "", index: -1, settingType: "" as settingTypes },
             maturityOptions: [
                 {
                     label: "Unrated",
@@ -188,14 +188,11 @@ export default defineComponent({
         };
     },
     methods: {
-        onShowConfirmDeleteDialogue (permissionType: settingTypes, index: number, thingToDelete: string): void {
-            this.confirmDeleteDialogue = { show: true, thingToDelete: thingToDelete, index: index, permissionType: permissionType };
+        onShowConfirmDeleteDialogue (settingType: settingTypes, index: number, thingToDelete: string): void {
+            this.confirmDeleteDialogue = { show: true, thingToDelete: thingToDelete, index: index, settingType: settingType };
         },
         onHideConfirmDeleteDialogue (): void {
-            this.confirmDeleteDialogue = { show: false, thingToDelete: "", index: -1, permissionType: "" as settingTypes };
-        },
-        async refreshSettingsValues (): Promise<void> {
-            this.values = await Settings.getValues();
+            this.confirmDeleteDialogue = { show: false, thingToDelete: "", index: -1, settingType: "" as settingTypes };
         },
         onDeleteRow (settingType: settingTypes, index: number): void {
             this.onHideConfirmDeleteDialogue();
@@ -207,6 +204,9 @@ export default defineComponent({
             const newRowSetting = [...this[settingType], this.newRowNames[settingType]];
             this[settingType] = [...newRowSetting];
             this.newRowNames[settingType] = "";
+        },
+        async refreshSettingsValues (): Promise<void> {
+            this.values = await Settings.getValues();
         },
         saveSettings (): void {
             const settingsToCommit: DescriptionSaveSettings = {
