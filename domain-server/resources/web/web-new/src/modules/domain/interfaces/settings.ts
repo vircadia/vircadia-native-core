@@ -124,8 +124,8 @@ export interface Authentication {
 
 export interface BackupRule {
         Name: string;
-        backupInterval: string;
-        maxBackupVersions: string;
+        backupInterval: number;
+        maxBackupVersions: number;
     }
 
 export interface AutomaticContentArchives {
@@ -618,5 +618,11 @@ export interface BroadcastingSaveSettings {
         "downstream_servers"?: DownstreamServer[];
         "upstream_servers"?: UpstreamServer[];
         "users"?: string[];
+    }
+}
+
+export interface AutomaticContentArchivesSaveSettings {
+    "automatic_content_archives": {
+        "backup_rules"?: BackupRule[];
     }
 }

@@ -186,7 +186,7 @@ export default defineComponent({
                 this.newRowNames[settingType] = "";
             } else {
                 this[settingType] = [...this[settingType], this.newRowNames[settingType]];
-                this.newRowNames[settingType] = { address: "", port: "", server_type: this.newRowNames.downstreamServers.server_type };
+                this.newRowNames[settingType] = { address: "", port: "", server_type: "Audio Mixer" };
             }
         },
         async refreshSettingsValues (): Promise<void> {
