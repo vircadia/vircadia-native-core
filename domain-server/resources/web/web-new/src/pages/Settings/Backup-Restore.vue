@@ -11,6 +11,7 @@
 
 <template>
     <div class="q-pa-md">
+        <BackupRestoreSettings/>
         <AutomaticContentArchivesSettings/>
     </div>
 </template>
@@ -18,11 +19,13 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import AutomaticContentArchivesSettings from "@Components/settings/AutomaticContentArchives.vue";
+import BackupRestoreSettings from "@Components/settings/SettingsBackupRestore.vue";
 
 export default defineComponent({
     name: "Index",
     components: {
-        AutomaticContentArchivesSettings
+        AutomaticContentArchivesSettings,
+        BackupRestoreSettings
     }
 });
 </script>

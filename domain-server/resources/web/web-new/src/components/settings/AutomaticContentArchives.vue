@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class="q-mt-xl">
         <!-- Automatic Content Archives  Settings -->
         <q-card class="my-card">
             <q-card-section>
