@@ -24,15 +24,20 @@
           </q-avatar>
           <span class="text-h6 q-ml-sm gt-xs">Domain Server Administration</span>
         </q-toolbar-title>
+        <div v-if="!isConnected">
+          <q-btn :to="'/networking'" class="text-warning" style="background-color: #2D7EB9;" aria-label="Not Connected" flat>NOT CONNECTED</q-btn>
+        </div>
+        <div v-else>
+          <q-btn :to="'/networking'" class="text-positive" style="background-color: #1B7EB9;" aria-label="Connected" flat>CONNECTED</q-btn>
+        </div>
         <q-btn
             flat
             dense
             icon="mdi-restart"
             aria-label="Restart Server"
-            label="Restart Server"
             @click="confirmRestart = true"
             class="q-mr-sm q-ml-sm"
-        />
+        ><span class="gt-xs">Restart Server</span></q-btn>
       </q-toolbar>
     </q-header>
 
@@ -56,6 +61,7 @@
 <script>
 import DrawerMenu from "../components/navigation/DrawerMenu.vue";
 import SharedMethods from "@Components/sharedMethods.vue";
+import { StoreInstance } from "../modules/store";
 
 export default {
     components: {
@@ -64,6 +70,7 @@ export default {
     },
     data () {
         return {
+            isConnected: StoreInstance.isLoggedIn,
             restartServer: false,
             confirmRestart: false,
             leftDrawerOpen: false
