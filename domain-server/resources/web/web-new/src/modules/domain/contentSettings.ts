@@ -5,8 +5,8 @@ import { doAPIGet, findErrorMsg } from "src/modules/utilities/apiHelpers";
 import { ContentSettingsResponse, ContentSettingsValues } from "./interfaces/contentSettings";
 
 export const ContentSettings = {
-
-    async getAll (): Promise<ContentSettingsValues> {
+    // FUNCTION getValues returns values from localhost:40100/content-settings.json
+    async getValues (): Promise<ContentSettingsValues> {
         let response: ContentSettingsValues = {};
 
         try {
@@ -21,7 +21,6 @@ export const ContentSettings = {
             console.log(`Exception while attempting to get content-settings: ${errorMessage}`);
             // Log.error(Log.types.API, `Exception while attempting to get content-settings: ${errr}`);
         }
-
         return response;
     }
 

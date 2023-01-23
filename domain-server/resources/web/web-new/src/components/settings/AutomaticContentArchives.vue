@@ -78,7 +78,6 @@ export default defineComponent({
     data () {
         return {
             rows: [{}],
-            isWordPressSettingsToggled: false,
             values: {} as SettingsValues,
             newRowNames: {
                 backupRules: { Name: "", backupInterval: 0, maxBackupVersions: 0 } as BackupRule
