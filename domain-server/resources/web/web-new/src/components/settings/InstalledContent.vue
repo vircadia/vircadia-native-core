@@ -8,7 +8,7 @@
                     <q-card>
                         <!-- Installed Content Table section -->
                         <q-card-section>
-                            <q-table dark class="bg-grey-9" :rows="rows">
+                            <q-table dark class="bg-grey-9" :rows="rows" hide-pagination separator="vertical">
                                 <template v-slot:header>
                                     <q-tr class="bg-primary">
                                         <q-th class="text-left">Name</q-th>
@@ -20,11 +20,11 @@
                                 </template>
                                 <template v-slot:body>
                                     <q-tr>
-                                        <q-td>{{ installedContent.name }}</q-td>
-                                        <q-td>{{ installedContent.filename }}</q-td>
-                                        <q-td>{{ installedContent.creation_time }}</q-td>
-                                        <q-td>{{ installedContent.install_time }}</q-td>
-                                        <q-td>{{ installedContent.installed_by }}</q-td>
+                                        <q-td>{{ installedContentName }}</q-td>
+                                        <q-td>{{ installedContentFileName }}</q-td>
+                                        <q-td>{{ installedContentCreationTime }}</q-td>
+                                        <q-td>{{ installedContentInstallTime }}</q-td>
+                                        <q-td>{{ installedContentInstalledBy }}</q-td>
                                     </q-tr>
                                 </template>
                             </q-table>
@@ -38,7 +38,7 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import { InstalledContent } from "@Modules/domain/interfaces/contentSettings";
+import moment from "moment";
 import { ContentSettings } from "@Modules/domain/contentSettings";
 
 export default defineComponent({
@@ -47,17 +47,25 @@ export default defineComponent({
     data () {
         return {
             rows: [{}],
-            installedContent: {} as InstalledContent
+            installedContentName: "",
+            installedContentFileName: "",
+            installedContentCreationTime: "",
+            installedContentInstallTime: "",
+            installedContentInstalledBy: ""
         };
     },
     methods: {
-        async refreshSettingsValues (): Promise<void> {
+        async intializeInstalledContentSettings (): Promise<void> {
             const values = await ContentSettings.getValues();
-            this.installedContent = values.installed_content ?? {} as InstalledContent;
+            this.installedContentName = values.installed_content?.name ?? "";
+            this.installedContentFileName = values.installed_content?.filename ?? "";
+            this.installedContentCreationTime = values.installed_content?.creation_time ? moment(values.installed_content?.creation_time).format("lll") : "";
+            this.installedContentInstallTime = values.installed_content?.install_time ? moment(values.installed_content?.install_time).format("lll") : "";
+            this.installedContentInstalledBy = values.installed_content?.installed_by ?? "";
         }
     },
     beforeMount () {
-        this.refreshSettingsValues();
+        this.intializeInstalledContentSettings();
     }
 });
 </script>

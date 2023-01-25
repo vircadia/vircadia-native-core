@@ -12,17 +12,20 @@
 <template>
     <div class="q-pa-md">
         <InstalledContent/>
+        <ContentArchives/>
     </div>
 </template>
 
 <script lang="ts">
 import { defineComponent } from "vue";
 import InstalledContent from "@Components/settings/InstalledContent.vue";
+import ContentArchives from "@Components/settings/ContentArchives.vue";
 
 export default defineComponent({
     name: "Index",
     components: {
-        InstalledContent
+        InstalledContent,
+        ContentArchives
     }
 });
 </script>
