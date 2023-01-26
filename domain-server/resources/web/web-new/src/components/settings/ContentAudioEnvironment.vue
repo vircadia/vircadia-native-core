@@ -1,14 +1,14 @@
 <template>
     <div>
-        <!-- Paths Settings -->
+        <!-- Audio Environment Settings -->
         <q-card class="my-card q-mt-md">
             <q-card-section>
-                <div class="text-h5 text-center text-weight-bold q-mb-sm">Paths</div>
+                <div class="text-h5 text-center text-weight-bold q-mb-sm">Audio Environment</div>
                 <q-separator />
                 <q-card>
-                    <!-- Paths Table section -->
+                    <!-- Default Domain Attenuation -->
                     <q-card-section>
-                        <p class="q-mb-xs text-body1 text-weight-bold">Paths</p>
+                        <p class="q-mb-xs text-body1 text-weight-bold">Default Domain Attenuation</p>
                         <div class="q-mt-xs text-caption text-grey-5">Clients can enter a path to reach an exact viewpoint in your domain. Add rows to the table below to map a path to a viewpoint.<br/>The index path ( / ) is where clients will enter if they do not enter an explicit path.</div>
                         <q-table dark class="bg-grey-9" :rows="rows">
                             <template v-slot:header>
@@ -66,7 +66,7 @@ import { ContentSettingsValues, Path, PathsSaveSetting } from "@/src/modules/dom
 import { ContentSettings } from "@Modules/domain/contentSettings";
 
 export default defineComponent({
-    name: "Paths",
+    name: "AudioEnvironment",
 
     data () {
         return {
@@ -90,22 +90,6 @@ export default defineComponent({
             delete changedPaths[pathToDelete];
             this.paths = changedPaths;
         },
-        // onDeleteRow (settingType: settingTypes, index: number): void {
-        //     this.onHideConfirmDeleteDialogue();
-        //     if (settingType === "users") {
-        //         const changedSetting = [...this.users];
-        //         changedSetting.splice(index, 1);
-        //         this.users = changedSetting;
-        //     } else {
-        //         const changedSetting = [...this[settingType]];
-        //         changedSetting.splice(index, 1);
-        //         this[settingType] = changedSetting;
-        //     }
-        // },
-        // onAddRow (settingType: settingTypes) {
-        //     this[settingType] = [...this[settingType], this.newRowNames[settingType]];
-        //     this.newRowNames[settingType] = { address: "", port: "", server_type: "Audio Mixer" };
-        // },
         async refreshSettingsValues (): Promise<void> {
             this.values = await ContentSettings.getValues();
         },

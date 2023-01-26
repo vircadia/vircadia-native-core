@@ -102,3 +102,7 @@ export interface ContentSettingsResponse {
         descriptions: Description[];
         values: ContentSettingsValues;
     }
+
+export interface PathsSaveSetting {
+    paths: Record<string, Path>;
+}

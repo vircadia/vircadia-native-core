@@ -13,6 +13,10 @@
     <div class="q-pa-md">
         <InstalledContent/>
         <ContentArchives/>
+        <UploadContent/>
+        <Paths/>
+        <Scripts/>
+        <AudioEnvironment/>
     </div>
 </template>
 
@@ -20,12 +24,20 @@
 import { defineComponent } from "vue";
 import InstalledContent from "@Components/settings/InstalledContent.vue";
 import ContentArchives from "@Components/settings/ContentArchives.vue";
+import UploadContent from "@Components/settings/UploadContent.vue";
+import Paths from "@Components/settings/Paths.vue";
+import AudioEnvironment from "@Components/settings/ContentAudioEnvironment.vue";
+import Scripts from "@Components/settings/Scripts.vue";
 
 export default defineComponent({
     name: "Index",
     components: {
         InstalledContent,
-        ContentArchives
+        ContentArchives,
+        UploadContent,
+        Paths,
+        Scripts,
+        AudioEnvironment
     }
 });
 </script>

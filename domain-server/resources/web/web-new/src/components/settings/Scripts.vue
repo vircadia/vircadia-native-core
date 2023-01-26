@@ -1,20 +1,21 @@
 <template>
     <div>
-        <!-- Paths Settings -->
+        <!-- Scripts Settings -->
         <q-card class="my-card q-mt-md">
             <q-card-section>
-                <div class="text-h5 text-center text-weight-bold q-mb-sm">Paths</div>
+                <div class="text-h5 text-center text-weight-bold q-mb-sm">Scripts</div>
                 <q-separator />
                 <q-card>
-                    <!-- Paths Table section -->
+                    <!-- Persistent Scripts Table section -->
                     <q-card-section>
-                        <p class="q-mb-xs text-body1 text-weight-bold">Paths</p>
-                        <div class="q-mt-xs text-caption text-grey-5">Clients can enter a path to reach an exact viewpoint in your domain. Add rows to the table below to map a path to a viewpoint.<br/>The index path ( / ) is where clients will enter if they do not enter an explicit path.</div>
+                        <p class="q-mb-xs text-body1 text-weight-bold">Persistent Scripts</p>
+                        <div class="q-mt-xs text-caption text-grey-5">Add the URLs for scripts that you would like to ensure are always running in your domain.</div>
                         <q-table dark class="bg-grey-9" :rows="rows">
                             <template v-slot:header>
                                 <q-tr class="bg-primary">
-                                    <q-th class="text-left">Path</q-th>
-                                    <q-th class="text-left">Viewpoint</q-th>
+                                    <q-th class="text-left">Script URL</q-th>
+                                    <q-th class="text-left"># instances</q-th>
+                                    <q-th class="text-left">Pool</q-th>
                                     <q-th auto-width></q-th> <!-- Empty column for delete buttons -->
                                 </q-tr>
                             </template>
@@ -66,7 +67,7 @@ import { ContentSettingsValues, Path, PathsSaveSetting } from "@/src/modules/dom
 import { ContentSettings } from "@Modules/domain/contentSettings";
 
 export default defineComponent({
-    name: "Paths",
+    name: "Scripts",
 
     data () {
         return {
