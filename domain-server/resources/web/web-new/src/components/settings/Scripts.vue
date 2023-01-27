@@ -20,22 +20,26 @@
                                 </q-tr>
                             </template>
                             <template v-slot:body>
-                                <q-tr v-for="path of Object.entries(paths)" :key="path[0]">
-                                    <q-td>{{ path[0] }}</q-td>
-                                    <q-td>{{ path[1].viewpoint }}</q-td>
-                                    <q-td class="text-center"><q-btn @click="onShowConfirmDeleteDialogue(path[0])" size="sm" color="negative" icon="delete" class="q-px-xs" round /></q-td>
+                                <q-tr v-for="(script, index) in persistentScripts" :key="script.url">
+                                    <q-td>{{ script.url }}</q-td>
+                                    <q-td>{{ script.num_instances }}</q-td>
+                                    <q-td>{{ script.pool }}</q-td>
+                                    <q-td class="text-center"><q-btn @click="onShowConfirmDeleteDialogue(script.url, index)" size="sm" color="negative" icon="delete" class="q-px-xs" round /></q-td>
                                 </q-tr>
                             </template>
                             <template v-slot:bottom-row>
                                 <q-tr>
                                     <q-td>
-                                        <q-input v-model="newPath.path" class="no-margin no-padding text-subtitle2 text-white" standout="bg-primary text-white" label="New Path" hint="/" dense/>
+                                        <q-input v-model="newScript.url" class="no-margin no-padding text-subtitle2 text-white" standout="bg-primary text-white" label="New Script URL" dense/>
                                     </q-td>
                                     <q-td>
-                                        <q-input v-model="newPath.viewpoint" class="no-margin no-padding text-subtitle2 text-white" standout="bg-primary text-white" label="Viewpoint" hint="/0,0,0" dense/>
+                                        <q-input v-model="newScript.num_instances" class="no-margin no-padding text-subtitle2 text-white" standout="bg-primary text-white" label="Instances" dense/>
+                                    </q-td>
+                                    <q-td>
+                                        <q-input v-model="newScript.pool" class="no-margin no-padding text-subtitle2 text-white" standout="bg-primary text-white" label="Pool" dense/>
                                     </q-td>
                                     <q-td class="text-center">
-                                        <q-btn color="positive"><q-icon name="add" size="sm"/></q-btn>
+                                        <q-btn @click="onAddScript" color="positive"><q-icon name="add" size="sm"/></q-btn>
                                     </q-td>
                                 </q-tr>
                             </template>
@@ -46,12 +50,12 @@
                 <q-dialog v-model="confirmDeleteDialogue.show" persistent>
                     <q-card class="bg-primary q-pa-md">
                         <q-card-section class="row items-center">
-                            <p class="text-h6 text-bold text-white full-width"><q-avatar icon="mdi-alert" class="q-mr-sm" text-color="warning" size="20px" font-size="20px"/>Delete <span class="text-warning">{{confirmDeleteDialogue.pathName}}</span>?</p>
+                            <p class="text-h6 text-bold text-white full-width"><q-avatar icon="mdi-alert" class="q-mr-sm" text-color="warning" size="20px" font-size="20px"/>Delete script <span class="text-warning">{{confirmDeleteDialogue.scriptToDelete}}</span>?</p>
                             <p class="text-body2">WARNING: This cannot be undone.</p>
                         </q-card-section>
                         <q-card-actions align="center">
                             <q-btn flat label="Cancel" @click="onHideConfirmDeleteDialogue()"/>
-                            <q-btn flat label="Delete" @click="onDeletePath(confirmDeleteDialogue.pathName)"/>
+                            <q-btn flat label="Delete" @click="onDeleteScript(confirmDeleteDialogue.index)"/>
                         </q-card-actions>
                     </q-card>
                 </q-dialog>
@@ -63,7 +67,7 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import { ContentSettingsValues, Path, PathsSaveSetting } from "@/src/modules/domain/interfaces/contentSettings";
+import { ContentSettingsValues, PersistentScript, ScriptsSaveSetting } from "@/src/modules/domain/interfaces/contentSettings";
 import { ContentSettings } from "@Modules/domain/contentSettings";
 
 export default defineComponent({
@@ -73,58 +77,47 @@ export default defineComponent({
         return {
             rows: [{}],
             values: {} as ContentSettingsValues,
-            serverTypeOptions: ["Audio Mixer", "Avatar Mixer "],
-            newPath: { path: "", viewpoint: "" },
-            confirmDeleteDialogue: { show: false, pathName: "" }
+            newScript: { url: "", num_instances: "1", pool: "" } as PersistentScript,
+            confirmDeleteDialogue: { show: false, scriptToDelete: "", index: -1 }
         };
     },
     methods: {
-        onShowConfirmDeleteDialogue (pathName: string): void {
-            this.confirmDeleteDialogue = { show: true, pathName: pathName };
+        onShowConfirmDeleteDialogue (scriptToDelete: string, indexToDelete: number): void {
+            this.confirmDeleteDialogue = { show: true, scriptToDelete: scriptToDelete, index: indexToDelete };
         },
         onHideConfirmDeleteDialogue (): void {
-            this.confirmDeleteDialogue = { show: false, pathName: "" };
+            this.confirmDeleteDialogue = { show: false, scriptToDelete: "", index: -1 };
         },
-        onDeletePath (pathToDelete: string): void {
+        onDeleteScript (indexToDelete: number): void {
             this.onHideConfirmDeleteDialogue();
-            const changedPaths = { ...this.paths };
-            delete changedPaths[pathToDelete];
-            this.paths = changedPaths;
+            const changedPersistentScripts = [...this.persistentScripts];
+            changedPersistentScripts.splice(indexToDelete, 1);
+            this.persistentScripts = changedPersistentScripts;
         },
-        // onDeleteRow (settingType: settingTypes, index: number): void {
-        //     this.onHideConfirmDeleteDialogue();
-        //     if (settingType === "users") {
-        //         const changedSetting = [...this.users];
-        //         changedSetting.splice(index, 1);
-        //         this.users = changedSetting;
-        //     } else {
-        //         const changedSetting = [...this[settingType]];
-        //         changedSetting.splice(index, 1);
-        //         this[settingType] = changedSetting;
-        //     }
-        // },
-        // onAddRow (settingType: settingTypes) {
-        //     this[settingType] = [...this[settingType], this.newRowNames[settingType]];
-        //     this.newRowNames[settingType] = { address: "", port: "", server_type: "Audio Mixer" };
-        // },
+        onAddScript () {
+            this.persistentScripts = [...this.persistentScripts, this.newScript];
+            this.newScript = { url: "", num_instances: "1", pool: "" };
+        },
         async refreshSettingsValues (): Promise<void> {
             this.values = await ContentSettings.getValues();
         },
         saveSettings (): void {
-            const settingsToCommit: PathsSaveSetting = {
-                paths: this.paths
+            const settingsToCommit: ScriptsSaveSetting = {
+                "scripts": {
+                    "persistent_scripts": this.persistentScripts
+                }
             };
             ContentSettings.automaticCommitSettings(settingsToCommit);
         }
     },
     computed: {
-        paths: {
-            get (): Record<string, Path> {
-                return this.values?.paths ?? {};
+        persistentScripts: {
+            get (): PersistentScript[] {
+                return this.values.scripts?.persistent_scripts ?? [];
             },
-            set (newPaths: Record<string, Path>): void {
-                if (typeof this.values?.paths !== "undefined") {
-                    this.values.paths = newPaths;
+            set (value: PersistentScript[]): void {
+                if (typeof this.values.scripts?.persistent_scripts !== "undefined") {
+                    this.values.scripts.persistent_scripts = value;
                     this.saveSettings();
                 }
             }

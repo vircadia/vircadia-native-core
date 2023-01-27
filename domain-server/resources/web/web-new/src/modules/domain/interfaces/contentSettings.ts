@@ -106,3 +106,9 @@ export interface ContentSettingsResponse {
 export interface PathsSaveSetting {
     paths: Record<string, Path>;
 }
+
+export interface ScriptsSaveSetting {
+    "scripts": {
+        "persistent_scripts": PersistentScript[];
+    }
+}

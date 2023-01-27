@@ -72,7 +72,6 @@ export default defineComponent({
         return {
             rows: [{}],
             values: {} as ContentSettingsValues,
-            serverTypeOptions: ["Audio Mixer", "Avatar Mixer "],
             newPath: { path: "", viewpoint: "" },
             confirmDeleteDialogue: { show: false, pathName: "" }
         };

@@ -1,12 +1,12 @@
 // created 24/01/2023 by Ujean
 
 import { doAPIGet, findErrorMsg } from "src/modules/utilities/apiHelpers";
-import { ContentSettingsResponse, ContentSettingsValues, PathsSaveSetting } from "./interfaces/contentSettings";
+import { ContentSettingsResponse, ContentSettingsValues, PathsSaveSetting, ScriptsSaveSetting } from "./interfaces/contentSettings";
 import Log from "../../modules/utilities/log";
 
 const axios = require("axios");
 const timers: number[] = [];
-type settingsTypes = PathsSaveSetting;
+type settingsTypes = PathsSaveSetting | ScriptsSaveSetting;
 
 export const ContentSettings = {
     // FUNCTION getValues returns values from localhost:40100/content-settings.json
