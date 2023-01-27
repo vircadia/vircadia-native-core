@@ -109,8 +109,13 @@ export default defineComponent({
             this.values = await ContentSettings.getValues();
         },
         saveSettings (): void {
+            const output = {} as { [key: string]: Path };
+            for (const entry of Object.entries(this.paths)) {
+                output[entry[0].replace("/", "")] = entry[1];
+            }
+
             const settingsToCommit: PathsSaveSetting = {
-                paths: this.paths
+                "paths": output
             };
             ContentSettings.automaticCommitSettings(settingsToCommit);
         }

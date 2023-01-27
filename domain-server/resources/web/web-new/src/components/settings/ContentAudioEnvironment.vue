@@ -6,15 +6,25 @@
                 <div class="text-h5 text-center text-weight-bold q-mb-sm">Audio Environment</div>
                 <q-separator />
                 <q-card>
-                    <!-- Default Domain Attenuation -->
+                    <!-- Default Domain Attenuation section -->
                     <q-card-section>
-                        <p class="q-mb-xs text-body1 text-weight-bold">Default Domain Attenuation</p>
-                        <div class="q-mt-xs text-caption text-grey-5">Clients can enter a path to reach an exact viewpoint in your domain. Add rows to the table below to map a path to a viewpoint.<br/>The index path ( / ) is where clients will enter if they do not enter an explicit path.</div>
+                        <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="defaultDomainAttenuation" label="Default Domain Attenuation"/>
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Factor between 0 and 1.0 (0: No attenuation, 1.0: extreme attenuation)</div>
+                    </q-card-section>
+                    <!-- Zones Table Section -->
+                    <q-card-section>
+                        <p class="q-mb-xs text-body1 text-weight-bold">Zones</p>
+                        <div class="q-mt-xs text-caption text-grey-5">In this table you can define a set of zones in which you can specify various audio properties.</div>
                         <q-table dark class="bg-grey-9" :rows="rows">
                             <template v-slot:header>
                                 <q-tr class="bg-primary">
-                                    <q-th class="text-left">Path</q-th>
-                                    <q-th class="text-left">Viewpoint</q-th>
+                                    <q-th class="text-left">Name</q-th>
+                                    <q-th class="text-left">X start</q-th>
+                                    <q-th class="text-left">X end</q-th>
+                                    <q-th class="text-left">Y start</q-th>
+                                    <q-th class="text-left">Y end</q-th>
+                                    <q-th class="text-left">Z start</q-th>
+                                    <q-th class="text-left">Z end</q-th>
                                     <q-th auto-width></q-th> <!-- Empty column for delete buttons -->
                                 </q-tr>
                             </template>
@@ -108,6 +118,17 @@ export default defineComponent({
             set (newPaths: Record<string, Path>): void {
                 if (typeof this.values?.paths !== "undefined") {
                     this.values.paths = newPaths;
+                    this.saveSettings();
+                }
+            }
+        },
+        defaultDomainAttenuation: {
+            get (): string {
+                return this.values?.audio_env?.attenuation_per_doubling_in_distance ?? "";
+            },
+            set (newAttenuation: string): void {
+                if (typeof this.values?.audio_env?.attenuation_per_doubling_in_distance !== "undefined") {
+                    this.values.audio_env.attenuation_per_doubling_in_distance = newAttenuation;
                     this.saveSettings();
                 }
             }

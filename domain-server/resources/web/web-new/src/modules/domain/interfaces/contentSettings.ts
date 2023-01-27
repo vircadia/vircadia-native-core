@@ -104,8 +104,10 @@ export interface ContentSettingsResponse {
     }
 
 export interface PathsSaveSetting {
-    paths: Record<string, Path>;
-}
+        "paths": {
+            [key: string]: Path;
+        }
+    }
 
 export interface ScriptsSaveSetting {
     "scripts": {
