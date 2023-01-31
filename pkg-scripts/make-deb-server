@@ -9,6 +9,11 @@ fi
 GITDATE=`git log -n 1 --format=raw | grep author | cut -d">" -f 2 | cut -d" " -f 2 | xargs -I {} date -d @{} +"%Y%m%d"`
 GITCOMMIT=`git rev-parse HEAD | cut -c 1-7`
 VERSION=$DEBVERSION-$GITDATE-$GITCOMMIT
+BUILD_DIR=$DEBBUILDDIR
+
+if [ -z "${BUILD_DIR}" ]; then
+    BUILD_DIR=./build
+fi
 
 sudo apt-get install chrpath patchelf binutils dh-make
 
@@ -17,11 +22,11 @@ rm -r temp-make-deb
 mkdir -p $DEB_BUILD_ROOT
 
 # copy the files over
-cp build/assignment-client/assignment-client $DEB_BUILD_ROOT
-cp build/domain-server/domain-server $DEB_BUILD_ROOT
-cp build/tools/oven/oven $DEB_BUILD_ROOT
-cp build/libraries/*/*.so $DEB_BUILD_ROOT
-cp build/ice-server/ice-server $DEB_BUILD_ROOT
+cp $BUILD_DIR/assignment-client/assignment-client $DEB_BUILD_ROOT
+cp $BUILD_DIR/domain-server/domain-server $DEB_BUILD_ROOT
+cp $BUILD_DIR/tools/oven/oven $DEB_BUILD_ROOT
+cp $BUILD_DIR/libraries/*/*.so $DEB_BUILD_ROOT
+cp $BUILD_DIR/ice-server/ice-server $DEB_BUILD_ROOT
 chrpath -d $DEB_BUILD_ROOT/*
 ls $DEB_BUILD_ROOT/*.so | xargs -I{} patchelf --set-rpath '/opt/vircadia/lib' {}
 patchelf --set-rpath '/opt/vircadia/lib' $DEB_BUILD_ROOT/domain-server
@@ -46,7 +51,7 @@ find $DEB_BUILD_ROOT/resources -name ".gitignore" -delete
 find $DEB_BUILD_ROOT/resources -type f -executable -exec sh -c 'chmod -x {}' \;
 cp README.md $DEB_BUILD_ROOT
 cp README_hifi.md $DEB_BUILD_ROOT
-cp -a build/assignment-client/plugins $DEB_BUILD_ROOT
+cp -a $BUILD_DIR/assignment-client/plugins $DEB_BUILD_ROOT
 strip --strip-all $DEB_BUILD_ROOT/plugins/*.so
 strip --strip-all $DEB_BUILD_ROOT/plugins/*/*.so
 
