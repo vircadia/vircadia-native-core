@@ -2307,8 +2307,8 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
     // Check if we should redirect/prevent access to the wizard
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
-        const QString URI_WIZARD_PATH = "/web-new/dist/spa/index.html";
-        const QString URI_WIZARD_FRAG = "wizard";
+        const QString URI_WIZARD_PATH = "/";
+        const QString URI_WIZARD_FRAG = "/wizard";
         const QString WIZARD_COMPLETED_ONCE_KEY_PATH = "wizard.completed_once";
         QVariant wizardCompletedOnce = _settingsManager.valueForKeyPath(WIZARD_COMPLETED_ONCE_KEY_PATH);
         const bool completedOnce = wizardCompletedOnce.isValid() && wizardCompletedOnce.toBool();
