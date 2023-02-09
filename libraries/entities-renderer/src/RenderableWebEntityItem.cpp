@@ -30,7 +30,6 @@
 
 #include "EntitiesRendererLogging.h"
 #include <NetworkingConstants.h>
-#include <MetaverseAPI.h>
 
 using namespace render;
 using namespace render::entities;
@@ -188,7 +187,7 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
 
         if (_webSurface) {
             if (_webSurface->getRootItem()) {
-                if (_contentType == ContentType::HtmlContent && _sourceURL != newSourceURL) {            
+                if (_contentType == ContentType::HtmlContent && _sourceURL != newSourceURL) {
                     if (localSafeContext) {
                         ::hifi::scripting::setLocalAccessSafeThread(true);
                     }
@@ -226,15 +225,15 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
                     }
                 }
 
-                { 
+                {
                     auto useBackground = entity->getUseBackground();
                     if (_useBackground != useBackground) {
                         _webSurface->getRootItem()->setProperty(USE_BACKGROUND_PROPERTY, useBackground);
                         _useBackground = useBackground;
                     }
                 }
-                
-                { 
+
+                {
                     auto userAgent = entity->getUserAgent();
                     if (_userAgent != userAgent) {
                         _webSurface->getRootItem()->setProperty(USER_AGENT_PROPERTY, userAgent);

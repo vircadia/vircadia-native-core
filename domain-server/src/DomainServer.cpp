@@ -250,6 +250,12 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     }
     _settingsManager.setupConfigMap(userConfigFilename);
 
+    auto settingsMetaverseUrl = _settingsManager.valueForKeyPath(MetaverseAPI::Settings::URL_KEY_PATH);
+    if (settingsMetaverseUrl.isValid()) {
+        MetaverseAPI::Settings::getInstance()->setSettingsUrl(settingsMetaverseUrl.toString());
+    }
+
+
     // setup a shutdown event listener to handle SIGTERM or WM_CLOSE for us
 #ifdef _WIN32
     installNativeEventFilter(&ShutdownEventListener::getInstance());

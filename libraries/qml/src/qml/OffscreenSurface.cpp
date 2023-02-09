@@ -24,7 +24,6 @@
 #include <gl/OffscreenGLCanvas.h>
 #include <shared/ReadWriteLockable.h>
 #include <NetworkingConstants.h>
-#include <MetaverseAPI.h>
 
 #include "Logging.h"
 #include "impl/SharedObject.h"
@@ -35,7 +34,7 @@
 using namespace hifi::qml;
 using namespace hifi::qml::impl;
 
-QmlUrlValidator OffscreenSurface::validator = [](const QUrl& url) -> bool { 
+QmlUrlValidator OffscreenSurface::validator = [](const QUrl& url) -> bool {
     if (url.isRelative()) {
         return true;
     }
