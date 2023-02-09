@@ -88,7 +88,7 @@
         {
             "name": "enable_webrtc_websocket_ssl",
             "label": "Enable WebRTC WebSocket SSL",
-            "help": "Use secure WebSocket (wss:// protocol) for WebRTC signaling channel. If \"on\", the key, cert, and CA files are expected to be in the local Vircadia app directory, in a /domain-server/ subdirectory with filenames vircadia-cert.key, vircadia-cert.crt, and vircadia-crt-ca.crt.",
+            "help": "Use secure WebSocket (wss:// protocol) for WebRTC signaling channel. If \"on\", the key, cert, and CA files are expected to be in the local Vircadia app directory, in a /domain-server/ subdirectory with filenames vircadia-cert.key, vircadia-cert.crt, and vircadia-cert-ca.crt.",
             "type": "checkbox",
             "default": false,
             "advanced": true
