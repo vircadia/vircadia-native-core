@@ -15,6 +15,8 @@ import {
     createWebHistory
 } from "vue-router";
 import routes from "./routes";
+import { Settings } from "@Modules/domain/settings";
+import { SettingsValues } from "@Modules/domain/interfaces/settings";
 
 /*
  * If not building with SSR mode, you can
@@ -40,6 +42,19 @@ export default route(function (/* { store, ssrContext } */) {
         history: createHistory(
             process.env.MODE === "ssr" ? void 0 : process.env.VUE_ROUTER_BASE
         )
+    });
+
+    Router.beforeEach((to: any, from: any, next: any) => {
+        Settings.getValues()
+            .then((values: SettingsValues) => {
+                if (to.path === "/wizard" && values.wizard?.completed_once) {
+                    next({ path: "/" });
+                } else if (to.path !== "/wizard" && !(values.wizard?.completed_once)) {
+                    next({ path: "/wizard" });
+                } else {
+                    next();
+                }
+            });
     });
 
     return Router;
