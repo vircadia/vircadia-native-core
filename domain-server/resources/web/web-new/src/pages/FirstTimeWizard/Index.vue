@@ -1019,6 +1019,7 @@ export default defineComponent({
 
             setTimeout(() => {
                 location.href = redirectURL;
+                this.$q.loading.hide();
             }, this.COMPLETE_WIZARD_REDIRECT_DELAY);
         },
 

@@ -2325,10 +2325,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             connection->respond(HTTPConnection::StatusCode302,
                                 QByteArray(), HTTPConnection::DefaultContentType, redirectHeaders);
             return true;
-        } else if (url.path() == URI_WIZARD_PATH && completedOnce) {
-            // Wizard already completed, return 404
-            connection->respond(HTTPConnection::StatusCode404, "Resource not found.");
-            return true;
         }
     }
 
