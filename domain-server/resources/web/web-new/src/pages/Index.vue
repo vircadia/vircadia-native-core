@@ -10,10 +10,9 @@
 -->
 
 <template>
-    <div>
-        <NodesList></NodesList>
-
-        <AssignmentsList></AssignmentsList>
+    <div class="row">
+        <NodesList class="col-12 col-md"/>
+        <AssignmentsList class="col-12 col-md"/>
     </div>
 </template>
 

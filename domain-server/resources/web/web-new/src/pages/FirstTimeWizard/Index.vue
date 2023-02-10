@@ -1009,7 +1009,7 @@ export default defineComponent({
 
         redirectToSettings () {
             // Needs to go somewhere universal.
-            const redirectURL = "/settings" + location.search;
+            const redirectURL = "/#/" + location.search;
 
             this.firstTimeWizardDialog = false;
 
