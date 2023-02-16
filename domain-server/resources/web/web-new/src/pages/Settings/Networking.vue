@@ -10,10 +10,12 @@
 -->
 
 <template>
-    <div class="q-pa-md">
-        <MetaverseSettings/>
-        <WebRTCSettings/>
-        <WordpressSettings/>
+    <div class="q-pa-sm">
+        <MetaverseSettings class=""/>
+    <div class="row">
+        <WebRTCSettings class="col-12 col-md"/>
+        <WordpressSettings class="col-12 col-md"/>
+    </div>
     </div>
 </template>
 

@@ -13,6 +13,7 @@
     <div class="row">
         <NodesList class="col-12 col-md"/>
         <AssignmentsList class="col-12 col-md"/>
+        <AssignmentsList class="col-12 col-md"/>
     </div>
 </template>
 
@@ -23,13 +24,9 @@ import AssignmentsList from "@Components/dashboard/AssignmentsList.vue";
 
 export default defineComponent({
     name: "Index",
-
     components: {
         NodesList,
         AssignmentsList
-    },
-
-    methods: {
     }
 });
 </script>

@@ -10,9 +10,9 @@
 -->
 
 <template>
-    <div class="q-pa-md">
-        <BackupRestoreSettings/>
-        <AutomaticContentArchivesSettings/>
+    <div class="q-pa-sm row">
+        <BackupRestoreSettings class="col-12 col-md"/>
+        <AutomaticContentArchivesSettings class="col-12 col-md"/>
     </div>
 </template>
 

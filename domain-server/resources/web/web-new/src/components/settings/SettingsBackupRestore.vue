@@ -1,5 +1,5 @@
 <template>
-    <q-card class="my-card q-pa-md">
+    <q-card class="my-card q-pa-md q-ma-sm">
         <p class="q-mb-xs text-body1 text-weight-bold">Upload a settings configuration to quickly configure this domain</p>
         <div class="text-caption text-warning">Note: Your domain settings will be replaced by the settings you upload.</div>
         <div style="display: flex; justify-content: center; align-items: center;">

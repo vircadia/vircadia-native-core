@@ -1,7 +1,7 @@
 <template>
     <div>
         <!-- Broadcasting Settings -->
-        <q-card class="my-card q-mt-md">
+        <q-card class="my-card q-ma-sm">
             <q-card-section>
                 <div class="text-h5 text-center text-weight-bold q-mb-sm">Broadcasting</div>
                 <q-separator />

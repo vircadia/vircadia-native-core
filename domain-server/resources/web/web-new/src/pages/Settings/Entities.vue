@@ -10,10 +10,10 @@
 -->
 
 <template>
-    <div class="q-pa-md">
-        <EntitiesSettings/>
-        <AssetServerSettings/>
-        <EntityScriptServerSettings/>
+    <div class="q-pa-sm row">
+        <EntitiesSettings class="col-12 col-md"/>
+        <AssetServerSettings class="col-12 col-md"/>
+        <EntityScriptServerSettings class="col-12 col-md"/>
     </div>
 </template>
 

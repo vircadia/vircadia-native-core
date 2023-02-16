@@ -10,10 +10,12 @@
 -->
 
 <template>
-    <div class="q-pa-md">
-        <SSLClientSettings/>
-        <MonitoringSettings/>
+    <div class="q-pa-sm">
         <SecuritySettings/>
+        <div class="row">
+            <SSLClientSettings class="col-12 col-md"/>
+            <MonitoringSettings class="col-12 col-md"/>
+        </div>
     </div>
 </template>
 

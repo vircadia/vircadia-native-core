@@ -1,7 +1,7 @@
 <template>
     <div>
         <!-- Audio Buffers Settings -->
-        <q-card class="my-card q-mt-md  ">
+        <q-card class="my-card q-ma-sm">
             <q-card-section>
                 <div class="text-h5 text-center text-weight-bold q-mb-sm">Audio Buffers</div>
                 <q-separator />

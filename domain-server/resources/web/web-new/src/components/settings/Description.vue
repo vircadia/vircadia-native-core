@@ -1,12 +1,10 @@
 <template>
     <div>
         <!-- Description Settings -->
-        <q-card class="my-card">
+        <q-card class="my-card q-ma-sm">
             <q-card-section>
                 <div class="text-h5 text-center text-weight-bold q-mb-sm">Description</div>
                 <q-separator />
-                <!-- ADVANCED SETTINGS SECTION -->
-                <q-expansion-item v-model="isWordPressSettingsToggled" class="q-mt-md text-subtitle1" popup icon="settings" label="Advanced Settings">
                     <q-card>
                         <!-- Name Section -->
                         <q-card-section>
@@ -138,7 +136,6 @@
                             </q-card-actions>
                         </q-card>
                     </q-dialog>
-                </q-expansion-item>
                 <!-- *END* ADVANCED SETTINGS SECTION *END* -->
             </q-card-section>
         </q-card>
@@ -154,12 +151,11 @@ import { DescriptionSaveSettings, SettingsValues } from "@/src/modules/domain/in
 type settingTypes = "images" | "managers" | "tags";
 
 export default defineComponent({
-    name: "DescriptionSettings",
+    name: "Description",
 
     data () {
         return {
             rows: [{}],
-            isWordPressSettingsToggled: false,
             values: {} as SettingsValues,
             newRowNames: { images: "", managers: "", tags: "" },
             confirmDeleteDialogue: { show: false, thingToDelete: "", index: -1, settingType: "" as settingTypes },

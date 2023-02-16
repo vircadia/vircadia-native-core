@@ -10,10 +10,10 @@
 -->
 
 <template>
-    <div class="q-pa-md">
-        <AudioThreadingSettings/>
-        <AudioEnvironmentSettings/>
-        <AudioBuffersSettings/>
+    <div class="q-pa-sm row">
+        <AudioThreadingSettings class="col-12 col-md"/>
+        <AudioEnvironmentSettings class="col-12 col-md"/>
+        <AudioBuffersSettings class="col-12 col-md"/>
     </div>
 </template>
 

@@ -1,7 +1,7 @@
 <template>
     <div>
         <!-- Entities Settings -->
-        <q-card class="my-card">
+        <q-card class="my-card q-ma-sm">
             <q-card-section>
                 <div class="text-h5 text-center text-weight-bold q-mb-sm">Entities</div>
                 <q-separator />

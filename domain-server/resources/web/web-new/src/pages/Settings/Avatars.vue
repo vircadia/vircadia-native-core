@@ -10,10 +10,10 @@
 -->
 
 <template>
-    <div class="q-pa-md">
-        <AvatarsSettings/>
-        <AvatarMixerSettings/>
-        <MessagesMixerSettings/>
+    <div class="q-pa-sm row">
+        <AvatarsSettings class="col-12 col-md"/>
+        <AvatarMixerSettings class="col-12 col-md"/>
+        <MessagesMixerSettings class="col-12 col-md"/>
     </div>
 </template>
 
