@@ -44,7 +44,6 @@ import type { AudioThreadingSaveSettings, SettingsValues } from "@Modules/domain
 
 export default defineComponent({
     name: "AudioThreadingSettings",
-
     data () {
         return {
             isWordPressSettingsToggled: false,

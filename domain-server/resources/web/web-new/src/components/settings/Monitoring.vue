@@ -35,7 +35,6 @@ import type { SettingsValues, MonitoringSaveSettings } from "@Modules/domain/int
 
 export default defineComponent({
     name: "MonitoringSettings",
-
     data () {
         return {
             isMonitoringSettingsToggled: false,

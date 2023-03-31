@@ -29,7 +29,6 @@ import type { MessagesMixerSaveSettings, SettingsValues } from "@Modules/domain/
 
 export default defineComponent({
     name: "MessagesMixerSettings",
-
     data () {
         return {
             isWordPressSettingsToggled: false,

@@ -39,7 +39,6 @@ import type { AssetServerSaveSettings, SettingsValues } from "@Modules/domain/in
 
 export default defineComponent({
     name: "AssetServerSettings",
-
     data () {
         return {
             isWordPressSettingsToggled: false,

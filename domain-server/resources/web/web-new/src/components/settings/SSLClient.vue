@@ -88,7 +88,6 @@ import type { SettingsValues, SSLClientAcmeSaveSettings } from "@Modules/domain/
 
 export default defineComponent({
     name: "SSLClientSettings",
-
     data () {
         return {
             isSSLClientSettingsToggled: false,

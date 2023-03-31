@@ -152,7 +152,6 @@ type settingTypes = "images" | "managers" | "tags";
 
 export default defineComponent({
     name: "Description",
-
     data () {
         return {
             rows: [{}],

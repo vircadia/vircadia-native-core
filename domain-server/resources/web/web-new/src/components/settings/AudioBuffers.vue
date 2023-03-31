@@ -34,7 +34,6 @@ import type { AudioBufferSaveSettings, SettingsValues } from "@Modules/domain/in
 
 export default defineComponent({
     name: "AudioBuffersSettings",
-
     data () {
         return {
             isWordPressSettingsToggled: false,

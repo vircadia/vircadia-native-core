@@ -49,7 +49,6 @@ import type { AvatarMixerSaveSettings, SettingsValues } from "@Modules/domain/in
 
 export default defineComponent({
     name: "AvatarMixerSettings",
-
     data () {
         return {
             isWordPressSettingsToggled: false,

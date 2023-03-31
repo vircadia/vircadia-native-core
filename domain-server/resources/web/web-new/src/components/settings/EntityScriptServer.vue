@@ -36,7 +36,6 @@ import type { EntityScriptServerSaveSettings, SettingsValues } from "@Modules/do
 
 export default defineComponent({
     name: "EntityScriptServerSettings",
-
     data () {
         return {
             isWordPressSettingsToggled: false,

@@ -43,7 +43,6 @@ import { ContentSettings } from "@Modules/domain/contentSettings";
 
 export default defineComponent({
     name: "InstalledContent",
-
     data () {
         return {
             rows: [{}],

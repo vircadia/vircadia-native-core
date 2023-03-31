@@ -57,7 +57,6 @@ import type { AvatarsSaveSettings, SettingsValues } from "@Modules/domain/interf
 
 export default defineComponent({
     name: "AvatarsSettings",
-
     data () {
         return {
             isWordPressSettingsToggled: false,

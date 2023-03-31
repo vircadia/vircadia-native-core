@@ -36,7 +36,6 @@ import type { SettingsValues, WebrtcSaveSettings } from "@Modules/domain/interfa
 
 export default defineComponent({
     name: "WebRTCSettings",
-
     data () {
         return {
             isWebRTCSettingsToggled: false,

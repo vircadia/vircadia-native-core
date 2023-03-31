@@ -67,7 +67,6 @@ import type { ContentSettingsValues, Path, PathsSaveSetting } from "@Modules/dom
 
 export default defineComponent({
     name: "Paths",
-
     data () {
         return {
             rows: [{}],

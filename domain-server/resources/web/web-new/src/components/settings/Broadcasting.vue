@@ -146,7 +146,6 @@ type settingTypes = "users" | "downstreamServers" | "upstreamServers";
 
 export default defineComponent({
     name: "BroadcastingSettings",
-
     data () {
         return {
             rows: [{}],

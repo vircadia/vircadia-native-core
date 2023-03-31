@@ -74,7 +74,6 @@ type settingTypes = "backupRules";
 
 export default defineComponent({
     name: "AutomaticContentArchivesSettings",
-
     data () {
         return {
             rows: [{}],

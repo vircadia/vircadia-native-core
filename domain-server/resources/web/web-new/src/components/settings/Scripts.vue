@@ -72,7 +72,6 @@ import type { ContentSettingsValues, PersistentScript, ScriptsSaveSetting } from
 
 export default defineComponent({
     name: "Scripts",
-
     data () {
         return {
             rows: [{}],

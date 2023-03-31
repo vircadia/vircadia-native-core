@@ -39,7 +39,6 @@ import type { AudioEnvSaveSettings, SettingsValues } from "@Modules/domain/inter
 
 export default defineComponent({
     name: "AudioEnvironmentSettings",
-
     data () {
         return {
             isWordPressSettingsToggled: false,

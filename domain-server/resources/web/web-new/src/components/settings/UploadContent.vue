@@ -45,7 +45,6 @@ import { defineComponent } from "vue";
 
 export default defineComponent({
     name: "UploadContent",
-
     data () {
         return {
             showSuccessfulUploadDialog: false,

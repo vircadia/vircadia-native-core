@@ -45,7 +45,6 @@ import type { SettingsValues, WordpressSaveSettings } from "@Modules/domain/inte
 
 export default defineComponent({
     name: "WordpressSettings",
-
     data () {
         return {
             isWordPressSettingsToggled: false,

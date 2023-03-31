@@ -1,5 +1,4 @@
 <template>
-
     <div class="q-pa-md">
         <q-dialog v-model="confirmKillAll" persistent>
         <q-card>
@@ -57,7 +56,6 @@
         </template>
         </q-table>
     </div>
-
 </template>
 
 <script lang="ts">
@@ -85,11 +83,9 @@ const columns = [
 
 export default defineComponent({
     name: "NodesList",
-
     data () {
         return {
             columns,
-
             pagination: {
                 page: 1,
                 rowsPerPage: 0 // 0 means all rows
@@ -99,7 +95,6 @@ export default defineComponent({
             confirmKillAll: ref(false)
         };
     },
-
     methods: {
         async refreshNodesList (): Promise<void> {
             const nodesResult = await Nodes.getNodes();
@@ -116,13 +111,11 @@ export default defineComponent({
             await Nodes.killAllNodes();
         }
     },
-
     mounted () {
         this.refreshNodesList();
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
         this.timer = window.setInterval(this.refreshNodesList, 2000);
     },
-
     beforeUnmount () {
         this.cancelAutoUpdate();
     }

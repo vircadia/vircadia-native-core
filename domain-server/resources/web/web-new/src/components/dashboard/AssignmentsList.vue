@@ -25,7 +25,6 @@ const queuedColumns = [
 
 export default defineComponent({
     name: "AssignmentsList",
-
     data () {
         return {
             queuedColumns,
@@ -39,7 +38,6 @@ export default defineComponent({
             timer: 0 as number
         };
     },
-
     methods: {
         async refreshAssignmentsList (): Promise<void> {
             const assignmentsResult = await Assignments.getAllAssignments();
@@ -51,13 +49,11 @@ export default defineComponent({
             clearInterval(this.timer);
         }
     },
-
     mounted () {
         this.refreshAssignmentsList();
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
         this.timer = window.setInterval(this.refreshAssignmentsList, 2000);
     },
-
     beforeUnmount () {
         this.cancelAutoUpdate();
     }

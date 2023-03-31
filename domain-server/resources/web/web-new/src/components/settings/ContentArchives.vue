@@ -110,7 +110,6 @@ import type{ Backup } from "@Modules/domain/interfaces/backups";
 
 export default defineComponent({
     name: "ContentArchives",
-
     data () {
         return {
             rows: [{}],

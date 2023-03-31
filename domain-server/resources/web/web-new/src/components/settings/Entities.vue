@@ -119,7 +119,6 @@ import type { EntityServerSaveSettings, SettingsValues } from "@Modules/domain/i
 
 export default defineComponent({
     name: "EntitiesSettings",
-
     data () {
         return {
             isWordPressSettingsToggled: false,

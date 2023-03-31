@@ -77,7 +77,6 @@ import type { ContentSettingsValues, Path, PathsSaveSetting } from "@Modules/dom
 
 export default defineComponent({
     name: "AudioEnvironment",
-
     data () {
         return {
             rows: [{}],
