@@ -28,7 +28,7 @@
 
 <script>
 // FIXME: Needs to be done correctly. Also universally? Maybe window.axios?
-const axios = require("axios");
+const axios = require("axios").default;
 
 // Components
 import MetaverseLogin from "../components/login/MetaverseLogin.vue";

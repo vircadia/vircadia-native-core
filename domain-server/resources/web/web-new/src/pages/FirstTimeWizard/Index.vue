@@ -1009,7 +1009,7 @@ export default defineComponent({
 
         redirectToSettings () {
             // Needs to go somewhere universal.
-            const redirectURL = "/settings" + location.search;
+            const redirectURL = "/#/" + location.search;
 
             this.firstTimeWizardDialog = false;
 
@@ -1019,6 +1019,7 @@ export default defineComponent({
 
             setTimeout(() => {
                 location.href = redirectURL;
+                this.$q.loading.hide();
             }, this.COMPLETE_WIZARD_REDIRECT_DELAY);
         },
 

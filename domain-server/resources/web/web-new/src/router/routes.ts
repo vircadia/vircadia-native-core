@@ -7,7 +7,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-import { RouteRecordRaw } from "vue-router";
+import type { RouteRecordRaw } from "vue-router";
 
 const routes: RouteRecordRaw[] = [
     {
@@ -48,9 +48,14 @@ const routes: RouteRecordRaw[] = [
         children: [{ path: "", component: () => import("pages/Settings/Avatars.vue") }]
     },
     {
-        path: "/scripts",
+        path: "/entities",
         component: () => import("layouts/Index.vue"),
-        children: [{ path: "", component: () => import("pages/Settings/Scripts.vue") }]
+        children: [{ path: "", component: () => import("pages/Settings/Entities.vue") }]
+    },
+    {
+        path: "/details",
+        component: () => import("layouts/Index.vue"),
+        children: [{ path: "", component: () => import("pages/Settings/Details.vue") }]
     },
     {
         path: "/advanced",

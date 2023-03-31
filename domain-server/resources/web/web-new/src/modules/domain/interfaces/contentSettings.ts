@@ -102,3 +102,15 @@ export interface ContentSettingsResponse {
         descriptions: Description[];
         values: ContentSettingsValues;
     }
+
+export interface PathsSaveSetting {
+        "paths": {
+            [key: string]: Path;
+        }
+    }
+
+export interface ScriptsSaveSetting {
+    "scripts": {
+        "persistent_scripts": PersistentScript[];
+    }
+}

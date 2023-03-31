@@ -1,4 +1,6 @@
-import Log from "@Modules/debugging/log";
+// edited 23/11/2022 by Ujean
+
+// import Log from "@Modules/debugging/log";
 import { doAPIGet, doAPIDelete, findErrorMsg } from "src/modules/utilities/apiHelpers";
 import { GetNodesResp, Node } from "./interfaces/nodes";
 
@@ -10,9 +12,10 @@ export const Nodes = {
             const nodesResponse = await doAPIGet(apiRequestUrl) as GetNodesResp;
 
             return nodesResponse.nodes;
-        } catch (err) {
-            const errr = findErrorMsg(err);
-            Log.error(Log.types.API, `Exception while attempting to get nodes: ${errr}`);
+        } catch (error) {
+            const errorMessage = findErrorMsg(error);
+            console.log(`Exception while attempting to get nodes: ${errorMessage}`);
+            // Log.error(Log.types.API, `Exception while attempting to get nodes: ${errr}`);
         }
 
         const nodes: Node[] = [];

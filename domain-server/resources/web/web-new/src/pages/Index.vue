@@ -10,27 +10,23 @@
 -->
 
 <template>
-    <div>
-        <NodesList></NodesList>
-
-        <AssignmentsList></AssignmentsList>
+    <div class="row">
+        <NodesList class="col-12 col-md"/>
+        <AssignmentsList class="col-12 col-md"/>
+        <AssignmentsList class="col-12 col-md"/>
     </div>
 </template>
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import NodesList from "@Components/dashboard/Nodes";
-import AssignmentsList from "@Components/dashboard/Assignments";
+import NodesList from "@Components/dashboard/NodesList.vue";
+import AssignmentsList from "@Components/dashboard/AssignmentsList.vue";
 
 export default defineComponent({
     name: "Index",
-
     components: {
         NodesList,
         AssignmentsList
-    },
-
-    methods: {
     }
 });
 </script>

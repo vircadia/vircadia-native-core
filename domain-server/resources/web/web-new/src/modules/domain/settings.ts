@@ -1,25 +1,110 @@
-import Log from "@Modules/debugging/log";
+// edited 24/11/2022 by Ujean
+
 import { doAPIGet, findErrorMsg } from "src/modules/utilities/apiHelpers";
-import { SettingsResponse, SettingsValues } from "./interfaces/settings";
+import type * as SettingsInterface from "./interfaces/settings";
+import Log from "../../modules/utilities/log";
+
+const axios = require("axios");
+const timers: number[] = [];
+
+// accepted save setting types
+type settingsTypes =
+    SettingsInterface.MetaverseSaveSettings
+    | SettingsInterface.WebrtcSaveSettings
+    | SettingsInterface.WordpressSaveSettings
+    | SettingsInterface.SSLClientAcmeSaveSettings
+    | SettingsInterface.MonitoringSaveSettings
+    | SettingsInterface.SecuritySaveSettings
+    | SettingsInterface.AudioThreadingSaveSettings
+    | SettingsInterface.AudioEnvSaveSettings
+    | SettingsInterface.AudioBufferSaveSettings
+    | SettingsInterface.AvatarsSaveSettings
+    | SettingsInterface.AvatarMixerSaveSettings
+    | SettingsInterface.EntityServerSaveSettings
+    | SettingsInterface.AssetServerSaveSettings
+    | SettingsInterface.EntityScriptServerSaveSettings
+    | SettingsInterface.MessagesMixerSaveSettings
+    | SettingsInterface.DescriptionSaveSettings
+    | SettingsInterface.BroadcastingSaveSettings
+    | SettingsInterface.AutomaticContentArchivesSaveSettings;
 
 export const Settings = {
-
-    async getAll (): Promise<SettingsValues> {
-        let response: SettingsValues = {};
-
+    // FUNCTION getValues returns values from localhost:40100/settings.json
+    async getValues (): Promise<SettingsInterface.SettingsValues> {
+        let response: SettingsInterface.SettingsValues = {};
         try {
             const apiRequestUrl = "settings.json";
-            const settingsResponse = await doAPIGet(apiRequestUrl) as SettingsResponse;
+            const settingsResponse = await doAPIGet(apiRequestUrl) as SettingsInterface.SettingsResponse;
 
             response = settingsResponse.values;
-
             return response;
-        } catch (err) {
-            const errr = findErrorMsg(err);
-            Log.error(Log.types.API, `Exception while attempting to get settings: ${errr}`);
+        } catch (error) {
+            const errorMessage = findErrorMsg(error);
+            console.log(errorMessage);
+            // Log.error(Log.types.API, `Exception while attempting to get settings: ${errr}`);
         }
-
         return response;
-    }
+    },
+    // FUNCTION getValues returns descriptions from localhost:40100/settings.json
+    // CURRENTLY NEVER INVOKED
+    async getDescriptions (): Promise<SettingsInterface.Description[]> {
+        let response: SettingsInterface.Description[] = [];
+        try {
+            const apiRequestUrl = "settings.json";
+            const settingsResponse = await doAPIGet(apiRequestUrl) as SettingsInterface.SettingsResponse;
 
+            response = settingsResponse.descriptions;
+            return response;
+        } catch (error) {
+            const errorMessage = findErrorMsg(error);
+            console.log(errorMessage);
+            // Log.error(Log.types.API, `Exception while attempting to get settings: ${errr}`);
+        }
+        return response;
+    },
+    // FUNCTION commitSettings commits settings values to localhost:40100/settings.json
+    commitSettings (settingsToCommit: settingsTypes) {
+        return axios.post("/settings.json", JSON.stringify(settingsToCommit))
+            .then(() => {
+                Log.info(Log.types.DOMAIN, "Successfully committed settings.");
+                return true;
+            })
+            .catch((response: string) => {
+                Log.error(Log.types.DOMAIN, `Failed to commit settings to Domain: ${response}`);
+                return false;
+            });
+    },
+    automaticCommitSettings (settingsToCommit: settingsTypes): void {
+        // `automaticCommitSettings` should be called whenever an input change is detected.
+        // It only commits changes once no input changes are detected for 5 secs (5000 ms).
+        // Call commitSettings instead of automaticCommitSettings to instantly commit changes.
+        timers.forEach((timerID, index) => { clearTimeout(timerID); timers.splice(index, 1); });
+        timers.push(window.setTimeout(this.commitSettings, 5000, settingsToCommit));
+    },
+    async createNewDomainID (newLabel: string): Promise<string> {
+        try {
+            const domainLabel = `label=${newLabel}`;
+            const response = await axios.post("/api/domains", domainLabel);
+            if (response.data.status === "failure") {
+                return "";
+            }
+            const newDomainID = response.data.domain.domainId;
+            return newDomainID;
+        } catch (error) {
+            console.log(error);
+            return "";
+        }
+    },
+    async getDomains () {
+        let domains = [] as SettingsInterface.Domains[];
+        try {
+            const apiRequestUrl = "api/domains";
+            const domainsResponse = await doAPIGet(apiRequestUrl) as SettingsInterface.DomainsResponse;
+            domains = domainsResponse.data.domains;
+            return domains;
+        } catch (error) {
+            console.log(error);
+        }
+        return domains;
+    }
 };

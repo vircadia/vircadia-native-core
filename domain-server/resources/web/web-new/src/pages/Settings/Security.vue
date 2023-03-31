@@ -1,11 +1,36 @@
+<!--
+//  Security.vue
+//
+//  Created by Eugene :) on Dec. 13th, 2022.
+//  Copyright 2022 Vircadia contributors.
+//  Copyright 2022 DigiSomni LLC.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+-->
+
 <template>
-    <h1>security Test</h1>
+    <div class="q-pa-sm">
+        <SecuritySettings/>
+        <div class="row">
+            <SSLClientSettings class="col-12 col-md"/>
+            <MonitoringSettings class="col-12 col-md"/>
+        </div>
+    </div>
 </template>
 
 <script lang="ts">
 import { defineComponent } from "vue";
+import SSLClientSettings from "@Components/settings/SSLClient.vue";
+import MonitoringSettings from "@Components/settings/Monitoring.vue";
+import SecuritySettings from "@Components/settings/Security.vue";
 
 export default defineComponent({
-    name: "Index"
+    name: "Networking",
+    components: {
+        SSLClientSettings,
+        MonitoringSettings,
+        SecuritySettings
+    }
 });
 </script>

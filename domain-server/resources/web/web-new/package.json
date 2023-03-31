@@ -18,8 +18,7 @@
         "js-sha256": "^0.9.0",
         "quasar": "^2.0.0",
         "three": "^0.137.0",
-        "vanta": "^0.5.21",
-        "vuex": "^4.0.1"
+        "vanta": "^0.5.21"
     },
     "devDependencies": {
         "@babel/eslint-parser": "^7.13.14",
