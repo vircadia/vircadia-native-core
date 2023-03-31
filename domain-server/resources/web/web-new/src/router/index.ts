@@ -16,7 +16,7 @@ import {
 } from "vue-router";
 import routes from "./routes";
 import { Settings } from "@Modules/domain/settings";
-import { SettingsValues } from "@Modules/domain/interfaces/settings";
+import type { SettingsValues } from "@Modules/domain/interfaces/settings";
 
 /*
  * If not building with SSR mode, you can
