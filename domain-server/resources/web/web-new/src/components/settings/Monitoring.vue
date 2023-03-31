@@ -1,31 +1,29 @@
 <template>
-    <div>
-        <!-- Monitoring Settings -->
-        <q-card class="my-card q-ma-sm">
-            <q-card-section>
-                <div class="text-h5 text-center text-weight-bold q-mb-sm">Monitoring</div>
-                <q-separator />
-                <!-- ADVANCED SETTINGS SECTION -->
-                <q-expansion-item v-model="isMonitoringSettingsToggled" class="q-mt-md text-subtitle1" popup icon="settings" label="Advanced Settings">
-                    <q-card>
-                        <!-- Enable Prometheus Exporter section -->
-                        <q-card-section>
-                            <q-toggle v-model="isPrometheusExporterEnabled" checked-icon="check" color="positive" label="Enable Prometheus Exporter"
-                                unchecked-icon="clear" />
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Enable a Prometheus exporter to make it possible to gather stats about the mixers that are available in the Nodes tab with a Prometheus server. This makes it possible to keep track of long-term domain statistics for graphing, troubleshooting, and performance monitoring.</div>
-                        </q-card-section>
-                        <!-- Prometheus TCP Port section -->
-                        <q-card-section>
-                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="prometheusPort" label="Prometheus TCP Port"/>
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">This is the port where the Prometheus exporter accepts connections. It listens both on IPv4 and IPv6 and can be accessed remotely, so you should make sure to restrict access with a firewall as needed.</div>
-                        </q-card-section>
-                    </q-card>
-                </q-expansion-item>
-                <!-- *END* ADVANCED SETTINGS SECTION *END* -->
-            </q-card-section>
-        </q-card>
         <!-- *END* WebRTC Settings *END* -->
-    </div>
+    <!-- Monitoring Settings -->
+    <q-card class="my-card q-ma-sm">
+        <q-card-section>
+            <div class="text-h5 text-center text-weight-bold q-mb-sm">Monitoring</div>
+            <q-separator />
+            <!-- ADVANCED SETTINGS SECTION -->
+            <q-expansion-item v-model="isMonitoringSettingsToggled" class="q-mt-md text-subtitle1" popup icon="settings" label="Advanced Settings">
+                <q-card>
+                    <!-- Enable Prometheus Exporter section -->
+                    <q-card-section>
+                        <q-toggle v-model="isPrometheusExporterEnabled" checked-icon="check" color="positive" label="Enable Prometheus Exporter"
+                            unchecked-icon="clear" />
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Enable a Prometheus exporter to make it possible to gather stats about the mixers that are available in the Nodes tab with a Prometheus server. This makes it possible to keep track of long-term domain statistics for graphing, troubleshooting, and performance monitoring.</div>
+                    </q-card-section>
+                    <!-- Prometheus TCP Port section -->
+                    <q-card-section>
+                        <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="prometheusPort" label="Prometheus TCP Port"/>
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">This is the port where the Prometheus exporter accepts connections. It listens both on IPv4 and IPv6 and can be accessed remotely, so you should make sure to restrict access with a firewall as needed.</div>
+                    </q-card-section>
+                </q-card>
+            </q-expansion-item>
+            <!-- *END* ADVANCED SETTINGS SECTION *END* -->
+        </q-card-section>
+    </q-card>
 </template>
 
 <script lang="ts">

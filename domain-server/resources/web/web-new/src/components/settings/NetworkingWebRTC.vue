@@ -1,32 +1,30 @@
 <template>
-    <div>
-        <!-- WebRTC Settings -->
-        <q-card class="my-card q-ma-sm">
-            <q-card-section>
-                <div class="text-h5 text-center text-weight-bold q-mb-sm">WebRTC</div>
-                <q-separator />
-                <!-- ADVANCED SETTINGS SECTION -->
-                <q-expansion-item v-model="isWebRTCSettingsToggled" class="q-mt-md text-subtitle1" popup icon="settings" label="Advanced Settings">
-                    <q-card>
-                        <!-- enable WebRTC client connections section -->
-                        <q-card-section>
-                            <q-toggle v-model="isWebRTCConnectionsEnabled" checked-icon="check" color="positive" label="Enable WebRTC Client Connections"
-                                unchecked-icon="clear" />
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Allow web clients to connect over WebRTC data channels.</div>
-                        </q-card-section>
-                        <!-- enable WebRTC WebSocket SSL section -->
-                        <q-card-section>
-                            <q-toggle v-model="isWebsocketSSLEnabled" checked-icon="check" color="positive" label="Enable WebRTC WebSocket SSL"
-                                unchecked-icon="clear" />
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Use secure WebSocket (wss:// protocol) for WebRTC signaling channel. If "on", the key, cert, and CA files are expected to be in the local Vircadia app directory, in a /domain-server/ subdirectory with filenames vircadia-cert.key, vircadia-cert.crt, and vircadia-crt-ca.crt.</div>
-                        </q-card-section>
-                    </q-card>
-                </q-expansion-item>
-                <!-- *END* ADVANCED SETTINGS SECTION *END* -->
-            </q-card-section>
-        </q-card>
-        <!-- *END* WebRTC Settings *END* -->
-    </div>
+    <!-- WebRTC Settings -->
+    <q-card class="my-card q-ma-sm">
+        <q-card-section>
+            <div class="text-h5 text-center text-weight-bold q-mb-sm">WebRTC</div>
+            <q-separator />
+            <!-- ADVANCED SETTINGS SECTION -->
+            <q-expansion-item v-model="isWebRTCSettingsToggled" class="q-mt-md text-subtitle1" popup icon="settings" label="Advanced Settings">
+                <q-card>
+                    <!-- enable WebRTC client connections section -->
+                    <q-card-section>
+                        <q-toggle v-model="isWebRTCConnectionsEnabled" checked-icon="check" color="positive" label="Enable WebRTC Client Connections"
+                            unchecked-icon="clear" />
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Allow web clients to connect over WebRTC data channels.</div>
+                    </q-card-section>
+                    <!-- enable WebRTC WebSocket SSL section -->
+                    <q-card-section>
+                        <q-toggle v-model="isWebsocketSSLEnabled" checked-icon="check" color="positive" label="Enable WebRTC WebSocket SSL"
+                            unchecked-icon="clear" />
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Use secure WebSocket (wss:// protocol) for WebRTC signaling channel. If "on", the key, cert, and CA files are expected to be in the local Vircadia app directory, in a /domain-server/ subdirectory with filenames vircadia-cert.key, vircadia-cert.crt, and vircadia-crt-ca.crt.</div>
+                    </q-card-section>
+                </q-card>
+            </q-expansion-item>
+            <!-- *END* ADVANCED SETTINGS SECTION *END* -->
+        </q-card-section>
+    </q-card>
+    <!-- *END* WebRTC Settings *END* -->
 </template>
 
 <script lang="ts">

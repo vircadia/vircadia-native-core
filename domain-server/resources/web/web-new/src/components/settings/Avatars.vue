@@ -1,53 +1,51 @@
 <template>
-    <div>
-        <!-- Avatars Settings -->
-        <q-card class="my-card q-ma-sm">
-            <q-card-section>
-                <div class="text-h5 text-center text-weight-bold q-mb-sm">Avatars</div>
-                <q-separator />
-                <!-- ADVANCED SETTINGS SECTION -->
-                <q-expansion-item v-model="isWordPressSettingsToggled" class="q-mt-md text-subtitle1" popup icon="settings" label="Advanced Settings">
-                    <q-card>
-                        <!-- Minimum Avatar Height (meters) section -->
-                        <q-card-section>
-                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="minAvatarHeight" label="Minimum Avatar Height (meters)"/>
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Limits the height of avatars in your domain. Must be at least 0.009.</div>
-                        </q-card-section>
-                        <!-- Maximum Avatar Height (meters) section -->
-                        <q-card-section>
-                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="maxAvatarHeight" label="Maximum Avatar Height (meters)"/>
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Limits the height of avatars in your domain. Cannot be greater than 1755.</div>
-                        </q-card-section>
-                        <!-- Maximum Avatar Height (meters) section
-                        <q-card-section>
-                            <q-range
-                                class="q-mt-xl"
-                                v-model="avatarHeightRange"
-                                color="deep-orange"
-                                label-always
-                                markers
-                                :min="0.009"
-                                :max="1755"
-                                >
-                            </q-range>
-                        </q-card-section> -->
-                        <!-- Avatars Allowed From: section -->
-                        <q-card-section>
-                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="avatarWhitelist" label="Avatars Allowed From:"/>
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Comma separated list of URLs (with optional paths) that avatar .fst files are allowed from. If someone attempts to use an avatar with a different domain, it will be rejected and the replacement avatar will be used. If left blank, any domain is allowed.</div>
-                        </q-card-section>
-                        <!-- Avatars Allowed From: section -->
-                        <q-card-section>
-                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="replacementAvatar" label="Replacement Avatar For Disallowed Avatars"/>
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">A URL for an avatar .fst to be used when someone tries to use an avatar that is not allowed. If left blank, the generic default avatar is used.</div>
-                        </q-card-section>
-                    </q-card>
-                </q-expansion-item>
-                <!-- *END* ADVANCED SETTINGS SECTION *END* -->
-            </q-card-section>
-        </q-card>
         <!-- *END* WordPress OAuth2 Settings *END* -->
-    </div>
+    <!-- Avatars Settings -->
+    <q-card class="my-card q-ma-sm">
+        <q-card-section>
+            <div class="text-h5 text-center text-weight-bold q-mb-sm">Avatars</div>
+            <q-separator />
+            <!-- ADVANCED SETTINGS SECTION -->
+            <q-expansion-item v-model="isWordPressSettingsToggled" class="q-mt-md text-subtitle1" popup icon="settings" label="Advanced Settings">
+                <q-card>
+                    <!-- Minimum Avatar Height (meters) section -->
+                    <q-card-section>
+                        <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="minAvatarHeight" label="Minimum Avatar Height (meters)"/>
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Limits the height of avatars in your domain. Must be at least 0.009.</div>
+                    </q-card-section>
+                    <!-- Maximum Avatar Height (meters) section -->
+                    <q-card-section>
+                        <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="maxAvatarHeight" label="Maximum Avatar Height (meters)"/>
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Limits the height of avatars in your domain. Cannot be greater than 1755.</div>
+                    </q-card-section>
+                    <!-- Maximum Avatar Height (meters) section
+                    <q-card-section>
+                        <q-range
+                            class="q-mt-xl"
+                            v-model="avatarHeightRange"
+                            color="deep-orange"
+                            label-always
+                            markers
+                            :min="0.009"
+                            :max="1755"
+                            >
+                        </q-range>
+                    </q-card-section> -->
+                    <!-- Avatars Allowed From: section -->
+                    <q-card-section>
+                        <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="avatarWhitelist" label="Avatars Allowed From:"/>
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Comma separated list of URLs (with optional paths) that avatar .fst files are allowed from. If someone attempts to use an avatar with a different domain, it will be rejected and the replacement avatar will be used. If left blank, any domain is allowed.</div>
+                    </q-card-section>
+                    <!-- Avatars Allowed From: section -->
+                    <q-card-section>
+                        <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="replacementAvatar" label="Replacement Avatar For Disallowed Avatars"/>
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">A URL for an avatar .fst to be used when someone tries to use an avatar that is not allowed. If left blank, the generic default avatar is used.</div>
+                    </q-card-section>
+                </q-card>
+            </q-expansion-item>
+            <!-- *END* ADVANCED SETTINGS SECTION *END* -->
+        </q-card-section>
+    </q-card>
 </template>
 
 <script lang="ts">

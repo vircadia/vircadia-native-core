@@ -1,35 +1,33 @@
 <template>
-    <div>
-        <!--  Asset Server (ATP) Settings -->
-        <q-card class="my-card q-ma-sm">
-            <q-card-section>
-                <div class="text-h5 text-center text-weight-bold q-mb-sm">Asset Server (ATP)</div>
-                <q-separator />
-                <!-- ADVANCED SETTINGS SECTION -->
-                <q-expansion-item v-model="isWordPressSettingsToggled" class="q-mt-md text-subtitle1" popup icon="settings" label="Advanced Settings">
-                    <q-card>
-                        <!-- Enable Asset Server section -->
-                        <q-card-section>
-                            <q-toggle v-model="assetServerEnabled" checked-icon="check" color="positive" label="Enable Asset Server" unchecked-icon="clear" />
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Assigns an asset-server in your domain to serve files to clients via the ATP protocol (over UDP).</div>
-                        </q-card-section>
-                        <!-- Assets Path section -->
-                        <q-card-section>
-                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="assetsPath" label="Assets Path"/>
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">The path to the directory assets are stored in. If this path is relative, it will be relative to the application data directory. If you change this path you will need to manually copy any existing assets from the previous directory.</div>
-                        </q-card-section>
-                        <!-- File Size Limit section -->
-                        <q-card-section>
-                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="fileSizeLimit" label="File Size Limit"/>
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">The file size limit of an asset that can be imported into the asset server in MBytes. 0 (default) means no limit on file size.</div>
-                        </q-card-section>
-                    </q-card>
-                </q-expansion-item>
-                <!-- *END* ADVANCED SETTINGS SECTION *END* -->
-            </q-card-section>
-        </q-card>
-        <!-- *END* Asset Server (ATP) Settings *END* -->
-    </div>
+    <!--  Asset Server (ATP) Settings -->
+    <q-card class="my-card q-ma-sm">
+        <q-card-section>
+            <div class="text-h5 text-center text-weight-bold q-mb-sm">Asset Server (ATP)</div>
+            <q-separator />
+            <!-- ADVANCED SETTINGS SECTION -->
+            <q-expansion-item v-model="isWordPressSettingsToggled" class="q-mt-md text-subtitle1" popup icon="settings" label="Advanced Settings">
+                <q-card>
+                    <!-- Enable Asset Server section -->
+                    <q-card-section>
+                        <q-toggle v-model="assetServerEnabled" checked-icon="check" color="positive" label="Enable Asset Server" unchecked-icon="clear" />
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Assigns an asset-server in your domain to serve files to clients via the ATP protocol (over UDP).</div>
+                    </q-card-section>
+                    <!-- Assets Path section -->
+                    <q-card-section>
+                        <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="assetsPath" label="Assets Path"/>
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">The path to the directory assets are stored in. If this path is relative, it will be relative to the application data directory. If you change this path you will need to manually copy any existing assets from the previous directory.</div>
+                    </q-card-section>
+                    <!-- File Size Limit section -->
+                    <q-card-section>
+                        <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="fileSizeLimit" label="File Size Limit"/>
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">The file size limit of an asset that can be imported into the asset server in MBytes. 0 (default) means no limit on file size.</div>
+                    </q-card-section>
+                </q-card>
+            </q-expansion-item>
+            <!-- *END* ADVANCED SETTINGS SECTION *END* -->
+        </q-card-section>
+    </q-card>
+    <!-- *END* Asset Server (ATP) Settings *END* -->
 </template>
 
 <script lang="ts">

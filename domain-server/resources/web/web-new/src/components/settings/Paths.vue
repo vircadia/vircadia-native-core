@@ -1,63 +1,61 @@
 <template>
-    <div>
-        <!-- Paths Settings -->
-        <q-card class="my-card q-mt-md">
-            <q-card-section>
-                <div class="text-h5 text-center text-weight-bold q-mb-sm">Paths</div>
-                <q-separator />
-                <q-card>
-                    <!-- Paths Table section -->
-                    <q-card-section>
-                        <p class="q-mb-xs text-body1 text-weight-bold">Paths</p>
-                        <div class="q-mt-xs text-caption text-grey-5">Clients can enter a path to reach an exact viewpoint in your domain. Add rows to the table below to map a path to a viewpoint.<br/>The index path ( / ) is where clients will enter if they do not enter an explicit path.</div>
-                        <q-table dark class="bg-grey-9" :rows="rows">
-                            <template v-slot:header>
-                                <q-tr class="bg-primary">
-                                    <q-th class="text-left">Path</q-th>
-                                    <q-th class="text-left">Viewpoint</q-th>
-                                    <q-th auto-width></q-th> <!-- Empty column for delete buttons -->
-                                </q-tr>
-                            </template>
-                            <template v-slot:body>
-                                <q-tr v-for="path of Object.entries(paths)" :key="path[0]">
-                                    <q-td>{{ path[0] }}</q-td>
-                                    <q-td>{{ path[1].viewpoint }}</q-td>
-                                    <q-td class="text-center"><q-btn @click="onShowConfirmDeleteDialogue(path[0])" size="sm" color="negative" icon="delete" class="q-px-xs" round /></q-td>
-                                </q-tr>
-                            </template>
-                            <template v-slot:bottom-row>
-                                <q-tr>
-                                    <q-td>
-                                        <q-input v-model="newPath.path" class="no-margin no-padding text-subtitle2 text-white" standout="bg-primary text-white" label="New Path" hint="/" dense/>
-                                    </q-td>
-                                    <q-td>
-                                        <q-input v-model="newPath.viewpoint" class="no-margin no-padding text-subtitle2 text-white" standout="bg-primary text-white" label="Viewpoint" hint="/0,0,0" dense/>
-                                    </q-td>
-                                    <q-td class="text-center">
-                                        <q-btn color="positive"><q-icon name="add" size="sm"/></q-btn>
-                                    </q-td>
-                                </q-tr>
-                            </template>
-                        </q-table>
+    <!-- Paths Settings -->
+    <q-card class="my-card q-mt-md">
+        <q-card-section>
+            <div class="text-h5 text-center text-weight-bold q-mb-sm">Paths</div>
+            <q-separator />
+            <q-card>
+                <!-- Paths Table section -->
+                <q-card-section>
+                    <p class="q-mb-xs text-body1 text-weight-bold">Paths</p>
+                    <div class="q-mt-xs text-caption text-grey-5">Clients can enter a path to reach an exact viewpoint in your domain. Add rows to the table below to map a path to a viewpoint.<br/>The index path ( / ) is where clients will enter if they do not enter an explicit path.</div>
+                    <q-table dark class="bg-grey-9" :rows="rows">
+                        <template v-slot:header>
+                            <q-tr class="bg-primary">
+                                <q-th class="text-left">Path</q-th>
+                                <q-th class="text-left">Viewpoint</q-th>
+                                <q-th auto-width></q-th> <!-- Empty column for delete buttons -->
+                            </q-tr>
+                        </template>
+                        <template v-slot:body>
+                            <q-tr v-for="path of Object.entries(paths)" :key="path[0]">
+                                <q-td>{{ path[0] }}</q-td>
+                                <q-td>{{ path[1].viewpoint }}</q-td>
+                                <q-td class="text-center"><q-btn @click="onShowConfirmDeleteDialogue(path[0])" size="sm" color="negative" icon="delete" class="q-px-xs" round /></q-td>
+                            </q-tr>
+                        </template>
+                        <template v-slot:bottom-row>
+                            <q-tr>
+                                <q-td>
+                                    <q-input v-model="newPath.path" class="no-margin no-padding text-subtitle2 text-white" standout="bg-primary text-white" label="New Path" hint="/" dense/>
+                                </q-td>
+                                <q-td>
+                                    <q-input v-model="newPath.viewpoint" class="no-margin no-padding text-subtitle2 text-white" standout="bg-primary text-white" label="Viewpoint" hint="/0,0,0" dense/>
+                                </q-td>
+                                <q-td class="text-center">
+                                    <q-btn color="positive"><q-icon name="add" size="sm"/></q-btn>
+                                </q-td>
+                            </q-tr>
+                        </template>
+                    </q-table>
+                </q-card-section>
+            </q-card>
+            <!-- CONFIRM DELETE PATH DIALOGUE -->
+            <q-dialog v-model="confirmDeleteDialogue.show" persistent>
+                <q-card class="bg-primary q-pa-md">
+                    <q-card-section class="row items-center">
+                        <p class="text-h6 text-bold text-white full-width"><q-avatar icon="mdi-alert" class="q-mr-sm" text-color="warning" size="20px" font-size="20px"/>Delete <span class="text-warning">{{confirmDeleteDialogue.pathName}}</span>?</p>
+                        <p class="text-body2">WARNING: This cannot be undone.</p>
                     </q-card-section>
+                    <q-card-actions align="center">
+                        <q-btn flat label="Cancel" @click="onHideConfirmDeleteDialogue()"/>
+                        <q-btn flat label="Delete" @click="onDeletePath(confirmDeleteDialogue.pathName)"/>
+                    </q-card-actions>
                 </q-card>
-                <!-- CONFIRM DELETE PATH DIALOGUE -->
-                <q-dialog v-model="confirmDeleteDialogue.show" persistent>
-                    <q-card class="bg-primary q-pa-md">
-                        <q-card-section class="row items-center">
-                            <p class="text-h6 text-bold text-white full-width"><q-avatar icon="mdi-alert" class="q-mr-sm" text-color="warning" size="20px" font-size="20px"/>Delete <span class="text-warning">{{confirmDeleteDialogue.pathName}}</span>?</p>
-                            <p class="text-body2">WARNING: This cannot be undone.</p>
-                        </q-card-section>
-                        <q-card-actions align="center">
-                            <q-btn flat label="Cancel" @click="onHideConfirmDeleteDialogue()"/>
-                            <q-btn flat label="Delete" @click="onDeletePath(confirmDeleteDialogue.pathName)"/>
-                        </q-card-actions>
-                    </q-card>
-                </q-dialog>
-            </q-card-section>
-        </q-card>
         <!-- *END* Description Settings *END* -->
-    </div>
+            </q-dialog>
+        </q-card-section>
+    </q-card>
 </template>
 
 <script lang="ts">

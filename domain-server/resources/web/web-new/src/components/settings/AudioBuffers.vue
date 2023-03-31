@@ -1,30 +1,28 @@
 <template>
-    <div>
-        <!-- Audio Buffers Settings -->
-        <q-card class="my-card q-ma-sm">
-            <q-card-section>
-                <div class="text-h5 text-center text-weight-bold q-mb-sm">Audio Buffers</div>
-                <q-separator />
-                <!-- ADVANCED SETTINGS SECTION -->
-                <q-expansion-item v-model="isWordPressSettingsToggled" class="q-mt-md text-subtitle1" popup icon="settings" label="Advanced Settings">
-                    <q-card>
-                        <!-- Dynamic Jitter Buffers section -->
-                        <q-card-section>
-                            <q-toggle v-model="dyanmicJitterBuffers" checked-icon="check" color="positive" label="Dynamic Jitter Buffers" unchecked-icon="clear" />
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Dynamically buffer inbound audio streams based on perceived jitter in packet receipt timing.</div>
-                        </q-card-section>
-                        <!-- Static Desired Jitter Buffer Frames section -->
-                        <q-card-section>
-                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="staticDesiredJitterBufferFrames" label="Static Desired Jitter Buffer Frames"/>
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">If dynamic jitter buffers is disabled, this determines the size of the jitter buffers of inbound audio streams in the mixer. Higher numbers introduce more latency.</div>
-                        </q-card-section>
-                    </q-card>
-                </q-expansion-item>
-                <!-- *END* ADVANCED SETTINGS SECTION *END* -->
-            </q-card-section>
-        </q-card>
         <!-- *END* WordPress OAuth2 Settings *END* -->
-    </div>
+    <!-- Audio Buffers Settings -->
+    <q-card class="my-card q-ma-sm">
+        <q-card-section>
+            <div class="text-h5 text-center text-weight-bold q-mb-sm">Audio Buffers</div>
+            <q-separator />
+            <!-- ADVANCED SETTINGS SECTION -->
+            <q-expansion-item v-model="isWordPressSettingsToggled" class="q-mt-md text-subtitle1" popup icon="settings" label="Advanced Settings">
+                <q-card>
+                    <!-- Dynamic Jitter Buffers section -->
+                    <q-card-section>
+                        <q-toggle v-model="dyanmicJitterBuffers" checked-icon="check" color="positive" label="Dynamic Jitter Buffers" unchecked-icon="clear" />
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Dynamically buffer inbound audio streams based on perceived jitter in packet receipt timing.</div>
+                    </q-card-section>
+                    <!-- Static Desired Jitter Buffer Frames section -->
+                    <q-card-section>
+                        <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="staticDesiredJitterBufferFrames" label="Static Desired Jitter Buffer Frames"/>
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">If dynamic jitter buffers is disabled, this determines the size of the jitter buffers of inbound audio streams in the mixer. Higher numbers introduce more latency.</div>
+                    </q-card-section>
+                </q-card>
+            </q-expansion-item>
+            <!-- *END* ADVANCED SETTINGS SECTION *END* -->
+        </q-card-section>
+    </q-card>
 </template>
 
 <script lang="ts">

@@ -1,84 +1,82 @@
 <template>
-    <div>
-        <!-- SSL ACME Client Settings -->
-        <q-card class="my-card q-ma-sm">
-            <q-card-section>
-                <div class="text-h5 text-center text-weight-bold q-mb-sm">SSL ACME Client</div>
-                <q-separator />
-                <!-- ADVANCED SETTINGS SECTION -->
-                <q-expansion-item v-model="isSSLClientSettingsToggled" class="q-mt-md text-subtitle1" popup icon="settings" label="Advanced Settings">
-                    <q-card>
-                        <!-- enable SSL ACME Client section -->
-                        <q-card-section>
-                            <q-toggle v-model="isSSLClientEnabled" checked-icon="check" color="positive" label="Enable ACME Client"
-                                unchecked-icon="clear" />
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Enables ACME client that will manage the SSL certificates.</div>
-                        </q-card-section>
-                        <!-- ACME Directory Endpoint section -->
-                        <q-card-section>
-                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="directoryEndpoint" label="ACME Directory Endpoint"/>
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">URL of the certificate issuer ACME directory endpoint.</div>
-                        </q-card-section>
-                        <!-- enable ZeroSSL REST API section -->
-                        <q-card-section>
-                            <q-toggle v-model="isZeroSSLEnabled" checked-icon="check" color="positive" label="Enable ZeroSSL REST API"
-                                unchecked-icon="clear" />
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Use ZeroSSL Rest API Instead of ACME protocol.</div>
-                        </q-card-section>
-                        <!-- Account Key Path section -->
-                        <q-card-section>
-                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="accountKeyPath" label="Account Key Path" placeholder="<Application Data Path>/acme_account_key.pem" />
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Path to private key used to communicate with certificate issuer.</div>
-                        </q-card-section>
-                        <!-- ZeroSSL API Key section -->
-                        <q-card-section>
-                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="zeroSslAPIKey" label="ZeroSSL API Key" />
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">API key to use for ZeroSSL REST API requests.</div>
-                        </q-card-section>
-                        <!-- External Account Binding KID section -->
-                        <q-card-section>
-                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="externalAccountBindingKID" label="External Account Binding KID" />
-                        </q-card-section>
-                        <!-- External Account Binding MAC section -->
-                        <q-card-section>
-                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="externalAccountBindingMAC" label="External Account Binding MAC" />
-                        </q-card-section>
-                        <!-- Certificate Directory section -->
-                        <q-card-section>
-                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="certificateDirectory" label="Certificate Directory" placeholder="Application Data Path"/>
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Certificate files will be stored in this directory.</div>
-                        </q-card-section>
-                        <!-- Certificate File Name section -->
-                        <q-card-section>
-                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="certificateFilename" label="Certificate Filename"/>
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Certificate will be stored with this filename in Certificate Directory.</div>
-                        </q-card-section>
-                        <!-- Certificate Key Filename section -->
-                        <q-card-section>
-                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="certificateKeyFilename" label="Certificate Key Filename"/>
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Certificate private key will be stored with this filename in Certificate Directory.</div>
-                        </q-card-section>
-                        <!-- Certificate Authority Filename section -->
-                        <q-card-section>
-                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="certificateAuthorityFilename" label="Certificate Authority Filename" placeholder="System Default"/>
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Trusted certificate authority list will be stored with this filename in Certificate Directory. If unspecified system default CAs will be used.</div>
-                        </q-card-section>
-                        <!-- Type of HTTP challenge handler section -->
-                        <q-card-section>
-                            <q-select standout="bg-primary text-white" color="primary" emit-value map-options v-model="challengeHandler" :options="challengeHandlerOptions" label="Type of HTTP Challenge Handler" transition-show="jump-up" transition-hide="jump-down">
-                                <template v-slot:prepend>
-                                    <q-icon name="https" />
-                                </template>
-                            </q-select>
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">This settings determines how the client will attempt to complete the server's HTTP challenges. Possible Values are: server - client will attempt to host the challenges on port 80, files - client will attempt to save challenges as files in the directories associated with specified domains, manual - client will wait for a few minutes for the challenges to be completed.</div>
-                        </q-card-section>
-                    </q-card>
-                </q-expansion-item>
-                <!-- *END* ADVANCED SETTINGS SECTION *END* -->
-            </q-card-section>
-        </q-card>
         <!-- *END* WebRTC Settings *END* -->
-    </div>
+    <!-- SSL ACME Client Settings -->
+    <q-card class="my-card q-ma-sm">
+        <q-card-section>
+            <div class="text-h5 text-center text-weight-bold q-mb-sm">SSL ACME Client</div>
+            <q-separator />
+            <!-- ADVANCED SETTINGS SECTION -->
+            <q-expansion-item v-model="isSSLClientSettingsToggled" class="q-mt-md text-subtitle1" popup icon="settings" label="Advanced Settings">
+                <q-card>
+                    <!-- enable SSL ACME Client section -->
+                    <q-card-section>
+                        <q-toggle v-model="isSSLClientEnabled" checked-icon="check" color="positive" label="Enable ACME Client"
+                            unchecked-icon="clear" />
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Enables ACME client that will manage the SSL certificates.</div>
+                    </q-card-section>
+                    <!-- ACME Directory Endpoint section -->
+                    <q-card-section>
+                        <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="directoryEndpoint" label="ACME Directory Endpoint"/>
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">URL of the certificate issuer ACME directory endpoint.</div>
+                    </q-card-section>
+                    <!-- enable ZeroSSL REST API section -->
+                    <q-card-section>
+                        <q-toggle v-model="isZeroSSLEnabled" checked-icon="check" color="positive" label="Enable ZeroSSL REST API"
+                            unchecked-icon="clear" />
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Use ZeroSSL Rest API Instead of ACME protocol.</div>
+                    </q-card-section>
+                    <!-- Account Key Path section -->
+                    <q-card-section>
+                        <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="accountKeyPath" label="Account Key Path" placeholder="<Application Data Path>/acme_account_key.pem" />
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Path to private key used to communicate with certificate issuer.</div>
+                    </q-card-section>
+                    <!-- ZeroSSL API Key section -->
+                    <q-card-section>
+                        <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="zeroSslAPIKey" label="ZeroSSL API Key" />
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">API key to use for ZeroSSL REST API requests.</div>
+                    </q-card-section>
+                    <!-- External Account Binding KID section -->
+                    <q-card-section>
+                        <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="externalAccountBindingKID" label="External Account Binding KID" />
+                    </q-card-section>
+                    <!-- External Account Binding MAC section -->
+                    <q-card-section>
+                        <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="externalAccountBindingMAC" label="External Account Binding MAC" />
+                    </q-card-section>
+                    <!-- Certificate Directory section -->
+                    <q-card-section>
+                        <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="certificateDirectory" label="Certificate Directory" placeholder="Application Data Path"/>
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Certificate files will be stored in this directory.</div>
+                    </q-card-section>
+                    <!-- Certificate File Name section -->
+                    <q-card-section>
+                        <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="certificateFilename" label="Certificate Filename"/>
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Certificate will be stored with this filename in Certificate Directory.</div>
+                    </q-card-section>
+                    <!-- Certificate Key Filename section -->
+                    <q-card-section>
+                        <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="certificateKeyFilename" label="Certificate Key Filename"/>
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Certificate private key will be stored with this filename in Certificate Directory.</div>
+                    </q-card-section>
+                    <!-- Certificate Authority Filename section -->
+                    <q-card-section>
+                        <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="certificateAuthorityFilename" label="Certificate Authority Filename" placeholder="System Default"/>
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Trusted certificate authority list will be stored with this filename in Certificate Directory. If unspecified system default CAs will be used.</div>
+                    </q-card-section>
+                    <!-- Type of HTTP challenge handler section -->
+                    <q-card-section>
+                        <q-select standout="bg-primary text-white" color="primary" emit-value map-options v-model="challengeHandler" :options="challengeHandlerOptions" label="Type of HTTP Challenge Handler" transition-show="jump-up" transition-hide="jump-down">
+                            <template v-slot:prepend>
+                                <q-icon name="https" />
+                            </template>
+                        </q-select>
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">This settings determines how the client will attempt to complete the server's HTTP challenges. Possible Values are: server - client will attempt to host the challenges on port 80, files - client will attempt to save challenges as files in the directories associated with specified domains, manual - client will wait for a few minutes for the challenges to be completed.</div>
+                    </q-card-section>
+                </q-card>
+            </q-expansion-item>
+            <!-- *END* ADVANCED SETTINGS SECTION *END* -->
+        </q-card-section>
+    </q-card>
 </template>
 
 <script lang="ts">

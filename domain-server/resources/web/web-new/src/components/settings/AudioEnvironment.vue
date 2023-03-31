@@ -1,35 +1,33 @@
 <template>
-    <div>
-        <!-- Audio Environment Settings -->
-        <q-card class="my-card q-ma-sm">
-            <q-card-section>
-                <div class="text-h5 text-center text-weight-bold q-mb-sm">Audio Environment</div>
-                <q-separator />
-                <!-- ADVANCED SETTINGS SECTION -->
-                <q-expansion-item v-model="isWordPressSettingsToggled" class="q-mt-md text-subtitle1" popup icon="settings" label="Advanced Settings">
-                    <q-card>
-                        <!-- Noise Muting Threshold section -->
-                        <q-card-section>
-                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="noiseMutingThreshold" label="Noise Muting Threshold"/>
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Loudness value for noise background between 0 and 1.0 (0: mute everyone, 1.0: never mute). 0.003 is a typical setting to mute loud people.</div>
-                        </q-card-section>
-                        <!-- enable Low-pass Filter section -->
-                        <q-card-section>
-                            <q-toggle v-model="isLowPassFilterEnabled" checked-icon="check" color="positive" label="Low-pass Filter" unchecked-icon="clear" />
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Positional audio stream uses low-pass filter.</div>
-                        </q-card-section>
-                        <!-- Audio Codec Preference Order section -->
-                        <q-card-section>
-                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="audioCodecPreferenceOrder" label="Audio Codec Preference Order"/>
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">List of codec names in order of preferred usage.</div>
-                        </q-card-section>
-                    </q-card>
-                </q-expansion-item>
-                <!-- *END* ADVANCED SETTINGS SECTION *END* -->
-            </q-card-section>
-        </q-card>
         <!-- *END* WordPress OAuth2 Settings *END* -->
-    </div>
+    <!-- Audio Environment Settings -->
+    <q-card class="my-card q-ma-sm">
+        <q-card-section>
+            <div class="text-h5 text-center text-weight-bold q-mb-sm">Audio Environment</div>
+            <q-separator />
+            <!-- ADVANCED SETTINGS SECTION -->
+            <q-expansion-item v-model="isWordPressSettingsToggled" class="q-mt-md text-subtitle1" popup icon="settings" label="Advanced Settings">
+                <q-card>
+                    <!-- Noise Muting Threshold section -->
+                    <q-card-section>
+                        <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="noiseMutingThreshold" label="Noise Muting Threshold"/>
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Loudness value for noise background between 0 and 1.0 (0: mute everyone, 1.0: never mute). 0.003 is a typical setting to mute loud people.</div>
+                    </q-card-section>
+                    <!-- enable Low-pass Filter section -->
+                    <q-card-section>
+                        <q-toggle v-model="isLowPassFilterEnabled" checked-icon="check" color="positive" label="Low-pass Filter" unchecked-icon="clear" />
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Positional audio stream uses low-pass filter.</div>
+                    </q-card-section>
+                    <!-- Audio Codec Preference Order section -->
+                    <q-card-section>
+                        <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="audioCodecPreferenceOrder" label="Audio Codec Preference Order"/>
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">List of codec names in order of preferred usage.</div>
+                    </q-card-section>
+                </q-card>
+            </q-expansion-item>
+            <!-- *END* ADVANCED SETTINGS SECTION *END* -->
+        </q-card-section>
+    </q-card>
 </template>
 
 <script lang="ts">

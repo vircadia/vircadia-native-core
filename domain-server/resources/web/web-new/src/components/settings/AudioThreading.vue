@@ -1,40 +1,38 @@
 <template>
-    <div>
-        <!-- Audio Threading Settings -->
-        <q-card class="my-card q-ma-sm">
-            <q-card-section>
-                <div class="text-h5 text-center text-weight-bold q-mb-sm">Audio Threading</div>
-                <q-separator />
-                <!-- ADVANCED SETTINGS SECTION -->
-                <q-expansion-item v-model="isWordPressSettingsToggled" class="q-mt-md text-subtitle1" popup icon="settings" label="Advanced Settings">
-                    <q-card>
-                        <!-- enable automatic thread count section -->
-                        <q-card-section>
-                            <q-toggle v-model="isAutomaticThreadCountEnabled" checked-icon="check" color="positive" label="Automatically Determine Thread Count" unchecked-icon="clear" />
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Allow system to determine number of threads (recommended).</div>
-                        </q-card-section>
-                        <!-- Number of Threads section -->
-                        <q-card-section>
-                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="numberOfThreads" label="Number of Threads"/>
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Threads to spin up for audio mixing (if not automatically set).</div>
-                        </q-card-section>
-                        <!-- Throttle Start Target section -->
-                        <q-card-section>
-                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="throttleStart" label="Throttle Start Target" type="number"/>
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Target percentage of frame time to start throttling.</div>
-                        </q-card-section>
-                        <!-- Throttle Backoff Target section -->
-                        <q-card-section>
-                            <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="throttleBackoff" label="Throttle Backoff Target" type="number"/>
-                            <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Target percentage of frame time to backoff throttling.</div>
-                        </q-card-section>
-                    </q-card>
-                </q-expansion-item>
-                <!-- *END* ADVANCED SETTINGS SECTION *END* -->
-            </q-card-section>
-        </q-card>
         <!-- *END* WordPress OAuth2 Settings *END* -->
-    </div>
+    <!-- Audio Threading Settings -->
+    <q-card class="my-card q-ma-sm">
+        <q-card-section>
+            <div class="text-h5 text-center text-weight-bold q-mb-sm">Audio Threading</div>
+            <q-separator />
+            <!-- ADVANCED SETTINGS SECTION -->
+            <q-expansion-item v-model="isWordPressSettingsToggled" class="q-mt-md text-subtitle1" popup icon="settings" label="Advanced Settings">
+                <q-card>
+                    <!-- enable automatic thread count section -->
+                    <q-card-section>
+                        <q-toggle v-model="isAutomaticThreadCountEnabled" checked-icon="check" color="positive" label="Automatically Determine Thread Count" unchecked-icon="clear" />
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Allow system to determine number of threads (recommended).</div>
+                    </q-card-section>
+                    <!-- Number of Threads section -->
+                    <q-card-section>
+                        <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="numberOfThreads" label="Number of Threads"/>
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Threads to spin up for audio mixing (if not automatically set).</div>
+                    </q-card-section>
+                    <!-- Throttle Start Target section -->
+                    <q-card-section>
+                        <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="throttleStart" label="Throttle Start Target" type="number"/>
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Target percentage of frame time to start throttling.</div>
+                    </q-card-section>
+                    <!-- Throttle Backoff Target section -->
+                    <q-card-section>
+                        <q-input standout="bg-primary text-white" class="text-subtitle1" v-model="throttleBackoff" label="Throttle Backoff Target" type="number"/>
+                        <div class="q-ml-xs q-mt-xs text-caption text-grey-5">Target percentage of frame time to backoff throttling.</div>
+                    </q-card-section>
+                </q-card>
+            </q-expansion-item>
+            <!-- *END* ADVANCED SETTINGS SECTION *END* -->
+        </q-card-section>
+    </q-card>
 </template>
 
 <script lang="ts">
