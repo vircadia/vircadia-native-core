@@ -21,14 +21,12 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-
 import MetaverseSettings from "@Components/settings/NetworkingMetaverse.vue";
 import WebRTCSettings from "@Components/settings/NetworkingWebRTC.vue";
 import WordpressSettings from "@Components/settings/NetworkingWordpress.vue";
 
 export default defineComponent({
     name: "Networking",
-
     components: {
         MetaverseSettings,
         WebRTCSettings,

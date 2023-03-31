@@ -19,7 +19,6 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-
 import AudioThreadingSettings from "@Components/settings/AudioThreading.vue";
 import AudioEnvironmentSettings from "@Components/settings/AudioEnvironment.vue";
 import AudioBuffersSettings from "@Components/settings/AudioBuffers.vue";

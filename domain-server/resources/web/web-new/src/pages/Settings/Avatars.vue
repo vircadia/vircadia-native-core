@@ -19,7 +19,6 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-
 import AvatarsSettings from "@Components/settings/Avatars.vue";
 import AvatarMixerSettings from "@Components/settings/AvatarMixer.vue";
 import MessagesMixerSettings from "@Components/settings/MessagesMixer.vue";

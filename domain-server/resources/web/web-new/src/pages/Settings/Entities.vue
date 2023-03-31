@@ -19,7 +19,6 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-
 import EntitiesSettings from "@Components/settings/Entities.vue";
 import AssetServerSettings from "@Components/settings/AssetServer.vue";
 import EntityScriptServerSettings from "@Components/settings/EntityScriptServer.vue";
