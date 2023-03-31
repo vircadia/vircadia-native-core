@@ -1,22 +1,40 @@
 // edited 24/11/2022 by Ujean
 
 import { doAPIGet, findErrorMsg } from "src/modules/utilities/apiHelpers";
-import { SettingsResponse, SettingsValues, Description, MetaverseSaveSettings, WebrtcSaveSettings, WordpressSaveSettings, DomainsResponse, Domains, SSLClientAcmeSaveSettings, MonitoringSaveSettings, SecuritySaveSettings, AudioThreadingSaveSettings, AudioEnvSaveSettings, AudioBufferSaveSettings, AvatarsSaveSettings, AvatarMixerSaveSettings, EntityServerSaveSettings, EntityScriptServerSaveSettings, MessagesMixerSaveSettings, AssetServerSaveSettings, DescriptionSaveSettings, BroadcastingSaveSettings, AutomaticContentArchivesSaveSettings } from "./interfaces/settings";
+import type * as SettingsInterface from "./interfaces/settings";
 import Log from "../../modules/utilities/log";
 
 const axios = require("axios");
 const timers: number[] = [];
 
 // accepted save setting types
-type settingsTypes = MetaverseSaveSettings | WebrtcSaveSettings | WordpressSaveSettings | SSLClientAcmeSaveSettings | MonitoringSaveSettings | SecuritySaveSettings | AudioThreadingSaveSettings | AudioEnvSaveSettings | AudioBufferSaveSettings | AvatarsSaveSettings | AvatarMixerSaveSettings | EntityServerSaveSettings | AssetServerSaveSettings | EntityScriptServerSaveSettings | MessagesMixerSaveSettings | DescriptionSaveSettings | BroadcastingSaveSettings | AutomaticContentArchivesSaveSettings;
+type settingsTypes =
+    SettingsInterface.MetaverseSaveSettings
+    | SettingsInterface.WebrtcSaveSettings
+    | SettingsInterface.WordpressSaveSettings
+    | SettingsInterface.SSLClientAcmeSaveSettings
+    | SettingsInterface.MonitoringSaveSettings
+    | SettingsInterface.SecuritySaveSettings
+    | SettingsInterface.AudioThreadingSaveSettings
+    | SettingsInterface.AudioEnvSaveSettings
+    | SettingsInterface.AudioBufferSaveSettings
+    | SettingsInterface.AvatarsSaveSettings
+    | SettingsInterface.AvatarMixerSaveSettings
+    | SettingsInterface.EntityServerSaveSettings
+    | SettingsInterface.AssetServerSaveSettings
+    | SettingsInterface.EntityScriptServerSaveSettings
+    | SettingsInterface.MessagesMixerSaveSettings
+    | SettingsInterface.DescriptionSaveSettings
+    | SettingsInterface.BroadcastingSaveSettings
+    | SettingsInterface.AutomaticContentArchivesSaveSettings;
 
 export const Settings = {
     // FUNCTION getValues returns values from localhost:40100/settings.json
-    async getValues (): Promise<SettingsValues> {
-        let response: SettingsValues = {};
+    async getValues (): Promise<SettingsInterface.SettingsValues> {
+        let response: SettingsInterface.SettingsValues = {};
         try {
             const apiRequestUrl = "settings.json";
-            const settingsResponse = await doAPIGet(apiRequestUrl) as SettingsResponse;
+            const settingsResponse = await doAPIGet(apiRequestUrl) as SettingsInterface.SettingsResponse;
 
             response = settingsResponse.values;
             return response;
@@ -29,11 +47,11 @@ export const Settings = {
     },
     // FUNCTION getValues returns descriptions from localhost:40100/settings.json
     // CURRENTLY NEVER INVOKED
-    async getDescriptions (): Promise<Description[]> {
-        let response: Description[] = [];
+    async getDescriptions (): Promise<SettingsInterface.Description[]> {
+        let response: SettingsInterface.Description[] = [];
         try {
             const apiRequestUrl = "settings.json";
-            const settingsResponse = await doAPIGet(apiRequestUrl) as SettingsResponse;
+            const settingsResponse = await doAPIGet(apiRequestUrl) as SettingsInterface.SettingsResponse;
 
             response = settingsResponse.descriptions;
             return response;
@@ -78,10 +96,10 @@ export const Settings = {
         }
     },
     async getDomains () {
-        let domains = [] as Domains[];
+        let domains = [] as SettingsInterface.Domains[];
         try {
             const apiRequestUrl = "api/domains";
-            const domainsResponse = await doAPIGet(apiRequestUrl) as DomainsResponse;
+            const domainsResponse = await doAPIGet(apiRequestUrl) as SettingsInterface.DomainsResponse;
             domains = domainsResponse.data.domains;
             return domains;
         } catch (error) {
