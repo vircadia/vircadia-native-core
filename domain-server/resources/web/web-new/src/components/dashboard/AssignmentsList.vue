@@ -1,15 +1,14 @@
 <template>
     <div class="q-pa-md">
         <q-table
-        title="Queued Assignment Clients"
-        :rows="queuedList"
-        :columns="queuedColumns"
-        row-key="name"
-        :rows-per-page-options="[0]"
-        :pagination="pagination"
-        hide-bottom
-        >
-        </q-table>
+            title="Queued Assignment Clients"
+            :rows="queuedList"
+            :columns="queuedColumns"
+            row-key="name"
+            :rows-per-page-options="[0]"
+            :pagination="pagination"
+            hide-bottom
+        />
     </div>
 </template>
 

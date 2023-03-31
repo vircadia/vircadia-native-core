@@ -2,13 +2,13 @@
 <template>
     <!-- RESTARTING SERVER LOADING POPUP  -->
     <q-dialog v-model="restartPopup" persistent transition-duration="200" transition-hide="fade">
-      <q-card flat class="transparent q-pa-md">
-        <q-card-actions align="center" vertical class="row items-center no-wrap">
-            <q-spinner color="accent" size="4rem" thickness="8"/>
-            <p class="q-mt-md text-h5">Server Restarting...</p>
-            <q-linear-progress :value="restartProgress" animation-speed="500" color="accent"/>
-        </q-card-actions>
-      </q-card>
+        <q-card flat class="transparent q-pa-md">
+            <q-card-actions align="center" vertical class="row items-center no-wrap">
+                <q-spinner color="accent" size="4rem" thickness="8"/>
+                <p class="q-mt-md text-h5">Server Restarting...</p>
+                <q-linear-progress :value="restartProgress" animation-speed="500" color="accent"/>
+            </q-card-actions>
+        </q-card>
     </q-dialog>
 </template>
 
