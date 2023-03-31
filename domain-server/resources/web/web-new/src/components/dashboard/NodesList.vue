@@ -100,14 +100,14 @@ export default defineComponent({
             const nodesResult = await Nodes.getNodes();
             this.nodesList = nodesResult;
         },
-        cancelAutoUpdate () {
+        cancelAutoUpdate (): void {
             clearInterval(this.timer);
         },
-        async killNode (nodeUuid : string) {
+        async killNode (nodeUuid: string): Promise<void> {
             await Nodes.killNode(nodeUuid);
         },
-        async killAllNodes () {
             // TODO: add a confirmation question here
+        async killAllNodes (): Promise<void> {
             await Nodes.killAllNodes();
         }
     },

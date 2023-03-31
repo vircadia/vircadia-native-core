@@ -53,7 +53,7 @@ export default defineComponent({
         };
     },
     methods: {
-        successfulUpload () {
+        successfulUpload (): void {
             this.showSuccessfulUploadDialog = true;
             window.setInterval(() => {
                 this.reloadPageTimer--;
@@ -62,7 +62,7 @@ export default defineComponent({
                 }
             }, 1000);
         },
-        failedUpload () {
+        failedUpload (): void {
             console.log("Failed to upload content");
             this.showFailedUploadDialog = true;
         }

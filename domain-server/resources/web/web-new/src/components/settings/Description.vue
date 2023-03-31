@@ -195,7 +195,7 @@ export default defineComponent({
             changedSetting.splice(index, 1);
             this[settingType] = [...changedSetting];
         },
-        onAddRow (settingType: settingTypes) {
+        onAddRow (settingType: settingTypes): void {
             const newRowSetting = [...this[settingType], this.newRowNames[settingType]];
             this[settingType] = [...newRowSetting];
             this.newRowNames[settingType] = "";

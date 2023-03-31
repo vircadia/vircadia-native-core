@@ -100,7 +100,7 @@ export default defineComponent({
         //         this[settingType] = changedSetting;
         //     }
         // },
-        // onAddRow (settingType: settingTypes) {
+        // onAddRow (settingType: settingTypes): void {
         //     this[settingType] = [...this[settingType], this.newRowNames[settingType]];
         //     this.newRowNames[settingType] = { address: "", port: "", server_type: "Audio Mixer" };
         // },

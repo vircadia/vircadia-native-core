@@ -93,7 +93,7 @@ export default defineComponent({
             changedPersistentScripts.splice(indexToDelete, 1);
             this.persistentScripts = changedPersistentScripts;
         },
-        onAddScript () {
+        onAddScript (): void {
             this.persistentScripts = [...this.persistentScripts, this.newScript];
             this.newScript = { url: "", num_instances: "1", pool: "" };
         },

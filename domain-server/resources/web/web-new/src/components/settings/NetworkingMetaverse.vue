@@ -237,7 +237,7 @@ export default defineComponent({
                 });
             }
         },
-        async onChooseFromDomains () {
+        async onChooseFromDomains (): Promise<void> {
             this.showChooseDomains = true;
             this.chooseDomainLoading = true;
             const domainsList = await Settings.getDomains();
@@ -257,7 +257,7 @@ export default defineComponent({
                 this.showDomainOptions = false;
             }
         },
-        onChooseDomain () {
+        onChooseDomain (): void {
             this.showChooseDomains = false;
             this.domainID = this.currentDomainOption;
         },
@@ -279,7 +279,7 @@ export default defineComponent({
             };
             Settings.automaticCommitSettings(settingsToCommit);
         },
-        toggleRestartServer () {
+        toggleRestartServer (): void {
             // whenever restart-server state changes, the watcher in sharedMethods.vue will fire
             this.restartServer = !this.restartServer;
         }

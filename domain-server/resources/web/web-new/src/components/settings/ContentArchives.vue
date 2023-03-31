@@ -134,18 +134,18 @@ export default defineComponent({
         clearNewArchiveName (): void {
             this.newArchiveName = "";
         },
-        generateNewArchive () {
+        generateNewArchive (): void {
             this.newArchiveDialogue = false;
             BackupsList.generateNewArchive(this.newArchiveName);
             this.clearNewArchiveName();
             this.getBackups();
         },
-        deleteBackup (backupID: string) {
+        deleteBackup (backupID: string): void {
             BackupsList.deleteBackup(backupID);
             this.getBackups();
             this.resetDeleteDialogue();
         },
-        formatDate (date: number) {
+        formatDate (date: number): string {
             return moment(date).format("lll");
         }
     },
