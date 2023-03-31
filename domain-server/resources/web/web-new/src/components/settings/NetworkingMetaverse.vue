@@ -190,7 +190,7 @@ export default defineComponent({
             showDomainOptions: true,
             chooseDomainLoading: false,
             // Metaverse Account section variables
-            domainsOptions: [] as any,
+            domainsOptions: [] as { label: string, value: number }[],
             currentDomainOption: "",
             isUserConnected: false,
             newDomainLabel: "",

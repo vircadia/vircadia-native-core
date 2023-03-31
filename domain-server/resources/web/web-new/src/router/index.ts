@@ -44,7 +44,7 @@ export default route(function (/* { store, ssrContext } */) {
         )
     });
 
-    Router.beforeEach((to: any, from: any, next: any) => {
+    Router.beforeEach((to, from, next) => {
         Settings.getValues()
             .then((values: SettingsValues) => {
                 if (to.path === "/wizard" && values.wizard?.completed_once) {
