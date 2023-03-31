@@ -36,7 +36,6 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import moment from "moment";
 import { ContentSettings } from "@Modules/domain/contentSettings";
 
 export default defineComponent({
@@ -56,9 +55,20 @@ export default defineComponent({
             const values = await ContentSettings.getValues();
             this.installedContentName = values.installed_content?.name ?? "";
             this.installedContentFileName = values.installed_content?.filename ?? "";
-            this.installedContentCreationTime = values.installed_content?.creation_time ? moment(values.installed_content?.creation_time).format("lll") : "";
-            this.installedContentInstallTime = values.installed_content?.install_time ? moment(values.installed_content?.install_time).format("lll") : "";
+            this.installedContentCreationTime = values.installed_content?.creation_time ? this.formatDate(values.installed_content.creation_time) : "";
+            this.installedContentInstallTime = values.installed_content?.install_time ? this.formatDate(values.installed_content.install_time) : "";
             this.installedContentInstalledBy = values.installed_content?.installed_by ?? "";
+        },
+        formatDate (date: number): string {
+            const dateLocaleOptions = {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+                hour: "numeric",
+                minute: "numeric",
+                timeZoneName: "short"
+            } as const;
+            return new Date(date).toLocaleString("en-US", dateLocaleOptions);
         }
     },
     beforeMount () {

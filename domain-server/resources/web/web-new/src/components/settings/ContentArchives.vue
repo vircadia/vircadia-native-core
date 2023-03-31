@@ -102,7 +102,6 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import moment from "moment";
 import { BackupsList } from "@Modules/domain/backups";
 import type{ Backup } from "@Modules/domain/interfaces/backups";
 
@@ -124,7 +123,7 @@ export default defineComponent({
             this.manualBackupList = await BackupsList.getManualBackupsList();
         },
         showDeleteDialogue (backupName: string, backupTime: number, backupID: string): void {
-            this.confirmDeleteDialogue = { show: true, backupToDelete: `${backupName}: ${moment(backupTime).format("lll")}`, backupID: backupID };
+            this.confirmDeleteDialogue = { show: true, backupToDelete: `${backupName}: ${this.formatDate(backupTime)}`, backupID: backupID };
         },
         resetDeleteDialogue (): void {
             this.confirmDeleteDialogue = { show: false, backupToDelete: "", backupID: "" };
@@ -144,7 +143,15 @@ export default defineComponent({
             this.resetDeleteDialogue();
         },
         formatDate (date: number): string {
-            return moment(date).format("lll");
+            const dateLocaleOptions = {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+                hour: "numeric",
+                minute: "numeric",
+                timeZoneName: "short"
+            } as const;
+            return new Date(date).toLocaleString("en-US", dateLocaleOptions);
         }
     },
     beforeMount () {
