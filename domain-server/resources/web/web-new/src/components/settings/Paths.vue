@@ -62,8 +62,8 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import { ContentSettingsValues, Path, PathsSaveSetting } from "@/src/modules/domain/interfaces/contentSettings";
 import { ContentSettings } from "@Modules/domain/contentSettings";
+import type { ContentSettingsValues, Path, PathsSaveSetting } from "@Modules/domain/interfaces/contentSettings";
 
 export default defineComponent({
     name: "Paths",

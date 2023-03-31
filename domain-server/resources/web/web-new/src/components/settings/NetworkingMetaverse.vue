@@ -157,7 +157,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
-import { MetaverseSaveSettings, SettingsValues } from "@/src/modules/domain/interfaces/settings";
+import type { MetaverseSaveSettings, SettingsValues } from "@Modules/domain/interfaces/settings";
 import SharedMethods from "@Components/sharedMethods.vue";
 
 export default defineComponent({

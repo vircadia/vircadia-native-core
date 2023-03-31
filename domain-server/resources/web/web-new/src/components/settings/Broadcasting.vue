@@ -140,7 +140,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
-import { BroadcastingSaveSettings, SettingsValues, DownstreamServer, UpstreamServer } from "@/src/modules/domain/interfaces/settings";
+import type { BroadcastingSaveSettings, SettingsValues, DownstreamServer, UpstreamServer } from "@Modules/domain/interfaces/settings";
 
 type settingTypes = "users" | "downstreamServers" | "upstreamServers";
 

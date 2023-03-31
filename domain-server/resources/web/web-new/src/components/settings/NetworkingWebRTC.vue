@@ -32,7 +32,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
-import { SettingsValues, WebrtcSaveSettings } from "@/src/modules/domain/interfaces/settings";
+import type { SettingsValues, WebrtcSaveSettings } from "@Modules/domain/interfaces/settings";
 
 export default defineComponent({
     name: "WebRTCSettings",

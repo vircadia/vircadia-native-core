@@ -84,7 +84,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
-import { SettingsValues, SSLClientAcmeSaveSettings } from "@/src/modules/domain/interfaces/settings";
+import type { SettingsValues, SSLClientAcmeSaveSettings } from "@Modules/domain/interfaces/settings";
 
 export default defineComponent({
     name: "SSLClientSettings",

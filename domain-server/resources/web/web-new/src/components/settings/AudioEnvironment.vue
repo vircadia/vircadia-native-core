@@ -35,7 +35,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
-import { AudioEnvSaveSettings, SettingsValues } from "@/src/modules/domain/interfaces/settings";
+import type { AudioEnvSaveSettings, SettingsValues } from "@Modules/domain/interfaces/settings";
 
 export default defineComponent({
     name: "AudioEnvironmentSettings",

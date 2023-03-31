@@ -14,9 +14,9 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import { MetaverseSaveSettings, WebrtcSaveSettings, WordpressSaveSettings, SSLClientAcmeSaveSettings, MonitoringSaveSettings, SecuritySaveSettings } from "../modules/domain/interfaces/settings";
-import { doAPIGet } from "../modules/utilities/apiHelpers";
-import Log from "../modules/utilities/log";
+import type { MetaverseSaveSettings, WebrtcSaveSettings, WordpressSaveSettings, SSLClientAcmeSaveSettings, MonitoringSaveSettings, SecuritySaveSettings } from "@Modules/domain/interfaces/settings";
+import { doAPIGet } from "@Modules/utilities/apiHelpers";
+import Log from "@Modules/utilities/log";
 
 const axios = require("axios");
 

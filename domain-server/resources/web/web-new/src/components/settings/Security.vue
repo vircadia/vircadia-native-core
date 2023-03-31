@@ -399,7 +399,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
-import { SettingsValues, SecuritySaveSettings, StandardPermission, GroupPermission, GroupForbidden, Permission, IpPermission, MacPermission, MachineFingerprintPermission } from "@/src/modules/domain/interfaces/settings";
+import type { SettingsValues, SecuritySaveSettings, StandardPermission, GroupPermission, GroupForbidden, Permission, IpPermission, MacPermission, MachineFingerprintPermission } from "@Modules/domain/interfaces/settings";
 
 type PermissionTypes = "standardPermissions" | "groupPermissions" | "groupForbiddens" | "userPermissions" | "ipPermissions" | "macPermissions" | "machineFingerprintPermissions";
 type PermissionNames = "userGroupName" | "forbiddenGroupName" | "userPermissionName" | "ipPermissionName" | "macPermissionName" | "machineFingerprintPermissionName";

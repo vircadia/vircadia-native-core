@@ -115,7 +115,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
-import { EntityServerSaveSettings, SettingsValues } from "@/src/modules/domain/interfaces/settings";
+import type { EntityServerSaveSettings, SettingsValues } from "@Modules/domain/interfaces/settings";
 
 export default defineComponent({
     name: "EntitiesSettings",

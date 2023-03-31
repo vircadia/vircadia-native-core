@@ -146,7 +146,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
-import { DescriptionSaveSettings, SettingsValues } from "@/src/modules/domain/interfaces/settings";
+import type { DescriptionSaveSettings, SettingsValues } from "@Modules/domain/interfaces/settings";
 
 type settingTypes = "images" | "managers" | "tags";
 

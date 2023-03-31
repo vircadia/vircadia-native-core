@@ -25,7 +25,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
-import { MessagesMixerSaveSettings, SettingsValues } from "@/src/modules/domain/interfaces/settings";
+import type { MessagesMixerSaveSettings, SettingsValues } from "@Modules/domain/interfaces/settings";
 
 export default defineComponent({
     name: "MessagesMixerSettings",

@@ -16,7 +16,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { Assignments } from "@Modules/domain/assignments";
-import { Assignment, QueuedAssignment } from "@Base/modules/domain/interfaces/assignments";
+import type { Assignment, QueuedAssignment } from "@Modules/domain/interfaces/assignments";
 
 const queuedColumns = [
     { name: "type", align: "left", label: "Type", field: "type" },

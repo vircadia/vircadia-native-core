@@ -67,8 +67,8 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import { ContentSettingsValues, PersistentScript, ScriptsSaveSetting } from "@/src/modules/domain/interfaces/contentSettings";
 import { ContentSettings } from "@Modules/domain/contentSettings";
+import type { ContentSettingsValues, PersistentScript, ScriptsSaveSetting } from "@Modules/domain/interfaces/contentSettings";
 
 export default defineComponent({
     name: "Scripts",

@@ -63,7 +63,7 @@
 <script lang="ts">
 import { defineComponent, ref } from "vue";
 import { Nodes } from "@Modules/domain/nodes";
-import { Node } from "@Modules/domain/interfaces/nodes";
+import type { Node } from "@Modules/domain/interfaces/nodes";
 
 const columns = [
     { name: "type", align: "left", label: "Type", field: "type" },

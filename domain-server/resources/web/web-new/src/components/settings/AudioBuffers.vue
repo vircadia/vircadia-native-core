@@ -30,7 +30,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
-import { AudioBufferSaveSettings, SettingsValues } from "@/src/modules/domain/interfaces/settings";
+import type { AudioBufferSaveSettings, SettingsValues } from "@Modules/domain/interfaces/settings";
 
 export default defineComponent({
     name: "AudioBuffersSettings",

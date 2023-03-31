@@ -105,8 +105,8 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import moment from "moment";
-import { Backup } from "@Modules/domain/interfaces/backups";
 import { BackupsList } from "@Modules/domain/backups";
+import type{ Backup } from "@Modules/domain/interfaces/backups";
 
 export default defineComponent({
     name: "ContentArchives",

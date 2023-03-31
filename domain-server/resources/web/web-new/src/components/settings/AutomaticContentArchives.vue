@@ -68,7 +68,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { Settings } from "@Modules/domain/settings";
-import { AutomaticContentArchivesSaveSettings, BackupRule, SettingsValues } from "@/src/modules/domain/interfaces/settings";
+import type { AutomaticContentArchivesSaveSettings, BackupRule, SettingsValues } from "@Modules/domain/interfaces/settings";
 
 type settingTypes = "backupRules";
 
