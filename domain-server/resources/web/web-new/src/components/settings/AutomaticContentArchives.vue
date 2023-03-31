@@ -1,6 +1,6 @@
 <template>
     <div class="q-ma-sm">
-        <!-- Automatic Content Archives  Settings -->
+        <!-- Automatic Content Archives Settings -->
         <q-card class="my-card">
             <q-card-section>
                 <div class="text-h5 text-center text-weight-bold q-mb-sm">Automatic Content Archives</div>
@@ -61,7 +61,7 @@
                     </q-dialog>
             </q-card-section>
         </q-card>
-        <!-- *END* Description Settings *END* -->
+        <!-- *END* Automatic Content Archives Settings *END* -->
     </div>
 </template>
 

@@ -1,5 +1,4 @@
 <template>
-        <!-- *END* Description Settings *END* -->
     <!-- Installed Content -->
     <q-card class="my-card">
         <q-card-section>
@@ -32,6 +31,7 @@
             </q-card>
         </q-card-section>
     </q-card>
+    <!-- *END* Installed Content *END* -->
 </template>
 
 <script lang="ts">

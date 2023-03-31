@@ -1,5 +1,4 @@
 <template>
-        <!-- *END* WebRTC Settings *END* -->
     <!-- Monitoring Settings -->
     <q-card class="my-card q-ma-sm">
         <q-card-section>
@@ -24,6 +23,7 @@
             <!-- *END* ADVANCED SETTINGS SECTION *END* -->
         </q-card-section>
     </q-card>
+    <!-- *END* Monitoring Settings *END* -->
 </template>
 
 <script lang="ts">

@@ -1,5 +1,4 @@
 <template>
-        <!-- *END* Content Archives *END* -->
     <!-- Upload Content -->
     <q-card class="my-card q-mt-md">
         <q-card-section>
@@ -36,6 +35,7 @@
             </q-card>
         </q-card-section>
     </q-card>
+    <!-- *END* Upload Content *END* -->
 </template>
 
 <script lang="ts">

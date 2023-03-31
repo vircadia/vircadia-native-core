@@ -1,5 +1,4 @@
 <template>
-        <!-- *END* WordPress OAuth2 Settings *END* -->
     <!-- Audio Environment Settings -->
     <q-card class="my-card q-ma-sm">
         <q-card-section>
@@ -28,6 +27,7 @@
             <!-- *END* ADVANCED SETTINGS SECTION *END* -->
         </q-card-section>
     </q-card>
+    <!-- *END* Audio Environment Settings *END* -->
 </template>
 
 <script lang="ts">

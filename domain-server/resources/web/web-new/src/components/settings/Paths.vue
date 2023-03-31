@@ -52,10 +52,10 @@
                         <q-btn flat label="Delete" @click="onDeletePath(confirmDeleteDialogue.pathName)"/>
                     </q-card-actions>
                 </q-card>
-        <!-- *END* Description Settings *END* -->
             </q-dialog>
         </q-card-section>
     </q-card>
+    <!-- *END* Paths Settings *END* -->
 </template>
 
 <script lang="ts">

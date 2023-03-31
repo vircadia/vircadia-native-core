@@ -57,10 +57,10 @@
                         <q-btn flat label="Delete" @click="onDeleteScript(confirmDeleteDialogue.index)"/>
                     </q-card-actions>
                 </q-card>
-        <!-- *END* Description Settings *END* -->
             </q-dialog>
         </q-card-section>
     </q-card>
+    <!-- *END* Scripts Settings *END* -->
 </template>
 
 <script lang="ts">

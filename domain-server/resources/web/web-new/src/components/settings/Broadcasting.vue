@@ -127,12 +127,12 @@
                             <q-btn flat label="Delete" @click="onDeleteRow(confirmDeleteDialogue.permissionType, confirmDeleteDialogue.index)"/>
                         </q-card-actions>
                     </q-card>
-        <!-- *END* Description Settings *END* -->
                 </q-dialog>
             </q-expansion-item>
             <!-- *END* ADVANCED SETTINGS SECTION *END* -->
         </q-card-section>
     </q-card>
+    <!-- *END* Broadcasting Settings *END* -->
 </template>
 
 <script lang="ts">

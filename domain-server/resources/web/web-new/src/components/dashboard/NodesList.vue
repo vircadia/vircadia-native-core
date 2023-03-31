@@ -88,7 +88,7 @@ export default defineComponent({
             columns,
             pagination: {
                 page: 1,
-                rowsPerPage: 0 // 0 means all rows
+                rowsPerPage: 0 // 0 means all rows.
             },
             nodesList: [] as Node[],
             timer: 0 as number,
@@ -106,8 +106,8 @@ export default defineComponent({
         async killNode (nodeUuid: string): Promise<void> {
             await Nodes.killNode(nodeUuid);
         },
-            // TODO: add a confirmation question here
         async killAllNodes (): Promise<void> {
+            // TODO: add a confirmation question here.
             await Nodes.killAllNodes();
         }
     },

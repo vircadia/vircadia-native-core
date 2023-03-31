@@ -75,9 +75,9 @@ export const Settings = {
             });
     },
     automaticCommitSettings (settingsToCommit: settingsTypes): void {
-        // automaticCommitSettings should be called whenever an input change is detected
-        // only commits changes once no input changes are detected for 5 secs (5000 ms)
-        // call commitSettings instead of automaticCommitSettings to instantly commit changes
+        // `automaticCommitSettings` should be called whenever an input change is detected.
+        // It only commits changes once no input changes are detected for 5 secs (5000 ms).
+        // Call commitSettings instead of automaticCommitSettings to instantly commit changes.
         timers.forEach((timerID, index) => { clearTimeout(timerID); timers.splice(index, 1); });
         timers.push(window.setTimeout(this.commitSettings, 5000, settingsToCommit));
     },
