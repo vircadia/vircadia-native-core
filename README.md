@@ -9,11 +9,11 @@
 
 ### What is this?
 
-Vircadia™ is an open source metaverse project seeking to incrementally bring about a truly free and open metaverse.
+Vircadia™ is an open source metaverse ecosystem that excels in mass human and agent (AI) based immersive worlds.
 
-* Mobile, desktop, and VR support
-* Hundreds of users simultaneously
-* Full-body avatars
+* Mobile, desktop, and VR support through Web
+* Hundreds of agents simultaneously
+* Full-body (Human or Agents)
 * Script with JavaScript & TypeScript (coming soon)
 * Visual scripting (coming soon)
 * Full world editor
@@ -22,31 +22,13 @@ Vircadia™ is an open source metaverse project seeking to incrementally bring a
 * Apache 2.0
 * And more...
 
+#### What is an "agent"?
+
+An agent is an AI being that shares the same space as users, interacting, speaking, and experiencing the world. They can be used for simple companionship or training and gameplay opportunities. Vircadia excels at the deployment of agents en-masse to allow in a full sandbox experience.
+
 ### Support
 
 If you need help integrating or deploying Vircadia for your company / organization, please [reach out](https://vircadia.com/#contact) to us.
-
-### How to deploy a Server
-
-- [For Windows and Linux](https://vircadia.com/deploy-a-server/)
-
-### Building
-
-#### How to build the Developer Interface
-
-- [For Windows](https://github.com/vircadia/vircadia/blob/master/BUILD_WIN.md)
-- [For Mac](https://github.com/vircadia/vircadia/blob/master/BUILD_OSX.md)
-- [For Linux](https://github.com/vircadia/vircadia/blob/master/BUILD_LINUX.md)
-
-#### How to build a Server
-
-- [For Windows](https://github.com/vircadia/vircadia/blob/master/BUILD_WIN.md)
-- [For Linux](https://github.com/vircadia/vircadia/blob/master/BUILD_LINUX.md)
-
-#### How to generate an Installer
-
-- [For Windows - Interface & Server](https://github.com/vircadia/vircadia/blob/master/INSTALLER.md)
-- [For Linux - Server .deb - Vircadia Builder](INSTALLER.md#ubuntu-1804--deb)
 
 ### Architecture and Documentation
 
