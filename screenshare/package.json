@@ -19,7 +19,7 @@
   "homepage": "https://github.com/highfidelity/hifi#readme",
   "devDependencies": {
     "electron": "^22.3.24",
-    "electron-packager": "^14.0.6"
+    "electron-packager": "^17.1.2"
   },
   "dependencies": {
     "yargs": "^14.2.0"
