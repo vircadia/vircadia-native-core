@@ -32,9 +32,10 @@ If you need help integrating or deploying Vircadia for your company / organizati
 
 ### Architecture and Documentation
 
-If you would like to learn more about the architecture and the various components in the ecosystem, visit the developer docs.
+If you would like to learn more about the architecture and the various components in the ecosystem, visit the developer documentation. If you want documentation for general use and to pass onto your users, visit the user documentation.
 
 - [Developer Documentation](https://docs.vircadia.dev/)
+- [User Documentation](https://docs.vircadia.com/)
 
 ### Supporters of the Vircadia Project
 
