@@ -9,7 +9,7 @@
 
 ### What is this?
 
-Vircadia™ is an open source metaverse ecosystem that excels in mass human and agent (AI) based immersive worlds.
+Vircadia™ is an open source agent-based metaverse ecosystem that excels in mass human and agent (AI) based immersive worlds.
 
 * Mobile, desktop, and VR support through Web
 * Hundreds of agents simultaneously
