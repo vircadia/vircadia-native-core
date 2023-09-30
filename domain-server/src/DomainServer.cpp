@@ -30,6 +30,7 @@
 #include <QUrlQuery>
 #include <QCommandLineParser>
 #include <QUuid>
+#include <QSslCipher>
 
 #include <AccountManager.h>
 #include <AssetClient.h>
@@ -115,6 +116,11 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
                                               std::initializer_list<QString> optionalData,
                                               bool requireAccessToken) {
 
+    bool isDomainsRequest = metaversePath.startsWith("/api/v1/domains");
+    if (isDomainsRequest) {
+        qDebug() << "####### forwardMetaverseAPIRequest():" << requestUrl << metaversePath << requestSubobjectKey;
+    }
+
     auto accessTokenVariant = _settingsManager.valueForKeyPath(ACCESS_TOKEN_KEY_PATH);
     if (!accessTokenVariant.isValid() && requireAccessToken) {
         connection->respond(HTTPConnection::StatusCode400, "User access token has not been set");
@@ -167,6 +173,9 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
     QJsonDocument doc { root };
 
     QUrl url { MetaverseAPI::getCurrentMetaverseServerURL().toString() + metaversePath };
+    if (isDomainsRequest) {
+        qDebug() << "####... url:" << url;
+    }
 
     QNetworkRequest req(url);
     req.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
@@ -194,8 +203,24 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
         if (reply->error() != QNetworkReply::NoError) {
             auto data = reply->readAll();
             qDebug() << "Got error response from metaverse server (" << reply->url() << "): " << data << reply->errorString();
+            qDebug() << "####### Got error response from metaverse server (" << reply->url() << "): |" << data << "|" 
+                << reply->errorString();
+            qDebug() << "####... url:" << reply->url();
+            qDebug() << "####... rawHeaderPairs:" << reply->rawHeaderPairs();
+            qDebug() << "####... ciphers:" << reply->sslConfiguration().ciphers();
+            qDebug() << "####... sessionCipher:" << reply->sslConfiguration().sessionCipher();
+            qDebug() << "####... supportedCiphers:" << QSslSocket::supportedCiphers();
             connection->respond(HTTPConnection::StatusCode400, data);
             return;
+        } else {
+            if (reply->url().toString().contains("api/v1/domain")) {
+                qDebug() << "####### Got success response from metaverse server (" << reply->url() << "):" << reply->errorString();
+                qDebug() << "####... url:" << reply->url();
+                qDebug() << "####... rawHeaderPairs:" << reply->rawHeaderPairs();
+                qDebug() << "####... ciphers:" << reply->sslConfiguration().ciphers().toVector();
+                qDebug() << "####... sessionCipher:" << reply->sslConfiguration().sessionCipher();
+                qDebug() << "####... supportedCiphers:" << QSslSocket::supportedCiphers();
+            }
         }
 
         connection->respond(HTTPConnection::StatusCode200, reply->readAll());
@@ -2486,8 +2511,10 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
             return true;
         } else if (url.path() == URI_API_DOMAINS) {
+            qDebug() << "####### GET URI_API_DOMAINS";
             return forwardMetaverseAPIRequest(connection, url, "/api/v1/domains");
         } else if (url.path().startsWith(URI_API_DOMAINS_ID)) {
+            qDebug() << "####### GET URI_API_DOMAINS_ID";
             auto id = url.path().mid(URI_API_DOMAINS_ID.length());
             return forwardMetaverseAPIRequest(connection, url, "/api/v1/domains/" + id, "", {}, {}, false);
         } else if (url.path() == URI_API_PLACES) {
@@ -2628,6 +2655,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             }
 
         } else if (url.path() == URI_API_DOMAINS) {
+            qDebug() << "####### POST URI_API_DOMAINS";
             return forwardMetaverseAPIRequest(connection, url, "/api/v1/domains", "domain", { "label" });
 
         } else if (url.path().startsWith(URI_API_BACKUPS_RECOVER)) {
@@ -2649,6 +2677,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         }
     } else if (connection->requestOperation() == QNetworkAccessManager::PutOperation) {
         if (url.path() == URI_API_DOMAINS) {
+            qDebug() << "####### PUT URI_API_DOMAINS";
             QVariant domainSetting;
             if (!getSetting(METAVERSE_DOMAIN_ID_KEY_PATH, domainSetting)) {
                 connection->respond(HTTPConnection::StatusCode400, "Domain id has not been set");
