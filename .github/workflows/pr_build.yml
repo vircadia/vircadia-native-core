@@ -138,7 +138,7 @@ jobs:
         fi
 
     - name: Clear Working Directory
-      if: startsWith(matrix.os, 'windows') || contains(matrix.os, 'self-hosted')
+      if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'ubuntu') || contains(matrix.os, 'self-hosted')
       shell: bash
       working-directory: ${{runner.workspace}}
       run: rm -rf ./*
