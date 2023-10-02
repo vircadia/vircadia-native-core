@@ -174,6 +174,7 @@ jobs:
             sudo apt install qt5153d qt5153d-dbg qt515base qt515base-dbg qt515charts-no-lgpl qt515connectivity qt515connectivity-dbg qt515datavis3d-no-lgpl qt515declarative qt515declarative-dbg qt515doc qt515gamepad qt515graphicaleffects qt515graphicaleffects-dbg qt515imageformats qt515imageformats-dbg qt515location qt515location-dbg qt515lottie-no-lgpl qt515multimedia qt515multimedia-dbg qt515networkauth-no-lgpl qt515opcua qt515opcua-dbg qt515quick3d-no-lgpl qt515quickcontrols qt515quickcontrols-dbg qt515quickcontrols2 qt515quickcontrols2-dbg qt515quicktimeline-no-lgpl qt515remoteobjects qt515remoteobjects-dbg qt515script qt515script-dbg qt515scxml qt515scxml-dbg qt515sensors qt515sensors-dbg qt515serialbus qt515serialbus-dbg qt515serialport qt515serialport-dbg qt515speech qt515speech-dbg qt515svg qt515svg-dbg qt515tools qt515tools-dbg qt515translations qt515wayland qt515wayland-dbg qt515webchannel qt515webchannel-dbg qt515webengine qt515webengine-dbg qt515webglplugin-no-lgpl qt515websockets qt515websockets-dbg qt515x11extras qt515x11extras-dbg qt515xmlpatterns qt515xmlpatterns-dbg
 
             strings /usr/lib/x86_64-linux-gnu/libstdc++.so.6 | grep GLIBCXX
+            which g++-11 || which g++-12 || true
           fi
 
         else # macOS
