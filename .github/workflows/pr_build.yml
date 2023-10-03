@@ -182,7 +182,7 @@ jobs:
             sudo apt clean
             docker rmi $(docker image ls -aq)
 
-            # downgrade libstdc++6 to what is normal for ubuntu20.04
+            # downgrade libstdc++6 to what is normal for Ubuntu 20.04
             sudo apt-get install --allow-downgrades --no-remove --reinstall -y libstdc++6=10.5.0-1ubuntu1~20.04
 
             strings /usr/lib/x86_64-linux-gnu/libstdc++.so.6 | grep GLIBCXX
