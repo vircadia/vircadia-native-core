@@ -30,7 +30,7 @@
 #include <QUrlQuery>
 #include <QCommandLineParser>
 #include <QUuid>
-#include <QSslCipher>
+//#include <QSslCipher>
 
 #include <AccountManager.h>
 #include <AssetClient.h>
@@ -207,9 +207,9 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
                 << reply->errorString();
             qDebug() << "####... url:" << reply->url();
             qDebug() << "####... rawHeaderPairs:" << reply->rawHeaderPairs();
-            qDebug() << "####... ciphers:" << reply->sslConfiguration().ciphers();
-            qDebug() << "####... sessionCipher:" << reply->sslConfiguration().sessionCipher();
-            qDebug() << "####... supportedCiphers:" << QSslSocket::supportedCiphers();
+            //qDebug() << "####... ciphers:" << reply->sslConfiguration().ciphers();
+            //qDebug() << "####... sessionCipher:" << reply->sslConfiguration().sessionCipher();
+            //qDebug() << "####... supportedCiphers:" << QSslSocket::supportedCiphers();
             connection->respond(HTTPConnection::StatusCode400, data);
             return;
         } else {
@@ -217,9 +217,9 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
                 qDebug() << "####### Got success response from metaverse server (" << reply->url() << "):" << reply->errorString();
                 qDebug() << "####... url:" << reply->url();
                 qDebug() << "####... rawHeaderPairs:" << reply->rawHeaderPairs();
-                qDebug() << "####... ciphers:" << reply->sslConfiguration().ciphers().toVector();
-                qDebug() << "####... sessionCipher:" << reply->sslConfiguration().sessionCipher();
-                qDebug() << "####... supportedCiphers:" << QSslSocket::supportedCiphers();
+                //qDebug() << "####... ciphers:" << reply->sslConfiguration().ciphers().toVector();
+                //qDebug() << "####... sessionCipher:" << reply->sslConfiguration().sessionCipher();
+                //qDebug() << "####... supportedCiphers:" << QSslSocket::supportedCiphers();
             }
         }
 
