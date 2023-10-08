@@ -115,6 +115,11 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
                                               std::initializer_list<QString> optionalData,
                                               bool requireAccessToken) {
 
+    bool isDomainsRequest = metaversePath.startsWith("/api/v1/domains");
+    if (isDomainsRequest) {
+        qDebug() << "####### forwardMetaverseAPIRequest():" << requestUrl << metaversePath << requestSubobjectKey;
+    }
+
     auto accessTokenVariant = _settingsManager.valueForKeyPath(ACCESS_TOKEN_KEY_PATH);
     if (!accessTokenVariant.isValid() && requireAccessToken) {
         connection->respond(HTTPConnection::StatusCode400, "User access token has not been set");
