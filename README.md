@@ -6,6 +6,7 @@
     <a href="https://github.com/vircadia/vircadia/network"><img alt="GitHub forks" src="https://img.shields.io/github/forks/vircadia/vircadia"></a>
     <a href="https://www.apache.org/licenses/LICENSE-2.0"><img alt="Apache 2.0" src="https://img.shields.io/badge/license-Apache--2.0-%230A7BBB?style=flat"></a>
     <a href="https://discordapp.com/invite/Pvx2vke"><img alt="Discord" src="https://img.shields.io/discord/564926326025224212?style=flat"></a>
+</p>
 
 ### What is this?
 
@@ -22,6 +23,25 @@ Vircadia™ is an open source agent-based metaverse ecosystem that excels in mas
 * Apache 2.0
 * And more...
 
+### Supporters of the Vircadia Project
+
+Vircadia is sponsored by companies, organizations, and governments, some of which can be found [here](https://vircadia.com/#partners).
+
+#### Premiere Partners
+
+<p align="center">
+  <table>
+    <tr>
+      <td align="center" width="50%">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/T-SYSTEMS-LOGO2013.svg/2560px-T-SYSTEMS-LOGO2013.svg.png" style="width:100%">
+      </td>
+      <td align="center" width="50%">
+        <img src="https://ua92.ac.uk/wp-content/uploads/2022/03/og.png" style="width:100%">
+      </td>
+    </tr>
+  </table>
+</p>
+
 #### What is an "agent"?
 
 An agent is an AI being that shares the same space as users, interacting, speaking, and experiencing the world. They can be used for simple companionship or training and gameplay opportunities. Vircadia excels at the deployment of agents en-masse to allow in a full sandbox experience.
@@ -37,6 +57,4 @@ If you would like to learn more about the architecture and the various component
 - [Developer Documentation](https://docs.vircadia.dev/)
 - [User Documentation](https://docs.vircadia.com/)
 
-### Supporters of the Vircadia Project
-
-Vircadia is sponsored by companies, organizations, and governments, some of which can be found [here](https://vircadia.com/#partners).
+![Alt](https://repobeats.axiom.co/api/embed/435b07a47586e875aa4842cfa5387e65b389d8cf.svg "Repobeats analytics image")
