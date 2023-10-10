@@ -134,6 +134,9 @@ jobs:
           echo "Installing Python Modules:"
           pip3 install distro || exit 1
 
+          # workaround https://github.com/orgs/community/discussions/47863
+          sudo apt-mark hold grub-efi-amd64-signed
+
           echo "Updating apt repository index"
           sudo apt update || exit 1
 
