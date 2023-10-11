@@ -1,4 +1,4 @@
-<p align="center"><a href="https://vircadia.com/"><img src="interface/resources/images/vircadia-banner.svg" alt="Vircadia - Codename Athena" width="350"/></a></p>
+<p align="center"><a href="https://vircadia.com/"><img src="https://docs.vircadia.com/img/vircadia-banner.png" alt="Vircadia - Codename Athena" width="350"/></a></p>
 <h3 align="center"><a href="https://vircadia.com/">Website</a> | <a href="https://discordapp.com/invite/Pvx2vke">Discord</a></h3>
 <p align="center">
     <a href="https://vircadia.com/contribute"><img alt="GitHub contributors" src="https://img.shields.io/github/contributors/vircadia/vircadia"></a>
@@ -33,10 +33,10 @@ Vircadia is sponsored by companies, organizations, and governments, some of whic
   <table>
     <tr>
       <td align="center" width="50%">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/T-SYSTEMS-LOGO2013.svg/2560px-T-SYSTEMS-LOGO2013.svg.png" style="width:100%">
+        <a href="https://www.t-systems.com/"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/T-SYSTEMS-LOGO2013.svg/2560px-T-SYSTEMS-LOGO2013.svg.png" style="width:100%"></a>
       </td>
       <td align="center" width="50%">
-        <img src="https://ua92.ac.uk/wp-content/uploads/2022/03/og.png" style="width:100%">
+        <a href="https://ua92.ac.uk/about-ua92/our-founders/class-of-92/"><img src="https://ua92.ac.uk/wp-content/uploads/2022/03/og.png" style="width:100%"></a>
       </td>
     </tr>
   </table>
