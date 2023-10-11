@@ -145,7 +145,7 @@ jobs:
 
           if [[ "${{ matrix.os }}" = "ubuntu-20.04" ]]; then
 
-            sudo apt-add-repository ppa:beineri/opt-qt-5.15.2-focal
+            sudo apt-add-repository ppa:beineri/opt-qt-5.15.4-focal
             sudo apt update
             sudo apt upgrade
 
