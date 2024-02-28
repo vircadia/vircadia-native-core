@@ -926,7 +926,9 @@ void DomainServer::setupNodeListAndAssignments() {
 // Sets up the WebRTC signaling server that's hosted by the domain server.
 void DomainServer::setUpWebRTCSignalingServer() {
     // Bind the WebRTC signaling server's WebSocket to its port.
-    bool isBound = _webrtcSignalingServer->bind(QHostAddress::AnyIPv4, DEFAULT_DOMAIN_SERVER_WS_PORT);
+    const QString DOMAIN_SERVER_WS_PORT_KEY = "webrtc.signaling_port";
+    auto settingsPort = _settingsManager.valueOrDefaultValueForKeyPath(DOMAIN_SERVER_WS_PORT_KEY);
+    bool isBound = _webrtcSignalingServer->bind(QHostAddress::AnyIPv4, settingsPort.isNull() ? DEFAULT_DOMAIN_SERVER_WS_PORT : settingsPort.toInt());
     if (!isBound) {
         qWarning() << "WebRTC signaling server not bound to port. WebRTC connections are not supported.";
         return;
