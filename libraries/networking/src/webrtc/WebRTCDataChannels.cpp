@@ -23,7 +23,7 @@
 
 // FIXME: stun:ice.vircadia.com:7337 doesn't work for WebRTC.
 // Firefox warns: "WebRTC: Using more than two STUN/TURN servers slows down discovery"
-const std::list<std::string> ICE_SERVER_URIS = {
+const std::list<std::string> DEFAULT_ICE_SERVER_URLS = {
     "stun:stun1.l.google.com:19302",
     "stun:stun.schlund.de"
 };
@@ -667,10 +667,13 @@ rtc::scoped_refptr<PeerConnectionInterface> WebRTCDataChannels::createPeerConnec
 #endif
 
     PeerConnectionInterface::RTCConfiguration configuration;
-    for (const auto& uri : ICE_SERVER_URIS) {
-        PeerConnectionInterface::IceServer iceServer;
-        iceServer.uri = uri;
-        configuration.servers.push_back(iceServer);
+    configuration.servers = _iceServers;
+    if (configuration.servers.empty()) {
+        for (const auto& url : DEFAULT_ICE_SERVER_URLS) {
+            PeerConnectionInterface::IceServer iceServer;
+            iceServer.urls = std::vector<std::string>{url};
+            configuration.servers.push_back(iceServer);
+        }
     }
 
 #ifdef WEBRTC_DEBUG
@@ -729,6 +732,10 @@ void WebRTCDataChannels::closePeerConnectionNow(WDCConnection* connection) {
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "Disposed of connection";
 #endif
+}
+
+void WebRTCDataChannels::setIceServers(std::vector<PeerConnectionInterface::IceServer> iceServers) {
+    _iceServers = std::move(iceServers);
 }
 
 #endif // WEBRTC_DATA_CHANNELS

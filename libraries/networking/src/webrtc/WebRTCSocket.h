@@ -67,7 +67,7 @@ public:
         = QAbstractSocket::DefaultForPlatform);
 
     /// @brief Gets the state of the socket.
-    /// @details In particular, QAbstractSocket::BoundState is returned if the socket is bound, 
+    /// @details In particular, QAbstractSocket::BoundState is returned if the socket is bound,
     /// QAbstractSocket::UnconnectedState if it isn't.
     /// @return The state of the socket.
     QAbstractSocket::SocketState state() const;
@@ -77,7 +77,7 @@ public:
 
     /// @brief Nominally gets the host port number.
     /// Included for compatibility with the QUdpSocket interface.
-    /// @return <code>0</code> 
+    /// @return <code>0</code>
     quint16 localPort() const { return 0; }
 
     /// @brief Nominally gets the socket descriptor.
@@ -122,6 +122,10 @@ public:
     /// @brief Gets the description of the error that last occurred.
     /// @return The description of the error that last occurred.
     QString errorString() const;
+
+    /// @brief Sets the list of WebRTC STUN/TURN servers.
+    /// @param iceServers The list of STUN/TURN servers.
+    void setWebRTCIceServers(QList<QVariant> iceServers);
 
 public slots:
 

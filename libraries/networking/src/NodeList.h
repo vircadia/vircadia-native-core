@@ -127,6 +127,10 @@ public slots:
 
     void processUsernameFromIDReply(QSharedPointer<ReceivedMessage> message);
 
+#if defined(WEBRTC_DATA_CHANNELS)
+    void setWebRTCIceServersFromSettings(const QJsonObject& domainSettingsObject);
+#endif
+
     // FIXME: Can remove these work-arounds in version 2021.2.0. (New protocol version implies a domain server upgrade.)
     bool adjustCanRezAvatarEntitiesPermissions(const QJsonObject& domainSettingsObject, NodePermissions& permissions,
         bool notify);
@@ -158,7 +162,7 @@ private slots:
 
 private:
     Q_DISABLE_COPY(NodeList)
-    NodeList() : LimitedNodeList(INVALID_PORT, INVALID_PORT) { 
+    NodeList() : LimitedNodeList(INVALID_PORT, INVALID_PORT) {
         assert(false);  // Not implemented, needed for DependencyManager templates compile
     }
     NodeList(char ownerType, int socketListenPort = INVALID_PORT, int dtlsListenPort = INVALID_PORT);

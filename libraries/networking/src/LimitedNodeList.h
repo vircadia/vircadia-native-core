@@ -142,6 +142,7 @@ public:
     QUdpSocket& getDTLSSocket();
 #if defined(WEBRTC_DATA_CHANNELS)
     const WebRTCSocket* getWebRTCSocket();
+    void setWebRTCIceServers(QList<QVariant> iceServers);
 #endif
 
 

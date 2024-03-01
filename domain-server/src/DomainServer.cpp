@@ -807,6 +807,11 @@ void DomainServer::setupNodeListAndAssignments() {
 
     auto nodeList = DependencyManager::set<LimitedNodeList>(domainServerPort, domainServerDTLSPort);
 
+#if defined(WEBRTC_DATA_CHANNELS)
+    const QString DOMAIN_SERVER_WEBRTC_ICE_SERVERS_KEY = "webrtc.ice_servers";
+    nodeList->setWebRTCIceServers(_settingsManager.valueOrDefaultValueForKeyPath(DOMAIN_SERVER_WEBRTC_ICE_SERVERS_KEY).toList());
+#endif
+
     // no matter the local port, save it to shared mem so that local assignment clients can ask what it is
     nodeList->putLocalPortIntoSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this,
         nodeList->getSocketLocalPort(SocketType::UDP));

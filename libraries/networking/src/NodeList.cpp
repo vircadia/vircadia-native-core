@@ -96,6 +96,10 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     // send a ping punch immediately
     connect(&_domainHandler, &DomainHandler::icePeerSocketsReceived, this, &NodeList::pingPunchForDomainServer);
 
+#if defined(WEBRTC_DATA_CHANNELS)
+    connect(&_domainHandler, &DomainHandler::settingsReceived, this, &NodeList::setWebRTCIceServersFromSettings);
+#endif
+
     // FIXME: Can remove this temporary work-around in version 2021.2.0. (New protocol version implies a domain server upgrade.)
     // Adjust our canRezAvatarEntities permissions on older domains that do not have this setting.
     // DomainServerList and DomainSettings packets can come in either order so need to adjust with both occurrences.
@@ -497,7 +501,7 @@ void NodeList::sendDomainServerCheckIn() {
 
         // pack our data to send to the domain-server including
         // the hostname information (so the domain-server can see which place name we came in on)
-        packetStream << _ownerType.load() << publicSockAddr.getType() << publicSockAddr << localSockAddr.getType() 
+        packetStream << _ownerType.load() << publicSockAddr.getType() << publicSockAddr << localSockAddr.getType()
             << localSockAddr << _nodeTypesOfInterest.values();
         packetStream << DependencyManager::get<AddressManager>()->getPlaceName();
 
@@ -1411,6 +1415,12 @@ void NodeList::startThread() {
     moveToNewNamedThread(this, "NodeList Thread", QThread::TimeCriticalPriority);
 }
 
+
+#if defined(WEBRTC_DATA_CHANNELS)
+void NodeList::setWebRTCIceServersFromSettings(const QJsonObject& domainSettingsObject) {
+    LimitedNodeList::setWebRTCIceServers(domainSettingsObject["webrtc"]["ice_servers"].toVariant().toList());
+}
+#endif
 
 // FIXME: Can remove this work-around in version 2021.2.0. (New protocol version implies a domain server upgrade.)
 bool NodeList::adjustCanRezAvatarEntitiesPermissions(const QJsonObject& domainSettingsObject,
