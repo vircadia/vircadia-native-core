@@ -17,44 +17,80 @@
 #include <vector>
 
 #include <QThread>
-#include <shared/QtHelpers.h>
+#include <shared/QtHelpers.h> // for DEBUG_EVENT_QUEUE
 #include <TBBHelpers.h>
 
 #include "AudioMixerSlave.h"
 
-class AudioMixerSlavePool;
+// Private worker pool data that is shared and accessible with the worker threads.  This describes
+// what information is needs to be thread-safe
+struct AudioMixerWorkerPoolData {
+    using Queue = tbb::concurrent_queue<SharedNodePointer>;
+    using Mutex = std::mutex;
+    using ConditionVariable = std::condition_variable;
 
-class AudioMixerSlaveThread : public QThread, public AudioMixerSlave {
+    // synchronization state
+    Mutex poolMutex;                   // only used for _poolCondition at the moment
+    ConditionVariable poolCondition;   // woken when work has been completed (_numStarted = _numFinished = _numThreads)
+    Mutex workerMutex;                 // only used for _workerCondition at the moment
+    ConditionVariable workerCondition; // woken when work needs to be done (_numStarted < _numThreads)
+
+    // The variables below this point are alternately owned by the pool or by the workers collectively.
+    // When idle they are owned by the pool.
+    // Moving ownership to the workers is done by setting _numStarted = _numFinished = 0 and waking _workerCondition
+    // Moving ownership to the pool is done when _numFinished == _numThreads and is done by waking _poolCondition
+
+    void (AudioMixerSlave::*function)(const SharedNodePointer& node){ nullptr };  // r/o when owned by workers, r/w when owned by pool
+    std::function<void(AudioMixerSlave&)> configure{ nullptr };  // r/o when owned by workers, r/w when owned by pool
+
+    // Number of currently-running worker threads
+    // r/o when owned by workersves, r/w when owned by pool
+    int numThreads{ 0 };
+
+    // Number of worker threads "awake" and processing the current request (0 <= _numStarted <= _numThreads)
+    // incremented when owned by workers, r/w when owned by pool
+    std::atomic<int> numStarted{ 0 };
+
+    // Number of worker threads finished with the current request (0 <= _numFinished <= _numStarted)
+    // incremented when owned by workers, r/w when owned by pool
+    std::atomic<int> numFinished{ 0 };
+
+    // Number of worker threads shutting down when asked to (0 <= _numStopped <= _numFinished)
+    // incremented when owned by workers, r/w when owned by pool
+    std::atomic<int> numStopped{ 0 };
+
+    // frame state
+    Queue queue;
+};
+
+class AudioMixerWorkerThread : public QThread, public AudioMixerSlave {
     Q_OBJECT
     using ConstIter = NodeList::const_iterator;
     using Mutex = std::mutex;
     using Lock = std::unique_lock<Mutex>;
 
 public:
-    AudioMixerSlaveThread(AudioMixerSlavePool& pool, AudioMixerSlave::SharedData& sharedData)
-        : AudioMixerSlave(sharedData), _pool(pool) {}
+    AudioMixerWorkerThread(AudioMixerWorkerPoolData& data, AudioMixerSlave::SharedData& sharedData) :
+        AudioMixerSlave(sharedData), _data(data) {}
 
     void run() override final;
+    inline void stop() { _stop = true; }
 
 private:
-    friend class AudioMixerSlavePool;
-
-    void wait();
+    void wait(bool starting);
     void notify(bool stopping);
     bool try_pop(SharedNodePointer& node);
 
-    AudioMixerSlavePool& _pool;
+    AudioMixerWorkerPoolData& _data;
     void (AudioMixerSlave::*_function)(const SharedNodePointer& node) { nullptr };
-    bool _stop { false };
+    volatile bool _stop { false }; // using volatile here mostly for compiler hinting, recognize it has minimal meaning
 };
 
-// Slave pool for audio mixers
+// Worker pool for audio mixers
 //   AudioMixerSlavePool is not thread-safe! It should be instantiated and used from a single thread.
 class AudioMixerSlavePool {
-    using Queue = tbb::concurrent_queue<SharedNodePointer>;
     using Mutex = std::mutex;
     using Lock = std::unique_lock<Mutex>;
-    using ConditionVariable = std::condition_variable;
 
 public:
     using ConstIter = NodeList::const_iterator;
@@ -63,13 +99,13 @@ public:
         : _workerSharedData(sharedData) { setNumThreads(numThreads); }
     ~AudioMixerSlavePool() { resize(0); }
 
-    // process packets on slave threads
+    // process packets on worker threads
     void processPackets(ConstIter begin, ConstIter end);
 
-    // mix on slave threads
+    // mix on worker threads
     void mix(ConstIter begin, ConstIter end, unsigned int frame, int numToRetain);
 
-    // iterate over all slaves
+    // iterate over all workers
     void each(std::function<void(AudioMixerSlave& slave)> functor);
 
 #ifdef DEBUG_EVENT_QUEUE
@@ -77,35 +113,20 @@ public:
 #endif
 
     void setNumThreads(int numThreads);
-    int numThreads() { return _numThreads; }
+    int numThreads() { return _data.numThreads; }
 
 private:
     void run(ConstIter begin, ConstIter end);
     void resize(int numThreads);
 
-    std::vector<std::unique_ptr<AudioMixerSlaveThread>> _slaves;
-
-    friend void AudioMixerSlaveThread::wait();
-    friend void AudioMixerSlaveThread::notify(bool stopping);
-    friend bool AudioMixerSlaveThread::try_pop(SharedNodePointer& node);
-
-    // synchronization state
-    Mutex _mutex;
-    ConditionVariable _slaveCondition;
-    ConditionVariable _poolCondition;
-    void (AudioMixerSlave::*_function)(const SharedNodePointer& node);
-    std::function<void(AudioMixerSlave&)> _configure;
-    int _numThreads { 0 };
-    int _numStarted { 0 }; // guarded by _mutex
-    int _numFinished { 0 }; // guarded by _mutex
-    int _numStopped { 0 }; // guarded by _mutex
+    std::vector<std::unique_ptr<AudioMixerWorkerThread>> _workers;
 
     // frame state
-    Queue _queue;
     ConstIter _begin;
     ConstIter _end;
 
     AudioMixerSlave::SharedData& _workerSharedData;
+    AudioMixerWorkerPoolData _data;
 };
 
 #endif // hifi_AudioMixerSlavePool_h
