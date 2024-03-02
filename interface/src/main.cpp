@@ -64,59 +64,219 @@ int main(int argc, const char* argv[]) {
 
     setupHifiApplication(BuildInfo::INTERFACE_NAME);
 
-    QStringList arguments;
-    for (int i = 0; i < argc; ++i) {
-        arguments << argv[i];
-    }
-
     QCommandLineParser parser;
-    parser.setApplicationDescription("Vircadia");
-    QCommandLineOption versionOption = parser.addVersionOption();
+    parser.setApplicationDescription("Vircadia -- A free/libre and open-source metaverse client");
     QCommandLineOption helpOption = parser.addHelpOption();
+    QCommandLineOption versionOption = parser.addVersionOption();
 
-    QCommandLineOption urlOption("url", "", "value");
-    QCommandLineOption noLauncherOption("no-launcher", "Do not execute the launcher");
-    QCommandLineOption noUpdaterOption("no-updater", "Do not show auto-updater");
-    QCommandLineOption checkMinSpecOption("checkMinSpec", "Check if machine meets minimum specifications");
-    QCommandLineOption runServerOption("runServer", "Whether to run the server");
-    QCommandLineOption serverContentPathOption("serverContentPath", "Where to find server content <path>", "serverContentPath");
-    QCommandLineOption allowMultipleInstancesOption("allowMultipleInstances", "Allow multiple instances to run");
-    QCommandLineOption overrideAppLocalDataPathOption("cache", "set test cache <dir>", "dir");
-    QCommandLineOption overrideScriptsPathOption(SCRIPTS_SWITCH, "set scripts <path>", "path");
-    QCommandLineOption responseTokensOption("tokens", "set response tokens <json>", "json");
-    QCommandLineOption displayNameOption("displayName", "set user display name <string>", "string");
-    QCommandLineOption setBookmarkOption("setBookmark", "set bookmark key=value pair", "string");
-    QCommandLineOption defaultScriptOverrideOption("defaultScriptsOverride", "override defaultsScripts.js", "string");
-    QCommandLineOption forceCrashReportingOption("forceCrashReporting", "Force crash reporting to initialize");
+    QCommandLineOption urlOption(
+        "url",
+        "Start at specified URL location.",
+        "string"
+    );
+    QCommandLineOption protocolVersionOption(
+        "protocolVersion",
+        "Writes the protocol version base64 signature to a file?",
+        "path" // Why??
+    );
+    QCommandLineOption noUpdaterOption(
+        "no-updater",
+        "Do not show auto-updater."
+    );
+    QCommandLineOption checkMinSpecOption(
+        "checkMinSpec",
+        "Check if machine meets minimum specifications. The program will run if check passes."
+    );
+    QCommandLineOption runServerOption(
+        "runServer",
+        "Run the server."
+    );
+    QCommandLineOption listenPortOption(
+        "listenPort",
+        "Port to listen on.",
+        "port_number"
+    );
+    QCommandLineOption serverContentPathOption(
+        "serverContentPath",
+        "Path to find server content.", // What content??
+        "serverContentPath"
+    ); // This data type will not be familiar to users.
+    QCommandLineOption overrideAppLocalDataPathOption(
+        "cache",
+        "Set test cache.",
+        "dir"
+    );
+    QCommandLineOption scriptsOption(
+        "scripts",
+        "Set path for defaultScripts. These are probably scripts that run automatically. This parameter does not seem to work.",
+        "dir"
+    );
+    QCommandLineOption allowMultipleInstancesOption(
+        "allowMultipleInstances",
+        "Allow multiple instances to run."
+    );
+    QCommandLineOption displaysOption(
+        "display",
+        "Preferred display.",
+        "displays"
+    );
+    QCommandLineOption disableDisplaysOption(
+        "disable-displays",
+        "Displays to disable.",
+        "string"
+    );
+    QCommandLineOption disableInputsOption(
+        "disable-inputs",
+        "Inputs to disable.",
+        "string"
+    );
+    QCommandLineOption suppressSettingsResetOption(
+        "suppress-settings-reset",
+        "Suppress the prompt to reset interface settings."
+    );
+    QCommandLineOption oculusStoreOption(
+        "oculus-store",
+        "Let the Oculus plugin know if interface was run from the Oculus Store."
+    );
+    QCommandLineOption standaloneOption(
+        "standalone",
+        "Emulate a standalone device."
+    );
+    QCommandLineOption disableWatchdogOption(
+        "disableWatchdog",
+        "Disable the watchdog thread. The interface will crash on deadlocks."
+    );
+    QCommandLineOption systemCursorOption(
+        "system-cursor",
+        "Use the default system cursor."
+    );
+    QCommandLineOption concurrentDownloadsOption(
+        "concurrent-downloads",
+        "Maximum concurrent resource downloads. Default is 16, except for Android where it is 4.",
+        "integer"
+    );
+    QCommandLineOption avatarURLOption(
+        "avatarURL",
+        "Override the avatar U.R.L.",
+        "url"
+    );
+    QCommandLineOption replaceAvatarURLOption(
+        "replace-avatar-url",
+        "Replaces the avatar U.R.L. When used with --avatarURL, this takes precedence.",
+        "url"
+    );
+    QCommandLineOption setBookmarkOption(
+        "setBookmark",
+        "Set bookmark as key=value pair. Including the '=' symbol in either string is unsupported.",
+        "string"
+    );
+    QCommandLineOption forceCrashReportingOption(
+        "forceCrashReporting",
+        "Force crash reporting to initialize."
+    );
+    // The documented "--disable-lod" does not seem to exist.
+    // Below are undocumented.
+    QCommandLineOption noLauncherOption(
+       "no-launcher",
+       "Supposedly does something for the server, unrelated to the application launcher. The feature may never have been implemented."
+    );
+    QCommandLineOption overrideScriptsPathOption(
+       "overrideScriptsPath",
+       "Specifies path to default directory where the application will look for scripts to load.",
+       "string"
+    );
+    QCommandLineOption defaultScriptsOverrideOption(
+       "defaultScriptsOverride",
+       "Override default script to run automatically on start. Default is \"defaultsScripts.js\".",
+       "string"
+    );
+    QCommandLineOption responseTokensOption(
+       "tokens",
+       "Set response tokens <json>.",
+       "json"
+    );
+    QCommandLineOption displayNameOption(
+       "displayName",
+       "Set user display name <string>.",
+       "string"
+    );
+    QCommandLineOption noLoginOption(
+       "no-login-suggestion",
+       "Do not show log-in dialogue."
+    );
+    QCommandLineOption traceFileOption(
+       "traceFile",
+       "Writes a trace to a file in the documents folder. Only works if \"--traceDuration\" is specified.",
+       "path"
+    );
+    QCommandLineOption traceDurationOption(
+       "traceDuration",
+       "Automatically quit interface after duration. Only works if \"--traceFile\" is specified.",
+       "seconds"
+    );
+    QCommandLineOption clockSkewOption(
+       "clockSkew",
+       "Forces client instance's clock to skew for demonstration purposes.",
+       "integer"
+    ); // This should probably be removed.
+    QCommandLineOption testScriptOption(
+       "testScript",
+       "Undocumented. Accepts parameter as U.R.L.",
+       "string"
+    );
+    QCommandLineOption testResultsLocationOption(
+       "testResultsLocation",
+       "Undocumented",
+       "path"
+    );
+    QCommandLineOption quitWhenFinishedOption(
+       "quitWhenFinished",
+       "Only works if \"--testScript\" is provided."
+    ); // Should probably also be made to work on testResultsLocationOption.
+    QCommandLineOption fastHeartbeatOption(
+       "fast-heartbeat",
+       "Change stats polling interval from 10000ms to 1000ms."
+    );
+    // "--qmljsdebugger", which appears in output from "--help-all".
+    // Those below don't seem to be optional.
+    //     --ignore-gpu-blacklist
+    //     --suppress-settings-reset
 
     parser.addOption(urlOption);
-    parser.addOption(noLauncherOption);
+    parser.addOption(protocolVersionOption);
     parser.addOption(noUpdaterOption);
     parser.addOption(checkMinSpecOption);
     parser.addOption(runServerOption);
+    parser.addOption(listenPortOption);
     parser.addOption(serverContentPathOption);
     parser.addOption(overrideAppLocalDataPathOption);
-    parser.addOption(overrideScriptsPathOption);
+    parser.addOption(scriptsOption);
     parser.addOption(allowMultipleInstancesOption);
+    parser.addOption(displaysOption);
+    parser.addOption(disableDisplaysOption);
+    parser.addOption(disableInputsOption);
+    parser.addOption(suppressSettingsResetOption);
+    parser.addOption(oculusStoreOption);
+    parser.addOption(standaloneOption);
+    parser.addOption(disableWatchdogOption);
+    parser.addOption(systemCursorOption);
+    parser.addOption(concurrentDownloadsOption);
+    parser.addOption(avatarURLOption);
+    parser.addOption(replaceAvatarURLOption);
+    parser.addOption(setBookmarkOption);
+    parser.addOption(forceCrashReportingOption);
+    parser.addOption(noLauncherOption);
     parser.addOption(responseTokensOption);
     parser.addOption(displayNameOption);
-    parser.addOption(setBookmarkOption);
-    parser.addOption(defaultScriptOverrideOption);
-    parser.addOption(forceCrashReportingOption);
-
-    if (!parser.parse(arguments)) {
-        std::cout << parser.errorText().toStdString() << std::endl; // Avoid Qt log spam
-    }
-
-    if (parser.isSet(versionOption)) {
-        parser.showVersion();
-        Q_UNREACHABLE();
-    }
-    if (parser.isSet(helpOption)) {
-        QCoreApplication mockApp(argc, const_cast<char**>(argv)); // required for call to showHelp()
-        parser.showHelp();
-        Q_UNREACHABLE();
-    }
+    parser.addOption(overrideScriptsPathOption);
+    parser.addOption(defaultScriptsOverrideOption);
+    parser.addOption(traceFileOption);
+    parser.addOption(traceDurationOption);
+    parser.addOption(clockSkewOption);
+    parser.addOption(testScriptOption);
+    parser.addOption(testResultsLocationOption);
+    parser.addOption(quitWhenFinishedOption);
+    parser.addOption(fastHeartbeatOption);
 
     QString applicationPath;
     // A temporary application instance is needed to get the location of the running executable
@@ -125,6 +285,9 @@ int main(int argc, const char* argv[]) {
     // cross-platform implementation.
     {
         QCoreApplication tempApp(argc, const_cast<char**>(argv));
+
+        parser.process(QCoreApplication::arguments()); // Must be run after QCoreApplication is initalised.
+
 #ifdef Q_OS_OSX
         if (QFileInfo::exists(QCoreApplication::applicationDirPath() + "/../../../config.json")) {
             applicationPath = QCoreApplication::applicationDirPath() + "/../../../";
@@ -135,6 +298,29 @@ int main(int argc, const char* argv[]) {
         applicationPath = QCoreApplication::applicationDirPath();
 #endif
     }
+
+    // Act on arguments for early termination.
+    if (parser.isSet(versionOption)) {
+        parser.showVersion();
+        Q_UNREACHABLE();
+    }
+    if (parser.isSet(helpOption)) {
+        QCoreApplication mockApp(argc, const_cast<char**>(argv)); // required for call to showHelp()
+        parser.showHelp();
+        Q_UNREACHABLE();
+    }
+    if (parser.isSet(protocolVersionOption)) {
+        FILE* fp = fopen(parser.value(protocolVersionOption).toStdString().c_str(), "w");
+        if (fp) {
+            fputs(protocolVersionsSignatureBase64().toStdString().c_str(), fp);
+            fclose(fp);
+            return 0;
+        } else {
+            qWarning() << "Failed to open file specified for --protocolVersion.";
+            return 1;
+        }
+    }
+
     static const QString APPLICATION_CONFIG_FILENAME = "config.json";
     QDir applicationDir(applicationPath);
     QString configFileName = applicationDir.filePath(APPLICATION_CONFIG_FILENAME);
@@ -173,19 +359,16 @@ int main(int argc, const char* argv[]) {
     // Early check for --traceFile argument 
     auto tracer = DependencyManager::set<tracing::Tracer>();
     const char * traceFile = nullptr;
-    const QString traceFileFlag("--traceFile");
     float traceDuration = 0.0f;
-    for (int a = 1; a < argc; ++a) {
-        if (traceFileFlag == argv[a] && argc > a + 1) {
-            traceFile = argv[a + 1];
-            if (argc > a + 2) {
-                traceDuration = atof(argv[a + 2]);
-            }
-            break;
+    if (parser.isSet(traceFileOption)) {
+        traceFile = parser.value(traceFileOption).toStdString().c_str();
+        if (parser.isSet(traceDurationOption)) {
+            traceDuration = parser.value(traceDurationOption).toFloat();
+            tracer->startTracing();
+        } else {
+            qWarning() << "\"--traceDuration\" must be specified along with \"--traceFile\"...";
+            return 1;
         }
-    }
-    if (traceFile != nullptr) {
-        tracer->startTracing();
     }
    
     PROFILE_SYNC_BEGIN(startup, "main startup", "");
@@ -242,7 +425,7 @@ int main(int argc, const char* argv[]) {
         instanceMightBeRunning = false;
     }
     // this needs to be done here in main, as the mechanism for setting the
-    // scripts directory appears not to work.  See the bug report
+    // scripts directory appears not to work.  See the bug report (dead link)
     // https://highfidelity.fogbugz.com/f/cases/5759/Issues-changing-scripts-directory-in-ScriptsEngine
     if (parser.isSet(overrideScriptsPathOption)) {
         QDir scriptsPath(parser.value(overrideScriptsPathOption));
@@ -317,18 +500,17 @@ int main(int argc, const char* argv[]) {
     // Debug option to demonstrate that the client's local time does not
     // need to be in sync with any other network node. This forces clock
     // skew for the individual client
-    const char* CLOCK_SKEW = "--clockSkew";
-    const char* clockSkewOption = getCmdOption(argc, argv, CLOCK_SKEW);
-    if (clockSkewOption) {
-        qint64 clockSkew = atoll(clockSkewOption);
+    if (parser.isSet(clockSkewOption)) {
+        const char* clockSkewValue = parser.value(clockSkewOption).toStdString().c_str();
+        qint64 clockSkew = atoll(clockSkewValue);
         usecTimestampNowForceClockSkew(clockSkew);
-        qCDebug(interfaceapp) << "clockSkewOption=" << clockSkewOption << "clockSkew=" << clockSkew;
+        qCDebug(interfaceapp) << "clockSkewOption=" << clockSkewValue << "clockSkew=" << clockSkew;
     }
 
     // Oculus initialization MUST PRECEDE OpenGL context creation.
     // The nature of the Application constructor means this has to be either here,
     // or in the main window ctor, before GL startup.
-    Application::initPlugins(arguments);
+    Application::initPlugins(parser);
 
 #ifdef Q_OS_WIN
     // If we're running in steam mode, we need to do an explicit check to ensure we're up to the required min spec
@@ -376,7 +558,7 @@ int main(int argc, const char* argv[]) {
 
         PROFILE_SYNC_END(startup, "main startup", "");
         PROFILE_SYNC_BEGIN(startup, "app full ctor", "");
-        Application app(argcExtended, const_cast<char**>(argvExtended.data()), startupTime, runningMarkerExisted);
+        Application app(argcExtended, const_cast<char**>(argvExtended.data()), parser, startupTime, runningMarkerExisted);
         PROFILE_SYNC_END(startup, "app full ctor", "");
 
 #if defined(Q_OS_LINUX)
