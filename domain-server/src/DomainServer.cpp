@@ -190,43 +190,7 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
         return true;
     }
 
-    connect(reply, &QNetworkReply::sslErrors, this, [](auto& errors) {
-        for(auto&& error : errors)
-        {
-            qDebug() << "Got ssl error from metaverse server:" << error.errorString();
-            qDebug() << "Cert issuer:" << error.certificate().issuerDisplayName();
-
-            auto issuerInfo = error.certificate().issuerInfo(QSslCertificate::Organization);
-            for(auto&& info : issuerInfo) { qDebug() << "Cert issuer org:" << info; }
-
-            issuerInfo = error.certificate().issuerInfo(QSslCertificate::CommonName);
-            for(auto&& info : issuerInfo) { qDebug() << "Cert issuer name:" << info; }
-
-            issuerInfo = error.certificate().issuerInfo(QSslCertificate::LocalityName);
-            for(auto&& info : issuerInfo) { qDebug() << "Cert issuer locality name:" << info; }
-
-            issuerInfo = error.certificate().issuerInfo(QSslCertificate::OrganizationalUnitName);
-            for(auto&& info : issuerInfo) { qDebug() << "Cert issuer org unit name:" << info; }
-
-            issuerInfo = error.certificate().issuerInfo(QSslCertificate::CountryName);
-            for(auto&& info : issuerInfo) { qDebug() << "Cert issuer country name:" << info; }
-
-            issuerInfo = error.certificate().issuerInfo(QSslCertificate::StateOrProvinceName);
-            for(auto&& info : issuerInfo) { qDebug() << "Cert issuer state/province name:" << info; }
-
-            issuerInfo = error.certificate().issuerInfo(QSslCertificate::DistinguishedNameQualifier);
-            for(auto&& info : issuerInfo) { qDebug() << "Cert issuer name qualifier:" << info; }
-
-            issuerInfo = error.certificate().issuerInfo(QSslCertificate::SerialNumber);
-            for(auto&& info : issuerInfo) { qDebug() << "Cert issuer serial number:" << info; }
-
-            issuerInfo = error.certificate().issuerInfo(QSslCertificate::EmailAddress);
-            for(auto&& info : issuerInfo) { qDebug() << "Cert issuer email:" << info; }
-
-            qDebug() << "To Text:" << error.certificate().toText().toStdString().c_str();
-
-        }
-    });
+    connect(reply, &QNetworkReply::sslErrors, [reply](const auto& errors) { MetaverseAPI::logSslErrors(reply, errors); });
 
     connect(reply, &QNetworkReply::finished, this, [reply, connection]() {
         if (reply->error() != QNetworkReply::NoError) {
@@ -2751,6 +2715,8 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             req.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
             req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
             QNetworkReply* reply = NetworkAccessManager::getInstance().put(req, doc.toJson());
+
+            connect(reply, &QNetworkReply::sslErrors, [reply](const auto& errors) { MetaverseAPI::logSslErrors(reply, errors); });
 
             connect(reply, &QNetworkReply::finished, this, [reply, connection]() {
                 if (reply->error() != QNetworkReply::NoError) {

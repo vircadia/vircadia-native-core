@@ -17,6 +17,8 @@
 
 #include <QtCore/QProcessEnvironment>
 #include <QtCore/QUrl>
+#include <QSslError>
+#include <QNetworkReply>
 
 namespace MetaverseAPI {
 
@@ -45,6 +47,8 @@ namespace MetaverseAPI {
 
     QUrl getCurrentMetaverseServerURL();
     QString getCurrentMetaverseServerURLPath(bool appendForwardSlash = false);
+
+    void logSslErrors(const QNetworkReply* reply, const QList<QSslError>& errors);
 }
 
 #endif  // athena_MetaverseAPI_h
