@@ -190,6 +190,8 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
         return true;
     }
 
+    connect(reply, &QNetworkReply::sslErrors, [reply](const auto& errors) { MetaverseAPI::logSslErrors(reply, errors); });
+
     connect(reply, &QNetworkReply::finished, this, [reply, connection]() {
         if (reply->error() != QNetworkReply::NoError) {
             auto data = reply->readAll();
@@ -2720,6 +2722,8 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             req.setHeader(QNetworkRequest::UserAgentHeader, NetworkingConstants::VIRCADIA_USER_AGENT);
             req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
             QNetworkReply* reply = NetworkAccessManager::getInstance().put(req, doc.toJson());
+
+            connect(reply, &QNetworkReply::sslErrors, [reply](const auto& errors) { MetaverseAPI::logSslErrors(reply, errors); });
 
             connect(reply, &QNetworkReply::finished, this, [reply, connection]() {
                 if (reply->error() != QNetworkReply::NoError) {

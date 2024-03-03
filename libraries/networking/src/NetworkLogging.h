@@ -20,5 +20,6 @@ Q_DECLARE_LOGGING_CATEGORY(networking_ice)
 Q_DECLARE_LOGGING_CATEGORY(asset_client)
 Q_DECLARE_LOGGING_CATEGORY(messages_client)
 Q_DECLARE_LOGGING_CATEGORY(networking_webrtc)
+Q_DECLARE_LOGGING_CATEGORY(networking_metaverse)
 
 #endif // hifi_NetworkLogging_h

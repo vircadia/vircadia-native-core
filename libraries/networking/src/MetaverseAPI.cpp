@@ -13,11 +13,15 @@
 #include "MetaverseAPI.h"
 
 #include <QUrl>
+#include <QSslSocket>
+#include <QSslCipher>
+#include <QDebug>
 
 #include <SettingHandle.h>
 #include <DependencyManager.h>
 
 #include "NetworkingConstants.h"
+#include "NetworkLogging.h"
 #include "NodeList.h"
 
 
@@ -98,4 +102,17 @@ namespace MetaverseAPI {
 
         return path;
     };
+
+    void logSslErrors(const QNetworkReply* reply, const QList<QSslError>& errors) {
+        for(auto&& error : errors)
+        {
+            qCDebug(networking_metaverse) << "Got SSL error from Metaverse server:" << error.errorString();
+            if (reply) {
+                qCDebug(networking_metaverse) << "Ciphers:" << reply->sslConfiguration().ciphers();
+                qCDebug(networking_metaverse) << "SSL session cipher:" << reply->sslConfiguration().sessionCipher();
+                qCDebug(networking_metaverse) << "Supported SSL Ciphers:" << QSslSocket::supportedCiphers();
+            }
+            qCDebug(networking_metaverse) << error.certificate().toText().toStdString().c_str();
+        }
+    }
 }  // namespace MetaverseAPI

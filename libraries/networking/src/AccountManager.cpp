@@ -350,6 +350,7 @@ void AccountManager::sendRequest(const QString& path,
             }
         });
 
+        connect(networkReply, &QNetworkReply::sslErrors, [networkReply](const auto& errors) { MetaverseAPI::logSslErrors(networkReply, errors); });
 
         if (callbackParams.isEmpty()) {
             connect(networkReply, &QNetworkReply::finished, networkReply, &QNetworkReply::deleteLater);
