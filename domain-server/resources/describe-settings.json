@@ -83,6 +83,7 @@
     {
       "name": "webrtc",
       "label": "Networking / WebRTC",
+      "assignment-types": [ 0, 1, 2, 3, 4, 5, 6 ],
       "settings": [
         {
           "name": "enable_webrtc",
@@ -99,6 +100,54 @@
             "type": "checkbox",
             "default": false,
             "advanced": true
+        },
+        {
+          "name": "signaling_port",
+          "label": "Signaling Server TCP Port",
+          "help": "The main public TCP port domain server listens on to initiate WebRTC connections.",
+          "default": "40102",
+          "type": "int",
+          "advanced": true
+        },
+        {
+          "name": "ice_servers",
+          "label": "ICE Servers",
+          "type": "table",
+          "can_add_new_rows": true,
+          "help": "WebRTC STUN/TURN servers.",
+          "numbered": false,
+          "advanced": true,
+          "columns": [
+            {
+              "name": "url",
+              "label": "URL",
+              "can_set": true
+            },
+            {
+              "name": "username",
+              "label": "User Name",
+              "placeholder": "Optional",
+              "can_set": true
+            },
+            {
+              "name": "password",
+              "label": "Password",
+              "placeholder": "Optional",
+              "can_set": true
+            }
+          ],
+          "default": [
+            {
+                "url": "stun:stun1.l.google.com:19302",
+                "username": "",
+                "password": ""
+            },
+            {
+                "url": "stun:stun.schlund.de",
+                "username": "",
+                "password": ""
+            }
+          ]
         }
       ]
     },

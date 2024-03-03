@@ -42,7 +42,7 @@
 
 #if defined(Q_OS_WIN)
 #include <winsock.h>
-#else 
+#else
 #include <arpa/inet.h>
 #endif
 
@@ -245,6 +245,10 @@ QUdpSocket& LimitedNodeList::getDTLSSocket() {
 #if defined(WEBRTC_DATA_CHANNELS)
 const WebRTCSocket* LimitedNodeList::getWebRTCSocket() {
     return _nodeSocket.getWebRTCSocket();
+}
+
+void LimitedNodeList::setWebRTCIceServers(QList<QVariant> iceServers) {
+    _nodeSocket.setWebRTCIceServers(iceServers);
 }
 #endif
 
@@ -506,7 +510,7 @@ qint64 LimitedNodeList::sendUnreliableUnorderedPacketList(NLPacketList& packetLi
         }
         return bytesSent;
     } else {
-        qCDebug(networking) << "LimitedNodeList::sendUnreliableUnorderedPacketList called without active socket for node" 
+        qCDebug(networking) << "LimitedNodeList::sendUnreliableUnorderedPacketList called without active socket for node"
             << destinationNode << " - not sending.";
         return ERROR_SENDING_PACKET_BYTES;
     }

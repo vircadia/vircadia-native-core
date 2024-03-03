@@ -807,6 +807,11 @@ void DomainServer::setupNodeListAndAssignments() {
 
     auto nodeList = DependencyManager::set<LimitedNodeList>(domainServerPort, domainServerDTLSPort);
 
+#if defined(WEBRTC_DATA_CHANNELS)
+    const QString DOMAIN_SERVER_WEBRTC_ICE_SERVERS_KEY = "webrtc.ice_servers";
+    nodeList->setWebRTCIceServers(_settingsManager.valueOrDefaultValueForKeyPath(DOMAIN_SERVER_WEBRTC_ICE_SERVERS_KEY).toList());
+#endif
+
     // no matter the local port, save it to shared mem so that local assignment clients can ask what it is
     nodeList->putLocalPortIntoSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this,
         nodeList->getSocketLocalPort(SocketType::UDP));
@@ -926,7 +931,9 @@ void DomainServer::setupNodeListAndAssignments() {
 // Sets up the WebRTC signaling server that's hosted by the domain server.
 void DomainServer::setUpWebRTCSignalingServer() {
     // Bind the WebRTC signaling server's WebSocket to its port.
-    bool isBound = _webrtcSignalingServer->bind(QHostAddress::AnyIPv4, DEFAULT_DOMAIN_SERVER_WS_PORT);
+    const QString DOMAIN_SERVER_WS_PORT_KEY = "webrtc.signaling_port";
+    auto settingsPort = _settingsManager.valueOrDefaultValueForKeyPath(DOMAIN_SERVER_WS_PORT_KEY);
+    bool isBound = _webrtcSignalingServer->bind(QHostAddress::AnyIPv4, settingsPort.isNull() ? DEFAULT_DOMAIN_SERVER_WS_PORT : settingsPort.toInt());
     if (!isBound) {
         qWarning() << "WebRTC signaling server not bound to port. WebRTC connections are not supported.";
         return;

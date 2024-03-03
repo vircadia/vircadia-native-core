@@ -315,6 +315,10 @@ public:
     /// @param connection The WebRTC data channel connection.
     void closePeerConnection(WDCConnection* connection);
 
+    /// @brief Set the list of STUN/TURN servers to use to initiate connections.
+    /// @param iceServers The list of ice servers.
+    void setIceServers(std::vector<webrtc::PeerConnectionInterface::IceServer> iceServers);
+
 public slots:
 
     /// @brief Handles a WebRTC signaling message received from the Interface client.
@@ -359,6 +363,8 @@ private:
     QHash<QString, WDCConnection*> _connectionsByID;  // <client data channel ID, WDCConnection>
     // The client's WebSocket IP and port is used as the data channel ID to uniquely identify each.
     // The WebSocket IP address and port is formatted as "n.n.n.n:n", the same as used in WebRTCSignalingServer.
+
+    std::vector<webrtc::PeerConnectionInterface::IceServer> _iceServers {};
 };
 
 

@@ -137,6 +137,26 @@ QString WebRTCSocket::errorString() const {
     return _lastErrorString;
 }
 
+void WebRTCSocket::setWebRTCIceServers(QList<QVariant> iceServers)
+{
+    std::vector<webrtc::PeerConnectionInterface::IceServer> servers;
+    for(auto&& iceServerData : iceServers) {
+        auto iceServerDataMap = iceServerData.toMap();
+        webrtc::PeerConnectionInterface::IceServer iceServer{};
+        iceServer.urls = std::vector{iceServerDataMap["url"].toString().toStdString()};
+        auto username = iceServerDataMap["username"].toString();
+        auto password = iceServerDataMap["password"].toString();
+        if (username != "") {
+            iceServer.username = username.toStdString();
+        }
+        if (password != "") {
+            iceServer.password = password.toStdString();
+        }
+        servers.push_back(iceServer);
+    }
+    _dataChannels.setIceServers(std::move(servers));
+}
+
 
 void WebRTCSocket::setError(QAbstractSocket::SocketError errorType, QString errorString) {
     _lastErrorType = errorType;

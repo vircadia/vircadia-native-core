@@ -158,7 +158,7 @@ qint64 NetworkSocket::bytesToWrite(SocketType socketType, const SockAddr& addres
 
 
 bool NetworkSocket::hasPendingDatagrams() const {
-    return 
+    return
 #if defined(WEBRTC_DATA_CHANNELS)
         _webrtcSocket.hasPendingDatagrams() ||
 #endif
@@ -271,6 +271,10 @@ QString NetworkSocket::errorString(SocketType socketType) const {
 #if defined(WEBRTC_DATA_CHANNELS)
 const WebRTCSocket* NetworkSocket::getWebRTCSocket() {
     return &_webrtcSocket;
+}
+
+void NetworkSocket::setWebRTCIceServers(QList<QVariant> iceServers) {
+    _webrtcSocket.setWebRTCIceServers(iceServers);
 }
 #endif
 
