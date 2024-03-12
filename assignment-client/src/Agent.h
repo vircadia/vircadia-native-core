@@ -121,6 +121,7 @@ private:
     Encoder* _encoder { nullptr };
     QTimer _avatarAudioTimer;
     bool _flushEncoder { false };
+    std::vector<Encoder::CodecSettings> _codecSettings;
 };
 
 #endif // hifi_Agent_h

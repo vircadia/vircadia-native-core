@@ -138,7 +138,7 @@ function reloadSettings(callback) {
     Settings.pendingChanges = 0;
 
     // call the callback now that settings are loaded
-    if (callback) { 
+    if (callback) {
       callback(true);
     }
   }).fail(function() {
@@ -590,6 +590,12 @@ function makeTable(setting, keypath, setting_value) {
             "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>" +
               "<input type='time' class='form-control table-time' name='" + colName + "' " +
                      "value='" + (colValue || col.default || "00:00") + "'/>" +
+            "</td>";
+        } else if (isArray && col.type === "int" && col.editable) {
+          html +=
+            "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>" +
+              "<input type='int' class='form-control table-time' name='" + colName + "' " +
+                      "value='" + (colValue || col.default || "0") + "'/>" +
             "</td>";
         } else {
           // Use a hidden input so that the values are posted.

@@ -170,6 +170,13 @@ void EntityScriptServer::handleSettings() {
     _maxEntityPPS = std::max(0, entityScriptServerSettings[MAX_ENTITY_PPS_OPTION].toInt());
     _entityPPSPerScript = std::max(0, entityScriptServerSettings[ENTITY_PPS_PER_SCRIPT].toInt());
 
+    static const QString AUDIO_ENV_GROUP_KEY = "audio_env";
+    if ( settingsObject.contains(AUDIO_ENV_GROUP_KEY)) {
+        _codecSettings = Encoder::parseSettings(settingsObject[AUDIO_ENV_GROUP_KEY].toObject());
+    } else {
+        qWarning() << "Failed to find" << AUDIO_ENV_GROUP_KEY << "key in settings. Dump: " << settingsObject;
+    }
+
     qDebug() << QString("Received entity script server settings, Max Entity PPS: %1, Entity PPS Per Entity Script: %2")
                 .arg(_maxEntityPPS).arg(_entityPPSPerScript);
 }
@@ -288,7 +295,7 @@ void EntityScriptServer::run() {
     entityScriptingInterface->init();
 
     _entityViewer.init();
-    
+
     // setup the JSON filter that asks for entities with a non-default serverScripts property
     QJsonObject queryJSONParameters;
     queryJSONParameters[EntityJSONQueryProperties::SERVER_SCRIPTS_PROPERTY] = EntityQueryFilterSymbol::NonDefault;
@@ -299,7 +306,7 @@ void EntityScriptServer::run() {
     queryFlags[EntityJSONQueryProperties::INCLUDE_DESCENDANTS_PROPERTY] = true;
 
     queryJSONParameters[EntityJSONQueryProperties::FLAGS_PROPERTY] = queryFlags;
-    
+
     // setup the JSON parameters so that OctreeQuery does not use a frustum and uses our JSON filter
     _entityViewer.getOctreeQuery().setJSONParameters(queryJSONParameters);
 
@@ -376,7 +383,7 @@ void EntityScriptServer::nodeKilled(SharedNodePointer killedNode) {
             if (!hasAnotherEntityServer) {
                 clear();
             }
-            
+
             break;
         }
         case NodeType::Agent: {
@@ -438,6 +445,7 @@ void EntityScriptServer::selectAudioFormat(const QString& selectedCodecName) {
         if (_selectedCodecName == plugin->getName()) {
             _codec = plugin;
             _encoder = plugin->createEncoder(AudioConstants::SAMPLE_RATE, AudioConstants::MONO);
+            _encoder->configure(_codecSettings);
             qCDebug(entity_script_server) << "Selected Codec Plugin:" << _codec.get();
             break;
         }
@@ -579,7 +587,7 @@ void EntityScriptServer::sendStatsPacket() {
     }
     scriptEngineStats["number_running_scripts"] = numberRunningScripts;
     statsObject["script_engine_stats"] = scriptEngineStats;
-    
+
 
     auto nodeList = DependencyManager::get<NodeList>();
     QJsonObject nodesObject;

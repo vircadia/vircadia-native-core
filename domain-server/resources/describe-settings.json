@@ -1445,7 +1445,7 @@
     {
       "name": "audio_env",
       "label": "Audio Environment",
-      "assignment-types": [ 0 ],
+      "assignment-types": [ 0, 5 ],
       "settings": [
         {
           "name": "attenuation_per_doubling_in_distance",
@@ -1585,10 +1585,109 @@
         {
           "name": "codec_preference_order",
           "label": "Audio Codec Preference Order",
-          "help": "List of codec names in order of preferred usage",
+          "help": "List of codec names in order of preferred usage -- mod2",
           "placeholder": "opus, hifiAC, zlib, pcm",
           "default": "opus,hifiAC,zlib,pcm",
           "advanced": true
+        },
+        {
+          "name": "codec_settings",
+          "label": "Audio Codec Settings",
+          "help": "Advanced settings for audio codecs",
+          "advanced": true,
+          "type": "table",
+          "numbered": false,
+          "content_setting": false,
+          "can_add_new_rows": true,
+          "columns" : [
+            {
+              "name": "codec",
+              "label": "Codec",
+              "can_set": true,
+              "placeholder": "(codec)",
+              "editable": false
+            },
+            {
+              "name": "complexity",
+              "label": "Complexity",
+              "can_set": true,
+              "type": "int",
+              "placeholder": "(percentage)",
+              "default": 0,
+              "editable": true
+            },
+            {
+              "name": "bitrate",
+              "label": "Bitrate",
+              "can_set": true,
+              "type": "int",
+              "placeholder": "(bps)",
+              "default" : 0,
+              "editable": true
+            },
+            {
+              "name": "vbr",
+              "label": "Variable Bitrate",
+              "can_set": true,
+              "type": "checkbox",
+              "default": false,
+              "editable": true
+            },
+            {
+              "name": "fec",
+              "label": "Error correction",
+              "can_set": true,
+              "type": "checkbox",
+              "default" : false,
+              "editable": true
+            },
+            {
+              "name": "packet_loss",
+              "label": "Expected loss %",
+              "can_set": true,
+              "type": "int",
+              "placeholder": "(percentage)",
+              "default": 0,
+              "editable": true
+            }
+
+          ],
+          "non-deletable-row-key": "codec",
+          "non-deletable-row-values": [ "pcm", "zlib", "hifiAC", "opus" ],
+          "default": [
+            {
+                "codec": "pcm",
+                "complexity": 0,
+                "bitrate": 0,
+                "vbr": false,
+                "fec": false,
+                "packet_loss": 0
+            },
+            {
+              "codec": "zlib",
+              "complexity": 6,
+              "bitrate": 0,
+              "vbr": false,
+              "fec": false,
+              "packet_loss": 0
+            },
+            {
+              "codec": "hifiAC",
+              "complexity": 0,
+              "bitrate": 0,
+              "vbr": false,
+              "fec": false,
+              "packet_loss": 0
+            },
+            {
+              "codec": "opus",
+              "complexity": 10,
+              "bitrate": 128000,
+              "vbr": true,
+              "fec": false,
+              "packet_loss": 0
+            }
+          ]
         }
       ]
     },

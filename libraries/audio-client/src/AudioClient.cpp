@@ -445,6 +445,137 @@ void AudioClient::setAudioPaused(bool pause) {
     }
 }
 
+
+QStringList AudioClient::getCodecs() {
+    QStringList codecs;
+
+    const auto& codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    for (const auto& plugin : codecPlugins) {
+        codecs << plugin->getName();
+    }
+
+    return codecs;
+}
+
+QString AudioClient::getCodec() {
+    if ( _encoder ) {
+        return _encoder->getName();
+    }
+
+    return "";
+}
+
+void AudioClient::setAllowedCodecs(const QStringList &userCodecs) {
+    QStringList list;
+    QSet<QString> knownCodecs;
+
+
+    const auto& codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    for (const auto& plugin : codecPlugins) {
+        knownCodecs << plugin->getName();
+    }
+
+    for(const auto &uc : userCodecs) {
+        if ( knownCodecs.contains(uc)) {
+            list << uc;
+        } else {
+            qCWarning(audioclient) << "setAllowedCodecs called with unknown codec name" << uc;
+        }
+    }
+
+    _allowedCodecs = list;
+    negotiateAudioFormat();
+}
+
+QMap<QString,bool> AudioClient::getEncoderFeatures() {
+    QMap<QString,bool> features;
+
+    if (_encoder) {
+        features.insert("isLossless", _encoder->isLossless());
+        features.insert("hasApplication", _encoder->hasApplication());
+        features.insert("hasComplexity", _encoder->hasComplexity());
+        features.insert("hasBitrate", _encoder->hasBitrate());
+        features.insert("hasFEC", _encoder->hasFEC());
+        features.insert("hasPacketLossPercent", _encoder->hasPacketLossPercent());
+        features.insert("hasBandpass", _encoder->hasBandpass());
+        features.insert("hasSignalType", _encoder->hasSignalType());
+        features.insert("hasVBR", _encoder->hasVBR());
+    }
+
+    return features;
+}
+
+bool AudioClient::getEncoderVBR() {
+    if (_encoder) {
+        return _encoder->getVBR();
+    }
+
+    return false;
+}
+
+void AudioClient::setEncoderVBR(bool enabled) {
+    if (_encoder) {
+        _encoder->setVBR(enabled);
+    }
+}
+
+int AudioClient::getEncoderBitrate() {
+    if (_encoder) {
+        return _encoder->getBitrate();
+    }
+
+    return 0;
+}
+
+void AudioClient::setEncoderBitrate(int bitrate) {
+    if (_encoder) {
+        _encoder->setBitrate(bitrate);
+    }
+}
+
+int AudioClient::getEncoderComplexity() {
+    if (_encoder) {
+        return _encoder->getComplexity();
+    }
+
+    return 0;
+}
+
+void AudioClient::setEncoderComplexity(int complexity) {
+    if (_encoder) {
+        _encoder->setComplexity(complexity);
+    }
+}
+
+bool AudioClient::getEncoderFEC() {
+    if (_encoder) {
+        return _encoder->getFEC();
+    }
+
+    return false;
+}
+
+void AudioClient::setEncoderFEC(bool enabled) {
+    if (_encoder) {
+        _encoder->setFEC(enabled);
+    }
+}
+
+int AudioClient::getEncoderPacketLossPercent() {
+    if (_encoder) {
+        return _encoder->getPacketLossPercent();
+    }
+
+    return 0;
+}
+
+void AudioClient::setEncoderPacketLossPercent(int percent) {
+    if (_encoder) {
+        _encoder->setPacketLossPercent(percent);
+    }
+}
+
+
 HifiAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName, const QString& hmdName, bool isHmd=false) {
     HifiAudioDeviceInfo result;
     foreach (HifiAudioDeviceInfo audioDevice, getAvailableDevices(mode,hmdName)) {
@@ -966,12 +1097,19 @@ void AudioClient::negotiateAudioFormat() {
     auto negotiateFormatPacket = NLPacket::create(PacketType::NegotiateAudioFormat);
     const auto& codecPlugins = PluginManager::getInstance()->getCodecPlugins();
     quint8 numberOfCodecs = (quint8)codecPlugins.size();
-    negotiateFormatPacket->writePrimitive(numberOfCodecs);
-    for (const auto& plugin : codecPlugins) {
-        auto codecName = plugin->getName();
-        negotiateFormatPacket->writeString(codecName);
-    }
 
+    if ( _allowedCodecs.length() ) {
+        negotiateFormatPacket->writePrimitive((quint8)_allowedCodecs.length());
+        for (const auto& codecName : _allowedCodecs) {
+            negotiateFormatPacket->writeString(codecName);
+        }
+    } else {
+        negotiateFormatPacket->writePrimitive(numberOfCodecs);
+        for (const auto& plugin : codecPlugins) {
+            auto codecName = plugin->getName();
+            negotiateFormatPacket->writeString(codecName);
+        }
+    }
     // grab our audio mixer from the NodeList, if it exists
     SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
 
@@ -1006,6 +1144,7 @@ void AudioClient::selectAudioFormat(const QString& selectedCodecName) {
             _codec = plugin;
             _receivedAudioStream.setupCodec(plugin, _selectedCodecName, AudioConstants::STEREO);
             _encoder = plugin->createEncoder(AudioConstants::SAMPLE_RATE, _isStereoInput ? AudioConstants::STEREO : AudioConstants::MONO);
+            _encoder->configure(_codecSettings);
             qCDebug(audioclient) << "Selected codec plugin:" << _codec.get();
             break;
         }
