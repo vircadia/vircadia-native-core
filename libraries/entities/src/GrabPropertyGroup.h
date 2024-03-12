@@ -16,8 +16,6 @@
 
 #include <glm/glm.hpp>
 
-#include <QtScript/QScriptEngine>
-
 #include "PropertyGroup.h"
 #include "EntityItemPropertiesMacros.h"
 
@@ -25,6 +23,7 @@ class EntityItemProperties;
 class EncodeBitstreamParams;
 class OctreePacketData;
 class ReadBitstreamToTreeParams;
+class ScriptValue;
 
 static const bool INITIAL_GRABBABLE { true };
 static const bool INITIAL_KINEMATIC { true };
@@ -72,10 +71,10 @@ static const glm::vec3 INITIAL_EQUIPPABLE_INDICATOR_OFFSET { glm::vec3(0.0f) };
 class GrabPropertyGroup : public PropertyGroup {
 public:
     // EntityItemProperty related helpers
-    virtual void copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties,
-                                   QScriptEngine* engine, bool skipDefaults,
+    virtual void copyToScriptValue(const EntityPropertyFlags& desiredProperties, ScriptValue& properties,
+                                   ScriptEngine* engine, bool skipDefaults,
                                    EntityItemProperties& defaultEntityProperties) const override;
-    virtual void copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) override;
+    virtual void copyFromScriptValue(const ScriptValue& object, bool& _defaultSettings) override;
 
     void merge(const GrabPropertyGroup& other);
 

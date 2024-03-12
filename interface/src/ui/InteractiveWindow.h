@@ -16,12 +16,14 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QPointer>
-#include <QtScript/QScriptValue>
 #include <QQmlEngine>
 #include <ui/QmlWrapper.h>
 
 #include <glm/glm.hpp>
 #include <GLMHelpers.h>
+#include <ScriptValue.h>
+
+class ScriptEngine;
 
 class QmlWindowProxy : public QmlWrapper {
     Q_OBJECT
@@ -408,10 +410,10 @@ private:
 
 typedef InteractiveWindow* InteractiveWindowPointer;
 
-QScriptValue interactiveWindowPointerToScriptValue(QScriptEngine* engine, const InteractiveWindowPointer& in);
-void interactiveWindowPointerFromScriptValue(const QScriptValue& object, InteractiveWindowPointer& out);
+ScriptValue interactiveWindowPointerToScriptValue(ScriptEngine* engine, const InteractiveWindowPointer& in);
+bool interactiveWindowPointerFromScriptValue(const ScriptValue& object, InteractiveWindowPointer& out);
 
-void registerInteractiveWindowMetaType(QScriptEngine* engine);
+void registerInteractiveWindowMetaType(ScriptEngine* engine);
 
 Q_DECLARE_METATYPE(InteractiveWindowPointer)
 

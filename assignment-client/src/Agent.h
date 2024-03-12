@@ -15,12 +15,12 @@
 #include <memory>
 #include <vector>
 
-#include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
 #include <QtCore/QSharedPointer>
 #include <QtCore/QUrl>
 #include <QtCore/QTimer>
 #include <QUuid>
+#include <QtCore/QSharedPointer>
 
 #include <EntityEditPacketSender.h>
 #include <EntityTree.h>
@@ -29,10 +29,16 @@
 
 #include <plugins/CodecPlugin.h>
 
+#include <Sound.h>
 #include "AudioGate.h"
 #include "MixedAudioStream.h"
 #include "entities/EntityTreeHeadlessViewer.h"
 #include "avatars/ScriptableAvatar.h"
+
+class ScriptEngine;
+class ScriptManager;
+using ScriptEnginePointer = std::shared_ptr<ScriptEngine>;
+using ScriptManagerPointer = std::shared_ptr<ScriptManager>;
 
 class Agent : public ThreadedAssignment {
     Q_OBJECT
@@ -90,7 +96,7 @@ private:
     void encodeFrameOfZeros(QByteArray& encodedZeros);
     void computeLoudness(const QByteArray* decodedBuffer, QSharedPointer<ScriptableAvatar>);
 
-    ScriptEnginePointer _scriptEngine;
+    ScriptManagerPointer _scriptManager;
     EntityEditPacketSender _entityEditSender;
     EntityTreeHeadlessViewer _entityViewer;
 

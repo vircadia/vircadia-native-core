@@ -11,9 +11,13 @@
 
 #include "EntityTree.h"
 
+#include <ScriptValue.h>
+
+class ScriptEngine;
+
 class RecurseOctreeToJSONOperator : public RecurseOctreeOperator {
 public:
-    RecurseOctreeToJSONOperator(const OctreeElementPointer&, QScriptEngine* engine, QString jsonPrefix = QString(), bool skipDefaults = true,
+    RecurseOctreeToJSONOperator(const OctreeElementPointer&, ScriptEngine* engine, QString jsonPrefix = QString(), bool skipDefaults = true,
         bool skipThoseWithBadParents = false);
     virtual bool preRecursion(const OctreeElementPointer& element) override { return true; };
     virtual bool postRecursion(const OctreeElementPointer& element) override;
@@ -23,8 +27,8 @@ public:
 private:
     void processEntity(const EntityItemPointer& entity);
 
-    QScriptEngine* _engine;
-    QScriptValue _toStringMethod;
+    ScriptEngine* _engine;
+    ScriptValue _toStringMethod;
 
     QString _json;
     const bool _skipDefaults;

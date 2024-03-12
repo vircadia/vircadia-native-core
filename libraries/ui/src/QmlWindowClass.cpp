@@ -11,8 +11,6 @@
 #include <mutex>
 
 #include <QtCore/QThread>
-#include <QtScript/QScriptContext>
-#include <QtScript/QScriptEngine>
 
 #include <QtQuick/QQuickItem>
 #include <QtQml/QQmlContext>
@@ -27,6 +25,10 @@
 #include "OffscreenUi.h"
 #include "ui/types/HFWebEngineProfile.h"
 #include "ui/types/FileTypeProfile.h"
+#include <ScriptContext.h>
+#include <ScriptEngine.h>
+#include <ScriptManager.h>
+#include <ScriptValue.h>
 
 static const char* const SOURCE_PROPERTY = "source";
 static const char* const TITLE_PROPERTY = "title";
@@ -37,7 +39,7 @@ static const char* const VISIBILE_PROPERTY = "visible";
 static const uvec2 MAX_QML_WINDOW_SIZE { 1280, 720 };
 static const uvec2 MIN_QML_WINDOW_SIZE { 120, 80 };
 
-QVariantMap QmlWindowClass::parseArguments(QScriptContext* context) {
+QVariantMap QmlWindowClass::parseArguments(ScriptContext* context) {
     const auto argumentCount = context->argumentCount();
     QVariantMap properties;
     if (argumentCount > 1) {
@@ -70,7 +72,7 @@ QVariantMap QmlWindowClass::parseArguments(QScriptContext* context) {
 
 
 // Method called by Qt scripts to create a new web window in the overlay
-QScriptValue QmlWindowClass::internal_constructor(QScriptContext* context, QScriptEngine* engine, bool restricted) {
+ScriptValue QmlWindowClass::internal_constructor(ScriptContext* context, ScriptEngine* engine, bool restricted) {
     auto properties = parseArguments(context);
     QmlWindowClass* retVal = new QmlWindowClass(restricted);
     Q_ASSERT(retVal);
@@ -80,7 +82,8 @@ QScriptValue QmlWindowClass::internal_constructor(QScriptContext* context, QScri
     } else {
         retVal->initQml(properties);
     }
-    connect(engine, &QScriptEngine::destroyed, retVal, &QmlWindowClass::deleteLater);
+    auto manager = engine->manager();
+    connect(manager, &ScriptManager::destroyed, retVal, &QmlWindowClass::deleteLater);
     return engine->newQObject(retVal);
 }
 

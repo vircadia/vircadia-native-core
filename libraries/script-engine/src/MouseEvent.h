@@ -16,9 +16,10 @@
 #define hifi_MouseEvent_h
 
 #include <QMouseEvent>
-#include <QScriptValue>
 
-class QScriptEngine;
+#include "ScriptValue.h"
+
+class ScriptEngine;
 
 /// Represents a mouse event to the scripting engine. Exposed as <code><a href="https://apidocs.vircadia.dev/global.html#MouseEvent">MouseEvent</a></code>
 class MouseEvent {
@@ -26,10 +27,10 @@ public:
     MouseEvent();
     MouseEvent(const QMouseEvent& event);
     
-    static QScriptValue toScriptValue(QScriptEngine* engine, const MouseEvent& event);
-    static void fromScriptValue(const QScriptValue& object, MouseEvent& event);
+    static ScriptValue toScriptValue(ScriptEngine* engine, const MouseEvent& event);
+    static bool fromScriptValue(const ScriptValue& object, MouseEvent& event);
 
-    QScriptValue toScriptValue(QScriptEngine* engine) const { return MouseEvent::toScriptValue(engine, *this); }
+    ScriptValue toScriptValue(ScriptEngine* engine) const { return MouseEvent::toScriptValue(engine, *this); }
     
     int x;
     int y;

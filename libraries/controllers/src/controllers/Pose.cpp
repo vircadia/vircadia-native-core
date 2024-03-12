@@ -8,10 +8,11 @@
 
 #include "Pose.h"
 
-#include <QtScript/QScriptEngine>
-#include <QtScript/QScriptValue>
+#include <ScriptEngine.h>
+#include <ScriptValue.h>
 
 #include <RegisteredMetaTypes.h>
+#include <ScriptValueUtils.h>
 
 namespace controller {
 
@@ -39,8 +40,8 @@ namespace controller {
      * @property {Vec3} angularVelocity - Angular velocity in rad/s.
      * @property {boolean} valid - <code>true</code> if the pose is valid, otherwise <code>false</code>.
      */
-    QScriptValue Pose::toScriptValue(QScriptEngine* engine, const Pose& pose) {
-        QScriptValue obj = engine->newObject();
+    ScriptValue Pose::toScriptValue(ScriptEngine* engine, const Pose& pose) {
+        ScriptValue obj = engine->newObject();
         obj.setProperty("translation", vec3ToScriptValue(engine, pose.translation));
         obj.setProperty("rotation", quatToScriptValue(engine, pose.rotation));
         obj.setProperty("velocity", vec3ToScriptValue(engine, pose.velocity));
@@ -49,7 +50,7 @@ namespace controller {
         return obj;
     }
 
-    void Pose::fromScriptValue(const QScriptValue& object, Pose& pose) {
+    bool Pose::fromScriptValue(const ScriptValue& object, Pose& pose) {
         auto translation = object.property("translation");
         auto rotation = object.property("rotation");
         auto velocity = object.property("velocity");
@@ -66,6 +67,7 @@ namespace controller {
         } else {
             pose.valid = false;
         }
+        return true;
     }
 
     Pose Pose::transform(const glm::mat4& mat) const {

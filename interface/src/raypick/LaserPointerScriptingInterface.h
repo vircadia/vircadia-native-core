@@ -16,6 +16,8 @@
 #include "DependencyManager.h"
 #include <PointerManager.h>
 
+class ScriptValue;
+
 class LaserPointerScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -113,7 +115,7 @@ public:
      * @param {number} id - The ID of the pointer.
      * @param {Uuid[]} ignoreItems - A list of IDs to ignore.
      */
-    Q_INVOKABLE void setIgnoreItems(unsigned int uid, const QScriptValue& ignoreEntities) const;
+    Q_INVOKABLE void setIgnoreItems(unsigned int uid, const ScriptValue& ignoreEntities) const;
 
     /*@jsdoc
      * Sets a list of entity and avatar IDs that a pointer should include during intersection, instead of intersecting with
@@ -122,7 +124,7 @@ public:
      * @param {number} id - The ID of the pointer.
      * @param {Uuid[]} includeItems - A list of IDs to include.
      */
-    Q_INVOKABLE void setIncludeItems(unsigned int uid, const QScriptValue& includeEntities) const;
+    Q_INVOKABLE void setIncludeItems(unsigned int uid, const ScriptValue& includeEntities) const;
 
 
     /*@jsdoc

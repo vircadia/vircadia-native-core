@@ -12,9 +12,10 @@
 #include "KeyEvent.h"
 
 #include <qdebug.h>
-#include <qscriptengine.h>
 
 #include "ScriptEngineLogging.h"
+#include "ScriptEngine.h"
+#include "ScriptValue.h"
 
 KeyEvent::KeyEvent() :
     key(0),
@@ -173,8 +174,8 @@ KeyEvent::operator QKeySequence() const {
  *     print(JSON.stringify(event));
  * });
  */
-QScriptValue KeyEvent::toScriptValue(QScriptEngine* engine, const KeyEvent& event) {
-    QScriptValue obj = engine->newObject();
+ScriptValue KeyEvent::toScriptValue(ScriptEngine* engine, const KeyEvent& event) {
+    ScriptValue obj = engine->newObject();
     obj.setProperty("key", event.key);
     obj.setProperty("text", event.text);
     obj.setProperty("isShifted", event.isShifted);
@@ -186,7 +187,7 @@ QScriptValue KeyEvent::toScriptValue(QScriptEngine* engine, const KeyEvent& even
     return obj;
 }
 
-void KeyEvent::fromScriptValue(const QScriptValue& object, KeyEvent& event) {
+bool KeyEvent::fromScriptValue(const ScriptValue& object, KeyEvent& event) {
     
     event.isValid = false; // assume the worst
     event.isMeta = object.property("isMeta").toVariant().toBool();
@@ -195,13 +196,13 @@ void KeyEvent::fromScriptValue(const QScriptValue& object, KeyEvent& event) {
     event.isKeypad = object.property("isKeypad").toVariant().toBool();
     event.isAutoRepeat = object.property("isAutoRepeat").toVariant().toBool();
     
-    QScriptValue key = object.property("key");
+    ScriptValue key = object.property("key");
     if (key.isValid()) {
         event.key = key.toVariant().toInt();
         event.text = QString(QChar(event.key));
         event.isValid = true;
     } else {
-        QScriptValue text = object.property("text");
+        ScriptValue text = object.property("text");
         if (text.isValid()) {
             event.text = object.property("text").toVariant().toString();
             
@@ -280,9 +281,10 @@ void KeyEvent::fromScriptValue(const QScriptValue& object, KeyEvent& event) {
             }
             event.isValid = true;
         }
+        return true;
     }
     
-    QScriptValue isShifted = object.property("isShifted");
+    ScriptValue isShifted = object.property("isShifted");
     if (isShifted.isValid()) {
         event.isShifted = isShifted.toVariant().toBool();
     } else {

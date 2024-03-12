@@ -11,8 +11,8 @@
 
 #include "MouseEvent.h"
 
-#include <qscriptengine.h>
-#include <qscriptvalue.h>
+#include "ScriptEngine.h"
+#include "ScriptValue.h"
 
 MouseEvent::MouseEvent() :
     x(0.0f),
@@ -86,8 +86,8 @@ MouseEvent::MouseEvent(const QMouseEvent& event) :
  *     print(JSON.stringify(event));
  * });
  */
-QScriptValue MouseEvent::toScriptValue(QScriptEngine* engine, const MouseEvent& event) {
-    QScriptValue obj = engine->newObject();
+ScriptValue MouseEvent::toScriptValue(ScriptEngine* engine, const MouseEvent& event) {
+    ScriptValue obj = engine->newObject();
     obj.setProperty("x", event.x);
     obj.setProperty("y", event.y);
     obj.setProperty("button", event.button);
@@ -102,6 +102,7 @@ QScriptValue MouseEvent::toScriptValue(QScriptEngine* engine, const MouseEvent& 
     return obj;
 }
 
-void MouseEvent::fromScriptValue(const QScriptValue& object, MouseEvent& event) {
+bool MouseEvent::fromScriptValue(const ScriptValue& object, MouseEvent& event) {
     // nothing for now...
+    return false;
 }

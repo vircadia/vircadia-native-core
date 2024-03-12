@@ -12,13 +12,19 @@
 #ifndef hifi_JSConsole_h
 #define hifi_JSConsole_h
 
+#include <memory>
+
 #include <QFutureWatcher>
 #include <QObject>
 #include <QCompleter>
 #include <QtCore/QJsonArray>
+#include <ScriptValue.h>
 
 #include "ui_console.h"
-#include "ScriptEngine.h"
+
+class QStandardItemModel;
+class ScriptManager;
+using ScriptManagerPointer = std::shared_ptr<ScriptManager>;
 
 const QString CONSOLE_TITLE = "Scripting Console";
 const float CONSOLE_WINDOW_OPACITY = 0.95f;
@@ -28,10 +34,10 @@ const int CONSOLE_HEIGHT = 200;
 class JSConsole : public QWidget {
     Q_OBJECT
 public:
-    JSConsole(QWidget* parent, const ScriptEnginePointer& scriptEngine = ScriptEnginePointer());
+    JSConsole(QWidget* parent, const ScriptManagerPointer& scriptManager = ScriptManagerPointer());
     ~JSConsole();
 
-    void setScriptEngine(const ScriptEnginePointer& scriptEngine = ScriptEnginePointer());
+    void setScriptManager(const ScriptManagerPointer& scriptManager = ScriptManagerPointer());
     void clear();
 
 public slots:
@@ -66,13 +72,13 @@ private:
 
     QStandardItemModel* getAutoCompleteModel(const QString& memberOf = nullptr);
 
-    QFutureWatcher<QScriptValue> _executeWatcher;
+    QFutureWatcher<ScriptValue> _executeWatcher;
     Ui::Console* _ui;
     int _currentCommandInHistory;
     QString _savedHistoryFilename;
     QList<QString> _commandHistory;
     QString _rootCommand;
-    ScriptEnginePointer _scriptEngine;
+    ScriptManagerPointer _scriptManager;
     static const QString _consoleFileName;
     QJsonArray _apiDocs;
     QCompleter* _completer;

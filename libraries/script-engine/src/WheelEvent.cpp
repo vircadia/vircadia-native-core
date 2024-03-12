@@ -11,8 +11,8 @@
 
 #include "WheelEvent.h"
 
-#include <QScriptEngine>
-#include <QScriptValue>
+#include "ScriptEngine.h"
+#include "ScriptValue.h"
 
 WheelEvent::WheelEvent() :
     x(0.0f),
@@ -81,8 +81,8 @@ WheelEvent::WheelEvent(const QWheelEvent& event) {
  *     print(JSON.stringify(event));
  * });
  */
-QScriptValue WheelEvent::toScriptValue(QScriptEngine* engine, const WheelEvent& event) {
-    QScriptValue obj = engine->newObject();
+ScriptValue WheelEvent::toScriptValue(ScriptEngine* engine, const WheelEvent& event) {
+    ScriptValue obj = engine->newObject();
     obj.setProperty("x", event.x);
     obj.setProperty("y", event.y);
     obj.setProperty("delta", event.delta);
@@ -97,6 +97,7 @@ QScriptValue WheelEvent::toScriptValue(QScriptEngine* engine, const WheelEvent& 
     return obj;
 }
 
-void WheelEvent::fromScriptValue(const QScriptValue& object, WheelEvent& event) {
+bool WheelEvent::fromScriptValue(const ScriptValue& object, WheelEvent& event) {
     // nothing for now...
+    return false;
 }

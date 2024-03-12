@@ -15,10 +15,11 @@
 #ifndef hifi_MenuItemProperties_h
 #define hifi_MenuItemProperties_h
 
-#include <QtScript/QScriptEngine>
-
 #include "KeyEvent.h"
 
+#include "ScriptValue.h"
+
+class ScriptEngine;
 
 /// Represents a menu item a script may declare and bind events to. Exposed as <code><a href="https://apidocs.vircadia.dev/Menu.html#.MenuItemProperties">MenuItemProperties</a></code>
 class MenuItemProperties {
@@ -53,9 +54,9 @@ private:
     static const int UNSPECIFIED_POSITION = -1;
 };
 Q_DECLARE_METATYPE(MenuItemProperties)
-QScriptValue menuItemPropertiesToScriptValue(QScriptEngine* engine, const MenuItemProperties& props);
-void menuItemPropertiesFromScriptValue(const QScriptValue& object, MenuItemProperties& props);
-void registerMenuItemProperties(QScriptEngine* engine);
+ScriptValue menuItemPropertiesToScriptValue(ScriptEngine* engine, const MenuItemProperties& props);
+bool menuItemPropertiesFromScriptValue(const ScriptValue& object, MenuItemProperties& props);
+void registerMenuItemProperties(ScriptEngine* engine);
 
 
 

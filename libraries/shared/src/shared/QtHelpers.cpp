@@ -40,6 +40,16 @@ void addBlockingForbiddenThread(const QString& name, QThread* thread) {
     threadHash[thread] = name;
 }
 
+QString isBlockingForbiddenThread(QThread* currentThread) {
+    QReadLocker locker(&threadHashLock);
+    for (const auto& thread : threadHash.keys()) {
+        if (currentThread == thread) {
+            return threadHash[thread];
+        }
+    }
+    return QString();
+}
+
 bool blockingInvokeMethod(
     const char* function,
     QObject *obj, const char *member,

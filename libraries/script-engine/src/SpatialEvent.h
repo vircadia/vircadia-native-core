@@ -18,7 +18,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include <qscriptengine.h>
+#include "ScriptValue.h"
+
+class ScriptEngine;
 
 /// [unused] Represents a spatial event to the scripting engine
 class SpatialEvent {
@@ -26,8 +28,8 @@ public:
     SpatialEvent();
     SpatialEvent(const SpatialEvent& other);
     
-    static QScriptValue toScriptValue(QScriptEngine* engine, const SpatialEvent& event);
-    static void fromScriptValue(const QScriptValue& object, SpatialEvent& event);
+    static ScriptValue toScriptValue(ScriptEngine* engine, const SpatialEvent& event);
+    static bool fromScriptValue(const ScriptValue& object, SpatialEvent& event);
     
     glm::vec3 locTranslation;
     glm::quat locRotation;

@@ -159,6 +159,8 @@ bool TabletButtonsProxyModel::filterAcceptsRow(int sourceRow,
 
 TabletScriptingInterface::TabletScriptingInterface() {
     qmlRegisterType<TabletScriptingInterface>("TabletScriptingInterface", 1, 0, "TabletEnums");
+    qRegisterMetaType<TabletScriptingInterface::TabletAudioEvents>("TabletScriptingInterface::TabletAudioEvents");
+    qRegisterMetaType<TabletScriptingInterface::TabletConstants>("TabletScriptingInterface::TabletConstants");
     qmlRegisterType<TabletButtonsProxyModel>("TabletScriptingInterface", 1, 0, "TabletButtonsProxyModel");
 }
 
