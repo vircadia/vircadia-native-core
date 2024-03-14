@@ -11,8 +11,10 @@
 
 #if defined(WEBRTC_DATA_CHANNELS)
 
+#include <QProcessEnvironment>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonArray>
 
 #include "../NetworkLogging.h"
 
@@ -29,7 +31,7 @@ const std::list<std::string> DEFAULT_ICE_SERVER_URLS = {
 };
 const int MAX_WEBRTC_BUFFER_SIZE = 16777216;  // 16MB
 
-// #define WEBRTC_DEBUG
+#define WEBRTC_DEBUG
 
 using namespace webrtc;
 
@@ -667,14 +669,66 @@ rtc::scoped_refptr<PeerConnectionInterface> WebRTCDataChannels::createPeerConnec
 #endif
 
     PeerConnectionInterface::RTCConfiguration configuration;
-    configuration.servers = _iceServers;
-    if (configuration.servers.empty()) {
-        for (const auto& url : DEFAULT_ICE_SERVER_URLS) {
-            PeerConnectionInterface::IceServer iceServer;
-            iceServer.urls = std::vector<std::string>{url};
-            configuration.servers.push_back(iceServer);
+
+    const QString WEBRTC_ICE_SERVERS_OVERRIDE_ENV = "VRCA_OVERRIDE_WEBRTC_ICE_SERVERS";
+    if (QProcessEnvironment::systemEnvironment().contains(WEBRTC_ICE_SERVERS_OVERRIDE_ENV)) {
+        auto envString = QProcessEnvironment::systemEnvironment().value(WEBRTC_ICE_SERVERS_OVERRIDE_ENV).toUtf8();
+        auto json = QJsonDocument::fromJson(envString);
+        if (json.isArray()) {
+            auto array = json.array();
+            for (auto&& server : array) {
+                PeerConnectionInterface::IceServer iceServer;
+                if (server.isObject() && server.toObject().contains("urls")) {
+                    auto urls = server.toObject()["urls"];
+                    if (urls.isArray()) {
+                        for (auto&& url : urls.toArray()) {
+                            iceServer.urls.push_back(url.toString().toStdString());
+                        }
+                    } else {
+                        iceServer.urls.push_back(urls.toString().toStdString());
+                    }
+                    auto password = server.toObject()["credential"].toString().toStdString();
+                    auto username = server.toObject()["username"].toString().toStdString();
+                    if (password != "") {
+                        iceServer.password = password;
+                    }
+                    if (username != "") {
+                        iceServer.username = username;
+                    }
+                    configuration.servers.push_back(iceServer);
+                } else {
+                    qCDebug(networking_webrtc) << "WebRTCDataChannels::createPeerConnection() : " << WEBRTC_ICE_SERVERS_OVERRIDE_ENV << " environment variable invalid";
+                    qCDebug(networking_webrtc) << envString;
+                    break;
+                }
+            }
+        } else {
+            qCDebug(networking_webrtc) << "WebRTCDataChannels::createPeerConnection() : " << WEBRTC_ICE_SERVERS_OVERRIDE_ENV << " environment variable is not a JSON array";
+            qCDebug(networking_webrtc) << envString;
+        }
+    } else {
+        configuration.servers = _iceServers;
+        if (configuration.servers.empty()) {
+            for (const auto& url : DEFAULT_ICE_SERVER_URLS) {
+                PeerConnectionInterface::IceServer iceServer;
+                iceServer.urls = std::vector<std::string>{url};
+                configuration.servers.push_back(iceServer);
+            }
         }
     }
+
+#ifdef WEBRTC_DEBUG
+    qCDebug(networking_webrtc) << "WebRTCDataChannels::createPeerConnection() : Configuration ICE server list:";
+        for (const auto& server : configuration.servers) {
+            qCDebug(networking_webrtc) << "URL: " << (server.urls.size() > 0 ? server.urls.front().c_str() : "");
+            if (server.username != "") {
+                qCDebug(networking_webrtc) << "USERNAME: " << server.username.c_str();
+            }
+            if (server.password != "") {
+                qCDebug(networking_webrtc) << "PASSWORD: " << server.password.c_str();
+            }
+        }
+#endif
 
 #ifdef WEBRTC_DEBUG
     qCDebug(networking_webrtc) << "2. Create a new peer connection";
