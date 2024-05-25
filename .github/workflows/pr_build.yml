@@ -343,11 +343,12 @@ jobs:
         echo "Disk usage:"
         df -h
 
-    - name: Output Installer Logs
-      if: failure() && matrix.os == 'windows-2019'
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cat ./_CPack_Packages/win64/NSIS/NSISOutput.log
+    # TODO: uncomment
+    # - name: Output Installer Logs
+    #   if: failure() && matrix.os == 'windows-2019'
+    #   shell: bash
+    #   working-directory: ${{runner.workspace}}/build
+    #   run: cat ./_CPack_Packages/win64/NSIS/NSISOutput.log
 
     - name: Upload full build
       if: matrix.build_type == 'full' && matrix.os != 'ubuntu-18.04' && matrix.os != 'ubuntu-20.04'
