@@ -5,8 +5,8 @@ vcpkg_check_linkage(ONLY_STATIC_LIBRARY)
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO KhronosGroup/SPIRV-Tools
-    REF v2024.1
-    SHA512 2c265a9f4b6c40501a8f1925080c0b176f5d3be50afddbbf16bcd2230ce09ca47d2393404d3717dabb7ebe25cce7decaede16223f79edfbcbf77ed9a35d74a6c
+    REF v2023.2
+    SHA512 988f5e31508e3f19c1dd9d9a013c8e9ff89eba86207a769d7d804f9ee0201c794f412a874c860167b2c040b2c5e1fb1c835ae3684c70feaac86e47f90c1a5010
     HEAD_REF master
 )
 
