@@ -13,12 +13,6 @@ vcpkg_find_acquire_program(PYTHON3)
 get_filename_component(PYTHON3_DIR "${PYTHON3}" DIRECTORY)
 vcpkg_add_to_path("${PYTHON3_DIR}")
 
-vcpkg_check_features(
-    OUT_FEATURE_OPTIONS FEATURE_OPTIONS
-    INVERTED_FEATURES
-        tools   SPIRV_SKIP_EXECUTABLES
-)
-
 vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
     OPTIONS
@@ -28,7 +22,6 @@ vcpkg_cmake_configure(
         -DSPIRV_TOOLS_BUILD_STATIC=ON
         -DSPIRV_WERROR=OFF
     OPTIONS_DEBUG
-        -DSPIRV_SKIP_EXECUTABLES=ON
 )
 
 vcpkg_cmake_install()
@@ -50,7 +43,7 @@ if("tools" IN_LIST FEATURES)
     vcpkg_copy_tools(TOOL_NAMES ${tools} AUTO_CLEAN)
 endif()
 
-file(REMOVE_RECURSE 
+file(REMOVE_RECURSE
     "${CURRENT_PACKAGES_DIR}/debug/include"
     "${CURRENT_PACKAGES_DIR}/debug/share"
 )
