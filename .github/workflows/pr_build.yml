@@ -209,6 +209,11 @@ jobs:
           echo "  done"
         fi
 
+    - name: Override NSIS
+      shell: pwsh
+      if: startsWith(matrix.os, 'windows')
+      run: choco install nsis --version=3.06.1 --allow-downgrade
+
     - name: Create Build Environment
       shell: bash
       run: cmake -E make_directory "${{runner.workspace}}/build"
