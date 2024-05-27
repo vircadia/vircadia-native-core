@@ -35,7 +35,7 @@ const int MAX_WEBRTC_BUFFER_SIZE = 16777216;  // 16MB
 #define WEBRTC_DEBUG_LEVEL_NORMAL 1 // basic peer connection logs
 #define WEBRTC_DEBUG_LEVEL_VERBOSE 2 // full data channel logs
 
-#define WEBRTC_DEBUG WEBRTC_DEBUG_LEVEL_NORMAL
+// #define WEBRTC_DEBUG WEBRTC_DEBUG_LEVEL_NORMAL
 
 using namespace webrtc;
 
