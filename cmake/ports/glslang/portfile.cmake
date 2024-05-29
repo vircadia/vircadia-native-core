@@ -46,7 +46,7 @@ endif()
 vcpkg_copy_pdbs()
 
 if (ENABLE_GLSLANG_BINARIES)
-    vcpkg_copy_tools(TOOL_NAMES glslang glslangValidator spirv-remap AUTO_CLEAN)
+    vcpkg_copy_tools(TOOL_NAMES glslang spirv-remap AUTO_CLEAN)
 endif ()
 
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
