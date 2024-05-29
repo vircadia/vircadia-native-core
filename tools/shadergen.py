@@ -166,7 +166,7 @@ folderMutex = Lock()
 def processCommand(line):
     global args
     global scribeDepCache
-    glslangExec = args.tools_dir + '/glslang/glslangValidator'
+    glslangExec = args.tools_dir + '/glslang/glslang'
     spirvCrossExec = args.tools_dir + '/spirv-cross/spirv-cross'
     spirvOptExec = args.tools_dir + '/spirv-opt'
     params = line.split(';')
