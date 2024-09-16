@@ -12,9 +12,13 @@
 #ifndef hifi_TestingDialog_h
 #define hifi_TestingDialog_h
 
+#include <memory>
+
 #include <QDialog>
-#include "ScriptEngine.h"
 #include "JSConsole.h"
+
+class ScriptManager;
+using ScriptManagerPointer = std::shared_ptr<ScriptManager>;
 
 const QString windowLabel = "Client Script Tests";
 const QString testRunnerRelativePath = "/scripts/developer/tests/unit_tests/testRunner.js";
@@ -29,7 +33,7 @@ public:
 
 private:
     std::unique_ptr<JSConsole> _console;
-    ScriptEnginePointer _engine;
+    ScriptManagerPointer _scriptManager;
 };
 
 #endif

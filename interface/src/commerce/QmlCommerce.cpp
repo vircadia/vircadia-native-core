@@ -374,7 +374,7 @@ bool QmlCommerce::installApp(const QString& itemHref, const bool& alsoOpenImmedi
         // Don't try to re-load (install) a script if it's already running
         QStringList runningScripts = DependencyManager::get<ScriptEngines>()->getRunningScripts();
         if (!runningScripts.contains(scriptUrl)) {
-            if ((DependencyManager::get<ScriptEngines>()->loadScript(scriptUrl.trimmed())).isNull()) {
+            if (!(DependencyManager::get<ScriptEngines>()->loadScript(scriptUrl.trimmed()))) {
                 qCDebug(commerce) << "Couldn't load script.";
                 return false;
             }

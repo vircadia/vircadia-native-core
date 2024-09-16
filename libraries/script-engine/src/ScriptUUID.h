@@ -19,7 +19,8 @@
 
 #include <QUuid>
 #include <QObject>
-#include <QtScript/QScriptable>
+
+#include "Scriptable.h"
 
 /*@jsdoc
  * The <code>Uuid</code> API provides facilities for working with UUIDs.
@@ -36,7 +37,7 @@
  * @property {Uuid} NULL - The null UUID, <code>"{00000000-0000-0000-0000-000000000000}"</code>.
  */
 /// Provides the <code><a href="https://apidocs.vircadia.dev/Uuid.html">Uuid</a></code> scripting interface
-class ScriptUUID : public QObject, protected QScriptable {
+class ScriptUUID : public QObject, protected Scriptable {
     Q_OBJECT
     Q_PROPERTY(QString NULL READ NULL_UUID CONSTANT) // String for use in scripts.
 

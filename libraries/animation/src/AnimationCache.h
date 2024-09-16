@@ -14,8 +14,6 @@
 
 #include <QtCore/QRunnable>
 #include <QtCore/QSharedPointer>
-#include <QtScript/QScriptEngine>
-#include <QtScript/QScriptValue>
 
 #include <DependencyManager.h>
 #include <hfm/HFM.h>

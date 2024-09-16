@@ -12,7 +12,6 @@
 #include <mutex>
 #include "../DependencyManager.h"
 
-class QScriptEngine;
 class ScriptEngine;
 
 template <typename T> class ScriptInitializerMixin {
@@ -35,11 +34,11 @@ protected:
     std::list<ScriptInitializer> _scriptInitializers;
 };
 
-class ScriptInitializers : public ScriptInitializerMixin<QScriptEngine*>, public Dependency {
+class ScriptInitializers : public ScriptInitializerMixin<ScriptEngine*>, public Dependency {
 public:
-    // Lightweight `QScriptEngine*` initializer (only depends on built-in Qt components)
+    // Lightweight `ScriptEngine*` initializer (only depends on built-in Qt components)
     // example registration:
-    // eg: [&](QScriptEngine* engine) {
+    // eg: [&](ScriptEngine* engine) {
     //     engine->globalObject().setProperties("API", engine->newQObject(...instance...))
     // };
 };

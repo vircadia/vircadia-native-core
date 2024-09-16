@@ -44,13 +44,15 @@
 #include <udt/PacketHeaders.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
+#include <ScriptEngine.h>
+#include <ScriptEngineCast.h>
 #include <SharedUtil.h>
 #include <SoundCache.h>
 #include <ModelEntityItem.h>
 #include <TextRenderer3D.h>
 #include <UserActivityLogger.h>
 #include <recording/Recorder.h>
-#include <RecordingScriptingInterface.h>
+#include <recording/RecordingScriptingInterface.h>
 #include <RenderableModelEntityItem.h>
 #include <VariantMapToScriptValue.h>
 #include <NetworkingConstants.h>
@@ -378,8 +380,6 @@ MyAvatar::MyAvatar(QThread* thread) :
 
 MyAvatar::~MyAvatar() {
     _lookAtTargetAvatar.reset();
-    delete _scriptEngine;
-    _scriptEngine = nullptr;
     if (_addAvatarEntitiesToTreeTimer.isActive()) {
         _addAvatarEntitiesToTreeTimer.stop();
     }
@@ -439,18 +439,18 @@ void MyAvatar::enableHandTouchForID(const QUuid& entityID) {
 }
 
 void MyAvatar::registerMetaTypes(ScriptEnginePointer engine) {
-    QScriptValue value = engine->newQObject(this, QScriptEngine::QtOwnership, QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects);
+    ScriptValue value = engine->newQObject(this, ScriptEngine::QtOwnership);
     engine->globalObject().setProperty("MyAvatar", value);
 
-    QScriptValue driveKeys = engine->newObject();
+    ScriptValue driveKeys = engine->newObject();
     auto metaEnum = QMetaEnum::fromType<DriveKeys>();
     for (int i = 0; i < MAX_DRIVE_KEYS; ++i) {
         driveKeys.setProperty(metaEnum.key(i), metaEnum.value(i));
     }
     engine->globalObject().setProperty("DriveKeys", driveKeys);
 
-    qScriptRegisterMetaType(engine.data(), audioListenModeToScriptValue, audioListenModeFromScriptValue);
-    qScriptRegisterMetaType(engine.data(), driveKeysToScriptValue, driveKeysFromScriptValue);
+    scriptRegisterMetaType(engine.get(), audioListenModeToScriptValue, audioListenModeFromScriptValue);
+    scriptRegisterMetaType(engine.get(), driveKeysToScriptValue, driveKeysFromScriptValue);
 }
 
 void MyAvatar::setOrientationVar(const QVariant& newOrientationVar) {
@@ -2062,7 +2062,7 @@ void MyAvatar::avatarEntityDataToJson(QJsonObject& root) const {
 
 void MyAvatar::loadData() {
     if (!_scriptEngine) {
-        _scriptEngine = new QScriptEngine();
+        _scriptEngine = newScriptEngine();
     }
     getHead()->setBasePitch(_headPitchSetting.get());
 
@@ -2670,8 +2670,7 @@ QVariantList MyAvatar::getAvatarEntitiesVariant() {
             EntityItemProperties entityProperties = entity->getProperties(desiredProperties);
             {
                 std::lock_guard<std::mutex> guard(_scriptEngineLock);
-                QScriptValue scriptProperties;
-                scriptProperties = EntityItemPropertiesToScriptValue(_scriptEngine, entityProperties);
+                ScriptValue scriptProperties = EntityItemPropertiesToScriptValue(_scriptEngine.get(), entityProperties);
                 avatarEntityData["properties"] = scriptProperties.toVariant();
             }
             avatarEntitiesData.append(QVariant(avatarEntityData));
@@ -5703,20 +5702,22 @@ void MyAvatar::setAudioListenerMode(AudioListenerMode audioListenerMode) {
     }
 }
 
-QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode) {
-    return audioListenerMode;
+ScriptValue audioListenModeToScriptValue(ScriptEngine* engine, const AudioListenerMode& audioListenerMode) {
+    return engine->newValue(audioListenerMode);
 }
 
-void audioListenModeFromScriptValue(const QScriptValue& object, AudioListenerMode& audioListenerMode) {
+bool audioListenModeFromScriptValue(const ScriptValue& object, AudioListenerMode& audioListenerMode) {
     audioListenerMode = static_cast<AudioListenerMode>(object.toUInt16());
+    return true;
 }
 
-QScriptValue driveKeysToScriptValue(QScriptEngine* engine, const MyAvatar::DriveKeys& driveKeys) {
-    return driveKeys;
+ScriptValue driveKeysToScriptValue(ScriptEngine* engine, const MyAvatar::DriveKeys& driveKeys) {
+    return engine->newValue(driveKeys);
 }
 
-void driveKeysFromScriptValue(const QScriptValue& object, MyAvatar::DriveKeys& driveKeys) {
+bool driveKeysFromScriptValue(const ScriptValue& object, MyAvatar::DriveKeys& driveKeys) {
     driveKeys = static_cast<MyAvatar::DriveKeys>(object.toUInt16());
+    return true;
 }
 
 

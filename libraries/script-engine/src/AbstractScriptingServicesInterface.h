@@ -15,13 +15,16 @@
 #ifndef hifi_AbstractScriptingServicesInterface_h
 #define hifi_AbstractScriptingServicesInterface_h
 
-#include <BaseScriptEngine.h>
+#include <memory>
+
+class ScriptManager;
+using ScriptManagerPointer = std::shared_ptr<ScriptManager>;
 
 /// Interface provided by Application to other objects that need access to scripting services of the application
 class AbstractScriptingServicesInterface {
 public:
     /// Registers application specific services with a script engine.
-    virtual void registerScriptEngineWithApplicationServices(const ScriptEnginePointer& scriptEngine) = 0;
+    virtual void registerScriptEngineWithApplicationServices(const ScriptManagerPointer& scriptEngine) = 0;
 };
 
 

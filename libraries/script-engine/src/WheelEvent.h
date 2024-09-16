@@ -18,8 +18,9 @@
 #include <QString>
 #include <QWheelEvent>
 
-class QScriptValue;
-class QScriptEngine;
+#include "ScriptValue.h"
+
+class ScriptEngine;
 
 /// Represents a mouse wheel event to the scripting engine. Exposed as <code><a href="https://apidocs.vircadia.dev/global.html#WheelEvent">WheelEvent</a></code>
 class WheelEvent {
@@ -27,8 +28,8 @@ public:
     WheelEvent();
     WheelEvent(const QWheelEvent& event);
     
-    static QScriptValue toScriptValue(QScriptEngine* engine, const WheelEvent& event);
-    static void fromScriptValue(const QScriptValue& object, WheelEvent& event);
+    static ScriptValue toScriptValue(ScriptEngine* engine, const WheelEvent& event);
+    static bool fromScriptValue(const ScriptValue& object, WheelEvent& event);
     
     int x;
     int y;

@@ -15,6 +15,9 @@
 #include <Pick.h>
 #include <PickFilter.h>
 
+class ScriptEngine;
+class ScriptValue;
+
 /*@jsdoc
  * The <code>Picks</code> API lets you create and manage objects for repeatedly calculating intersections.
  *
@@ -103,7 +106,7 @@ class PickScriptingInterface : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-    void registerMetaTypes(QScriptEngine* engine);
+    void registerMetaTypes(ScriptEngine* engine);
 
     /*@jsdoc
      * Creates a new pick. Different {@link PickType}s use different properties, and within one PickType the properties you 
@@ -245,7 +248,7 @@ public:
      * @param {number} id - The ID of the pick.
      * @param {Uuid[]} ignoreItems - The list of IDs to ignore.
      */
-    Q_INVOKABLE void setIgnoreItems(unsigned int uid, const QScriptValue& ignoreItems);
+    Q_INVOKABLE void setIgnoreItems(unsigned int uid, const ScriptValue& ignoreItems);
 
     /*@jsdoc
      * Sets a list of entity and avatar IDs that a pick should include during intersection, instead of intersecting with 
@@ -255,7 +258,7 @@ public:
      * @param {number} id - The ID of the pick.
      * @param {Uuid[]} includeItems - The list of IDs to include.
      */
-    Q_INVOKABLE void setIncludeItems(unsigned int uid, const QScriptValue& includeItems);
+    Q_INVOKABLE void setIncludeItems(unsigned int uid, const ScriptValue& includeItems);
 
     /*@jsdoc
      * Checks if a pick is associated with the left hand: a ray or parabola pick with <code>joint</code> property set to 

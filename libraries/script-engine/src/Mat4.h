@@ -19,10 +19,10 @@
 
 #include <QObject>
 #include <QString>
-#include <QtScript/QScriptable>
 #include <QVector>
 #include <glm/glm.hpp>
 #include "RegisteredMetaTypes.h"
+#include "Scriptable.h"
 
 /*@jsdoc
  * The <code>Mat4</code> API provides facilities for generating and using 4 x 4 matrices. These matrices are typically used to 
@@ -39,7 +39,7 @@
  * @hifi-assignment-client
  */
 /// Provides the <code><a href="https://apidocs.vircadia.dev/Mat4.html">Mat4</a></code> scripting interface
-class Mat4 : public QObject, protected QScriptable {
+class Mat4 : public QObject, protected Scriptable {
     Q_OBJECT
 
 public slots:

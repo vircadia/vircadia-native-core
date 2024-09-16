@@ -22,7 +22,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
 
-#include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
 #include <QVector>
 #include <QString>
@@ -35,8 +34,9 @@
 #include <ShapeInfo.h>
 #include <ColorUtils.h>
 #include "FontFamilies.h"
+#include <ScriptValue.h>
 
-#include "EntityItemID.h"
+#include <EntityItemID.h>
 #include "EntityItemPropertiesDefaults.h"
 #include "EntityItemPropertiesMacros.h"
 #include "EntityTypes.h"
@@ -70,6 +70,8 @@
 #include "TextEffect.h"
 #include "TextAlignment.h"
 
+class ScriptEngine;
+
 const quint64 UNKNOWN_CREATED_TIME = 0;
 
 using vec3Color = glm::vec3;
@@ -97,7 +99,7 @@ EntityPropertyInfo makePropertyInfo(EntityPropertyList p, typename std::enable_i
 }
 
 /// A collection of properties of an entity item used in the scripting API. Translates between the actual properties of an
-/// entity and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete
+/// entity and a JavaScript style hash/ScriptValue storing a set of properties. Used in scripting to set/get the complete
 /// set of entity item properties via JavaScript hashes/QScriptValues
 /// all units for SI units (meter, second, radian, etc) 
 class EntityItemProperties {
@@ -120,8 +122,8 @@ class EntityItemProperties {
     friend class ZoneEntityItem;
     friend class MaterialEntityItem;
 public:
-    static bool blobToProperties(QScriptEngine& scriptEngine, const QByteArray& blob, EntityItemProperties& properties);
-    static void propertiesToBlob(QScriptEngine& scriptEngine, const QUuid& myAvatarID, const EntityItemProperties& properties, 
+    static bool blobToProperties(ScriptEngine& scriptEngine, const QByteArray& blob, EntityItemProperties& properties);
+    static void propertiesToBlob(ScriptEngine& scriptEngine, const QUuid& myAvatarID, const EntityItemProperties& properties, 
         QByteArray& blob, bool allProperties = false);
 
     EntityItemProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags());
@@ -134,13 +136,13 @@ public:
     EntityTypes::EntityType getType() const { return _type; }
     void setType(EntityTypes::EntityType type) { _type = type; }
 
-    virtual QScriptValue copyToScriptValue(QScriptEngine* engine, bool skipDefaults, bool allowUnknownCreateTime = false,
+    virtual ScriptValue copyToScriptValue(ScriptEngine* engine, bool skipDefaults, bool allowUnknownCreateTime = false,
         bool strictSemantics = false, EntityPsuedoPropertyFlags psueudoPropertyFlags = EntityPsuedoPropertyFlags()) const;
-    virtual void copyFromScriptValue(const QScriptValue& object, bool honorReadOnly);
-    void copyFromJSONString(QScriptEngine& scriptEngine, const QString& jsonString);
+    virtual void copyFromScriptValue(const ScriptValue& object, bool honorReadOnly);
+    void copyFromJSONString(ScriptEngine& scriptEngine, const QString& jsonString);
 
-    static QScriptValue entityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags);
-    static void entityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityPropertyFlags& flags);
+    static ScriptValue entityPropertyFlagsToScriptValue(ScriptEngine* engine, const EntityPropertyFlags& flags);
+    static bool entityPropertyFlagsFromScriptValue(const ScriptValue& object, EntityPropertyFlags& flags);
 
     static bool getPropertyInfo(const QString& propertyName, EntityPropertyInfo& propertyInfo);
 
@@ -540,18 +542,18 @@ private:
 };
 
 Q_DECLARE_METATYPE(EntityItemProperties);
-QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
-QScriptValue EntityItemNonDefaultPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
-void EntityItemPropertiesFromScriptValueIgnoreReadOnly(const QScriptValue& object, EntityItemProperties& properties);
-void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue& object, EntityItemProperties& properties);
+ScriptValue EntityItemPropertiesToScriptValue(ScriptEngine* engine, const EntityItemProperties& properties);
+ScriptValue EntityItemNonDefaultPropertiesToScriptValue(ScriptEngine* engine, const EntityItemProperties& properties);
+bool EntityItemPropertiesFromScriptValueIgnoreReadOnly(const ScriptValue& object, EntityItemProperties& properties);
+bool EntityItemPropertiesFromScriptValueHonorReadOnly(const ScriptValue& object, EntityItemProperties& properties);
 
 Q_DECLARE_METATYPE(EntityPropertyFlags);
-QScriptValue EntityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags);
-void EntityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityPropertyFlags& flags);
+ScriptValue EntityPropertyFlagsToScriptValue(ScriptEngine* engine, const EntityPropertyFlags& flags);
+bool EntityPropertyFlagsFromScriptValue(const ScriptValue& object, EntityPropertyFlags& flags);
 
 Q_DECLARE_METATYPE(EntityPropertyInfo);
-QScriptValue EntityPropertyInfoToScriptValue(QScriptEngine* engine, const EntityPropertyInfo& propertyInfo);
-void EntityPropertyInfoFromScriptValue(const QScriptValue& object, EntityPropertyInfo& propertyInfo);
+ScriptValue EntityPropertyInfoToScriptValue(ScriptEngine* engine, const EntityPropertyInfo& propertyInfo);
+bool EntityPropertyInfoFromScriptValue(const ScriptValue& object, EntityPropertyInfo& propertyInfo);
 
 // define these inline here so the macros work
 inline void EntityItemProperties::setPosition(const glm::vec3& value)

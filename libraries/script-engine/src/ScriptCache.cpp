@@ -22,6 +22,7 @@
 #include <QMetaEnum>
 
 #include <assert.h>
+#include <ResourceCache.h>
 #include <SharedUtil.h>
 
 #include "ScriptEngines.h"

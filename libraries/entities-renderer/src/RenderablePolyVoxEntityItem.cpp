@@ -21,7 +21,7 @@
 #include <QtConcurrent/QtConcurrentRun>
 
 #include <model-networking/SimpleMeshProxy.h>
-#include <ModelScriptingInterface.h>
+#include "ModelScriptingInterface.h"
 #include <EntityEditPacketSender.h>
 #include <PhysicalEntitySimulation.h>
 #include <StencilMaskPass.h>

@@ -8,6 +8,9 @@
 #pragma once
 
 #include "ScriptableMesh.h"
+#include <Scriptable.h>
+
+class ScriptValue;
 
 namespace scriptable {
     /*@jsdoc
@@ -55,7 +58,7 @@ namespace scriptable {
      * @borrows GraphicsMesh.getVertexAttributes as getVertextAttributes
      * @borrows GraphicsMesh.setVertexAttributes as setVertextAttributes
      */
-    class ScriptableMeshPart : public QObject, QScriptable {
+    class ScriptableMeshPart : public QObject, Scriptable {
         Q_OBJECT
         Q_PROPERTY(bool valid READ isValid)
         Q_PROPERTY(glm::uint32 partIndex MEMBER partIndex CONSTANT)
@@ -78,7 +81,7 @@ namespace scriptable {
     public:
         ScriptableMeshPart(scriptable::ScriptableMeshPointer parentMesh, int partIndex);
         ScriptableMeshPart& operator=(const ScriptableMeshPart& view) { parentMesh=view.parentMesh; return *this; };
-        ScriptableMeshPart(const ScriptableMeshPart& other) : QObject(other.parent()), QScriptable(), parentMesh(other.parentMesh), partIndex(other.partIndex) {}
+        ScriptableMeshPart(const ScriptableMeshPart& other) : QObject(other.parent()), Scriptable(), parentMesh(other.parentMesh), partIndex(other.partIndex) {}
         bool isValid() const { auto mesh = getMeshPointer(); return mesh && partIndex < mesh->getNumParts(); }
 
     public slots:
@@ -273,7 +276,7 @@ namespace scriptable {
         QString toOBJ();
 
 
-        // QScriptEngine-specific wrappers
+        // ScriptEngine-specific wrappers
 
         /*@jsdoc
          * Updates vertex attributes by calling a function for each vertex in the <em>whole</em> mesh (i.e., the parent and 
@@ -282,7 +285,7 @@ namespace scriptable {
          * @param {GraphicsMesh~updateVertexAttributesCallback} callback - The function to call for each vertex.
          * @returns {number} The number of vertices the callback was called for.
          */
-        glm::uint32 updateVertexAttributes(QScriptValue callback);
+        glm::uint32 updateVertexAttributes(const ScriptValue& callback);
 
         /*@jsdoc
          * Calls a function for each vertex in the <em>whole</em> mesh (i.e., parent and mesh parts).
@@ -290,7 +293,7 @@ namespace scriptable {
          * @param {GraphicsMesh~forEachVertexCallback} callback - The function to call for each vertex.
          * @returns {number} The number of vertices the callback was called for.
          */
-        glm::uint32 forEachVertex(QScriptValue callback);
+        glm::uint32 forEachVertex(const ScriptValue& callback);
 
         /*@jsdoc
          * Checks if an index is valid and, optionally, that vertex has a particular attribute.

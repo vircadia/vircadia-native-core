@@ -16,10 +16,10 @@
 
 #include <QObject>
 #include <QMutex>
-#include <QScriptValue>
 #include <vector>
 #include <JointData.h>
 #include <QReadWriteLock>
+#include <ScriptValue.h>
 
 #include "AnimNode.h"
 #include "AnimNodeLoader.h"
@@ -40,7 +40,7 @@ public:
     struct StateHandler {
         AnimVariantMap results;
         QStringList propertyNames;
-        QScriptValue function;
+        ScriptValue function;
         bool useNames;
     };
 
@@ -205,9 +205,9 @@ public:
     AnimNode::ConstPointer getAnimNode() const { return _animNode; }
     AnimNode::ConstPointer findAnimNodeByName(const QString& name) const;
     AnimSkeleton::ConstPointer getAnimSkeleton() const { return _animSkeleton; }
-    QScriptValue addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList);
-    void removeAnimationStateHandler(QScriptValue handler);
-    void animationStateHandlerResult(int identifier, QScriptValue result);
+    ScriptValue addAnimationStateHandler(const ScriptValue& handler, const ScriptValue& propertiesList);
+    void removeAnimationStateHandler(const ScriptValue& handler);
+    void animationStateHandlerResult(int identifier, const ScriptValue& result);
 
     // rig space
     bool getModelRegistrationPoint(glm::vec3& modelRegistrationPointOut) const;

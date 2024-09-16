@@ -11,6 +11,7 @@ if (WIN32)
     set(TARGET_NAME hifiNeuron)
     setup_hifi_plugin(Qml)
     link_hifi_libraries(shared controllers qml ui plugins input-plugins)
+    include_hifi_library_headers(script-engine)
     target_neuron()
 
 endif()

@@ -23,7 +23,7 @@
 
 #include "ObjectMotionState.h"
 #include "BulletUtil.h"
-#include "EntityDynamicInterface.h"
+#include <EntityDynamicInterface.h>
 
 
 class ObjectDynamic : public EntityDynamicInterface, public ReadWriteLockable {

@@ -7,11 +7,12 @@
 
 #include "GraphicsScriptingUtil.h"
 
-#include <BaseScriptEngine.h>
-
 #include <graphics/BufferViewHelpers.h>
 #include <AABox.h>
 #include <Extents.h>
+#include <ScriptContext.h>
+#include <ScriptEngine.h>
+#include <ScriptValue.h>
 
 using buffer_helpers::glmVecToVariant;
 
@@ -77,7 +78,7 @@ QVariant toVariant(const gpu::Element& element) {
      };
 }
 
-QScriptValue jsBindCallback(QScriptValue value) {
+ScriptValue jsBindCallback(const ScriptValue& value) {
     if (value.isObject() && value.property("callback").isFunction()) {
         // value is already a bound callback
         return value;
@@ -85,8 +86,8 @@ QScriptValue jsBindCallback(QScriptValue value) {
     auto engine = value.engine();
     auto context = engine ? engine->currentContext() : nullptr;
     auto length = context ? context->argumentCount() : 0;
-    QScriptValue scope = context ? context->thisObject() : QScriptValue::NullValue;
-    QScriptValue method;
+    ScriptValue scope = context ? context->thisObject() : engine->nullValue();
+    ScriptValue method;
 #ifdef SCRIPTABLE_MESH_DEBUG
     qCInfo(graphics_scripting) << "jsBindCallback" << engine << length << scope.toQObject() << method.toString();
 #endif
@@ -111,9 +112,9 @@ QScriptValue jsBindCallback(QScriptValue value) {
 }
 
 template <typename T>
-T this_qobject_cast(QScriptEngine* engine) {
+T this_qobject_cast(ScriptEngine* engine) {
     auto context = engine ? engine->currentContext() : nullptr;
-    return qscriptvalue_cast<T>(context ? context->thisObject() : QScriptValue::NullValue);
+    return scriptvalue_cast<T>(context ? context->thisObject() : engine ? engine->nullValue() : ScriptValue());
 }
 QString toDebugString(QObject* tmp) {
     QString s;

@@ -9,7 +9,14 @@
 #ifndef hifi_ui_QmlWebWindowClass_h
 #define hifi_ui_QmlWebWindowClass_h
 
+#include <QtCore/QSharedPointer>
+
 #include "QmlWindowClass.h"
+
+#include <ScriptValue.h>
+
+class ScriptContext;
+class ScriptEngine;
 
 /*@jsdoc
  * A <code>OverlayWebWindow</code> displays an HTML window inside Interface.
@@ -142,15 +149,15 @@ class QmlWebWindowClass : public QmlWindowClass {
     Q_PROPERTY(QString url READ getURL CONSTANT)
 
 private:
-    static QScriptValue internal_constructor(QScriptContext* context, QScriptEngine* engine, bool restricted);
+    static ScriptValue internal_constructor(ScriptContext* context, ScriptEngine* engine, bool restricted);
 public:
     QmlWebWindowClass(bool restricted) : QmlWindowClass(restricted) {}
 
-    static QScriptValue constructor(QScriptContext* context, QScriptEngine* engine) {
+    static ScriptValue constructor(ScriptContext* context, ScriptEngine* engine) {
         return internal_constructor(context, engine, false);
     }
 
-    static QScriptValue restricted_constructor(QScriptContext* context, QScriptEngine* engine ){
+    static ScriptValue restricted_constructor(ScriptContext* context, ScriptEngine* engine ){
         return internal_constructor(context, engine, true);
     }
 

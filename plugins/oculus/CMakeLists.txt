@@ -22,6 +22,7 @@ if (WIN32 AND (NOT USE_GLES))
     ${PLATFORM_GL_BACKEND}
   )
   include_hifi_library_headers(octree)
+  include_hifi_library_headers(script-engine)
 
   add_dependency_external_projects(LibOVR)
   find_package(LibOVR REQUIRED)
