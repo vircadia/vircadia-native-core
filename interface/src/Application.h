@@ -16,6 +16,7 @@
 
 #include <functional>
 
+#include <QtCore/QCommandLineParser>
 #include <QtCore/QHash>
 #include <QtCore/QPointer>
 #include <QtCore/QSet>
@@ -97,8 +98,6 @@ namespace controller {
 
 
 static const QString RUNNING_MARKER_FILENAME = "Interface.running";
-static const QString SCRIPTS_SWITCH = "scripts";
-static const QString HIFI_NO_LOGIN_COMMAND_LINE_KEY = "no-login-suggestion";
 
 class Application;
 #if defined(qApp)
@@ -131,10 +130,15 @@ public:
     virtual DisplayPluginPointer getActiveDisplayPlugin() const override;
 
     // FIXME? Empty methods, do we still need them?
-    static void initPlugins(const QStringList& arguments);
+    static void initPlugins(const QCommandLineParser& parser);
     static void shutdownPlugins();
 
-    Application(int& argc, char** argv, QElapsedTimer& startup_time, bool runningMarkerExisted);
+    Application(
+        int& argc, char** argv,
+        const QCommandLineParser& parser,
+        QElapsedTimer& startup_time,
+        bool runningMarkerExisted
+    );
     ~Application();
 
     void postLambdaEvent(const std::function<void()>& f) override;
@@ -506,7 +510,7 @@ private slots:
 
     void notifyPacketVersionMismatch();
 
-    void loadSettings();
+    void loadSettings(const QCommandLineParser& parser);
     void saveSettings() const;
     void setFailedToConnectToEntityServer();
 
@@ -706,6 +710,8 @@ private:
     QPointer<LogDialog> _logDialog;
     QPointer<EntityScriptServerLogDialog> _entityScriptServerLogDialog;
     QDir _defaultScriptsLocation;
+    // If above is only set by parameter, below is unnecessary.
+    bool _overrideDefaultScriptsLocation;
 
     TouchEvent _lastTouchEvent;
 
@@ -830,6 +836,8 @@ private:
     std::atomic<bool> _pendingIdleEvent { true };
 
     bool quitWhenFinished { false };
+
+    QUrl _urlParam;
 
     bool _showTrackedObjects { false };
     bool _prevShowTrackedObjects { false };
