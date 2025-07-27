@@ -38,6 +38,7 @@
 #include "UpdateEntityOperator.h"
 #include "QVariantGLM.h"
 #include "EntitiesLogging.h"
+#include "EntitiesAuditLogging.h"
 #include "RecurseOctreeToMapOperator.h"
 #include "RecurseOctreeToJSONOperator.h"
 #include "LogHandler.h"
@@ -46,6 +47,7 @@
 
 static const quint64 DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER = USECS_PER_MSEC * 50;
 const float EntityTree::DEFAULT_MAX_TMP_ENTITY_LIFETIME = 60 * 60; // 1 hour
+const float EntityTree::DEFAULT_AUDIT_EDIT_INTERVAL = 10000; // 10 seconds
 static const QString DOMAIN_UNLIMITED = "domainUnlimited";
 
 EntityTree::EntityTree(bool shouldReaverage) :
@@ -66,6 +68,7 @@ EntityTree::~EntityTree() {
     // TODO: EntityTreeElement::_tree should be raw back pointer.
     // AND: EntityItem::_element should be a raw back pointer.
     //eraseAllOctreeElements(false); // KEEP THIS
+    qCDebug(entities) << "Killing entityTree...";
 }
 
 void EntityTree::setEntityScriptSourceWhitelist(const QString& entityScriptSourceWhitelist) { 
@@ -1800,6 +1803,10 @@ void EntityTree::processChallengeOwnershipPacket(ReceivedMessage& message, const
     }
 }
 
+void EntityTree::setAuditEditLoggingInterval(float interval) {
+    entitiesAuditLogProcessor.setAuditEditLoggingInterval(interval);
+}
+
 // NOTE: Caller must lock the tree before calling this.
 int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
                                      const SharedNodePointer& senderNode) {
@@ -1807,6 +1814,12 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
         qCWarning(entities) << "EntityTree::processEditPacketData() should only be called on a server tree.";
         return 0;
     }
+
+    if (wantAuditEditLogging() && !entitiesAuditLogProcessor.isProcessorRunning()) {
+        entitiesAuditLogProcessor.startAuditLogProcessor();
+    }
+
+    qDebug() << "PROCESSING" << wantAuditEditLogging() << " - " << entitiesAuditLogProcessor.isProcessorRunning();
 
     int processedBytes = 0;
     bool isAdd = false;
@@ -1833,6 +1846,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             quint64 startCreate = 0, endCreate = 0;
             quint64 startFilter = 0, endFilter = 0;
             quint64 startLogging = 0, endLogging = 0;
+
 
             bool suppressDisallowedClientScript = false;
             bool suppressDisallowedServerScript = false;
@@ -2008,6 +2022,10 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                         qCDebug(entities) << "User [" << senderNode->getUUID() << "] editing entity. ID:" << entityItemID;
                         qCDebug(entities) << "   properties:" << properties;
                     }
+                    if (wantAuditEditLogging()) {
+                        entitiesAuditLogProcessor.processEditEntityPacket(senderNode->getPublicSocket().toString(),
+                                                                     entityItemID.toString());
+                    }
                     if (wantTerseEditLogging()) {
                         QList<QString> changedProperties = properties.listChangedProperties();
                         fixupTerseEditLogging(properties, changedProperties);
@@ -2087,6 +2105,11 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                                   << newEntity->getEntityItemID();
                                 qCDebug(entities) << "   properties:" << properties;
                             }
+                            if (wantAuditEditLogging()) {
+                                entitiesAuditLogProcessor.processAddEntityPacket(senderNode->getPublicSocket().toString(),
+                                                                             entityItemID.toString(),
+                                                                             EntityTypes::getEntityTypeName(properties.getType()));
+                            }
                             if (wantTerseEditLogging()) {
                                 QList<QString> changedProperties = properties.listChangedProperties();
                                 fixupTerseEditLogging(properties, changedProperties);
@@ -2109,7 +2132,6 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                             "existingEntity pointer:" << existingEntity.get());
                 }
             }
-
 
             _totalDecodeTime += endDecode - startDecode;
             _totalLookupTime += endLookup - startLookup;
