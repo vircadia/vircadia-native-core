@@ -14,13 +14,13 @@
 #include <QtCore/QObject>
 #include <QUrl>
 
-#include <QtScript/QScriptEngine>
-#include <QtScript/QScriptable>
-
 #include "ScriptableMesh.h"
 #include <DependencyManager.h>
 #include "RegisteredMetaTypes.h"
+#include <Scriptable.h>
+#include <ScriptValue.h>
 
+class ScriptEngine;
 
 /*@jsdoc
  * The <code>Graphics</code> API enables you to access and manipulate avatar, entity, and overlay models in the rendered scene. 
@@ -34,11 +34,11 @@
  * @hifi-avatar
  */
 
-class GraphicsScriptingInterface : public QObject, public QScriptable, public Dependency {
+class GraphicsScriptingInterface : public QObject, public Scriptable, public Dependency {
     Q_OBJECT
 
 public:
-    static void registerMetaTypes(QScriptEngine* engine);
+    static void registerMetaTypes(ScriptEngine* engine);
     GraphicsScriptingInterface(QObject* parent = nullptr);
 
 public slots:
@@ -149,7 +149,7 @@ private:
 };
 
 namespace scriptable {
-    QScriptValue scriptableMaterialToScriptValue(QScriptEngine* engine, const scriptable::ScriptableMaterial &material);
+    ScriptValue scriptableMaterialToScriptValue(ScriptEngine* engine, const scriptable::ScriptableMaterial &material);
 };
 
 Q_DECLARE_METATYPE(NestableType)

@@ -23,7 +23,9 @@
 #include <PIDController.h>
 #include <SimpleMovingAverage.h>
 #include <render/Args.h>
+#include <ScriptValue.h>
 
+class ScriptEngine;
 
 /*@jsdoc
  * <p>The world detail quality rendered.</p>
@@ -381,7 +383,7 @@ private:
     glm::vec4 _pidOutputs{ 0.0f };
 };
 
-QScriptValue worldDetailQualityToScriptValue(QScriptEngine* engine, const WorldDetailQuality& worldDetailQuality);
-void worldDetailQualityFromScriptValue(const QScriptValue& object, WorldDetailQuality& worldDetailQuality);
+ScriptValue worldDetailQualityToScriptValue(ScriptEngine* engine, const WorldDetailQuality& worldDetailQuality);
+bool worldDetailQualityFromScriptValue(const ScriptValue& object, WorldDetailQuality& worldDetailQuality);
 
 #endif // hifi_LODManager_h

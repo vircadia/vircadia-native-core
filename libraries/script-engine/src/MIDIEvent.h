@@ -15,7 +15,9 @@
 #ifndef hifi_MIDIEvent_h
 #define hifi_MIDIEvent_h
 
-#include <QtScript/QScriptEngine>
+#include "ScriptValue.h"
+
+class ScriptEngine;
 
 /// Represents a MIDI protocol event to the scripting engine.
 class MIDIEvent {
@@ -28,10 +30,10 @@ public:
 
 Q_DECLARE_METATYPE(MIDIEvent)
 
-void registerMIDIMetaTypes(QScriptEngine* engine);
+void registerMIDIMetaTypes(ScriptEngine* engine);
 
-QScriptValue midiEventToScriptValue(QScriptEngine* engine, const MIDIEvent& event);
-void midiEventFromScriptValue(const QScriptValue &object, MIDIEvent& event);
+ScriptValue midiEventToScriptValue(ScriptEngine* engine, const MIDIEvent& event);
+bool midiEventFromScriptValue(const ScriptValue &object, MIDIEvent& event);
 
 #endif // hifi_MIDIEvent_h
 

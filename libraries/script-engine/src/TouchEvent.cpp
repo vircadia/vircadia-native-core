@@ -11,12 +11,12 @@
 
 #include "TouchEvent.h"
 
-#include <qscriptengine.h>
-#include <qscriptvalue.h>
-
 #include <NumericalConstants.h>
 
 #include "RegisteredMetaTypes.h"
+#include "ScriptEngine.h"
+#include "ScriptValue.h"
+#include "ScriptValueUtils.h"
 
 TouchEvent::TouchEvent() :
     x(0.0f),
@@ -204,8 +204,8 @@ void TouchEvent::calculateMetaAttributes(const TouchEvent& other) {
  *     print(JSON.stringify(event));
  * });
  */
-QScriptValue TouchEvent::toScriptValue(QScriptEngine* engine, const TouchEvent& event) {
-    QScriptValue obj = engine->newObject();
+ScriptValue TouchEvent::toScriptValue(ScriptEngine* engine, const TouchEvent& event) {
+    ScriptValue obj = engine->newObject();
     obj.setProperty("x", event.x);
     obj.setProperty("y", event.y);
     obj.setProperty("isPressed", event.isPressed);
@@ -218,10 +218,10 @@ QScriptValue TouchEvent::toScriptValue(QScriptEngine* engine, const TouchEvent& 
     obj.setProperty("isAlt", event.isAlt);
     obj.setProperty("touchPoints", event.touchPoints);
 
-    QScriptValue pointsObj = engine->newArray();
+    ScriptValue pointsObj = engine->newArray();
     int index = 0;
     foreach (glm::vec2 point, event.points) {
-        QScriptValue thisPoint = vec2ToScriptValue(engine, point);
+        ScriptValue thisPoint = vec2ToScriptValue(engine, point);
         pointsObj.setProperty(index, thisPoint);
         index++;
     }
@@ -232,7 +232,7 @@ QScriptValue TouchEvent::toScriptValue(QScriptEngine* engine, const TouchEvent& 
 
     obj.setProperty("angle", event.angle);
     obj.setProperty("deltaAngle", event.deltaAngle);
-    QScriptValue anglesObj = engine->newArray();
+    ScriptValue anglesObj = engine->newArray();
     index = 0;
     foreach (float angle, event.angles) {
         anglesObj.setProperty(index, angle);
@@ -245,6 +245,7 @@ QScriptValue TouchEvent::toScriptValue(QScriptEngine* engine, const TouchEvent& 
     return obj;
 }
 
-void TouchEvent::fromScriptValue(const QScriptValue& object, TouchEvent& event) {
+bool TouchEvent::fromScriptValue(const ScriptValue& object, TouchEvent& event) {
     // nothing for now...
+    return false;
 }

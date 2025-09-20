@@ -1,7 +1,5 @@
 #pragma once
 
-#include <QtScript/QScriptEngine>
-#include <QtScript/QScriptValue>
 #include <QtCore/QPointer>
 #include <QtCore/QObject>
 #include <QtCore/QLoggingCategory>
@@ -9,6 +7,9 @@
 #include <memory>
 #include <functional>
 #include <glm/glm.hpp>
+#include <ScriptValue.h>
+
+class ScriptEngine;
 
 class Extents;
 class AABox;
@@ -24,15 +25,15 @@ namespace scriptable {
     QVariant toVariant(const glm::mat4& mat4);
 
     // helper that automatically resolves Qt-signal-like scoped callbacks
-    // ... C++ side: `void MyClass::asyncMethod(..., QScriptValue callback)` 
+    // ... C++ side: `void MyClass::asyncMethod(..., const ScriptValue& callback)` 
     // ... JS side:
     //     * `API.asyncMethod(..., function(){})`
     //     * `API.asyncMethod(..., scope, function(){})`
     //     * `API.asyncMethod(..., scope, "methodName")`
-    QScriptValue jsBindCallback(QScriptValue callback);
+    ScriptValue jsBindCallback(const ScriptValue& callback);
 
     // cast engine->thisObject() => C++ class instance
-    template <typename T> T this_qobject_cast(QScriptEngine* engine);
+    template <typename T> T this_qobject_cast(ScriptEngine* engine);
 
     QString toDebugString(QObject* tmp);
     template <typename T> QString toDebugString(std::shared_ptr<T> tmp);

@@ -12,10 +12,11 @@
 #include "RecurseOctreeToMapOperator.h"
 
 #include "EntityItemProperties.h"
+#include <ScriptValue.h>
 
 RecurseOctreeToMapOperator::RecurseOctreeToMapOperator(QVariantMap& map,
                                                        const OctreeElementPointer& top,
-                                                       QScriptEngine* engine,
+                                                       ScriptEngine* engine,
                                                        bool skipDefaultValues,
                                                        bool skipThoseWithBadParents,
                                                        std::shared_ptr<AvatarData> myAvatar) :
@@ -56,7 +57,7 @@ bool RecurseOctreeToMapOperator::postRecursion(const OctreeElementPointer& eleme
         }
 
         EntityItemProperties properties = entityItem->getProperties();
-        QScriptValue qScriptValues;
+        ScriptValue qScriptValues;
         if (_skipDefaultValues) {
             qScriptValues = EntityItemNonDefaultPropertiesToScriptValue(_engine, properties);
         } else {

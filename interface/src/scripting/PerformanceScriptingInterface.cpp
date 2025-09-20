@@ -16,6 +16,8 @@ std::once_flag PerformanceScriptingInterface::registry_flag;
 PerformanceScriptingInterface::PerformanceScriptingInterface() {
     std::call_once(registry_flag, [] {
         qmlRegisterType<PerformanceScriptingInterface>("PerformanceEnums", 1, 0, "PerformanceEnums");
+        qRegisterMetaType<PerformanceScriptingInterface::PerformancePreset>("PerformanceScriptingInterface::PerformancePreset");
+        qRegisterMetaType<PerformanceScriptingInterface::RefreshRateProfile>("PerformanceScriptingInterface::RefreshRateProfile");
     });
 }
 

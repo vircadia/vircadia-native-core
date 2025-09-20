@@ -18,12 +18,14 @@
 #include <QtCore/QObject>
 #include <QtCore/QSharedPointer>
 #include <QtCore/QUuid>
+#include <QtCore/QSharedPointer>
 
 #include <EntityEditPacketSender.h>
 #include <plugins/CodecPlugin.h>
-#include <ScriptEngine.h>
 #include <SimpleEntitySimulation.h>
 #include <ThreadedAssignment.h>
+#include <ScriptManager.h>
+
 #include "../entities/EntityTreeHeadlessViewer.h"
 
 class EntityScriptServer : public ThreadedAssignment {
@@ -76,7 +78,7 @@ private:
     bool _shuttingDown { false };
 
     static int _entitiesScriptEngineCount;
-    ScriptEnginePointer _entitiesScriptEngine;
+    ScriptManagerPointer _entitiesScriptManager;
     SimpleEntitySimulationPointer _entitySimulation;
     EntityEditPacketSender _entityEditSender;
     EntityTreeHeadlessViewer _entityViewer;

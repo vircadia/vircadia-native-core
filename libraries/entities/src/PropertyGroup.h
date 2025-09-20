@@ -12,8 +12,6 @@
 #ifndef hifi_PropertyGroup_h
 #define hifi_PropertyGroup_h
 
-#include <QtScript/QScriptEngine>
-
 #include <OctreeElement.h>
 
 #include "EntityPropertyFlags.h"
@@ -24,6 +22,8 @@ class EncodeBitstreamParams;
 class OctreePacketData;
 class EntityTreeElementExtraEncodeData;
 class ReadBitstreamToTreeParams;
+class ScriptEngine;
+class ScriptValue;
 using EntityTreeElementExtraEncodeDataPointer = std::shared_ptr<EntityTreeElementExtraEncodeData>;
 
 
@@ -32,8 +32,8 @@ public:
     virtual ~PropertyGroup() = default;
 
     // EntityItemProperty related helpers
-    virtual void copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const = 0;
-    virtual void copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) = 0;
+    virtual void copyToScriptValue(const EntityPropertyFlags& desiredProperties, ScriptValue& properties, ScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const = 0;
+    virtual void copyFromScriptValue(const ScriptValue& object, bool& _defaultSettings) = 0;
     virtual void debugDump() const { }
     virtual void listChangedProperties(QList<QString>& out) { }
 

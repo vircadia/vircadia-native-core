@@ -20,8 +20,9 @@
 #include <QVector>
 #include <QTouchEvent>
 
-class QScriptValue;
-class QScriptEngine;
+#include "ScriptValue.h"
+
+class ScriptEngine;
 
 /// Represents a display or device event to the scripting engine. Exposed as <code><a href="https://apidocs.vircadia.dev/global.html#TouchEvent">TouchEvent</a></code>
 class TouchEvent {
@@ -30,8 +31,8 @@ public:
     TouchEvent(const QTouchEvent& event);
     TouchEvent(const QTouchEvent& event, const TouchEvent& other);
     
-    static QScriptValue toScriptValue(QScriptEngine* engine, const TouchEvent& event);
-    static void fromScriptValue(const QScriptValue& object, TouchEvent& event);
+    static ScriptValue toScriptValue(ScriptEngine* engine, const TouchEvent& event);
+    static bool fromScriptValue(const ScriptValue& object, TouchEvent& event);
     
     float x;
     float y;

@@ -16,7 +16,10 @@
 #define hifi_KeyEvent_h
 
 #include <QKeyEvent>
-#include <QScriptValue>
+
+#include "ScriptValue.h"
+
+class ScriptEngine;
 
 /// Represents a keyboard event to the scripting engine. Exposed as <code><a href="https://apidocs.vircadia.dev/global.html#KeyEvent">KeyEvent</a></code>
 class KeyEvent {
@@ -26,8 +29,8 @@ public:
     bool operator==(const KeyEvent& other) const;
     operator QKeySequence() const;
     
-    static QScriptValue toScriptValue(QScriptEngine* engine, const KeyEvent& event);
-    static void fromScriptValue(const QScriptValue& object, KeyEvent& event);
+    static ScriptValue toScriptValue(ScriptEngine* engine, const KeyEvent& event);
+    static bool fromScriptValue(const ScriptValue& object, KeyEvent& event);
     
     int key;
     QString text;

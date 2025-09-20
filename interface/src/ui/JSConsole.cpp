@@ -18,6 +18,8 @@
 #include <QStringListModel>
 #include <QListView>
 #include <QToolTip>
+#include <QtGui/QStandardItem>
+#include <QtGui/QStandardItemModel>
 
 #include <shared/QtHelpers.h>
 #include <ScriptEngines.h>
@@ -133,7 +135,7 @@ QStandardItemModel* JSConsole::getAutoCompleteModel(const QString& memberOf) {
     return model;
 }
 
-JSConsole::JSConsole(QWidget* parent, const ScriptEnginePointer& scriptEngine) :
+JSConsole::JSConsole(QWidget* parent, const ScriptManagerPointer& scriptManager) :
     QWidget(parent),
     _ui(new Ui::Console),
     _currentCommandInHistory(NO_CURRENT_HISTORY_COMMAND),
@@ -181,11 +183,11 @@ JSConsole::JSConsole(QWidget* parent, const ScriptEnginePointer& scriptEngine) :
     QObject::connect(_completer, static_cast<void(QCompleter::*)(const QModelIndex&)>(&QCompleter::highlighted), this,
         &JSConsole::highlightedCompletion);
 
-    setScriptEngine(scriptEngine);
+    setScriptManager(scriptManager);
 
     resizeTextInput();
 
-    connect(&_executeWatcher, &QFutureWatcher<QScriptValue>::finished, this, &JSConsole::commandFinished);
+    connect(&_executeWatcher, &QFutureWatcher<ScriptValue>::finished, this, &JSConsole::commandFinished);
 }
 
 void JSConsole::insertCompletion(const QModelIndex& completion) {
@@ -305,33 +307,33 @@ void JSConsole::highlightedCompletion(const QModelIndex& completion) {
 }
 
 JSConsole::~JSConsole() {
-    if (_scriptEngine) {
-        disconnect(_scriptEngine.data(), nullptr, this, nullptr);
-        _scriptEngine.reset();
+    if (_scriptManager) {
+        disconnect(_scriptManager.get(), nullptr, this, nullptr);
+        _scriptManager.reset();
     }
     delete _ui;
 }
 
-void JSConsole::setScriptEngine(const ScriptEnginePointer& scriptEngine) {
-    if (_scriptEngine == scriptEngine && scriptEngine != nullptr) {
+void JSConsole::setScriptManager(const ScriptManagerPointer& scriptManager) {
+    if (_scriptManager == scriptManager && scriptManager != nullptr) {
         return;
     }
-    if (_scriptEngine != nullptr) {
-        disconnect(_scriptEngine.data(), nullptr, this, nullptr);
-        _scriptEngine.reset();
+    if (_scriptManager != nullptr) {
+        disconnect(_scriptManager.get(), nullptr, this, nullptr);
+        _scriptManager.reset();
     }
 
     // if scriptEngine is nullptr then create one and keep track of it using _ownScriptEngine
-    if (scriptEngine.isNull()) {
-        _scriptEngine = DependencyManager::get<ScriptEngines>()->loadScript(_consoleFileName, false);
+    if (!scriptManager) {
+        _scriptManager = DependencyManager::get<ScriptEngines>()->loadScript(_consoleFileName, false);
     } else {
-        _scriptEngine = scriptEngine;
+        _scriptManager = scriptManager;
     }
 
-    connect(_scriptEngine.data(), &ScriptEngine::printedMessage, this, &JSConsole::handlePrint);
-    connect(_scriptEngine.data(), &ScriptEngine::infoMessage, this, &JSConsole::handleInfo);
-    connect(_scriptEngine.data(), &ScriptEngine::warningMessage, this, &JSConsole::handleWarning);
-    connect(_scriptEngine.data(), &ScriptEngine::errorMessage, this, &JSConsole::handleError);
+    connect(_scriptManager.get(), &ScriptManager::printedMessage, this, &JSConsole::handlePrint);
+    connect(_scriptManager.get(), &ScriptManager::infoMessage, this, &JSConsole::handleInfo);
+    connect(_scriptManager.get(), &ScriptManager::warningMessage, this, &JSConsole::handleWarning);
+    connect(_scriptManager.get(), &ScriptManager::errorMessage, this, &JSConsole::handleError);
 }
 
 void JSConsole::executeCommand(const QString& command) {
@@ -347,16 +349,15 @@ void JSConsole::executeCommand(const QString& command) {
 
     appendMessage(">", "<span style='" + COMMAND_STYLE + "'>" + command.toHtmlEscaped() + "</span>");
 
-    QWeakPointer<ScriptEngine> weakScriptEngine = _scriptEngine;
+    std::weak_ptr<ScriptManager> weakScriptManager = _scriptManager;
     auto consoleFileName = _consoleFileName;
-    QFuture<QScriptValue> future = QtConcurrent::run([weakScriptEngine, consoleFileName, command]()->QScriptValue{
-        QScriptValue result;
-        auto scriptEngine = weakScriptEngine.lock();
-        if (scriptEngine) {
-            BLOCKING_INVOKE_METHOD(scriptEngine.data(), "evaluate",
-                Q_RETURN_ARG(QScriptValue, result),
-                Q_ARG(const QString&, command),
-                Q_ARG(const QString&, consoleFileName));
+    QFuture<ScriptValue> future = QtConcurrent::run([weakScriptManager, consoleFileName, command]() -> ScriptValue {
+        ScriptValue result;
+        auto scriptManager = weakScriptManager.lock();
+        if (scriptManager) {
+            BLOCKING_INVOKE_METHOD(scriptManager.get(), [&scriptManager, &consoleFileName, &command, &result]() -> void {
+                result = scriptManager->evaluate(command, consoleFileName);
+            });
         }
         return result;
     });
@@ -364,7 +365,7 @@ void JSConsole::executeCommand(const QString& command) {
 }
 
 void JSConsole::commandFinished() {
-    QScriptValue result = _executeWatcher.result();
+    ScriptValue result = _executeWatcher.result();
 
     _ui->promptTextEdit->setDisabled(false);
 
@@ -373,7 +374,7 @@ void JSConsole::commandFinished() {
         _ui->promptTextEdit->setFocus();
     }
 
-    bool error = (_scriptEngine->hasUncaughtException() || result.isError());
+    bool error = (_scriptManager->engine()->hasUncaughtException() || result.isError());
     QString gutter = error ? GUTTER_ERROR : GUTTER_PREVIOUS_COMMAND;
     QString resultColor = error ? RESULT_ERROR_STYLE : RESULT_SUCCESS_STYLE;
     QString resultStr = "<span style='" + resultColor + "'>" + result.toString().toHtmlEscaped() + "</span>";

@@ -17,8 +17,6 @@
 
 #include <glm/glm.hpp>
 
-#include <QtScript/QScriptEngine>
-
 #include "EntityItemPropertiesMacros.h"
 #include "PropertyGroup.h"
 
@@ -27,16 +25,18 @@ class EncodeBitstreamParams;
 class OctreePacketData;
 class EntityTreeElementExtraEncodeData;
 class ReadBitstreamToTreeParams;
+class ScriptEngine;
+class ScriptValue;
 
 class AnimationPropertyGroup : public PropertyGroup {
 public:
     static const float MAXIMUM_POSSIBLE_FRAME;
 
     // EntityItemProperty related helpers
-    virtual void copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties,
-                                   QScriptEngine* engine, bool skipDefaults,
+    virtual void copyToScriptValue(const EntityPropertyFlags& desiredProperties, ScriptValue& properties,
+                                   ScriptEngine* engine, bool skipDefaults,
                                    EntityItemProperties& defaultEntityProperties) const override;
-    virtual void copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) override;
+    virtual void copyFromScriptValue(const ScriptValue& object, bool& _defaultSettings) override;
 
     void merge(const AnimationPropertyGroup& other);
 

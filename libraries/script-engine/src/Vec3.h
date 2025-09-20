@@ -20,9 +20,9 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QString>
-#include <QtScript/QScriptable>
 
 #include "GLMHelpers.h"
+#include "Scriptable.h"
 
 /*@jsdoc
  * The <code>Vec3</code> API provides facilities for generating and manipulating 3-dimensional vectors. Vircadia uses a 
@@ -75,7 +75,7 @@
  *     <code>UNIT_NEG_Z</code>. <em>Read-only.</em>
  */
 /// Provides the <code><a href="https://apidocs.vircadia.dev/Vec3.html">Vec3</a></code> scripting interface
-class Vec3 : public QObject, protected QScriptable {
+class Vec3 : public QObject, protected Scriptable {
     Q_OBJECT
     Q_PROPERTY(glm::vec3 UNIT_X READ UNIT_X CONSTANT)
     Q_PROPERTY(glm::vec3 UNIT_Y READ UNIT_Y CONSTANT)

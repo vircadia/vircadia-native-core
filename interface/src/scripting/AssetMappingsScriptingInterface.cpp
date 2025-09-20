@@ -11,7 +11,6 @@
 
 #include "AssetMappingsScriptingInterface.h"
 
-#include <QtScript/QScriptEngine>
 #include <QtCore/QFile>
 #include <QtCore/QThread>
 

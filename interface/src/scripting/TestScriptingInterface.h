@@ -12,8 +12,7 @@
 
 #include <functional>
 #include <QtCore/QObject>
-
-class QScriptValue;
+#include <ScriptValue.h>
 
 class TestScriptingInterface : public QObject {
     Q_OBJECT
@@ -127,7 +126,7 @@ public slots:
     * @param {string} name - Name used to reference the function
     * @param {function} function - Function to profile
     */
-    Q_INVOKABLE void profileRange(const QString& name, QScriptValue function);
+    Q_INVOKABLE void profileRange(const QString& name, const ScriptValue& function);
 
     /*@jsdoc
     * Clear all caches (menu command Reload Content)

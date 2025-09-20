@@ -10,31 +10,31 @@
 
 #include <QtCore/QThread>
 #include <QtQuick/QQuickItem>
-#include <QtScript/QScriptValue>
-#include <QtScript/QScriptEngine>
+#include <ScriptValue.h>
+#include <ScriptEngine.h>
 
 #include <shared/QtHelpers.h>
 #include "../OffscreenUi.h"
 
-QScriptValue toolbarToScriptValue(QScriptEngine* engine, ToolbarProxy* const &in) {
+ScriptValue toolbarToScriptValue(ScriptEngine* engine, ToolbarProxy* const &in) {
     if (!in) {
         return engine->undefinedValue();
     }
-    return engine->newQObject(in, QScriptEngine::QtOwnership, QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects);
+    return engine->newQObject(in, ScriptEngine::QtOwnership);
 }
 
-void toolbarFromScriptValue(const QScriptValue& value, ToolbarProxy* &out) {
+void toolbarFromScriptValue(const ScriptValue& value, ToolbarProxy* &out) {
     out = qobject_cast<ToolbarProxy*>(value.toQObject());
 }
 
-QScriptValue toolbarButtonToScriptValue(QScriptEngine* engine, ToolbarButtonProxy* const &in) {
+ScriptValue toolbarButtonToScriptValue(ScriptEngine* engine, ToolbarButtonProxy* const &in) {
     if (!in) {
         return engine->undefinedValue();
     }
-    return engine->newQObject(in, QScriptEngine::QtOwnership, QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects);
+    return engine->newQObject(in, ScriptEngine::QtOwnership);
 }
 
-void toolbarButtonFromScriptValue(const QScriptValue& value, ToolbarButtonProxy* &out) {
+void toolbarButtonFromScriptValue(const ScriptValue& value, ToolbarButtonProxy* &out) {
     out = qobject_cast<ToolbarButtonProxy*>(value.toQObject());
 }
 

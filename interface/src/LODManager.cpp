@@ -427,13 +427,14 @@ WorldDetailQuality LODManager::getWorldDetailQuality() const {
     return qApp->isHMDMode() ? _hmdWorldDetailQuality : _desktopWorldDetailQuality;
 }
 
-QScriptValue worldDetailQualityToScriptValue(QScriptEngine* engine, const WorldDetailQuality& worldDetailQuality) {
-    return worldDetailQuality;
+ScriptValue worldDetailQualityToScriptValue(ScriptEngine* engine, const WorldDetailQuality& worldDetailQuality) {
+    return engine->newValue(worldDetailQuality);
 }
 
-void worldDetailQualityFromScriptValue(const QScriptValue& object, WorldDetailQuality& worldDetailQuality) {
+bool worldDetailQualityFromScriptValue(const ScriptValue& object, WorldDetailQuality& worldDetailQuality) {
     worldDetailQuality = 
         static_cast<WorldDetailQuality>(std::min(std::max(object.toInt32(), (int)WORLD_DETAIL_LOW), (int)WORLD_DETAIL_HIGH));
+    return true;
 }
 
 void LODManager::setLODQualityLevel(float quality) {

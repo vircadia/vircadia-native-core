@@ -15,11 +15,13 @@
 
 #include <QtCore/QLoggingCategory>
 
-#if defined Q_OS_WIN32
-#include "Windows.h"
-#endif
+#include <ScriptEngine.h>
+#include <ScriptManager.h>
 
 #if defined Q_OS_WIN32
+#include <Windows.h>
+#include <mmeapi.h>
+
 const int MIDI_BYTE_MASK = 0x0FF;
 const int MIDI_NIBBLE_MASK = 0x00F;
 const int MIDI_PITCH_BEND_MASK = 0x3F80;
@@ -130,6 +132,12 @@ void CALLBACK MidiInProc(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWORD
         }
     }
 }
+
+STATIC_SCRIPT_INITIALIZER(+[](ScriptManager* manager) {
+    auto scriptEngine = manager->engine();
+
+    scriptEngine->registerGlobalObject("Midi", DependencyManager::get<Midi>().data());
+});
 
 void CALLBACK MidiOutProc(HMIDIOUT hmo, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2) {
     switch (wMsg) {
