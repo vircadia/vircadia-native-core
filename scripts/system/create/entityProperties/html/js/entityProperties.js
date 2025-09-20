@@ -613,6 +613,7 @@ const GROUPS = [
                 type: "string",
                 placeholder: "URL",
                 propertyID: "modelURL",
+                buttons: [ { id: "reload", label: "F", className: "glyph", onClick: reloadModelURL } ],
                 hideIfCertified: true,
             },
             {
@@ -3230,6 +3231,13 @@ function resetToNaturalDimensions() {
     EventBridge.emitWebEvent(JSON.stringify({
         type: "action",
         action: "resetToNaturalDimensions"
+    }));
+}
+
+function reloadModelURL() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "action",
+        action: "reloadModelURL"
     }));
 }
 
