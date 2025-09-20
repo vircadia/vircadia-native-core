@@ -25,6 +25,7 @@
 #include <SimpleEntitySimulation.h>
 #include <ThreadedAssignment.h>
 #include "../entities/EntityTreeHeadlessViewer.h"
+#include "plugins/CodecPlugin.h"
 
 class EntityScriptServer : public ThreadedAssignment {
     Q_OBJECT
@@ -90,6 +91,7 @@ private:
     QString _selectedCodecName;
     CodecPluginPointer _codec;
     Encoder* _encoder { nullptr };
+    std::vector<Encoder::CodecSettings> _codecSettings;
 };
 
 #endif // hifi_EntityScriptServer_h

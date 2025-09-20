@@ -165,7 +165,7 @@ void AudioMixerClientData::optionallyReplicatePacket(ReceivedMessage& message, c
 
                     packet->write(message.getMessage());
                 }
-                
+
                 nodeList->sendUnreliablePacket(*packet, *downstreamNode);
             }
         });
@@ -375,7 +375,7 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
             qWarning() << "Received AudioStreamStats of wrong size" << message.getBytesLeftToRead()
                 << "instead of" << sizeof(AudioStreamStats) << "from"
                 << message.getSourceID() << "at" << message.getSenderSockAddr();
-            
+
             return message.getPosition();
         }
 
@@ -783,6 +783,8 @@ void AudioMixerClientData::setupCodec(CodecPluginPointer codec, const QString& c
     if (codec) {
         _encoder = codec->createEncoder(AudioConstants::SAMPLE_RATE, AudioConstants::STEREO);
         _decoder = codec->createDecoder(AudioConstants::SAMPLE_RATE, AudioConstants::MONO);
+
+        _encoder->configure(_codecSettings);
     }
 
     auto avatarAudioStream = getAvatarAudioStream();
